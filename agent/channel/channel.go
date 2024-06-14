@@ -8,7 +8,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/byteseek/idb/agent/encrypt"
@@ -105,7 +107,7 @@ func (s *ChannelService) verifyMessage(msg *Message) error {
 	}
 
 	// 计算校验和并比较
-	expectedChecksum := s.calculateChecksum(msg.Data)
+	expectedChecksum := calculateChecksum(msg.Data)
 	if msg.Checksum != expectedChecksum {
 		return errors.New("checksum mismatch")
 	}
@@ -113,7 +115,7 @@ func (s *ChannelService) verifyMessage(msg *Message) error {
 	// 重新计算签名并比较
 	sign := msg.Sign
 	msg.Sign = ""
-	expectedSign := s.generateHMAC(msg)
+	expectedSign := generateHMAC(msg, s.key)
 	if sign != expectedSign {
 		return errors.New("signature mismatch")
 	}
@@ -122,61 +124,73 @@ func (s *ChannelService) verifyMessage(msg *Message) error {
 }
 
 // 生成 HMAC 签名
-func (s *ChannelService) generateHMAC(msg *Message) string {
-	h := hmac.New(sha256.New, []byte(s.key))
+func generateHMAC(msg *Message, key string) string {
+	h := hmac.New(sha256.New, []byte(key))
 	h.Write([]byte(msg.MsgID + msg.Data + msg.Nonce + msg.Version + msg.Checksum))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
 // 计算数据的校验和
-func (s *ChannelService) calculateChecksum(data string) string {
+func calculateChecksum(data string) string {
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
 }
 
-// // CreateMessage 创建并签名一个消息
-// func (s *ChannelService) CreateMessage(msgID, data, key, nonce, keyID string) (*Message, error) {
-// 	timestamp := time.Now().Unix()
-// 	checksum := s.calculateChecksum(data)
+// CreateMessage 创建并签名一个消息
+func CreateMessage(msgID string, data string, key string, nonce string) (*Message, error) {
+	timestamp := time.Now().Unix()
+	checksum := calculateChecksum(data)
 
-// 	// 加密数据
-// 	encryptedData, err := encrypt.Encrypt([]byte(data), []byte(key))
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	// 加密数据
+	encryptedData, err := encrypt.Encrypt(data, key)
+	if err != nil {
+		return nil, err
+	}
 
-// 	// 创建消息对象
-// 	msg := &Message{
-// 		MsgID:     msgID,
-// 		Data:      encryptedData,
-// 		Timestamp: timestamp,
-// 		Nonce:     nonce,
-// 		Version:   "1.0",
-// 		Checksum:  checksum,
-// 	}
+	// 创建消息对象
+	msg := &Message{
+		MsgID:     msgID,
+		Data:      encryptedData,
+		Timestamp: timestamp,
+		Nonce:     nonce,
+		Version:   "1.0",
+		Checksum:  checksum,
+	}
 
-// 	// 生成签名
-// 	msg.Sign = s.generateHMAC(msg)
+	// 生成签名
+	msg.Sign = generateHMAC(msg, key)
 
-// 	return msg, nil
-// }
+	return msg, nil
+}
 
-// // 发送消息到指定地址
-// func SendMessage(conn net.Conn, msg *Message) error {
-// 	msgJSON, err := json.Marshal(msg)
-// 	if err != nil {
-// 		return err
-// 	}
+// 发送消息到指定地址
+func SendMessage(host string, port int, msg *Message) error {
+	// 序列化消息
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %v", err)
+	}
 
-// 	// 将消息长度编码到前 4 个字节
-// 	length := uint32(len(msgJSON))
-// 	header := make([]byte, 4)
-// 	binary.BigEndian.PutUint32(header, length)
+	// 连接服务器
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %v", err)
+	}
+	defer conn.Close()
 
-// 	// 发送魔术字节、消息头和消息体
-// 	_, err = conn.Write(append(MagicBytes, append(header, msgJSON...)...))
-// 	return err
-// }
+	// 将消息长度编码到前 4 个字节
+	length := uint32(len(data))
+	header := make([]byte, 4)
+	binary.BigEndian.PutUint32(header, length)
+
+	// 发送魔术字节、消息头和消息体
+	_, err = conn.Write(append([]byte(MagicBytes), append(header, data...)...))
+	if err != nil {
+		return fmt.Errorf("failed to send data: %v", err)
+	}
+
+	return nil
+}
 
 // // 接收消息
 // func ReceiveMessages(conn net.Conn, key string) ([]*Message, error) {
