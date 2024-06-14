@@ -1,3 +1,3 @@
-module github.com/byteseek/idb/center
+module github.com/sensdata/idb/center
 
 go 1.19

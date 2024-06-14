@@ -13,7 +13,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/byteseek/idb/agent/encrypt"
+	"github.com/sensdata/idb/agent/encrypt"
 )
 
 // 消息起始字节

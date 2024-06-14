@@ -1,3 +1,3 @@
-module github.com/byteseek/idb
+module github.com/sensdata/idb
 
 go 1.19

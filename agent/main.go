@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/byteseek/idb/agent/channel"
-	"github.com/byteseek/idb/agent/config"
-	"github.com/byteseek/idb/agent/log"
-	"github.com/byteseek/idb/agent/utils"
+	"github.com/sensdata/idb/agent/channel"
+	"github.com/sensdata/idb/agent/config"
+	"github.com/sensdata/idb/agent/log"
+	"github.com/sensdata/idb/agent/utils"
 )
 
 func main() {
