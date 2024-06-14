@@ -1,6 +1,7 @@
 {
     "port": 9090,
-    "secret_key": "your_secret_key",
+    "log_path": "/tmp/agent.log",
+    "secret_key": "idbidbidbidbidbidbidbidb",
     "center_ip": "127.0.0.1",
     "center_port": 9090
   }

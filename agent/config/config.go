@@ -11,6 +11,7 @@ import (
 // Config定义
 type Config struct {
 	Port       int    `json:"port"`
+	LogPath    string `json:"log_path"`
 	SecretKey  string `json:"secret_key"`
 	CenterIP   string `json:"center_ip"`
 	CenterPort int    `json:"center_port"`

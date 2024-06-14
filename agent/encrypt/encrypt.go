@@ -3,51 +3,47 @@ package encrypt
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"encoding/hex"
-	"errors"
-	"io"
 )
 
-// Encrypt 使用 AES 加密数据
-func Encrypt(data []byte, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
+func Encrypt(data, key string) (string, error) {
+	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return "", err
 	}
 
-	ciphertext := make([]byte, aes.BlockSize+len(data))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
 		return "", err
 	}
 
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], data)
-
+	nonce := make([]byte, aesGCM.NonceSize())
+	ciphertext := aesGCM.Seal(nonce, nonce, []byte(data), nil)
 	return hex.EncodeToString(ciphertext), nil
 }
 
-// Decrypt 使用 AES 解密数据
-func Decrypt(encrypted string, key []byte) ([]byte, error) {
-	enc, err := hex.DecodeString(encrypted)
+func Decrypt(data, key string) (string, error) {
+	ciphertext, err := hex.DecodeString(data)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if len(enc) < aes.BlockSize {
-		return nil, errors.New("ciphertext too short")
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
 	}
-	iv := enc[:aes.BlockSize]
-	enc = enc[aes.BlockSize:]
 
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(enc, enc)
+	nonceSize := aesGCM.NonceSize()
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", err
+	}
 
-	return enc, nil
+	return string(plaintext), nil
 }
