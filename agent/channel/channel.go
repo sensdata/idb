@@ -57,13 +57,17 @@ func (s *ChannelService) AddMessage(data []byte) error {
 			return err
 		}
 		msg.Data = decryptedData
-		log.Printf("Received message: %+v", msg)
+		log.Printf("Received message: \n %+v \n", *msg)
 	}
 
 	return nil
 }
 
 func (s *ChannelService) decodeMessages(data []byte) ([]*Message, error) {
+	fmt.Printf("Recv:\n")
+	fmt.Println(hex.EncodeToString(data))
+	fmt.Println()
+
 	var messages []*Message
 	buf := bytes.NewBuffer(data)
 
@@ -114,7 +118,6 @@ func (s *ChannelService) verifyMessage(msg *Message) error {
 
 	// 重新计算签名并比较
 	sign := msg.Sign
-	msg.Sign = ""
 	expectedSign := generateHMAC(msg, s.key)
 	if sign != expectedSign {
 		return errors.New("signature mismatch")
@@ -138,14 +141,17 @@ func calculateChecksum(data string) string {
 
 // CreateMessage 创建并签名一个消息
 func CreateMessage(msgID string, data string, key string, nonce string) (*Message, error) {
+	// 时间戳
 	timestamp := time.Now().Unix()
-	checksum := calculateChecksum(data)
 
-	// 加密数据
+	// 加密
 	encryptedData, err := encrypt.Encrypt(data, key)
 	if err != nil {
 		return nil, err
 	}
+
+	// 校验和
+	checksum := calculateChecksum(encryptedData)
 
 	// 创建消息对象
 	msg := &Message{
@@ -165,12 +171,6 @@ func CreateMessage(msgID string, data string, key string, nonce string) (*Messag
 
 // 发送消息到指定地址
 func SendMessage(host string, port int, msg *Message) error {
-	// 序列化消息
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal message: %v", err)
-	}
-
 	// 连接服务器
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
@@ -178,13 +178,26 @@ func SendMessage(host string, port int, msg *Message) error {
 	}
 	defer conn.Close()
 
+	// 序列化消息
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %v", err)
+	}
+
 	// 将消息长度编码到前 4 个字节
-	length := uint32(len(data))
-	header := make([]byte, 4)
-	binary.BigEndian.PutUint32(header, length)
+	msgLen := make([]byte, MsgLenBytes)
+	binary.BigEndian.PutUint32(msgLen, uint32(len(data)))
+
+	// 拼接消息
+	encodedMsg := append([]byte(MagicBytes), msgLen...)
+	encodedMsg = append(encodedMsg, data...)
+
+	fmt.Printf("Send:\n")
+	fmt.Println(hex.EncodeToString(encodedMsg))
+	fmt.Println()
 
 	// 发送魔术字节、消息头和消息体
-	_, err = conn.Write(append([]byte(MagicBytes), append(header, data...)...))
+	_, err = conn.Write(encodedMsg)
 	if err != nil {
 		return fmt.Errorf("failed to send data: %v", err)
 	}

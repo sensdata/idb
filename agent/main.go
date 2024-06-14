@@ -113,7 +113,7 @@ func handleConnection(conn net.Conn, service *channel.ChannelService) {
 	defer conn.Close()
 
 	var buffer []byte
-	tmp := make([]byte, 256)
+	tmp := make([]byte, 1024)
 	for {
 		n, err := conn.Read(tmp)
 		if err != nil {
@@ -154,6 +154,6 @@ func testSendMessage(cfg *config.Config) {
 	if err != nil {
 		fmt.Printf("Failed to send message: %v \n", err)
 	} else {
-		fmt.Println("Message sent successfully!")
+		fmt.Printf("Message sent successfully! \n")
 	}
 }
