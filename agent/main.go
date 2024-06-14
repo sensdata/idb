@@ -160,24 +160,32 @@ func handleConnection(conn net.Conn, service *channel.ChannelService) {
 
 func testSendMessage(cfg *config.Config) {
 	// 构造消息
-	nonce := utils.GenerateNonce(16)
-	msg, err := channel.CreateMessage(
-		"10000001",
-		"ps -aux | grep java",
-		cfg.SecretKey,
-		nonce,
-		channel.CmdMessage,
-	)
-	if err != nil {
-		fmt.Printf("Error creating message: %v\n", err)
-		return
+	commands := []string{
+		"sh -c echo 'Hello, test 1'",
+		"echo 'Hello, test 2'",
+		"ps",
+		"top -b -n 1 | grep java",
 	}
 
-	// 发送消息
-	err = channel.SendMessage("127.0.0.1", cfg.Port, msg)
-	if err != nil {
-		fmt.Printf("Failed to send message: %v \n", err)
-	} else {
-		fmt.Printf("Message sent successfully! \n")
+	for _, cmd := range commands {
+		msg, err := channel.CreateMessage(
+			utils.GenerateMsgId(),
+			cmd,
+			cfg.SecretKey,
+			utils.GenerateNonce(16),
+			channel.CmdMessage,
+		)
+		if err != nil {
+			fmt.Printf("Error creating message: %v\n", err)
+			return
+		}
+
+		// 发送消息
+		err = channel.SendMessage("127.0.0.1", cfg.Port, msg)
+		if err != nil {
+			fmt.Printf("Failed to send message: %v\n", err)
+		} else {
+			fmt.Println("Message sent successfully!")
+		}
 	}
 }
