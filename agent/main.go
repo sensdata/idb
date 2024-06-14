@@ -14,6 +14,7 @@ import (
 	"github.com/sensdata/idb/agent/channel"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/log"
+	"github.com/sensdata/idb/agent/shell"
 	"github.com/sensdata/idb/agent/utils"
 )
 
@@ -126,8 +127,30 @@ func handleConnection(conn net.Conn, service *channel.ChannelService) {
 		buffer = append(buffer, tmp[:n]...)
 
 		// 尝试解析消息
-		if err := service.AddMessage(buffer); err != nil {
+		messages, err := service.AddMessage(buffer)
+		if err != nil {
 			log.Error("Error processing message: %v", err)
+		} else {
+			// 处理消息
+			for _, msg := range messages {
+				log.Info("Received message: %s", msg.Data)
+
+				switch msg.Type {
+				case channel.CmdMessage: // 处理 Cmd 类型的消息
+					result, err := shell.ExecuteCommand(msg.Data)
+					if err != nil {
+						log.Error("Failed to execute command: %v", err)
+						continue
+					}
+					log.Info("Command output: %s", result)
+
+				case channel.ActionMessage: // 处理 Action 类型的消息
+					log.Info("Processing action message: %s", msg.Data)
+					// TODO: 在这里添加处理 action 消息的逻辑
+				default: // 不支持的消息
+					log.Error("Unknown message type: %s", msg.Type)
+				}
+			}
 		}
 
 		// 清空缓冲区
@@ -140,9 +163,10 @@ func testSendMessage(cfg *config.Config) {
 	nonce := utils.GenerateNonce(16)
 	msg, err := channel.CreateMessage(
 		"10000001",
-		"Hello, this is a test message!",
+		"ps -aux | grep java",
 		cfg.SecretKey,
 		nonce,
+		channel.CmdMessage,
 	)
 	if err != nil {
 		fmt.Printf("Error creating message: %v\n", err)

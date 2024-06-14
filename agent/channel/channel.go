@@ -23,15 +23,24 @@ const (
 	MsgLenBytes   = 4
 )
 
+// 消息类型
+type MessageType string
+
+const (
+	CmdMessage    MessageType = "cmd"
+	ActionMessage MessageType = "action"
+)
+
 // 消息体
 type Message struct {
-	MsgID     string `json:"msg_id"`
-	Sign      string `json:"sign"`
-	Data      string `json:"data"`
-	Timestamp int64  `json:"timestamp"`
-	Nonce     string `json:"nonce"`
-	Version   string `json:"version"`
-	Checksum  string `json:"checksum"`
+	MsgID     string      `json:"msg_id"`
+	Type      MessageType `json:"type"`
+	Sign      string      `json:"sign"`
+	Data      string      `json:"data"`
+	Timestamp int64       `json:"timestamp"`
+	Nonce     string      `json:"nonce"`
+	Version   string      `json:"version"`
+	Checksum  string      `json:"checksum"`
 }
 
 type ChannelService struct {
@@ -42,25 +51,29 @@ func NewChannelService(key string) *ChannelService {
 	return &ChannelService{key: key}
 }
 
-func (s *ChannelService) AddMessage(data []byte) error {
+func (s *ChannelService) AddMessage(data []byte) ([]*Message, error) {
 	messages, err := s.decodeMessages(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	var validMessages []*Message
 
 	for _, msg := range messages {
 		if err := s.verifyMessage(msg); err != nil {
-			return err
+			return nil, err
 		}
 		decryptedData, err := encrypt.Decrypt(msg.Data, s.key)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		msg.Data = decryptedData
 		log.Printf("Received message: \n %+v \n", *msg)
+
+		validMessages = append(validMessages, msg)
 	}
 
-	return nil
+	return validMessages, nil
 }
 
 func (s *ChannelService) decodeMessages(data []byte) ([]*Message, error) {
@@ -140,7 +153,7 @@ func calculateChecksum(data string) string {
 }
 
 // CreateMessage 创建并签名一个消息
-func CreateMessage(msgID string, data string, key string, nonce string) (*Message, error) {
+func CreateMessage(msgID string, data string, key string, nonce string, msgType MessageType) (*Message, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
 
@@ -156,6 +169,7 @@ func CreateMessage(msgID string, data string, key string, nonce string) (*Messag
 	// 创建消息对象
 	msg := &Message{
 		MsgID:     msgID,
+		Type:      msgType,
 		Data:      encryptedData,
 		Timestamp: timestamp,
 		Nonce:     nonce,
