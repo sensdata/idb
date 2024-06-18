@@ -8,7 +8,7 @@ import (
 
 	"github.com/sensdata/idb/agent/channel"
 	"github.com/sensdata/idb/agent/config"
-	"github.com/sensdata/idb/agent/log"
+	"github.com/sensdata/idb/core/log"
 )
 
 func main() {
