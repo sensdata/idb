@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/sensdata/idb/center/config"
@@ -20,6 +21,7 @@ type Center struct {
 	agentConns  map[string]net.Conn // 存储Agent端连接的映射
 	agentMsgIDs map[string]string   // 存储Agent端连接的最后一个消息ID
 	done        chan struct{}
+	mu          sync.Mutex // 保护agentConns和agentMsgIDs的互斥锁
 }
 
 func NewCenter(cfg config.CenterConfig) *Center {
@@ -36,7 +38,7 @@ func (c *Center) Start() error {
 	portStr := strconv.Itoa(c.cfg.Port)
 
 	// 监听端口
-	lis, err := net.Listen("tcp", ":"+portStr)
+	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
 	if err != nil {
 		log.Error("Failed to listen on port %s: %v", portStr, err)
 		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
@@ -46,7 +48,7 @@ func (c *Center) Start() error {
 	c.listener = lis
 	log.Info("Center Started, listening on port %d", c.cfg.Port)
 
-	// 启动接收连接的goroutine
+	// 启动接收连接的 goroutine
 	go c.acceptConnections()
 
 	// 定期发送心跳消息
@@ -58,9 +60,11 @@ func (c *Center) Start() error {
 func (c *Center) Stop() {
 	close(c.done)
 	// 关闭所有Agent连接
+	c.mu.Lock()
 	for _, conn := range c.agentConns {
 		conn.Close()
 	}
+	c.mu.Unlock()
 	//关闭监听
 	if c.listener != nil {
 		log.Info("Stopping listening")
@@ -72,7 +76,7 @@ func (c *Center) acceptConnections() {
 	for {
 		select {
 		case <-c.done:
-			log.Info("Shutting down server...")
+			log.Info("Server is shutting down, stop accepting new connections")
 			return
 		default:
 			conn, err := c.listener.Accept()
@@ -86,9 +90,15 @@ func (c *Center) acceptConnections() {
 				}
 				continue
 			}
-			// 记录Agent端的连接
-			agentID := conn.RemoteAddr().String()
-			c.agentConns[agentID] = conn
+
+			// 成功接受连接后记录日志
+			now := time.Now().Format(time.RFC3339)
+			log.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
+			// 记录到map中
+			c.mu.Lock()
+			c.agentConns[conn.RemoteAddr().String()] = conn
+			c.mu.Unlock()
+
 			// 处理连接
 			go c.handleConnection(conn)
 		}
@@ -96,7 +106,15 @@ func (c *Center) acceptConnections() {
 }
 
 func (c *Center) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		agentID := conn.RemoteAddr().String()
+		log.Info("close conn %s for err", agentID)
+
+		c.mu.Lock()
+		delete(c.agentConns, agentID)
+		c.mu.Unlock()
+		conn.Close()
+	}()
 
 	var buffer []byte
 	tmp := make([]byte, 1024)
@@ -117,16 +135,20 @@ func (c *Center) handleConnection(conn net.Conn) {
 			log.Error("Error processing message: %v", err)
 		} else {
 			// 记录Agent端的连接和最后一个消息ID
-			if len(messages) > 1 {
-				agentID := conn.RemoteAddr().String()
+			agentID := conn.RemoteAddr().String()
+			if len(messages) > 0 {
+				c.mu.Lock()
 				c.agentMsgIDs[agentID] = messages[0].MsgID
+				c.mu.Unlock()
 			}
 
 			// 处理消息
 			for _, msg := range messages {
-				log.Info("Received message: %s", msg.Data)
 
 				switch msg.Type {
+				case message.Heartbeat: // 收到心跳
+					// TODO: 维护在线状态
+					log.Info("Heartbeat from %s", agentID)
 				case message.CmdMessage: // 处理 Cmd 类型的消息
 					result, err := shell.ExecuteCommand(msg.Data)
 					if err != nil {
@@ -148,33 +170,46 @@ func (c *Center) handleConnection(conn net.Conn) {
 		// 清空缓冲区
 		buffer = buffer[:0]
 	}
+
+	log.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (c *Center) sendHeartbeat() {
 	ticker := time.NewTicker(time.Second * 30)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		// 发送心跳消息给所有Agent端
-		for agentID := range c.agentMsgIDs {
-			heartbeatMsg, err := message.CreateMessage(
-				utils.GenerateMsgId(),
-				"Heartbeat",
-				c.cfg.SecretKey,
-				utils.GenerateNonce(16),
-				message.Heartbeat,
-			)
-			if err != nil {
-				fmt.Printf("Error creating heartbeat message: %v\n", err)
-				continue
-			}
+	for {
+		select {
+		case <-c.done:
+			log.Info("Stopping heartbeat")
+			return
+		case <-ticker.C:
+			log.Info("Sending heartbeats to %d agents", len(c.agentConns))
+			c.mu.Lock()
+			for agentID, conn := range c.agentConns {
+				heartbeatMsg, err := message.CreateMessage(
+					utils.GenerateMsgId(),
+					"Heartbeat",
+					c.cfg.SecretKey,
+					utils.GenerateNonce(16),
+					message.Heartbeat,
+				)
+				if err != nil {
+					log.Error("Error creating heartbeat message: %v", err)
+					continue
+				}
 
-			// 发送心跳消息
-			conn := c.agentConns[agentID]
-			err = message.SendMessage(conn, heartbeatMsg)
-			if err != nil {
-				fmt.Printf("Failed to send heartbeat message: %v\n", err)
+				err = message.SendMessage(conn, heartbeatMsg)
+				if err != nil {
+					log.Error("Failed to send heartbeat message to %s: %v", agentID, err)
+					conn.Close()
+					delete(c.agentConns, agentID)
+					log.Info("close conn %s for heartbeat", agentID)
+				} else {
+					log.Info("Heartbeat sent to %s", agentID)
+				}
 			}
+			c.mu.Unlock()
 		}
 	}
 }

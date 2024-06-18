@@ -5,6 +5,8 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/core/log"
@@ -14,15 +16,20 @@ import (
 )
 
 type Agent struct {
-	cfg      config.Config
-	listener net.Listener
-	done     chan struct{}
+	cfg         config.Config
+	listener    net.Listener
+	centerID    string   // 存储center地址
+	centerConn  net.Conn // 存储center端连接的映射
+	centerMsgID string   // 存储center端连接的最后一个消息ID
+	done        chan struct{}
+	mu          sync.Mutex // 保护centerConn和centerMsgID的互斥锁
 }
 
 func NewAgent(cfg config.Config) *Agent {
 	return &Agent{
-		cfg:  cfg,
-		done: make(chan struct{}),
+		cfg:        cfg,
+		centerConn: nil,
+		done:       make(chan struct{}),
 	}
 }
 
@@ -32,7 +39,7 @@ func (a *Agent) Start() error {
 	log.Info("Agent started, try listen on port %s", portStr)
 
 	// 监听端口
-	lis, err := net.Listen("tcp", ":"+portStr)
+	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
 	if err != nil {
 		log.Error("Failed to listen on port %s: %v", portStr, err)
 		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
@@ -45,22 +52,72 @@ func (a *Agent) Start() error {
 	// 启动接受连接的 goroutine
 	go a.acceptConnections()
 
+	// 连接server
+	go a.connectToCenter()
+
 	return nil
 }
 
 func (a *Agent) Stop() {
 	close(a.done)
+	// 关闭center连接
+	a.mu.Lock()
+	if a.centerConn != nil {
+		a.centerConn.Close()
+	}
+	a.mu.Unlock()
+	//关闭监听
 	if a.listener != nil {
 		log.Info("Stopping listening")
 		a.listener.Close()
 	}
 }
 
+func (a *Agent) connectToCenter() {
+	const maxRetries = 5
+	const retryInterval = time.Second * 5
+
+	for retries := 0; retries < maxRetries; retries++ {
+		select {
+		case <-a.done:
+			return
+		default:
+			if a.centerConn == nil {
+				conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", a.cfg.CenterIP, a.cfg.CenterPort))
+				if err != nil {
+					select {
+					case <-a.done:
+						log.Info("Server is shutting down, stop connect to Center.")
+						return
+					default:
+						log.Error("Failed to connect to Center: %v", err)
+						time.Sleep(retryInterval)
+					}
+				} else {
+					// 记录连接
+					centerID := conn.RemoteAddr().String()
+					a.mu.Lock()
+					a.centerID = centerID
+					a.centerConn = conn
+					a.mu.Unlock()
+					log.Info("Successfully connected to Center %s", centerID)
+
+					// 处理连接
+					go a.handleConnection(conn)
+
+					return
+				}
+			}
+		}
+	}
+	log.Error("Max retries reached. Unable to connect to Center.")
+}
+
 func (a *Agent) acceptConnections() {
 	for {
 		select {
 		case <-a.done:
-			log.Info("Shutting down server...")
+			log.Info("Server is shutting down, stop accepting new connections.")
 			return
 		default:
 			conn, err := a.listener.Accept()
@@ -74,6 +131,12 @@ func (a *Agent) acceptConnections() {
 				}
 				continue
 			}
+
+			// 成功接受连接后记录日志
+			now := time.Now().Format(time.RFC3339)
+			centerID := conn.RemoteAddr().String()
+			log.Info("Accepted new connection from %s at %s", centerID, now)
+
 			// 处理连接
 			go a.handleConnection(conn)
 		}
@@ -81,7 +144,14 @@ func (a *Agent) acceptConnections() {
 }
 
 func (a *Agent) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		a.mu.Lock()
+		a.centerID = ""
+		a.centerConn = nil
+		a.mu.Unlock()
+
+		conn.Close()
+	}()
 
 	var buffer []byte
 	tmp := make([]byte, 1024)
@@ -101,13 +171,25 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		if err != nil {
 			log.Error("Error processing message: %v", err)
 		} else {
+			// 记录center端的链接和最后一个消息ID
+			if len(messages) > 0 {
+				a.mu.Lock()
+				a.centerMsgID = messages[0].MsgID
+				a.mu.Unlock()
+			}
+
 			// 处理消息
 			for _, msg := range messages {
-				log.Info("Received message: %s", msg.Data)
 
 				switch msg.Type {
 				case message.Heartbeat: // 回复心跳
-					a.sendHeartbeat(conn)
+					centerID := conn.RemoteAddr().String()
+					log.Info("Heartbeat from %s", centerID)
+					if a.centerID != "" && centerID == a.centerID {
+						a.sendHeartbeat(conn)
+					} else {
+						log.Error("%s is a unknown center", centerID)
+					}
 				case message.CmdMessage: // 处理 Cmd 类型的消息
 					result, err := shell.ExecuteCommand(msg.Data)
 					if err != nil {
@@ -129,9 +211,13 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		// 清空缓冲区
 		buffer = buffer[:0]
 	}
+
+	log.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {
+	centerID := conn.RemoteAddr().String()
+
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
 		"Heartbeat",
@@ -140,13 +226,23 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		message.Heartbeat,
 	)
 	if err != nil {
-		fmt.Printf("Error creating heartbeat message: %v\n", err)
+		log.Error("Error creating heartbeat message: %v", err)
 		return
 	}
 
 	err = message.SendMessage(conn, heartbeatMsg)
 	if err != nil {
-		fmt.Printf("Failed to send heartbeat message: %v\n", err)
+		log.Error("Failed to send heartbeat message: %v", err)
+		a.mu.Lock()
+		conn.Close()
+		log.Info("close conn %s for heartbeat", a.centerID)
+		a.centerConn = nil
+		a.centerID = ""
+		a.mu.Unlock()
+		//关闭后，尝试重新连接
+		go a.connectToCenter()
+	} else {
+		log.Info("Heartbeat sent to %s", centerID)
 	}
 }
 
