@@ -73,15 +73,8 @@ func CreateMessage(msgID string, data string, key string, nonce string, msgType 
 	return msg, nil
 }
 
-// 发送消息到指定地址
-func SendMessage(host string, port int, msg *Message) error {
-	// 连接服务器
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return fmt.Errorf("failed to connect to server: %v", err)
-	}
-	defer conn.Close()
-
+// 发生消息
+func SendMessage(conn net.Conn, msg *Message) error {
 	// 序列化消息
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -107,6 +100,18 @@ func SendMessage(host string, port int, msg *Message) error {
 	}
 
 	return nil
+}
+
+// 发送消息到指定地址
+func DialAndSend(host string, port int, msg *Message) error {
+	// 连接服务器
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return fmt.Errorf("failed to connect to server: %v", err)
+	}
+	defer conn.Close()
+
+	return SendMessage(conn, msg)
 }
 
 // 从字节中获取消息并解密数据

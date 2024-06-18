@@ -1,4 +1,4 @@
-package channel
+package core
 
 import (
 	"fmt"
@@ -6,29 +6,32 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/sensdata/idb/agent/config"
+	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
 )
 
-type Agent struct {
-	cfg      config.Config
-	listener net.Listener
-	done     chan struct{}
+type Center struct {
+	cfg         config.CenterConfig
+	listener    net.Listener
+	agentConns  map[string]net.Conn // 存储Agent端连接的映射
+	agentMsgIDs map[string]string   // 存储Agent端连接的最后一个消息ID
+	done        chan struct{}
 }
 
-func NewAgent(cfg config.Config) *Agent {
-	return &Agent{
-		cfg:  cfg,
-		done: make(chan struct{}),
+func NewCenter(cfg config.CenterConfig) *Center {
+	return &Center{
+		cfg:         cfg,
+		agentConns:  make(map[string]net.Conn),
+		agentMsgIDs: make(map[string]string),
+		done:        make(chan struct{}),
 	}
 }
 
-func (a *Agent) Start() error {
+func (c *Center) Start() error {
 	// 将端口号转换为字符串
-	portStr := strconv.Itoa(a.cfg.Port)
-	log.Info("Agent started, try listen on port %s", portStr)
+	portStr := strconv.Itoa(c.cfg.Port)
 
 	// 监听端口
 	lis, err := net.Listen("tcp", ":"+portStr)
@@ -38,34 +41,39 @@ func (a *Agent) Start() error {
 		return err
 	}
 
-	a.listener = lis
-	log.Info("Starting TCP server on port %d", a.cfg.Port)
+	c.listener = lis
+	log.Info("Center Started, listening on port %d", c.cfg.Port)
 
-	// 启动接受连接的 goroutine
-	go a.acceptConnections()
+	// 启动接收连接的goroutine
+	go c.acceptConnections(lis)
 
 	return nil
 }
 
-func (a *Agent) Stop() {
-	close(a.done)
-	if a.listener != nil {
+func (c *Center) Stop() {
+	close(c.done)
+	// 关闭所有Agent连接
+	for _, conn := range c.agentConns {
+		conn.Close()
+	}
+	//关闭监听
+	if c.listener != nil {
 		log.Info("Stopping listening")
-		a.listener.Close()
+		c.listener.Close()
 	}
 }
 
-func (a *Agent) acceptConnections() {
+func (c *Center) acceptConnections(lis net.Listener) {
 	for {
 		select {
-		case <-a.done:
+		case <-c.done:
 			log.Info("Shutting down server...")
 			return
 		default:
-			conn, err := a.listener.Accept()
+			conn, err := c.listener.Accept()
 			if err != nil {
 				select {
-				case <-a.done:
+				case <-c.done:
 					log.Info("Server is shutting down, stop accepting new connections.")
 					return
 				default:
@@ -73,13 +81,16 @@ func (a *Agent) acceptConnections() {
 				}
 				continue
 			}
+			// 记录Agent端的连接
+			agentID := conn.RemoteAddr().String()
+			c.agentConns[agentID] = conn
 			// 处理连接
-			go a.handleConnection(conn)
+			go c.handleConnection(conn)
 		}
 	}
 }
 
-func (a *Agent) handleConnection(conn net.Conn) {
+func (c *Center) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	var buffer []byte
@@ -96,10 +107,16 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		buffer = append(buffer, tmp[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, a.cfg.SecretKey)
+		messages, err := message.ParseMessage(buffer, c.cfg.SecretKey)
 		if err != nil {
 			log.Error("Error processing message: %v", err)
 		} else {
+			// 记录Agent端的连接和最后一个消息ID
+			if len(messages) > 1 {
+				agentID := conn.RemoteAddr().String()
+				c.agentMsgIDs[agentID] = messages[0].MsgID
+			}
+
 			// 处理消息
 			for _, msg := range messages {
 				log.Info("Received message: %s", msg.Data)
@@ -127,34 +144,3 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		buffer = buffer[:0]
 	}
 }
-
-// func testSendMessage(cfg *config.Config) {
-// 	time.Sleep(time.Second * 5)
-// 	// 构造消息
-// 	commands := []string{
-// 		"echo 'Hello, test 2'",
-// 		"ps",
-// 	}
-
-// 	for _, cmd := range commands {
-// 		msg, err := message.CreateMessage(
-// 			utils.GenerateMsgId(),
-// 			cmd,
-// 			cfg.SecretKey,
-// 			utils.GenerateNonce(16),
-// 			message.CmdMessage,
-// 		)
-// 		if err != nil {
-// 			fmt.Printf("Error creating message: %v\n", err)
-// 			return
-// 		}
-
-// 		// 发送消息
-// 		err = message.SendMessage("127.0.0.1", cfg.Port, msg)
-// 		if err != nil {
-// 			fmt.Printf("Failed to send message: %v\n", err)
-// 		} else {
-// 			fmt.Println("Message sent successfully!")
-// 		}
-// 	}
-// }

@@ -1,0 +1,6 @@
+{
+    "port": 9090,
+    "log_path": "/tmp/center.log",
+    "secret_key": "idbidbidbidbidbidbidbidb"
+  }
+  
