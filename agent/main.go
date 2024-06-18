@@ -31,7 +31,7 @@ func main() {
 	//启动服务
 	agent := channel.NewAgent(*cfg)
 	if err := agent.Start(); err != nil {
-		fmt.Printf("Failed to start channel service: %v", err)
+		fmt.Printf("Failed to start agent: %v", err)
 	}
 	defer agent.Stop()
 

@@ -5,11 +5,13 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
+	"github.com/sensdata/idb/core/utils"
 )
 
 type Center struct {
@@ -45,7 +47,10 @@ func (c *Center) Start() error {
 	log.Info("Center Started, listening on port %d", c.cfg.Port)
 
 	// 启动接收连接的goroutine
-	go c.acceptConnections(lis)
+	go c.acceptConnections()
+
+	// 定期发送心跳消息
+	go c.sendHeartbeat()
 
 	return nil
 }
@@ -63,7 +68,7 @@ func (c *Center) Stop() {
 	}
 }
 
-func (c *Center) acceptConnections(lis net.Listener) {
+func (c *Center) acceptConnections() {
 	for {
 		select {
 		case <-c.done:
@@ -142,5 +147,34 @@ func (c *Center) handleConnection(conn net.Conn) {
 
 		// 清空缓冲区
 		buffer = buffer[:0]
+	}
+}
+
+func (c *Center) sendHeartbeat() {
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		// 发送心跳消息给所有Agent端
+		for agentID := range c.agentMsgIDs {
+			heartbeatMsg, err := message.CreateMessage(
+				utils.GenerateMsgId(),
+				"Heartbeat",
+				c.cfg.SecretKey,
+				utils.GenerateNonce(16),
+				message.Heartbeat,
+			)
+			if err != nil {
+				fmt.Printf("Error creating heartbeat message: %v\n", err)
+				continue
+			}
+
+			// 发送心跳消息
+			conn := c.agentConns[agentID]
+			err = message.SendMessage(conn, heartbeatMsg)
+			if err != nil {
+				fmt.Printf("Failed to send heartbeat message: %v\n", err)
+			}
+		}
 	}
 }

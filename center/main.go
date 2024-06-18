@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sensdata/idb/center/config"
+	"github.com/sensdata/idb/center/core"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -27,8 +28,15 @@ func main() {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
 	}
 
+	//启动服务
+	center := core.NewCenter(*cfg)
+	if err := center.Start(); err != nil {
+		fmt.Printf("Failed to start center: %v", err)
+	}
+	defer center.Stop()
+
 	// 等待信号
 	utils.WaitForSignal()
 
-	fmt.Println("Agent Exited")
+	fmt.Println("Center Exited")
 }

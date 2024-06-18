@@ -10,6 +10,7 @@ import (
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
+	"github.com/sensdata/idb/core/utils"
 )
 
 type Agent struct {
@@ -105,6 +106,8 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				log.Info("Received message: %s", msg.Data)
 
 				switch msg.Type {
+				case message.Heartbeat: // 回复心跳
+					a.sendHeartbeat(conn)
 				case message.CmdMessage: // 处理 Cmd 类型的消息
 					result, err := shell.ExecuteCommand(msg.Data)
 					if err != nil {
@@ -125,6 +128,25 @@ func (a *Agent) handleConnection(conn net.Conn) {
 
 		// 清空缓冲区
 		buffer = buffer[:0]
+	}
+}
+
+func (a *Agent) sendHeartbeat(conn net.Conn) {
+	heartbeatMsg, err := message.CreateMessage(
+		utils.GenerateMsgId(),
+		"Heartbeat",
+		a.cfg.SecretKey,
+		utils.GenerateNonce(16),
+		message.Heartbeat,
+	)
+	if err != nil {
+		fmt.Printf("Error creating heartbeat message: %v\n", err)
+		return
+	}
+
+	err = message.SendMessage(conn, heartbeatMsg)
+	if err != nil {
+		fmt.Printf("Failed to send heartbeat message: %v\n", err)
 	}
 }
 
