@@ -169,7 +169,12 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		// 尝试解析消息
 		messages, err := message.ParseMessage(buffer, a.cfg.SecretKey)
 		if err != nil {
-			log.Error("Error processing message: %v", err)
+			if err == message.ErrIncompleteMessage {
+				log.Info("not enough data, continue to read")
+				continue // 数据不完整，继续读取
+			} else {
+				log.Error("Error processing message: %v", err)
+			}
 		} else {
 			// 记录center端的链接和最后一个消息ID
 			if len(messages) > 0 {
@@ -180,10 +185,9 @@ func (a *Agent) handleConnection(conn net.Conn) {
 
 			// 处理消息
 			for _, msg := range messages {
-
+				centerID := conn.RemoteAddr().String()
 				switch msg.Type {
 				case message.Heartbeat: // 回复心跳
-					centerID := conn.RemoteAddr().String()
 					log.Info("Heartbeat from %s", centerID)
 					if a.centerID != "" && centerID == a.centerID {
 						a.sendHeartbeat(conn)
@@ -197,7 +201,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 						continue
 					}
 					log.Info("Command output: %s", result)
-
+					a.sendCmdResult(conn, result)
 				case message.ActionMessage: // 处理 Action 类型的消息
 					log.Info("Processing action message: %s", msg.Data)
 					// TODO: 在这里添加处理 action 消息的逻辑
@@ -243,6 +247,40 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		go a.connectToCenter()
 	} else {
 		log.Info("Heartbeat sent to %s", centerID)
+	}
+}
+
+func (a *Agent) sendCmdResult(conn net.Conn, result string) {
+	log.Info("send cmd result: %s", result)
+	centerID := conn.RemoteAddr().String()
+
+	cmdRspMsg, err := message.CreateMessage(
+		utils.GenerateMsgId(),
+		result,
+		a.cfg.SecretKey,
+		utils.GenerateNonce(16),
+		message.CmdMessage,
+	)
+	if err != nil {
+		log.Error("Error creating cmd rsp message: %v", err)
+		return
+	}
+
+	log.Info("msg data: %s", cmdRspMsg.Data)
+
+	err = message.SendMessage(conn, cmdRspMsg)
+	if err != nil {
+		log.Error("Failed to send cmd rsp message: %v", err)
+		a.mu.Lock()
+		conn.Close()
+		log.Info("close conn %s for cmd rsp", a.centerID)
+		a.centerConn = nil
+		a.centerID = ""
+		a.mu.Unlock()
+		//关闭后，尝试重新连接
+		go a.connectToCenter()
+	} else {
+		log.Info("Cmd rsp sent to %s", centerID)
 	}
 }
 

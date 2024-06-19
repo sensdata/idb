@@ -43,6 +43,9 @@ type Message struct {
 	Checksum  string      `json:"checksum"`
 }
 
+// ErrIncompleteMessage 表示接收到的消息数据不完整
+var ErrIncompleteMessage = errors.New("incomplete message data")
+
 // CreateMessage 创建并签名一个消息
 func CreateMessage(msgID string, data string, key string, nonce string, msgType MessageType) (*Message, error) {
 	// 时间戳
@@ -90,9 +93,9 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	encodedMsg := append([]byte(MagicBytes), msgLen...)
 	encodedMsg = append(encodedMsg, data...)
 
-	// fmt.Printf("Send:\n")
-	// fmt.Println(hex.EncodeToString(encodedMsg))
-	// fmt.Println()
+	fmt.Printf("Send:\n")
+	fmt.Println(hex.EncodeToString(encodedMsg))
+	fmt.Println()
 
 	// 发送魔术字节、消息头和消息体
 	_, err = conn.Write(encodedMsg)
@@ -143,9 +146,9 @@ func ParseMessage(data []byte, key string) ([]*Message, error) {
 
 // 从字节中解码消息
 func decodeMessages(data []byte) ([]*Message, error) {
-	// fmt.Printf("Recv:\n")
-	// fmt.Println(hex.EncodeToString(data))
-	// fmt.Println()
+	fmt.Printf("Recv:\n")
+	fmt.Println(hex.EncodeToString(data))
+	fmt.Println()
 
 	var messages []*Message
 	buf := bytes.NewBuffer(data)
@@ -167,7 +170,7 @@ func decodeMessages(data []byte) ([]*Message, error) {
 		// 读取消息内容
 		msgData := buf.Next(int(msgLen))
 		if len(msgData) < int(msgLen) {
-			return nil, errors.New("invalid message data")
+			return nil, ErrIncompleteMessage
 		}
 
 		// 反序列化消息内容

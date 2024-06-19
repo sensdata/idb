@@ -11,25 +11,26 @@ import (
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/message"
-	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
 )
 
 type Center struct {
-	cfg         config.CenterConfig
-	listener    net.Listener
-	agentConns  map[string]net.Conn // 存储Agent端连接的映射
-	agentMsgIDs map[string]string   // 存储Agent端连接的最后一个消息ID
-	done        chan struct{}
-	mu          sync.Mutex // 保护agentConns和agentMsgIDs的互斥锁
+	cfg           config.CenterConfig
+	listener      net.Listener
+	agentConns    map[string]net.Conn // 存储Agent端连接的映射
+	agentMsgIDs   map[string]string   // 存储Agent端连接的最后一个消息ID
+	done          chan struct{}
+	mu            sync.Mutex             // 保护agentConns和agentMsgIDs的互斥锁
+	responseChMap map[string]chan string // 用于接收命令执行结果的动态通道
 }
 
 func NewCenter(cfg config.CenterConfig) *Center {
 	return &Center{
-		cfg:         cfg,
-		agentConns:  make(map[string]net.Conn),
-		agentMsgIDs: make(map[string]string),
-		done:        make(chan struct{}),
+		cfg:           cfg,
+		agentConns:    make(map[string]net.Conn),
+		agentMsgIDs:   make(map[string]string),
+		done:          make(chan struct{}),
+		responseChMap: make(map[string]chan string),
 	}
 }
 
@@ -132,7 +133,12 @@ func (c *Center) handleConnection(conn net.Conn) {
 		// 尝试解析消息
 		messages, err := message.ParseMessage(buffer, c.cfg.SecretKey)
 		if err != nil {
-			log.Error("Error processing message: %v", err)
+			if err == message.ErrIncompleteMessage {
+				log.Info("not enough data, continue to read")
+				continue // 数据不完整，继续读取
+			} else {
+				log.Error("Error processing message: %v", err)
+			}
 		} else {
 			// 记录Agent端的连接和最后一个消息ID
 			agentID := conn.RemoteAddr().String()
@@ -144,23 +150,25 @@ func (c *Center) handleConnection(conn net.Conn) {
 
 			// 处理消息
 			for _, msg := range messages {
-
 				switch msg.Type {
 				case message.Heartbeat: // 收到心跳
 					// TODO: 维护在线状态
 					log.Info("Heartbeat from %s", agentID)
-				case message.CmdMessage: // 处理 Cmd 类型的消息
-					result, err := shell.ExecuteCommand(msg.Data)
-					if err != nil {
-						log.Error("Failed to execute command: %v", err)
-						continue
+				case message.CmdMessage: // 收到Cmd 类型的回复
+					// TODO: 回调给发送者或者关注者
+					log.Info("Processing cmd message: %s", msg.Data)
+					// 获取响应通道
+					c.mu.Lock()
+					responseCh, exists := c.responseChMap[msg.MsgID]
+					if exists {
+						responseCh <- msg.Data
+						close(responseCh)
+						delete(c.responseChMap, msg.MsgID)
 					}
-					log.Info("Command output: %s", result)
-
+					c.mu.Unlock()
 				case message.ActionMessage: // 处理 Action 类型的消息
+					// TODO: 回调给发送者或者关注者
 					log.Info("Processing action message: %s", msg.Data)
-					// TODO: 在这里添加处理 action 消息的逻辑
-
 				default: // 不支持的消息
 					log.Error("Unknown message type: %s", msg.Type)
 				}
@@ -184,7 +192,6 @@ func (c *Center) sendHeartbeat() {
 			log.Info("Stopping heartbeat")
 			return
 		case <-ticker.C:
-			log.Info("Sending heartbeats to %d agents", len(c.agentConns))
 			c.mu.Lock()
 			for agentID, conn := range c.agentConns {
 				heartbeatMsg, err := message.CreateMessage(
@@ -211,5 +218,60 @@ func (c *Center) sendHeartbeat() {
 			}
 			c.mu.Unlock()
 		}
+	}
+}
+
+func (c *Center) ExecuteCommand(cmd string) (string, error) {
+	// 创建一个等待通道
+	responseCh := make(chan string)
+
+	// 假设只需要发送给一个 Agent
+	c.mu.Lock()
+	var conn net.Conn
+	for _, agentConn := range c.agentConns {
+		conn = agentConn
+		break
+	}
+	c.mu.Unlock()
+
+	if conn == nil {
+		return "", fmt.Errorf("no agent connected")
+	}
+
+	// 创建消息
+	msgID := utils.GenerateMsgId()
+	msg, err := message.CreateMessage(
+		msgID,
+		cmd,
+		c.cfg.SecretKey,
+		utils.GenerateNonce(16),
+		message.CmdMessage,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// 将通道和msgID映射存储在map中
+	c.mu.Lock()
+	c.responseChMap[msgID] = responseCh
+	c.mu.Unlock()
+
+	go func() {
+		err = message.SendMessage(conn, msg)
+		if err != nil {
+			log.Error("Failed to send command message: %v", err)
+			responseCh <- ""
+		}
+	}()
+
+	// 等待响应
+	select {
+	case response := <-responseCh:
+		return response, nil
+	case <-time.After(10 * time.Second): // 设置一个超时时间
+		c.mu.Lock()
+		delete(c.responseChMap, msgID)
+		c.mu.Unlock()
+		return "", fmt.Errorf("timeout waiting for response from agent")
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/sensdata/idb/center/api"
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core"
 	"github.com/sensdata/idb/core/log"
@@ -34,6 +35,12 @@ func main() {
 		fmt.Printf("Failed to start center: %v", err)
 	}
 	defer center.Stop()
+
+	//启动api
+	api := api.NewApi(*cfg, center)
+	if err := api.Start(); err != nil {
+		fmt.Printf("Failed to start api: %v", err)
+	}
 
 	// 等待信号
 	utils.WaitForSignal()
