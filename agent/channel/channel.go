@@ -201,7 +201,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 						continue
 					}
 					log.Info("Command output: %s", result)
-					a.sendCmdResult(conn, result)
+					a.sendCmdResult(conn, msg.MsgID, result)
 				case message.ActionMessage: // 处理 Action 类型的消息
 					log.Info("Processing action message: %s", msg.Data)
 					// TODO: 在这里添加处理 action 消息的逻辑
@@ -250,12 +250,12 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 	}
 }
 
-func (a *Agent) sendCmdResult(conn net.Conn, result string) {
+func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 	log.Info("send cmd result: %s", result)
 	centerID := conn.RemoteAddr().String()
 
 	cmdRspMsg, err := message.CreateMessage(
-		utils.GenerateMsgId(),
+		msgID, // 使用相同的msgID回复
 		result,
 		a.cfg.SecretKey,
 		utils.GenerateNonce(16),
