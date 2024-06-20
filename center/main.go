@@ -6,6 +6,7 @@ import (
 	"github.com/sensdata/idb/center/api"
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core"
+	"github.com/sensdata/idb/center/db"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -28,6 +29,12 @@ func main() {
 	if err := log.InitLogger(cfg.LogPath); err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
 	}
+
+	//初始化数据库
+	if err := db.Init(cfg.DbPath); err != nil {
+		fmt.Printf("Failed to initialize db: %v \n", err)
+	}
+	defer db.CloseDB()
 
 	//启动服务
 	center := core.NewCenter(*cfg)

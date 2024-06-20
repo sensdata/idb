@@ -9,6 +9,7 @@ import (
 // Config定义
 type CenterConfig struct {
 	Port      int    `json:"port"`
+	DbPath    string `json:"db_path"`
 	LogPath   string `json:"log_path"`
 	SecretKey string `json:"secret_key"`
 }
