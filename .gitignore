@@ -35,3 +35,5 @@ go.work
 # Built Visual Studio Code Extensions
 *.vsix
 
+# Ignore macOS .DS_Store files in all directories
+**/.DS_Store
