@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/utils"
 	"gorm.io/driver/sqlite"
@@ -77,7 +78,7 @@ func CloseDB() error {
 }
 
 func initSchema(db *gorm.DB) error {
-	err := db.AutoMigrate(&Role{}, &User{})
+	err := db.AutoMigrate(&model.Role{}, &model.User{})
 	if err != nil {
 		log.Fatalf("Failed to migrate schema: %v", err)
 		return err
@@ -86,13 +87,13 @@ func initSchema(db *gorm.DB) error {
 }
 
 func initRoles(db *gorm.DB) error {
-	roles := []Role{
+	roles := []model.Role{
 		{Name: "admin", Description: "Admin role"},
 		{Name: "user", Description: "User role"},
 	}
 
 	for _, role := range roles {
-		var existingRole Role
+		var existingRole model.Role
 		if err := db.Where("name = ?", role.Name).First(&existingRole).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				if err := db.Create(&role).Error; err != nil {
@@ -109,14 +110,14 @@ func initRoles(db *gorm.DB) error {
 }
 
 func initAdminUser(db *gorm.DB) error {
-	var adminRole Role
+	var adminRole model.Role
 	if err := db.Where("name = ?", "admin").First(&adminRole).Error; err != nil {
 		log.Fatalf("Failed to get admin role ID: %v", err)
 		return err
 	}
 
 	var count int64
-	if err := db.Model(&User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
+	if err := db.Model(&model.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
 		log.Fatalf("Failed to check for admin user: %v", err)
 		return err
 	}
@@ -125,7 +126,7 @@ func initAdminUser(db *gorm.DB) error {
 		password := "admin123"
 		salt := utils.GenerateNonce(8)
 		passwordHash := utils.HashPassword(password, salt)
-		adminUser := User{
+		adminUser := model.User{
 			Username: "admin",
 			Password: passwordHash,
 			Salt:     salt,
