@@ -7,6 +7,7 @@ import (
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core"
 	"github.com/sensdata/idb/center/db"
+	"github.com/sensdata/idb/center/db/migration"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
@@ -33,10 +34,8 @@ func main() {
 	}
 
 	//初始化数据库
-	if err := db.Init(cfg.DbPath); err != nil {
-		fmt.Printf("Failed to initialize db: %v \n", err)
-	}
-	defer db.CloseDB()
+	db.Init(cfg.DbPath)
+	migration.Init()
 
 	//启动服务
 	center := core.NewCenter(*cfg)
@@ -50,6 +49,9 @@ func main() {
 	if err := apiServer.Start(); err != nil {
 		fmt.Printf("Failed to start api: %v", err)
 	}
+
+	//初始化其他
+	global.VALID = utils.InitValidator()
 
 	// 等待信号
 	utils.WaitForSignal()

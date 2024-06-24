@@ -12,7 +12,7 @@ type IRoleRepo interface {
 	GetList(opts ...DBOption) ([]model.Role, error)
 }
 
-func NewIRoleRepo() IRoleRepo {
+func NewRoleRepo() IRoleRepo {
 	return &RoleRepo{}
 }
 

@@ -5,9 +5,9 @@ import (
 	"github.com/sensdata/idb/center/api/entry"
 )
 
-type BaseRouter struct{}
+type AuthRouter struct{}
 
-func (s *BaseRouter) InitRouter(Router *gin.RouterGroup) {
+func (s *AuthRouter) InitRouter(Router *gin.RouterGroup) {
 	baseRouter := Router.Group("auth")
 	baseApi := entry.ApiGroup
 	{

@@ -18,7 +18,7 @@ type IUserRepo interface {
 	Delete(opts ...DBOption) error
 }
 
-func NewIUserRepo() IUserRepo {
+func NewUserRepo() IUserRepo {
 	return &UserRepo{}
 }
 

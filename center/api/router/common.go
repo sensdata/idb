@@ -10,7 +10,7 @@ type CommonRouter interface {
 
 func commonGroups() []CommonRouter {
 	return []CommonRouter{
-		&BaseRouter{},
+		&AuthRouter{},
 		&UserRouter{},
 	}
 }
