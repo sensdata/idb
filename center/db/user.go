@@ -1,68 +1,77 @@
 package db
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/sensdata/idb/center/db/model"
+	"github.com/sensdata/idb/center/global"
 	"gorm.io/gorm"
 )
 
-// AddRole 添加新角色
-func AddRole(db *gorm.DB, role model.Role) error {
-	if err := db.Create(&role).Error; err != nil {
-		return fmt.Errorf("failed to add role: %v", err)
-	}
-	return nil
+type UserRepo struct{}
+
+type IUserRepo interface {
+	Get(opts ...DBOption) (model.User, error)
+	GetList(opts ...DBOption) ([]model.User, error)
+	Page(limit, offset int, opts ...DBOption) (int64, []model.User, error)
+	WithByName(name string) DBOption
+	Create(user *model.User) error
+	Update(id uint, vars map[string]interface{}) error
+	Delete(opts ...DBOption) error
 }
 
-// GetRoleByID 根据ID获取角色
-func GetRoleByID(db *gorm.DB, id uint) (*model.Role, error) {
-	var role model.Role
-	if err := db.First(&role, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get role: %v", err)
-	}
-	return &role, nil
+func NewIUserRepo() IUserRepo {
+	return &UserRepo{}
 }
 
-// AddUser 添加新用户
-func AddUser(db *gorm.DB, user model.User) error {
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
-	if err := db.Create(&user).Error; err != nil {
-		return fmt.Errorf("failed to add user: %v", err)
-	}
-	return nil
-}
-
-// GetUserByUsername 根据用户名获取用户
-func GetUserByUsername(db *gorm.DB, username string) (*model.User, error) {
+func (r *UserRepo) Get(opts ...DBOption) (model.User, error) {
 	var user model.User
-	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user: %v", err)
+	db := global.DB.Model(&model.User{})
+	for _, opt := range opts {
+		db = opt(db)
 	}
-	return &user, nil
+	err := db.First(&user).Error
+	return user, err
 }
 
-// UpdateUser 更新用户信息
-func UpdateUser(db *gorm.DB, user model.User) error {
-	user.UpdatedAt = time.Now()
-	if err := db.Save(&user).Error; err != nil {
-		return fmt.Errorf("failed to update user: %v", err)
+func (r *UserRepo) GetList(opts ...DBOption) ([]model.User, error) {
+	var users []model.User
+	db := global.DB.Model(&model.User{})
+	for _, opt := range opts {
+		db = opt(db)
 	}
-	return nil
+	err := db.Find(&users).Error
+	return users, err
 }
 
-// DeleteUser 删除用户
-func DeleteUser(db *gorm.DB, id uint) error {
-	if err := db.Delete(&model.User{}, id).Error; err != nil {
-		return fmt.Errorf("failed to delete user: %v", err)
+func (r *UserRepo) Page(page, size int, opts ...DBOption) (int64, []model.User, error) {
+	var users []model.User
+	db := global.DB.Model(&model.User{})
+	for _, opt := range opts {
+		db = opt(db)
 	}
-	return nil
+	count := int64(0)
+	db = db.Count(&count)
+	err := db.Limit(size).Offset(size * (page - 1)).Find(&users).Error
+	return count, users, err
+}
+
+func (r *UserRepo) WithByName(name string) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("userName = ?", name)
+	}
+}
+
+func (r *UserRepo) Create(user *model.User) error {
+	return global.DB.Create(user).Error
+}
+
+func (h *UserRepo) Update(id uint, vars map[string]interface{}) error {
+	return global.DB.Model(&model.User{}).Where("id = ?", id).Updates(vars).Error
+}
+
+func (h *UserRepo) Delete(opts ...DBOption) error {
+	db := global.DB
+	for _, opt := range opts {
+		db = opt(db)
+	}
+	return db.Delete(&model.User{}).Error
 }

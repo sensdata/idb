@@ -6,15 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
-	"github.com/sensdata/idb/core/utils"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func Init(dataSourceName string) error {
+func Init(dataSourceName string) {
 	// Ensure the directory exists
 	dir := filepath.Dir(dataSourceName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -42,100 +40,20 @@ func Init(dataSourceName string) error {
 	})
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
-		return err
+		panic(err)
 	}
+
+	//Write-Ahead Logging
+	_ = db.Exec("PRAGMA journal_mode = WAL;")
+	//Settings
+	sqlDB, dbError := db.DB()
+	if dbError != nil {
+		log.Fatalf("Failed to open database: %v", err)
+		panic(dbError)
+	}
+	sqlDB.SetConnMaxIdleTime(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
 	global.DB = db
-
-	// Initialize the schema and initial data
-	err = initSchema(db)
-	if err != nil {
-		log.Fatalf("Error initializing schema: %v", err)
-		return err
-	}
-	err = initRoles(db)
-	if err != nil {
-		log.Fatalf("Error initializing roles: %v", err)
-		return err
-	}
-	err = initAdminUser(db)
-	if err != nil {
-		log.Fatalf("Error initializing admin: %v", err)
-		return err
-	}
-	return nil
-}
-
-// CloseDB closes the database connection.
-func CloseDB() error {
-	if global.DB != nil {
-		sqlDB, err := global.DB.DB()
-		if err != nil {
-			return err
-		}
-		return sqlDB.Close()
-	}
-	return nil
-}
-
-func initSchema(db *gorm.DB) error {
-	err := db.AutoMigrate(&model.Role{}, &model.User{})
-	if err != nil {
-		log.Fatalf("Failed to migrate schema: %v", err)
-		return err
-	}
-	return nil
-}
-
-func initRoles(db *gorm.DB) error {
-	roles := []model.Role{
-		{Name: "admin", Description: "Admin role"},
-		{Name: "user", Description: "User role"},
-	}
-
-	for _, role := range roles {
-		var existingRole model.Role
-		if err := db.Where("name = ?", role.Name).First(&existingRole).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				if err := db.Create(&role).Error; err != nil {
-					log.Fatalf("Failed to insert role %s: %v", role.Name, err)
-					return err
-				}
-			} else {
-				log.Fatalf("Failed to check for role %s: %v", role.Name, err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func initAdminUser(db *gorm.DB) error {
-	var adminRole model.Role
-	if err := db.Where("name = ?", "admin").First(&adminRole).Error; err != nil {
-		log.Fatalf("Failed to get admin role ID: %v", err)
-		return err
-	}
-
-	var count int64
-	if err := db.Model(&model.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
-		log.Fatalf("Failed to check for admin user: %v", err)
-		return err
-	}
-
-	if count == 0 {
-		password := "admin123"
-		salt := utils.GenerateNonce(8)
-		passwordHash := utils.HashPassword(password, salt)
-		adminUser := model.User{
-			Username: "admin",
-			Password: passwordHash,
-			Salt:     salt,
-			RoleID:   adminRole.ID,
-		}
-		if err := db.Create(&adminUser).Error; err != nil {
-			log.Fatalf("Failed to insert admin user: %v", err)
-			return err
-		}
-	}
-	return nil
 }
