@@ -7,6 +7,7 @@ import (
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core"
 	"github.com/sensdata/idb/center/db"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -22,6 +23,7 @@ func main() {
 	}
 
 	cfg := manager.GetConfig()
+	global.CONF = *cfg
 	fmt.Println("Get config:")
 	fmt.Printf("%+v \n", *cfg)
 
@@ -31,10 +33,9 @@ func main() {
 	}
 
 	//初始化数据库
-	if err := db.Init(cfg.DbPath); err != nil {
-		fmt.Printf("Failed to initialize db: %v \n", err)
+	if db, err := db.Init(cfg.DbPath); err != nil {
+		panic(fmt.Printf("Failed to initialize db: %v \n", err))
 	}
-	defer db.CloseDB()
 
 	//启动服务
 	center := core.NewCenter(*cfg)

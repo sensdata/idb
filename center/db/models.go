@@ -4,18 +4,18 @@ import "time"
 
 // Role 角色模型
 type Role struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	ID          uint   `gorm:"primaryKey"`
+	Name        string `gorm:"unique;not null"`
+	Description string
 }
 
 // User 用户模型
 type User struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"-"`
-	Salt      string    `json:"-"`
-	RoleID    int       `json:"role_id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint   `gorm:"primaryKey"`
+	Username  string `gorm:"unique;not null"`
+	Password  string `gorm:"not null"`
+	Salt      string `gorm:"not null"`
+	RoleID    uint   `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
