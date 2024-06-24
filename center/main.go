@@ -33,9 +33,10 @@ func main() {
 	}
 
 	//初始化数据库
-	if db, err := db.Init(cfg.DbPath); err != nil {
-		panic(fmt.Printf("Failed to initialize db: %v \n", err))
+	if err := db.Init(cfg.DbPath); err != nil {
+		fmt.Printf("Failed to initialize db: %v \n", err)
 	}
+	defer db.CloseDB()
 
 	//启动服务
 	center := core.NewCenter(*cfg)
@@ -44,9 +45,9 @@ func main() {
 	}
 	defer center.Stop()
 
-	//启动api
-	api := api.NewApi(*cfg, center)
-	if err := api.Start(); err != nil {
+	//启动apiServer
+	apiServer := api.NewApiServer(*cfg, center)
+	if err := apiServer.Start(); err != nil {
 		fmt.Printf("Failed to start api: %v", err)
 	}
 
