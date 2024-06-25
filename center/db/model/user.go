@@ -8,5 +8,6 @@ type User struct {
 	Password string `gorm:"not null" json:"-"`
 	Salt     string `gorm:"not null" json:"-"`
 	RoleID   uint   `gorm:"not null" json:"-"`
+	GroupID  uint   `gorm:"not null" json:"-"`
 	Valid    uint   `gorm:"not null" json:"valid"`
 }
