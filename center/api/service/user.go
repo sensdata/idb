@@ -10,7 +10,7 @@ import (
 type UserService struct{}
 
 type IUserService interface {
-	List(c *gin.Context, info dto.ListUser) (*dto.ListUserResult, error)
+	List(c *gin.Context, info dto.PageInfo) (*dto.PageResult, error)
 }
 
 func NewIUserService() IUserService {
@@ -18,11 +18,11 @@ func NewIUserService() IUserService {
 }
 
 // List user
-func (s *UserService) List(c *gin.Context, info dto.ListUser) (*dto.ListUserResult, error) {
+func (s *UserService) List(c *gin.Context, info dto.PageInfo) (*dto.PageResult, error) {
 	users, err := UserRepo.GetList()
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
-	return &dto.ListUserResult{Users: users}, nil
+	return &dto.PageResult{Items: users}, nil
 }

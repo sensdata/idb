@@ -8,7 +8,7 @@ import (
 
 // List users
 func (b *BaseApi) ListUser(c *gin.Context) {
-	var req dto.ListUser
+	var req dto.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

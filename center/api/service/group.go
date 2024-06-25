@@ -1,0 +1,57 @@
+package service
+
+import (
+	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
+	"github.com/sensdata/idb/center/api/dto"
+	"github.com/sensdata/idb/center/constant"
+	"github.com/sensdata/idb/center/db/model"
+)
+
+type GroupService struct{}
+
+type IGroupService interface {
+	List(info dto.PageInfo) (*dto.PageResult, error)
+	Create(info dto.CreateGroup) (*dto.GroupInfo, error)
+	Update(id uint, upMap map[string]interface{}) error
+	Delete(ids []uint) error
+}
+
+func NewIGroupService() IGroupService {
+	return &GroupService{}
+}
+
+// List group
+func (s *GroupService) List(req dto.PageInfo) (*dto.PageResult, error) {
+	groups, err := GroupRepo.GetList()
+	if err != nil {
+		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
+	}
+
+	return &dto.PageResult{Items: groups}, nil
+}
+
+// Create group
+func (s *GroupService) Create(req dto.CreateGroup) (*dto.GroupInfo, error) {
+	var group model.Group
+	if err := copier.Copy(&group, &req); err != nil {
+		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
+	}
+
+	if err := GroupRepo.Create(&group); err != nil {
+		return nil, err
+	}
+	var groupInfo dto.GroupInfo
+	if err := copier.Copy(&groupInfo, &group); err != nil {
+		return nil, err
+	}
+	return &groupInfo, nil
+}
+
+func (s *GroupService) Update(id uint, upMap map[string]interface{}) error {
+	return GroupRepo.Update(id, upMap)
+}
+
+func (s *GroupService) Delete(ids []uint) error {
+	return GroupRepo.Delete(CommonRepo.WithIdsIn(ids))
+}

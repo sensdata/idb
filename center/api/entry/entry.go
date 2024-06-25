@@ -7,6 +7,7 @@ type BaseApi struct{}
 var ApiGroup = new(BaseApi)
 
 var (
-	authService = service.NewIAuthService()
-	userService = service.NewIUserService()
+	authService  = service.NewIAuthService()
+	userService  = service.NewIUserService()
+	groupService = service.NewIGroupService()
 )

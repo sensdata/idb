@@ -5,6 +5,7 @@ import "github.com/sensdata/idb/center/db"
 var (
 	CommonRepo = db.NewCommonRepo()
 
-	RoleRepo = db.NewRoleRepo()
-	UserRepo = db.NewUserRepo()
+	RoleRepo  = db.NewRoleRepo()
+	UserRepo  = db.NewUserRepo()
+	GroupRepo = db.NewGroupRepo()
 )
