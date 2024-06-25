@@ -8,4 +8,5 @@ var ApiGroup = new(BaseApi)
 
 var (
 	authService = service.NewIAuthService()
+	userService = service.NewIUserService()
 )

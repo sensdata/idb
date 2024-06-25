@@ -13,6 +13,6 @@ func (s *UserRouter) InitRouter(Router *gin.RouterGroup) {
 	userRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		userRouter.POST("/list", baseApi.Login)
+		userRouter.POST("/list", baseApi.ListUser)
 	}
 }

@@ -16,7 +16,7 @@ func (b *BaseApi) Login(c *gin.Context) {
 	result, err := authService.Login(c, req)
 
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeErrUnauthorized, constant.ErrInternalServer.Error(), err)
 		return
 	}
 	SuccessWithData(c, result)
@@ -24,7 +24,7 @@ func (b *BaseApi) Login(c *gin.Context) {
 
 func (b *BaseApi) Logout(c *gin.Context) {
 	if err := authService.LogOut(c); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeErrUnauthorized, constant.ErrInternalServer.Error(), err)
 		return
 	}
 	SuccessWithData(c, nil)

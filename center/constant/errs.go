@@ -28,4 +28,6 @@ var (
 	ErrPasswordExpired          = errors.New("PasswordExpired")
 	ErrNameIsExist              = errors.New("NameIsExist")
 	ErrInvalidAccountOrPassword = errors.New("InvalidAccountOrPassword")
+
+	ErrNoRecords = errors.New("NoRecords")
 )

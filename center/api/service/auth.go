@@ -20,12 +20,12 @@ func NewIAuthService() IAuthService {
 }
 
 // LogOut implements IAuthService.
-func (a *AuthService) LogOut(c *gin.Context) error {
+func (s *AuthService) LogOut(c *gin.Context) error {
 	return nil
 }
 
 // Login implements IAuthService.
-func (a *AuthService) Login(c *gin.Context, info dto.Login) (*dto.LoginResult, error) {
+func (s *AuthService) Login(c *gin.Context, info dto.Login) (*dto.LoginResult, error) {
 	user, err := UserRepo.Get(UserRepo.WithByName(info.Name))
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrInvalidAccountOrPassword, err.Error())
