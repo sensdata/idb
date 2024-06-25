@@ -5,6 +5,7 @@ import (
 
 	"github.com/sensdata/idb/agent/channel"
 	"github.com/sensdata/idb/agent/config"
+	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -20,13 +21,17 @@ func main() {
 	}
 
 	cfg := manager.GetConfig()
+	global.CONF = *cfg
 	fmt.Println("Get config:")
 	fmt.Printf("%+v \n", *cfg)
 
 	// 初始化日志模块
-	if err := log.InitLogger(cfg.LogPath); err != nil {
+	l, err := log.InitLogger(cfg.LogPath)
+	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
+		panic(err)
 	}
+	global.LOG = l
 
 	//启动服务
 	agent := channel.NewAgent(*cfg)

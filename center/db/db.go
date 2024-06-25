@@ -13,19 +13,20 @@ import (
 )
 
 func Init(dataSourceName string) {
-	log.Info("db init begin")
+	global.LOG.Info("db init begin")
 	// Ensure the directory exists
 	dir := filepath.Dir(dataSourceName)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
-			log.Error("Failed to create directory: %v", err)
+			global.LOG.Error("Failed to create directory: %v", err)
 		}
 	}
 
 	//db logger
+	gormLogger := log.NewGormLogger(global.LOG.Logger)
 	dbLogger := logger.New(
-		log.Writer(),
+		gormLogger,
 		logger.Config{
 			SlowThreshold:             time.Second,
 			LogLevel:                  logger.Silent,
@@ -40,7 +41,7 @@ func Init(dataSourceName string) {
 		Logger:                                   dbLogger,
 	})
 	if err != nil {
-		log.Error("Failed to open database: %v", err)
+		global.LOG.Error("Failed to open database: %v", err)
 		panic(err)
 	}
 
@@ -49,7 +50,7 @@ func Init(dataSourceName string) {
 	//Settings
 	sqlDB, dbError := db.DB()
 	if dbError != nil {
-		log.Error("Failed to open database: %v", err)
+		global.LOG.Error("Failed to open database: %v", err)
 		panic(dbError)
 	}
 	sqlDB.SetConnMaxIdleTime(10)
@@ -57,5 +58,5 @@ func Init(dataSourceName string) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	global.DB = db
-	log.Info("db init end")
+	global.LOG.Info("db init end")
 }

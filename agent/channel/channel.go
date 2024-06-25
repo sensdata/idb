@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/agent/config"
-	"github.com/sensdata/idb/core/log"
+	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
@@ -36,18 +36,18 @@ func NewAgent(cfg config.Config) *Agent {
 func (a *Agent) Start() error {
 	// 将端口号转换为字符串
 	portStr := strconv.Itoa(a.cfg.Port)
-	log.Info("Agent started, try listen on port %s", portStr)
+	global.LOG.Info("Agent started, try listen on port %s", portStr)
 
 	// 监听端口
 	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
 	if err != nil {
-		log.Error("Failed to listen on port %s: %v", portStr, err)
+		global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
 		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
 		return err
 	}
 
 	a.listener = lis
-	log.Info("Starting TCP server on port %d", a.cfg.Port)
+	global.LOG.Info("Starting TCP server on port %d", a.cfg.Port)
 
 	// 启动接受连接的 goroutine
 	go a.acceptConnections()
@@ -68,7 +68,7 @@ func (a *Agent) Stop() {
 	a.mu.Unlock()
 	//关闭监听
 	if a.listener != nil {
-		log.Info("Stopping listening")
+		global.LOG.Info("Stopping listening")
 		a.listener.Close()
 	}
 }
@@ -87,10 +87,10 @@ func (a *Agent) connectToCenter() {
 				if err != nil {
 					select {
 					case <-a.done:
-						log.Info("Server is shutting down, stop connect to Center.")
+						global.LOG.Info("Server is shutting down, stop connect to Center.")
 						return
 					default:
-						log.Error("Failed to connect to Center: %v", err)
+						global.LOG.Error("Failed to connect to Center: %v", err)
 						time.Sleep(retryInterval)
 					}
 				} else {
@@ -100,7 +100,7 @@ func (a *Agent) connectToCenter() {
 					a.centerID = centerID
 					a.centerConn = conn
 					a.mu.Unlock()
-					log.Info("Successfully connected to Center %s", centerID)
+					global.LOG.Info("Successfully connected to Center %s", centerID)
 
 					// 处理连接
 					go a.handleConnection(conn)
@@ -110,24 +110,24 @@ func (a *Agent) connectToCenter() {
 			}
 		}
 	}
-	log.Error("Max retries reached. Unable to connect to Center.")
+	global.LOG.Error("Max retries reached. Unable to connect to Center.")
 }
 
 func (a *Agent) acceptConnections() {
 	for {
 		select {
 		case <-a.done:
-			log.Info("Server is shutting down, stop accepting new connections.")
+			global.LOG.Info("Server is shutting down, stop accepting new connections.")
 			return
 		default:
 			conn, err := a.listener.Accept()
 			if err != nil {
 				select {
 				case <-a.done:
-					log.Info("Server is shutting down, stop accepting new connections.")
+					global.LOG.Info("Server is shutting down, stop accepting new connections.")
 					return
 				default:
-					log.Error("Failed to accept connection: %v", err)
+					global.LOG.Error("Failed to accept connection: %v", err)
 				}
 				continue
 			}
@@ -135,7 +135,7 @@ func (a *Agent) acceptConnections() {
 			// 成功接受连接后记录日志
 			now := time.Now().Format(time.RFC3339)
 			centerID := conn.RemoteAddr().String()
-			log.Info("Accepted new connection from %s at %s", centerID, now)
+			global.LOG.Info("Accepted new connection from %s at %s", centerID, now)
 
 			// 处理连接
 			go a.handleConnection(conn)
@@ -159,7 +159,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
-				log.Error("Read error: %v", err)
+				global.LOG.Error("Read error: %v", err)
 			}
 			break
 		}
@@ -170,10 +170,10 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		messages, err := message.ParseMessage(buffer, a.cfg.SecretKey)
 		if err != nil {
 			if err == message.ErrIncompleteMessage {
-				log.Info("not enough data, continue to read")
+				global.LOG.Info("not enough data, continue to read")
 				continue // 数据不完整，继续读取
 			} else {
-				log.Error("Error processing message: %v", err)
+				global.LOG.Error("Error processing message: %v", err)
 			}
 		} else {
 			// 记录center端的链接和最后一个消息ID
@@ -188,26 +188,26 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				centerID := conn.RemoteAddr().String()
 				switch msg.Type {
 				case message.Heartbeat: // 回复心跳
-					log.Info("Heartbeat from %s", centerID)
+					global.LOG.Info("Heartbeat from %s", centerID)
 					if a.centerID != "" && centerID == a.centerID {
 						a.sendHeartbeat(conn)
 					} else {
-						log.Error("%s is a unknown center", centerID)
+						global.LOG.Error("%s is a unknown center", centerID)
 					}
 				case message.CmdMessage: // 处理 Cmd 类型的消息
 					result, err := shell.ExecuteCommand(msg.Data)
 					if err != nil {
-						log.Error("Failed to execute command: %v", err)
+						global.LOG.Error("Failed to execute command: %v", err)
 						continue
 					}
-					log.Info("Command output: %s", result)
+					global.LOG.Info("Command output: %s", result)
 					a.sendCmdResult(conn, msg.MsgID, result)
 				case message.ActionMessage: // 处理 Action 类型的消息
-					log.Info("Processing action message: %s", msg.Data)
+					global.LOG.Info("Processing action message: %s", msg.Data)
 					// TODO: 在这里添加处理 action 消息的逻辑
 
 				default: // 不支持的消息
-					log.Error("Unknown message type: %s", msg.Type)
+					global.LOG.Error("Unknown message type: %s", msg.Type)
 				}
 			}
 		}
@@ -216,7 +216,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		buffer = buffer[:0]
 	}
 
-	log.Info("Connection closed: %s", conn.RemoteAddr().String())
+	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {
@@ -230,28 +230,28 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		message.Heartbeat,
 	)
 	if err != nil {
-		log.Error("Error creating heartbeat message: %v", err)
+		global.LOG.Error("Error creating heartbeat message: %v", err)
 		return
 	}
 
 	err = message.SendMessage(conn, heartbeatMsg)
 	if err != nil {
-		log.Error("Failed to send heartbeat message: %v", err)
+		global.LOG.Error("Failed to send heartbeat message: %v", err)
 		a.mu.Lock()
 		conn.Close()
-		log.Info("close conn %s for heartbeat", a.centerID)
+		global.LOG.Info("close conn %s for heartbeat", a.centerID)
 		a.centerConn = nil
 		a.centerID = ""
 		a.mu.Unlock()
 		//关闭后，尝试重新连接
 		go a.connectToCenter()
 	} else {
-		log.Info("Heartbeat sent to %s", centerID)
+		global.LOG.Info("Heartbeat sent to %s", centerID)
 	}
 }
 
 func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
-	log.Info("send cmd result: %s", result)
+	global.LOG.Info("send cmd result: %s", result)
 	centerID := conn.RemoteAddr().String()
 
 	cmdRspMsg, err := message.CreateMessage(
@@ -262,25 +262,25 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		message.CmdMessage,
 	)
 	if err != nil {
-		log.Error("Error creating cmd rsp message: %v", err)
+		global.LOG.Error("Error creating cmd rsp message: %v", err)
 		return
 	}
 
-	log.Info("msg data: %s", cmdRspMsg.Data)
+	global.LOG.Info("msg data: %s", cmdRspMsg.Data)
 
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
-		log.Error("Failed to send cmd rsp message: %v", err)
+		global.LOG.Error("Failed to send cmd rsp message: %v", err)
 		a.mu.Lock()
 		conn.Close()
-		log.Info("close conn %s for cmd rsp", a.centerID)
+		global.LOG.Info("close conn %s for cmd rsp", a.centerID)
 		a.centerConn = nil
 		a.centerID = ""
 		a.mu.Unlock()
 		//关闭后，尝试重新连接
 		go a.connectToCenter()
 	} else {
-		log.Info("Cmd rsp sent to %s", centerID)
+		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
 }
 

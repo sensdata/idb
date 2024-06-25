@@ -29,9 +29,12 @@ func main() {
 	fmt.Printf("%+v \n", *cfg)
 
 	//初始化日志模块
-	if err := log.InitLogger(cfg.LogPath); err != nil {
+	log, err := log.InitLogger(cfg.LogPath)
+	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
+		panic(err)
 	}
+	global.LOG = log
 
 	//初始化数据库
 	db.Init(cfg.DbPath)

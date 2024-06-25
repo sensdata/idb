@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/center/config"
-	"github.com/sensdata/idb/core/log"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -41,13 +41,13 @@ func (c *Center) Start() error {
 	// 监听端口
 	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
 	if err != nil {
-		log.Error("Failed to listen on port %s: %v", portStr, err)
+		global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
 		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
 		return err
 	}
 
 	c.listener = lis
-	log.Info("Center Started, listening on port %d", c.cfg.Port)
+	global.LOG.Info("Center Started, listening on port %d", c.cfg.Port)
 
 	// 启动接收连接的 goroutine
 	go c.acceptConnections()
@@ -68,7 +68,7 @@ func (c *Center) Stop() {
 	c.mu.Unlock()
 	//关闭监听
 	if c.listener != nil {
-		log.Info("Stopping listening")
+		global.LOG.Info("Stopping listening")
 		c.listener.Close()
 	}
 }
@@ -77,24 +77,24 @@ func (c *Center) acceptConnections() {
 	for {
 		select {
 		case <-c.done:
-			log.Info("Server is shutting down, stop accepting new connections")
+			global.LOG.Info("Server is shutting down, stop accepting new connections")
 			return
 		default:
 			conn, err := c.listener.Accept()
 			if err != nil {
 				select {
 				case <-c.done:
-					log.Info("Server is shutting down, stop accepting new connections.")
+					global.LOG.Info("Server is shutting down, stop accepting new connections.")
 					return
 				default:
-					log.Error("Failed to accept connection: %v", err)
+					global.LOG.Error("Failed to accept connection: %v", err)
 				}
 				continue
 			}
 
 			// 成功接受连接后记录日志
 			now := time.Now().Format(time.RFC3339)
-			log.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
+			global.LOG.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
 			// 记录到map中
 			c.mu.Lock()
 			c.agentConns[conn.RemoteAddr().String()] = conn
@@ -109,7 +109,7 @@ func (c *Center) acceptConnections() {
 func (c *Center) handleConnection(conn net.Conn) {
 	defer func() {
 		agentID := conn.RemoteAddr().String()
-		log.Info("close conn %s for err", agentID)
+		global.LOG.Info("close conn %s for err", agentID)
 
 		c.mu.Lock()
 		delete(c.agentConns, agentID)
@@ -123,7 +123,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 		n, err := conn.Read(tmp)
 		if err != nil {
 			if err != io.EOF {
-				log.Error("Read error: %v", err)
+				global.LOG.Error("Read error: %v", err)
 			}
 			break
 		}
@@ -134,10 +134,10 @@ func (c *Center) handleConnection(conn net.Conn) {
 		messages, err := message.ParseMessage(buffer, c.cfg.SecretKey)
 		if err != nil {
 			if err == message.ErrIncompleteMessage {
-				log.Info("not enough data, continue to read")
+				global.LOG.Info("not enough data, continue to read")
 				continue // 数据不完整，继续读取
 			} else {
-				log.Error("Error processing message: %v", err)
+				global.LOG.Error("Error processing message: %v", err)
 			}
 		} else {
 			// 记录Agent端的连接和最后一个消息ID
@@ -153,10 +153,10 @@ func (c *Center) handleConnection(conn net.Conn) {
 				switch msg.Type {
 				case message.Heartbeat: // 收到心跳
 					// TODO: 维护在线状态
-					log.Info("Heartbeat from %s", agentID)
+					global.LOG.Info("Heartbeat from %s", agentID)
 				case message.CmdMessage: // 收到Cmd 类型的回复
 					// TODO: 回调给发送者或者关注者
-					log.Info("Processing cmd message: %s", msg.Data)
+					global.LOG.Info("Processing cmd message: %s", msg.Data)
 					// 获取响应通道
 					c.mu.Lock()
 					responseCh, exists := c.responseChMap[msg.MsgID]
@@ -168,9 +168,9 @@ func (c *Center) handleConnection(conn net.Conn) {
 					c.mu.Unlock()
 				case message.ActionMessage: // 处理 Action 类型的消息
 					// TODO: 回调给发送者或者关注者
-					log.Info("Processing action message: %s", msg.Data)
+					global.LOG.Info("Processing action message: %s", msg.Data)
 				default: // 不支持的消息
-					log.Error("Unknown message type: %s", msg.Type)
+					global.LOG.Error("Unknown message type: %s", msg.Type)
 				}
 			}
 		}
@@ -179,7 +179,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 		buffer = buffer[:0]
 	}
 
-	log.Info("Connection closed: %s", conn.RemoteAddr().String())
+	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (c *Center) sendHeartbeat() {
@@ -189,7 +189,7 @@ func (c *Center) sendHeartbeat() {
 	for {
 		select {
 		case <-c.done:
-			log.Info("Stopping heartbeat")
+			global.LOG.Info("Stopping heartbeat")
 			return
 		case <-ticker.C:
 			c.mu.Lock()
@@ -202,18 +202,18 @@ func (c *Center) sendHeartbeat() {
 					message.Heartbeat,
 				)
 				if err != nil {
-					log.Error("Error creating heartbeat message: %v", err)
+					global.LOG.Error("Error creating heartbeat message: %v", err)
 					continue
 				}
 
 				err = message.SendMessage(conn, heartbeatMsg)
 				if err != nil {
-					log.Error("Failed to send heartbeat message to %s: %v", agentID, err)
+					global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
 					conn.Close()
 					delete(c.agentConns, agentID)
-					log.Info("close conn %s for heartbeat", agentID)
+					global.LOG.Info("close conn %s for heartbeat", agentID)
 				} else {
-					log.Info("Heartbeat sent to %s", agentID)
+					global.LOG.Info("Heartbeat sent to %s", agentID)
 				}
 			}
 			c.mu.Unlock()
@@ -259,7 +259,7 @@ func (c *Center) ExecuteCommand(cmd string) (string, error) {
 	go func() {
 		err = message.SendMessage(conn, msg)
 		if err != nil {
-			log.Error("Failed to send command message: %v", err)
+			global.LOG.Error("Failed to send command message: %v", err)
 			responseCh <- ""
 		}
 	}()

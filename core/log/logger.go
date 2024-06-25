@@ -2,21 +2,19 @@ package log
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-var (
-	logger *log.Logger
-)
-
-func Writer() *log.Logger {
-	return log.New(os.Stdout, "\r\n", log.LstdFlags)
+type Log struct {
+	Logger *zap.Logger
 }
 
 // InitLogger 初始化日志
-func InitLogger(logfilePath string) error {
+func InitLogger(logfilePath string) (*Log, error) {
 	// Ensure the directory exists
 	dir := filepath.Dir(logfilePath)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -29,30 +27,47 @@ func InitLogger(logfilePath string) error {
 	// 打开日志文件
 	logFile, err := os.OpenFile(logfilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 创建日志实例
-	logger = log.New(logFile, "[Agent] ", log.LstdFlags|log.Lshortfile)
-	return nil
+
+	writer := zapcore.AddSync(logFile)
+	consoleWriter := zapcore.AddSync(os.Stdout)
+
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "idb",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stack",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+
+	core := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderConfig),
+		zapcore.NewMultiWriteSyncer(consoleWriter, writer),
+		zap.InfoLevel,
+	)
+
+	logger := zap.New(core)
+
+	return &Log{Logger: logger}, nil
 }
 
 // Info 记录信息日志
-func Info(format string, args ...interface{}) {
-	if logger != nil {
-		// 手动添加换行符
-		format += "\n"
-		logger.Printf("[INFO] "+format, args...)
-		fmt.Printf("[INFO] "+format, args...)
-	}
+func (l *Log) Info(format string, args ...interface{}) {
+	l.Logger.Info(fmt.Sprintf(format, args...))
+	l.Logger.Sync()
 }
 
 // Error 记录错误日志
-func Error(format string, args ...interface{}) {
-	if logger != nil {
-		// 手动添加换行符
-		format += "\n"
-		logger.Printf("[ERROR] "+format, args...)
-		fmt.Printf("[ERROR] "+format, args...)
-	}
+func (l *Log) Error(format string, args ...interface{}) {
+	l.Logger.Error(fmt.Sprintf(format, args...))
+	l.Logger.Sync()
 }
