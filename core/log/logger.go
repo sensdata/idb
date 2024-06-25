@@ -11,6 +11,10 @@ var (
 	logger *log.Logger
 )
 
+func Writer() *log.Logger {
+	return log.New(os.Stdout, "\r\n", log.LstdFlags)
+}
+
 // InitLogger 初始化日志
 func InitLogger(logfilePath string) error {
 	// Ensure the directory exists
