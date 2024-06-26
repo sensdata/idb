@@ -11,8 +11,8 @@ import (
 type GroupService struct{}
 
 type IGroupService interface {
-	List(info dto.PageInfo) (*dto.PageResult, error)
-	Create(info dto.CreateGroup) (*dto.GroupInfo, error)
+	List(req dto.PageInfo) (*dto.PageResult, error)
+	Create(req dto.CreateGroup) (*dto.GroupInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
 }
@@ -23,12 +23,12 @@ func NewIGroupService() IGroupService {
 
 // List group
 func (s *GroupService) List(req dto.PageInfo) (*dto.PageResult, error) {
-	groups, err := GroupRepo.GetList()
+	total, groups, err := GroupRepo.Page(req.Page, req.PageSize)
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
-	return &dto.PageResult{Items: groups}, nil
+	return &dto.PageResult{Total: total, Items: groups}, nil
 }
 
 // Create group
@@ -39,11 +39,11 @@ func (s *GroupService) Create(req dto.CreateGroup) (*dto.GroupInfo, error) {
 	}
 
 	if err := GroupRepo.Create(&group); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 	var groupInfo dto.GroupInfo
 	if err := copier.Copy(&groupInfo, &group); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 	return &groupInfo, nil
 }

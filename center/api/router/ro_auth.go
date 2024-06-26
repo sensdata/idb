@@ -12,6 +12,6 @@ func (s *AuthRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := entry.ApiGroup
 	{
 		baseRouter.POST("/login", baseApi.Login)
-		baseRouter.POST("/logout", baseApi.Logout)
+		baseRouter.GET("/logout", baseApi.Logout)
 	}
 }

@@ -11,7 +11,8 @@ type UserRepo struct{}
 type IUserRepo interface {
 	Get(opts ...DBOption) (model.User, error)
 	GetList(opts ...DBOption) ([]model.User, error)
-	Page(limit, offset int, opts ...DBOption) (int64, []model.User, error)
+	Page(page, offset int, opts ...DBOption) (int64, []model.User, error)
+	WithByID(id uint) DBOption
 	WithByName(name string) DBOption
 	Create(user *model.User) error
 	Update(id uint, vars map[string]interface{}) error
@@ -54,9 +55,15 @@ func (r *UserRepo) Page(page, size int, opts ...DBOption) (int64, []model.User, 
 	return count, users, err
 }
 
+func (r *UserRepo) WithByID(id uint) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("id = ?", id)
+	}
+}
+
 func (r *UserRepo) WithByName(name string) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
-		return g.Where("userName = ?", name)
+		return g.Where("user_name = ?", name)
 	}
 }
 

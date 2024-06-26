@@ -6,7 +6,14 @@ import (
 	"github.com/sensdata/idb/center/constant"
 )
 
-// Login handles user login and returns a JWT token
+// @Tags Auth
+// @Summary User login
+// @Description 用户登录
+// @Accept json
+// @Produce json
+// @Param request body dto.Login true "request"
+// @Success 200 {object} dto.LoginResult
+// @Router /auth/login [post]
 func (b *BaseApi) Login(c *gin.Context) {
 	var req dto.Login
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -22,6 +29,14 @@ func (b *BaseApi) Login(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
+// @Tags Auth
+// @Summary User logout
+// @Description 用户登出
+// @Accept json
+// @Produce json
+// @Param
+// @Success 200
+// @Router /auth/logout [get]
 func (b *BaseApi) Logout(c *gin.Context) {
 	if err := authService.LogOut(c); err != nil {
 		ErrorWithDetail(c, constant.CodeErrUnauthorized, constant.ErrInternalServer.Error(), err)

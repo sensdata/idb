@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
+	"gorm.io/gorm"
 )
 
 type RoleRepo struct{}
@@ -10,6 +11,7 @@ type RoleRepo struct{}
 type IRoleRepo interface {
 	Get(opts ...DBOption) (model.Role, error)
 	GetList(opts ...DBOption) ([]model.Role, error)
+	WithByName(name string) DBOption
 }
 
 func NewRoleRepo() IRoleRepo {
@@ -34,4 +36,10 @@ func (r *RoleRepo) GetList(opts ...DBOption) ([]model.Role, error) {
 	}
 	err := db.Find(&roles).Error
 	return roles, err
+}
+
+func (r *RoleRepo) WithByName(name string) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("name = ?", name)
+	}
 }
