@@ -1,11 +1,15 @@
 package service
 
-import "github.com/sensdata/idb/center/db"
+import (
+	"github.com/sensdata/idb/center/db/repo"
+)
 
 var (
-	CommonRepo = db.NewCommonRepo()
+	CommonRepo = repo.NewCommonRepo()
 
-	RoleRepo  = db.NewRoleRepo()
-	UserRepo  = db.NewUserRepo()
-	GroupRepo = db.NewGroupRepo()
+	RoleRepo      = repo.NewRoleRepo()
+	UserRepo      = repo.NewUserRepo()
+	GroupRepo     = repo.NewGroupRepo()
+	HostRepo      = repo.NewHostRepo()
+	HostGroupRepo = repo.NewHostGroupRepo()
 )

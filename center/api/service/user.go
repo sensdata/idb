@@ -47,7 +47,7 @@ func (s *UserService) Create(req dto.CreateUser) (*dto.UserInfo, error) {
 	}
 
 	//找组
-	group, err := GroupRepo.Get(GroupRepo.WithByName("default"))
+	group, err := GroupRepo.Get(GroupRepo.WithByID(req.GroupID))
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}

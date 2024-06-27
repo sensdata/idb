@@ -10,4 +10,5 @@ var (
 	authService  = service.NewIAuthService()
 	userService  = service.NewIUserService()
 	groupService = service.NewIGroupService()
+	hostService  = service.NewIHostService()
 )
