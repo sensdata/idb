@@ -1,4 +1,4 @@
-package db
+package repo
 
 import (
 	"github.com/sensdata/idb/center/db/model"
@@ -11,11 +11,12 @@ type GroupRepo struct{}
 type IGroupRepo interface {
 	Get(opts ...DBOption) (model.Group, error)
 	GetList(opts ...DBOption) ([]model.Group, error)
-	Page(page, offset int, opts ...DBOption) (int64, []model.Group, error)
+	Page(page, size int, opts ...DBOption) (int64, []model.Group, error)
 	Create(group *model.Group) error
 	Update(id uint, vars map[string]interface{}) error
 	Delete(opts ...DBOption) error
 	WithByName(name string) DBOption
+	WithByID(id uint) DBOption
 }
 
 func NewGroupRepo() IGroupRepo {
@@ -73,5 +74,11 @@ func (r *GroupRepo) Delete(opts ...DBOption) error {
 func (r *GroupRepo) WithByName(name string) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
 		return g.Where("group_name = ?", name)
+	}
+}
+
+func (r *GroupRepo) WithByID(id uint) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("id = ?", id)
 	}
 }

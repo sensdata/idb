@@ -1,4 +1,4 @@
-package db
+package repo
 
 import (
 	"github.com/sensdata/idb/center/db/model"
@@ -11,7 +11,7 @@ type UserRepo struct{}
 type IUserRepo interface {
 	Get(opts ...DBOption) (model.User, error)
 	GetList(opts ...DBOption) ([]model.User, error)
-	Page(page, offset int, opts ...DBOption) (int64, []model.User, error)
+	Page(page, size int, opts ...DBOption) (int64, []model.User, error)
 	WithByID(id uint) DBOption
 	WithByName(name string) DBOption
 	Create(user *model.User) error

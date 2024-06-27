@@ -15,6 +15,7 @@ func Init() {
 		AddTableUser,
 		AddTableGroup,
 		AddFieldGroupIDToUser,
+		AddTableHost,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -141,6 +142,46 @@ var AddFieldGroupIDToUser = &gormigrate.Migration{
 		}
 		global.LOG.Info("Table User added field GroupID successfully")
 
+		return nil
+	},
+}
+
+var AddTableHost = &gormigrate.Migration{
+	ID: "20240627-add-table-host",
+	Migrate: func(db *gorm.DB) error {
+
+		global.LOG.Info("Adding table Host")
+
+		if err := db.AutoMigrate(&model.HostGroup{}); err != nil {
+			return err
+		}
+		if err := db.AutoMigrate(&model.Host{}); err != nil {
+			return err
+		}
+
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			group := model.HostGroup{GroupName: "default"}
+			if err := tx.Create(&group).Error; err != nil {
+				global.LOG.Error("Failed to insert host group %s: %v", group.GroupName, err)
+				return err
+			}
+			host := model.Host{
+				GroupID:  group.ID,
+				Name:     "localhost",
+				Addr:     "127.0.0.1",
+				User:     "root",
+				Port:     22,
+				AuthMode: "password",
+			}
+			if err := tx.Create(&host).Error; err != nil {
+				global.LOG.Error("Failed to insert host %s: %v", host.Name, err)
+				return err
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		global.LOG.Info("Table Host added successfully")
 		return nil
 	},
 }

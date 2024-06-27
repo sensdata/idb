@@ -1,4 +1,4 @@
-package db
+package repo
 
 import (
 	"github.com/sensdata/idb/center/db/model"
