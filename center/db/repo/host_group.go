@@ -16,7 +16,7 @@ type IHostGroupRepo interface {
 	Update(id uint, vars map[string]interface{}) error
 	Delete(opts ...DBOption) error
 	WithByName(name string) DBOption
-	WithById(id uint) DBOption
+	WithByID(id uint) DBOption
 }
 
 func NewHostGroupRepo() IHostGroupRepo {

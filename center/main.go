@@ -47,6 +47,13 @@ func main() {
 	}
 	defer center.Stop()
 
+	//启动SSH服务
+	ssh := core.NewISSHService()
+	if err := ssh.Start(); err != nil {
+		fmt.Printf("Failed to start ssh: %v", err)
+	}
+	defer ssh.Stop()
+
 	//启动apiServer
 	apiServer := api.NewApiServer(*cfg, center)
 	if err := apiServer.Start(); err != nil {

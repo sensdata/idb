@@ -59,7 +59,7 @@ func (s *HostService) Create(req dto.CreateHost) (*dto.HostInfo, error) {
 	}
 
 	//找组
-	group, err := HostGroupRepo.Get(HostGroupRepo.WithById(req.GroupID))
+	group, err := HostGroupRepo.Get(HostGroupRepo.WithByID(req.GroupID))
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}

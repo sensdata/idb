@@ -14,6 +14,7 @@ type IHostRepo interface {
 	Page(page, size int, opts ...DBOption) (int64, []model.Host, error)
 	WithByID(id uint) DBOption
 	WithByName(name string) DBOption
+	WithByAddr(addr string) DBOption
 	WithByGroupID(groupID uint) DBOption
 	Create(user *model.Host) error
 	Update(id uint, vars map[string]interface{}) error
@@ -65,6 +66,12 @@ func (r *HostRepo) WithByID(id uint) DBOption {
 func (r *HostRepo) WithByName(name string) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
 		return g.Where("name = ?", name)
+	}
+}
+
+func (r *HostRepo) WithByAddr(addr string) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("addr = ?", addr)
 	}
 }
 

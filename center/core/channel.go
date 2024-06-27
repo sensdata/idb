@@ -62,10 +62,12 @@ func (c *Center) Stop() {
 	close(c.done)
 	// 关闭所有Agent连接
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	for _, conn := range c.agentConns {
 		conn.Close()
 	}
-	c.mu.Unlock()
+
 	//关闭监听
 	if c.listener != nil {
 		global.LOG.Info("Stopping listening")
