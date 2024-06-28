@@ -21,7 +21,7 @@ type ISSHService interface {
 	Start() error
 	Stop()
 	ExecuteCommand(addr string, command string) (string, error)
-	ConnectToHost(addr string) error
+	TestConnection(host model.Host) (bool, error)
 }
 
 func NewISSHService() ISSHService {
@@ -34,6 +34,8 @@ func NewISSHService() ISSHService {
 func (s *SSHService) Start() error {
 
 	global.LOG.Info("SSHService started")
+
+	SSH = s
 
 	// 尝试连接所有的host
 	go s.ensureConnections()
@@ -48,6 +50,40 @@ func (s *SSHService) Stop() {
 	for _, client := range s.sshClients {
 		client.Close()
 	}
+}
+
+func (s *SSHService) ExecuteCommand(addr string, command string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, exists := s.sshClients[addr]
+	if !exists {
+		return "", errors.New("host disconnected")
+	}
+
+	return executeCommand(s.sshClients[addr], command)
+}
+
+func (s *SSHService) TestConnection(host model.Host) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 已存在
+	_, exists := s.sshClients[host.Addr]
+	if exists {
+		return true, nil
+	}
+
+	resultCh := make(chan error, 1)
+	go s.connectToHost(&host, resultCh)
+
+	err := <-resultCh
+	if err != nil {
+		global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s *SSHService) ensureConnections() {
@@ -69,12 +105,18 @@ func (s *SSHService) ensureConnections() {
 		if exists {
 			continue
 		} else {
-			go s.connectToHost(&host)
+			resultCh := make(chan error, 1)
+			go s.connectToHost(&host, resultCh)
+			// handle the result if needed
+			err := <-resultCh
+			if err != nil {
+				global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
+			}
 		}
 	}
 }
 
-func (s *SSHService) connectToHost(host *model.Host) {
+func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -115,11 +157,13 @@ func (s *SSHService) connectToHost(host *model.Host) {
 	)
 	if err != nil {
 		global.LOG.Error("Failed to create ssh connection to host %s, %v", host.Addr, err)
+		resultCh <- err
 		return
 	}
 	s.sshClients[host.Addr] = client
 
 	global.LOG.Info("SSH connection to %s created", host.Addr)
+	resultCh <- nil
 }
 
 func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, error) {
@@ -127,40 +171,6 @@ func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, err
 		return ssh.ParsePrivateKeyWithPassphrase(privateKey, passPhrase)
 	}
 	return ssh.ParsePrivateKey(privateKey)
-}
-
-func (s *SSHService) ExecuteCommand(addr string, command string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	_, exists := s.sshClients[addr]
-	if !exists {
-		return "", errors.New("host disconnected")
-	}
-
-	return executeCommand(s.sshClients[addr], command)
-}
-
-func (s *SSHService) ConnectToHost(addr string) error {
-	//获取host
-	host, err := HostRepo.Get(HostRepo.WithByAddr(addr))
-	if err != nil {
-		global.LOG.Error("Failed to get host: %v", err)
-		return errors.New("host not exist")
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// 已存在
-	_, exists := s.sshClients[host.Addr]
-	if exists {
-		return nil
-	}
-
-	go s.connectToHost(&host)
-
-	return nil
 }
 
 func executeCommand(client *ssh.Client, command string) (string, error) {
