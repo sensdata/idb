@@ -141,6 +141,7 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 
 		signer, err := makePrivateKeySigner(privateKey, passPhrase)
 		if err != nil {
+			resultCh <- err
 			return
 		}
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}

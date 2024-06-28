@@ -166,12 +166,19 @@ var AddTableHost = &gormigrate.Migration{
 				return err
 			}
 			host := model.Host{
-				GroupID:  group.ID,
-				Name:     "localhost",
-				Addr:     "127.0.0.1",
-				User:     "root",
-				Port:     22,
-				AuthMode: "password",
+				GroupID:    group.ID,
+				Name:       "localhost",
+				Addr:       "127.0.0.1",
+				Port:       22,
+				User:       "root",
+				AuthMode:   "password",
+				Password:   "",
+				PrivateKey: "",
+				PassPhrase: "",
+				AgentAddr:  "127.0.0.1",
+				AgentPort:  9091,
+				AgentMode:  "http",
+				AgentKey:   "idbidbidbidbidbidbidbidb",
 			}
 			if err := tx.Create(&host).Error; err != nil {
 				global.LOG.Error("Failed to insert host %s: %v", host.Name, err)

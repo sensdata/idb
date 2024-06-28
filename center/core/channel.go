@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/sensdata/idb/center/config"
+	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
@@ -35,24 +35,25 @@ func NewCenter(cfg config.CenterConfig) *Center {
 }
 
 func (c *Center) Start() error {
+
 	CENTER = c
 
 	// 将端口号转换为字符串
-	portStr := strconv.Itoa(c.cfg.Port)
+	// portStr := strconv.Itoa(c.cfg.Port)
 
 	// 监听端口
-	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
-	if err != nil {
-		global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
-		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
-		return err
-	}
+	// lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
+	// if err != nil {
+	// 	global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
+	// 	fmt.Printf("Failed to listen on port %s, quit \n", portStr)
+	// 	return err
+	// }
 
-	c.listener = lis
-	global.LOG.Info("Center Started, listening on port %d", c.cfg.Port)
+	// c.listener = lis
+	// global.LOG.Info("Center Started, listening on port %d", c.cfg.Port)
 
 	// 启动接收连接的 goroutine
-	go c.acceptConnections()
+	go c.ensureConnections()
 
 	// 定期发送心跳消息
 	go c.sendHeartbeat()
@@ -62,6 +63,7 @@ func (c *Center) Start() error {
 
 func (c *Center) Stop() {
 	close(c.done)
+
 	// 关闭所有Agent连接
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -71,43 +73,95 @@ func (c *Center) Stop() {
 	}
 
 	//关闭监听
-	if c.listener != nil {
-		global.LOG.Info("Stopping listening")
-		c.listener.Close()
+	// if c.listener != nil {
+	// 	global.LOG.Info("Stopping listening")
+	// 	c.listener.Close()
+	// }
+}
+
+// func (c *Center) acceptConnections() {
+// 	for {
+// 		select {
+// 		case <-c.done:
+// 			global.LOG.Info("Server is shutting down, stop accepting new connections")
+// 			return
+// 		default:
+// 			conn, err := c.listener.Accept()
+// 			if err != nil {
+// 				select {
+// 				case <-c.done:
+// 					global.LOG.Info("Server is shutting down, stop accepting new connections.")
+// 					return
+// 				default:
+// 					global.LOG.Error("Failed to accept connection: %v", err)
+// 				}
+// 				continue
+// 			}
+
+// 			// 成功接受连接后记录日志
+// 			now := time.Now().Format(time.RFC3339)
+// 			global.LOG.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
+// 			// 记录到map中
+// 			c.mu.Lock()
+// 			c.agentConns[conn.RemoteAddr().String()] = conn
+// 			c.mu.Unlock()
+
+// 			// 处理连接
+// 			go c.handleConnection(conn)
+// 		}
+// 	}
+// }
+
+func (c *Center) ensureConnections() {
+	global.LOG.Info("ensureConnections")
+
+	//获取所有的host
+	hosts, err := HostRepo.GetList()
+	if err != nil {
+		global.LOG.Error("Failed to get host list: %v", err)
+		return
+	}
+
+	// 挨个确认是否已经建立连接
+	for _, host := range hosts {
+		addr := host.AgentAddr
+		// 判断sshClients中是否包含addr的数据
+		_, exists := c.agentConns[addr]
+		if exists {
+			continue
+		} else {
+			resultCh := make(chan error, 1)
+			go c.connectToAgent(&host, resultCh)
+			// handle the result if needed
+			err := <-resultCh
+			if err != nil {
+				global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
+			}
+		}
 	}
 }
 
-func (c *Center) acceptConnections() {
-	for {
-		select {
-		case <-c.done:
-			global.LOG.Info("Server is shutting down, stop accepting new connections")
-			return
-		default:
-			conn, err := c.listener.Accept()
-			if err != nil {
-				select {
-				case <-c.done:
-					global.LOG.Info("Server is shutting down, stop accepting new connections.")
-					return
-				default:
-					global.LOG.Error("Failed to accept connection: %v", err)
-				}
-				continue
-			}
+func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-			// 成功接受连接后记录日志
-			now := time.Now().Format(time.RFC3339)
-			global.LOG.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
-			// 记录到map中
-			c.mu.Lock()
-			c.agentConns[conn.RemoteAddr().String()] = conn
-			c.mu.Unlock()
-
-			// 处理连接
-			go c.handleConnection(conn)
-		}
+	global.LOG.Info("try connect to agent %s:%d", host.AgentAddr, host.AgentPort)
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort))
+	if err != nil {
+		global.LOG.Error("Failed to connect to Agent: %v", err)
+		resultCh <- err
+		return
 	}
+
+	// 记录连接
+	agentID := conn.RemoteAddr().String()
+	c.agentConns[agentID] = conn
+
+	global.LOG.Info("Successfully connected to Agent %s", agentID)
+	resultCh <- nil
+
+	// 处理连接
+	go c.handleConnection(conn)
 }
 
 func (c *Center) handleConnection(conn net.Conn) {

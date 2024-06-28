@@ -53,7 +53,7 @@ func (a *Agent) Start() error {
 	go a.acceptConnections()
 
 	// 连接server
-	go a.connectToCenter()
+	// go a.connectToCenter()
 
 	return nil
 }
@@ -73,45 +73,45 @@ func (a *Agent) Stop() {
 	}
 }
 
-func (a *Agent) connectToCenter() {
-	const maxRetries = 5
-	const retryInterval = time.Second * 5
+// func (a *Agent) connectToCenter() {
+// 	const maxRetries = 5
+// 	const retryInterval = time.Second * 5
 
-	for retries := 0; retries < maxRetries; retries++ {
-		select {
-		case <-a.done:
-			return
-		default:
-			if a.centerConn == nil {
-				conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", a.cfg.CenterIP, a.cfg.CenterPort))
-				if err != nil {
-					select {
-					case <-a.done:
-						global.LOG.Info("Server is shutting down, stop connect to Center.")
-						return
-					default:
-						global.LOG.Error("Failed to connect to Center: %v", err)
-						time.Sleep(retryInterval)
-					}
-				} else {
-					// 记录连接
-					centerID := conn.RemoteAddr().String()
-					a.mu.Lock()
-					a.centerID = centerID
-					a.centerConn = conn
-					a.mu.Unlock()
-					global.LOG.Info("Successfully connected to Center %s", centerID)
+// 	for retries := 0; retries < maxRetries; retries++ {
+// 		select {
+// 		case <-a.done:
+// 			return
+// 		default:
+// 			if a.centerConn == nil {
+// 				conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", a.cfg.CenterIP, a.cfg.CenterPort))
+// 				if err != nil {
+// 					select {
+// 					case <-a.done:
+// 						global.LOG.Info("Server is shutting down, stop connect to Center.")
+// 						return
+// 					default:
+// 						global.LOG.Error("Failed to connect to Center: %v", err)
+// 						time.Sleep(retryInterval)
+// 					}
+// 				} else {
+// 					// 记录连接
+// 					centerID := conn.RemoteAddr().String()
+// 					a.mu.Lock()
+// 					a.centerID = centerID
+// 					a.centerConn = conn
+// 					a.mu.Unlock()
+// 					global.LOG.Info("Successfully connected to Center %s", centerID)
 
-					// 处理连接
-					go a.handleConnection(conn)
+// 					// 处理连接
+// 					go a.handleConnection(conn)
 
-					return
-				}
-			}
-		}
-	}
-	global.LOG.Error("Max retries reached. Unable to connect to Center.")
-}
+// 					return
+// 				}
+// 			}
+// 		}
+// 	}
+// 	global.LOG.Error("Max retries reached. Unable to connect to Center.")
+// }
 
 func (a *Agent) acceptConnections() {
 	for {
@@ -136,6 +136,11 @@ func (a *Agent) acceptConnections() {
 			now := time.Now().Format(time.RFC3339)
 			centerID := conn.RemoteAddr().String()
 			global.LOG.Info("Accepted new connection from %s at %s", centerID, now)
+			// 记录连接
+			a.mu.Lock()
+			a.centerID = centerID
+			a.centerConn = conn
+			a.mu.Unlock()
 
 			// 处理连接
 			go a.handleConnection(conn)
@@ -177,6 +182,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			}
 		} else {
 			// 记录center端的链接和最后一个消息ID
+			centerID := conn.RemoteAddr().String()
 			if len(messages) > 0 {
 				a.mu.Lock()
 				a.centerMsgID = messages[0].MsgID
@@ -185,7 +191,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 
 			// 处理消息
 			for _, msg := range messages {
-				centerID := conn.RemoteAddr().String()
 				switch msg.Type {
 				case message.Heartbeat: // 回复心跳
 					global.LOG.Info("Heartbeat from %s", centerID)
@@ -244,7 +249,7 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		a.centerID = ""
 		a.mu.Unlock()
 		//关闭后，尝试重新连接
-		go a.connectToCenter()
+		// go a.connectToCenter()
 	} else {
 		global.LOG.Info("Heartbeat sent to %s", centerID)
 	}
@@ -278,7 +283,7 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		a.centerID = ""
 		a.mu.Unlock()
 		//关闭后，尝试重新连接
-		go a.connectToCenter()
+		// go a.connectToCenter()
 	} else {
 		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
