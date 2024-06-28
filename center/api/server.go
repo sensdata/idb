@@ -6,19 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/api/router"
 	"github.com/sensdata/idb/center/config"
-	"github.com/sensdata/idb/center/core"
 )
 
 type ApiServer struct {
 	cfg    config.CenterConfig
-	center *core.Center
 	router *gin.Engine
 }
 
-func NewApiServer(cfg config.CenterConfig, center *core.Center) *ApiServer {
+func NewApiServer(cfg config.CenterConfig) *ApiServer {
 	return &ApiServer{
-		cfg:    cfg,
-		center: center,
+		cfg: cfg,
 	}
 }
 

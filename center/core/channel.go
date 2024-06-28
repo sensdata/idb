@@ -35,6 +35,8 @@ func NewCenter(cfg config.CenterConfig) *Center {
 }
 
 func (c *Center) Start() error {
+	CENTER = c
+
 	// 将端口号转换为字符串
 	portStr := strconv.Itoa(c.cfg.Port)
 

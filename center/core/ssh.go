@@ -21,7 +21,7 @@ type ISSHService interface {
 	Start() error
 	Stop()
 	ExecuteCommand(addr string, command string) (string, error)
-	TestConnection(host model.Host) (bool, error)
+	TestConnection(host model.Host) error
 }
 
 func NewISSHService() ISSHService {
@@ -64,14 +64,14 @@ func (s *SSHService) ExecuteCommand(addr string, command string) (string, error)
 	return executeCommand(s.sshClients[addr], command)
 }
 
-func (s *SSHService) TestConnection(host model.Host) (bool, error) {
+func (s *SSHService) TestConnection(host model.Host) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// 已存在
 	_, exists := s.sshClients[host.Addr]
 	if exists {
-		return true, nil
+		return nil
 	}
 
 	resultCh := make(chan error, 1)
@@ -80,10 +80,10 @@ func (s *SSHService) TestConnection(host model.Host) (bool, error) {
 	err := <-resultCh
 	if err != nil {
 		global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func (s *SSHService) ensureConnections() {

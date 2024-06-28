@@ -64,3 +64,22 @@ type UpdateHostAgent struct {
 	AgentMode string `json:"agentMode" validate:"required,string"`
 	AgentKey  string `json:"agentKey"`
 }
+
+type TestSSH struct {
+	HostID     uint   `json:"hostId" validate:"required,number"`
+	Addr       string `json:"addr" validate:"required,string"`
+	Port       int    `json:"port" validate:"required,number"`
+	User       string `json:"user" validate:"required,string"`
+	AuthMode   string `json:"authMode" validate:"required,string"`
+	Password   string `json:"password"`
+	PrivateKey string `json:"privateKey"`
+	PassPhrase string `json:"passPhrase"`
+}
+
+type TestAgent struct {
+	HostID    uint   `json:"hostId" validate:"required,number"`
+	AgentAddr string `json:"agentAddr" validate:"required,string"`
+	AgentPort int    `json:"agentPort" validate:"required,number"`
+	AgentMode string `json:"agentMode" validate:"required,string"`
+	AgentKey  string `json:"agentKey"`
+}

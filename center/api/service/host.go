@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/api/dto"
 	"github.com/sensdata/idb/center/constant"
+	"github.com/sensdata/idb/center/core"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/core/utils"
@@ -20,6 +21,8 @@ type IHostService interface {
 	Delete(ids []uint) error
 	UpdateSSH(req dto.UpdateHostSSH) error
 	UpdateAgent(req dto.UpdateHostAgent) error
+	TestSSH(req dto.TestSSH) error
+	TestAgent(req dto.TestAgent) error
 }
 
 func NewIHostService() IHostService {
@@ -136,4 +139,21 @@ func (s *HostService) UpdateAgent(req dto.UpdateHostAgent) error {
 	upMap["agent_mode"] = req.AgentMode
 
 	return HostRepo.Update(host.ID, upMap)
+}
+
+func (s *HostService) TestSSH(req dto.TestSSH) error {
+	var host model.Host
+	if err := copier.Copy(&host, &req); err != nil {
+		return err
+	}
+	if err := core.SSH.TestConnection(host); err != nil {
+		return err
+	}
+	return nil
+}
+
+// TestAgent implements IHostService.
+func (s *HostService) TestAgent(req dto.TestAgent) error {
+	// TODO agent的连接机制待细化
+	return nil
 }

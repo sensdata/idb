@@ -3,6 +3,7 @@ package constant
 import "errors"
 
 const (
+	CodeFailed            = 0
 	CodeSuccess           = 200
 	CodeErrBadRequest     = 400
 	CodeErrUnauthorized   = 401

@@ -95,3 +95,31 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	}
 	SuccessWithData(c, nil)
 }
+
+// Test host ssh
+func (b *BaseApi) TestHostSSH(c *gin.Context) {
+	var req dto.TestSSH
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := hostService.TestSSH(req); err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// Test agent
+func (b *BaseApi) TestHostAgent(c *gin.Context) {
+	var req dto.TestAgent
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := hostService.TestAgent(req); err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}

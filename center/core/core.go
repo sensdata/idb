@@ -10,4 +10,7 @@ var (
 	GroupRepo     = repo.NewGroupRepo()
 	HostRepo      = repo.NewHostRepo()
 	HostGroupRepo = repo.NewHostGroupRepo()
+
+	SSH    *SSHService
+	CENTER *Center
 )

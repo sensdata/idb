@@ -55,7 +55,7 @@ func main() {
 	defer ssh.Stop()
 
 	//启动apiServer
-	apiServer := api.NewApiServer(*cfg, center)
+	apiServer := api.NewApiServer(*cfg)
 	if err := apiServer.Start(); err != nil {
 		fmt.Printf("Failed to start api: %v", err)
 	}
