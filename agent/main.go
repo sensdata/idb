@@ -10,11 +10,12 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "idb-agent",
+		Name:  "idbagent",
 		Usage: "idb agent command line tools",
 		Commands: []cli.Command{
 			*agent.StartCommand,
 			*agent.StopCommand,
+			*agent.ConfigCommand,
 		},
 	}
 

@@ -5,7 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -27,6 +27,7 @@ var AGENT = Agent{
 
 type Agent struct {
 	state        int // 状态
+	confManager  *config.Manager
 	unixListener net.Listener
 	tcpListener  net.Listener
 	centerID     string   // 存储center地址
@@ -50,20 +51,25 @@ func (a *Agent) Start() error {
 
 	fmt.Println("Agent Starting")
 
-	configPath := "config.json"
+	// 获取当前可执行文件的路径
+	ex, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Failed to get executable path: %v\n", err)
+		return err
+	}
 
-	manager, err := config.NewManager(configPath)
+	// 获取安装目录
+	installDir := filepath.Dir(ex)
+
+	// 初始化配置
+	manager, err := config.NewManager(installDir)
 	if err != nil {
 		fmt.Printf("Failed to initialize config manager: %v \n", err)
 	}
-
-	cfg := manager.GetConfig()
-	global.CONF = *cfg
-	fmt.Println("Get config:")
-	fmt.Printf("%+v \n", *cfg)
+	a.confManager = manager
 
 	// 初始化日志模块
-	l, err := log.InitLogger(cfg.LogPath)
+	l, err := log.InitLogger(installDir, "agent.log")
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
 		panic(err)
@@ -71,32 +77,16 @@ func (a *Agent) Start() error {
 	global.LOG = l
 
 	// 启动 Unix 域套接字监听器
-	a.unixListener, err = net.Listen("unix", "/tmp/idb-agent.sock")
+	err = a.listenToUnix()
 	if err != nil {
-		global.LOG.Error("Failed to start unix listener: %v", err)
 		return err
 	}
-
-	// 将端口号转换为字符串
-	portStr := strconv.Itoa(cfg.Port)
-	global.LOG.Info("Agent started, try listen on port %s", portStr)
 
 	// 监听端口
-	lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
+	err = a.listenToTcp()
 	if err != nil {
-		global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
-		fmt.Printf("Failed to listen on port %s, quit \n", portStr)
 		return err
 	}
-
-	a.tcpListener = lis
-	global.LOG.Info("Starting TCP server on port %s", portStr)
-
-	// 处理unix连接
-	go a.acceptUnixConnections()
-
-	// 启动接受连接的 goroutine
-	go a.acceptConnections()
 
 	a.state = 1
 	return nil
@@ -126,6 +116,25 @@ func (a *Agent) stopAgent() {
 		a.tcpListener.Close()
 	}
 	a.state = 0
+}
+
+func (a *Agent) listenToUnix() error {
+	//先关闭
+	if a.unixListener != nil {
+		a.unixListener.Close()
+	}
+
+	var err error
+	a.unixListener, err = net.Listen("unix", "/tmp/idb-agent.sock")
+	if err != nil {
+		global.LOG.Error("Failed to start unix listener: %v", err)
+		return err
+	}
+
+	// 处理unix连接
+	go a.acceptUnixConnections()
+
+	return nil
 }
 
 func (a *Agent) acceptUnixConnections() {
@@ -162,15 +171,14 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 	}
 
 	command := string(buf[:n])
-	args := strings.Fields(command)
+	parts := strings.Fields(command)
 
-	if len(args) == 0 {
-		conn.Write([]byte("No command provided"))
+	if len(parts) == 0 {
+		conn.Write([]byte("Unknown command"))
 		return
 	}
 
-	// 处理命令，根据命令执行相应操作
-	switch args[0] {
+	switch parts[0] {
 	case "status":
 		conn.Write([]byte("Agent is running"))
 	case "stop":
@@ -179,51 +187,89 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 		p, _ := os.FindProcess(os.Getpid())
 		p.Signal(syscall.SIGTERM)
 	case "config":
-		a.handleConfigCommand(conn, args[1:])
+		switch len(parts) {
+		case 1:
+			// 输出当前的配置信息
+			config, err := a.getConfig()
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%v", config)))
+			}
+		case 2:
+			// 输出当前的指定key配置信息
+			key := parts[1]
+			value, err := a.getConfigValue(key)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+			}
+		case 3:
+			// 修改指定key的配置
+			key := parts[1]
+			value := parts[2]
+			err := a.setConfigValue(key, value)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+				a.listenToTcp()
+			}
+		default:
+			conn.Write([]byte("Unknown config command format"))
+		}
 	default:
 		conn.Write([]byte("Unknown command"))
 	}
 }
 
-func (a *Agent) handleConfigCommand(conn net.Conn, args []string) {
-	switch len(args) {
-	case 0:
-		// 读取当前所有配置
-		conn.Write([]byte("Current configuration: ...")) // 这里替换为实际的配置读取逻辑
-	case 1:
-		// 读取指定配置项
-		key := args[0]
-		// 假设有一个 GetConfig 方法用于获取配置
-		value, err := a.GetConfig(key)
-		if err != nil {
-			conn.Write([]byte(fmt.Sprintf("Failed to get config for key %s: %v", key, err)))
-		} else {
-			conn.Write([]byte(fmt.Sprintf("Current value for %s: %s", key, value)))
-		}
-	case 2:
-		// 设置指定配置项
-		key := args[0]
-		value := args[1]
-		// 假设有一个 SetConfig 方法用于设置配置
-		if err := a.SetConfig(key, value); err != nil {
-			conn.Write([]byte(fmt.Sprintf("Failed to set config for key %s: %v", key, err)))
-		} else {
-			conn.Write([]byte(fmt.Sprintf("Config %s set to %s", key, value)))
-		}
-	default:
-		conn.Write([]byte("Invalid config command"))
+// 返回当前的所有配置信息
+func (a *Agent) getConfig() (string, error) {
+	return a.confManager.GetConfigString("")
+}
+
+// 返回当前的指定配置信息
+func (a *Agent) getConfigValue(key string) (string, error) {
+	return a.confManager.GetConfigString(key)
+}
+
+// 设置指定的配置
+func (a *Agent) setConfigValue(key, value string) error {
+	err := a.confManager.SetConfig(key, value)
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-// 假设有 GetConfig 和 SetConfig 方法
-func (a *Agent) GetConfig(key string) (string, error) {
-	// 在这里实现获取配置的逻辑
-	return "dummy_value", nil // 替换为实际值
-}
+func (a *Agent) listenToTcp() error {
+	//先关闭
+	a.mu.Lock()
+	if a.centerConn != nil {
+		a.centerConn.Close()
+	}
+	a.mu.Unlock()
 
-func (a *Agent) SetConfig(key, value string) error {
-	// 在这里实现设置配置的逻辑
-	return nil // 替换为实际操作
+	if a.tcpListener != nil {
+		a.tcpListener.Close()
+	}
+
+	config := a.confManager.GetConfig()
+	global.LOG.Info("Try listen on port %d", config.Port)
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port))
+	if err != nil {
+		global.LOG.Error("Failed to listen on port %d: %v", config.Port, err)
+		fmt.Printf("Failed to listen on port %d, quit \n", config.Port)
+		return err
+	}
+
+	a.tcpListener = lis
+	go a.acceptConnections()
+
+	global.LOG.Info("Starting TCP server on port %d", config.Port)
+
+	return nil
 }
 
 func (a *Agent) acceptConnections() {
@@ -271,6 +317,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
+	config := a.confManager.GetConfig()
 	var buffer []byte
 	tmp := make([]byte, 1024)
 	for {
@@ -285,7 +332,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		buffer = append(buffer, tmp[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, global.CONF.SecretKey)
+		messages, err := message.ParseMessage(buffer, config.SecretKey)
 		if err != nil {
 			if err == message.ErrIncompleteMessage {
 				global.LOG.Info("not enough data, continue to read")
@@ -338,12 +385,14 @@ func (a *Agent) handleConnection(conn net.Conn) {
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {
+	config := a.confManager.GetConfig()
+
 	centerID := conn.RemoteAddr().String()
 
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
 		"Heartbeat",
-		global.CONF.SecretKey,
+		config.SecretKey,
 		utils.GenerateNonce(16),
 		message.Heartbeat,
 	)
@@ -369,13 +418,14 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 }
 
 func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
-	global.LOG.Info("send cmd result: %s", result)
+	config := a.confManager.GetConfig()
+
 	centerID := conn.RemoteAddr().String()
 
 	cmdRspMsg, err := message.CreateMessage(
 		msgID, // 使用相同的msgID回复
 		result,
-		global.CONF.SecretKey,
+		config.SecretKey,
 		utils.GenerateNonce(16),
 		message.CmdMessage,
 	)
@@ -401,34 +451,3 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
 }
-
-// func testSendMessage(cfg *config.Config) {
-// 	time.Sleep(time.Second * 5)
-// 	// 构造消息
-// 	commands := []string{
-// 		"echo 'Hello, test 2'",
-// 		"ps",
-// 	}
-
-// 	for _, cmd := range commands {
-// 		msg, err := message.CreateMessage(
-// 			utils.GenerateMsgId(),
-// 			cmd,
-// 			cfg.SecretKey,
-// 			utils.GenerateNonce(16),
-// 			message.CmdMessage,
-// 		)
-// 		if err != nil {
-// 			fmt.Printf("Error creating message: %v\n", err)
-// 			return
-// 		}
-
-// 		// 发送消息
-// 		err = message.SendMessage("127.0.0.1", cfg.Port, msg)
-// 		if err != nil {
-// 			fmt.Printf("Failed to send message: %v\n", err)
-// 		} else {
-// 			fmt.Println("Message sent successfully!")
-// 		}
-// 	}
-// }
