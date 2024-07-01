@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/sensdata/idb/center/api"
 	"github.com/sensdata/idb/center/config"
@@ -16,6 +18,16 @@ import (
 func main() {
 	fmt.Printf("Center Starting")
 
+	// 获取当前可执行文件的路径
+	ex, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Failed to get executable path: %v\n", err)
+		panic(err)
+	}
+
+	// 获取安装目录
+	installDir := filepath.Dir(ex)
+
 	configPath := "config.json"
 
 	manager, err := config.NewManager(configPath)
@@ -29,7 +41,7 @@ func main() {
 	fmt.Printf("%+v \n", *cfg)
 
 	//初始化日志模块
-	log, err := log.InitLogger(cfg.LogPath)
+	log, err := log.InitLogger(installDir, "config.json")
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
 		panic(err)

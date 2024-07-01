@@ -14,15 +14,10 @@ type Log struct {
 }
 
 // InitLogger 初始化日志
-func InitLogger(logfilePath string) (*Log, error) {
-	// Ensure the directory exists
-	dir := filepath.Dir(logfilePath)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			fmt.Printf("Failed to create log directory: %v", err)
-		}
-	}
+func InitLogger(installDir string, fileName string) (*Log, error) {
+
+	// 配置文件路径
+	logfilePath := filepath.Join(installDir, fileName)
 
 	// 打开日志文件
 	logFile, err := os.OpenFile(logfilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
