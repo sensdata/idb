@@ -1,41 +1,84 @@
-package channel
+package agent
 
 import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
 )
 
-type Agent struct {
-	cfg         config.Config
-	listener    net.Listener
-	centerID    string   // 存储center地址
-	centerConn  net.Conn // 存储center端连接的映射
-	centerMsgID string   // 存储center端连接的最后一个消息ID
-	done        chan struct{}
-	mu          sync.Mutex // 保护centerConn和centerMsgID的互斥锁
+var AGENT = Agent{
+	state:      0,
+	centerConn: nil,
+	done:       make(chan struct{}),
 }
 
-func NewAgent(cfg config.Config) *Agent {
-	return &Agent{
-		cfg:        cfg,
-		centerConn: nil,
-		done:       make(chan struct{}),
-	}
+type Agent struct {
+	state        int // 状态
+	unixListener net.Listener
+	tcpListener  net.Listener
+	centerID     string   // 存储center地址
+	centerConn   net.Conn // 存储center端连接的映射
+	centerMsgID  string   // 存储center端连接的最后一个消息ID
+	done         chan struct{}
+	mu           sync.Mutex // 保护centerConn和centerMsgID的互斥锁
+}
+
+type IAgent interface {
+	Started() bool
+	Start() error
+	Stop() error
+}
+
+func (a *Agent) Started() bool {
+	return a.state == 1
 }
 
 func (a *Agent) Start() error {
+
+	fmt.Println("Agent Starting")
+
+	configPath := "config.json"
+
+	manager, err := config.NewManager(configPath)
+	if err != nil {
+		fmt.Printf("Failed to initialize config manager: %v \n", err)
+	}
+
+	cfg := manager.GetConfig()
+	global.CONF = *cfg
+	fmt.Println("Get config:")
+	fmt.Printf("%+v \n", *cfg)
+
+	// 初始化日志模块
+	l, err := log.InitLogger(cfg.LogPath)
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v \n", err)
+		panic(err)
+	}
+	global.LOG = l
+
+	// 启动 Unix 域套接字监听器
+	a.unixListener, err = net.Listen("unix", "/tmp/idb-agent.sock")
+	if err != nil {
+		global.LOG.Error("Failed to start unix listener: %v", err)
+		return err
+	}
+
 	// 将端口号转换为字符串
-	portStr := strconv.Itoa(a.cfg.Port)
+	portStr := strconv.Itoa(cfg.Port)
 	global.LOG.Info("Agent started, try listen on port %s", portStr)
 
 	// 监听端口
@@ -46,85 +89,155 @@ func (a *Agent) Start() error {
 		return err
 	}
 
-	a.listener = lis
-	global.LOG.Info("Starting TCP server on port %d", a.cfg.Port)
+	a.tcpListener = lis
+	global.LOG.Info("Starting TCP server on port %s", portStr)
+
+	// 处理unix连接
+	go a.acceptUnixConnections()
 
 	// 启动接受连接的 goroutine
 	go a.acceptConnections()
 
-	// 连接server
-	// go a.connectToCenter()
-
+	a.state = 1
 	return nil
 }
 
-func (a *Agent) Stop() {
+func (a *Agent) Stop() error {
+	a.stopAgent()
+	return nil
+
+}
+
+func (a *Agent) stopAgent() {
 	close(a.done)
+
 	// 关闭center连接
 	a.mu.Lock()
 	if a.centerConn != nil {
 		a.centerConn.Close()
 	}
 	a.mu.Unlock()
+
 	//关闭监听
-	if a.listener != nil {
-		global.LOG.Info("Stopping listening")
-		a.listener.Close()
+	if a.unixListener != nil {
+		a.unixListener.Close()
+	}
+	if a.tcpListener != nil {
+		a.tcpListener.Close()
+	}
+	a.state = 0
+}
+
+func (a *Agent) acceptUnixConnections() {
+	for {
+		select {
+		case <-a.done:
+			global.LOG.Info("Agent is stopping, stop accepting new unix connections.")
+			return
+		default:
+			conn, err := a.unixListener.Accept()
+			if err != nil {
+				select {
+				case <-a.done:
+					global.LOG.Info("Agent is stopping, stop accepting new unix connections.")
+					return
+				default:
+					global.LOG.Error("failed to accept unix connection: %v", err)
+				}
+				continue
+			}
+			go a.handleUnixConnection(conn)
+		}
 	}
 }
 
-// func (a *Agent) connectToCenter() {
-// 	const maxRetries = 5
-// 	const retryInterval = time.Second * 5
+func (a *Agent) handleUnixConnection(conn net.Conn) {
+	defer conn.Close()
 
-// 	for retries := 0; retries < maxRetries; retries++ {
-// 		select {
-// 		case <-a.done:
-// 			return
-// 		default:
-// 			if a.centerConn == nil {
-// 				conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", a.cfg.CenterIP, a.cfg.CenterPort))
-// 				if err != nil {
-// 					select {
-// 					case <-a.done:
-// 						global.LOG.Info("Server is shutting down, stop connect to Center.")
-// 						return
-// 					default:
-// 						global.LOG.Error("Failed to connect to Center: %v", err)
-// 						time.Sleep(retryInterval)
-// 					}
-// 				} else {
-// 					// 记录连接
-// 					centerID := conn.RemoteAddr().String()
-// 					a.mu.Lock()
-// 					a.centerID = centerID
-// 					a.centerConn = conn
-// 					a.mu.Unlock()
-// 					global.LOG.Info("Successfully connected to Center %s", centerID)
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil {
+		global.LOG.Error("failed to read from unix connection: %v", err)
+		return
+	}
 
-// 					// 处理连接
-// 					go a.handleConnection(conn)
+	command := string(buf[:n])
+	args := strings.Fields(command)
 
-// 					return
-// 				}
-// 			}
-// 		}
-// 	}
-// 	global.LOG.Error("Max retries reached. Unable to connect to Center.")
-// }
+	if len(args) == 0 {
+		conn.Write([]byte("No command provided"))
+		return
+	}
+
+	// 处理命令，根据命令执行相应操作
+	switch args[0] {
+	case "status":
+		conn.Write([]byte("Agent is running"))
+	case "stop":
+		conn.Write([]byte("Agent stopped"))
+		// 发送 SIGTERM 信号以停止 Agent
+		p, _ := os.FindProcess(os.Getpid())
+		p.Signal(syscall.SIGTERM)
+	case "config":
+		a.handleConfigCommand(conn, args[1:])
+	default:
+		conn.Write([]byte("Unknown command"))
+	}
+}
+
+func (a *Agent) handleConfigCommand(conn net.Conn, args []string) {
+	switch len(args) {
+	case 0:
+		// 读取当前所有配置
+		conn.Write([]byte("Current configuration: ...")) // 这里替换为实际的配置读取逻辑
+	case 1:
+		// 读取指定配置项
+		key := args[0]
+		// 假设有一个 GetConfig 方法用于获取配置
+		value, err := a.GetConfig(key)
+		if err != nil {
+			conn.Write([]byte(fmt.Sprintf("Failed to get config for key %s: %v", key, err)))
+		} else {
+			conn.Write([]byte(fmt.Sprintf("Current value for %s: %s", key, value)))
+		}
+	case 2:
+		// 设置指定配置项
+		key := args[0]
+		value := args[1]
+		// 假设有一个 SetConfig 方法用于设置配置
+		if err := a.SetConfig(key, value); err != nil {
+			conn.Write([]byte(fmt.Sprintf("Failed to set config for key %s: %v", key, err)))
+		} else {
+			conn.Write([]byte(fmt.Sprintf("Config %s set to %s", key, value)))
+		}
+	default:
+		conn.Write([]byte("Invalid config command"))
+	}
+}
+
+// 假设有 GetConfig 和 SetConfig 方法
+func (a *Agent) GetConfig(key string) (string, error) {
+	// 在这里实现获取配置的逻辑
+	return "dummy_value", nil // 替换为实际值
+}
+
+func (a *Agent) SetConfig(key, value string) error {
+	// 在这里实现设置配置的逻辑
+	return nil // 替换为实际操作
+}
 
 func (a *Agent) acceptConnections() {
 	for {
 		select {
 		case <-a.done:
-			global.LOG.Info("Server is shutting down, stop accepting new connections.")
+			global.LOG.Info("Agent is stopping, stop accepting new connections.")
 			return
 		default:
-			conn, err := a.listener.Accept()
+			conn, err := a.tcpListener.Accept()
 			if err != nil {
 				select {
 				case <-a.done:
-					global.LOG.Info("Server is shutting down, stop accepting new connections.")
+					global.LOG.Info("Agent is stopping, stop accepting new connections.")
 					return
 				default:
 					global.LOG.Error("Failed to accept connection: %v", err)
@@ -172,7 +285,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		buffer = append(buffer, tmp[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, a.cfg.SecretKey)
+		messages, err := message.ParseMessage(buffer, global.CONF.SecretKey)
 		if err != nil {
 			if err == message.ErrIncompleteMessage {
 				global.LOG.Info("not enough data, continue to read")
@@ -230,7 +343,7 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
 		"Heartbeat",
-		a.cfg.SecretKey,
+		global.CONF.SecretKey,
 		utils.GenerateNonce(16),
 		message.Heartbeat,
 	)
@@ -262,7 +375,7 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 	cmdRspMsg, err := message.CreateMessage(
 		msgID, // 使用相同的msgID回复
 		result,
-		a.cfg.SecretKey,
+		global.CONF.SecretKey,
 		utils.GenerateNonce(16),
 		message.CmdMessage,
 	)

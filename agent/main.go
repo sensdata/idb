@@ -1,47 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 
-	"github.com/sensdata/idb/agent/channel"
-	"github.com/sensdata/idb/agent/config"
-	"github.com/sensdata/idb/agent/global"
-	"github.com/sensdata/idb/core/log"
-	"github.com/sensdata/idb/core/utils"
+	"github.com/sensdata/idb/agent/agent"
+	"github.com/urfave/cli"
 )
 
 func main() {
-	fmt.Println("Agent Starting")
+	app := &cli.App{
+		Name:  "idb-agent",
+		Usage: "idb agent command line tools",
+		Commands: []cli.Command{
+			*agent.StartCommand,
+			*agent.StopCommand,
+		},
+	}
 
-	configPath := "config.json"
-
-	manager, err := config.NewManager(configPath)
+	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Printf("Failed to initialize config manager: %v \n", err)
+		log.Fatal(err)
 	}
-
-	cfg := manager.GetConfig()
-	global.CONF = *cfg
-	fmt.Println("Get config:")
-	fmt.Printf("%+v \n", *cfg)
-
-	// 初始化日志模块
-	l, err := log.InitLogger(cfg.LogPath)
-	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v \n", err)
-		panic(err)
-	}
-	global.LOG = l
-
-	//启动服务
-	agent := channel.NewAgent(*cfg)
-	if err := agent.Start(); err != nil {
-		fmt.Printf("Failed to start agent: %v", err)
-	}
-	defer agent.Stop()
-
-	// 等待信号
-	utils.WaitForSignal()
-
-	fmt.Println("Agent Exited")
 }
