@@ -4,19 +4,15 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/api/router"
-	"github.com/sensdata/idb/center/config"
+	"github.com/sensdata/idb/center/core/api/router"
 )
 
 type ApiServer struct {
-	cfg    config.CenterConfig
 	router *gin.Engine
 }
 
-func NewApiServer(cfg config.CenterConfig) *ApiServer {
-	return &ApiServer{
-		cfg: cfg,
-	}
+func NewApiServer() *ApiServer {
+	return &ApiServer{}
 }
 
 func (s *ApiServer) Start() error {

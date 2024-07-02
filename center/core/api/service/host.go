@@ -3,9 +3,9 @@ package service
 import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/center/api/dto"
 	"github.com/sensdata/idb/center/constant"
-	"github.com/sensdata/idb/center/core"
+	"github.com/sensdata/idb/center/core/api/dto"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/core/utils"
@@ -146,7 +146,7 @@ func (s *HostService) TestSSH(req dto.TestSSH) error {
 	if err := copier.Copy(&host, &req); err != nil {
 		return err
 	}
-	if err := core.SSH.TestConnection(host); err != nil {
+	if err := conn.SSH.TestConnection(host); err != nil {
 		return err
 	}
 	return nil

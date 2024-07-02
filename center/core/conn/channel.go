@@ -1,10 +1,13 @@
-package core
+package conn
 
 import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/sensdata/idb/center/config"
@@ -15,8 +18,8 @@ import (
 )
 
 type Center struct {
-	cfg           config.CenterConfig
-	listener      net.Listener
+	confManager   *config.Manager
+	unixListener  net.Listener
 	agentConns    map[string]net.Conn // 存储Agent端连接的映射
 	agentMsgIDs   map[string]string   // 存储Agent端连接的最后一个消息ID
 	done          chan struct{}
@@ -24,9 +27,14 @@ type Center struct {
 	responseChMap map[string]chan string // 用于接收命令执行结果的动态通道
 }
 
-func NewCenter(cfg config.CenterConfig) *Center {
+type ICenter interface {
+	Start() error
+	Stop() error
+	ExecuteCommand(cmd string) (string, error)
+}
+
+func NewCenter() ICenter {
 	return &Center{
-		cfg:           cfg,
 		agentConns:    make(map[string]net.Conn),
 		agentMsgIDs:   make(map[string]string),
 		done:          make(chan struct{}),
@@ -36,90 +44,175 @@ func NewCenter(cfg config.CenterConfig) *Center {
 
 func (c *Center) Start() error {
 
+	fmt.Printf("Center Starting")
+
 	CENTER = c
 
-	// 将端口号转换为字符串
-	// portStr := strconv.Itoa(c.cfg.Port)
-
-	// 监听端口
-	// lis, err := net.Listen("tcp", "0.0.0.0:"+portStr)
-	// if err != nil {
-	// 	global.LOG.Error("Failed to listen on port %s: %v", portStr, err)
-	// 	fmt.Printf("Failed to listen on port %s, quit \n", portStr)
-	// 	return err
-	// }
-
-	// c.listener = lis
-	// global.LOG.Info("Center Started, listening on port %d", c.cfg.Port)
+	// 启动 Unix 域套接字监听器
+	err := c.listenToUnix()
+	if err != nil {
+		return err
+	}
 
 	// 启动接收连接的 goroutine
-	go c.ensureConnections()
-
-	// 定期发送心跳消息
-	go c.sendHeartbeat()
+	err = c.ensureAgentConnections()
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }
 
-func (c *Center) Stop() {
+func (c *Center) Stop() error {
 	close(c.done)
 
 	// 关闭所有Agent连接
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	for _, conn := range c.agentConns {
 		conn.Close()
 	}
+	c.mu.Unlock()
 
 	//关闭监听
-	// if c.listener != nil {
-	// 	global.LOG.Info("Stopping listening")
-	// 	c.listener.Close()
-	// }
+	if c.unixListener != nil {
+		c.unixListener.Close()
+	}
+
+	return nil
 }
 
-// func (c *Center) acceptConnections() {
-// 	for {
-// 		select {
-// 		case <-c.done:
-// 			global.LOG.Info("Server is shutting down, stop accepting new connections")
-// 			return
-// 		default:
-// 			conn, err := c.listener.Accept()
-// 			if err != nil {
-// 				select {
-// 				case <-c.done:
-// 					global.LOG.Info("Server is shutting down, stop accepting new connections.")
-// 					return
-// 				default:
-// 					global.LOG.Error("Failed to accept connection: %v", err)
-// 				}
-// 				continue
-// 			}
+func (a *Center) listenToUnix() error {
+	//先关闭
+	if a.unixListener != nil {
+		a.unixListener.Close()
+	}
 
-// 			// 成功接受连接后记录日志
-// 			now := time.Now().Format(time.RFC3339)
-// 			global.LOG.Info("Accepted new connection from %s at %s", conn.RemoteAddr().String(), now)
-// 			// 记录到map中
-// 			c.mu.Lock()
-// 			c.agentConns[conn.RemoteAddr().String()] = conn
-// 			c.mu.Unlock()
+	var err error
+	a.unixListener, err = net.Listen("unix", "/tmp/idb-center.sock")
+	if err != nil {
+		global.LOG.Error("Failed to start unix listener: %v", err)
+		return err
+	}
 
-// 			// 处理连接
-// 			go c.handleConnection(conn)
-// 		}
-// 	}
-// }
+	// 处理unix连接
+	go a.acceptUnixConnections()
 
-func (c *Center) ensureConnections() {
-	global.LOG.Info("ensureConnections")
+	return nil
+}
+
+func (a *Center) acceptUnixConnections() {
+	for {
+		select {
+		case <-a.done:
+			global.LOG.Info("Center is stopping, stop accepting new unix connections.")
+			return
+		default:
+			conn, err := a.unixListener.Accept()
+			if err != nil {
+				select {
+				case <-a.done:
+					global.LOG.Info("Center is stopping, stop accepting new unix connections.")
+					return
+				default:
+					global.LOG.Error("failed to accept unix connection: %v", err)
+				}
+				continue
+			}
+			go a.handleUnixConnection(conn)
+		}
+	}
+}
+
+func (a *Center) handleUnixConnection(conn net.Conn) {
+	defer conn.Close()
+
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil {
+		global.LOG.Error("failed to read from unix connection: %v", err)
+		return
+	}
+
+	command := string(buf[:n])
+	parts := strings.Fields(command)
+
+	if len(parts) == 0 {
+		conn.Write([]byte("Unknown command"))
+		return
+	}
+
+	switch parts[0] {
+	case "status":
+		conn.Write([]byte("Center is running"))
+	case "stop":
+		conn.Write([]byte("Center stopped"))
+		// 发送 SIGTERM 信号以停止 Center
+		p, _ := os.FindProcess(os.Getpid())
+		p.Signal(syscall.SIGTERM)
+	case "config":
+		switch len(parts) {
+		case 1:
+			// 输出当前的配置信息
+			config, err := a.getConfig()
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%v", config)))
+			}
+		case 2:
+			// 输出当前的指定key配置信息
+			key := parts[1]
+			value, err := a.getConfigValue(key)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+			}
+		case 3:
+			// 修改指定key的配置
+			key := parts[1]
+			value := parts[2]
+			err := a.setConfigValue(key, value)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+			}
+		default:
+			conn.Write([]byte("Unknown config command format"))
+		}
+	default:
+		conn.Write([]byte("Unknown command"))
+	}
+}
+
+// 返回当前的所有配置信息
+func (a *Center) getConfig() (string, error) {
+	return a.confManager.GetConfigString("")
+}
+
+// 返回当前的指定配置信息
+func (a *Center) getConfigValue(key string) (string, error) {
+	return a.confManager.GetConfigString(key)
+}
+
+// 设置指定的配置
+func (a *Center) setConfigValue(key, value string) error {
+	err := a.confManager.SetConfig(key, value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Center) ensureAgentConnections() error {
+	global.LOG.Info("ensureAgentConnections")
 
 	//获取所有的host
 	hosts, err := HostRepo.GetList()
 	if err != nil {
 		global.LOG.Error("Failed to get host list: %v", err)
-		return
+		return err
 	}
 
 	// 挨个确认是否已经建立连接
@@ -139,6 +232,11 @@ func (c *Center) ensureConnections() {
 			}
 		}
 	}
+
+	// 定期发送心跳消息
+	go c.sendHeartbeat()
+
+	return nil
 }
 
 func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
@@ -175,6 +273,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
+	config := c.confManager.GetConfig()
 	var buffer []byte
 	tmp := make([]byte, 1024)
 	for {
@@ -189,7 +288,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 		buffer = append(buffer, tmp[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, c.cfg.SecretKey)
+		messages, err := message.ParseMessage(buffer, config.SecretKey)
 		if err != nil {
 			if err == message.ErrIncompleteMessage {
 				global.LOG.Info("not enough data, continue to read")
@@ -241,6 +340,8 @@ func (c *Center) handleConnection(conn net.Conn) {
 }
 
 func (c *Center) sendHeartbeat() {
+	config := c.confManager.GetConfig()
+
 	ticker := time.NewTicker(time.Second * 30)
 	defer ticker.Stop()
 
@@ -255,7 +356,7 @@ func (c *Center) sendHeartbeat() {
 				heartbeatMsg, err := message.CreateMessage(
 					utils.GenerateMsgId(),
 					"Heartbeat",
-					c.cfg.SecretKey,
+					config.SecretKey,
 					utils.GenerateNonce(16),
 					message.Heartbeat,
 				)
@@ -280,6 +381,9 @@ func (c *Center) sendHeartbeat() {
 }
 
 func (c *Center) ExecuteCommand(cmd string) (string, error) {
+
+	config := c.confManager.GetConfig()
+
 	// 创建一个等待通道
 	responseCh := make(chan string)
 
@@ -301,7 +405,7 @@ func (c *Center) ExecuteCommand(cmd string) (string, error) {
 	msg, err := message.CreateMessage(
 		msgID,
 		cmd,
-		c.cfg.SecretKey,
+		config.SecretKey,
 		utils.GenerateNonce(16),
 		message.CmdMessage,
 	)

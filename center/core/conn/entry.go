@@ -1,6 +1,9 @@
-package core
+package conn
 
-import "github.com/sensdata/idb/center/db/repo"
+import (
+	"github.com/sensdata/idb/center/config"
+	"github.com/sensdata/idb/center/db/repo"
+)
 
 var (
 	CommonRepo = repo.NewCommonRepo()
@@ -11,6 +14,7 @@ var (
 	HostRepo      = repo.NewHostRepo()
 	HostGroupRepo = repo.NewHostGroupRepo()
 
-	SSH    *SSHService
-	CENTER *Center
+	CONFMAN *config.Manager
+	SSH     ISSHService
+	CENTER  ICenter
 )

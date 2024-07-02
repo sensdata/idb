@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/api/entry"
+	"github.com/sensdata/idb/center/core/api/entry"
 )
 
 type AuthRouter struct{}

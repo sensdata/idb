@@ -1,6 +1,6 @@
 package entry
 
-import "github.com/sensdata/idb/center/api/service"
+import "github.com/sensdata/idb/center/core/api/service"
 
 type BaseApi struct{}
 

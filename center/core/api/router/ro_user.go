@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/api/entry"
-	"github.com/sensdata/idb/center/api/middleware"
+	"github.com/sensdata/idb/center/core/api/entry"
+	"github.com/sensdata/idb/center/core/api/middleware"
 )
 
 type UserRouter struct{}

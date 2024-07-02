@@ -1,4 +1,4 @@
-package core
+package conn
 
 import (
 	"errors"
@@ -17,6 +17,7 @@ type SSHService struct {
 	sshClients    map[string]*ssh.Client
 	responseChMap map[string]chan string
 }
+
 type ISSHService interface {
 	Start() error
 	Stop()
@@ -24,7 +25,7 @@ type ISSHService interface {
 	TestConnection(host model.Host) error
 }
 
-func NewISSHService() ISSHService {
+func NewSSHService() ISSHService {
 	return &SSHService{
 		sshClients:    make(map[string]*ssh.Client),
 		responseChMap: make(map[string]chan string),
@@ -34,8 +35,6 @@ func NewISSHService() ISSHService {
 func (s *SSHService) Start() error {
 
 	global.LOG.Info("SSHService started")
-
-	SSH = s
 
 	// 尝试连接所有的host
 	go s.ensureConnections()

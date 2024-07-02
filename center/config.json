@@ -1,6 +1,4 @@
 {
     "port": 9090,
-    "secret_key": "idbidbidbidbidbidbidbidb",
-    "db_path": "/tmp/idb/idb.db",
-    "log_path": "/tmp/idb/center.log"
+    "secret_key": "idbidbidbidbidbidbidbidb"
   }

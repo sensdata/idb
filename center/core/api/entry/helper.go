@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/api/dto"
 	"github.com/sensdata/idb/center/constant"
+	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/global"
 	"gorm.io/gorm"
 )
