@@ -1,0 +1,14 @@
+[Unit]
+Description=IDB Center Service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/idbcenter start
+Restart=always
+RestartSec=5
+User=idb
+Group=idb
+
+[Install]
+WantedBy=multi-user.target

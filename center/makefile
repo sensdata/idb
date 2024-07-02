@@ -1,5 +1,5 @@
 # 可执行文件的名称
-BINARY_NAME=idbagent
+BINARY_NAME=idbcenter
 
 # 版本号
 VERSION=1.0.0
@@ -17,7 +17,7 @@ SYSTEM_SERVICE_DIR=/etc/systemd/system/
 CONFIG_FILE=config.json
 
 # 注册服务文件路径
-SERVICE_FILE=idbagent.service
+SERVICE_FILE=idbcenter.service
 
 # 构建命令
 build:
