@@ -1,11 +1,13 @@
 package agent
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/sensdata/idb/agent/global"
 	"github.com/urfave/cli"
@@ -62,6 +64,46 @@ var StopCommand = &cli.Command{
 	},
 }
 
+var RestartCommand = &cli.Command{
+	Name:  "restart",
+	Usage: "restart agent",
+	Action: func(c *cli.Context) error {
+		// 调用 StopCommand
+		conn, err := net.Dial("unix", "/tmp/idb-agent.sock")
+		if err != nil {
+			return fmt.Errorf("failed to connect to agent: %w", err)
+		}
+		defer conn.Close()
+
+		_, err = conn.Write([]byte("stop"))
+		if err != nil {
+			return fmt.Errorf("failed to send stop command: %w", err)
+		}
+
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return fmt.Errorf("failed to read stop response: %w", err)
+		}
+
+		fmt.Println(string(buf[:n]))
+
+		// 确保Agent停止后再继续
+		time.Sleep(2 * time.Second)
+
+		// 创建一个新的cli.Context
+		flagSet := flag.NewFlagSet("start", flag.ContinueOnError)
+		startCtx := cli.NewContext(c.App, flagSet, c)
+
+		err = StartCommand.Run(startCtx)
+		if err != nil {
+			return fmt.Errorf("failed to start agent: %w", err)
+		}
+
+		return nil
+	},
+}
+
 var ConfigCommand = &cli.Command{
 	Name:  "config",
 	Usage: "configure agent",
@@ -86,8 +128,6 @@ var ConfigCommand = &cli.Command{
 		if len(args) > 1 {
 			value = args.Get(1)
 		}
-
-		fmt.Printf("config %s %s\n", key, value)
 
 		conn, err := net.Dial("unix", "/tmp/idb-agent.sock")
 		if err != nil {

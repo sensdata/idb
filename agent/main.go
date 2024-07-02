@@ -15,6 +15,7 @@ func main() {
 		Commands: []cli.Command{
 			*agent.StartCommand,
 			*agent.StopCommand,
+			*agent.RestartCommand,
 			*agent.ConfigCommand,
 		},
 	}
