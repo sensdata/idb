@@ -34,7 +34,7 @@ func (b *BaseApi) Login(c *gin.Context) {
 // @Description 用户登出
 // @Accept json
 // @Produce json
-// @Param
+// @Param token header string true "Authentication token"
 // @Success 200
 // @Router /auth/logout [get]
 func (b *BaseApi) Logout(c *gin.Context) {

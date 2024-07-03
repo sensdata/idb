@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/sensdata/idb/center/core/command"
+	_ "github.com/sensdata/idb/center/docs"
 	"github.com/urfave/cli"
 )
 

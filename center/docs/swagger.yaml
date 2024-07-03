@@ -1,0 +1,63 @@
+definitions:
+  dto.Login:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  dto.LoginResult:
+    properties:
+      name:
+        type: string
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LoginResult'
+      summary: User login
+      tags:
+      - Auth
+  /auth/logout:
+    get:
+      consumes:
+      - application/json
+      description: 用户登出
+      parameters:
+      - description: Authentication token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: User logout
+      tags:
+      - Auth
+swagger: "2.0"

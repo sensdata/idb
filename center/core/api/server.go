@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api/router"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type ApiServer struct {
@@ -31,6 +33,9 @@ func (s *ApiServer) Start() error {
 // SetupRouter sets up the API routes
 func setupRouter() *gin.Engine {
 	Router := gin.Default()
+
+	swaggerGroup := Router.Group("swagger")
+	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	RouterGroup := Router.Group("/")
 	for _, router := range router.RouterGroups {

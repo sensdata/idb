@@ -46,8 +46,6 @@ func (c *Center) Start() error {
 
 	fmt.Printf("Center Starting")
 
-	CENTER = c
-
 	// 启动 Unix 域套接字监听器
 	err := c.listenToUnix()
 	if err != nil {
