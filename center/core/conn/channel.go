@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -13,6 +14,7 @@ import (
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -76,6 +78,10 @@ func (c *Center) Stop() error {
 		c.unixListener.Close()
 	}
 
+	//删除sock文件
+	sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+	os.Remove(sockFile)
+
 	return nil
 }
 
@@ -85,8 +91,9 @@ func (a *Center) listenToUnix() error {
 		a.unixListener.Close()
 	}
 
+	sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
 	var err error
-	a.unixListener, err = net.Listen("unix", "/tmp/idb-center.sock")
+	a.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
 		global.LOG.Error("Failed to start unix listener: %v", err)
 		return err

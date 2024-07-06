@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	STARTED bool = false
-	LOG     *log.Log
-	DB      *gorm.DB
-	VALID   *validator.Validate
+	LOG   *log.Log
+	DB    *gorm.DB
+	VALID *validator.Validate
 )

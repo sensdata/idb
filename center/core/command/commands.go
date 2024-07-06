@@ -1,50 +1,21 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"net"
-	"os"
+	"os/exec"
 	"path/filepath"
-	"time"
 
-	"github.com/sensdata/idb/center/config"
-	"github.com/sensdata/idb/center/core/api"
-	"github.com/sensdata/idb/center/core/conn"
-	"github.com/sensdata/idb/center/db"
-	"github.com/sensdata/idb/center/db/migration"
-	"github.com/sensdata/idb/center/global"
-	"github.com/sensdata/idb/core/log"
-	"github.com/sensdata/idb/core/utils"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/urfave/cli"
 )
-
-var StartCommand = &cli.Command{
-	Name:  "start",
-	Usage: "start center",
-	Action: func(c *cli.Context) error {
-		//已经启动了，退出
-		if global.STARTED {
-			return nil
-		}
-
-		if err := StartServices(); err != nil {
-			return StopServices()
-		}
-
-		// 捕捉系统信号，保持运行
-		utils.WaitForSignal()
-
-		global.LOG.Info("Shutting down center...")
-		return StopServices()
-	},
-}
 
 var StopCommand = &cli.Command{
 	Name:  "stop",
 	Usage: "stop center",
 	Action: func(c *cli.Context) error {
-		conn, err := net.Dial("unix", "/tmp/idb-center.sock")
+		sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to center: %w", err)
 		}
@@ -70,111 +41,13 @@ var RestartCommand = &cli.Command{
 	Name:  "restart",
 	Usage: "restart center",
 	Action: func(c *cli.Context) error {
-		// 调用 StopCommand
-		conn, err := net.Dial("unix", "/tmp/idb-center.sock")
+		err := exec.Command("systemctl", "restart", constant.CenterService).Run()
 		if err != nil {
-			return fmt.Errorf("failed to connect to center: %w", err)
-		}
-		defer conn.Close()
-
-		_, err = conn.Write([]byte("stop"))
-		if err != nil {
-			return fmt.Errorf("failed to send stop command: %w", err)
-		}
-
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			return fmt.Errorf("failed to read stop response: %w", err)
-		}
-
-		fmt.Println(string(buf[:n]))
-
-		// 确保Agent停止后再继续
-		time.Sleep(2 * time.Second)
-
-		// 创建一个新的cli.Context
-		flagSet := flag.NewFlagSet("start", flag.ContinueOnError)
-		startCtx := cli.NewContext(c.App, flagSet, c)
-
-		err = StartCommand.Run(startCtx)
-		if err != nil {
-			return fmt.Errorf("failed to start center: %w", err)
+			return fmt.Errorf("failed to restart service: %w", err)
 		}
 
 		return nil
 	},
-}
-
-func StartServices() error {
-
-	// 检查目录
-	if err := utils.EnsurePaths(constant.BaseDir); err != nil {
-		fmt.Printf("Failed to initialize directories: %v \n", err)
-		return err
-	}
-
-	// 初始化配置
-	cfgFilePath := filepath.Join(m.configPath, m.configFile)
-	manager, err := config.NewManager(cfgFilePath)
-	if err != nil {
-		fmt.Printf("Failed to initialize config manager: %v \n", err)
-		return err
-	}
-	conn.CONFMAN = manager
-
-	//初始化日志模块
-	log, err := log.InitLogger(baseDir, "config.json")
-	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v \n", err)
-		return err
-	}
-	global.LOG = log
-
-	//初始化数据库
-	db.Init(filepath.Join(baseDir, "idb.db"))
-	migration.Init()
-
-	//启动apiServer
-	apiServer := api.NewApiServer()
-	if err := apiServer.Start(); err != nil {
-		fmt.Printf("Failed to start api: %v", err)
-		return err
-	}
-
-	// 启动SSH服务
-	ssh := conn.NewSSHService()
-	if err := ssh.Start(); err != nil {
-		fmt.Printf("Failed to start ssh: %v", err)
-		return err
-	}
-	conn.SSH = ssh
-
-	// 启动center服务
-	center := conn.NewCenter()
-	if err := center.Start(); err != nil {
-		fmt.Printf("Failed to start center: %v", err)
-		return err
-	}
-	conn.CENTER = center
-
-	//初始化其他
-	global.VALID = utils.InitValidator()
-	global.STARTED = true
-
-	// 等待信号
-	utils.WaitForSignal()
-	return nil
-}
-
-func StopServices() error {
-	// 停止Agent服务
-	conn.CENTER.Stop()
-
-	// 停止SSH
-	conn.SSH.Stop()
-
-	return nil
 }
 
 var ConfigCommand = &cli.Command{
@@ -202,7 +75,8 @@ var ConfigCommand = &cli.Command{
 			value = args.Get(1)
 		}
 
-		conn, err := net.Dial("unix", "/tmp/idb-center.sock")
+		sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to center: %w", err)
 		}

@@ -1,14 +1,20 @@
 [Unit]
 Description=IDB Center Service
 After=syslog.target network.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/idbcenter start
+ExecStop=/usr/local/bin/idbcenter stop
+ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
-User=idb
-Group=idb
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=1048576
+Delegate=yes
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
