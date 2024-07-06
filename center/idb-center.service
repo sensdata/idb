@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/idbcenter start
-ExecStop=/usr/local/bin/idbcenter stop
+ExecStart=/usr/local/bin/idb-center start
+ExecStop=/usr/local/bin/idb-center stop
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
@@ -15,6 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
+StandardOutput=append:/var/log/idb-center.log
+StandardError=append:/var/log/idb-center.log
 
 [Install]
 WantedBy=multi-user.target

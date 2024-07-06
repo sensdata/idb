@@ -19,6 +19,9 @@ CONFIG_FILE=idb-center.json
 # 注册服务文件路径
 SERVICE_FILE=idb-center.service
 
+# 日志文件路径
+LOG_FILE=/var/log/idb-center.log
+
 # 构建命令
 build:
 	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME) $(SRC_DIR)
@@ -32,7 +35,8 @@ install: build
 		cp $(CONFIG_FILE) $(INSTALL_DIR); \
 		cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
 		chmod +x $(INSTALL_DIR)/$(BINARY_NAME); \
-		ln -sf $(INSTALL_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME); \
+		touch $(LOG_FILE); \
+		chown $(USER):$(USER) $(LOG_FILE); \
 		sudo systemctl daemon-reload; \
 		sudo systemctl enable $(BINARY_NAME).service; \
 		sudo systemctl start $(BINARY_NAME).service; \
@@ -43,7 +47,6 @@ install: build
 		cp $(CONFIG_FILE) $(INSTALL_DIR); \
 		cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
 		chmod +x $(INSTALL_DIR)/$(BINARY_NAME); \
-		ln -sf $(INSTALL_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME); \
 	fi
 	$(MAKE) clean  # 在安装后调用clean目标
 

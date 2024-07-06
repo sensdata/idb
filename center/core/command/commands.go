@@ -12,7 +12,7 @@ import (
 
 var StopCommand = &cli.Command{
 	Name:  "stop",
-	Usage: "stop center",
+	Usage: "stop idb-center",
 	Action: func(c *cli.Context) error {
 		sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
 		conn, err := net.Dial("unix", sockFile)
@@ -39,7 +39,7 @@ var StopCommand = &cli.Command{
 
 var RestartCommand = &cli.Command{
 	Name:  "restart",
-	Usage: "restart center",
+	Usage: "restart idb-center",
 	Action: func(c *cli.Context) error {
 		err := exec.Command("systemctl", "restart", constant.CenterService).Run()
 		if err != nil {
@@ -52,7 +52,7 @@ var RestartCommand = &cli.Command{
 
 var ConfigCommand = &cli.Command{
 	Name:  "config",
-	Usage: "configure center",
+	Usage: "configure idb-center",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "key",
