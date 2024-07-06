@@ -56,12 +56,19 @@ func main() {
 }
 
 func Run() error {
+	// 判断pid文件是否存在
 	pidfile := filepath.Join(constant.BaseDir, constant.CenterPid)
 	running, err := utils.IsRunning(pidfile)
-	if running || err != nil {
-		return fmt.Errorf("center running or error %v", err)
+	if err != nil {
+		return fmt.Errorf("center error %v", err)
 	}
+	if running {
+		return fmt.Errorf("center running %v", err)
+	}
+	// 创建pid文件
+	utils.CreatePIDFile(pidfile)
 
+	// 启动各项服务
 	if err := StartServices(); err != nil {
 		return StopServices()
 	}
@@ -137,6 +144,10 @@ func StopServices() error {
 
 	// 停止SSH
 	conn.SSH.Stop()
+
+	// 删除pid文件
+	pidfile := filepath.Join(constant.BaseDir, constant.CenterPid)
+	utils.RemovePIDFile(pidfile)
 
 	return nil
 }
