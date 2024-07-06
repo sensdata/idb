@@ -2,7 +2,7 @@ package entry
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/constant"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/center/core/api/dto"
 )
 

@@ -108,18 +108,15 @@ var RestartCommand = &cli.Command{
 
 func StartServices() error {
 
-	// 获取当前可执行文件的路径
-	ex, err := os.Executable()
-	if err != nil {
-		fmt.Printf("Failed to get executable path: %v\n", err)
+	// 检查目录
+	if err := utils.EnsurePaths(constant.BaseDir); err != nil {
+		fmt.Printf("Failed to initialize directories: %v \n", err)
 		return err
 	}
 
-	// 获取安装目录
-	installDir := filepath.Dir(ex)
-
 	// 初始化配置
-	manager, err := config.NewManager(installDir)
+	cfgFilePath := filepath.Join(m.configPath, m.configFile)
+	manager, err := config.NewManager(cfgFilePath)
 	if err != nil {
 		fmt.Printf("Failed to initialize config manager: %v \n", err)
 		return err
@@ -127,7 +124,7 @@ func StartServices() error {
 	conn.CONFMAN = manager
 
 	//初始化日志模块
-	log, err := log.InitLogger(installDir, "config.json")
+	log, err := log.InitLogger(baseDir, "config.json")
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v \n", err)
 		return err
@@ -135,7 +132,7 @@ func StartServices() error {
 	global.LOG = log
 
 	//初始化数据库
-	db.Init(filepath.Join(installDir, "idb.db"))
+	db.Init(filepath.Join(baseDir, "idb.db"))
 	migration.Init()
 
 	//启动apiServer

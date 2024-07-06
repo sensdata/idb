@@ -3,7 +3,7 @@ package service
 import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/center/constant"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/db/model"
 )
