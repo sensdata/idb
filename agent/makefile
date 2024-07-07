@@ -1,5 +1,5 @@
 # 可执行文件的名称
-BINARY_NAME=idbagent
+BINARY_NAME=idb-agent
 
 # 版本号
 VERSION=1.0.0
@@ -8,16 +8,19 @@ VERSION=1.0.0
 SRC_DIR=.
 
 # 安装目录
-INSTALL_DIR=/usr/local/bin
+INSTALL_DIR=/opt/idb
 
 # 系统服务目录
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
 
 # 配置文件路径
-CONFIG_FILE=config.json
+CONFIG_FILE=idb-agent.json
 
 # 注册服务文件路径
-SERVICE_FILE=idbagent.service
+SERVICE_FILE=idb-agent.service
+
+# 日志文件路径
+LOG_FILE=/var/log/idb-agent.log
 
 # 构建命令
 build:
@@ -32,6 +35,8 @@ install: build
 		cp $(CONFIG_FILE) $(INSTALL_DIR); \
 		cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
 		chmod +x $(INSTALL_DIR)/$(BINARY_NAME); \
+		touch $(LOG_FILE); \
+		chown $(USER):$(USER) $(LOG_FILE); \
 		sudo systemctl daemon-reload; \
 		sudo systemctl enable $(BINARY_NAME).service; \
 		sudo systemctl start $(BINARY_NAME).service; \
