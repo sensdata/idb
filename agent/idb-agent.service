@@ -1,0 +1,22 @@
+[Unit]
+Description=IDB Agent Service
+After=syslog.target network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/idb-agent start
+ExecStop=/usr/local/bin/idb-agent stop
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=1048576
+Delegate=yes
+KillMode=process
+StandardOutput=append:/var/log/idb-agent.log
+StandardError=append:/var/log/idb-agent.log
+
+[Install]
+WantedBy=multi-user.target

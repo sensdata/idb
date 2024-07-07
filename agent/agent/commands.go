@@ -1,48 +1,21 @@
 package agent
 
 import (
-	"flag"
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"os/exec"
+	"path/filepath"
 
-	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/urfave/cli"
 )
 
-var StartCommand = &cli.Command{
-	Name:  "start",
-	Usage: "start agent",
-	Action: func(c *cli.Context) error {
-		//已经启动了，退出
-		if AGENT.Started() {
-			return nil
-		}
-
-		// 启动Agent服务
-		err := AGENT.Start()
-		if err != nil {
-			return err
-		}
-
-		// 捕捉系统信号，保持运行
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
-
-		global.LOG.Info("Shutting down agent...")
-		return AGENT.Stop()
-	},
-}
-
 var StopCommand = &cli.Command{
 	Name:  "stop",
-	Usage: "stop agent",
+	Usage: "stop idb-agent",
 	Action: func(c *cli.Context) error {
-		conn, err := net.Dial("unix", "/tmp/idb-agent.sock")
+		sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to agent: %w", err)
 		}
@@ -66,38 +39,11 @@ var StopCommand = &cli.Command{
 
 var RestartCommand = &cli.Command{
 	Name:  "restart",
-	Usage: "restart agent",
+	Usage: "restart idb-agent",
 	Action: func(c *cli.Context) error {
-		// 调用 StopCommand
-		conn, err := net.Dial("unix", "/tmp/idb-agent.sock")
+		err := exec.Command("systemctl", "restart", constant.AgentService).Run()
 		if err != nil {
-			return fmt.Errorf("failed to connect to agent: %w", err)
-		}
-		defer conn.Close()
-
-		_, err = conn.Write([]byte("stop"))
-		if err != nil {
-			return fmt.Errorf("failed to send stop command: %w", err)
-		}
-
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			return fmt.Errorf("failed to read stop response: %w", err)
-		}
-
-		fmt.Println(string(buf[:n]))
-
-		// 确保Agent停止后再继续
-		time.Sleep(2 * time.Second)
-
-		// 创建一个新的cli.Context
-		flagSet := flag.NewFlagSet("start", flag.ContinueOnError)
-		startCtx := cli.NewContext(c.App, flagSet, c)
-
-		err = StartCommand.Run(startCtx)
-		if err != nil {
-			return fmt.Errorf("failed to start agent: %w", err)
+			return fmt.Errorf("failed to restart service: %w", err)
 		}
 
 		return nil
@@ -106,7 +52,7 @@ var RestartCommand = &cli.Command{
 
 var ConfigCommand = &cli.Command{
 	Name:  "config",
-	Usage: "configure agent",
+	Usage: "configure idb-agent",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "key",
@@ -129,7 +75,8 @@ var ConfigCommand = &cli.Command{
 			value = args.Get(1)
 		}
 
-		conn, err := net.Dial("unix", "/tmp/idb-agent.sock")
+		sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to agent: %w", err)
 		}

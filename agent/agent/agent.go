@@ -13,20 +13,18 @@ import (
 
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
-	"github.com/sensdata/idb/core/log"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
 )
 
-var AGENT = Agent{
-	state:      0,
-	centerConn: nil,
-	done:       make(chan struct{}),
-}
+var (
+	CONFMAN *config.Manager
+	AGENT   IAgent
+)
 
 type Agent struct {
-	state        int // 状态
 	confManager  *config.Manager
 	unixListener net.Listener
 	tcpListener  net.Listener
@@ -38,46 +36,23 @@ type Agent struct {
 }
 
 type IAgent interface {
-	Started() bool
 	Start() error
 	Stop() error
 }
 
-func (a *Agent) Started() bool {
-	return a.state == 1
+func NewAgent() IAgent {
+	return &Agent{
+		centerConn: nil,
+		done:       make(chan struct{}),
+	}
 }
 
 func (a *Agent) Start() error {
 
 	fmt.Println("Agent Starting")
 
-	// 获取当前可执行文件的路径
-	ex, err := os.Executable()
-	if err != nil {
-		fmt.Printf("Failed to get executable path: %v\n", err)
-		return err
-	}
-
-	// 获取安装目录
-	installDir := filepath.Dir(ex)
-
-	// 初始化配置
-	manager, err := config.NewManager(installDir)
-	if err != nil {
-		fmt.Printf("Failed to initialize config manager: %v \n", err)
-	}
-	a.confManager = manager
-
-	// 初始化日志模块
-	l, err := log.InitLogger(installDir, "agent.log")
-	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v \n", err)
-		panic(err)
-	}
-	global.LOG = l
-
 	// 启动 Unix 域套接字监听器
-	err = a.listenToUnix()
+	err := a.listenToUnix()
 	if err != nil {
 		return err
 	}
@@ -88,17 +63,10 @@ func (a *Agent) Start() error {
 		return err
 	}
 
-	a.state = 1
 	return nil
 }
 
 func (a *Agent) Stop() error {
-	a.stopAgent()
-	return nil
-
-}
-
-func (a *Agent) stopAgent() {
 	close(a.done)
 
 	// 关闭center连接
@@ -108,14 +76,19 @@ func (a *Agent) stopAgent() {
 	}
 	a.mu.Unlock()
 
-	//关闭监听
+	// 关闭监听
 	if a.unixListener != nil {
 		a.unixListener.Close()
 	}
 	if a.tcpListener != nil {
 		a.tcpListener.Close()
 	}
-	a.state = 0
+
+	//删除sock文件
+	sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+	os.Remove(sockFile)
+
+	return nil
 }
 
 func (a *Agent) listenToUnix() error {
@@ -124,8 +97,9 @@ func (a *Agent) listenToUnix() error {
 		a.unixListener.Close()
 	}
 
+	sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
 	var err error
-	a.unixListener, err = net.Listen("unix", "/tmp/idb-agent.sock")
+	a.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
 		global.LOG.Error("Failed to start unix listener: %v", err)
 		return err
