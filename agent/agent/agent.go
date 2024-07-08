@@ -97,7 +97,13 @@ func (a *Agent) listenToUnix() error {
 		a.unixListener.Close()
 	}
 
+	// 检查sock文件
 	sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+	if err := utils.EnsureFile(sockFile); err != nil {
+		global.LOG.Error("Failed to create sock file: %v", err)
+		return err
+	}
+
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
