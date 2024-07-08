@@ -16,7 +16,7 @@ var StopCommand = &cli.Command{
 	Usage: "stop idb-center",
 	Action: func(c *cli.Context) error {
 		// 检查sock文件
-		sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+		sockFile := filepath.Join(constant.DataDir, constant.CenterSock)
 		if err := utils.EnsureFile(sockFile); err != nil {
 			return fmt.Errorf("failed to create sock file: %w", err)
 		}
@@ -82,7 +82,7 @@ var ConfigCommand = &cli.Command{
 		}
 
 		// 检查sock文件
-		sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+		sockFile := filepath.Join(constant.DataDir, constant.CenterSock)
 		if err := utils.EnsureFile(sockFile); err != nil {
 			return fmt.Errorf("failed to create sock file: %w", err)
 		}

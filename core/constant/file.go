@@ -1,7 +1,9 @@
 package constant
 
 const (
-	BaseDir = "/opt/idb"
+	ConfDir = "/etc/idb"
+	DataDir = "/var/lib/idb"
+	LogDir  = "/var/log/idb"
 
 	DBFile = "idb.db"
 

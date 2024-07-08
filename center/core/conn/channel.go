@@ -79,7 +79,7 @@ func (c *Center) Stop() error {
 	}
 
 	//删除sock文件
-	sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+	sockFile := filepath.Join(constant.DataDir, constant.CenterSock)
 	os.Remove(sockFile)
 
 	return nil
@@ -92,7 +92,7 @@ func (a *Center) listenToUnix() error {
 	}
 
 	// 检查sock文件
-	sockFile := filepath.Join(constant.BaseDir, constant.CenterSock)
+	sockFile := filepath.Join(constant.DataDir, constant.CenterSock)
 	if err := utils.EnsureFile(sockFile); err != nil {
 		global.LOG.Error("Failed to create sock file: %v", err)
 		return err

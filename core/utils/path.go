@@ -3,23 +3,22 @@ package utils
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 )
 
-func EnsurePaths(basePath string) error {
-	if err := checkDir(basePath); err != nil {
-		return err
+func EnsurePaths(paths []string) error {
+	for _, path := range paths {
+		if err := checkDir(path); err != nil {
+			return fmt.Errorf("failed to ensure path %s: %v", path, err)
+		}
 	}
 	return nil
 }
 
-func checkDir(dirPath string) error {
-	dir := path.Dir(dirPath)
-	_, err := os.Stat(dir)
-	if err != nil && os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
-			return fmt.Errorf("mkdir %s failed, err: %v", dir, err)
+func checkDir(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create directory %s: %v", path, err)
 		}
 	}
 	return nil

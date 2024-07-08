@@ -85,7 +85,7 @@ func (a *Agent) Stop() error {
 	}
 
 	//删除sock文件
-	sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+	sockFile := filepath.Join(constant.DataDir, constant.AgentSock)
 	os.Remove(sockFile)
 
 	return nil
@@ -98,7 +98,7 @@ func (a *Agent) listenToUnix() error {
 	}
 
 	// 检查sock文件
-	sockFile := filepath.Join(constant.BaseDir, constant.AgentSock)
+	sockFile := filepath.Join(constant.DataDir, constant.AgentSock)
 	if err := utils.EnsureFile(sockFile); err != nil {
 		global.LOG.Error("Failed to create sock file: %v", err)
 		return err
