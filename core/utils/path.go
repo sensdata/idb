@@ -46,7 +46,12 @@ func checkFile(filePath string) error {
 		if err != nil {
 			return err
 		}
-		file.Close()
+		defer file.Close()
+		return nil // 成功创建文件后返回 nil
 	}
-	return err
+	if err != nil {
+		// 返回任何其他错误
+		return err
+	}
+	return nil // 文件已存在，返回 nil
 }
