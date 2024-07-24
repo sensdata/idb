@@ -9,9 +9,9 @@ SRC_DIR=.
 
 # 安装目录
 BIN_DIR=/usr/local/bin
-CONFIG_DIR=/etc/idb
-DATA_DIR=/var/lib/idb
-LOG_DIR =/var/log/idb
+CONFIG_DIR=/etc/idb-agent
+DATA_DIR=/var/lib/idb-agent
+LOG_DIR =/var/log/idb-agent
 
 # 系统服务目录
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
@@ -23,7 +23,7 @@ CONFIG_FILE=idb-agent.json
 SERVICE_FILE=idb-agent.service
 
 # 日志文件路径
-LOG_FILE=/var/log/idb/agent-run.log
+LOG_FILE=/var/log/idb-agent/agent-run.log
 
 # 构建命令
 build:
