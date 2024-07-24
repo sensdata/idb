@@ -25,7 +25,6 @@ var (
 )
 
 type Agent struct {
-	confManager  *config.Manager
 	unixListener net.Listener
 	tcpListener  net.Listener
 	centerID     string   // 存储center地址
@@ -99,10 +98,6 @@ func (a *Agent) listenToUnix() error {
 
 	// 检查sock文件
 	sockFile := filepath.Join(constant.AgentDataDir, constant.AgentSock)
-	if err := utils.EnsureFile(sockFile); err != nil {
-		global.LOG.Error("Failed to create sock file: %v", err)
-		return err
-	}
 
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)
@@ -170,7 +165,7 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 		switch len(parts) {
 		case 1:
 			// 输出当前的配置信息
-			config, err := a.getConfig()
+			config, err := CONFMAN.GetConfigString("")
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
 			} else {
@@ -179,7 +174,7 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 		case 2:
 			// 输出当前的指定key配置信息
 			key := parts[1]
-			value, err := a.getConfigValue(key)
+			value, err := CONFMAN.GetConfigString(key)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 			} else {
@@ -189,7 +184,7 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 			// 修改指定key的配置
 			key := parts[1]
 			value := parts[2]
-			err := a.setConfigValue(key, value)
+			err := CONFMAN.SetConfig(key, value)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 			} else {
@@ -204,25 +199,6 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 	}
 }
 
-// 返回当前的所有配置信息
-func (a *Agent) getConfig() (string, error) {
-	return a.confManager.GetConfigString("")
-}
-
-// 返回当前的指定配置信息
-func (a *Agent) getConfigValue(key string) (string, error) {
-	return a.confManager.GetConfigString(key)
-}
-
-// 设置指定的配置
-func (a *Agent) setConfigValue(key, value string) error {
-	err := a.confManager.SetConfig(key, value)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (a *Agent) listenToTcp() error {
 	//先关闭
 	a.mu.Lock()
@@ -235,7 +211,7 @@ func (a *Agent) listenToTcp() error {
 		a.tcpListener.Close()
 	}
 
-	config := a.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 	global.LOG.Info("Try listen on port %d", config.Port)
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port))
 	if err != nil {
@@ -297,7 +273,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
-	config := a.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 	var buffer []byte
 	tmp := make([]byte, 1024)
 	for {
@@ -365,7 +341,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {
-	config := a.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 
 	centerID := conn.RemoteAddr().String()
 
@@ -398,7 +374,7 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 }
 
 func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
-	config := a.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 
 	centerID := conn.RemoteAddr().String()
 

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/core/utils"
 	"github.com/urfave/cli"
 )
 
@@ -17,10 +16,6 @@ var StopCommand = &cli.Command{
 	Action: func(c *cli.Context) error {
 		// 检查sock文件
 		sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
-		if err := utils.EnsureFile(sockFile); err != nil {
-			return fmt.Errorf("failed to create sock file: %w", err)
-		}
-
 		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to center: %w", err)
@@ -83,10 +78,6 @@ var ConfigCommand = &cli.Command{
 
 		// 检查sock文件
 		sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
-		if err := utils.EnsureFile(sockFile); err != nil {
-			return fmt.Errorf("failed to create sock file: %w", err)
-		}
-
 		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to center: %w", err)

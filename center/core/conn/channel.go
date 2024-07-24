@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
@@ -20,7 +19,6 @@ import (
 )
 
 type Center struct {
-	confManager   *config.Manager
 	unixListener  net.Listener
 	agentConns    map[string]net.Conn // 存储Agent端连接的映射
 	agentMsgIDs   map[string]string   // 存储Agent端连接的最后一个消息ID
@@ -93,10 +91,6 @@ func (a *Center) listenToUnix() error {
 
 	// 检查sock文件
 	sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
-	if err := utils.EnsureFile(sockFile); err != nil {
-		global.LOG.Error("Failed to create sock file: %v", err)
-		return err
-	}
 
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)
@@ -164,7 +158,7 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 		switch len(parts) {
 		case 1:
 			// 输出当前的配置信息
-			config, err := a.getConfig()
+			config, err := CONFMAN.GetConfigString("")
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
 			} else {
@@ -173,7 +167,7 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 		case 2:
 			// 输出当前的指定key配置信息
 			key := parts[1]
-			value, err := a.getConfigValue(key)
+			value, err := CONFMAN.GetConfigString(key)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 			} else {
@@ -183,7 +177,7 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 			// 修改指定key的配置
 			key := parts[1]
 			value := parts[2]
-			err := a.setConfigValue(key, value)
+			err := CONFMAN.SetConfig(key, value)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 			} else {
@@ -195,25 +189,6 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 	default:
 		conn.Write([]byte("Unknown command"))
 	}
-}
-
-// 返回当前的所有配置信息
-func (a *Center) getConfig() (string, error) {
-	return a.confManager.GetConfigString("")
-}
-
-// 返回当前的指定配置信息
-func (a *Center) getConfigValue(key string) (string, error) {
-	return a.confManager.GetConfigString(key)
-}
-
-// 设置指定的配置
-func (a *Center) setConfigValue(key, value string) error {
-	err := a.confManager.SetConfig(key, value)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Center) ensureAgentConnections() error {
@@ -284,7 +259,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
-	config := c.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 	var buffer []byte
 	tmp := make([]byte, 1024)
 	for {
@@ -351,7 +326,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 }
 
 func (c *Center) sendHeartbeat() {
-	config := c.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 
 	ticker := time.NewTicker(time.Second * 30)
 	defer ticker.Stop()
@@ -393,7 +368,7 @@ func (c *Center) sendHeartbeat() {
 
 func (c *Center) ExecuteCommand(cmd string) (string, error) {
 
-	config := c.confManager.GetConfig()
+	config := CONFMAN.GetConfig()
 
 	// 创建一个等待通道
 	responseCh := make(chan string)
