@@ -15,8 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
-StandardOutput=append:/var/log/idb-agent.log
-StandardError=append:/var/log/idb-agent.log
+StandardOutput=append:/var/log/idb-agent/idb-agent-run.log
+StandardError=append:/var/log/idb-agent/idb-agent-run.log
 
 [Install]
 WantedBy=multi-user.target

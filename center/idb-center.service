@@ -15,8 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
-StandardOutput=append:/var/log/idb-center.log
-StandardError=append:/var/log/idb-center.log
+StandardOutput=append:/var/log/idb/idb-center-run.log
+StandardError=append:/var/log/idb/idb-center-run.log
 
 [Install]
 WantedBy=multi-user.target
