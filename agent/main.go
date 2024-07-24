@@ -27,7 +27,8 @@ var app = &cli.App{
 
 func main() {
 	// Open the log file
-	logFile, err := os.OpenFile("/var/log/idb-agent/agent-run.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	runLogFile := filepath.Join(constant.AgentLogDir, constant.AgentRunLog)
+	logFile, err := os.OpenFile(runLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file: %v\n", err)
 		return
@@ -52,13 +53,13 @@ func main() {
 
 func Run() error {
 	// 检查目录
-	paths := []string{constant.ConfDir, constant.DataDir, constant.LogDir}
+	paths := []string{constant.AgentConfDir, constant.AgentDataDir, constant.AgentLogDir}
 	if err := utils.EnsurePaths(paths); err != nil {
 		return fmt.Errorf("center directories error: %v", err)
 	}
 
 	// 判断pid文件是否存在
-	pidfile := filepath.Join(constant.DataDir, constant.AgentPid)
+	pidfile := filepath.Join(constant.AgentDataDir, constant.AgentPid)
 	running, err := utils.IsRunning(pidfile)
 	if err != nil {
 		return fmt.Errorf("agent error %v", err)
@@ -83,7 +84,7 @@ func Run() error {
 
 func StartServices() error {
 	// 初始化配置
-	cfgFilePath := filepath.Join(constant.ConfDir, constant.AgentConfig)
+	cfgFilePath := filepath.Join(constant.AgentConfDir, constant.AgentConfig)
 	manager, err := config.NewManager(cfgFilePath)
 	if err != nil {
 		log.Printf("Failed to initialize config manager: %v \n", err)
@@ -92,7 +93,7 @@ func StartServices() error {
 	agent.CONFMAN = manager
 
 	// 初始化日志模块
-	logger, err := logger.InitLogger(constant.LogDir, constant.AgentLog)
+	logger, err := logger.InitLogger(constant.AgentLogDir, constant.AgentLog)
 	if err != nil {
 		log.Printf("Failed to initialize logger: %v \n", err)
 		return err
@@ -115,7 +116,7 @@ func StopServices() error {
 	agent.AGENT.Stop()
 
 	// 删除pid文件
-	pidfile := filepath.Join(constant.DataDir, constant.AgentPid)
+	pidfile := filepath.Join(constant.AgentDataDir, constant.AgentPid)
 	utils.RemovePIDFile(pidfile)
 
 	return nil

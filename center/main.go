@@ -32,7 +32,8 @@ var app = &cli.App{
 
 func main() {
 	// Open the log file
-	logFile, err := os.OpenFile("/var/log/idb/center-run.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	runLogFile := filepath.Join(constant.CenterLogDir, constant.CenterRunLog)
+	logFile, err := os.OpenFile(runLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file: %v\n", err)
 		return
@@ -57,13 +58,13 @@ func main() {
 
 func Run() error {
 	// 检查目录
-	paths := []string{constant.ConfDir, constant.DataDir, constant.LogDir}
+	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterLogDir}
 	if err := utils.EnsurePaths(paths); err != nil {
 		return fmt.Errorf("center directories error: %v", err)
 	}
 
 	// 判断pid文件是否存在
-	pidfile := filepath.Join(constant.DataDir, constant.CenterPid)
+	pidfile := filepath.Join(constant.CenterDataDir, constant.CenterPid)
 	running, err := utils.IsRunning(pidfile)
 	if err != nil {
 		return fmt.Errorf("center error %v", err)
@@ -88,7 +89,7 @@ func Run() error {
 
 func StartServices() error {
 	// 初始化配置
-	cfgFilePath := filepath.Join(constant.ConfDir, constant.CenterConfig)
+	cfgFilePath := filepath.Join(constant.CenterConfDir, constant.CenterConfig)
 	manager, err := config.NewManager(cfgFilePath)
 	if err != nil {
 		log.Printf("Failed to initialize config manager: %v \n", err)
@@ -97,7 +98,7 @@ func StartServices() error {
 	conn.CONFMAN = manager
 
 	//初始化日志模块
-	logger, err := logger.InitLogger(constant.LogDir, constant.CenterLog)
+	logger, err := logger.InitLogger(constant.CenterLogDir, constant.CenterLog)
 	if err != nil {
 		log.Printf("Failed to initialize logger: %v \n", err)
 		return err
@@ -105,7 +106,7 @@ func StartServices() error {
 	global.LOG = logger
 
 	//初始化数据库
-	db.Init(filepath.Join(constant.DataDir, constant.DBFile))
+	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
 
 	//启动apiServer
@@ -145,7 +146,7 @@ func StopServices() error {
 	conn.SSH.Stop()
 
 	// 删除pid文件
-	pidfile := filepath.Join(constant.DataDir, constant.CenterPid)
+	pidfile := filepath.Join(constant.CenterDataDir, constant.CenterPid)
 	utils.RemovePIDFile(pidfile)
 
 	return nil
