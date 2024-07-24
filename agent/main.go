@@ -27,7 +27,7 @@ var app = &cli.App{
 
 func main() {
 	// Open the log file
-	logFile, err := os.OpenFile("/var/log/idb/agent-run.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile("/var/log/idb-agent/agent-run.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file: %v\n", err)
 		return
