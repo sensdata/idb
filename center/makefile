@@ -23,7 +23,7 @@ CONFIG_FILE=idb-center.json
 SERVICE_FILE=idb-center.service
 
 # 日志文件路径
-LOG_FILE=/var/log/idb/center-run.log
+LOG_FILE=/var/log/idb/idb-center-run.log
 
 # 构建命令
 build:

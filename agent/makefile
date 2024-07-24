@@ -23,7 +23,7 @@ CONFIG_FILE=idb-agent.json
 SERVICE_FILE=idb-agent.service
 
 # 日志文件路径
-LOG_FILE=/var/log/idb-agent/agent-run.log
+LOG_FILE=/var/log/idb-agent/idb-agent-run.log
 
 # 构建命令
 build:
