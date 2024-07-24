@@ -25,7 +25,7 @@ type Manager struct {
 
 // 创建一个manager
 func NewManager(path string) (*Manager, error) {
-	manager := &Manager{configPath : path}
+	manager := &Manager{configPath: path}
 	err := manager.loadConfig()
 	if err != nil {
 		return nil, err

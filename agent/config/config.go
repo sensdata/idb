@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -25,9 +24,9 @@ type Manager struct {
 }
 
 // 创建一个manager
-func NewManager(installDir string) (*Manager, error) {
-	manager := &Manager{}
-	err := manager.loadConfig(installDir)
+func NewManager(path string) (*Manager, error) {
+	manager := &Manager{configPath: path}
+	err := manager.loadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +35,9 @@ func NewManager(installDir string) (*Manager, error) {
 }
 
 // 加载配置文件
-func (m *Manager) loadConfig(installDir string) error {
+func (m *Manager) loadConfig() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	// 配置文件路径
-	m.configPath = filepath.Join(installDir, "config.json")
 
 	file, err := os.Open(m.configPath)
 	if err != nil {
