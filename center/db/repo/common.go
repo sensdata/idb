@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"gorm.io/gorm"
 )
 

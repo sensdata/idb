@@ -1,0 +1,18 @@
+plugin:
+  name: "System Information"
+  description: "This module provides detailed system information including OS details, CPU info, and memory status, etc."
+  version: "1.0.0"
+  host: "127.0.0.1"
+  port: "8080"
+  entry: "sysinfo"
+
+menu:
+  - id: "summary"
+    name: "Summary"
+    description: "summary of system informations"
+  - id: "network"
+    name: "Network"
+    description: "Network informations"
+  - id: "hardware"
+    name: "Hardware"
+    description: "Hardware informations"

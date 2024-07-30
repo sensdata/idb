@@ -110,8 +110,7 @@ func StartServices() error {
 	migration.Init()
 
 	//启动apiServer
-	apiServer := api.NewApiServer()
-	if err := apiServer.Start(); err != nil {
+	if err := api.API.Start(); err != nil {
 		log.Printf("Failed to start api: %v", err)
 		return err
 	}
