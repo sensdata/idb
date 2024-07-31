@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/plugin/sysinfo/backend/model"
 
@@ -12,12 +13,17 @@ import (
 )
 
 var config plugin.PluginConfig
+var restyClient *resty.Client
 
 func init() {
 	err := utils.LoadYaml("plug.yaml", &config)
 	if err != nil {
 		panic(err)
 	}
+
+	restyClient = resty.New().
+		SetBaseURL("http://127.0.0.1:8080").
+		SetHeader("Content-Type", "application/json")
 
 	api.API.SetUpPluginRouters(
 		"sysinfo",
@@ -105,10 +111,6 @@ func getPluginInfo() (plugin.PluginInfo, error) {
 
 func getMenus() ([]plugin.MenuItem, error) {
 	return config.Menu, nil
-}
-
-func getOverview() (model.Overview, error) {
-	return model.Overview{}, nil
 }
 
 func getNetwork() (model.NetworkInfo, error) {

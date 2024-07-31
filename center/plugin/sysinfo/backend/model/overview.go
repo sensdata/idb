@@ -1,12 +1,10 @@
 package model
 
-import "time"
-
 // 概览
 type Overview struct {
-	ServerTime     time.Time   `json:"serverTime"`     //服务器时间
+	ServerTime     string      `json:"serverTime"`     //服务器时间
 	ServerTimeZone string      `json:"serverTimeZone"` //服务器时区
-	BootTime       time.Time   `json:"bootTime"`       //启动时间
+	BootTime       string      `json:"bootTime"`       //启动时间
 	RunTime        string      `json:"runTime"`        //运行时间
 	IdleTime       string      `json:"idleTime"`       //空闲时间
 	CpuUsage       int         `json:"cpuUsage"`       //CPU使用率
