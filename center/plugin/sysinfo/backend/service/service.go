@@ -24,7 +24,11 @@ func init() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: GetMenu},
-			{Method: "GET", Path: "/summary", Handler: GetSummary},
+			{Method: "GET", Path: "/overview", Handler: GetOverview},
+			{Method: "GET", Path: "/network", Handler: GetNetwork},
+			{Method: "GET", Path: "/system", Handler: GetSystemInfo},
+			{Method: "GET", Path: "/config", Handler: GetConfig},
+			{Method: "GET", Path: "/hardware", Handler: GetHardware},
 		},
 	)
 }
@@ -49,14 +53,50 @@ func GetMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "menu", "payload": menuItems})
 }
 
-// GetSummary 处理 /sysinfo/summary 请求
-func GetSummary(c *gin.Context) {
-	summary, err := getSummary()
+// GetOverview 处理 /sysinfo/summary 请求
+func GetOverview(c *gin.Context) {
+	overview, err := getOverview()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "summary", "payload": summary})
+	c.JSON(http.StatusOK, gin.H{"type": "overview", "payload": overview})
+}
+
+func GetNetwork(c *gin.Context) {
+	network, err := getNetwork()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": network})
+}
+
+func GetSystemInfo(c *gin.Context) {
+	system, err := getSystemInfo()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": system})
+}
+
+func GetConfig(c *gin.Context) {
+	config, err := getConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": config})
+}
+
+func GetHardware(c *gin.Context) {
+	hardware, err := getHardware()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": hardware})
 }
 
 func getPluginInfo() (plugin.PluginInfo, error) {
@@ -67,6 +107,22 @@ func getMenus() ([]plugin.MenuItem, error) {
 	return config.Menu, nil
 }
 
-func getSummary() (model.Overview, error) {
+func getOverview() (model.Overview, error) {
 	return model.Overview{}, nil
+}
+
+func getNetwork() (model.NetworkInfo, error) {
+	return model.NetworkInfo{}, nil
+}
+
+func getSystemInfo() (model.SystemInfo, error) {
+	return model.SystemInfo{}, nil
+}
+
+func getConfig() (model.SystemConfig, error) {
+	return model.SystemConfig{}, nil
+}
+
+func getHardware() (model.HardwareInfo, error) {
+	return model.HardwareInfo{}, nil
 }
