@@ -67,6 +67,6 @@ func getMenus() ([]plugin.MenuItem, error) {
 	return config.Menu, nil
 }
 
-func getSummary() (model.Summary, error) {
-	return model.Summary{}, nil
+func getSummary() (model.Overview, error) {
+	return model.Overview{}, nil
 }

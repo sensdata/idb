@@ -2,7 +2,8 @@ package model
 
 import "time"
 
-type Summary struct {
+// 概览
+type Overview struct {
 	ServerTime     time.Time   `json:"serverTime"`     //服务器时间
 	ServerTimeZone string      `json:"serverTimeZone"` //服务器时区
 	BootTime       time.Time   `json:"bootTime"`       //启动时间
