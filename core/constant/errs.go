@@ -34,4 +34,7 @@ var (
 	ErrRecordExist              = errors.New("ErrRecordExist")
 	ErrRecordNotFound           = errors.New("ErrRecordNotFound")
 	ErrStructTransform          = errors.New("ErrStructTransform")
+	ErrBussiness                = errors.New("BussinessFailed")
+	ErrHost                     = errors.New("HostError")
+	ErrAgent                    = errors.New("AgentError")
 )

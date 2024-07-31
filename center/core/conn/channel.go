@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
@@ -30,7 +32,8 @@ type Center struct {
 type ICenter interface {
 	Start() error
 	Stop() error
-	ExecuteCommand(cmd string) (string, error)
+	ExecuteCommand(req dto.Command) (string, error)
+	TestAgent(req dto.TestAgent) error
 }
 
 func NewCenter() ICenter {
@@ -366,31 +369,34 @@ func (c *Center) sendHeartbeat() {
 	}
 }
 
-func (c *Center) ExecuteCommand(cmd string) (string, error) {
+func (c *Center) ExecuteCommand(req dto.Command) (string, error) {
 
 	config := CONFMAN.GetConfig()
 
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	if err != nil {
+		return "", errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 判断agentConns中是否包含addr的数据
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	addr := host.AgentAddr
+	conn, exists := c.agentConns[addr]
+	if !exists || conn == nil {
+		return "", errors.WithMessage(constant.ErrAgent, err.Error())
+	}
+
 	// 创建一个等待通道
 	responseCh := make(chan string)
-
-	// 假设只需要发送给一个 Agent
-	c.mu.Lock()
-	var conn net.Conn
-	for _, agentConn := range c.agentConns {
-		conn = agentConn
-		break
-	}
-	c.mu.Unlock()
-
-	if conn == nil {
-		return "", fmt.Errorf("no agent connected")
-	}
 
 	// 创建消息
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(
 		msgID,
-		cmd,
+		req.Command,
 		config.SecretKey,
 		utils.GenerateNonce(16),
 		message.CmdMessage,
@@ -422,4 +428,33 @@ func (c *Center) ExecuteCommand(cmd string) (string, error) {
 		c.mu.Unlock()
 		return "", fmt.Errorf("timeout waiting for response from agent")
 	}
+}
+
+func (c *Center) TestAgent(req dto.TestAgent) error {
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	if err != nil {
+		return errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 判断agentConns中是否包含addr的数据
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	addr := host.AgentAddr
+	_, exists := c.agentConns[addr]
+	if exists {
+		return nil
+	} else {
+		resultCh := make(chan error, 1)
+		go c.connectToAgent(&host, resultCh)
+		// handle the result if needed
+		err := <-resultCh
+		if err != nil {
+			global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
+			return err
+		}
+	}
+
+	return nil
 }

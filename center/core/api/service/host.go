@@ -3,11 +3,11 @@ package service
 import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/utils"
 )
 
@@ -152,8 +152,9 @@ func (s *HostService) TestSSH(req dto.TestSSH) error {
 	return nil
 }
 
-// TestAgent implements IHostService.
 func (s *HostService) TestAgent(req dto.TestAgent) error {
-	// TODO agent的连接机制待细化
+	if err := conn.CENTER.TestAgent(req); err != nil {
+		return err
+	}
 	return nil
 }
