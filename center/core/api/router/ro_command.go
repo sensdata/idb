@@ -12,5 +12,6 @@ func (s *CommandRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := entry.ApiGroup
 	{
 		commandRouter.POST("/send", baseApi.SendCommand)
+		commandRouter.POST("/send/group", baseApi.SendCommandGroup)
 	}
 }

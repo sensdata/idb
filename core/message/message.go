@@ -31,6 +31,9 @@ const (
 	ActionMessage MessageType = "action"
 )
 
+// 消息数据分隔符
+const Separator string = "IDBSPRT"
+
 // 消息体
 type Message struct {
 	MsgID     string      `json:"msg_id"`

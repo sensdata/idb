@@ -33,6 +33,7 @@ type ICenter interface {
 	Start() error
 	Stop() error
 	ExecuteCommand(req dto.Command) (string, error)
+	ExecuteCommandGroup(req dto.CommandGroup) ([]string, error)
 	TestAgent(req dto.TestAgent) error
 }
 
@@ -427,6 +428,67 @@ func (c *Center) ExecuteCommand(req dto.Command) (string, error) {
 		delete(c.responseChMap, msgID)
 		c.mu.Unlock()
 		return "", fmt.Errorf("timeout waiting for response from agent")
+	}
+}
+
+func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
+	config := CONFMAN.GetConfig()
+
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	if err != nil {
+		return nil, errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 判断agentConns中是否包含addr的数据
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	addr := host.AgentAddr
+	conn, exists := c.agentConns[addr]
+	if !exists || conn == nil {
+		return nil, errors.WithMessage(constant.ErrAgent, err.Error())
+	}
+
+	// 创建一个等待通道
+	responseCh := make(chan string)
+
+	// 创建消息
+	msgID := utils.GenerateMsgId()
+	msg, err := message.CreateMessage(
+		msgID,
+		strings.Join(req.Commands, message.Separator),
+		config.SecretKey,
+		utils.GenerateNonce(16),
+		message.CmdMessage,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 将通道和msgID映射存储在map中
+	c.mu.Lock()
+	c.responseChMap[msgID] = responseCh
+	c.mu.Unlock()
+
+	go func() {
+		err = message.SendMessage(conn, msg)
+		if err != nil {
+			global.LOG.Error("Failed to send command message: %v", err)
+			responseCh <- ""
+		}
+	}()
+
+	// 等待响应
+	select {
+	case response := <-responseCh:
+		results := strings.Split(response, message.Separator)
+		return results, nil
+	case <-time.After(10 * time.Second): // 设置一个超时时间
+		c.mu.Lock()
+		delete(c.responseChMap, msgID)
+		c.mu.Unlock()
+		return nil, fmt.Errorf("timeout waiting for response from agent")
 	}
 }
 

@@ -22,6 +22,17 @@ func ExecuteCommand(command string) (string, error) {
 	}
 }
 
+func ExecuteCommands(commands []string) (results []string, err error) {
+	for _, command := range commands {
+		result, err := ExecuteCommand(command)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 func executeCommand(name string, args []string) (string, error) {
 	cmd := exec.Command(name, args...)
 	return runCommand(cmd)

@@ -316,13 +316,25 @@ func (a *Agent) handleConnection(conn net.Conn) {
 						global.LOG.Error("%s is a unknown center", centerID)
 					}
 				case message.CmdMessage: // 处理 Cmd 类型的消息
-					result, err := shell.ExecuteCommand(msg.Data)
-					if err != nil {
-						global.LOG.Error("Failed to execute command: %v", err)
-						continue
+					if strings.Contains(msg.Data, message.Separator) {
+						commands := strings.Split(msg.Data, message.Separator)
+						results, err := shell.ExecuteCommands(commands)
+						if err != nil {
+							global.LOG.Error("Failed to excute multi commands: %v", err)
+							continue
+						}
+						result := strings.Join(results, message.Separator)
+						global.LOG.Info("Commands output: %s", result)
+						a.sendCmdResult(conn, msg.MsgID, result)
+					} else {
+						result, err := shell.ExecuteCommand(msg.Data)
+						if err != nil {
+							global.LOG.Error("Failed to execute command: %v", err)
+							continue
+						}
+						global.LOG.Info("Command output: %s", result)
+						a.sendCmdResult(conn, msg.MsgID, result)
 					}
-					global.LOG.Info("Command output: %s", result)
-					a.sendCmdResult(conn, msg.MsgID, result)
 				case message.ActionMessage: // 处理 Action 类型的消息
 					global.LOG.Info("Processing action message: %s", msg.Data)
 					// TODO: 在这里添加处理 action 消息的逻辑
