@@ -59,7 +59,7 @@ func GetMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "menu", "payload": menuItems})
 }
 
-// GetOverview 处理 /sysinfo/summary 请求
+// GetOverview 处理 /sysinfo/overview 请求
 func GetOverview(c *gin.Context) {
 	overview, err := getOverview()
 	if err != nil {

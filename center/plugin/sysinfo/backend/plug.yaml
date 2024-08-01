@@ -7,9 +7,9 @@ plugin:
   entry: "sysinfo"
 
 menu:
-  - id: "summary"
-    name: "Summary"
-    description: "summary of system informations"
+  - id: "overview"
+    name: "Overview"
+    description: "overview of system informations"
   - id: "network"
     name: "Network"
     description: "Network informations"
