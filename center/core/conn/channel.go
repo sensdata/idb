@@ -207,10 +207,9 @@ func (c *Center) ensureAgentConnections() error {
 
 	// 挨个确认是否已经建立连接
 	for _, host := range hosts {
-		addr := host.AgentAddr
-		// 判断sshClients中是否包含addr的数据
-		_, exists := c.agentConns[addr]
-		if exists {
+		// 查找agent conn
+		conn, _ := c.getAgentConn(host)
+		if conn != nil {
 			continue
 		} else {
 			resultCh := make(chan error, 1)
@@ -380,14 +379,10 @@ func (c *Center) ExecuteCommand(req dto.Command) (string, error) {
 		return "", errors.WithMessage(constant.ErrHost, err.Error())
 	}
 
-	// 判断agentConns中是否包含addr的数据
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	addr := host.AgentAddr
-	conn, exists := c.agentConns[addr]
-	if !exists || conn == nil {
-		return "", errors.WithMessage(constant.ErrAgent, err.Error())
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return "", err
 	}
 
 	// 创建一个等待通道
@@ -431,33 +426,51 @@ func (c *Center) ExecuteCommand(req dto.Command) (string, error) {
 	}
 }
 
-func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
-	config := CONFMAN.GetConfig()
-
-	//找host
-	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
-	if err != nil {
-		return []string{}, errors.WithMessage(constant.ErrHost, err.Error())
-	}
-
-	// 判断agentConns中是否包含addr的数据
+func (c *Center) getAgentConn(host model.Host) (net.Conn, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	addr := host.AgentAddr
-	conn, exists := c.agentConns[addr]
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	conn, exists := c.agentConns[agentID]
 	if !exists || conn == nil {
-		return []string{}, errors.WithMessage(constant.ErrAgent, "not connected")
+		return nil, errors.WithMessage(constant.ErrAgent, "not connected")
+	}
+	return conn, nil
+}
+
+func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
+	config := CONFMAN.GetConfig()
+
+	if len(req.Commands) < 1 {
+		return []string{}, constant.ErrInvalidParams
+	}
+
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	if err != nil || host.ID == 0 {
+		return []string{}, errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return []string{}, err
 	}
 
 	// 创建一个等待通道
 	responseCh := make(chan string)
 
 	// 创建消息
+	var data string
+	if len(req.Commands) > 1 {
+		data = strings.Join(req.Commands, message.Separator)
+	} else {
+		data = req.Commands[0]
+	}
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(
 		msgID,
-		strings.Join(req.Commands, message.Separator),
+		data,
 		config.SecretKey,
 		utils.GenerateNonce(16),
 		message.CmdMessage,
@@ -472,6 +485,7 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 	c.mu.Unlock()
 
 	go func() {
+		global.LOG.Info("send msg data: %s", msg.Data)
 		err = message.SendMessage(conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
@@ -482,7 +496,13 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 	// 等待响应
 	select {
 	case response := <-responseCh:
-		results := strings.Split(response, message.Separator)
+		global.LOG.Info("recv msg data: %s", response)
+		var results []string
+		if strings.Contains(response, message.Separator) {
+			results = strings.Split(response, message.Separator)
+		} else {
+			results = append(results, response)
+		}
 		return results, nil
 	case <-time.After(10 * time.Second): // 设置一个超时时间
 		c.mu.Lock()
@@ -499,13 +519,9 @@ func (c *Center) TestAgent(req dto.TestAgent) error {
 		return errors.WithMessage(constant.ErrHost, err.Error())
 	}
 
-	// 判断agentConns中是否包含addr的数据
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	addr := host.AgentAddr
-	_, exists := c.agentConns[addr]
-	if exists {
+	// 查找agent conn
+	conn, _ := c.getAgentConn(host)
+	if conn != nil {
 		return nil
 	} else {
 		resultCh := make(chan error, 1)
