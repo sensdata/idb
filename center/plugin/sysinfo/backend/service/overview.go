@@ -6,40 +6,52 @@ import (
 	"github.com/sensdata/idb/center/plugin/sysinfo/backend/model"
 )
 
+type OverviewResultHandler struct {
+	Description string
+	Handler     func(*model.Overview, string)
+}
+
 func getOverview() (model.Overview, error) {
 	overview := model.Overview{}
 
-	//服务器时间
-	serverTime, err := getServiceTime(1)
+	command := model.CommandGroup{
+		HostID: 1,
+		Commands: []string{
+			"date " + "%Y-%m-%d %H:%M:%S", //服务器时间
+		},
+	}
+
+	var commandGroupResult model.CommandGroupResult
+
+	resp, err := restyClient.R().
+		SetBody(command).
+		SetResult(&commandGroupResult).
+		Post("http://127.0.0.1:8080/cmd/send/group")
+
 	if err != nil {
-		fmt.Println(fmt.Errorf("get service time error %w", err))
-	} else {
-		overview.ServerTime = serverTime
+		return overview, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.IsError() {
+		return overview, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	overviewHandlers := []OverviewResultHandler{
+		{Description: "Server time", Handler: handlerServerTime},
+	}
+
+	for i, result := range commandGroupResult.Results {
+		if i < len(overviewHandlers) {
+			handler := overviewHandlers[i]
+			handler.Handler(&overview, result)
+		} else {
+			fmt.Println("Unknown result at index", i, ":", result)
+		}
 	}
 
 	return overview, nil
 }
 
-func getServiceTime(hostId uint) (string, error) {
-	command := model.Command{
-		HostID:  hostId,
-		Command: "date " + "%Y-%m-%d %H:%M:%S",
-	}
-
-	var commandResult model.CommandResult
-
-	resp, err := restyClient.R().
-		SetBody(command).
-		SetResult(&commandResult).
-		Post("http://127.0.0.1:8080/cmd/send")
-
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %v", err)
-	}
-
-	if resp.IsError() {
-		return "", fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	return commandResult.Result, nil
+func handlerServerTime(overview *model.Overview, result string) {
+	overview.ServerTime = result
 }
