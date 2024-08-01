@@ -69,7 +69,7 @@ func (s *HostService) Create(req dto.CreateHost) (*dto.HostInfo, error) {
 
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
-	host.AgentPort = 9091                   //TODO 从设置中获取
+	host.AgentPort = 25901                  //TODO 从设置中获取
 	host.AgentKey = utils.GenerateNonce(32) //TODO 添加以后，如何给到Agent端？
 	host.AgentMode = "http"                 //TODO https连接，需要调整实现
 

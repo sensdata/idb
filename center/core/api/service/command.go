@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/global"
 )
 
 type CommandService struct{}
@@ -32,6 +33,7 @@ func (s *CommandService) SendCommand(c *gin.Context, command dto.Command) (*dto.
 func (s *CommandService) SendCommandGroup(c *gin.Context, command dto.CommandGroup) (*dto.CommandGroupResult, error) {
 	results, err := conn.CENTER.ExecuteCommandGroup(command)
 	if err != nil {
+		global.LOG.Error("Failed to send command group %v", err)
 		return nil, err
 	}
 

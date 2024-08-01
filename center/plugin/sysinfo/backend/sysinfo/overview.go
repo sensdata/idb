@@ -26,7 +26,7 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 	resp, err := s.restyClient.R().
 		SetBody(command).
 		SetResult(&commandGroupResult).
-		Post("http://127.0.0.1:8080/cmd/send/group")
+		Post("http://127.0.0.1:8080/idb/api/cmd/send/group")
 
 	if err != nil {
 		return overview, fmt.Errorf("failed to send request: %v", err)

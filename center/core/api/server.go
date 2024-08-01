@@ -5,6 +5,7 @@ import (
 	"github.com/sensdata/idb/center/core/api/router"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/plugin"
+	"github.com/sensdata/idb/core/utils"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -23,6 +24,10 @@ func (s *ApiServer) InitRouter() {
 }
 
 func (s *ApiServer) Start() error {
+	//初始化validator
+	global.LOG.Info("Init validator")
+	global.VALID = utils.InitValidator()
+
 	err := s.router.Run("0.0.0.0:8080")
 	if err != nil {
 		global.LOG.Error("Failed to start HTTP server: %v\n", err)

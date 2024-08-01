@@ -12,5 +12,6 @@ func commonGroups() []CommonRouter {
 	return []CommonRouter{
 		&AuthRouter{},
 		&UserRouter{},
+		&CommandRouter{},
 	}
 }

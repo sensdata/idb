@@ -437,7 +437,7 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
 	if err != nil {
-		return nil, errors.WithMessage(constant.ErrHost, err.Error())
+		return []string{}, errors.WithMessage(constant.ErrHost, err.Error())
 	}
 
 	// 判断agentConns中是否包含addr的数据
@@ -447,7 +447,7 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 	addr := host.AgentAddr
 	conn, exists := c.agentConns[addr]
 	if !exists || conn == nil {
-		return nil, errors.WithMessage(constant.ErrAgent, err.Error())
+		return []string{}, errors.WithMessage(constant.ErrAgent, "not connected")
 	}
 
 	// 创建一个等待通道
@@ -463,7 +463,7 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 		message.CmdMessage,
 	)
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 
 	// 将通道和msgID映射存储在map中
@@ -488,7 +488,7 @@ func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
 		c.mu.Lock()
 		delete(c.responseChMap, msgID)
 		c.mu.Unlock()
-		return nil, fmt.Errorf("timeout waiting for response from agent")
+		return []string{}, fmt.Errorf("timeout waiting for response from agent")
 	}
 }
 

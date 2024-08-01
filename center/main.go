@@ -111,17 +111,6 @@ func StartServices() error {
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
 
-	// 初始化路由
-	global.LOG.Info("Init api")
-	api.API.InitRouter()
-	// 注册插件
-	plugin.RegisterPlugins()
-	//启动apiServer
-	if err := api.API.Start(); err != nil {
-		global.LOG.Error("Failed to start api: %v", err)
-		return err
-	}
-
 	// 启动SSH服务
 	global.LOG.Info("Init ssh")
 	ssh := conn.NewSSHService()
@@ -140,9 +129,16 @@ func StartServices() error {
 	}
 	conn.CENTER = center
 
-	//初始化其他
-	global.VALID = utils.InitValidator()
-
+	// 初始化路由
+	global.LOG.Info("Init api")
+	api.API.InitRouter()
+	// 注册插件
+	plugin.RegisterPlugins()
+	//启动apiServer
+	if err := api.API.Start(); err != nil {
+		global.LOG.Error("Failed to start api: %v", err)
+		return err
+	}
 	return nil
 }
 
