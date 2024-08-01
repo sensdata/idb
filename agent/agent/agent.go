@@ -316,6 +316,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 						global.LOG.Error("%s is a unknown center", centerID)
 					}
 				case message.CmdMessage: // 处理 Cmd 类型的消息
+					global.LOG.Info("recv msg data: %s", msg.Data)
 					if strings.Contains(msg.Data, message.Separator) {
 						commands := strings.Split(msg.Data, message.Separator)
 						results, err := shell.ExecuteCommands(commands)
@@ -324,7 +325,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 							continue
 						}
 						result := strings.Join(results, message.Separator)
-						global.LOG.Info("Commands output: %s", result)
 						a.sendCmdResult(conn, msg.MsgID, result)
 					} else {
 						result, err := shell.ExecuteCommand(msg.Data)
@@ -402,7 +402,7 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		return
 	}
 
-	global.LOG.Info("msg data: %s", cmdRspMsg.Data)
+	global.LOG.Info("send msg data: %s", cmdRspMsg.Data)
 
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {

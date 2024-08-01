@@ -32,7 +32,7 @@ const (
 )
 
 // 消息数据分隔符
-const Separator string = "IDBSPRT"
+const Separator string = "#idb#"
 
 // 消息体
 type Message struct {

@@ -12,7 +12,7 @@ func (b *BaseApi) SendCommand(c *gin.Context) {
 		return
 	}
 
-	result, err := commandService.SendCommand(c, req)
+	result, err := commandService.SendCommand(req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
@@ -26,7 +26,7 @@ func (b *BaseApi) SendCommandGroup(c *gin.Context) {
 		return
 	}
 
-	result, err := commandService.SendCommandGroup(c, req)
+	result, err := commandService.SendCommandGroup(req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return

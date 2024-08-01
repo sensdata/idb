@@ -5,10 +5,16 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+
+	"github.com/mattn/go-shellwords"
 )
 
 func ExecuteCommand(command string) (string, error) {
-	parts := strings.Fields(command)
+	// 使用 shellwords 库来解析命令行
+	parts, err := shellwords.Parse(command)
+	if err != nil {
+		return "", err
+	}
 	if len(parts) == 0 {
 		return "", errors.New("empty command")
 	}
@@ -26,9 +32,10 @@ func ExecuteCommands(commands []string) (results []string, err error) {
 	for _, command := range commands {
 		result, err := ExecuteCommand(command)
 		if err != nil {
-			return nil, err
+			results = append(results, "error")
+		} else {
+			results = append(results, result)
 		}
-		results = append(results, result)
 	}
 	return results, nil
 }

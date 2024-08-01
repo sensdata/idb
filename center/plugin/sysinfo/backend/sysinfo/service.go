@@ -28,18 +28,15 @@ var plugYAML []byte
 func (s *SysInfo) Initialize() {
 	global.LOG.Info("sysinfo init begin")
 
-	global.LOG.Info("sysinfo config")
 	if err := yaml.Unmarshal(plugYAML, &s.config); err != nil {
 		global.LOG.Error("Failed to load sysinfo yaml: %v", err)
 		return
 	}
 
-	global.LOG.Info("sysinfo resty")
 	s.restyClient = resty.New().
 		SetBaseURL("http://127.0.0.1:8080").
 		SetHeader("Content-Type", "application/json")
 
-	global.LOG.Info("sysinfo router")
 	api.API.SetUpPluginRouters(
 		"sysinfo",
 		[]plugin.PluginRoute{

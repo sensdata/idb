@@ -16,7 +16,7 @@ type IHostRepo interface {
 	WithByName(name string) DBOption
 	WithByAddr(addr string) DBOption
 	WithByGroupID(groupID uint) DBOption
-	Create(user *model.Host) error
+	Create(host *model.Host) error
 	Update(id uint, vars map[string]interface{}) error
 	Delete(opts ...DBOption) error
 }
@@ -26,35 +26,35 @@ func NewHostRepo() IHostRepo {
 }
 
 func (r *HostRepo) Get(opts ...DBOption) (model.Host, error) {
-	var user model.Host
+	var host model.Host
 	db := global.DB.Model(&model.Host{})
 	for _, opt := range opts {
 		db = opt(db)
 	}
-	err := db.First(&user).Error
-	return user, err
+	err := db.First(&host).Error
+	return host, err
 }
 
 func (r *HostRepo) GetList(opts ...DBOption) ([]model.Host, error) {
-	var users []model.Host
+	var hosts []model.Host
 	db := global.DB.Model(&model.Host{})
 	for _, opt := range opts {
 		db = opt(db)
 	}
-	err := db.Find(&users).Error
-	return users, err
+	err := db.Find(&hosts).Error
+	return hosts, err
 }
 
 func (r *HostRepo) Page(page, size int, opts ...DBOption) (int64, []model.Host, error) {
-	var users []model.Host
+	var hosts []model.Host
 	db := global.DB.Model(&model.Host{})
 	for _, opt := range opts {
 		db = opt(db)
 	}
 	count := int64(0)
 	db = db.Count(&count)
-	err := db.Limit(size).Offset(size * (page - 1)).Find(&users).Error
-	return count, users, err
+	err := db.Limit(size).Offset(size * (page - 1)).Find(&hosts).Error
+	return count, hosts, err
 }
 
 func (r *HostRepo) WithByID(id uint) DBOption {

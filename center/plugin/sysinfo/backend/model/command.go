@@ -19,3 +19,15 @@ type CommandGroupResult struct {
 	HostID  uint     `json:"hostId"`
 	Results []string `json:"results"`
 }
+
+type CommandResponse struct {
+	Code    int           `json:"code"`
+	Message string        `json:"message"`
+	Data    CommandResult `json:"data"`
+}
+
+type CommandGroupResponse struct {
+	Code    int                `json:"code"`
+	Message string             `json:"message"`
+	Data    CommandGroupResult `json:"data"`
+}
