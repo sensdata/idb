@@ -1,4 +1,4 @@
-package service
+package sysinfo
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ type OverviewResultHandler struct {
 	Handler     func(*model.Overview, string)
 }
 
-func getOverview() (model.Overview, error) {
+func (s *SysInfo) getOverview() (model.Overview, error) {
 	overview := model.Overview{}
 
 	command := model.CommandGroup{
@@ -23,7 +23,7 @@ func getOverview() (model.Overview, error) {
 
 	var commandGroupResult model.CommandGroupResult
 
-	resp, err := restyClient.R().
+	resp, err := s.restyClient.R().
 		SetBody(command).
 		SetResult(&commandGroupResult).
 		Post("http://127.0.0.1:8080/cmd/send/group")

@@ -14,6 +14,7 @@ import (
 	"github.com/sensdata/idb/center/db/migration"
 	_ "github.com/sensdata/idb/center/docs"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/center/plugin"
 	"github.com/sensdata/idb/core/constant"
 	logger "github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/utils"
@@ -106,27 +107,35 @@ func StartServices() error {
 	global.LOG = logger
 
 	//初始化数据库
+	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
 
+	// 初始化路由
+	global.LOG.Info("Init api")
+	api.API.InitRouter()
+	// 注册插件
+	plugin.RegisterPlugins()
 	//启动apiServer
 	if err := api.API.Start(); err != nil {
-		log.Printf("Failed to start api: %v", err)
+		global.LOG.Error("Failed to start api: %v", err)
 		return err
 	}
 
 	// 启动SSH服务
+	global.LOG.Info("Init ssh")
 	ssh := conn.NewSSHService()
 	if err := ssh.Start(); err != nil {
-		log.Printf("Failed to start ssh: %v", err)
+		global.LOG.Error("Failed to start ssh: %v", err)
 		return err
 	}
 	conn.SSH = ssh
 
 	// 启动center服务
+	global.LOG.Info("Init center")
 	center := conn.NewCenter()
 	if err := center.Start(); err != nil {
-		log.Printf("Failed to start center: %v", err)
+		global.LOG.Error("Failed to start center: %v", err)
 		return err
 	}
 	conn.CENTER = center

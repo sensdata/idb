@@ -1,10 +1,9 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api/router"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/plugin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -18,14 +17,15 @@ type ApiServer struct {
 	router *gin.Engine
 }
 
-func (s *ApiServer) Start() error {
+func (s *ApiServer) InitRouter() {
 	// 注册 API 路由
 	s.setUpDefaultRouters()
+}
 
-	// 仅监听本地接口
+func (s *ApiServer) Start() error {
 	err := s.router.Run("0.0.0.0:8080")
 	if err != nil {
-		fmt.Printf("Failed to start HTTP server: %v\n", err)
+		global.LOG.Error("Failed to start HTTP server: %v\n", err)
 	}
 
 	return nil
@@ -33,9 +33,11 @@ func (s *ApiServer) Start() error {
 
 // SetupRouter sets up the API routes
 func (s *ApiServer) setUpDefaultRouters() {
+	global.LOG.Info("register router - swagger")
 	swaggerGroup := s.router.Group("idb/swagger")
 	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
+	global.LOG.Info("register router - api")
 	apiGroup := s.router.Group("idb/api")
 	for _, router := range router.RouterGroups {
 		router.InitRouter(apiGroup)
@@ -44,6 +46,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 
 // SetUpPluginRouters sets up routers from plugins
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
+	global.LOG.Info("register router - " + group)
 	pluginGroup := s.router.Group("idb/" + group)
 	for _, route := range routes {
 		switch route.Method {

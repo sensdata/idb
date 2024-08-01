@@ -48,7 +48,7 @@ func NewCenter() ICenter {
 
 func (c *Center) Start() error {
 
-	fmt.Printf("Center Starting")
+	global.LOG.Info("Center Starting")
 
 	// 启动 Unix 域套接字监听器
 	err := c.listenToUnix()
