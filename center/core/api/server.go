@@ -23,7 +23,7 @@ func (s *ApiServer) Start() error {
 	s.setUpDefaultRouters()
 
 	// 仅监听本地接口
-	err := s.router.Run("127.0.0.1:8080")
+	err := s.router.Run("0.0.0.0:8080")
 	if err != nil {
 		fmt.Printf("Failed to start HTTP server: %v\n", err)
 	}
@@ -33,7 +33,7 @@ func (s *ApiServer) Start() error {
 
 // SetupRouter sets up the API routes
 func (s *ApiServer) setUpDefaultRouters() {
-	swaggerGroup := s.router.Group("swagger")
+	swaggerGroup := s.router.Group("idb/swagger")
 	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	apiGroup := s.router.Group("idb/api")
