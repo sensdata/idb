@@ -5,7 +5,6 @@ go 1.22
 require (
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/mattn/go-shellwords v1.0.12
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
 )

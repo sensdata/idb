@@ -19,7 +19,8 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 	command := model.CommandGroup{
 		HostID: 1,
 		Commands: []string{
-			"date +\"%Y-%m-%d %H:%M:%S\"", //服务器时间
+			"date +\"%Y-%m-%d %H:%M:%S\"",                         //服务器时间
+			"timedatectl | grep \"Time zone\" | awk '{print $3}'", //当前时区
 		},
 	}
 
@@ -44,6 +45,7 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 
 	overviewHandlers := []OverviewResultHandler{
 		{Description: "Server time", Handler: s.handlerServerTime},
+		{Description: "Time zone", Handler: s.handlerTimeZone},
 	}
 
 	for i, result := range commandGroupResponse.Data.Results {
@@ -60,4 +62,8 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 
 func (s *SysInfo) handlerServerTime(overview *model.Overview, result string) {
 	overview.ServerTime = strings.TrimSpace(result)
+}
+
+func (s *SysInfo) handlerTimeZone(overview *model.Overview, result string) {
+	overview.ServerTimeZone = strings.TrimSpace(result)
 }
