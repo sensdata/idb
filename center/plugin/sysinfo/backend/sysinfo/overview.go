@@ -27,6 +27,7 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 			"uptime -p | sed 's/^up //'", //运行时长
 			"grep '^cpu ' /proc/stat | awk '{print $5}'",         //空闲时长
 			"top -bn1 | grep \"Cpu(s)\" | awk '{print $2 + $4}'", //CPU使用率
+			"uptime | awk -F 'load average: ' '{print $2}'",      //CPU负载
 		},
 	}
 
@@ -56,6 +57,7 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 		{Description: "Run time", Handler: s.handlerRunTime},
 		{Description: "Idle time", Handler: s.handlerIdleTime},
 		{Description: "Cpu Usage", Handler: s.handlerCpuUsage},
+		{Description: "Cpu Load", Handler: s.handlerCpuLoad},
 	}
 
 	for i, result := range commandGroupResponse.Data.Results {
@@ -115,4 +117,20 @@ func (s *SysInfo) handlerIdleTime(overview *model.Overview, result string) {
 func (s *SysInfo) handlerCpuUsage(overview *model.Overview, result string) {
 	cpuUsage := fmt.Sprintf("%s%%", strings.TrimSpace(result))
 	overview.CpuUsage = cpuUsage
+}
+
+func (s *SysInfo) handlerCpuLoad(overview *model.Overview, result string) {
+	loadAvgArray := strings.Split(strings.TrimSpace(result), ",")
+	for i := range loadAvgArray {
+		loadAvgArray[i] = strings.TrimSpace(loadAvgArray[i])
+	}
+	if len(loadAvgArray) > 0 {
+		overview.CurrentLoad.ProcessCount1 = loadAvgArray[0]
+	}
+	if len(loadAvgArray) > 1 {
+		overview.CurrentLoad.ProcessCount5 = loadAvgArray[1]
+	}
+	if len(loadAvgArray) > 2 {
+		overview.CurrentLoad.ProcessCount15 = loadAvgArray[2]
+	}
 }

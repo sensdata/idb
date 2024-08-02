@@ -16,9 +16,9 @@ type Overview struct {
 
 // 负载
 type LoadState struct {
-	ProcessCount1  float64 `json:"processCount1"`  //1分钟进程数
-	ProcessCount5  float64 `json:"processCount5"`  //5分钟进程数
-	ProcessCount15 float64 `json:"processCount15"` //15分钟进程数
+	ProcessCount1  string `json:"processCount1"`  //1分钟进程数
+	ProcessCount5  string `json:"processCount5"`  //5分钟进程数
+	ProcessCount15 string `json:"processCount15"` //15分钟进程数
 }
 
 // 内存信息
