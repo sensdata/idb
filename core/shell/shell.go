@@ -2,30 +2,11 @@ package shell
 
 import (
 	"bytes"
-	"errors"
 	"os/exec"
-	"strings"
-
-	"github.com/mattn/go-shellwords"
 )
 
 func ExecuteCommand(command string) (string, error) {
-	// 使用 shellwords 库来解析命令行
-	parts, err := shellwords.Parse(command)
-	if err != nil {
-		return "", err
-	}
-	if len(parts) == 0 {
-		return "", errors.New("empty command")
-	}
-
-	switch parts[0] {
-	case "sh":
-		cmdStr := strings.Join(parts[1:], " ")
-		return executeCommand(parts[0], []string{"-c", cmdStr})
-	default:
-		return executeCommand(parts[0], parts[1:])
-	}
+	return executeCommand("/bin/bash", []string{"-c", command})
 }
 
 func ExecuteCommands(commands []string) (results []string, err error) {
