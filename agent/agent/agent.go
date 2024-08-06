@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -11,10 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sensdata/idb/agent/action"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -316,29 +319,35 @@ func (a *Agent) handleConnection(conn net.Conn) {
 						global.LOG.Error("%s is a unknown center", centerID)
 					}
 				case message.CmdMessage: // 处理 Cmd 类型的消息
-					global.LOG.Info("recv msg data: %s", msg.Data)
+					global.LOG.Info("recv cmd message: %s", msg.Data)
 					if strings.Contains(msg.Data, message.Separator) {
 						commands := strings.Split(msg.Data, message.Separator)
 						results, err := shell.ExecuteCommands(commands)
 						if err != nil {
 							global.LOG.Error("Failed to excute multi commands: %v", err)
-							continue
+							a.sendCmdResult(conn, msg.MsgID, "error")
+						} else {
+							result := strings.Join(results, message.Separator)
+							a.sendCmdResult(conn, msg.MsgID, result)
 						}
-						result := strings.Join(results, message.Separator)
-						a.sendCmdResult(conn, msg.MsgID, result)
 					} else {
 						result, err := shell.ExecuteCommand(msg.Data)
 						if err != nil {
 							global.LOG.Error("Failed to execute command: %v", err)
-							continue
+							a.sendCmdResult(conn, msg.MsgID, "error")
+						} else {
+							a.sendCmdResult(conn, msg.MsgID, result)
 						}
-						global.LOG.Info("Command output: %s", result)
-						a.sendCmdResult(conn, msg.MsgID, result)
 					}
 				case message.ActionMessage: // 处理 Action 类型的消息
-					global.LOG.Info("Processing action message: %s", msg.Data)
-					// TODO: 在这里添加处理 action 消息的逻辑
-
+					global.LOG.Info("recv action message: %s", msg.Data)
+					result, err := a.processAction(msg.Data)
+					if err != nil {
+						global.LOG.Error("Failed to process action: %v", err)
+						a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Data: ""})
+					} else {
+						a.sendActionResult(conn, msg.MsgID, result)
+					}
 				default: // 不支持的消息
 					global.LOG.Error("Unknown message type: %s", msg.Type)
 				}
@@ -417,5 +426,71 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		// go a.connectToCenter()
 	} else {
 		global.LOG.Info("Cmd rsp sent to %s", centerID)
+	}
+}
+
+func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Action) {
+	config := CONFMAN.GetConfig()
+
+	centerID := conn.RemoteAddr().String()
+
+	data, err := json.Marshal(action)
+	if err != nil {
+		global.LOG.Error("Error marshal action:: %v", err)
+		return
+	}
+
+	cmdRspMsg, err := message.CreateMessage(
+		msgID, // 使用相同的msgID回复
+		string(data),
+		config.SecretKey,
+		utils.GenerateNonce(16),
+		message.ActionMessage,
+	)
+	if err != nil {
+		global.LOG.Error("Error creating cmd rsp message: %v", err)
+		return
+	}
+
+	global.LOG.Info("send msg data: %s", cmdRspMsg.Data)
+
+	err = message.SendMessage(conn, cmdRspMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send cmd rsp message: %v", err)
+		a.mu.Lock()
+		conn.Close()
+		global.LOG.Info("close conn %s for cmd rsp", a.centerID)
+		a.centerConn = nil
+		a.centerID = ""
+		a.mu.Unlock()
+		//关闭后，尝试重新连接
+		// go a.connectToCenter()
+	} else {
+		global.LOG.Info("Cmd rsp sent to %s", centerID)
+	}
+}
+
+func (a *Agent) processAction(data string) (*model.Action, error) {
+	var actionData model.Action
+	if err := json.Unmarshal([]byte(data), &actionData); err != nil {
+		return nil, err
+	}
+
+	switch actionData.Action {
+	// 获取overview
+	case model.Action_SysInfo_OverView:
+		overview, err := action.GetOverview()
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Data:   overview,
+		}, nil
+		// 获取network
+	case model.Action_SysInfo_Network:
+		return nil, nil
+	default:
+		return nil, nil
 	}
 }

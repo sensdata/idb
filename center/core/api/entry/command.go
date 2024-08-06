@@ -2,12 +2,12 @@ package entry
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/model"
 )
 
 func (b *BaseApi) SendCommand(c *gin.Context) {
-	var req dto.Command
+	var req model.Command
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -21,7 +21,7 @@ func (b *BaseApi) SendCommand(c *gin.Context) {
 }
 
 func (b *BaseApi) SendCommandGroup(c *gin.Context) {
-	var req dto.CommandGroup
+	var req model.CommandGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

@@ -12,4 +12,5 @@ var (
 	groupService   = service.NewIGroupService()
 	hostService    = service.NewIHostService()
 	commandService = service.NewICommandService()
+	actionService  = service.NewIActionService()
 )

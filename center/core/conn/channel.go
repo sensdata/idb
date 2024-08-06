@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
+	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
 
@@ -32,8 +34,9 @@ type Center struct {
 type ICenter interface {
 	Start() error
 	Stop() error
-	ExecuteCommand(req dto.Command) (string, error)
-	ExecuteCommandGroup(req dto.CommandGroup) ([]string, error)
+	ExecuteCommand(req core.Command) (string, error)
+	ExecuteCommandGroup(req core.CommandGroup) ([]string, error)
+	ExecuteAction(req core.HostAction) (*core.Action, error)
 	TestAgent(req dto.TestAgent) error
 }
 
@@ -301,7 +304,6 @@ func (c *Center) handleConnection(conn net.Conn) {
 					// TODO: 维护在线状态
 					global.LOG.Info("Heartbeat from %s", agentID)
 				case message.CmdMessage: // 收到Cmd 类型的回复
-					// TODO: 回调给发送者或者关注者
 					global.LOG.Info("Processing cmd message: %s", msg.Data)
 					// 获取响应通道
 					c.mu.Lock()
@@ -313,8 +315,16 @@ func (c *Center) handleConnection(conn net.Conn) {
 					}
 					c.mu.Unlock()
 				case message.ActionMessage: // 处理 Action 类型的消息
-					// TODO: 回调给发送者或者关注者
 					global.LOG.Info("Processing action message: %s", msg.Data)
+					//获取响应通道
+					c.mu.Lock()
+					responseCh, exists := c.responseChMap[msg.MsgID]
+					if exists {
+						responseCh <- msg.Data // msg.Data 是 model.Action
+						close(responseCh)
+						delete(c.responseChMap, msg.MsgID)
+					}
+					c.mu.Unlock()
 				default: // 不支持的消息
 					global.LOG.Error("Unknown message type: %s", msg.Type)
 				}
@@ -369,7 +379,72 @@ func (c *Center) sendHeartbeat() {
 	}
 }
 
-func (c *Center) ExecuteCommand(req dto.Command) (string, error) {
+func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
+	config := CONFMAN.GetConfig()
+
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	if err != nil || host.ID == 0 {
+		return nil, errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := json.Marshal(req.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建一个等待通道
+	responseCh := make(chan string)
+
+	// 创建消息
+	msgID := utils.GenerateMsgId()
+	msg, err := message.CreateMessage(
+		msgID,
+		string(data),
+		config.SecretKey,
+		utils.GenerateNonce(16),
+		message.ActionMessage,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 将通道和msgID映射存储在map中
+	c.mu.Lock()
+	c.responseChMap[msgID] = responseCh
+	c.mu.Unlock()
+
+	go func() {
+		err = message.SendMessage(conn, msg)
+		if err != nil {
+			global.LOG.Error("Failed to send action message: %v", err)
+			responseCh <- ""
+		}
+	}()
+
+	// 等待响应
+	select {
+	case response := <-responseCh:
+		var action core.Action
+		if err := json.Unmarshal([]byte(response), &action); err != nil {
+			return nil, err
+		}
+		return &action, nil
+	case <-time.After(10 * time.Second): // 设置一个超时时间
+		c.mu.Lock()
+		delete(c.responseChMap, msgID)
+		c.mu.Unlock()
+		return nil, fmt.Errorf("timeout waiting for response from agent")
+	}
+}
+
+func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 
 	config := CONFMAN.GetConfig()
 
@@ -438,7 +513,7 @@ func (c *Center) getAgentConn(host model.Host) (net.Conn, error) {
 	return conn, nil
 }
 
-func (c *Center) ExecuteCommandGroup(req dto.CommandGroup) ([]string, error) {
+func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	config := CONFMAN.GetConfig()
 
 	if len(req.Commands) < 1 {

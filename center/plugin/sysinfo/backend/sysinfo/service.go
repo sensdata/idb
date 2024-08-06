@@ -9,7 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/global"
-	"github.com/sensdata/idb/center/plugin/sysinfo/backend/model"
+	"github.com/sensdata/idb/core/model"
 	"gopkg.in/yaml.v2"
 
 	"github.com/sensdata/idb/core/plugin"
