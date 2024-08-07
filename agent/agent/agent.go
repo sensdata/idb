@@ -489,7 +489,14 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}, nil
 		// 获取network
 	case model.Action_SysInfo_Network:
-		return nil, nil
+		network, err := action.GetNetwork()
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Data:   network,
+		}, nil
 	default:
 		return nil, nil
 	}

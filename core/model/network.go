@@ -2,10 +2,14 @@ package model
 
 // 网络信息
 type NetworkInfo struct {
-	DNS      []string           `json:"dns"`      //Dns
-	Timeout  string             `json:"timeout"`  //查询超时
-	Attempts string             `json:"attempts"` //重试次数
+	DNS      DNSInfo            `json:"dns"`      //Dns
 	Networks []NetworkInterface `json:"networks"` //网络接口
+}
+
+type DNSInfo struct {
+	Servers    []string
+	Timeout    int
+	RetryTimes int
 }
 
 // 网络接口

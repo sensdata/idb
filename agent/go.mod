@@ -15,6 +15,7 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
+	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -28,6 +29,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.24.7
 	github.com/urfave/cli v1.22.15
+	github.com/vishvananda/netlink v1.1.0
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect

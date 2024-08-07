@@ -8,13 +8,13 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-func (s *SysInfo) getOverview() (model.Overview, error) {
-	overview := model.Overview{}
+func (s *SysInfo) getNetwork() (model.NetworkInfo, error) {
+	network := model.NetworkInfo{}
 
 	actionRequest := model.HostAction{
 		HostID: 1,
 		Action: model.Action{
-			Action: model.Action_SysInfo_OverView,
+			Action: model.Action_SysInfo_Network,
 			Data:   "",
 		},
 	}
@@ -28,20 +28,20 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)
-		return overview, fmt.Errorf("failed to send request: %v", err)
+		return network, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
 		global.LOG.Error("failed to send request: %v", err)
-		return overview, fmt.Errorf("received error response: %s", resp.Status())
+		return network, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
-	global.LOG.Info("overview result: %v", actionResponse)
+	global.LOG.Info("network result: %v", actionResponse)
 
-	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &overview)
+	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &network)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to Overview: %v", err)
+		global.LOG.Error("Error unmarshaling data to Network: %v", err)
 	}
 
-	return overview, nil
+	return network, nil
 }

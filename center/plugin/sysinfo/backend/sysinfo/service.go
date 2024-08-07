@@ -131,10 +131,6 @@ func (s *SysInfo) getMenus() ([]plugin.MenuItem, error) {
 	return s.config.Menu, nil
 }
 
-func (s *SysInfo) getNetwork() (model.NetworkInfo, error) {
-	return model.NetworkInfo{}, nil
-}
-
 func (s *SysInfo) getSystemInfo() (model.SystemInfo, error) {
 	return model.SystemInfo{}, nil
 }
