@@ -48,25 +48,21 @@ func GetOverview() (string, error) {
 	}
 
 	avg, _ := load.Avg()
-	overview.CurrentLoad.ProcessCount1 = fmt.Sprintf("%.2f%%", avg.Load1)
-	overview.CurrentLoad.ProcessCount5 = fmt.Sprintf("%.2f%%", avg.Load5)
-	overview.CurrentLoad.ProcessCount15 = fmt.Sprintf("%.2f%%", avg.Load15)
+	overview.CurrentLoad.ProcessCount1 = fmt.Sprintf("%.2f%%", avg.Load1*100)
+	overview.CurrentLoad.ProcessCount5 = fmt.Sprintf("%.2f%%", avg.Load5*100)
+	overview.CurrentLoad.ProcessCount15 = fmt.Sprintf("%.2f%%", avg.Load15*100)
 
 	v, _ := mem.VirtualMemory()
-	physical := v.Total
-	kernel := v.Buffers + v.Cached + v.Slab
-	total := physical - kernel
-	realUsed := v.Used - v.Buffers - v.Cached
-	overview.MemoryUsage.Physical = utils.FormatMemorySize(physical)
-	overview.MemoryUsage.Kernel = utils.FormatMemorySize(kernel)
-	overview.MemoryUsage.Total = utils.FormatMemorySize(total)
-	overview.MemoryUsage.Free = utils.FormatMemorySize(v.Available)
+	overview.MemoryUsage.Physical = utils.FormatMemorySize(v.Total)
+	overview.MemoryUsage.Kernel = utils.FormatMemorySize(v.Buffers + v.Slab)
+	overview.MemoryUsage.Total = utils.FormatMemorySize(v.Available + v.Used)
 	overview.MemoryUsage.Used = utils.FormatMemorySize(v.Used)
-	overview.MemoryUsage.UsedRate = math.Round(float64(v.Used)/float64(total)*100) / 100
-	overview.MemoryUsage.FreeRate = 1 - overview.MemoryUsage.UsedRate
+	overview.MemoryUsage.UsedRate = math.Round(v.UsedPercent*100) / 100
+	overview.MemoryUsage.Free = utils.FormatMemorySize(v.Available)
+	overview.MemoryUsage.FreeRate = 100 - overview.MemoryUsage.UsedRate
 	overview.MemoryUsage.Buffered = utils.FormatMemorySize(v.Buffers)
 	overview.MemoryUsage.Cached = utils.FormatMemorySize(v.Cached)
-	overview.MemoryUsage.RealUsed = utils.FormatMemorySize(realUsed)
+	overview.MemoryUsage.RealUsed = utils.FormatMemorySize(v.Used)
 
 	swap, _ := mem.SwapMemory()
 	overview.SwapUsage.Total = utils.FormatMemorySize(swap.Total)
@@ -85,7 +81,7 @@ func GetOverview() (string, error) {
 				Total:    utils.FormatMemorySize(usage.Total),
 				Free:     utils.FormatMemorySize(usage.Free),
 				Used:     utils.FormatMemorySize(usage.Used),
-				UsedRate: math.Round(usage.UsedPercent) / 100,
+				UsedRate: math.Round(usage.UsedPercent*100) / 100,
 			},
 		)
 	}
