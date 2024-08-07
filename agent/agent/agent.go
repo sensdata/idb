@@ -487,7 +487,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Action: actionData.Action,
 			Data:   overview,
 		}, nil
-		// 获取network
+	// 获取network
 	case model.Action_SysInfo_Network:
 		network, err := action.GetNetwork()
 		if err != nil {
@@ -496,6 +496,16 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return &model.Action{
 			Action: actionData.Action,
 			Data:   network,
+		}, nil
+	// 获取SystemInfo
+	case model.Action_SysInfo_System:
+		systemInfo, err := action.GetSystemInfo()
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Data:   systemInfo,
 		}, nil
 	default:
 		return nil, nil
