@@ -21,6 +21,7 @@ require (
 )
 
 require (
+	github.com/creack/pty v1.1.21
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
