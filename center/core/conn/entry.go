@@ -18,10 +18,11 @@ var (
 	HostRepo      = repo.NewHostRepo()
 	HostGroupRepo = repo.NewHostGroupRepo()
 
-	CONFMAN *config.Manager
-	SSH     ISSHService
-	CENTER  ICenter
-	PLUGINS []plugin.IdbPlugin
+	CONFMAN   *config.Manager
+	SSH       ISSHService
+	CENTER    ICenter
+	WEBSOCKET IWebSocketService
+	PLUGINS   []plugin.IdbPlugin
 )
 
 func RegisterIdbPlugin(p plugin.IdbPlugin) {

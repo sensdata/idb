@@ -10,6 +10,7 @@ import (
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/command"
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/core/conn/websocket"
 	"github.com/sensdata/idb/center/db"
 	"github.com/sensdata/idb/center/db/migration"
 	_ "github.com/sensdata/idb/center/docs"
@@ -119,6 +120,10 @@ func StartServices() error {
 		return err
 	}
 	conn.SSH = ssh
+
+	// 启动WS服务
+	global.LOG.Info("Init ws")
+	conn.WEBSOCKET = websocket.NewIWebSocketService()
 
 	// 启动center服务
 	global.LOG.Info("Init center")
