@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"time"
@@ -94,12 +93,20 @@ func (sws *SshWebSocketSession) receiveWsMsg(exitCh chan bool) {
 		case <-exitCh:
 			return
 		default:
-			_, wsData, err := wsConn.ReadMessage()
+			messageType, wsData, err := wsConn.ReadMessage()
+
 			if err != nil {
-				return
+				global.LOG.Error("read message error: %v", err)
+				continue
 			}
+			global.LOG.Info("messageType: %d, %s", messageType, string(wsData))
 			msgObj := message.WsMessage{}
-			_ = json.Unmarshal(wsData, &msgObj)
+			err = json.Unmarshal(wsData, &msgObj)
+			if err != nil {
+				global.LOG.Error("unmarshal message error: %v", err)
+				continue
+			}
+
 			switch msgObj.Type {
 			case message.WsMessageResize:
 				if msgObj.Cols > 0 && msgObj.Rows > 0 {
@@ -108,11 +115,11 @@ func (sws *SshWebSocketSession) receiveWsMsg(exitCh chan bool) {
 					}
 				}
 			case message.WsMessageCmd:
-				decodeBytes, err := base64.StdEncoding.DecodeString(msgObj.Data)
-				if err != nil {
-					global.LOG.Error("websock cmd string base64 decoding failed, err: %v", err)
-				}
-				sws.socketInputToSshPipe(decodeBytes)
+				// decodeBytes, err := base64.StdEncoding.DecodeString(msgObj.Data)
+				// if err != nil {
+				// 	global.LOG.Error("websock cmd string base64 decoding failed, err: %v", err)
+				// }
+				sws.socketInputToSshPipe([]byte(msgObj.Data))
 			case message.WsMessageHeartbeat:
 				// 接收到心跳包后将心跳包原样返回，可以用于网络延迟检测等情况
 				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
@@ -146,7 +153,7 @@ func (sws *SshWebSocketSession) sendComboOutput(exitCh chan bool) {
 			if len(bs) > 0 {
 				wsData, err := json.Marshal(message.WsMessage{
 					Type: message.WsMessageCmd,
-					Data: base64.StdEncoding.EncodeToString(bs),
+					Data: string(bs), //base64.StdEncoding.EncodeToString(bs),
 				})
 				if err != nil {
 					global.LOG.Error("encoding combo output to json failed, err: %v", err)

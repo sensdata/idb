@@ -172,7 +172,7 @@ var AddTableHost = &gormigrate.Migration{
 				Port:       22,
 				User:       "root",
 				AuthMode:   "password",
-				Password:   "",
+				Password:   "Bh.127.zhy",
 				PrivateKey: "",
 				PassPhrase: "",
 				AgentAddr:  "127.0.0.1",

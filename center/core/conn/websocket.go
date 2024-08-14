@@ -18,23 +18,20 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-type WebSocketService struct {
-	upgrader websocket.Upgrader
-}
+type WebSocketService struct{}
 
 type IWebSocketService interface {
 	HandleTerminal(c *gin.Context) error
 }
 
 type SshConn struct {
-	User        string        `json:"user"`
-	Addr        string        `json:"addr"`
-	Port        int           `json:"port"`
-	AuthMode    string        `json:"authMode"`
-	Password    string        `json:"password"`
-	PrivateKey  []byte        `json:"privateKey"`
-	PassPhrase  []byte        `json:"passPhrase"`
-	DialTimeOut time.Duration `json:"dialTimeOut"`
+	User       string `json:"user"`
+	Addr       string `json:"addr"`
+	Port       int    `json:"port"`
+	AuthMode   string `json:"authMode"`
+	Password   string `json:"password"`
+	PrivateKey []byte `json:"privateKey"`
+	PassPhrase []byte `json:"passPhrase"`
 
 	Client     *gossh.Client  `json:"client"`
 	Session    *gossh.Session `json:"session"`
@@ -42,24 +39,27 @@ type SshConn struct {
 }
 
 func NewIWebSocketService() IWebSocketService {
-	return &WebSocketService{
-		upgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024 * 1024 * 10,
-			CheckOrigin: func(r *http.Request) bool {
-				return true
-			},
-		}}
+	return &WebSocketService{}
 }
 
 func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
+	global.LOG.Info("handle terminal begin")
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024 * 1024 * 10,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 
-	wsConn, err := s.upgrader.Upgrade(c.Writer, c.Request, nil)
+	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		global.LOG.Error("Failed to upgrade to WebSocket: %v\n", err)
 		return err
 	}
 	defer wsConn.Close()
+
+	global.LOG.Info("upgrade")
 
 	id, err := strconv.Atoi(c.Query("id"))
 	if wsHandleError(wsConn, errors.WithMessage(err, "invalid param id in request")) {
@@ -108,41 +108,46 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 		return err
 	}
 
+	global.LOG.Info("handle terminal end")
 	return nil
 }
 
 func (c *SshConn) NewSshClient() (*SshConn, error) {
+	proto := "tcp"
+	addr := c.Addr
 	if strings.Contains(c.Addr, ":") {
-		c.Addr = fmt.Sprintf("[%s]", c.Addr)
+		addr = fmt.Sprintf("[%s]", c.Addr)
+		proto = "tcp6"
 	}
+	dialAddr := fmt.Sprintf("%s:%d", addr, c.Port)
+
+	global.LOG.Info("try connect to host ssh: %s", dialAddr)
+
+	//connection config
 	config := &gossh.ClientConfig{}
 	config.SetDefaults()
-	addr := fmt.Sprintf("%s:%d", c.Addr, c.Port)
 	config.User = c.User
 	if c.AuthMode == "password" {
 		config.Auth = []gossh.AuthMethod{gossh.Password(c.Password)}
 	} else {
 		signer, err := makePrivateKeySigner(c.PrivateKey, c.PassPhrase)
 		if err != nil {
+			global.LOG.Error("Failed to config private key to host %s, %v", c.Addr, err)
 			return nil, err
 		}
 		config.Auth = []gossh.AuthMethod{gossh.PublicKeys(signer)}
 	}
-	if c.DialTimeOut == 0 {
-		c.DialTimeOut = 5 * time.Second
-	}
-	config.Timeout = c.DialTimeOut
-
+	config.Timeout = 5 * time.Second
 	config.HostKeyCallback = gossh.InsecureIgnoreHostKey()
-	proto := "tcp"
-	if strings.Contains(c.Addr, ":") {
-		proto = "tcp6"
-	}
-	client, err := gossh.Dial(proto, addr, config)
+
+	client, err := gossh.Dial(proto, dialAddr, config)
 	if nil != err {
+		global.LOG.Error("Failed to create ssh connection to host %s, %v", c.Addr, err)
 		return c, err
 	}
 	c.Client = client
+
+	global.LOG.Info("SSH connection to %s created", addr)
 	return c, nil
 }
 

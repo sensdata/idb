@@ -64,9 +64,6 @@ func (s *SSHService) ExecuteCommand(addr string, command string) (string, error)
 }
 
 func (s *SSHService) TestConnection(host model.Host) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	// 已存在
 	_, exists := s.sshClients[host.Addr]
 	if exists {
@@ -92,9 +89,7 @@ func (s *SSHService) ensureConnections() {
 		global.LOG.Error("Failed to get host list: %v", err)
 		return
 	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	global.LOG.Info("%d hosts to connect", len(hosts))
 
 	// 挨个确认是否已经建立连接
 	for _, host := range hosts {
@@ -119,42 +114,39 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	//connection config
-	config := &ssh.ClientConfig{}
-
 	proto := "tcp"
 	addr := host.Addr
 	if strings.Contains(host.Addr, ":") {
 		addr = fmt.Sprintf("[%s]", host.Addr)
 		proto = "tcp6"
 	}
-	config.SetDefaults()
-	addr = fmt.Sprintf("%s:%d", addr, host.Port)
-	config.User = host.User
+	dialAddr := fmt.Sprintf("%s:%d", addr, host.Port)
 
+	global.LOG.Info("try connect to host ssh: %s", dialAddr)
+
+	//connection config
+	config := &ssh.ClientConfig{}
+	config.SetDefaults()
+	config.User = host.User
+	global.LOG.Info("authmode: %s, %s", host.AuthMode, host.Password)
 	if host.AuthMode == "password" {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
 		privateKey := []byte(host.PrivateKey)
-		passPhrase := []byte(host.PrivateKey)
+		passPhrase := []byte(host.PassPhrase)
 
 		signer, err := makePrivateKeySigner(privateKey, passPhrase)
 		if err != nil {
+			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
 			resultCh <- err
 			return
 		}
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	}
 	config.Timeout = 5 * time.Second
-
 	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-	// get client
-	client, err := ssh.Dial(
-		proto,
-		fmt.Sprintf("%s:%d", host.Addr, host.Port),
-		config,
-	)
+	client, err := ssh.Dial(proto, dialAddr, config)
 	if err != nil {
 		global.LOG.Error("Failed to create ssh connection to host %s, %v", host.Addr, err)
 		resultCh <- err

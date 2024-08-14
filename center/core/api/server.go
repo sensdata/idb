@@ -21,8 +21,6 @@ type ApiServer struct {
 func (s *ApiServer) InitRouter() {
 	// 注册 API 路由
 	s.setUpDefaultRouters()
-	// 注册 WS 路由
-	s.setUpWebSocketRouter()
 }
 
 func (s *ApiServer) Start() error {
@@ -48,15 +46,6 @@ func (s *ApiServer) setUpDefaultRouters() {
 	apiGroup := s.router.Group("idb/api")
 	for _, router := range router.RouterGroups {
 		router.InitRouter(apiGroup)
-	}
-}
-
-// SetUpWebSocketRouter sets up web socket router
-func (s *ApiServer) setUpWebSocketRouter() {
-	global.LOG.Info("register router - websocket")
-	wsGroup := s.router.Group("idb/ws")
-	for _, router := range router.WsGroups {
-		router.InitRouter(wsGroup)
 	}
 }
 
