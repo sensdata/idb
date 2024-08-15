@@ -29,11 +29,18 @@ func NewSshWebSocketSession(cols, rows int, isAdmin bool, sshClient *ssh.Client,
 		return nil, err
 	}
 
+	/**
+	 * SSH 会话的标准输入（stdin）流。当你向这个管道写入数据时，就相当于把这些数据直接输入到了远程的命令行界面中
+	 * 通过写入 stdinPipe，可以将命令直接发送到远程的 shell，就像用户在终端中手动输入命令一样。
+	 */
 	stdinP, err := sshSession.StdinPipe()
 	if err != nil {
 		return nil, err
 	}
 
+	/**
+	 * 命令的输出可以从 stdout 或 stderr 中捕获，输出到comboOutput缓冲区，用于收集命令的执行结果
+	 */
 	comboWriter := new(utils.SafeBuffer)
 	logBuf := new(utils.SafeBuffer)
 	inputBuf := new(utils.SafeBuffer)
@@ -151,6 +158,7 @@ func (sws *SshWebSocketSession) sendComboOutput(exitCh chan bool) {
 			}
 			bs := sws.comboOutput.Bytes()
 			if len(bs) > 0 {
+				global.LOG.Info("output: %s", string(bs))
 				wsData, err := json.Marshal(message.WsMessage{
 					Type: message.WsMessageCmd,
 					Data: string(bs), //base64.StdEncoding.EncodeToString(bs),
