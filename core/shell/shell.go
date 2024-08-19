@@ -2,8 +2,17 @@ package shell
 
 import (
 	"bytes"
+	"fmt"
 	"os/exec"
 )
+
+func ExecuteCommandIgnore(command string) error {
+	output, err := ExecuteCommand(command)
+	if err != nil {
+		return fmt.Errorf("error : %v, output: %s", err, output)
+	}
+	return nil
+}
 
 func ExecuteCommand(command string) (string, error) {
 	return executeCommand("/bin/bash", []string{"-c", command})

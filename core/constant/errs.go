@@ -38,3 +38,22 @@ var (
 	ErrHost                     = errors.New("HostError")
 	ErrAgent                    = errors.New("AgentError")
 )
+
+// cmd
+var (
+	ErrCmdTimeout  = "ErrCmdTimeout"
+	ErrCmdNotFound = "ErrCmdNotFound"
+)
+
+// file
+var (
+	ErrPathNotFound     = "ErrPathNotFound"
+	ErrMovePathFailed   = "ErrMovePathFailed"
+	ErrLinkPathNotFound = "ErrLinkPathNotFound"
+	ErrFileIsExit       = "ErrFileIsExit"
+	ErrFileUpload       = "ErrFileUpload"
+	ErrFileDownloadDir  = "ErrFileDownloadDir"
+	ErrFavoriteExist    = "ErrFavoriteExist"
+	ErrFileCanNotRead   = "ErrFileCanNotRead"
+	ErrFileToLarge      = "ErrFileToLarge"
+)
