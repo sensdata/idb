@@ -51,6 +51,7 @@ var (
 	ErrMovePathFailed   = "ErrMovePathFailed"
 	ErrLinkPathNotFound = "ErrLinkPathNotFound"
 	ErrFileIsExit       = "ErrFileIsExit"
+	ErrFileNotFound     = "ErrFileNotFound"
 	ErrFileUpload       = "ErrFileUpload"
 	ErrFileDownloadDir  = "ErrFileDownloadDir"
 	ErrFavoriteExist    = "ErrFavoriteExist"

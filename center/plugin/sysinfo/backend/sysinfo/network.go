@@ -14,7 +14,7 @@ func (s *SysInfo) getNetwork() (model.NetworkInfo, error) {
 	actionRequest := model.HostAction{
 		HostID: 1,
 		Action: model.Action{
-			Action: model.Action_SysInfo_Network,
+			Action: model.SysInfo_Network,
 			Data:   "",
 		},
 	}

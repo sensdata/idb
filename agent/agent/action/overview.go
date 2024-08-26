@@ -1,7 +1,6 @@
 package action
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -16,7 +15,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
-func GetOverview() (string, error) {
+func GetOverview() (*model.Overview, error) {
 	var overview model.Overview
 
 	servertime, err := shell.ExecuteCommand("date +\"%Y-%m-%d %H:%M:%S\"")
@@ -85,11 +84,5 @@ func GetOverview() (string, error) {
 			},
 		)
 	}
-
-	jsonString, err := json.Marshal(overview)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	return string(jsonString), nil
+	return &overview, nil
 }

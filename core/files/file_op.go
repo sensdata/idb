@@ -4,12 +4,15 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,7 +22,6 @@ import (
 	cZip "github.com/klauspost/compress/zip"
 	"github.com/mholt/archiver/v4"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/spf13/afero"
 )
@@ -96,11 +98,11 @@ func (f FileOp) DeleteFile(dst string) error {
 }
 
 func (f FileOp) CleanDir(dst string) error {
-	return shell.ExecuteCommandIgnore(fmt.Sprintf("rm -rf %s/*", dst))
+	return utils.ExecCmd(fmt.Sprintf("rm -rf %s/*", dst))
 }
 
 func (f FileOp) RmRf(dst string) error {
-	return shell.ExecuteCommandIgnore(fmt.Sprintf("rm -rf %s", dst))
+	return utils.ExecCmd(fmt.Sprintf("rm -rf %s", dst))
 }
 
 func (f FileOp) WriteFile(dst string, in io.Reader, mode fs.FileMode) error {
@@ -203,6 +205,133 @@ func (f FileOp) ChmodRWithMode(dst string, mode fs.FileMode, sub bool) error {
 
 func (f FileOp) Rename(oldName string, newName string) error {
 	return f.Fs.Rename(oldName, newName)
+}
+
+type WriteCounter struct {
+	Total    uint64
+	Written  uint64
+	Key      string
+	Name     string
+	Callback func(process Process)
+}
+
+type Process struct {
+	Total   uint64  `json:"total"`
+	Written uint64  `json:"written"`
+	Percent float64 `json:"percent"`
+	Name    string  `json:"name"`
+}
+
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.Written += uint64(n)
+
+	// 计算当前下载百分比
+	var percent float64
+	if wc.Total > 0 {
+		percent = (float64(wc.Written) / float64(wc.Total)) * 100
+	}
+
+	// 每次写入数据后，调用回调函数，传递当前的下载进度
+	if wc.Callback != nil {
+		wc.Callback(Process{
+			Total:   wc.Total,
+			Written: wc.Written,
+			Percent: percent,
+			Name:    wc.Name,
+		})
+	}
+
+	return n, nil
+}
+
+func (w *WriteCounter) SaveProcess() Process {
+	percentValue := 0.0
+	if w.Total > 0 {
+		percent := float64(w.Written) / float64(w.Total) * 100
+		percentValue, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", percent), 64)
+	}
+	process := Process{
+		Total:   w.Total,
+		Written: w.Written,
+		Percent: percentValue,
+		Name:    w.Name,
+	}
+	return process
+}
+
+func (f FileOp) DownloadFileWithProcess(url, dst, key string, ignoreCertificate bool, callback func(process Process)) error {
+	client := &http.Client{}
+	if ignoreCertificate {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Accept-Encoding", "identity")
+
+	resp, err := client.Do(request)
+	if err != nil {
+		fmt.Printf("获取下载文件 [%s] 出错, 错误: %s", dst, err.Error())
+		return err
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		fmt.Printf("创建下载文件 [%s] 出错, 错误: %s", dst, err.Error())
+		return err
+	}
+	defer out.Close()
+
+	// 初始化 WriteCounter 并设置回调函数
+	counter := &WriteCounter{
+		Total:    uint64(resp.ContentLength),
+		Key:      key,
+		Name:     filepath.Base(dst),
+		Callback: callback, // 设置回调函数
+	}
+
+	// 使用 io.TeeReader 来更新进度
+	if _, err := io.Copy(out, io.TeeReader(resp.Body, counter)); err != nil {
+		fmt.Printf("保存下载文件 [%s] 出错, 错误: %s", dst, err.Error())
+		return err
+	}
+
+	// 下载完成后调用最终回调更新状态
+	if callback != nil {
+		callback(Process{
+			Total:   counter.Total,
+			Written: counter.Written,
+			Percent: 100,
+			Name:    counter.Name,
+		})
+	}
+
+	return nil
+}
+
+func (f FileOp) DownloadFile(url, dst string) error {
+	resp, err := utils.GetHttpRes(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("create download file [%s] error, err %s", dst, err.Error())
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		return fmt.Errorf("save download file [%s] error, err %s", dst, err.Error())
+	}
+	return nil
 }
 
 func (f FileOp) Cut(oldPaths []string, dst, name string, cover bool) error {

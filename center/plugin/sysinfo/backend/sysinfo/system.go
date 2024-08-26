@@ -14,7 +14,7 @@ func (s *SysInfo) getSystemInfo() (model.SystemInfo, error) {
 	actionRequest := model.HostAction{
 		HostID: 1,
 		Action: model.Action{
-			Action: model.Action_SysInfo_System,
+			Action: model.SysInfo_System,
 			Data:   "",
 		},
 	}

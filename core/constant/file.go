@@ -17,10 +17,13 @@ const (
 	AgentDataDir = "/var/lib/idb-agent"
 	AgentLogDir  = "/var/log/idb-agent"
 
+	AgentDb      = "idb-agent.db"
 	AgentPid     = "idb-agent.pid"
 	AgentService = "idb-agent.service"
 	AgentConfig  = "idb-agent.json"
 	AgentLog     = "idb-agent.log"
 	AgentRunLog  = "idb-agent-run.log"
 	AgentSock    = "idb-agent.sock"
+
+	ClashDir = "idb_clash"
 )

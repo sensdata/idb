@@ -4,19 +4,44 @@ go 1.22
 
 replace github.com/sensdata/idb/core => ../core
 
-require github.com/sensdata/idb/core v0.0.0
+require (
+	github.com/go-gormigrate/gormigrate/v2 v2.1.2
+	github.com/sensdata/idb/core v0.0.0
+	gorm.io/driver/sqlite v1.5.6
+)
 
 require (
+	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/bodgit/plumbing v1.2.0 // indirect
+	github.com/bodgit/sevenzip v1.3.0 // indirect
+	github.com/bodgit/windows v1.0.0 // indirect
+	github.com/connesc/cipherio v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
+	github.com/mholt/archiver/v4 v4.0.0-alpha.8 // indirect
+	github.com/nwaples/rardecode/v2 v2.0.0-beta.2 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/spf13/afero v1.11.0 // indirect
+	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
+	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -28,6 +53,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/shirou/gopsutil/v4 v4.24.7
 	github.com/urfave/cli v1.22.15
 	github.com/vishvananda/netlink v1.1.0
@@ -37,5 +63,5 @@ require (
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.22.0
 	golang.org/x/text v0.15.0 // indirect
-	gorm.io/gorm v1.25.10 // indirect
+	gorm.io/gorm v1.25.10
 )

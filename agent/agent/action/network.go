@@ -2,7 +2,6 @@ package action
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -15,7 +14,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func GetNetwork() (string, error) {
+func GetNetwork() (*model.NetworkInfo, error) {
 	var network model.NetworkInfo
 
 	dnsInfo, err := getDNSInfo()
@@ -32,12 +31,7 @@ func GetNetwork() (string, error) {
 		network.Networks = interfaces
 	}
 
-	jsonString, err := json.Marshal(network)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	return string(jsonString), nil
+	return &network, nil
 }
 
 func getDNSInfo() (*model.DNSInfo, error) {

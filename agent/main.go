@@ -8,6 +8,8 @@ import (
 
 	"github.com/sensdata/idb/agent/agent"
 	"github.com/sensdata/idb/agent/config"
+	"github.com/sensdata/idb/agent/db"
+	"github.com/sensdata/idb/agent/db/migration"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	logger "github.com/sensdata/idb/core/log"
@@ -99,6 +101,11 @@ func StartServices() error {
 		return err
 	}
 	global.LOG = logger
+
+	//初始化数据库
+	global.LOG.Info("Init db")
+	db.Init(filepath.Join(constant.AgentDataDir, constant.AgentDb))
+	migration.Init()
 
 	// 启动agent服务
 	a := agent.NewAgent()

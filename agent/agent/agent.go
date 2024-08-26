@@ -17,7 +17,8 @@ import (
 
 	"github.com/creack/pty"
 
-	"github.com/sensdata/idb/agent/action"
+	"github.com/sensdata/idb/agent/agent/action"
+	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/agent/session"
@@ -29,8 +30,9 @@ import (
 )
 
 var (
-	CONFMAN *config.Manager
-	AGENT   IAgent
+	CONFMAN     *config.Manager
+	AGENT       IAgent
+	FileService = file.NewIFileService()
 )
 
 type Agent struct {
@@ -358,7 +360,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 					result, err := a.processAction(msg.Data)
 					if err != nil {
 						global.LOG.Error("Failed to process action: %v", err)
-						a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Data: ""})
+						a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: ""})
 					} else {
 						a.sendActionResult(conn, msg.MsgID, result)
 					}
@@ -462,40 +464,315 @@ func (a *Agent) listenToPty(session *session.SessionContext) {
 
 func (a *Agent) processAction(data string) (*model.Action, error) {
 	var actionData model.Action
-	if err := json.Unmarshal([]byte(data), &actionData); err != nil {
+	if err := utils.FromJSONString(data, &actionData); err != nil {
 		return nil, err
 	}
 
 	switch actionData.Action {
 	// 获取overview
-	case model.Action_SysInfo_OverView:
+	case model.SysInfo_OverView:
 		overview, err := action.GetOverview()
 		if err != nil {
 			return nil, err
 		}
+		result, err := utils.ToJSONString(overview)
+		if err != nil {
+			return nil, err
+		}
 		return &model.Action{
 			Action: actionData.Action,
-			Data:   overview,
+			Result: true,
+			Data:   result,
 		}, nil
+
 	// 获取network
-	case model.Action_SysInfo_Network:
+	case model.SysInfo_Network:
 		network, err := action.GetNetwork()
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Data:   network,
-		}, nil
-	// 获取SystemInfo
-	case model.Action_SysInfo_System:
-		systemInfo, err := action.GetSystemInfo()
+		result, err := utils.ToJSONString(network)
 		if err != nil {
 			return nil, err
 		}
 		return &model.Action{
 			Action: actionData.Action,
-			Data:   systemInfo,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 获取SystemInfo
+	case model.SysInfo_System:
+		systemInfo, err := action.GetSystemInfo()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(systemInfo)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 列出文件
+	case model.File_List:
+		var fileOption model.FileOption
+		if err := json.Unmarshal([]byte(actionData.Data), &fileOption); err != nil {
+			return nil, err
+		}
+
+		fileInfo, err := FileService.GetFileList(fileOption)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(fileInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 创建文件
+	case model.File_Create:
+		var req model.FileCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.Create(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 删除文件
+	case model.File_Delete:
+		var req model.FileDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.Delete(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+		// 批量删除
+	case model.File_Batch_Delete:
+		var req model.FileBatchDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.BatchDelete(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 批量修改用户/组
+	case model.File_Batch_Change_Owner:
+		var req model.FileRoleReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.BatchChangeModeAndOwner(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+		// 修改文件权限
+	case model.File_Change_Mode:
+		var req model.FileCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.ChangeMode(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 修改文件用户/组
+	case model.File_Change_Owner:
+		var req model.FileRoleUpdate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.ChangeOwner(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 修改文件名称
+	case model.File_Change_Name:
+		var req model.FileRename
+
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.ChangeName(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 压缩文件
+	case model.File_Compress:
+		var req model.FileCompress
+
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.Compress(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 解压文件
+	case model.File_Decompress:
+		var req model.FileDeCompress
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.DeCompress(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 获取文件内容
+	case model.File_Content:
+		var req model.FileContentReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		fileInfo, err := FileService.GetContent(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(fileInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 保存文件内容
+	case model.File_Content_Modify:
+		var req model.FileEdit
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.SaveContent(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 移动文件
+	case model.File_Move:
+		var req model.FileMove
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.MvFile(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 目录大小
+	case model.File_Dir_Size:
+		var req model.DirSizeReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		rsp, err := FileService.DirSize(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(rsp)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
 		}, nil
 	default:
 		return nil, nil

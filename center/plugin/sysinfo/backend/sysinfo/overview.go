@@ -14,7 +14,7 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 	actionRequest := model.HostAction{
 		HostID: 1,
 		Action: model.Action{
-			Action: model.Action_SysInfo_OverView,
+			Action: model.SysInfo_OverView,
 			Data:   "",
 		},
 	}
