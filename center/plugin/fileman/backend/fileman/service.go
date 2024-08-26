@@ -61,6 +61,9 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/owner", Handler: s.ChangeFileOwner},
 			{Method: "POST", Path: "/mode", Handler: s.ChangeFileMode},
 			{Method: "POST", Path: "/batch/role", Handler: s.BatchChangeModeAndOwner},
+			{Method: "POST", Path: "/favorite/list", Handler: s.GetFavoriteList},
+			{Method: "POST", Path: "/favorite/create", Handler: s.CreateFavorite},
+			{Method: "POST", Path: "/favorite/del", Handler: s.DeleteFavorite},
 		},
 	)
 
@@ -428,6 +431,64 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 	}
 	if err := s.batchChangeModeAndOwner(req); err != nil {
 		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+	}
+	model.SuccessWithOutData(c)
+}
+
+// @Tags File
+// @Summary List favorites
+// @Description 获取收藏列表
+// @Accept json
+// @Param request body dto.PageInfo true "request"
+// @Success 200
+// @Router /files/favorite/list [post]
+func (s *FileMan) GetFavoriteList(c *gin.Context) {
+	var req model.PageInfo
+	if err := model.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	result, err := s.getFavoriteList(req)
+	if err != nil {
+		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	model.SuccessWithData(c, result)
+}
+
+// @Tags File
+// @Summary Create favorite
+// @Description 创建收藏
+// @Accept json
+// @Param request body request.FavoriteCreate true "request"
+// @Success 200
+// @Router /files/favorite/create [post]
+func (s *FileMan) CreateFavorite(c *gin.Context) {
+	var req model.FavoriteCreate
+	if err := model.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	favorite, err := s.createFavorite(req)
+	if err != nil {
+		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	model.SuccessWithData(c, favorite)
+}
+
+// @Tags File
+// @Summary Delete favorite
+// @Description 删除收藏
+// @Accept json
+// @Param request body request.FavoriteDelete true "request"
+// @Router /files/favorite/del [post]
+func (s *FileMan) DeleteFavorite(c *gin.Context) {
+	var req model.FavoriteDelete
+	if err := model.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	if err := s.deleteFavorite(req); err != nil {
+		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
 	}
 	model.SuccessWithOutData(c)
 }

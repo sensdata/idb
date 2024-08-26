@@ -16,13 +16,14 @@ import (
 	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+	"github.com/spf13/afero"
 )
 
 type FileService struct {
 }
 
 type IFileService interface {
-	GetFileList(op model.FileOption) (model.FileInfo, error)
+	GetFileList(op model.FileOption) (*model.FileInfo, error)
 	SearchUploadWithPage(req model.SearchUploadWithPage) (int64, interface{}, error)
 	GetFileTree(op model.FileOption) ([]model.FileTree, error)
 	Create(op model.FileCreate) error
@@ -30,33 +31,37 @@ type IFileService interface {
 	BatchDelete(op model.FileBatchDelete) error
 	Compress(c model.FileCompress) error
 	DeCompress(c model.FileDeCompress) error
-	GetContent(op model.FileContentReq) (model.FileInfo, error)
+	GetContent(op model.FileContentReq) (*model.FileInfo, error)
 	SaveContent(edit model.FileEdit) error
 	FileDownload(d model.FileDownload) (string, error)
-	DirSize(req model.DirSizeReq) (model.DirSizeRes, error)
+	DirSize(req model.DirSizeReq) (*model.DirSizeRes, error)
 	ChangeName(req model.FileRename) error
 	Wget(w model.FileWget) (string, error)
 	MvFile(m model.FileMove) error
 	ChangeOwner(req model.FileRoleUpdate) error
 	ChangeMode(op model.FileCreate) error
 	BatchChangeModeAndOwner(op model.FileRoleReq) error
+
+	GetFavoriteList(req model.PageInfo) (*model.PageResult, error)
+	CreateFavorite(req model.FavoriteCreate) (*model.Favorite, error)
+	DeleteFavorite(req model.FavoriteDelete) error
 }
 
 func NewIFileService() IFileService {
 	return &FileService{}
 }
 
-func (f *FileService) GetFileList(op model.FileOption) (model.FileInfo, error) {
+func (f *FileService) GetFileList(op model.FileOption) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	if _, err := os.Stat(op.Path); err != nil && os.IsNotExist(err) {
-		return fileInfo, nil
+		return &fileInfo, nil
 	}
 	info, err := files.NewFileInfo(op.FileOption)
 	if err != nil {
-		return fileInfo, err
+		return &fileInfo, err
 	}
 	fileInfo.FileInfo = *info
-	return fileInfo, nil
+	return &fileInfo, nil
 }
 
 func (f *FileService) SearchUploadWithPage(req model.SearchUploadWithPage) (int64, interface{}, error) {
@@ -214,15 +219,15 @@ func (f *FileService) DeCompress(c model.FileDeCompress) error {
 	return fo.Decompress(c.Path, c.Dst, files.CompressType(c.Type))
 }
 
-func (f *FileService) GetContent(op model.FileContentReq) (model.FileInfo, error) {
+func (f *FileService) GetContent(op model.FileContentReq) (*model.FileInfo, error) {
 	info, err := files.NewFileInfo(files.FileOption{
 		Path:   op.Path,
 		Expand: true,
 	})
 	if err != nil {
-		return model.FileInfo{}, err
+		return &model.FileInfo{}, err
 	}
-	return model.FileInfo{FileInfo: *info}, nil
+	return &model.FileInfo{FileInfo: *info}, nil
 }
 
 func (f *FileService) SaveContent(edit model.FileEdit) error {
@@ -304,12 +309,12 @@ func (f *FileService) FileDownload(d model.FileDownload) (string, error) {
 	return filePath, nil
 }
 
-func (f *FileService) DirSize(req model.DirSizeReq) (model.DirSizeRes, error) {
+func (f *FileService) DirSize(req model.DirSizeReq) (*model.DirSizeRes, error) {
 	var (
 		res model.DirSizeRes
 	)
 	if req.Path == "/proc" {
-		return res, nil
+		return &res, nil
 	}
 	cmd := exec.Command("du", "-s", req.Path)
 	output, err := cmd.Output()
@@ -320,15 +325,70 @@ func (f *FileService) DirSize(req model.DirSizeReq) (model.DirSizeRes, error) {
 			_, err = fmt.Sscanf(fields[0], "%d", &cmdSize)
 			if err == nil {
 				res.Size = float64(cmdSize * 1024)
-				return res, nil
+				return &res, nil
 			}
 		}
 	}
 	fo := files.NewFileOp()
 	size, err := fo.GetDirSize(req.Path)
 	if err != nil {
-		return res, err
+		return &res, err
 	}
 	res.Size = size
-	return res, nil
+	return &res, nil
+}
+
+func (f *FileService) GetFavoriteList(req model.PageInfo) (*model.PageResult, error) {
+	var pageResult = model.PageResult{Total: 0, Items: nil}
+	total, favorites, err := db.FavoriteRepo.Page(req.Page, req.PageSize)
+	if err != nil {
+		return &pageResult, err
+	}
+	pageResult.Total = total
+	pageResult.Items = favorites
+	return &pageResult, nil
+}
+
+func (f *FileService) CreateFavorite(req model.FavoriteCreate) (*model.Favorite, error) {
+	exist, _ := db.FavoriteRepo.GetFirst(db.FavoriteRepo.WithByPath(req.Path))
+	if exist.ID > 0 {
+		return nil, errors.New(constant.ErrFavoriteExist)
+	}
+	op := files.NewFileOp()
+	if !op.Stat(req.Path) {
+		return nil, errors.New(constant.ErrLinkPathNotFound)
+	}
+	openFile, err := op.OpenFile(req.Path)
+	if err != nil {
+		return nil, err
+	}
+	fileInfo, err := openFile.Stat()
+	if err != nil {
+		return nil, err
+	}
+	favorite := &model.Favorite{
+		Name:  fileInfo.Name(),
+		IsDir: fileInfo.IsDir(),
+		Path:  req.Path,
+	}
+	if fileInfo.Size() <= 10*1024*1024 {
+		afs := &afero.Afero{Fs: op.Fs}
+		cByte, err := afs.ReadFile(req.Path)
+		if err == nil {
+			if len(cByte) > 0 && !files.DetectBinary(cByte) {
+				favorite.IsTxt = true
+			}
+		}
+	}
+	if err := db.FavoriteRepo.Create(favorite); err != nil {
+		return nil, err
+	}
+	return favorite, nil
+}
+
+func (f *FileService) DeleteFavorite(req model.FavoriteDelete) error {
+	if err := db.FavoriteRepo.Delete(db.CommonRepo.WithByID(req.ID)); err != nil {
+		return err
+	}
+	return nil
 }

@@ -22,6 +22,9 @@ const (
 	File_Dir_Size           string = "file_dir_size"
 	File_Upload             string = "file_upload"
 	File_Download           string = "file_download"
+	Favorite_List           string = "favorite_list"
+	Favorite_Create         string = "favorite_create"
+	Favorite_Delete         string = "favorite_delete"
 )
 
 // Action消息结构

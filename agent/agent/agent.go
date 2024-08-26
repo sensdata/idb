@@ -813,6 +813,71 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Result: true,
 			Data:   result,
 		}, nil
+
+	// 收藏列表
+	case model.Favorite_List:
+		var req model.PageInfo
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		rsp, err := FileService.GetFavoriteList(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(rsp)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 创建收藏
+	case model.Favorite_Create:
+		var req model.FavoriteCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		rsp, err := FileService.CreateFavorite(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(rsp)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 删除收藏
+	case model.Favorite_Delete:
+		var req model.FavoriteDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.DeleteFavorite(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
 	default:
 		return nil, nil
 	}

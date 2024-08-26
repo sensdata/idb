@@ -57,11 +57,11 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 	return fileTree, nil
 }
 
-func (s *FileMan) getFileList(op model.FileOption) (model.FileInfo, error) {
+func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	data, err := utils.ToJSONString(op)
 	if err != nil {
-		return fileInfo, err
+		return &fileInfo, err
 	}
 
 	actionRequest := model.HostAction{
@@ -81,28 +81,28 @@ func (s *FileMan) getFileList(op model.FileOption) (model.FileInfo, error) {
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)
-		return fileInfo, fmt.Errorf("failed to send request: %v", err)
+		return &fileInfo, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
 		global.LOG.Error("failed to send request: %v", err)
-		return fileInfo, fmt.Errorf("received error response: %s", resp.Status())
+		return &fileInfo, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
 	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return fileInfo, fmt.Errorf("failed to get file list")
+		return &fileInfo, fmt.Errorf("failed to get file list")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, fileInfo)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file list: %v", err)
-		return fileInfo, fmt.Errorf("json err: %v", err)
+		return &fileInfo, fmt.Errorf("json err: %v", err)
 	}
 
-	return fileInfo, nil
+	return &fileInfo, nil
 }
 
 func (s *FileMan) create(op model.FileCreate) error {
@@ -305,11 +305,11 @@ func (s *FileMan) decompress(op model.FileDeCompress) error {
 
 	return nil
 }
-func (s *FileMan) getContent(op model.FileContentReq) (model.FileInfo, error) {
+func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	data, err := utils.ToJSONString(op)
 	if err != nil {
-		return fileInfo, err
+		return &fileInfo, err
 	}
 
 	actionRequest := model.HostAction{
@@ -329,28 +329,28 @@ func (s *FileMan) getContent(op model.FileContentReq) (model.FileInfo, error) {
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)
-		return fileInfo, fmt.Errorf("failed to send request: %v", err)
+		return &fileInfo, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
 		global.LOG.Error("failed to send request: %v", err)
-		return fileInfo, fmt.Errorf("received error response: %s", resp.Status())
+		return &fileInfo, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
 	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return fileInfo, fmt.Errorf("failed to get file content")
+		return &fileInfo, fmt.Errorf("failed to get file content")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, fileInfo)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file content: %v", err)
-		return fileInfo, fmt.Errorf("json err: %v", err)
+		return &fileInfo, fmt.Errorf("json err: %v", err)
 	}
 
-	return fileInfo, nil
+	return &fileInfo, nil
 }
 func (s *FileMan) saveContent(op model.FileEdit) error {
 	data, err := utils.ToJSONString(op)
@@ -392,11 +392,11 @@ func (s *FileMan) saveContent(op model.FileEdit) error {
 
 	return nil
 }
-func (s *FileMan) dirSize(op model.DirSizeReq) (model.DirSizeRes, error) {
+func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 	var dirSize model.DirSizeRes
 	data, err := utils.ToJSONString(op)
 	if err != nil {
-		return dirSize, err
+		return &dirSize, err
 	}
 
 	actionRequest := model.HostAction{
@@ -416,28 +416,28 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (model.DirSizeRes, error) {
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)
-		return dirSize, fmt.Errorf("failed to send request: %v", err)
+		return &dirSize, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
 		global.LOG.Error("failed to send request: %v", err)
-		return dirSize, fmt.Errorf("received error response: %s", resp.Status())
+		return &dirSize, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
 	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return dirSize, fmt.Errorf("failed to get file content")
+		return &dirSize, fmt.Errorf("failed to get file content")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, dirSize)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file content: %v", err)
-		return dirSize, fmt.Errorf("json err: %v", err)
+		return &dirSize, fmt.Errorf("json err: %v", err)
 	}
 
-	return dirSize, nil
+	return &dirSize, nil
 }
 func (s *FileMan) changeName(op model.FileRename) error {
 	data, err := utils.ToJSONString(op)
@@ -635,6 +635,142 @@ func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
 		return fmt.Errorf("failed to batch change owner")
+	}
+
+	return nil
+}
+
+func (s *FileMan) getFavoriteList(req model.PageInfo) (*model.PageResult, error) {
+	var pageResult model.PageResult
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: 1,
+		Action: model.Action{
+			Action: model.Favorite_List,
+			Data:   data,
+		},
+	}
+
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/idb/api/act/send")
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return &pageResult, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("failed to send request: %v", err)
+		return &pageResult, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	global.LOG.Info("overview result: %v", actionResponse)
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &pageResult, fmt.Errorf("failed to get fav list")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, pageResult)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to fav list: %v", err)
+		return &pageResult, fmt.Errorf("json err: %v", err)
+	}
+
+	return &pageResult, nil
+}
+func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, error) {
+	var favorite model.Favorite
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &favorite, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: 1,
+		Action: model.Action{
+			Action: model.Favorite_Create,
+			Data:   data,
+		},
+	}
+
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/idb/api/act/send")
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return &favorite, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("failed to send request: %v", err)
+		return &favorite, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	global.LOG.Info("overview result: %v", actionResponse)
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &favorite, fmt.Errorf("failed to create fav")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, favorite)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file list: %v", err)
+		return &favorite, fmt.Errorf("json err: %v", err)
+	}
+
+	return &favorite, nil
+}
+
+func (s *FileMan) deleteFavorite(req model.FavoriteDelete) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: 1,
+		Action: model.Action{
+			Action: model.Favorite_Delete,
+			Data:   data,
+		},
+	}
+
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/idb/api/act/send")
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("failed to send request: %v", err)
+		return fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	global.LOG.Info("overview result: %v", actionResponse)
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to delete fav")
 	}
 
 	return nil

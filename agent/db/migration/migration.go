@@ -2,8 +2,8 @@ package migration
 
 import (
 	"github.com/go-gormigrate/gormigrate/v2"
-	"github.com/sensdata/idb/agent/db/model"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/model"
 	"gorm.io/gorm"
 )
 

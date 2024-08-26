@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"github.com/sensdata/idb/agent/db/model"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/model"
 	"gorm.io/gorm"
 )
 
