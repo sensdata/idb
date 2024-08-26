@@ -1,0 +1,7 @@
+plugin:
+  name: "File Mangement"
+  description: "This module provides file operations on device."
+  version: "1.0.0"
+  host: "127.0.0.1"
+  port: "8080"
+  entry: "files"

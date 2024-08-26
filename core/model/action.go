@@ -5,6 +5,7 @@ const (
 	SysInfo_Network  string = "sysinfo_network"
 	SysInfo_System   string = "sysinfo_system"
 
+	File_Tree               string = "file_tree"
 	File_List               string = "file_list"
 	File_Create             string = "file_create"
 	File_Delete             string = "file_delete"
@@ -19,6 +20,8 @@ const (
 	File_Content_Modify     string = "file_content_modify"
 	File_Move               string = "file_move"
 	File_Dir_Size           string = "file_dir_size"
+	File_Upload             string = "file_upload"
+	File_Download           string = "file_download"
 )
 
 // Action消息结构

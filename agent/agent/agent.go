@@ -517,6 +517,29 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Data:   result,
 		}, nil
 
+		// 文件树
+	case model.File_Tree:
+		var fileOption model.FileOption
+		if err := json.Unmarshal([]byte(actionData.Data), &fileOption); err != nil {
+			return nil, err
+		}
+
+		fileInfo, err := FileService.GetFileTree(fileOption)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(fileInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
 	// 列出文件
 	case model.File_List:
 		var fileOption model.FileOption
@@ -538,6 +561,22 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Action: actionData.Action,
 			Result: true,
 			Data:   result,
+		}, nil
+
+		// TODO: 上传文件
+	case model.File_Upload:
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+		// TODO: 下载文件
+	case model.File_Download:
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
 		}, nil
 
 	// 创建文件
