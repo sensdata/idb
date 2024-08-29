@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/helper"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
 )
@@ -111,15 +112,15 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 // @Router /files/tree [post]
 func (s *FileMan) GetFileTree(c *gin.Context) {
 	var req model.FileOption
-	if err := model.CheckBind(&req, c); err != nil {
+	if err := helper.CheckBind(&req, c); err != nil {
 		return
 	}
 	tree, err := s.getFileTree(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, tree)
+	helper.SuccessWithData(c, tree)
 }
 
 // @Tags File
@@ -131,15 +132,15 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 // @Router /files/list [post]
 func (s *FileMan) GetFileList(c *gin.Context) {
 	var req model.FileOption
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	files, err := s.getFileList(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, files)
+	helper.SuccessWithData(c, files)
 }
 
 // @Tags File
@@ -151,15 +152,15 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 // @Router /files/create [post]
 func (s *FileMan) CreateFile(c *gin.Context) {
 	var req model.FileCreate
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.create(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -172,15 +173,15 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @x-panel-log {"bodyKeys":["path"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"删除文件/文件夹 [path]","formatEN":"Delete dir or file [path]"}
 func (s *FileMan) DeleteFile(c *gin.Context) {
 	var req model.FileDelete
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.delete(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -192,15 +193,15 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 // @Router /files/batch/del [post]
 func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 	var req model.FileBatchDelete
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.batchDelete(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -212,15 +213,15 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 // @Router /files/compress [post]
 func (s *FileMan) CompressFile(c *gin.Context) {
 	var req model.FileCompress
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.compress(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -232,15 +233,15 @@ func (s *FileMan) CompressFile(c *gin.Context) {
 // @Router /files/decompress [post]
 func (s *FileMan) DeCompressFile(c *gin.Context) {
 	var req model.FileDeCompress
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.decompress(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -252,15 +253,15 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 // @Router /files/content [post]
 func (s *FileMan) GetContent(c *gin.Context) {
 	var req model.FileContentReq
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	info, err := s.getContent(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, info)
+	helper.SuccessWithData(c, info)
 }
 
 // @Tags File
@@ -272,14 +273,14 @@ func (s *FileMan) GetContent(c *gin.Context) {
 // @Router /files/save [post]
 func (s *FileMan) SaveContent(c *gin.Context) {
 	var req model.FileEdit
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.saveContent(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -289,7 +290,7 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Success 200
 // @Router /files/upload [post]
 func (s *FileMan) UploadFiles(c *gin.Context) {
-	model.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
 }
 
 // @Tags File
@@ -299,7 +300,7 @@ func (s *FileMan) UploadFiles(c *gin.Context) {
 // @Success 200
 // @Router /files/download [get]
 func (s *FileMan) Download(c *gin.Context) {
-	model.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
 }
 
 // @Tags File
@@ -311,15 +312,15 @@ func (s *FileMan) Download(c *gin.Context) {
 // @Router /files/size [post]
 func (s *FileMan) Size(c *gin.Context) {
 	var req model.DirSizeReq
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	res, err := s.dirSize(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, res)
+	helper.SuccessWithData(c, res)
 }
 
 // @Tags File
@@ -331,14 +332,14 @@ func (s *FileMan) Size(c *gin.Context) {
 // @Router /files/rename [post]
 func (s *FileMan) ChangeFileName(c *gin.Context) {
 	var req model.FileRename
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.changeName(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -350,10 +351,10 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 // @Router /files/wget [post]
 func (s *FileMan) WgetFile(c *gin.Context) {
 	var req model.FileWget
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	model.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
 }
 
 // @Tags File
@@ -367,14 +368,14 @@ func (s *FileMan) WgetFile(c *gin.Context) {
 // @x-panel-log {"bodyKeys":["oldPaths","newPath"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"移动文件 [oldPaths] => [newPath]","formatEN":"Move [oldPaths] => [newPath]"}
 func (s *FileMan) MoveFile(c *gin.Context) {
 	var req model.FileMove
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.mvFile(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -387,14 +388,14 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 // @x-panel-log {"bodyKeys":["path","user","group"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"修改用户/组 [paths] => [user]/[group]","formatEN":"Change owner [paths] => [user]/[group]"}
 func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 	var req model.FileRoleUpdate
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.changeOwner(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithOutData(c)
+	helper.SuccessWithOutData(c)
 }
 
 // @Tags File
@@ -406,15 +407,15 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 // @Router /files/mode [post]
 func (s *FileMan) ChangeFileMode(c *gin.Context) {
 	var req model.FileCreate
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.changeMode(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithOutData(c)
+	helper.SuccessWithOutData(c)
 }
 
 // @Tags File
@@ -426,13 +427,13 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 // @Router /files/batch/role [post]
 func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 	var req model.FileRoleReq
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.batchChangeModeAndOwner(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 	}
-	model.SuccessWithOutData(c)
+	helper.SuccessWithOutData(c)
 }
 
 // @Tags File
@@ -444,15 +445,15 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 // @Router /files/favorite/list [post]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
 	var req model.PageInfo
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	result, err := s.getFavoriteList(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, result)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags File
@@ -464,15 +465,15 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 // @Router /files/favorite/create [post]
 func (s *FileMan) CreateFavorite(c *gin.Context) {
 	var req model.FavoriteCreate
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	favorite, err := s.createFavorite(req)
 	if err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithData(c, favorite)
+	helper.SuccessWithData(c, favorite)
 }
 
 // @Tags File
@@ -483,12 +484,12 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 // @Router /files/favorite/del [post]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	var req model.FavoriteDelete
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	if err := s.deleteFavorite(req); err != nil {
-		model.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	model.SuccessWithOutData(c)
+	helper.SuccessWithOutData(c)
 }
