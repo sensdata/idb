@@ -48,7 +48,7 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 		return fileTree, fmt.Errorf("failed to get filetree")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, fileTree)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileTree)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to filetree: %v", err)
 		return fileTree, fmt.Errorf("json err: %v", err)
@@ -96,7 +96,7 @@ func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 		return &fileInfo, fmt.Errorf("failed to get file list")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, fileInfo)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file list: %v", err)
 		return &fileInfo, fmt.Errorf("json err: %v", err)
@@ -344,7 +344,7 @@ func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 		return &fileInfo, fmt.Errorf("failed to get file content")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, fileInfo)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file content: %v", err)
 		return &fileInfo, fmt.Errorf("json err: %v", err)
@@ -431,7 +431,7 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 		return &dirSize, fmt.Errorf("failed to get file content")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, dirSize)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &dirSize)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file content: %v", err)
 		return &dirSize, fmt.Errorf("json err: %v", err)
@@ -679,7 +679,7 @@ func (s *FileMan) getFavoriteList(req model.PageInfo) (*model.PageResult, error)
 		return &pageResult, fmt.Errorf("failed to get fav list")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, pageResult)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to fav list: %v", err)
 		return &pageResult, fmt.Errorf("json err: %v", err)
@@ -726,7 +726,7 @@ func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, err
 		return &favorite, fmt.Errorf("failed to create fav")
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, favorite)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &favorite)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file list: %v", err)
 		return &favorite, fmt.Errorf("json err: %v", err)

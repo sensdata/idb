@@ -67,7 +67,7 @@ func (s *FileMan) Initialize() {
 		},
 	)
 
-	global.LOG.Info("sysinfo init end")
+	global.LOG.Info("fileman init end")
 }
 
 func (s *FileMan) Release() {
@@ -111,7 +111,7 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 // @Router /files/tree [post]
 func (s *FileMan) GetFileTree(c *gin.Context) {
 	var req model.FileOption
-	if err := model.CheckBindAndValidate(&req, c); err != nil {
+	if err := model.CheckBind(&req, c); err != nil {
 		return
 	}
 	tree, err := s.getFileTree(req)
