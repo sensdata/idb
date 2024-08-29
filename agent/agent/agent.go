@@ -1,27 +1,21 @@
 package agent
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/creack/pty"
-
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
-	"github.com/sensdata/idb/agent/session"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
@@ -36,14 +30,13 @@ var (
 )
 
 type Agent struct {
-	sessionManager *session.SessionManager
-	unixListener   net.Listener
-	tcpListener    net.Listener
-	centerID       string   // 存储center地址
-	centerConn     net.Conn // 存储center端连接的映射
-	centerMsgID    string   // 存储center端连接的最后一个消息ID
-	done           chan struct{}
-	mu             sync.Mutex // 保护centerConn和centerMsgID的互斥锁
+	unixListener net.Listener
+	tcpListener  net.Listener
+	centerID     string   // 存储center地址
+	centerConn   net.Conn // 存储center端连接的映射
+	centerMsgID  string   // 存储center端连接的最后一个消息ID
+	done         chan struct{}
+	mu           sync.Mutex // 保护centerConn和centerMsgID的互斥锁
 }
 
 type IAgent interface {
@@ -53,9 +46,8 @@ type IAgent interface {
 
 func NewAgent() IAgent {
 	return &Agent{
-		sessionManager: session.NewSessionManager(),
-		centerConn:     nil,
-		done:           make(chan struct{}),
+		centerConn: nil,
+		done:       make(chan struct{}),
 	}
 }
 
@@ -328,6 +320,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 					} else {
 						global.LOG.Error("%s is a unknown center", centerID)
 					}
+
 				case message.CmdMessage: // 处理 Cmd 类型的消息
 					global.LOG.Info("recv cmd message: %s", msg.Data)
 					if strings.Contains(msg.Data, message.Separator) {
@@ -349,12 +342,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 							a.sendCmdResult(conn, msg.MsgID, result)
 						}
 					}
-				case message.PtyMessage: // 处理 Pty 类型的消息
-					global.LOG.Info("recv pty message: %s", msg.Data)
-					if err := a.processPty(conn, msg.MsgID, msg.Data); err != nil {
-						global.LOG.Error("Failed to process pty: %v", err)
-						a.sendPtyResult(conn, msg.MsgID, err.Error())
-					}
+
 				case message.ActionMessage: // 处理 Action 类型的消息
 					global.LOG.Info("recv action message: %s", msg.Data)
 					result, err := a.processAction(msg.Data)
@@ -375,91 +363,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	}
 
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
-}
-
-func (a *Agent) processPty(conn net.Conn, sessionId string, data string) error {
-	var pty model.Pty
-	if err := json.Unmarshal([]byte(data), &pty); err != nil {
-		return err
-	}
-
-	if pty.Data == "" {
-		return fmt.Errorf("%s", "No pty data")
-	}
-
-	// 查找会话
-	var session *session.SessionContext
-	session, exists := a.sessionManager.GetSession(pty.SessionID)
-	if !exists {
-		s, err := a.startPty(conn, sessionId, pty.Data)
-		if err != nil {
-			return err
-		}
-		session = s
-
-		//启动对该session的监听
-		go a.listenToPty(session)
-	}
-
-	// 将命令发送到
-	_, err := session.PTY.Write([]byte(pty.Data))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *Agent) startPty(conn net.Conn, sessionId string, command string) (*session.SessionContext, error) {
-	cmd := exec.Command("/bin/bash", "-c", command)
-	pty, err := pty.Start(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	// 添加到session manager
-	s := session.NewSessionContext(
-		sessionId, // sessionId用的消息Id，同一个sesssion保持一个消息Id
-		conn,
-		cmd,
-		pty,
-	)
-	a.sessionManager.AddSession(s)
-
-	cmd.Wait()
-	return s, nil
-}
-
-func (a *Agent) listenToPty(session *session.SessionContext) {
-	reader := bufio.NewReader(session.PTY)
-	for {
-		select {
-		case <-a.done:
-			return
-		default:
-			var outputBuffer bytes.Buffer
-
-			for {
-				// 检查是否有更多数据可以读取
-				if reader.Buffered() == 0 {
-					break
-				}
-
-				line, err := reader.ReadString('\n')
-				if err != nil {
-					if err != io.EOF {
-						global.LOG.Error("Read pty error: %v", err)
-					}
-					outputBuffer.WriteString(err.Error())
-					break
-				}
-				outputBuffer.WriteString(line)
-			}
-
-			a.sendPtyResult(session.Conn, session.ID, outputBuffer.String())
-			outputBuffer.Reset() // 清空缓冲区
-		}
-	}
 }
 
 func (a *Agent) processAction(data string) (*model.Action, error) {
@@ -989,46 +892,5 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 		// go a.connectToCenter()
 	} else {
 		global.LOG.Info("Cmd rsp sent to %s", centerID)
-	}
-}
-
-func (a *Agent) sendPtyResult(conn net.Conn, msgID string, result string) {
-	config := CONFMAN.GetConfig()
-
-	centerID := conn.RemoteAddr().String()
-
-	data, err := json.Marshal(&model.Pty{SessionID: msgID, Data: result})
-	if err != nil {
-		global.LOG.Error("Error marshal pty: %v", err)
-		return
-	}
-
-	cmdRspMsg, err := message.CreateMessage(
-		msgID, // 使用相同的msgID回复
-		string(data),
-		config.SecretKey,
-		utils.GenerateNonce(16),
-		message.PtyMessage,
-	)
-	if err != nil {
-		global.LOG.Error("Error creating pty rsp message: %v", err)
-		return
-	}
-
-	global.LOG.Info("send msg data: %s", cmdRspMsg.Data)
-
-	err = message.SendMessage(conn, cmdRspMsg)
-	if err != nil {
-		global.LOG.Error("Failed to send pty rsp message: %v", err)
-		a.mu.Lock()
-		conn.Close()
-		global.LOG.Info("close conn %s for pty rsp", a.centerID)
-		a.centerConn = nil
-		a.centerID = ""
-		a.mu.Unlock()
-		//关闭后，尝试重新连接
-		// go a.connectToCenter()
-	} else {
-		global.LOG.Info("Pty rsp sent to %s", centerID)
 	}
 }

@@ -28,7 +28,6 @@ type MessageType string
 const (
 	Heartbeat     MessageType = "hb"
 	CmdMessage    MessageType = "cmd"
-	PtyMessage    MessageType = "pty"
 	ActionMessage MessageType = "action"
 )
 
