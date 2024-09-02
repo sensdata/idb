@@ -32,17 +32,45 @@ func NewCmdHelper(addr string, port string, client *resty.Client) *CmdHelper {
 	}
 }
 
-func (c *CmdHelper) RunSystemCtl(args ...string) (string, error) {
-	cmdStr := strings.Join(args, " ")
-	rsp, err := c.SendCommand(cmdStr)
+func (c *CmdHelper) RunSystemCtl(hostId uint, args ...string) (string, error) {
+	// 在args前面添加"systemctl"
+	fullArgs := append([]string{"systemctl"}, args...)
+
+	// 将所有参数拼接成一个字符串
+	cmdStr := strings.Join(fullArgs, " ")
+	rsp, err := c.SendCommand(hostId, cmdStr)
 	if err != nil {
 		return rsp.Result, fmt.Errorf("failed to run command: %w", err)
 	}
 	return rsp.Result, nil
 }
 
-func (c *CmdHelper) IsExist(serviceName string) (bool, error) {
-	out, err := c.RunSystemCtl("is-enabled", serviceName)
+func (c *CmdHelper) StartService(hostId uint, serviceName string) error {
+	_, err := c.RunSystemCtl(hostId, "start", serviceName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CmdHelper) StopService(hostId uint, serviceName string) error {
+	_, err := c.RunSystemCtl(hostId, "stop", serviceName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CmdHelper) RestartService(hostId uint, serviceName string) error {
+	_, err := c.RunSystemCtl(hostId, "restart", serviceName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CmdHelper) IsExist(hostId uint, serviceName string) (bool, error) {
+	out, err := c.RunSystemCtl(hostId, "is-enabled", serviceName)
 	if err != nil {
 		if strings.Contains(out, "disabled") {
 			return true, nil
@@ -52,27 +80,27 @@ func (c *CmdHelper) IsExist(serviceName string) (bool, error) {
 	return true, nil
 }
 
-func (c *CmdHelper) IsActive(serviceName string) (bool, error) {
-	out, err := c.RunSystemCtl("is-active", serviceName)
+func (c *CmdHelper) IsActive(hostId uint, serviceName string) (bool, error) {
+	out, err := c.RunSystemCtl(hostId, "is-active", serviceName)
 	if err != nil {
 		return false, err
 	}
 	return out == "active\n", nil
 }
 
-func (c *CmdHelper) IsEnable(serviceName string) (bool, error) {
-	out, err := c.RunSystemCtl("is-enabled", serviceName)
+func (c *CmdHelper) IsEnable(hostId uint, serviceName string) (bool, error) {
+	out, err := c.RunSystemCtl(hostId, "is-enabled", serviceName)
 	if err != nil {
 		return false, err
 	}
 	return out == "enabled\n", nil
 }
 
-func (c *CmdHelper) SendCommand(command string) (*model.CommandResult, error) {
+func (c *CmdHelper) SendCommand(hostId uint, command string) (*model.CommandResult, error) {
 	var commandResult model.CommandResult
 
 	commandRequest := model.Command{
-		HostID:  1,
+		HostID:  hostId,
 		Command: command,
 	}
 
@@ -100,11 +128,12 @@ func (c *CmdHelper) SendCommand(command string) (*model.CommandResult, error) {
 	return &commandResult, nil
 }
 
-func (c *CmdHelper) ReadFile(path string) (*model.FileInfo, error) {
+func (c *CmdHelper) ReadFile(hostId uint, path string) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 
 	req := model.FileContentReq{
-		Path: path,
+		HostID: hostId,
+		Path:   path,
 	}
 
 	var response model.Response
@@ -139,9 +168,10 @@ func (c *CmdHelper) ReadFile(path string) (*model.FileInfo, error) {
 	return &fileInfo, nil
 }
 
-func (c *CmdHelper) WriteFile(path string, content string) error {
+func (c *CmdHelper) WriteFile(hostId uint, path string, content string) error {
 
 	req := model.FileEdit{
+		HostID:  hostId,
 		Path:    path,
 		Content: content,
 	}
