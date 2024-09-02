@@ -17,7 +17,7 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Tree,
 			Data:   data,
@@ -65,7 +65,7 @@ func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_List,
 			Data:   data,
@@ -112,7 +112,7 @@ func (s *FileMan) create(op model.FileCreate) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Create,
 			Data:   data,
@@ -152,7 +152,7 @@ func (s *FileMan) delete(op model.FileDelete) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Delete,
 			Data:   data,
@@ -192,7 +192,7 @@ func (s *FileMan) batchDelete(op model.FileBatchDelete) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Batch_Delete,
 			Data:   data,
@@ -232,7 +232,7 @@ func (s *FileMan) compress(op model.FileCompress) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Compress,
 			Data:   data,
@@ -272,7 +272,7 @@ func (s *FileMan) decompress(op model.FileDeCompress) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Decompress,
 			Data:   data,
@@ -313,7 +313,7 @@ func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Content,
 			Data:   data,
@@ -359,7 +359,7 @@ func (s *FileMan) saveContent(op model.FileEdit) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Content_Modify,
 			Data:   data,
@@ -400,7 +400,7 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Dir_Size,
 			Data:   data,
@@ -446,7 +446,7 @@ func (s *FileMan) changeName(op model.FileRename) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Change_Name,
 			Data:   data,
@@ -486,7 +486,7 @@ func (s *FileMan) mvFile(op model.FileMove) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Move,
 			Data:   data,
@@ -526,7 +526,7 @@ func (s *FileMan) changeOwner(op model.FileRoleUpdate) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Change_Owner,
 			Data:   data,
@@ -566,7 +566,7 @@ func (s *FileMan) changeMode(op model.FileCreate) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Change_Mode,
 			Data:   data,
@@ -606,7 +606,7 @@ func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: op.HostID,
 		Action: model.Action{
 			Action: model.File_Batch_Change_Owner,
 			Data:   data,
@@ -640,15 +640,15 @@ func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
 	return nil
 }
 
-func (s *FileMan) getFavoriteList(req model.PageInfo) (*model.PageResult, error) {
+func (s *FileMan) getFavoriteList(req model.FavoriteListReq) (*model.PageResult, error) {
 	var pageResult model.PageResult
-	data, err := utils.ToJSONString(req)
+	data, err := utils.ToJSONString(req.PageInfo)
 	if err != nil {
 		return &pageResult, err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: req.HostID,
 		Action: model.Action{
 			Action: model.Favorite_List,
 			Data:   data,
@@ -695,7 +695,7 @@ func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: req.HostID,
 		Action: model.Action{
 			Action: model.Favorite_Create,
 			Data:   data,
@@ -742,7 +742,7 @@ func (s *FileMan) deleteFavorite(req model.FavoriteDelete) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: req.HostID,
 		Action: model.Action{
 			Action: model.Favorite_Delete,
 			Data:   data,

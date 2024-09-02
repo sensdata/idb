@@ -9,10 +9,17 @@ type Favorite struct {
 	IsTxt bool   `json:"isTxt"`
 }
 
+type FavoriteListReq struct {
+	PageInfo
+	HostID uint `json:"hostId"`
+}
+
 type FavoriteCreate struct {
-	Path string `json:"path" validate:"required"`
+	HostID uint   `json:"hostId"`
+	Path   string `json:"path" validate:"required"`
 }
 
 type FavoriteDelete struct {
-	ID uint `json:"id" validate:"required"`
+	HostID uint `json:"hostId"`
+	ID     uint `json:"id" validate:"required"`
 }

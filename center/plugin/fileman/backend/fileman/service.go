@@ -444,7 +444,7 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 // @Success 200
 // @Router /files/favorite/list [post]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
-	var req model.PageInfo
+	var req model.FavoriteListReq
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
