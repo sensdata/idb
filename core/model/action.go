@@ -25,6 +25,15 @@ const (
 	Favorite_List           string = "favorite_list"
 	Favorite_Create         string = "favorite_create"
 	Favorite_Delete         string = "favorite_delete"
+
+	Ssh_Config                string = "ssh_config"
+	Ssh_Config_Update         string = "ssh_config_update"
+	Ssh_Config_Content        string = "ssh_config_content"
+	Ssh_Config_Content_Update string = "ssh_config_content_update"
+	Ssh_Operate               string = "ssh_operate"
+	Ssh_Secret                string = "ssh_secret"
+	Ssh_Secret_Create         string = "ssh_secret_create"
+	Ssh_Log                   string = "ssh_log"
 )
 
 // Action消息结构

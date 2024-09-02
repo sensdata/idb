@@ -15,3 +15,9 @@ type Response struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
+
+type KeyValueForUpdate struct {
+	Key      string `json:"key" validate:"required"`
+	OldValue string `json:"oldValue"`
+	NewValue string `json:"newValue"`
+}

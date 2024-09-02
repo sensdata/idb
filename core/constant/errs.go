@@ -41,6 +41,7 @@ var (
 
 // cmd
 var (
+	ErrCmdIllegal  = "ErrCmdIllegal"
 	ErrCmdTimeout  = "ErrCmdTimeout"
 	ErrCmdNotFound = "ErrCmdNotFound"
 )

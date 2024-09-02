@@ -14,6 +14,7 @@ import (
 
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/file"
+	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
@@ -27,6 +28,7 @@ var (
 	CONFMAN     *config.Manager
 	AGENT       IAgent
 	FileService = file.NewIFileService()
+	SshService  = ssh.NewISSHService()
 )
 
 type Agent struct {
@@ -779,6 +781,156 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Action: actionData.Action,
 			Result: true,
 			Data:   "",
+		}, nil
+
+	// 获取ssh配置
+	case model.Ssh_Config:
+		info, err := SshService.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 更新ssh配置
+	case model.Ssh_Config_Update:
+		var req model.SSHUpdate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := SshService.UpdateConfig(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 获取ssh配置文件内容
+	case model.Ssh_Config_Content:
+		content, err := SshService.GetContent()
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(content)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// 更新ssh配置文件内容
+	case model.Ssh_Config_Content_Update:
+		var req model.ContentUpdate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := SshService.UpdateContent(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 操作ssh
+	case model.Ssh_Operate:
+		var req model.SSHOperate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := SshService.OperateSSH(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 创建秘钥
+	case model.Ssh_Secret_Create:
+		var req model.GenerateKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := SshService.CreateKey(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// 枚举秘钥
+	case model.Ssh_Secret:
+		var req model.ListKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		keys, err := SshService.ListKeys(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(keys)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// ssh日志
+	case model.Ssh_Log:
+		var req model.SearchSSHLog
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		log, err := SshService.LoadLog(req)
+		result, err := utils.ToJSONString(log)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
 		}, nil
 
 	default:

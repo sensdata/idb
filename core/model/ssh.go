@@ -2,10 +2,8 @@ package model
 
 import "time"
 
-type SSHUpdate struct {
-	Key      string `json:"key" validate:"required"`
-	OldValue string `json:"oldValue"`
-	NewValue string `json:"newValue"`
+type SSHConfigReq struct {
+	HostID uint `json:"hostId"`
 }
 
 type SSHInfo struct {
@@ -20,20 +18,54 @@ type SSHInfo struct {
 	UseDNS                 string `json:"useDNS"`
 }
 
-type GenerateSSH struct {
+type SSHUpdate struct {
+	HostID uint                `json:"hostId"`
+	Values []KeyValueForUpdate `json:"values"`
+}
+
+type SSHConfigContent struct {
+	Content string `json:"content"`
+}
+
+type ContentUpdate struct {
+	HostID  uint   `json:"hostId"`
+	Content string `json:"content"`
+}
+
+type SSHOperate struct {
+	HostID    uint   `json:"hostId"`
+	Operation string `json:"operation"`
+}
+
+type GenerateKey struct {
+	HostID         uint   `json:"hostId"`
+	KeyBits        uint   `json:"keyBits" validate:"required,oneof=1024 2048"`
+	Enabled        bool   `json:"enabled"`
 	EncryptionMode string `json:"encryptionMode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
 	Password       string `json:"password"`
 }
 
+type ListKey struct {
+	HostID  uint   `json:"hostId"`
+	Keyword string `json:"keyword"`
+}
+
+type KeyInfo struct {
+	FileName    string
+	Fingerprint string
+	User        string
+	Status      string
+	KeyBits     int
+}
+
 type GenerateLoad struct {
+	HostID         uint   `json:"hostId"`
 	EncryptionMode string `json:"encryptionMode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
 }
 
-type SSHConf struct {
-	File string `json:"file"`
-}
 type SearchSSHLog struct {
 	PageInfo
+	HostID uint   `json:"hostId"`
 	Info   string `json:"info"`
 	Status string `json:"Status" validate:"required,oneof=Success Failed All"`
 }
