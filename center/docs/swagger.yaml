@@ -16,6 +16,521 @@ definitions:
       token:
         type: string
     type: object
+  files.FileInfo:
+    properties:
+      content:
+        type: string
+      extension:
+        type: string
+      favoriteID:
+        type: integer
+      gid:
+        type: string
+      group:
+        type: string
+      isDir:
+        type: boolean
+      isHidden:
+        type: boolean
+      isSymlink:
+        type: boolean
+      itemTotal:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/files.FileInfo'
+        type: array
+      linkPath:
+        type: string
+      mimeType:
+        type: string
+      modTime:
+        type: string
+      mode:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+      size:
+        type: integer
+      type:
+        type: string
+      uid:
+        type: string
+      updateTime:
+        type: string
+      user:
+        type: string
+    type: object
+  model.ContentUpdate:
+    properties:
+      content:
+        type: string
+      hostId:
+        type: integer
+    type: object
+  model.DirSizeReq:
+    properties:
+      hostId:
+        type: integer
+      path:
+        type: string
+    required:
+    - path
+    type: object
+  model.FavoriteCreate:
+    properties:
+      hostId:
+        type: integer
+      path:
+        type: string
+    required:
+    - path
+    type: object
+  model.FavoriteDelete:
+    properties:
+      hostId:
+        type: integer
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  model.FavoriteListReq:
+    properties:
+      hostId:
+        type: integer
+      page:
+        type: integer
+      pageSize:
+        type: integer
+    required:
+    - page
+    - pageSize
+    type: object
+  model.FileBatchDelete:
+    properties:
+      hostId:
+        type: integer
+      isDir:
+        type: boolean
+      paths:
+        items:
+          type: string
+        type: array
+    required:
+    - paths
+    type: object
+  model.FileCompress:
+    properties:
+      dst:
+        type: string
+      files:
+        items:
+          type: string
+        type: array
+      hostId:
+        type: integer
+      name:
+        type: string
+      replace:
+        type: boolean
+      type:
+        type: string
+    required:
+    - dst
+    - files
+    - name
+    - type
+    type: object
+  model.FileContentReq:
+    properties:
+      hostId:
+        type: integer
+      path:
+        type: string
+    required:
+    - path
+    type: object
+  model.FileCreate:
+    properties:
+      content:
+        type: string
+      hostId:
+        type: integer
+      isDir:
+        type: boolean
+      isLink:
+        type: boolean
+      isSymlink:
+        type: boolean
+      linkPath:
+        type: string
+      mode:
+        type: integer
+      path:
+        type: string
+      sub:
+        type: boolean
+    required:
+    - path
+    type: object
+  model.FileDeCompress:
+    properties:
+      dst:
+        type: string
+      hostId:
+        type: integer
+      path:
+        type: string
+      type:
+        type: string
+    required:
+    - dst
+    - path
+    - type
+    type: object
+  model.FileDelete:
+    properties:
+      forceDelete:
+        type: boolean
+      hostId:
+        type: integer
+      isDir:
+        type: boolean
+      path:
+        type: string
+    required:
+    - path
+    type: object
+  model.FileEdit:
+    properties:
+      content:
+        type: string
+      hostId:
+        type: integer
+      path:
+        type: string
+    required:
+    - path
+    type: object
+  model.FileInfo:
+    properties:
+      content:
+        type: string
+      extension:
+        type: string
+      favoriteID:
+        type: integer
+      gid:
+        type: string
+      group:
+        type: string
+      isDir:
+        type: boolean
+      isHidden:
+        type: boolean
+      isSymlink:
+        type: boolean
+      itemTotal:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/files.FileInfo'
+        type: array
+      linkPath:
+        type: string
+      mimeType:
+        type: string
+      modTime:
+        type: string
+      mode:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+      size:
+        type: integer
+      type:
+        type: string
+      uid:
+        type: string
+      updateTime:
+        type: string
+      user:
+        type: string
+    type: object
+  model.FileMove:
+    properties:
+      cover:
+        type: boolean
+      hostId:
+        type: integer
+      name:
+        type: string
+      newPath:
+        type: string
+      oldPaths:
+        items:
+          type: string
+        type: array
+      type:
+        type: string
+    required:
+    - newPath
+    - oldPaths
+    - type
+    type: object
+  model.FileOption:
+    properties:
+      containSub:
+        type: boolean
+      dir:
+        type: boolean
+      expand:
+        type: boolean
+      hostId:
+        type: integer
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      path:
+        type: string
+      search:
+        type: string
+      showHidden:
+        type: boolean
+      sortBy:
+        type: string
+      sortOrder:
+        type: string
+    type: object
+  model.FileRename:
+    properties:
+      hostId:
+        type: integer
+      newName:
+        type: string
+      oldName:
+        type: string
+    required:
+    - newName
+    - oldName
+    type: object
+  model.FileRoleReq:
+    properties:
+      group:
+        type: string
+      hostId:
+        type: integer
+      mode:
+        type: integer
+      paths:
+        items:
+          type: string
+        type: array
+      sub:
+        type: boolean
+      user:
+        type: string
+    required:
+    - group
+    - mode
+    - paths
+    - user
+    type: object
+  model.FileRoleUpdate:
+    properties:
+      group:
+        type: string
+      hostId:
+        type: integer
+      path:
+        type: string
+      sub:
+        type: boolean
+      user:
+        type: string
+    required:
+    - group
+    - path
+    - user
+    type: object
+  model.FileTree:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/model.FileTree'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+    type: object
+  model.FileWget:
+    properties:
+      ignoreCertificate:
+        type: boolean
+      name:
+        type: string
+      path:
+        type: string
+      url:
+        type: string
+    required:
+    - name
+    - path
+    - url
+    type: object
+  model.GenerateKey:
+    properties:
+      enabled:
+        type: boolean
+      encryptionMode:
+        enum:
+        - rsa
+        - ed25519
+        - ecdsa
+        - dsa
+        type: string
+      hostId:
+        type: integer
+      keyBits:
+        enum:
+        - 1024
+        - 2048
+        type: integer
+      password:
+        type: string
+    required:
+    - encryptionMode
+    - keyBits
+    type: object
+  model.KeyValueForUpdate:
+    properties:
+      key:
+        type: string
+      newValue:
+        type: string
+      oldValue:
+        type: string
+    required:
+    - key
+    type: object
+  model.ListKey:
+    properties:
+      hostId:
+        type: integer
+      keyword:
+        type: string
+    type: object
+  model.SSHConfigContent:
+    properties:
+      content:
+        type: string
+    type: object
+  model.SSHConfigReq:
+    properties:
+      hostId:
+        type: integer
+    type: object
+  model.SSHHistory:
+    properties:
+      address:
+        type: string
+      area:
+        type: string
+      authMode:
+        type: string
+      date:
+        type: string
+      dateStr:
+        type: string
+      message:
+        type: string
+      port:
+        type: string
+      status:
+        type: string
+      user:
+        type: string
+    type: object
+  model.SSHInfo:
+    properties:
+      autoStart:
+        type: boolean
+      listenAddress:
+        type: string
+      message:
+        type: string
+      passwordAuthentication:
+        type: string
+      permitRootLogin:
+        type: string
+      port:
+        type: string
+      pubkeyAuthentication:
+        type: string
+      status:
+        type: string
+      useDNS:
+        type: string
+    type: object
+  model.SSHLog:
+    properties:
+      failedCount:
+        type: integer
+      logs:
+        items:
+          $ref: '#/definitions/model.SSHHistory'
+        type: array
+      successfulCount:
+        type: integer
+      totalCount:
+        type: integer
+    type: object
+  model.SSHOperate:
+    properties:
+      hostId:
+        type: integer
+      operation:
+        type: string
+    type: object
+  model.SSHUpdate:
+    properties:
+      hostId:
+        type: integer
+      values:
+        items:
+          $ref: '#/definitions/model.KeyValueForUpdate'
+        type: array
+    type: object
+  model.SearchSSHLog:
+    properties:
+      Status:
+        enum:
+        - Success
+        - Failed
+        - All
+        type: string
+      hostId:
+        type: integer
+      info:
+        type: string
+      page:
+        type: integer
+      pageSize:
+        type: integer
+    required:
+    - Status
+    - page
+    - pageSize
+    type: object
 info:
   contact: {}
 paths:
@@ -60,4 +575,568 @@ paths:
       summary: User logout
       tags:
       - Auth
+  /files/batch/del:
+    post:
+      consumes:
+      - application/json
+      description: 批量删除文件/文件夹
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileBatchDelete'
+      responses:
+        "200":
+          description: OK
+      summary: Batch delete file
+      tags:
+      - File
+  /files/batch/role:
+    post:
+      consumes:
+      - application/json
+      description: 批量修改文件权限和用户/组
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileRoleReq'
+      responses:
+        "200":
+          description: OK
+      summary: Batch change file mode and owner
+      tags:
+      - File
+  /files/compress:
+    post:
+      consumes:
+      - application/json
+      description: 压缩文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileCompress'
+      responses:
+        "200":
+          description: OK
+      summary: Compress file
+      tags:
+      - File
+  /files/content:
+    post:
+      consumes:
+      - application/json
+      description: 获取文件内容
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileContentReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FileInfo'
+      summary: Load file content
+      tags:
+      - File
+  /files/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建文件/文件夹
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileCreate'
+      responses:
+        "200":
+          description: OK
+      summary: Create file
+      tags:
+      - File
+  /files/decompress:
+    post:
+      consumes:
+      - application/json
+      description: 解压文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileDeCompress'
+      responses:
+        "200":
+          description: OK
+      summary: Decompress file
+      tags:
+      - File
+  /files/del:
+    post:
+      consumes:
+      - application/json
+      description: 删除文件/文件夹
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileDelete'
+      responses:
+        "200":
+          description: OK
+      summary: Delete file
+      tags:
+      - File
+      x-panel-log:
+        BeforeFunctions: []
+        bodyKeys:
+        - path
+        formatEN: Delete dir or file [path]
+        formatZH: 删除文件/文件夹 [path]
+        paramKeys: []
+  /files/download:
+    get:
+      consumes:
+      - application/json
+      description: 下载文件
+      responses:
+        "200":
+          description: OK
+      summary: Download file
+      tags:
+      - File
+  /files/favorite/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建收藏
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FavoriteCreate'
+      responses:
+        "200":
+          description: OK
+      summary: Create favorite
+      tags:
+      - File
+  /files/favorite/del:
+    post:
+      consumes:
+      - application/json
+      description: 删除收藏
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FavoriteDelete'
+      responses: {}
+      summary: Delete favorite
+      tags:
+      - File
+  /files/favorite/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取收藏列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FavoriteListReq'
+      responses:
+        "200":
+          description: OK
+      summary: List favorites
+      tags:
+      - File
+  /files/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取文件列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileOption'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FileInfo'
+      summary: List files
+      tags:
+      - File
+  /files/mode:
+    post:
+      consumes:
+      - application/json
+      description: 修改文件权限
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileCreate'
+      responses:
+        "200":
+          description: OK
+      summary: Change file mode
+      tags:
+      - File
+  /files/move:
+    post:
+      consumes:
+      - application/json
+      description: 移动文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileMove'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Move file
+      tags:
+      - File
+      x-panel-log:
+        BeforeFunctions: []
+        bodyKeys:
+        - oldPaths
+        - newPath
+        formatEN: Move [oldPaths] => [newPath]
+        formatZH: 移动文件 [oldPaths] => [newPath]
+        paramKeys: []
+  /files/owner:
+    post:
+      consumes:
+      - application/json
+      description: 修改文件用户/组
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileRoleUpdate'
+      responses:
+        "200":
+          description: OK
+      summary: Change file owner
+      tags:
+      - File
+      x-panel-log:
+        BeforeFunctions: []
+        bodyKeys:
+        - path
+        - user
+        - group
+        formatEN: Change owner [paths] => [user]/[group]
+        formatZH: 修改用户/组 [paths] => [user]/[group]
+        paramKeys: []
+  /files/rename:
+    post:
+      consumes:
+      - application/json
+      description: 修改文件名称
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileRename'
+      responses:
+        "200":
+          description: OK
+      summary: Change file name
+      tags:
+      - File
+  /files/save:
+    post:
+      consumes:
+      - application/json
+      description: 更新文件内容
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileEdit'
+      responses:
+        "200":
+          description: OK
+      summary: Update file content
+      tags:
+      - File
+  /files/size:
+    post:
+      consumes:
+      - application/json
+      description: 获取文件夹大小
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DirSizeReq'
+      responses:
+        "200":
+          description: OK
+      summary: Load file size
+      tags:
+      - File
+  /files/tree:
+    post:
+      consumes:
+      - application/json
+      description: 加载文件树
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileOption'
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.FileTree'
+            type: array
+      summary: Load files tree
+      tags:
+      - File
+  /files/upload:
+    post:
+      description: 上传文件
+      parameters:
+      - description: request
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses:
+        "200":
+          description: OK
+      summary: Upload file
+      tags:
+      - File
+  /files/wget:
+    post:
+      consumes:
+      - application/json
+      description: 下载远端文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileWget'
+      responses:
+        "200":
+          description: OK
+      summary: Wget file
+      tags:
+      - File
+  /idb/ws/terminal:
+    get:
+      description: 终端会话的websocket接口
+      responses:
+        "200":
+          description: OK
+      summary: 终端会话接口
+      tags:
+      - WebSocket
+  /ssh/config:
+    post:
+      description: 加载 SSH 配置信息
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SSHConfigReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SSHInfo'
+      summary: Load host SSH setting info
+      tags:
+      - SSH
+  /ssh/config/content:
+    post:
+      description: 加载 SSH 配置文件内容
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SSHConfigReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SSHConfigContent'
+      summary: Load host SSH setting file content
+      tags:
+      - SSH
+  /ssh/config/content/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新 SSH 配置文件内容
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ContentUpdate'
+      responses:
+        "200":
+          description: OK
+      summary: Update host SSH setting
+      tags:
+      - SSH
+  /ssh/config/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新 SSH 配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SSHUpdate'
+      responses:
+        "200":
+          description: OK
+      summary: Update host SSH setting
+      tags:
+      - SSH
+  /ssh/key/create:
+    post:
+      consumes:
+      - application/json
+      description: 生成 SSH 密钥
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.GenerateKey'
+      responses:
+        "200":
+          description: OK
+      summary: Generate host SSH secret
+      tags:
+      - SSH
+  /ssh/key/list:
+    post:
+      consumes:
+      - application/json
+      description: 枚举 SSH 密钥
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ListKey'
+      responses:
+        "200":
+          description: OK
+      summary: Load host SSH secret
+      tags:
+      - SSH
+  /ssh/log:
+    post:
+      consumes:
+      - application/json
+      description: 获取 SSH 登录日志
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SearchSSHLog'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SSHLog'
+      summary: Load host SSH logs
+      tags:
+      - SSH
+  /ssh/operate:
+    post:
+      consumes:
+      - application/json
+      description: 修改 SSH 服务状态
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SSHOperate'
+      responses:
+        "200":
+          description: OK
+      summary: Operate SSH
+      tags:
+      - SSH
+  /sysctl/boot:
+    post:
+      description: 运行systemctl的服务启动相关命令
+      responses:
+        "200":
+          description: OK
+      summary: run systemctl start/stop/restart service commands
+      tags:
+      - SystemCtl
 swagger: "2.0"

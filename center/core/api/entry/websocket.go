@@ -9,9 +9,6 @@ import (
 // @Tags WebSocket
 // @Summary 终端会话接口
 // @Description 终端会话的websocket接口
-// @Accept query
-// @Produce stream
-// @Param id hostid string true ""
 // @Success 200
 // @Router /idb/ws/terminal [get]
 func (b *BaseApi) HandleTerminal(c *gin.Context) {

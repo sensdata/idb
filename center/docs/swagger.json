@@ -66,6 +66,876 @@
                     }
                 }
             }
+        },
+        "/files/batch/del": {
+            "post": {
+                "description": "批量删除文件/文件夹",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Batch delete file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileBatchDelete"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/batch/role": {
+            "post": {
+                "description": "批量修改文件权限和用户/组",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Batch change file mode and owner",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileRoleReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/compress": {
+            "post": {
+                "description": "压缩文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Compress file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileCompress"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/content": {
+            "post": {
+                "description": "获取文件内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Load file content",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileContentReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/create": {
+            "post": {
+                "description": "创建文件/文件夹",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Create file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/decompress": {
+            "post": {
+                "description": "解压文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Decompress file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileDeCompress"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/del": {
+            "post": {
+                "description": "删除文件/文件夹",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Delete file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileDelete"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFunctions": [],
+                    "bodyKeys": [
+                        "path"
+                    ],
+                    "formatEN": "Delete dir or file [path]",
+                    "formatZH": "删除文件/文件夹 [path]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/files/download": {
+            "get": {
+                "description": "下载文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Download file",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/favorite/create": {
+            "post": {
+                "description": "创建收藏",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Create favorite",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FavoriteCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/favorite/del": {
+            "post": {
+                "description": "删除收藏",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Delete favorite",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FavoriteDelete"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/files/favorite/list": {
+            "post": {
+                "description": "获取收藏列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "List favorites",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FavoriteListReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/list": {
+            "post": {
+                "description": "获取文件列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "List files",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileOption"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/mode": {
+            "post": {
+                "description": "修改文件权限",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Change file mode",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/move": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "移动文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Move file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileMove"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFunctions": [],
+                    "bodyKeys": [
+                        "oldPaths",
+                        "newPath"
+                    ],
+                    "formatEN": "Move [oldPaths] =\u003e [newPath]",
+                    "formatZH": "移动文件 [oldPaths] =\u003e [newPath]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/files/owner": {
+            "post": {
+                "description": "修改文件用户/组",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Change file owner",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileRoleUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFunctions": [],
+                    "bodyKeys": [
+                        "path",
+                        "user",
+                        "group"
+                    ],
+                    "formatEN": "Change owner [paths] =\u003e [user]/[group]",
+                    "formatZH": "修改用户/组 [paths] =\u003e [user]/[group]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/files/rename": {
+            "post": {
+                "description": "修改文件名称",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Change file name",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileRename"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/save": {
+            "post": {
+                "description": "更新文件内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Update file content",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileEdit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/size": {
+            "post": {
+                "description": "获取文件夹大小",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Load file size",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DirSizeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/tree": {
+            "post": {
+                "description": "加载文件树",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Load files tree",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileOption"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.FileTree"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/files/upload": {
+            "post": {
+                "description": "上传文件",
+                "tags": [
+                    "File"
+                ],
+                "summary": "Upload file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "request",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/wget": {
+            "post": {
+                "description": "下载远端文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Wget file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileWget"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/idb/ws/terminal": {
+            "get": {
+                "description": "终端会话的websocket接口",
+                "tags": [
+                    "WebSocket"
+                ],
+                "summary": "终端会话接口",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/config": {
+            "post": {
+                "description": "加载 SSH 配置信息",
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Load host SSH setting info",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHConfigReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/ssh/config/content": {
+            "post": {
+                "description": "加载 SSH 配置文件内容",
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Load host SSH setting file content",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHConfigReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHConfigContent"
+                        }
+                    }
+                }
+            }
+        },
+        "/ssh/config/content/update": {
+            "post": {
+                "description": "更新 SSH 配置文件内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Update host SSH setting",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContentUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/config/update": {
+            "post": {
+                "description": "更新 SSH 配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Update host SSH setting",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/key/create": {
+            "post": {
+                "description": "生成 SSH 密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Generate host SSH secret",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.GenerateKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/key/list": {
+            "post": {
+                "description": "枚举 SSH 密钥",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Load host SSH secret",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ListKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/log": {
+            "post": {
+                "description": "获取 SSH 登录日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Load host SSH logs",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SearchSSHLog"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHLog"
+                        }
+                    }
+                }
+            }
+        },
+        "/ssh/operate": {
+            "post": {
+                "description": "修改 SSH 服务状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Operate SSH",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysctl/boot": {
+            "post": {
+                "description": "运行systemctl的服务启动相关命令",
+                "tags": [
+                    "SystemCtl"
+                ],
+                "summary": "run systemctl start/stop/restart service commands",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -92,6 +962,782 @@
                 },
                 "token": {
                     "type": "string"
+                }
+            }
+        },
+        "files.FileInfo": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "extension": {
+                    "type": "string"
+                },
+                "favoriteID": {
+                    "type": "integer"
+                },
+                "gid": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "isDir": {
+                    "type": "boolean"
+                },
+                "isHidden": {
+                    "type": "boolean"
+                },
+                "isSymlink": {
+                    "type": "boolean"
+                },
+                "itemTotal": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/files.FileInfo"
+                    }
+                },
+                "linkPath": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "modTime": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "updateTime": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ContentUpdate": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.DirSizeReq": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FavoriteCreate": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FavoriteDelete": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.FavoriteListReq": {
+            "type": "object",
+            "required": [
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.FileBatchDelete": {
+            "type": "object",
+            "required": [
+                "paths"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "isDir": {
+                    "type": "boolean"
+                },
+                "paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.FileCompress": {
+            "type": "object",
+            "required": [
+                "dst",
+                "files",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "dst": {
+                    "type": "string"
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "replace": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileContentReq": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileCreate": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "isDir": {
+                    "type": "boolean"
+                },
+                "isLink": {
+                    "type": "boolean"
+                },
+                "isSymlink": {
+                    "type": "boolean"
+                },
+                "linkPath": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "sub": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.FileDeCompress": {
+            "type": "object",
+            "required": [
+                "dst",
+                "path",
+                "type"
+            ],
+            "properties": {
+                "dst": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileDelete": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "forceDelete": {
+                    "type": "boolean"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "isDir": {
+                    "type": "boolean"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileEdit": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileInfo": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "extension": {
+                    "type": "string"
+                },
+                "favoriteID": {
+                    "type": "integer"
+                },
+                "gid": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "isDir": {
+                    "type": "boolean"
+                },
+                "isHidden": {
+                    "type": "boolean"
+                },
+                "isSymlink": {
+                    "type": "boolean"
+                },
+                "itemTotal": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/files.FileInfo"
+                    }
+                },
+                "linkPath": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "modTime": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "updateTime": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileMove": {
+            "type": "object",
+            "required": [
+                "newPath",
+                "oldPaths",
+                "type"
+            ],
+            "properties": {
+                "cover": {
+                    "type": "boolean"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "newPath": {
+                    "type": "string"
+                },
+                "oldPaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileOption": {
+            "type": "object",
+            "properties": {
+                "containSub": {
+                    "type": "boolean"
+                },
+                "dir": {
+                    "type": "boolean"
+                },
+                "expand": {
+                    "type": "boolean"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "search": {
+                    "type": "string"
+                },
+                "showHidden": {
+                    "type": "boolean"
+                },
+                "sortBy": {
+                    "type": "string"
+                },
+                "sortOrder": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileRename": {
+            "type": "object",
+            "required": [
+                "newName",
+                "oldName"
+            ],
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "newName": {
+                    "type": "string"
+                },
+                "oldName": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileRoleReq": {
+            "type": "object",
+            "required": [
+                "group",
+                "mode",
+                "paths",
+                "user"
+            ],
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "mode": {
+                    "type": "integer"
+                },
+                "paths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sub": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileRoleUpdate": {
+            "type": "object",
+            "required": [
+                "group",
+                "path",
+                "user"
+            ],
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "sub": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileTree": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.FileTree"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.FileWget": {
+            "type": "object",
+            "required": [
+                "name",
+                "path",
+                "url"
+            ],
+            "properties": {
+                "ignoreCertificate": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.GenerateKey": {
+            "type": "object",
+            "required": [
+                "encryptionMode",
+                "keyBits"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "encryptionMode": {
+                    "type": "string",
+                    "enum": [
+                        "rsa",
+                        "ed25519",
+                        "ecdsa",
+                        "dsa"
+                    ]
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "keyBits": {
+                    "type": "integer",
+                    "enum": [
+                        1024,
+                        2048
+                    ]
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.KeyValueForUpdate": {
+            "type": "object",
+            "required": [
+                "key"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "newValue": {
+                    "type": "string"
+                },
+                "oldValue": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ListKey": {
+            "type": "object",
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "keyword": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SSHConfigContent": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SSHConfigReq": {
+            "type": "object",
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.SSHHistory": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "authMode": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "dateStr": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SSHInfo": {
+            "type": "object",
+            "properties": {
+                "autoStart": {
+                    "type": "boolean"
+                },
+                "listenAddress": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "passwordAuthentication": {
+                    "type": "string"
+                },
+                "permitRootLogin": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "pubkeyAuthentication": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "useDNS": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SSHLog": {
+            "type": "object",
+            "properties": {
+                "failedCount": {
+                    "type": "integer"
+                },
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.SSHHistory"
+                    }
+                },
+                "successfulCount": {
+                    "type": "integer"
+                },
+                "totalCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.SSHOperate": {
+            "type": "object",
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "operation": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SSHUpdate": {
+            "type": "object",
+            "properties": {
+                "hostId": {
+                    "type": "integer"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValueForUpdate"
+                    }
+                }
+            }
+        },
+        "model.SearchSSHLog": {
+            "type": "object",
+            "required": [
+                "Status",
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "Status": {
+                    "type": "string",
+                    "enum": [
+                        "Success",
+                        "Failed",
+                        "All"
+                    ]
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "info": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
                 }
             }
         }

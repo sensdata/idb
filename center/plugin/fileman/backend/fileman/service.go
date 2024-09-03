@@ -107,8 +107,8 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 // @Summary Load files tree
 // @Description 加载文件树
 // @Accept json
-// @Param request body request.FileOption true "request"
-// @Success 200 {array} response.FileTree
+// @Param request body model.FileOption true "request"
+// @Success 200 {array} model.FileTree
 // @Router /files/tree [post]
 func (s *FileMan) GetFileTree(c *gin.Context) {
 	var req model.FileOption
@@ -127,8 +127,8 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 // @Summary List files
 // @Description 获取文件列表
 // @Accept json
-// @Param request body request.FileOption true "request"
-// @Success 200 {object} response.FileInfo
+// @Param request body model.FileOption true "request"
+// @Success 200 {object} model.FileInfo
 // @Router /files/list [post]
 func (s *FileMan) GetFileList(c *gin.Context) {
 	var req model.FileOption
@@ -147,7 +147,7 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 // @Summary Create file
 // @Description 创建文件/文件夹
 // @Accept json
-// @Param request body request.FileCreate true "request"
+// @Param request body model.FileCreate true "request"
 // @Success 200
 // @Router /files/create [post]
 func (s *FileMan) CreateFile(c *gin.Context) {
@@ -167,7 +167,7 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Summary Delete file
 // @Description 删除文件/文件夹
 // @Accept json
-// @Param request body request.FileDelete true "request"
+// @Param request body model.FileDelete true "request"
 // @Success 200
 // @Router /files/del [post]
 // @x-panel-log {"bodyKeys":["path"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"删除文件/文件夹 [path]","formatEN":"Delete dir or file [path]"}
@@ -188,7 +188,7 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 // @Summary Batch delete file
 // @Description 批量删除文件/文件夹
 // @Accept json
-// @Param request body request.FileBatchDelete true "request"
+// @Param request body model.FileBatchDelete true "request"
 // @Success 200
 // @Router /files/batch/del [post]
 func (s *FileMan) BatchDeleteFile(c *gin.Context) {
@@ -208,7 +208,7 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 // @Summary Compress file
 // @Description 压缩文件
 // @Accept json
-// @Param request body request.FileCompress true "request"
+// @Param request body model.FileCompress true "request"
 // @Success 200
 // @Router /files/compress [post]
 func (s *FileMan) CompressFile(c *gin.Context) {
@@ -228,7 +228,7 @@ func (s *FileMan) CompressFile(c *gin.Context) {
 // @Summary Decompress file
 // @Description 解压文件
 // @Accept json
-// @Param request body request.FileDeCompress true "request"
+// @Param request body model.FileDeCompress true "request"
 // @Success 200
 // @Router /files/decompress [post]
 func (s *FileMan) DeCompressFile(c *gin.Context) {
@@ -248,8 +248,8 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 // @Summary Load file content
 // @Description 获取文件内容
 // @Accept json
-// @Param request body request.FileContentReq true "request"
-// @Success 200 {object} response.FileInfo
+// @Param request body model.FileContentReq true "request"
+// @Success 200 {object} model.FileInfo
 // @Router /files/content [post]
 func (s *FileMan) GetContent(c *gin.Context) {
 	var req model.FileContentReq
@@ -268,7 +268,7 @@ func (s *FileMan) GetContent(c *gin.Context) {
 // @Summary Update file content
 // @Description 更新文件内容
 // @Accept json
-// @Param request body request.FileEdit true "request"
+// @Param request body model.FileEdit true "request"
 // @Success 200
 // @Router /files/save [post]
 func (s *FileMan) SaveContent(c *gin.Context) {
@@ -307,7 +307,7 @@ func (s *FileMan) Download(c *gin.Context) {
 // @Summary Load file size
 // @Description 获取文件夹大小
 // @Accept json
-// @Param request body request.DirSizeReq true "request"
+// @Param request body model.DirSizeReq true "request"
 // @Success 200
 // @Router /files/size [post]
 func (s *FileMan) Size(c *gin.Context) {
@@ -327,7 +327,7 @@ func (s *FileMan) Size(c *gin.Context) {
 // @Summary Change file name
 // @Description 修改文件名称
 // @Accept json
-// @Param request body request.FileRename true "request"
+// @Param request body model.FileRename true "request"
 // @Success 200
 // @Router /files/rename [post]
 func (s *FileMan) ChangeFileName(c *gin.Context) {
@@ -346,7 +346,7 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 // @Summary Wget file
 // @Description 下载远端文件
 // @Accept json
-// @Param request body request.FileWget true "request"
+// @Param request body model.FileWget true "request"
 // @Success 200
 // @Router /files/wget [post]
 func (s *FileMan) WgetFile(c *gin.Context) {
@@ -361,7 +361,7 @@ func (s *FileMan) WgetFile(c *gin.Context) {
 // @Summary Move file
 // @Description 移动文件
 // @Accept json
-// @Param request body request.FileMove true "request"
+// @Param request body model.FileMove true "request"
 // @Success 200
 // @Security ApiKeyAuth
 // @Router /files/move [post]
@@ -382,7 +382,7 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 // @Summary Change file owner
 // @Description 修改文件用户/组
 // @Accept json
-// @Param request body request.FileRoleUpdate true "request"
+// @Param request body model.FileRoleUpdate true "request"
 // @Success 200
 // @Router /files/owner [post]
 // @x-panel-log {"bodyKeys":["path","user","group"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"修改用户/组 [paths] => [user]/[group]","formatEN":"Change owner [paths] => [user]/[group]"}
@@ -402,7 +402,7 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 // @Summary Change file mode
 // @Description 修改文件权限
 // @Accept json
-// @Param request body request.FileCreate true "request"
+// @Param request body model.FileCreate true "request"
 // @Success 200
 // @Router /files/mode [post]
 func (s *FileMan) ChangeFileMode(c *gin.Context) {
@@ -422,7 +422,7 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 // @Summary Batch change file mode and owner
 // @Description 批量修改文件权限和用户/组
 // @Accept json
-// @Param request body request.FileRoleReq true "request"
+// @Param request body model.FileRoleReq true "request"
 // @Success 200
 // @Router /files/batch/role [post]
 func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
@@ -440,7 +440,7 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 // @Summary List favorites
 // @Description 获取收藏列表
 // @Accept json
-// @Param request body dto.PageInfo true "request"
+// @Param request body model.FavoriteListReq true "request"
 // @Success 200
 // @Router /files/favorite/list [post]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
@@ -460,7 +460,7 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 // @Summary Create favorite
 // @Description 创建收藏
 // @Accept json
-// @Param request body request.FavoriteCreate true "request"
+// @Param request body model.FavoriteCreate true "request"
 // @Success 200
 // @Router /files/favorite/create [post]
 func (s *FileMan) CreateFavorite(c *gin.Context) {
@@ -480,7 +480,7 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 // @Summary Delete favorite
 // @Description 删除收藏
 // @Accept json
-// @Param request body request.FavoriteDelete true "request"
+// @Param request body model.FavoriteDelete true "request"
 // @Router /files/favorite/del [post]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	var req model.FavoriteDelete

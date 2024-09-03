@@ -15,8 +15,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const sshPath = "/etc/ssh/sshd_config"
-
 type SSHMan struct {
 	config      plugin.PluginConfig
 	restyClient *resty.Client
@@ -92,6 +90,7 @@ func (s *SSHMan) getMenus() ([]plugin.MenuItem, error) {
 // @Tags SSH
 // @Summary Load host SSH setting info
 // @Description 加载 SSH 配置信息
+// @Param request body model.SSHConfigReq true "request"
 // @Success 200 {object} model.SSHInfo
 // @Router /ssh/config [post]
 func (s *SSHMan) GetSSHConfig(c *gin.Context) {
@@ -112,7 +111,7 @@ func (s *SSHMan) GetSSHConfig(c *gin.Context) {
 // @Summary Update host SSH setting
 // @Description 更新 SSH 配置
 // @Accept json
-// @Param request body dto.SSHUpdate true "request"
+// @Param request body model.SSHUpdate true "request"
 // @Success 200
 // @Router /ssh/config/update [post]
 func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
@@ -131,6 +130,7 @@ func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 // @Tags SSH
 // @Summary Load host SSH setting file content
 // @Description 加载 SSH 配置文件内容
+// @Param request body model.SSHConfigReq true "request"
 // @Success 200 {object} model.SSHConfigContent
 // @Router /ssh/config/content [post]
 func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
@@ -151,7 +151,7 @@ func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
 // @Summary Update host SSH setting
 // @Description 更新 SSH 配置文件内容
 // @Accept json
-// @Param request body dto.ContentUpdate true "request"
+// @Param request body model.ContentUpdate true "request"
 // @Success 200
 // @Router /ssh/config/content/update [post]
 func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
@@ -171,7 +171,8 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 // @Summary Operate SSH
 // @Description 修改 SSH 服务状态
 // @Accept json
-// @Param request body dto.Operate true "request"
+// @Param request body model.SSHOperate true "request"
+// @Success 200
 // @Router /ssh/operate [post]
 func (s *SSHMan) OperateSSH(c *gin.Context) {
 	var req model.SSHOperate
@@ -190,7 +191,7 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 // @Summary Generate host SSH secret
 // @Description 生成 SSH 密钥
 // @Accept json
-// @Param request body dto.GenerateSSH true "request"
+// @Param request body model.GenerateKey true "request"
 // @Success 200
 // @Router /ssh/key/create [post]
 func (s *SSHMan) CreateKey(c *gin.Context) {
@@ -210,7 +211,7 @@ func (s *SSHMan) CreateKey(c *gin.Context) {
 // @Summary Load host SSH secret
 // @Description 枚举 SSH 密钥
 // @Accept json
-// @Param request body dto.GenerateLoad true "request"
+// @Param request body model.ListKey true "request"
 // @Success 200
 // @Router /ssh/key/list [post]
 func (s *SSHMan) ListKey(c *gin.Context) {
@@ -231,8 +232,8 @@ func (s *SSHMan) ListKey(c *gin.Context) {
 // @Summary Load host SSH logs
 // @Description 获取 SSH 登录日志
 // @Accept json
-// @Param request body dto.SearchSSHLog true "request"
-// @Success 200 {object} dto.SSHLog
+// @Param request body model.SearchSSHLog true "request"
+// @Success 200 {object} model.SSHLog
 // @Router /ssh/log [post]
 func (s *SSHMan) LoadSSHLogs(c *gin.Context) {
 	var req model.SearchSSHLog
