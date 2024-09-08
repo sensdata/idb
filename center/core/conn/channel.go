@@ -59,11 +59,13 @@ func (c *Center) Start() error {
 		return err
 	}
 
-	// 启动接收连接的 goroutine
+	// 连接
 	err = c.ensureAgentConnections()
 	if err != nil {
-		return nil
+		return err
 	}
+	// 连接并发送心跳
+	go c.ensureConnectionsAndHeartbeat()
 
 	return nil
 }
@@ -198,6 +200,27 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 	}
 }
 
+func (c *Center) ensureConnectionsAndHeartbeat() {
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			global.LOG.Info("Stopping heartbeat")
+			return
+		case <-ticker.C:
+			// 连接
+			err := c.ensureAgentConnections()
+			if err != nil {
+				continue
+			}
+			// 心跳
+			c.sendHeartbeat()
+		}
+	}
+}
+
 func (c *Center) ensureAgentConnections() error {
 	global.LOG.Info("ensureAgentConnections")
 
@@ -224,9 +247,6 @@ func (c *Center) ensureAgentConnections() error {
 			}
 		}
 	}
-
-	// 定期发送心跳消息
-	go c.sendHeartbeat()
 
 	return nil
 }
@@ -340,41 +360,30 @@ func (c *Center) handleConnection(conn net.Conn) {
 
 func (c *Center) sendHeartbeat() {
 	config := CONFMAN.GetConfig()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	ticker := time.NewTicker(time.Second * 30)
-	defer ticker.Stop()
+	for agentID, conn := range c.agentConns {
+		heartbeatMsg, err := message.CreateMessage(
+			utils.GenerateMsgId(),
+			"Heartbeat",
+			config.SecretKey,
+			utils.GenerateNonce(16),
+			message.Heartbeat,
+		)
+		if err != nil {
+			global.LOG.Error("Error creating heartbeat message: %v", err)
+			continue
+		}
 
-	for {
-		select {
-		case <-c.done:
-			global.LOG.Info("Stopping heartbeat")
-			return
-		case <-ticker.C:
-			c.mu.Lock()
-			for agentID, conn := range c.agentConns {
-				heartbeatMsg, err := message.CreateMessage(
-					utils.GenerateMsgId(),
-					"Heartbeat",
-					config.SecretKey,
-					utils.GenerateNonce(16),
-					message.Heartbeat,
-				)
-				if err != nil {
-					global.LOG.Error("Error creating heartbeat message: %v", err)
-					continue
-				}
-
-				err = message.SendMessage(conn, heartbeatMsg)
-				if err != nil {
-					global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
-					conn.Close()
-					delete(c.agentConns, agentID)
-					global.LOG.Info("close conn %s for heartbeat", agentID)
-				} else {
-					global.LOG.Info("Heartbeat sent to %s", agentID)
-				}
-			}
-			c.mu.Unlock()
+		err = message.SendMessage(conn, heartbeatMsg)
+		if err != nil {
+			global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
+			conn.Close()
+			delete(c.agentConns, agentID)
+			global.LOG.Info("close conn %s for heartbeat", agentID)
+		} else {
+			global.LOG.Info("Heartbeat sent to %s", agentID)
 		}
 	}
 }
