@@ -1,4 +1,4 @@
-name: CI/CD main
+name: CI/CD Pipeline
 
 on:
   push:
@@ -21,16 +21,16 @@ jobs:
         with:
           go-version: '1.20'
 
-      # 缓存 Go 模块
-      - name: Cache Go modules
+      # 缓存 Go 模块 for Agent
+      - name: Cache Go modules for Agent
         uses: actions/cache@v3
         with:
           path: |
             ~/.cache/go-build
             ${{ github.workspace }}/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-agent-${{ hashFiles('idb/agent/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-agent-
 
       # 编译 Agent
       - name: Build Agent
@@ -45,6 +45,17 @@ jobs:
           cd idb/agent
           mkdir -p out/release/${{ github.ref_name }}
           tar -czvf out/release/${{ github.ref_name }}/idb-agent-package.tar.gz out/idb-agent idb-agent.json idb-agent.service
+
+      # 缓存 Go 模块 for Center
+      - name: Cache Go modules for Center
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ${{ github.workspace }}/go/pkg/mod
+          key: ${{ runner.os }}-go-center-${{ hashFiles('idb/center/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-center-
 
       # 编译 Center
       - name: Build Center
