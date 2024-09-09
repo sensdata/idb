@@ -1,0 +1,78 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 签出
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Go 环境
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      # 缓存 Go 模块
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ${{ github.workspace }}/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # 编译 Agent
+      - name: Build Agent
+        run: |
+          cd idb/agent
+          mkdir -p out
+          GOOS=linux GOARCH=amd64 go build -o out/idb-agent -ldflags "-s -w" .
+
+      # 打包 Agent
+      - name: Package Agent
+        run: |
+          cd idb/agent
+          mkdir -p out/release/${{ github.ref_name }}
+          tar -czvf out/release/${{ github.ref_name }}/idb-agent-package.tar.gz out/idb-agent idb-agent.json idb-agent.service
+
+      # 编译 Center
+      - name: Build Center
+        run: |
+          cd idb/center
+          mkdir -p out
+          GOOS=linux GOARCH=amd64 go build -o out/idb-center -ldflags "-s -w" .
+
+      # 打包 Center
+      - name: Package Center
+        run: |
+          cd idb/center
+          mkdir -p out/release/${{ github.ref_name }}
+          tar -czvf out/release/${{ github.ref_name }}/idb-center-package.tar.gz out/idb-center idb-center.json idb-center.service
+
+      # 创建远程目录
+      - name: Create deploy directory
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} root@64.23.208.197 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
+
+      # 拷贝 Agent 包
+      - name: Deploy Agent
+        run: |
+          cd idb/agent
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-agent-package.tar.gz root@64.23.208.197:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+
+      # 拷贝 Center 包
+      - name: Deploy Center
+        run: |    
+          cd idb/center
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-center-package.tar.gz root@64.23.208.197:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
