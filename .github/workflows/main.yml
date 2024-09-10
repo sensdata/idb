@@ -21,16 +21,22 @@ jobs:
         with:
           go-version: '1.20'
 
-      # 缓存 Go 模块 for Agent
-      - name: Cache Go modules for Agent
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ${{ github.workspace }}/go/pkg/mod
-          key: ${{ runner.os }}-go-agent-${{ hashFiles('idb/agent/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-agent-
+      # # 缓存 Go 模块 for Agent
+      # - name: Cache Go modules for Agent
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/go-build
+      #       ${{ github.workspace }}/go/pkg/mod
+      #     key: ${{ runner.os }}-go-agent-${{ hashFiles('idb/agent/go.sum') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-go-agent-
+
+      # Agent 模块
+      - name: Tidy Go modules for Agent
+        run: |
+          cd idb/agent
+          go mod tidy
 
       # 编译 Agent
       - name: Build Agent
@@ -46,16 +52,22 @@ jobs:
           mkdir -p out/release/${{ github.ref_name }}
           tar -czvf out/release/${{ github.ref_name }}/idb-agent-package.tar.gz out/idb-agent idb-agent.json idb-agent.service
 
-      # 缓存 Go 模块 for Center
-      - name: Cache Go modules for Center
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ${{ github.workspace }}/go/pkg/mod
-          key: ${{ runner.os }}-go-center-${{ hashFiles('idb/center/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-center-
+      # # 缓存 Go 模块 for Center
+      # - name: Cache Go modules for Center
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/.cache/go-build
+      #       ${{ github.workspace }}/go/pkg/mod
+      #     key: ${{ runner.os }}-go-center-${{ hashFiles('idb/center/go.sum') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-go-center-
+
+      # Center 模块
+      - name: Tidy Go modules for Center
+        run: |
+          cd idb/center
+          go mod tidy
 
       # 编译 Center
       - name: Build Center
