@@ -18,9 +18,9 @@ jobs:
           submodules: true
           fetch-depth: 0
       
-      # 列出当前目录
-      - name: List files
-        run: ls -R
+      # # 列出当前目录
+      # - name: List files
+      #   run: ls
 
       # Go 环境
       - name: Set up Go
@@ -93,16 +93,21 @@ jobs:
       # 创建远程目录
       - name: Create deploy directory
         run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} root@64.23.208.197 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
 
       # 拷贝 Agent 包
       - name: Deploy Agent
         run: |
           cd ./agent
-          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-agent-package.tar.gz root@64.23.208.197:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-agent-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 拷贝 Center 包
       - name: Deploy Center
         run: |    
           cd ./center
-          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-center-package.tar.gz root@64.23.208.197:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-center-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+
+      # 更新最新版本链接
+      - name: Update Latest Link
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "ln -sfn /path/to/static.sensdata.com/idb/release/${{ github.sha }}/ /path/to/static.sensdata.com/idb/release/latest"
