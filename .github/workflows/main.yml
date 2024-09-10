@@ -14,6 +14,13 @@ jobs:
       # 签出
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+      
+      # 列出当前目录
+      - name: List files
+        run: ls -R
 
       # Go 环境
       - name: Set up Go
