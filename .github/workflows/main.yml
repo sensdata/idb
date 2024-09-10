@@ -90,22 +90,28 @@ jobs:
           mkdir -p out/release/${{ github.ref_name }}
           tar -czvf out/release/${{ github.ref_name }}/idb-center-package.tar.gz out/idb-center idb-center.json idb-center.service
 
+      # 设置 SSH
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       # 创建远程目录
       - name: Create deploy directory
         run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
 
       # 拷贝 Agent 包
       - name: Deploy Agent
         run: |
           cd ./agent
-          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-agent-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp out/release/${{ github.ref_name }}/idb-agent-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 拷贝 Center 包
       - name: Deploy Center
         run: |    
           cd ./center
-          scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-center-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp out/release/${{ github.ref_name }}/idb-center-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 更新最新版本链接
       # - name: Update Latest Link
