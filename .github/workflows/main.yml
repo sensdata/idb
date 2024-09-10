@@ -108,6 +108,6 @@ jobs:
           scp -i ${{ secrets.SSH_PRIVATE_KEY }} out/release/${{ github.ref_name }}/idb-center-package.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 更新最新版本链接
-      - name: Update Latest Link
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "ln -sfn /path/to/static.sensdata.com/idb/release/${{ github.sha }}/ /path/to/static.sensdata.com/idb/release/latest"
+      # - name: Update Latest Link
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "ln -sfn /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}/ /data/www/static.sensdata.com/idb/release/latest"
