@@ -1,12 +1,12 @@
 [Unit]
-Description=IDB Center Service
+Description=IDB Service
 After=syslog.target network.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/idb-center start
-ExecStop=/usr/local/bin/idb-center stop
+ExecStart=/usr/local/bin/idb start
+ExecStop=/usr/local/bin/idb stop
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
@@ -15,8 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
-StandardOutput=append:/var/log/idb/idb-center-run.log
-StandardError=append:/var/log/idb/idb-center-run.log
+StandardOutput=append:/var/log/idb/idb-run.log
+StandardError=append:/var/log/idb/idb-run.log
 
 [Install]
 WantedBy=multi-user.target

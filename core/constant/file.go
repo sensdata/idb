@@ -6,12 +6,12 @@ const (
 	CenterLogDir  = "/var/log/idb"
 
 	CenterDb      = "idb.db"
-	CenterPid     = "idb-center.pid"
-	CenterService = "idb-center.service"
-	CenterConfig  = "idb-center.json"
-	CenterLog     = "idb-center.log"
-	CenterRunLog  = "idb-center-run.log"
-	CenterSock    = "idb-center.sock"
+	CenterPid     = "idb.pid"
+	CenterService = "idb.service"
+	CenterConfig  = "idb.json"
+	CenterLog     = "idb.log"
+	CenterRunLog  = "idb-run.log"
+	CenterSock    = "idb.sock"
 
 	AgentConfDir = "/etc/idb-agent"
 	AgentDataDir = "/var/lib/idb-agent"

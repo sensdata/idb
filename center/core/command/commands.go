@@ -12,7 +12,7 @@ import (
 
 var StopCommand = &cli.Command{
 	Name:  "stop",
-	Usage: "stop idb-center",
+	Usage: "stop idb",
 	Action: func(c *cli.Context) error {
 		// 检查sock文件
 		sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
@@ -40,7 +40,7 @@ var StopCommand = &cli.Command{
 
 var RestartCommand = &cli.Command{
 	Name:  "restart",
-	Usage: "restart idb-center",
+	Usage: "restart idb",
 	Action: func(c *cli.Context) error {
 		err := exec.Command("systemctl", "restart", constant.CenterService).Run()
 		if err != nil {
@@ -53,7 +53,7 @@ var RestartCommand = &cli.Command{
 
 var ConfigCommand = &cli.Command{
 	Name:  "config",
-	Usage: "configure idb-center",
+	Usage: "configure idb",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "key",
