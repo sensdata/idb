@@ -1,0 +1,43 @@
+project_name: idb-agent
+dist: ./release
+builds:
+  - main: ./main.go
+    binary: idb-agent
+    flags:
+      - -tags=xpack
+      - -trimpath
+    ldflags:
+      - "-s -w"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarm:
+      - 7
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - ppc64le
+      - s390x
+    
+    # 可以根据需要添加其他编译参数
+archives:
+  - format: tar.gz
+    name_template: "idb-agent-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}"
+    wrap_in_directory: true
+    files:
+      - idb-agent.json
+      - idb-agent.service
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+release:
+  draft: true
+  mode: append
+  extra_files:
+    - glob: release/*.tar.gz
+    - glob: release/checksums.txt
+  name_template: "Release {{.Tag}}"

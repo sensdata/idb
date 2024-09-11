@@ -43,19 +43,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-agent-
 
-      # 编译 Agent
-      - name: Build Agent
+      # 创建 release 目录
+      - name: Create release directory
         run: |
           cd ./agent
-          mkdir -p out
-          GOOS=linux GOARCH=amd64 go build -o out/idb-agent -ldflags "-s -w" .
+          mkdir -p release
 
       # 打包 Agent
-      - name: Package Agent
-        run: |
-          cd ./agent
-          mkdir -p out/release/${{ github.ref_name }}
-          tar -czvf out/release/${{ github.ref_name }}/idb-agent-${{ github.ref_name }}-linux-amd64.tar.gz out/idb-agent idb-agent.json idb-agent.service
+      - name: Build and Package Agent
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: ${{ github.ref_name }}
+          args: release --config ./agent/goreleaser.yml --skip-publish --clean
 
       # # Center 模块
       # - name: Tidy Go modules for Center
@@ -74,19 +74,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-center-
 
-      # 编译 Center
-      - name: Build Center
+      # 创建 release 目录
+      - name: Create release directory
         run: |
           cd ./center
-          mkdir -p out
-          GOOS=linux GOARCH=amd64 go build -o out/idb -ldflags "-s -w" .
+          mkdir -p release
 
       # 打包 Center
-      - name: Package Center
-        run: |
-          cd ./center
-          mkdir -p out/release/${{ github.ref_name }}
-          tar -czvf out/release/${{ github.ref_name }}/idb-${{ github.ref_name }}-linux-amd64.tar.gz out/idb idb.json idb.service
+      - name: Build and Package Center
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: ${{ github.ref_name }}
+          args: release --config ./center/goreleaser.yml --skip-publish --clean
 
       # 设置 SSH
       - name: Set up SSH
@@ -103,13 +103,13 @@ jobs:
       - name: Deploy Agent
         run: |
           cd ./agent
-          scp out/release/${{ github.ref_name }}/idb-agent-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp release/${{ github.ref_name }}/idb-agent-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 拷贝 Center 包
       - name: Deploy Center
         run: |    
           cd ./center
-          scp out/release/${{ github.ref_name }}/idb-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp release/${{ github.ref_name }}/idb-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 更新 Latest 版本号
       - name: Update Latest Version File
