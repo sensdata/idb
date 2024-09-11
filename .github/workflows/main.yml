@@ -103,13 +103,13 @@ jobs:
       - name: Deploy Agent
         run: |
           cd ./agent
-          scp release/${{ github.ref_name }}/idb-agent-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp release/${{ github.ref_name }}/*.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 拷贝 Center 包
       - name: Deploy Center
         run: |    
           cd ./center
-          scp release/${{ github.ref_name }}/idb-${{ github.ref_name }}-linux-amd64.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp release/${{ github.ref_name }}/*.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
       # 更新 Latest 版本号
       - name: Update Latest Version File
