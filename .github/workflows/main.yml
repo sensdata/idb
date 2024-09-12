@@ -111,6 +111,12 @@ jobs:
           cd ./center
           scp release/${{ github.ref_name }}/*.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
 
+      # 更新快速开始脚本
+      - name: Update Quick Start
+        run: |
+          cd ./package
+          scp quick_start.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/
+
       # 更新 Latest 版本号
       - name: Update Latest Version File
         run: |

@@ -29,6 +29,7 @@ archives:
     files:
       - idb.json
       - idb.service
+      - ../scripts/install.sh
 
 checksum:
   name_template: 'checksums.txt'
