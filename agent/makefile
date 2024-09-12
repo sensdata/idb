@@ -17,7 +17,7 @@ LOG_DIR =/var/log/idb-agent
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
 
 # 配置文件路径
-CONFIG_FILE=idb-agent.json
+CONFIG_FILE=idb-agent.conf
 
 # 注册服务文件路径
 SERVICE_FILE=idb-agent.service

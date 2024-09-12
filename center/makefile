@@ -17,7 +17,7 @@ LOG_DIR =/var/log/idb
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
 
 # 配置文件路径
-CONFIG_FILE=idb.json
+CONFIG_FILE=idb.conf
 
 # 注册服务文件路径
 SERVICE_FILE=idb.service

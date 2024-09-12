@@ -1,10 +1,10 @@
 package config
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,14 +45,38 @@ func (m *Manager) loadConfig() error {
 	}
 	defer file.Close()
 
-	decoder := json.NewDecoder(file)
-	var config CenterConfig
-	err = decoder.Decode(&config)
-	if err != nil {
+	scanner := bufio.NewScanner(file)
+	config := &CenterConfig{}
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+			continue // 跳过空行或注释
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid config line: %s", line)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		switch key {
+		case "port":
+			fmt.Sscanf(value, "%d", &config.Port)
+		case "secret_key":
+			config.SecretKey = value
+		default:
+			return fmt.Errorf("unknown config key: %s", key)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
 		return err
 	}
 
-	m.config = &config
+	m.config = config
 	return nil
 }
 
@@ -95,7 +119,7 @@ func validateItem(item string) bool {
 // 获取当前配置的shell打印
 func (m *Manager) GetConfigString(item string) (string, error) {
 	if !validateItem(item) {
-		return "", fmt.Errorf("%s not support", item)
+		return "", fmt.Errorf("%s not supported", item)
 	}
 
 	m.mu.RLock()
@@ -103,23 +127,15 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 
 	var result strings.Builder
 
-	v := reflect.ValueOf(m.config).Elem()
-	t := reflect.TypeOf(m.config).Elem()
-
 	if item == "" {
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			tag := t.Field(i).Tag.Get("json")
-			result.WriteString(fmt.Sprintf("%s: %v\n", tag, field.Interface()))
-		}
+		result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
+		result.WriteString(fmt.Sprintf("secret_key=%s\n", m.config.SecretKey))
 	} else {
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			tag := t.Field(i).Tag.Get("json")
-			if strings.ToLower(tag) == strings.ToLower(item) {
-				result.WriteString(fmt.Sprintf("%s: %v\n", tag, field.Interface()))
-				break
-			}
+		switch item {
+		case "port":
+			result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
+		case "secret_key":
+			result.WriteString(fmt.Sprintf("secret_key=%s\n", m.config.SecretKey))
 		}
 	}
 
@@ -129,30 +145,18 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 // 设置配置项
 func (m *Manager) SetConfig(key, value string) error {
 	if !validateItem(key) {
-		return fmt.Errorf("%s not support", key)
+		return fmt.Errorf("%s not supported", key)
 	}
 
-	v := reflect.ValueOf(m.config).Elem()
-	field := v.FieldByNameFunc(func(name string) bool {
-		return strings.EqualFold(name, key)
-	})
-
-	if !field.IsValid() {
-		return fmt.Errorf("invalid configuration key: %s", key)
-	}
-
-	// 转换 value 为 field 对应的类型
-	switch field.Kind() {
-	case reflect.Int:
-		intValue, err := strconv.Atoi(value)
+	switch key {
+	case "port":
+		portValue, err := strconv.Atoi(value)
 		if err != nil {
 			return err
 		}
-		field.SetInt(int64(intValue))
-	case reflect.String:
-		field.SetString(value)
-	default:
-		return fmt.Errorf("unsupported configuration key: %s", key)
+		m.config.Port = portValue
+	case "secret_key":
+		m.config.SecretKey = value
 	}
 
 	// 保存到文件
