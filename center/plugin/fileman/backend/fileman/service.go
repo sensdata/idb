@@ -2,6 +2,7 @@ package fileman
 
 import (
 	"net/http"
+	"strconv"
 
 	_ "embed"
 
@@ -53,7 +54,7 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/decompress", Handler: s.DeCompressFile},
 			{Method: "POST", Path: "/content", Handler: s.GetContent},
 			{Method: "POST", Path: "/content/save", Handler: s.SaveContent},
-			{Method: "POST", Path: "/upload", Handler: s.UploadFiles},
+			{Method: "POST", Path: "/upload", Handler: s.Upload},
 			{Method: "POST", Path: "/download", Handler: s.Download},
 			{Method: "POST", Path: "/wget", Handler: s.WgetFile},
 			{Method: "POST", Path: "/size", Handler: s.Size},
@@ -289,8 +290,41 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Param file formData file true "request"
 // @Success 200
 // @Router /files/upload [post]
-func (s *FileMan) UploadFiles(c *gin.Context) {
-	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+func (s *FileMan) Upload(c *gin.Context) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams form", err)
+		return
+	}
+	hostIds := form.Value["host"]
+	paths := form.Value["path"]
+	files := form.File["file"]
+	if len(hostIds) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host", err)
+		return
+	}
+	if len(paths) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", err)
+		return
+	}
+	if len(files) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams file", err)
+		return
+	}
+
+	hostID, err := strconv.Atoi(hostIds[0])
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
+		return
+	}
+	path := paths[0]
+	uploadFile := files[0]
+
+	if err := s.uploadFile(uint(hostID), path, uploadFile); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File

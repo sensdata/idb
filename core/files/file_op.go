@@ -105,6 +105,55 @@ func (f FileOp) RmRf(dst string) error {
 	return utils.ExecCmd(fmt.Sprintf("rm -rf %s", dst))
 }
 
+func (f FileOp) WriteChunkToFile(dst string, name string, offset int64, chunkSize int, chunk []byte) error {
+	// 拼接完整路径
+	fullPath := filepath.Join(dst, name)
+
+	// 检查目录是否存在，不存在则创建
+	if !f.Stat(dst) {
+		if err := f.CreateDir(dst, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %v", dst, err)
+		}
+	}
+
+	// 检查文件是否存在，如果不存在则创建
+	if !f.Stat(fullPath) {
+		if err := f.CreateFileWithMode(fullPath, 0644); err != nil {
+			return fmt.Errorf("failed to create file %s: %v", fullPath, err)
+		}
+	}
+
+	// 打开文件进行读写
+	file, err := f.Fs.OpenFile(fullPath, os.O_RDWR, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open file %s: %v", fullPath, err)
+	}
+	defer file.Close()
+
+	// 设置文件偏移
+	if _, err := file.Seek(offset, 0); err != nil {
+		return fmt.Errorf("failed to seek to offset %d in file %s: %v", offset, fullPath, err)
+	}
+
+	// 检查 chunk 大小是否合适
+	if len(chunk) > chunkSize {
+		return fmt.Errorf("chunk size exceeds the specified limit of %d bytes", chunkSize)
+	}
+
+	// 写入数据
+	written, err := file.Write(chunk)
+	if err != nil {
+		return fmt.Errorf("failed to write chunk to file %s: %v", fullPath, err)
+	}
+
+	// 检查写入的数据是否与 chunkSize 一致
+	if written != chunkSize {
+		return fmt.Errorf("written size %d does not match chunk size %d in file %s", written, chunkSize, fullPath)
+	}
+
+	return nil
+}
+
 func (f FileOp) WriteFile(dst string, in io.Reader, mode fs.FileMode) error {
 	file, err := f.Fs.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {

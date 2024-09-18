@@ -2,7 +2,9 @@ package fileman
 
 import (
 	"fmt"
+	"mime/multipart"
 
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -392,6 +394,11 @@ func (s *FileMan) saveContent(op model.FileEdit) error {
 
 	return nil
 }
+
+func (s *FileMan) uploadFile(hostID uint, path string, file *multipart.FileHeader) error {
+	return conn.CENTER.UploadFile(hostID, path, file)
+}
+
 func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 	var dirSize model.DirSizeRes
 	data, err := utils.ToJSONString(op)

@@ -103,6 +103,14 @@ type FileMove struct {
 	Cover    bool     `json:"cover"`
 }
 
+type FileUpload struct {
+	Path      string `json:"path" validate:"required"` // 文件路径
+	TotalSize int64  `json:"total_size"`               // 文件总大小（可选，Agent端可校验完整性）
+	Offset    int64  `json:"offset"`                   // 当前文件块的起始偏移量
+	ChunkSize int    `json:"chunk_size"`               // 当前文件块的大小
+	Chunk     []byte `json:"chunk"`
+}
+
 type FileDownload struct {
 	Paths    []string `json:"paths" validate:"required"`
 	Type     string   `json:"type" validate:"required"`

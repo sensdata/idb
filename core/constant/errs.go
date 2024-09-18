@@ -55,7 +55,14 @@ var (
 	ErrFileNotFound     = "ErrFileNotFound"
 	ErrFileUpload       = "ErrFileUpload"
 	ErrFileDownloadDir  = "ErrFileDownloadDir"
+	ErrFileOpen         = "ErrFileOpen"
+	ErrFileRead         = "ErrFileRead"
 	ErrFavoriteExist    = "ErrFavoriteExist"
 	ErrFileCanNotRead   = "ErrFileCanNotRead"
 	ErrFileToLarge      = "ErrFileToLarge"
+)
+
+// json
+var (
+	ErrJSONMarshal = errors.New("ErrJSONMarshal")
 )

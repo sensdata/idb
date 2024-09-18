@@ -18,6 +18,7 @@ import (
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
@@ -36,9 +37,8 @@ type Agent struct {
 	tcpListener  net.Listener
 	centerID     string   // 存储center地址
 	centerConn   net.Conn // 存储center端连接的映射
-	centerMsgID  string   // 存储center端连接的最后一个消息ID
 	done         chan struct{}
-	mu           sync.Mutex // 保护centerConn和centerMsgID的互斥锁
+	mu           sync.Mutex // 保护centerConn的互斥锁
 }
 
 type IAgent interface {
@@ -304,58 +304,15 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				global.LOG.Error("Error processing message: %v", err)
 			}
 		} else {
-			// 记录center端的链接和最后一个消息ID
-			centerID := conn.RemoteAddr().String()
-			if len(messages) > 0 {
-				a.mu.Lock()
-				a.centerMsgID = messages[0].MsgID
-				a.mu.Unlock()
-			}
-
 			// 处理消息
 			for _, msg := range messages {
-				switch msg.Type {
-				case message.Heartbeat: // 回复心跳
-					global.LOG.Info("Heartbeat from %s", centerID)
-					if a.centerID != "" && centerID == a.centerID {
-						a.sendHeartbeat(conn)
-					} else {
-						global.LOG.Error("%s is a unknown center", centerID)
-					}
-
-				case message.CmdMessage: // 处理 Cmd 类型的消息
-					global.LOG.Info("recv cmd message: %s", msg.Data)
-					if strings.Contains(msg.Data, message.Separator) {
-						commands := strings.Split(msg.Data, message.Separator)
-						results, err := shell.ExecuteCommands(commands)
-						if err != nil {
-							global.LOG.Error("Failed to excute multi commands: %v", err)
-							a.sendCmdResult(conn, msg.MsgID, "error")
-						} else {
-							result := strings.Join(results, message.Separator)
-							a.sendCmdResult(conn, msg.MsgID, result)
-						}
-					} else {
-						result, err := shell.ExecuteCommand(msg.Data)
-						if err != nil {
-							global.LOG.Error("Failed to execute command: %v", err)
-							a.sendCmdResult(conn, msg.MsgID, "error")
-						} else {
-							a.sendCmdResult(conn, msg.MsgID, result)
-						}
-					}
-
-				case message.ActionMessage: // 处理 Action 类型的消息
-					global.LOG.Info("recv action message: %s", msg.Data)
-					result, err := a.processAction(msg.Data)
-					if err != nil {
-						global.LOG.Error("Failed to process action: %v", err)
-						a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: ""})
-					} else {
-						a.sendActionResult(conn, msg.MsgID, result)
-					}
-				default: // 不支持的消息
-					global.LOG.Error("Unknown message type: %s", msg.Type)
+				switch m := msg.(type) {
+				case *message.Message:
+					a.processMessage(conn, m)
+				case *message.FileMessage:
+					a.processFileMessage(conn, m)
+				default:
+					fmt.Println("Unknown message type")
 				}
 			}
 		}
@@ -365,6 +322,73 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	}
 
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
+}
+
+func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
+	centerID := conn.RemoteAddr().String()
+
+	switch msg.Type {
+	case message.Heartbeat: // 回复心跳
+		global.LOG.Info("Heartbeat from %s", centerID)
+		if a.centerID != "" && centerID == a.centerID {
+			a.sendHeartbeat(conn)
+		} else {
+			global.LOG.Error("%s is a unknown center", centerID)
+		}
+
+	case message.CmdMessage: // 处理 Cmd 类型的消息
+		global.LOG.Info("recv cmd message: %s", msg.Data)
+		if strings.Contains(msg.Data, message.Separator) {
+			commands := strings.Split(msg.Data, message.Separator)
+			results, err := shell.ExecuteCommands(commands)
+			if err != nil {
+				global.LOG.Error("Failed to excute multi commands: %v", err)
+				a.sendCmdResult(conn, msg.MsgID, "error")
+			} else {
+				result := strings.Join(results, message.Separator)
+				a.sendCmdResult(conn, msg.MsgID, result)
+			}
+		} else {
+			result, err := shell.ExecuteCommand(msg.Data)
+			if err != nil {
+				global.LOG.Error("Failed to execute command: %v", err)
+				a.sendCmdResult(conn, msg.MsgID, "error")
+			} else {
+				a.sendCmdResult(conn, msg.MsgID, result)
+			}
+		}
+
+	case message.ActionMessage: // 处理 Action 类型的消息
+		global.LOG.Info("recv action message: %s", msg.Data)
+		result, err := a.processAction(msg.Data)
+		if err != nil {
+			global.LOG.Error("Failed to process action: %v", err)
+			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: ""})
+		} else {
+			a.sendActionResult(conn, msg.MsgID, result)
+		}
+	default: // 不支持的消息
+		global.LOG.Error("Unknown message type: %s", msg.Type)
+	}
+}
+
+func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
+	switch msg.Type {
+	case message.Upload: //上传
+		err := files.NewFileOp().WriteChunkToFile(
+			msg.Path,
+			msg.FileName,
+			msg.Offset,
+			msg.ChunkSize,
+			msg.Chunk,
+		)
+		if err != nil {
+			global.LOG.Error("Failed to process upload: %v", err)
+			a.sendUploadResult(conn, msg, message.FileErr)
+		} else {
+			a.sendUploadResult(conn, msg, message.FileOk)
+		}
+	}
 }
 
 func (a *Agent) processAction(data string) (*model.Action, error) {
@@ -1045,4 +1069,31 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 	} else {
 		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
+}
+
+func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status int) {
+	centerID := conn.RemoteAddr().String()
+
+	rspMsg, err := message.CreateFileMessage(
+		msg.MsgID,
+		msg.Type,
+		status,
+		msg.Path,
+		msg.FileName,
+		msg.TotalSize,
+		msg.Offset,
+		msg.ChunkSize,
+		nil,
+	)
+	if err != nil {
+		global.LOG.Error("Error creating file rsp message: %v", err)
+		return
+	}
+
+	err = message.SendFileMessage(conn, rspMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send file rsp : %v", err)
+		return
+	}
+	global.LOG.Info("File rsp send to %s", centerID)
 }

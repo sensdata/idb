@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
 	"os"
 	"path/filepath"
@@ -23,12 +24,12 @@ import (
 )
 
 type Center struct {
-	unixListener  net.Listener
-	agentConns    map[string]net.Conn // 存储Agent端连接的映射
-	agentMsgIDs   map[string]string   // 存储Agent端连接的最后一个消息ID
-	done          chan struct{}
-	mu            sync.Mutex             // 保护agentConns和agentMsgIDs的互斥锁
-	responseChMap map[string]chan string // 用于接收命令执行结果的动态通道
+	unixListener      net.Listener
+	agentConns        map[string]net.Conn // 存储Agent端连接的映射
+	done              chan struct{}
+	mu                sync.Mutex             // 保护agentConns的互斥锁
+	responseChMap     map[string]chan string // 用于接收命令执行结果的动态通道
+	fileResponseChMap map[string]chan *message.FileMessage
 }
 
 type ICenter interface {
@@ -37,15 +38,16 @@ type ICenter interface {
 	ExecuteCommand(req core.Command) (string, error)
 	ExecuteCommandGroup(req core.CommandGroup) ([]string, error)
 	ExecuteAction(req core.HostAction) (*core.Action, error)
+	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	TestAgent(req dto.TestAgent) error
 }
 
 func NewCenter() ICenter {
 	return &Center{
-		agentConns:    make(map[string]net.Conn),
-		agentMsgIDs:   make(map[string]string),
-		done:          make(chan struct{}),
-		responseChMap: make(map[string]chan string),
+		agentConns:        make(map[string]net.Conn),
+		done:              make(chan struct{}),
+		responseChMap:     make(map[string]chan string),
+		fileResponseChMap: make(map[string]chan *message.FileMessage),
 	}
 }
 
@@ -309,44 +311,15 @@ func (c *Center) handleConnection(conn net.Conn) {
 				global.LOG.Error("Error processing message: %v", err)
 			}
 		} else {
-			// 记录Agent端的连接和最后一个消息ID
-			agentID := conn.RemoteAddr().String()
-			if len(messages) > 0 {
-				c.mu.Lock()
-				c.agentMsgIDs[agentID] = messages[0].MsgID
-				c.mu.Unlock()
-			}
-
 			// 处理消息
 			for _, msg := range messages {
-				switch msg.Type {
-				case message.Heartbeat: // 收到心跳
-					// TODO: 维护在线状态
-					global.LOG.Info("Heartbeat from %s", agentID)
-				case message.CmdMessage: // 收到Cmd 类型的回复
-					global.LOG.Info("Processing cmd message: %s", msg.Data)
-					// 获取响应通道
-					c.mu.Lock()
-					responseCh, exists := c.responseChMap[msg.MsgID]
-					if exists {
-						responseCh <- msg.Data
-						close(responseCh)
-						delete(c.responseChMap, msg.MsgID)
-					}
-					c.mu.Unlock()
-				case message.ActionMessage: // 处理 Action 类型的消息
-					global.LOG.Info("Processing action message: %s", msg.Data)
-					//获取响应通道
-					c.mu.Lock()
-					responseCh, exists := c.responseChMap[msg.MsgID]
-					if exists {
-						responseCh <- msg.Data // msg.Data 是 model.Action
-						close(responseCh)
-						delete(c.responseChMap, msg.MsgID)
-					}
-					c.mu.Unlock()
-				default: // 不支持的消息
-					global.LOG.Error("Unknown message type: %s", msg.Type)
+				switch m := msg.(type) {
+				case *message.Message:
+					c.processMessage(m)
+				case *message.FileMessage:
+					c.processFileMessage(m)
+				default:
+					fmt.Println("Unknown message type")
 				}
 			}
 		}
@@ -356,6 +329,53 @@ func (c *Center) handleConnection(conn net.Conn) {
 	}
 
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
+}
+
+func (c *Center) processMessage(msg *message.Message) {
+	switch msg.Type {
+	case message.Heartbeat: // 收到心跳
+		// TODO: 维护在线状态
+	case message.CmdMessage: // 收到Cmd 类型的回复
+		global.LOG.Info("Processing cmd message: %s", msg.Data)
+		// 获取响应通道
+		c.mu.Lock()
+		responseCh, exists := c.responseChMap[msg.MsgID]
+		if exists {
+			responseCh <- msg.Data
+			close(responseCh)
+			delete(c.responseChMap, msg.MsgID)
+		}
+		c.mu.Unlock()
+	case message.ActionMessage: // 处理 Action 类型的消息
+		global.LOG.Info("Processing action message: %s", msg.Data)
+		//获取响应通道
+		c.mu.Lock()
+		responseCh, exists := c.responseChMap[msg.MsgID]
+		if exists {
+			responseCh <- msg.Data // msg.Data 是 model.Action
+			close(responseCh)
+			delete(c.responseChMap, msg.MsgID)
+		}
+		c.mu.Unlock()
+	default: // 不支持的消息
+		global.LOG.Error("Unknown message type: %s", msg.Type)
+	}
+}
+
+func (c *Center) processFileMessage(msg *message.FileMessage) {
+	switch msg.Type {
+	case message.Upload: //上传回复
+		global.LOG.Info("Processing file message")
+		// 获取响应通道
+		c.mu.Lock()
+		responseCh, exists := c.fileResponseChMap[msg.MsgID]
+		if exists {
+			responseCh <- msg
+			close(responseCh)
+			delete(c.responseChMap, msg.MsgID)
+		}
+		c.mu.Unlock()
+	}
 }
 
 func (c *Center) sendHeartbeat() {
@@ -386,6 +406,108 @@ func (c *Center) sendHeartbeat() {
 			global.LOG.Info("Heartbeat sent to %s", agentID)
 		}
 	}
+}
+
+func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader) error {
+
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(hostID))
+	if err != nil || host.ID == 0 {
+		return errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return err
+	}
+
+	// 打开文件
+	srcFile, err := file.Open()
+	if err != nil {
+		return errors.WithMessage(errors.New(constant.ErrFileOpen), err.Error())
+	}
+	defer srcFile.Close()
+
+	// 获取文件大小
+	fileSize := file.Size
+
+	// 创建等待响应的通道
+	responseCh := make(chan *message.FileMessage)
+
+	// 生成消息ID
+	msgID := utils.GenerateMsgId()
+
+	// 将通道和msgID映射存储在map中
+	c.mu.Lock()
+	c.fileResponseChMap[msgID] = responseCh
+	c.mu.Unlock()
+
+	// 分块读取文件并发送
+	const bufferSize = 256 * 1024 // 256KB 块大小
+	buffer := make([]byte, bufferSize)
+	var offset int64 = 0
+	for {
+		// 读取文件块
+		n, err := srcFile.Read(buffer)
+		if err != nil && err != io.EOF {
+			return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
+		}
+		if n == 0 {
+			break // 文件读取完毕
+		}
+
+		// 构造要发送的消息
+		msg, err := message.CreateFileMessage(
+			msgID,
+			message.Upload,
+			0,
+			path,
+			file.Filename,
+			fileSize,
+			offset,
+			n,
+			buffer[:n],
+		)
+		if err != nil {
+			return errors.WithMessage(constant.ErrInternalServer, err.Error())
+		}
+
+		// 并发发送消息
+		go func() {
+			err := message.SendFileMessage(conn, msg)
+			if err != nil {
+				global.LOG.Error("Failed to send file chunk: %v", err)
+				// 如果发送失败，写入空响应
+				msg.Status = message.FileErr
+				responseCh <- msg
+			}
+		}()
+
+		// 等待 agent 响应
+		select {
+		case response := <-responseCh:
+			if response.Status == message.FileErr {
+				return errors.New("failed to upload file chunk")
+			}
+			// 继续下一块
+		case <-time.After(10 * time.Second): // 设置超时时间
+			c.mu.Lock()
+			delete(c.responseChMap, msgID)
+			c.mu.Unlock()
+			return fmt.Errorf("timeout waiting for response from agent")
+		}
+
+		// 更新偏移量，准备发送下一块
+		offset += int64(n)
+	}
+
+	// 上传完成，删除 responseCh 映射
+	c.mu.Lock()
+	delete(c.responseChMap, msgID)
+	c.mu.Unlock()
+
+	return nil
 }
 
 func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
