@@ -2,13 +2,14 @@ package entry
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/core/api/dto"
+
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/model"
 )
 
 // List groups
 func (b *BaseApi) ListGroup(c *gin.Context) {
-	var req dto.PageInfo
+	var req model.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -23,7 +24,7 @@ func (b *BaseApi) ListGroup(c *gin.Context) {
 
 // Create group
 func (b *BaseApi) CreateGroup(c *gin.Context) {
-	var req dto.CreateGroup
+	var req model.CreateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -38,7 +39,7 @@ func (b *BaseApi) CreateGroup(c *gin.Context) {
 
 // Update group
 func (b *BaseApi) UpdateGroup(c *gin.Context) {
-	var req dto.UpdateGroup
+	var req model.UpdateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -54,7 +55,7 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 
 // Delete group
 func (b *BaseApi) DeleteGroup(c *gin.Context) {
-	var req dto.DeleteGroup
+	var req model.DeleteGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

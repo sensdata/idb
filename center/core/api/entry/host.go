@@ -3,12 +3,12 @@ package entry
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/center/core/api/dto"
+	"github.com/sensdata/idb/core/model"
 )
 
 // List host group
 func (b *BaseApi) ListHostGroup(c *gin.Context) {
-	var req dto.PageInfo
+	var req model.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -23,7 +23,7 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 
 // List hosts
 func (b *BaseApi) ListHost(c *gin.Context) {
-	var req dto.ListHost
+	var req model.ListHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -38,7 +38,7 @@ func (b *BaseApi) ListHost(c *gin.Context) {
 
 // Create host
 func (b *BaseApi) CreateHost(c *gin.Context) {
-	var req dto.CreateHost
+	var req model.CreateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -53,7 +53,7 @@ func (b *BaseApi) CreateHost(c *gin.Context) {
 
 // Update host
 func (b *BaseApi) UpdateHost(c *gin.Context) {
-	var req dto.UpdateHost
+	var req model.UpdateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 
 // Update host ssh
 func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
-	var req dto.UpdateHostSSH
+	var req model.UpdateHostSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -84,7 +84,7 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 
 // Update host agent
 func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
-	var req dto.UpdateHostAgent
+	var req model.UpdateHostAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -98,7 +98,7 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 
 // Test host ssh
 func (b *BaseApi) TestHostSSH(c *gin.Context) {
-	var req dto.TestSSH
+	var req model.TestSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -112,7 +112,7 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 
 // Test agent
 func (b *BaseApi) TestHostAgent(c *gin.Context) {
-	var req dto.TestAgent
+	var req model.TestAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

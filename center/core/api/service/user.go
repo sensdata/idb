@@ -4,19 +4,20 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/center/core/api/dto"
+
 	"github.com/sensdata/idb/center/db/model"
+	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
 
 type UserService struct{}
 
 type IUserService interface {
-	List(req dto.PageInfo) (*dto.PageResult, error)
-	Create(req dto.CreateUser) (*dto.UserInfo, error)
+	List(req core.PageInfo) (*core.PageResult, error)
+	Create(req core.CreateUser) (*core.UserInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
-	ChangePassword(req dto.ChangePassword) error
+	ChangePassword(req core.ChangePassword) error
 }
 
 func NewIUserService() IUserService {
@@ -24,17 +25,17 @@ func NewIUserService() IUserService {
 }
 
 // List user
-func (s *UserService) List(req dto.PageInfo) (*dto.PageResult, error) {
+func (s *UserService) List(req core.PageInfo) (*core.PageResult, error) {
 	total, users, err := UserRepo.Page(req.Page, req.PageSize)
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
-	return &dto.PageResult{Total: total, Items: users}, nil
+	return &core.PageResult{Total: total, Items: users}, nil
 }
 
 // Create user
-func (s *UserService) Create(req dto.CreateUser) (*dto.UserInfo, error) {
+func (s *UserService) Create(req core.CreateUser) (*core.UserInfo, error) {
 	var user model.User
 	if err := copier.Copy(&user, &req); err != nil {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
@@ -66,12 +67,12 @@ func (s *UserService) Create(req dto.CreateUser) (*dto.UserInfo, error) {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
-	return &dto.UserInfo{
+	return &core.UserInfo{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UserName:  user.Username,
-		RoleInfo:  dto.RoleInfo{ID: role.ID, RoleName: role.Name, CreatedAt: role.CreatedAt},
-		GroupInfo: dto.GroupInfo{ID: group.ID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		RoleInfo:  core.RoleInfo{ID: role.ID, RoleName: role.Name, CreatedAt: role.CreatedAt},
+		GroupInfo: core.GroupInfo{ID: group.ID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
 		Valid:     user.Valid,
 	}, nil
 }
@@ -84,7 +85,7 @@ func (s *UserService) Delete(ids []uint) error {
 	return UserRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
-func (s *UserService) ChangePassword(req dto.ChangePassword) error {
+func (s *UserService) ChangePassword(req core.ChangePassword) error {
 	//找用户
 	user, err := UserRepo.Get(UserRepo.WithByID(req.UserID))
 	if err != nil {

@@ -3,12 +3,12 @@ package entry
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/center/core/api/dto"
+	"github.com/sensdata/idb/core/model"
 )
 
 // List users
 func (b *BaseApi) ListUser(c *gin.Context) {
-	var req dto.PageInfo
+	var req model.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -23,7 +23,7 @@ func (b *BaseApi) ListUser(c *gin.Context) {
 
 // Create user
 func (b *BaseApi) CreateUser(c *gin.Context) {
-	var req dto.CreateUser
+	var req model.CreateUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -38,7 +38,7 @@ func (b *BaseApi) CreateUser(c *gin.Context) {
 
 // Update user
 func (b *BaseApi) UpdateUser(c *gin.Context) {
-	var req dto.UpdateUser
+	var req model.UpdateUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -56,7 +56,7 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 
 // Delete user
 func (b *BaseApi) DeleteUser(c *gin.Context) {
-	var req dto.DeleteUser
+	var req model.DeleteUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func (b *BaseApi) DeleteUser(c *gin.Context) {
 
 // Valid user
 func (b *BaseApi) ValidUser(c *gin.Context) {
-	var req dto.ValidUser
+	var req model.ValidUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -86,7 +86,7 @@ func (b *BaseApi) ValidUser(c *gin.Context) {
 
 // Change password
 func (b *BaseApi) ChangePassword(c *gin.Context) {
-	var req dto.ChangePassword
+	var req model.ChangePassword
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

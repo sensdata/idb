@@ -9,13 +9,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/center/core/api/dto"
+	"github.com/sensdata/idb/core/model"
+
 	"github.com/sensdata/idb/center/global"
 	"gorm.io/gorm"
 )
 
 func ErrorWithDetail(ctx *gin.Context, code int, msg string, err error) {
-	res := dto.Response{
+	res := model.Response{
 		Code:    code,
 		Message: msg,
 	}
@@ -27,7 +28,7 @@ func SuccessWithData(ctx *gin.Context, data interface{}) {
 	if data == nil {
 		data = gin.H{}
 	}
-	res := dto.Response{
+	res := model.Response{
 		Code: constant.CodeSuccess,
 		Data: data,
 	}
@@ -36,7 +37,7 @@ func SuccessWithData(ctx *gin.Context, data interface{}) {
 }
 
 func SuccessWithOutData(ctx *gin.Context) {
-	res := dto.Response{
+	res := model.Response{
 		Code:    constant.CodeSuccess,
 		Message: "success",
 	}
@@ -45,7 +46,7 @@ func SuccessWithOutData(ctx *gin.Context) {
 }
 
 func SuccessWithMsg(ctx *gin.Context, msg string) {
-	res := dto.Response{
+	res := model.Response{
 		Code:    constant.CodeSuccess,
 		Message: msg,
 	}

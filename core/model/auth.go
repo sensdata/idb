@@ -1,4 +1,4 @@
-package dto
+package model
 
 type Login struct {
 	Name     string `json:"name" validate:"required"`

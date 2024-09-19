@@ -16,7 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/center/core/api/dto"
+
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
@@ -42,7 +42,7 @@ type ICenter interface {
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
-	TestAgent(req dto.TestAgent) error
+	TestAgent(req core.TestAgent) error
 }
 
 func NewCenter() ICenter {
@@ -846,7 +846,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	}
 }
 
-func (c *Center) TestAgent(req dto.TestAgent) error {
+func (c *Center) TestAgent(req core.TestAgent) error {
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
 	if err != nil {

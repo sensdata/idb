@@ -2,8 +2,8 @@ package entry
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/model"
 )
 
 // @Tags Auth
@@ -11,11 +11,11 @@ import (
 // @Description 用户登录
 // @Accept json
 // @Produce json
-// @Param request body dto.Login true "request"
-// @Success 200 {object} dto.LoginResult
+// @Param request body model.Login true "request"
+// @Success 200 {object} model.LoginResult
 // @Router /auth/login [post]
 func (b *BaseApi) Login(c *gin.Context) {
-	var req dto.Login
+	var req model.Login
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

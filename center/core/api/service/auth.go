@@ -4,14 +4,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/center/core/api/dto"
+	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
 
 type AuthService struct{}
 
 type IAuthService interface {
-	Login(c *gin.Context, info dto.Login) (*dto.LoginResult, error)
+	Login(c *gin.Context, info model.Login) (*model.LoginResult, error)
 	LogOut(c *gin.Context) error
 }
 
@@ -25,7 +25,7 @@ func (s *AuthService) LogOut(c *gin.Context) error {
 }
 
 // Login implements IAuthService.
-func (s *AuthService) Login(c *gin.Context, info dto.Login) (*dto.LoginResult, error) {
+func (s *AuthService) Login(c *gin.Context, info model.Login) (*model.LoginResult, error) {
 	user, err := UserRepo.Get(UserRepo.WithByName(info.Name))
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrInvalidAccountOrPassword, err.Error())
@@ -42,5 +42,5 @@ func (s *AuthService) Login(c *gin.Context, info dto.Login) (*dto.LoginResult, e
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
-	return &dto.LoginResult{Name: user.Username, Token: token}, nil
+	return &model.LoginResult{Name: user.Username, Token: token}, nil
 }

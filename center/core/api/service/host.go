@@ -3,26 +3,27 @@ package service
 import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	"github.com/sensdata/idb/center/core/api/dto"
+
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/core/constant"
+	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
 
 type HostService struct{}
 
 type IHostService interface {
-	ListGroup(req dto.PageInfo) (*dto.PageResult, error)
-	List(req dto.ListHost) (*dto.PageResult, error)
-	Create(req dto.CreateHost) (*dto.HostInfo, error)
+	ListGroup(req core.PageInfo) (*core.PageResult, error)
+	List(req core.ListHost) (*core.PageResult, error)
+	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
-	UpdateSSH(req dto.UpdateHostSSH) error
-	UpdateAgent(req dto.UpdateHostAgent) error
-	TestSSH(req dto.TestSSH) error
-	TestAgent(req dto.TestAgent) error
+	UpdateSSH(req core.UpdateHostSSH) error
+	UpdateAgent(req core.UpdateHostAgent) error
+	TestSSH(req core.TestSSH) error
+	TestAgent(req core.TestAgent) error
 }
 
 func NewIHostService() IHostService {
@@ -30,17 +31,17 @@ func NewIHostService() IHostService {
 }
 
 // List host group
-func (s *HostService) ListGroup(req dto.PageInfo) (*dto.PageResult, error) {
+func (s *HostService) ListGroup(req core.PageInfo) (*core.PageResult, error) {
 	total, groups, err := HostGroupRepo.Page(req.Page, req.PageSize)
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
-	return &dto.PageResult{Total: total, Items: groups}, nil
+	return &core.PageResult{Total: total, Items: groups}, nil
 }
 
 // List host
-func (s *HostService) List(req dto.ListHost) (*dto.PageResult, error) {
+func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 	var opts []repo.DBOption
 	opts = append(opts, HostRepo.WithByGroupID(req.GroupID))
 	if req.Keyword != "" {
@@ -52,10 +53,10 @@ func (s *HostService) List(req dto.ListHost) (*dto.PageResult, error) {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
-	return &dto.PageResult{Total: total, Items: hosts}, nil
+	return &core.PageResult{Total: total, Items: hosts}, nil
 }
 
-func (s *HostService) Create(req dto.CreateHost) (*dto.HostInfo, error) {
+func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 	var host model.Host
 	if err := copier.Copy(&host, &req); err != nil {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
@@ -77,10 +78,10 @@ func (s *HostService) Create(req dto.CreateHost) (*dto.HostInfo, error) {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
-	return &dto.HostInfo{
+	return &core.HostInfo{
 		ID:         host.ID,
 		CreatedAt:  host.CreatedAt,
-		GroupInfo:  dto.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		GroupInfo:  core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
 		Name:       host.Name,
 		Addr:       host.Addr,
 		Port:       host.Port,
@@ -104,7 +105,7 @@ func (s *HostService) Delete(ids []uint) error {
 	return HostRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
-func (s *HostService) UpdateSSH(req dto.UpdateHostSSH) error {
+func (s *HostService) UpdateSSH(req core.UpdateHostSSH) error {
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
 	if err != nil {
@@ -124,7 +125,7 @@ func (s *HostService) UpdateSSH(req dto.UpdateHostSSH) error {
 	return HostRepo.Update(host.ID, upMap)
 }
 
-func (s *HostService) UpdateAgent(req dto.UpdateHostAgent) error {
+func (s *HostService) UpdateAgent(req core.UpdateHostAgent) error {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
 	if err != nil {
@@ -141,7 +142,7 @@ func (s *HostService) UpdateAgent(req dto.UpdateHostAgent) error {
 	return HostRepo.Update(host.ID, upMap)
 }
 
-func (s *HostService) TestSSH(req dto.TestSSH) error {
+func (s *HostService) TestSSH(req core.TestSSH) error {
 	var host model.Host
 	if err := copier.Copy(&host, &req); err != nil {
 		return err
@@ -152,7 +153,7 @@ func (s *HostService) TestSSH(req dto.TestSSH) error {
 	return nil
 }
 
-func (s *HostService) TestAgent(req dto.TestAgent) error {
+func (s *HostService) TestAgent(req core.TestAgent) error {
 	if err := conn.CENTER.TestAgent(req); err != nil {
 		return err
 	}
