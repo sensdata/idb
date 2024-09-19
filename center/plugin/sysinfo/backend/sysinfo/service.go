@@ -57,7 +57,12 @@ func (s *SysInfo) Release() {
 
 }
 
-// GetPluginInfo 处理 /sysinfo/plugin_info 请求
+// @Tags Sysinfo
+// @Summary Plugin info
+// @Description 插件信息
+// @Accept json
+// @Success 200 {array} plugin.PluginInfo
+// @Router /sysinfo/info [get]
 func (s *SysInfo) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
 	if err != nil {
@@ -67,7 +72,12 @@ func (s *SysInfo) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// GetMenu 处理 /sysinfo/menu 请求
+// @Tags Sysinfo
+// @Summary Plugin menu
+// @Description 插件菜单
+// @Accept json
+// @Success 200 {array} plugin.PluginInfo
+// @Router /sysinfo/menu [get]
 func (s *SysInfo) GetMenu(c *gin.Context) {
 	menuItems, err := s.getMenus()
 	if err != nil {
@@ -77,7 +87,12 @@ func (s *SysInfo) GetMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "menu", "payload": menuItems})
 }
 
-// GetOverview 处理 /sysinfo/overview 请求
+// @Tags Sysinfo
+// @Summary Get overview
+// @Description 获取系统概览
+// @Accept json
+// @Success 200 {array} model.Overview
+// @Router /sysinfo/overview [get]
 func (s *SysInfo) GetOverview(c *gin.Context) {
 	overview, err := s.getOverview()
 	if err != nil {
@@ -87,6 +102,12 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "overview", "payload": overview})
 }
 
+// @Tags Sysinfo
+// @Summary Get network
+// @Description 获取网络信息
+// @Accept json
+// @Success 200 {array} model.NetworkInfo
+// @Router /sysinfo/network [get]
 func (s *SysInfo) GetNetwork(c *gin.Context) {
 	network, err := s.getNetwork()
 	if err != nil {
@@ -96,6 +117,12 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": network})
 }
 
+// @Tags Sysinfo
+// @Summary Get system info
+// @Description 获取系统信息
+// @Accept json
+// @Success 200 {array} model.SystemInfo
+// @Router /sysinfo/system [get]
 func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 	system, err := s.getSystemInfo()
 	if err != nil {
@@ -105,6 +132,12 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": system})
 }
 
+// @Tags Sysinfo
+// @Summary Get system config
+// @Description 获取系统配置
+// @Accept json
+// @Success 200 {array} model.SystemConfig
+// @Router /sysinfo/config [get]
 func (s *SysInfo) GetConfig(c *gin.Context) {
 	config, err := s.getConfig()
 	if err != nil {
@@ -114,6 +147,12 @@ func (s *SysInfo) GetConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": config})
 }
 
+// @Tags Sysinfo
+// @Summary Get hardware info
+// @Description 获取硬件信息
+// @Accept json
+// @Success 200 {array} model.HardwareInfo
+// @Router /sysinfo/hardware [get]
 func (s *SysInfo) GetHardware(c *gin.Context) {
 	hardware, err := s.getHardware()
 	if err != nil {

@@ -59,7 +59,12 @@ func (s *SSHMan) Release() {
 
 }
 
-// GetPluginInfo 处理 /fileman/plugin_info 请求
+// @Tags SSH
+// @Summary Plugin info
+// @Description 插件信息
+// @Accept json
+// @Success 200 {array} plugin.PluginInfo
+// @Router /ssh/info [get]
 func (s *SSHMan) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
 	if err != nil {
@@ -69,7 +74,12 @@ func (s *SSHMan) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// GetMenu 处理 /fileman/menu 请求
+// @Tags SSH
+// @Summary Plugin menu
+// @Description 插件菜单
+// @Accept json
+// @Success 200 {array} plugin.MenuItem
+// @Router /ssh/menu [get]
 func (s *SSHMan) GetMenu(c *gin.Context) {
 	menuItems, err := s.getMenus()
 	if err != nil {
