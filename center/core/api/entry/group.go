@@ -7,7 +7,14 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-// List groups
+// @Tags Group
+// @Summary get group list
+// @Description 获取组列表
+// @Accept json
+// @Produce json
+// @Param request body model.PageInfo true "request"
+// @Success 200 {object} model.PageResult
+// @Router /group/list [post]
 func (b *BaseApi) ListGroup(c *gin.Context) {
 	var req model.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -22,7 +29,14 @@ func (b *BaseApi) ListGroup(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
-// Create group
+// @Tags Group
+// @Summary create group
+// @Description 创建组
+// @Accept json
+// @Produce json
+// @Param request body model.CreateGroup true "request"
+// @Success 200 {object} model.GroupInfo
+// @Router /group/create [post]
 func (b *BaseApi) CreateGroup(c *gin.Context) {
 	var req model.CreateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -37,7 +51,14 @@ func (b *BaseApi) CreateGroup(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
-// Update group
+// @Tags Group
+// @Summary update group
+// @Description 更新组
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateGroup true "request"
+// @Success 200
+// @Router /group/update [post]
 func (b *BaseApi) UpdateGroup(c *gin.Context) {
 	var req model.UpdateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -53,7 +74,14 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// Delete group
+// @Tags Group
+// @Summary delete group
+// @Description 删除组
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateGroup true "request"
+// @Success 200
+// @Router /group/update [post]
 func (b *BaseApi) DeleteGroup(c *gin.Context) {
 	var req model.DeleteGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {

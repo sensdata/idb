@@ -6,6 +6,14 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
+// @Tags Command
+// @Summary send linux command to host
+// @Description 向目标设备发送linux指令
+// @Accept json
+// @Produce json
+// @Param request body model.Command true "request"
+// @Success 200
+// @Router /cmd/send [post]
 func (b *BaseApi) SendCommand(c *gin.Context) {
 	var req model.Command
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -20,6 +28,14 @@ func (b *BaseApi) SendCommand(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
+// @Tags Command
+// @Summary send group of linux command to host
+// @Description 向目标设备发送一组linux指令
+// @Accept json
+// @Produce json
+// @Param request body model.CommandGroup true "request"
+// @Success 200
+// @Router /cmd/send/group [post]
 func (b *BaseApi) SendCommandGroup(c *gin.Context) {
 	var req model.CommandGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {

@@ -54,5 +54,16 @@ func (s *GroupService) Update(id uint, upMap map[string]interface{}) error {
 }
 
 func (s *GroupService) Delete(ids []uint) error {
+	defaultGroup, err := GroupRepo.Get(GroupRepo.WithByName("default"))
+	if err != nil {
+		return errors.WithMessage(constant.ErrInternalServer, err.Error())
+	}
+	//判断如果ids中包含 defaultGroup.ID
+	for _, id := range ids {
+		if id == defaultGroup.ID {
+			return errors.WithMessage(constant.ErrInternalServer, "can't delete default group")
+		}
+	}
+
 	return GroupRepo.Delete(CommonRepo.WithIdsIn(ids))
 }

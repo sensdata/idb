@@ -6,7 +6,14 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-// List host group
+// @Tags Host
+// @Summary get host group list
+// @Description 获取设备组列表
+// @Accept json
+// @Produce json
+// @Param request body model.PageInfo true "request"
+// @Success 200 {object} model.PageResult
+// @Router /host/list/group [post]
 func (b *BaseApi) ListHostGroup(c *gin.Context) {
 	var req model.PageInfo
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -21,7 +28,14 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
-// List hosts
+// @Tags Host
+// @Summary get host list
+// @Description 获取设备组列表
+// @Accept json
+// @Produce json
+// @Param request body model.ListHost true "request"
+// @Success 200 {object} model.PageResult
+// @Router /host/list [post]
 func (b *BaseApi) ListHost(c *gin.Context) {
 	var req model.ListHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -36,7 +50,14 @@ func (b *BaseApi) ListHost(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
-// Create host
+// @Tags Host
+// @Summary create host
+// @Description 新增设备
+// @Accept json
+// @Produce json
+// @Param request body model.CreateHost true "request"
+// @Success 200 {object} model.HostInfo
+// @Router /host/create [post]
 func (b *BaseApi) CreateHost(c *gin.Context) {
 	var req model.CreateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -51,7 +72,14 @@ func (b *BaseApi) CreateHost(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
-// Update host
+// @Tags Host
+// @Summary update host
+// @Description 更新设备
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateHost true "request"
+// @Success 200
+// @Router /host/update [post]
 func (b *BaseApi) UpdateHost(c *gin.Context) {
 	var req model.UpdateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -68,7 +96,14 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// Update host ssh
+// @Tags Host
+// @Summary update host ssh config
+// @Description 更新设备ssh配置
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateHostSSH true "request"
+// @Success 200
+// @Router /host/update/ssh [post]
 func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 	var req model.UpdateHostSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -82,7 +117,14 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// Update host agent
+// @Tags Host
+// @Summary update host agent config
+// @Description 更新设备agent配置
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateHostAgent true "request"
+// @Success 200
+// @Router /host/update/agent [post]
 func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	var req model.UpdateHostAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -96,7 +138,14 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// Test host ssh
+// @Tags Host
+// @Summary test host ssh
+// @Description 测试设备ssh
+// @Accept json
+// @Produce json
+// @Param request body model.TestSSH true "request"
+// @Success 200
+// @Router /host/test/ssh [post]
 func (b *BaseApi) TestHostSSH(c *gin.Context) {
 	var req model.TestSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -110,7 +159,14 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// Test agent
+// @Tags Host
+// @Summary test host agent
+// @Description 测试设备agent
+// @Accept json
+// @Produce json
+// @Param request body model.TestAgent true "request"
+// @Success 200
+// @Router /host/test/agent [post]
 func (b *BaseApi) TestHostAgent(c *gin.Context) {
 	var req model.TestAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
