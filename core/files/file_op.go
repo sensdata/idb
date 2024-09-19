@@ -154,6 +154,59 @@ func (f FileOp) WriteChunkToFile(dst string, name string, offset int64, chunkSiz
 	return nil
 }
 
+func (f FileOp) ReadChunkFromFile(filePath string, offset int64, chunkSize int) (int64, int, []byte, error) {
+	// 检查文件是否存在
+	if !f.Stat(filePath) {
+		return 0, 0, nil, fmt.Errorf("file %s does not exist", filePath)
+	}
+
+	// 打开文件进行读取
+	file, err := f.Fs.OpenFile(filePath, os.O_RDONLY, 0644)
+	if err != nil {
+		return 0, 0, nil, fmt.Errorf("failed to open file %s: %v", filePath, err)
+	}
+	defer file.Close()
+
+	// 获取文件总大小
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return 0, 0, nil, fmt.Errorf("failed to get file info for %s: %v", filePath, err)
+	}
+	totalSize := fileInfo.Size()
+
+	// 检查偏移量是否超出文件大小
+	if offset >= totalSize {
+		return totalSize, 0, nil, fmt.Errorf("offset %d is beyond file size %d", offset, totalSize)
+	}
+
+	// 移动到偏移量
+	pos, err := file.Seek(offset, io.SeekStart)
+	if err != nil {
+		return totalSize, 0, nil, fmt.Errorf("failed to seek to offset %d in file %s: %v", offset, filePath, err)
+	}
+	if pos != offset {
+		return totalSize, 0, nil, fmt.Errorf("failed to seek to offset %d in file %s: %v", offset, filePath, err)
+	}
+
+	// 准备缓冲区来读取指定大小的数据
+	if chunkSize == 0 {
+		chunkSize = 256 * 1024
+	}
+	chunk := make([]byte, chunkSize)
+
+	// 读取数据
+	readBytes, err := file.Read(chunk)
+	if err != nil && err != io.EOF {
+		return totalSize, 0, nil, fmt.Errorf("failed to read file %s at offset %d: %v", filePath, offset, err)
+	}
+	if readBytes == 0 {
+		return totalSize, 0, nil, fmt.Errorf("failed to read file %s at offset %d: %v", filePath, offset, err)
+	}
+
+	// 返回文件的总大小、读取的字节数、数据块
+	return totalSize, readBytes, chunk[:readBytes], nil
+}
+
 func (f FileOp) WriteFile(dst string, in io.Reader, mode fs.FileMode) error {
 	file, err := f.Fs.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {

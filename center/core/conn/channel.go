@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/core/api/dto"
 	"github.com/sensdata/idb/center/db/model"
@@ -39,6 +41,7 @@ type ICenter interface {
 	ExecuteCommandGroup(req core.CommandGroup) ([]string, error)
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
+	DownloadFile(ctx *gin.Context, hostID uint, path string) error
 	TestAgent(req dto.TestAgent) error
 }
 
@@ -374,10 +377,23 @@ func (c *Center) processMessage(msg *message.Message) {
 }
 
 func (c *Center) processFileMessage(msg *message.FileMessage) {
-	global.LOG.Info("FileMessage: %s, %d, %d, %d", msg.FileName, msg.Status, msg.Offset, msg.ChunkSize)
-
 	switch msg.Type {
 	case message.Upload: //上传回复
+		global.LOG.Info("Upload: %s, %d, %d, %d", msg.FileName, msg.Status, msg.Offset, msg.ChunkSize)
+		// 获取响应通道
+		c.mu.Lock()
+		responseCh, exists := c.fileResponseChMap[msg.MsgID]
+		if exists {
+			responseCh <- msg
+			//最后一次传输，关闭通道
+			if msg.Status == message.FileDone {
+				close(responseCh)
+				delete(c.fileResponseChMap, msg.MsgID)
+			}
+		}
+		c.mu.Unlock()
+	case message.Download: //下载回复
+		global.LOG.Info("Download: %s, %d, %d, %d", msg.FileName, msg.Status, msg.Offset, msg.ChunkSize)
 		// 获取响应通道
 		c.mu.Lock()
 		responseCh, exists := c.fileResponseChMap[msg.MsgID]
@@ -434,7 +450,7 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 	// 查找agent conn
 	conn, err := c.getAgentConn(host)
 	if err != nil {
-		return err
+		return errors.WithMessage(constant.ErrAgent, err.Error())
 	}
 
 	// 打开文件
@@ -508,7 +524,7 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 			// 继续下一块
 		case <-time.After(10 * time.Second): // 设置超时时间
 			c.mu.Lock()
-			delete(c.responseChMap, msgID)
+			delete(c.fileResponseChMap, msgID)
 			c.mu.Unlock()
 			return fmt.Errorf("timeout waiting for response from agent")
 		}
@@ -517,11 +533,108 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 		offset += int64(n)
 	}
 
-	// 上传完成，删除 responseCh 映射
+	return nil
+}
+
+func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error {
+	dir := filepath.Dir(path)
+	// 解析出文件名
+	fileName := filepath.Base(path)
+
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(hostID))
+	if err != nil || host.ID == 0 {
+		return errors.WithMessage(constant.ErrHost, err.Error())
+	}
+
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return errors.WithMessage(constant.ErrAgent, err.Error())
+	}
+
+	// 设置 HTTP 响应头，确保下载的是文件
+	ctx.Header("Content-Disposition", "attachment; filename="+fileName)
+	// 根据文件扩展名获取 MIME 类型
+	mimeType := mime.TypeByExtension(filepath.Ext(fileName))
+	if mimeType == "" {
+		// 如果无法确定 MIME 类型，使用默认的二进制流类型
+		mimeType = "application/octet-stream"
+	}
+	ctx.Header("Content-Type", mimeType)
+
+	// 创建等待响应的通道
+	responseCh := make(chan *message.FileMessage)
+
+	// 生成消息ID
+	msgID := utils.GenerateMsgId()
+
+	// 将通道和msgID映射存储在map中
 	c.mu.Lock()
-	delete(c.responseChMap, msgID)
+	c.fileResponseChMap[msgID] = responseCh
 	c.mu.Unlock()
 
+	var finished bool = false
+	var offset int64 = 0
+	for {
+		// 完成时，跳出
+		if finished {
+			break
+		}
+
+		go func() {
+			// 构造要发送的消息
+			msg, err := message.CreateFileMessage(
+				msgID,
+				message.Download,
+				0,
+				dir,
+				fileName,
+				0,
+				offset,
+				256*1024,
+				nil,
+			)
+			if err != nil {
+				global.LOG.Error("Failed to create file message: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
+				// 如果发送失败，写入空响应
+				msg.Status = message.FileErr
+				responseCh <- msg
+				return
+			}
+
+			err = message.SendFileMessage(conn, msg)
+			if err != nil {
+				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
+				// 如果发送失败，写入空响应
+				msg.Status = message.FileErr
+				responseCh <- msg
+			}
+		}()
+
+		select {
+		case response := <-responseCh:
+			if response.Status == message.FileErr {
+				return errors.New("failed to download file chunk")
+			}
+			// 写入response
+			if _, err := ctx.Writer.Write(response.Chunk[:response.ChunkSize]); err != nil {
+				return errors.WithMessage(constant.ErrInternalServer, err.Error())
+			}
+			// 如果已经完成
+			if response.Status == message.FileDone {
+				finished = true
+			} else {
+				// 继续请求下一块
+				offset = response.Offset + int64(response.ChunkSize)
+			}
+		case <-time.After(10 * time.Second): // 设置超时时间
+			c.mu.Lock()
+			delete(c.fileResponseChMap, msgID)
+			c.mu.Unlock()
+			return fmt.Errorf("timeout waiting for response from agent")
+		}
+	}
 	return nil
 }
 

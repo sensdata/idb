@@ -408,6 +408,27 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 			}
 			a.sendUploadResult(conn, msg, status)
 		}
+	case message.Download: //下载
+		totalSize, bytesRead, chunk, err := files.NewFileOp().ReadChunkFromFile(
+			filepath.Join(msg.Path, msg.FileName),
+			msg.Offset,
+			msg.ChunkSize,
+		)
+		global.LOG.Info("read from file: %d %d", totalSize, bytesRead)
+		if err != nil {
+			global.LOG.Error("Failed to process download: %v", err)
+			msg.Status = message.FileErr
+		} else {
+			msg.TotalSize = totalSize
+			msg.ChunkSize = bytesRead
+			msg.Chunk = chunk
+			msg.Status = message.FileOk
+			//如果是最后一次传输，则设置为Done
+			if msg.Offset+int64(msg.ChunkSize) == msg.TotalSize {
+				msg.Status = message.FileDone
+			}
+		}
+		a.sendDownloadResult(conn, msg)
 	}
 }
 
@@ -965,7 +986,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 
-		log, err := SshService.LoadLog(req)
+		log, _ := SshService.LoadLog(req)
 		result, err := utils.ToJSONString(log)
 		if err != nil {
 			return nil, err
@@ -1111,6 +1132,17 @@ func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status
 	}
 
 	err = message.SendFileMessage(conn, rspMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send file rsp : %v", err)
+		return
+	}
+	global.LOG.Info("File rsp send to %s", centerID)
+}
+
+func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
+	centerID := conn.RemoteAddr().String()
+
+	err := message.SendFileMessage(conn, msg)
 	if err != nil {
 		global.LOG.Error("Failed to send file rsp : %v", err)
 		return

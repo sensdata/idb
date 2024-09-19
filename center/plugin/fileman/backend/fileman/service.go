@@ -55,7 +55,7 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/content", Handler: s.GetContent},
 			{Method: "POST", Path: "/content/save", Handler: s.SaveContent},
 			{Method: "POST", Path: "/upload", Handler: s.Upload},
-			{Method: "POST", Path: "/download", Handler: s.Download},
+			{Method: "GET", Path: "/download", Handler: s.Download},
 			{Method: "POST", Path: "/wget", Handler: s.WgetFile},
 			{Method: "POST", Path: "/size", Handler: s.Size},
 			{Method: "POST", Path: "/rename", Handler: s.ChangeFileName},
@@ -287,7 +287,9 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Tags File
 // @Summary Upload file
 // @Description 上传文件
-// @Param file formData file true "request"
+// @Param host formData string true "host ID"
+// @Param path formData string true "目标目录"
+// @Param file formData file true "文件"
 // @Success 200
 // @Router /files/upload [post]
 func (s *FileMan) Upload(c *gin.Context) {
@@ -331,10 +333,34 @@ func (s *FileMan) Upload(c *gin.Context) {
 // @Summary Download file
 // @Description 下载文件
 // @Accept json
+// @Param host formData string true "host ID"
+// @Param path query string true "file path"
 // @Success 200
 // @Router /files/download [get]
 func (s *FileMan) Download(c *gin.Context) {
-	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+	// 从请求中获取文件路径
+	filePath := c.Query("path")
+	if filePath == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", nil)
+		return
+	}
+
+	// 获取 host 参数
+	host := c.Query("host")
+	if host == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host", nil)
+		return
+	}
+	hostID, err := strconv.Atoi(host)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
+		return
+	}
+
+	if err := s.downloadFile(c, uint(hostID), filePath); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
 }
 
 // @Tags File

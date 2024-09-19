@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mime/multipart"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
@@ -397,6 +398,10 @@ func (s *FileMan) saveContent(op model.FileEdit) error {
 
 func (s *FileMan) uploadFile(hostID uint, path string, file *multipart.FileHeader) error {
 	return conn.CENTER.UploadFile(hostID, path, file)
+}
+
+func (s *FileMan) downloadFile(c *gin.Context, hostID uint, path string) error {
+	return conn.CENTER.DownloadFile(c, hostID, path)
 }
 
 func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
