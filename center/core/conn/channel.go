@@ -288,44 +288,55 @@ func (c *Center) handleConnection(conn net.Conn) {
 	}()
 
 	config := CONFMAN.GetConfig()
-	var buffer []byte
-	tmp := make([]byte, 1024)
+
+	// 缓存区：用来缓存从 conn.Read 读取的数据
+	dataBuffer := make([]byte, 0)
+
 	for {
-		n, err := conn.Read(tmp)
+		// 读取数据
+		tmpBuffer := make([]byte, 1024)
+		n, err := conn.Read(tmpBuffer)
 		if err != nil {
 			if err != io.EOF {
-				global.LOG.Error("Read error: %v", err)
+				global.LOG.Error("Error read from conn: %v", err)
 			}
 			break
 		}
-
-		buffer = append(buffer, tmp[:n]...)
+		// 将数据拼接到缓存区
+		dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, config.SecretKey)
-		if err != nil {
-			if err == message.ErrIncompleteMessage {
-				global.LOG.Info("not enough data, continue to read")
-				continue // 数据不完整，继续读取
-			} else {
-				global.LOG.Error("Error processing message: %v", err)
-			}
-		} else {
-			// 处理消息
-			for _, msg := range messages {
-				switch m := msg.(type) {
-				case *message.Message:
-					c.processMessage(m)
-				case *message.FileMessage:
-					c.processFileMessage(m)
-				default:
-					fmt.Println("Unknown message type")
+		for {
+			// 提取完整消息
+			msgType, packet, remainingBuffer, err := message.ExtractCompleteMessagePacket(dataBuffer)
+			if err != nil {
+				if err == message.ErrIncompleteMessage {
+					// 数据不完整，继续读取
+					break
+				} else {
+					global.LOG.Error("Error extract complete message: %v", err)
+					break
 				}
 			}
-		}
 
-		// 清空缓冲区
-		buffer = buffer[:0]
+			// 处理解析后的消息
+			msgData := packet[message.MagicBytesLen+message.MsgLenBytes:]
+			msg, err := message.DecodeMessage(msgType, msgData, config.SecretKey)
+			if err != nil {
+				global.LOG.Error("Error decode message: %v", err)
+			}
+			switch m := msg.(type) {
+			case *message.Message:
+				c.processMessage(m)
+			case *message.FileMessage:
+				c.processFileMessage(m)
+			default:
+				fmt.Println("Unknown message type")
+			}
+
+			// 更新缓存，移除已处理的部分
+			dataBuffer = remainingBuffer
+		}
 	}
 
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
@@ -363,16 +374,20 @@ func (c *Center) processMessage(msg *message.Message) {
 }
 
 func (c *Center) processFileMessage(msg *message.FileMessage) {
+	global.LOG.Info("FileMessage: %s, %d, %d, %d", msg.FileName, msg.Status, msg.Offset, msg.ChunkSize)
+
 	switch msg.Type {
 	case message.Upload: //上传回复
-		global.LOG.Info("Processing file message")
 		// 获取响应通道
 		c.mu.Lock()
 		responseCh, exists := c.fileResponseChMap[msg.MsgID]
 		if exists {
 			responseCh <- msg
-			close(responseCh)
-			delete(c.responseChMap, msg.MsgID)
+			//最后一次传输，关闭通道
+			if msg.Status == message.FileDone {
+				close(responseCh)
+				delete(c.fileResponseChMap, msg.MsgID)
+			}
 		}
 		c.mu.Unlock()
 	}
@@ -477,7 +492,7 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 		go func() {
 			err := message.SendFileMessage(conn, msg)
 			if err != nil {
-				global.LOG.Error("Failed to send file chunk: %v", err)
+				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
 				responseCh <- msg

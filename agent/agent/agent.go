@@ -281,50 +281,63 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	}()
 
 	config := CONFMAN.GetConfig()
-	var buffer []byte
-	tmp := make([]byte, 1024)
+
+	// 缓存区：用来缓存从 conn.Read 读取的数据
+	dataBuffer := make([]byte, 0)
+
 	for {
-		n, err := conn.Read(tmp)
+		// 读取数据
+		tmpBuffer := make([]byte, 1024)
+		n, err := conn.Read(tmpBuffer)
 		if err != nil {
 			if err != io.EOF {
-				global.LOG.Error("Read error: %v", err)
+				global.LOG.Error("Error read from conn: %v", err)
 			}
 			break
 		}
-
-		buffer = append(buffer, tmp[:n]...)
+		// 将数据拼接到缓存区
+		dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
 
 		// 尝试解析消息
-		messages, err := message.ParseMessage(buffer, config.SecretKey)
-		if err != nil {
-			if err == message.ErrIncompleteMessage {
-				global.LOG.Info("not enough data, continue to read")
-				continue // 数据不完整，继续读取
-			} else {
-				global.LOG.Error("Error processing message: %v", err)
-			}
-		} else {
-			// 处理消息
-			for _, msg := range messages {
-				switch m := msg.(type) {
-				case *message.Message:
-					a.processMessage(conn, m)
-				case *message.FileMessage:
-					a.processFileMessage(conn, m)
-				default:
-					fmt.Println("Unknown message type")
+		for {
+			// 提取完整消息
+			msgType, packet, remainingBuffer, err := message.ExtractCompleteMessagePacket(dataBuffer)
+			if err != nil {
+				if err == message.ErrIncompleteMessage {
+					// 数据不完整，继续读取
+					break
+				} else {
+					global.LOG.Error("Error extract complete message: %v", err)
+					break
 				}
 			}
-		}
 
-		// 清空缓冲区
-		buffer = buffer[:0]
+			// 处理解析后的消息
+			msgData := packet[message.MagicBytesLen+message.MsgLenBytes:]
+			msg, err := message.DecodeMessage(msgType, msgData, config.SecretKey)
+			if err != nil {
+				global.LOG.Error("Error decode message: %v", err)
+			}
+			switch m := msg.(type) {
+			case *message.Message:
+				a.processMessage(conn, m)
+			case *message.FileMessage:
+				a.processFileMessage(conn, m)
+			default:
+				fmt.Println("Unknown message type")
+			}
+
+			// 更新缓存，移除已处理的部分
+			dataBuffer = remainingBuffer
+		}
 	}
 
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
+	global.LOG.Info("Message: %v", msg)
+
 	centerID := conn.RemoteAddr().String()
 
 	switch msg.Type {
@@ -373,6 +386,8 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 }
 
 func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
+	global.LOG.Info("FileMessage: %s, %d, %d", msg.FileName, msg.Offset, msg.ChunkSize)
+
 	switch msg.Type {
 	case message.Upload: //上传
 		err := files.NewFileOp().WriteChunkToFile(
@@ -386,7 +401,12 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 			global.LOG.Error("Failed to process upload: %v", err)
 			a.sendUploadResult(conn, msg, message.FileErr)
 		} else {
-			a.sendUploadResult(conn, msg, message.FileOk)
+			status := message.FileOk
+			//如果是最后一次传输，则设置为Done
+			if msg.Offset+int64(msg.ChunkSize) == msg.TotalSize {
+				status = message.FileDone
+			}
+			a.sendUploadResult(conn, msg, status)
 		}
 	}
 }
@@ -1082,7 +1102,7 @@ func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status
 		msg.FileName,
 		msg.TotalSize,
 		msg.Offset,
-		msg.ChunkSize,
+		0,
 		nil,
 	)
 	if err != nil {
