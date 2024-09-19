@@ -14,5 +14,10 @@ func (s *UserRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := entry.ApiGroup
 	{
 		userRouter.POST("/list", baseApi.ListUser)
+		userRouter.POST("/create", baseApi.CreateUser)
+		userRouter.POST("/update", baseApi.UpdateUser)
+		userRouter.POST("/delete", baseApi.DeleteUser)
+		userRouter.POST("/valid", baseApi.ValidUser)
+		userRouter.POST("/update/password", baseApi.ChangePassword)
 	}
 }
