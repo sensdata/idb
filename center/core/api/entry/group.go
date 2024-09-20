@@ -81,7 +81,7 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 // @Produce json
 // @Param request body model.UpdateGroup true "request"
 // @Success 200
-// @Router /group/update [post]
+// @Router /group/delete [post]
 func (b *BaseApi) DeleteGroup(c *gin.Context) {
 	var req model.DeleteGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {

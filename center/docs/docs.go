@@ -15,6 +15,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/act/send": {
+            "post": {
+                "description": "像目标设备发送action指令",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Action"
+                ],
+                "summary": "send action command to host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.HostAction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.HostAction"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "用户登录",
@@ -35,7 +69,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.Login"
+                            "$ref": "#/definitions/model.Login"
                         }
                     }
                 ],
@@ -43,7 +77,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginResult"
+                            "$ref": "#/definitions/model.LoginResult"
                         }
                     }
                 }
@@ -69,6 +103,68 @@ const docTemplate = `{
                         "name": "token",
                         "in": "header",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/cmd/send": {
+            "post": {
+                "description": "向目标设备发送linux指令",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Command"
+                ],
+                "summary": "send linux command to host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Command"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/cmd/send/group": {
+            "post": {
+                "description": "向目标设备发送一组linux指令",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Command"
+                ],
+                "summary": "send group of linux command to host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CommandGroup"
+                        }
                     }
                 ],
                 "responses": {
@@ -296,6 +392,22 @@ const docTemplate = `{
                     "File"
                 ],
                 "summary": "Download file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host ID",
+                        "name": "host",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "file path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -383,6 +495,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/files/info": {
+            "get": {
+                "description": "插件信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/files/list": {
             "post": {
                 "description": "获取文件列表",
@@ -409,6 +544,29 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.FileInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/menu": {
+            "get": {
+                "description": "插件菜单",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
                         }
                     }
                 }
@@ -651,8 +809,22 @@ const docTemplate = `{
                 "summary": "Upload file",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "host ID",
+                        "name": "host",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "目标目录",
+                        "name": "path",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
                         "type": "file",
-                        "description": "request",
+                        "description": "文件",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -683,6 +855,393 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.FileWget"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/group/create": {
+            "post": {
+                "description": "创建组",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "create group",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GroupInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/group/delete": {
+            "post": {
+                "description": "删除组",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "delete group",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/group/list": {
+            "post": {
+                "description": "获取组列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "get group list",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/group/update": {
+            "post": {
+                "description": "更新组",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "update group",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/create": {
+            "post": {
+                "description": "新增设备",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "create host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateHost"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.HostInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/host/list": {
+            "post": {
+                "description": "获取设备组列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "get host list",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ListHost"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/host/list/group": {
+            "post": {
+                "description": "获取设备组列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "get host group list",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/host/test/agent": {
+            "post": {
+                "description": "测试设备agent",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "test host agent",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TestAgent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/test/ssh": {
+            "post": {
+                "description": "测试设备ssh",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "test host ssh",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TestSSH"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/update": {
+            "post": {
+                "description": "更新设备",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "update host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHost"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/update/agent": {
+            "post": {
+                "description": "更新设备agent配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "update host agent config",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHostAgent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/update/ssh": {
+            "post": {
+                "description": "更新设备ssh配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "update host ssh config",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHostSSH"
                         }
                     }
                 ],
@@ -819,6 +1378,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/ssh/info": {
+            "get": {
+                "description": "插件信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/ssh/key/create": {
             "post": {
                 "description": "生成 SSH 密钥",
@@ -906,6 +1488,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/ssh/menu": {
+            "get": {
+                "description": "插件菜单",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/ssh/operate": {
             "post": {
                 "description": "修改 SSH 服务状态",
@@ -947,35 +1552,408 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/sysctl/info": {
+            "get": {
+                "description": "插件信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysctl"
+                ],
+                "summary": "Plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysctl/menu": {
+            "get": {
+                "description": "插件菜单",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysctl"
+                ],
+                "summary": "Plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/config": {
+            "get": {
+                "description": "获取系统配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get system config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SystemConfig"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/hardware": {
+            "get": {
+                "description": "获取硬件信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get hardware info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.HardwareInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/info": {
+            "get": {
+                "description": "插件信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/menu": {
+            "get": {
+                "description": "插件菜单",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.PluginInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/network": {
+            "get": {
+                "description": "获取网络信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get network",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.NetworkInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/overview": {
+            "get": {
+                "description": "获取系统概览",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get overview",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Overview"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/system": {
+            "get": {
+                "description": "获取系统信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get system info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.SystemInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/user/create": {
+            "post": {
+                "description": "新增用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "create user",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/delete": {
+            "post": {
+                "description": "删除用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "delete user",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DeleteUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/user/list": {
+            "post": {
+                "description": "获取用户列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "get user list",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PageInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/update": {
+            "post": {
+                "description": "更新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "update user",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/user/update/password": {
+            "post": {
+                "description": "更新密码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "update password",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ChangePassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/user/valid": {
+            "post": {
+                "description": "禁用/启用用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "valid user",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ValidUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "dto.Login": {
-            "type": "object",
-            "required": [
-                "name",
-                "password"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.LoginResult": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
         "files.FileInfo": {
             "type": "object",
             "properties": {
@@ -1047,6 +2025,81 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Action": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.AddressInfo": {
+            "type": "object",
+            "properties": {
+                "gate": {
+                    "description": "网关",
+                    "type": "string"
+                },
+                "ip": {
+                    "description": "ip地址",
+                    "type": "string"
+                },
+                "mask": {
+                    "description": "子网掩码",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "类型",
+                    "type": "string"
+                }
+            }
+        },
+        "model.ChangePassword": {
+            "type": "object",
+            "required": [
+                "password",
+                "userId"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Command": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.CommandGroup": {
+            "type": "object",
+            "properties": {
+                "commands": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.ContentUpdate": {
             "type": "object",
             "properties": {
@@ -1054,6 +2107,104 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.CreateGroup": {
+            "type": "object",
+            "required": [
+                "groupName"
+            ],
+            "properties": {
+                "groupName": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateHost": {
+            "type": "object",
+            "required": [
+                "addr",
+                "authMode",
+                "groupId",
+                "name",
+                "port",
+                "user"
+            ],
+            "properties": {
+                "addr": {
+                    "type": "string"
+                },
+                "authMode": {
+                    "type": "string"
+                },
+                "groupId": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "passPhrase": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "privateKey": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateUser": {
+            "type": "object",
+            "required": [
+                "groupId",
+                "password",
+                "userName"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.DNSInfo": {
+            "type": "object",
+            "properties": {
+                "retryTimes": {
+                    "type": "integer"
+                },
+                "servers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeout": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.DeleteUser": {
+            "type": "object",
+            "required": [
+                "userId"
+            ],
+            "properties": {
+                "userId": {
                     "type": "integer"
                 }
             }
@@ -1569,6 +2720,109 @@ const docTemplate = `{
                 }
             }
         },
+        "model.GroupInfo": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "groupName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.HardwareInfo": {
+            "type": "object",
+            "properties": {
+                "cpuCores": {
+                    "description": "cpu核心数",
+                    "type": "integer"
+                },
+                "cpuCount": {
+                    "description": "cpu个数",
+                    "type": "integer"
+                },
+                "memory": {
+                    "description": "内存大小",
+                    "type": "string"
+                },
+                "moduleNames": {
+                    "description": "型号",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "processor": {
+                    "description": "线程数",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.HostAction": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/model.Action"
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.HostInfo": {
+            "type": "object",
+            "properties": {
+                "addr": {
+                    "type": "string"
+                },
+                "agentAddr": {
+                    "type": "string"
+                },
+                "agentKey": {
+                    "type": "string"
+                },
+                "agentMode": {
+                    "type": "string"
+                },
+                "agentPort": {
+                    "type": "integer"
+                },
+                "authMode": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "group": {
+                    "$ref": "#/definitions/model.GroupInfo"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "passPhrase": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "privateKey": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
         "model.KeyValueForUpdate": {
             "type": "object",
             "required": [
@@ -1586,6 +2840,28 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ListHost": {
+            "type": "object",
+            "required": [
+                "groupId",
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "keyword": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.ListKey": {
             "type": "object",
             "properties": {
@@ -1593,6 +2869,274 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "keyword": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.LoadState": {
+            "type": "object",
+            "properties": {
+                "processCount1": {
+                    "description": "1分钟进程数",
+                    "type": "string"
+                },
+                "processCount15": {
+                    "description": "15分钟进程数",
+                    "type": "string"
+                },
+                "processCount5": {
+                    "description": "5分钟进程数",
+                    "type": "string"
+                }
+            }
+        },
+        "model.Login": {
+            "type": "object",
+            "required": [
+                "name",
+                "password"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.LoginResult": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MemoryState": {
+            "type": "object",
+            "properties": {
+                "buffered": {
+                    "description": "缓冲区",
+                    "type": "string"
+                },
+                "cached": {
+                    "description": "缓存区",
+                    "type": "string"
+                },
+                "free": {
+                    "description": "剩余可用",
+                    "type": "string"
+                },
+                "freeRate": {
+                    "description": "剩余率",
+                    "type": "number"
+                },
+                "kernel": {
+                    "description": "内核占用",
+                    "type": "string"
+                },
+                "physical": {
+                    "description": "物理内存",
+                    "type": "string"
+                },
+                "realUsed": {
+                    "description": "进程占用",
+                    "type": "string"
+                },
+                "total": {
+                    "description": "总可用 = 物理内存 - 内核占用",
+                    "type": "string"
+                },
+                "used": {
+                    "description": "已使用 = 进程占用 + 缓冲区 + 缓存区",
+                    "type": "string"
+                },
+                "usedRate": {
+                    "description": "使用率",
+                    "type": "number"
+                }
+            }
+        },
+        "model.NetworkInfo": {
+            "type": "object",
+            "properties": {
+                "dns": {
+                    "description": "Dns",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.DNSInfo"
+                        }
+                    ]
+                },
+                "networks": {
+                    "description": "网络接口",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.NetworkInterface"
+                    }
+                }
+            }
+        },
+        "model.NetworkInterface": {
+            "type": "object",
+            "properties": {
+                "Mac": {
+                    "description": "mac地址",
+                    "type": "string"
+                },
+                "address": {
+                    "description": "地址信息",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.AddressInfo"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "名称",
+                    "type": "string"
+                },
+                "proto": {
+                    "description": "分配方式",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "状态",
+                    "type": "string"
+                },
+                "traffic": {
+                    "description": "流量信息",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.TrafficInfo"
+                        }
+                    ]
+                }
+            }
+        },
+        "model.Overview": {
+            "type": "object",
+            "properties": {
+                "bootTime": {
+                    "description": "启动时间",
+                    "type": "string"
+                },
+                "cpuUsage": {
+                    "description": "CPU使用率",
+                    "type": "string"
+                },
+                "currentLoad": {
+                    "description": "当前负载",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.LoadState"
+                        }
+                    ]
+                },
+                "idleTime": {
+                    "description": "空闲时间",
+                    "type": "string"
+                },
+                "memoryUsage": {
+                    "description": "内存使用",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.MemoryState"
+                        }
+                    ]
+                },
+                "runTime": {
+                    "description": "运行时间",
+                    "type": "string"
+                },
+                "serverTime": {
+                    "description": "服务器时间",
+                    "type": "string"
+                },
+                "serverTimeZone": {
+                    "description": "服务器时区",
+                    "type": "string"
+                },
+                "storage": {
+                    "description": "存储空间",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Partition"
+                    }
+                },
+                "swapUsage": {
+                    "description": "交换分区",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.SwapState"
+                        }
+                    ]
+                }
+            }
+        },
+        "model.PageInfo": {
+            "type": "object",
+            "required": [
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.PageResult": {
+            "type": "object",
+            "properties": {
+                "items": {},
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Partition": {
+            "type": "object",
+            "properties": {
+                "free": {
+                    "description": "剩余可用",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "名称",
+                    "type": "string"
+                },
+                "total": {
+                    "description": "总大小",
+                    "type": "string"
+                },
+                "used": {
+                    "description": "已使用",
+                    "type": "string"
+                },
+                "usedRate": {
+                    "description": "使用率",
+                    "type": "number"
+                }
+            }
+        },
+        "model.RoleInfo": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "roleName": {
                     "type": "string"
                 }
             }
@@ -1749,6 +3293,354 @@ const docTemplate = `{
                 },
                 "pageSize": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.SwapState": {
+            "type": "object",
+            "properties": {
+                "free": {
+                    "description": "剩余可用",
+                    "type": "string"
+                },
+                "freeRate": {
+                    "description": "剩余率",
+                    "type": "number"
+                },
+                "total": {
+                    "description": "总大小",
+                    "type": "string"
+                },
+                "used": {
+                    "description": "已使用",
+                    "type": "string"
+                },
+                "usedRate": {
+                    "description": "使用率",
+                    "type": "number"
+                }
+            }
+        },
+        "model.SystemConfig": {
+            "type": "object",
+            "properties": {
+                "maxOpendFiles": {
+                    "description": "最大文件打开数",
+                    "type": "integer"
+                },
+                "maxWatchedFiles": {
+                    "description": "最大监控文件数",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.SystemInfo": {
+            "type": "object",
+            "properties": {
+                "hostName": {
+                    "description": "主机名称",
+                    "type": "string"
+                },
+                "kernel": {
+                    "description": "内核版本",
+                    "type": "string"
+                },
+                "platform": {
+                    "description": "系统类型 x86_64, arm64, etc.",
+                    "type": "string"
+                },
+                "version": {
+                    "description": "发行版本",
+                    "type": "string"
+                },
+                "vertual": {
+                    "description": "虚拟化平台",
+                    "type": "string"
+                }
+            }
+        },
+        "model.TestAgent": {
+            "type": "object",
+            "required": [
+                "agentAddr",
+                "agentMode",
+                "agentPort",
+                "hostId"
+            ],
+            "properties": {
+                "agentAddr": {
+                    "type": "string"
+                },
+                "agentKey": {
+                    "type": "string"
+                },
+                "agentMode": {
+                    "type": "string"
+                },
+                "agentPort": {
+                    "type": "integer"
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.TestSSH": {
+            "type": "object",
+            "required": [
+                "addr",
+                "authMode",
+                "hostId",
+                "port",
+                "user"
+            ],
+            "properties": {
+                "addr": {
+                    "type": "string"
+                },
+                "authMode": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "passPhrase": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "privateKey": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.TrafficInfo": {
+            "type": "object",
+            "properties": {
+                "rx": {
+                    "description": "接收数据量",
+                    "type": "string"
+                },
+                "rxBytes": {
+                    "description": "接收数据量",
+                    "type": "integer"
+                },
+                "rxSpeed": {
+                    "description": "接收实时速率",
+                    "type": "string"
+                },
+                "tx": {
+                    "description": "发送数据量",
+                    "type": "string"
+                },
+                "txBytes": {
+                    "description": "发送数据量",
+                    "type": "integer"
+                },
+                "txSpeed": {
+                    "description": "发送实时速率",
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateGroup": {
+            "type": "object",
+            "required": [
+                "groupId",
+                "groupName"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "groupName": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateHost": {
+            "type": "object",
+            "required": [
+                "groupId",
+                "hostId",
+                "name"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateHostAgent": {
+            "type": "object",
+            "required": [
+                "agentAddr",
+                "agentMode",
+                "agentPort",
+                "hostId"
+            ],
+            "properties": {
+                "agentAddr": {
+                    "type": "string"
+                },
+                "agentKey": {
+                    "type": "string"
+                },
+                "agentMode": {
+                    "type": "string"
+                },
+                "agentPort": {
+                    "type": "integer"
+                },
+                "hostId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UpdateHostSSH": {
+            "type": "object",
+            "required": [
+                "addr",
+                "authMode",
+                "hostId",
+                "port",
+                "user"
+            ],
+            "properties": {
+                "addr": {
+                    "type": "string"
+                },
+                "authMode": {
+                    "type": "string"
+                },
+                "hostId": {
+                    "type": "integer"
+                },
+                "passPhrase": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "privateKey": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateUser": {
+            "type": "object",
+            "required": [
+                "groupId",
+                "userId",
+                "userName",
+                "valid"
+            ],
+            "properties": {
+                "groupId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "userName": {
+                    "type": "string"
+                },
+                "valid": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UserInfo": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "group": {
+                    "$ref": "#/definitions/model.GroupInfo"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "$ref": "#/definitions/model.RoleInfo"
+                },
+                "userName": {
+                    "type": "string"
+                },
+                "valid": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ValidUser": {
+            "type": "object",
+            "required": [
+                "userId",
+                "valid"
+            ],
+            "properties": {
+                "userId": {
+                    "type": "integer"
+                },
+                "valid": {
+                    "type": "integer"
+                }
+            }
+        },
+        "plugin.MenuItem": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "plugin.PluginInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "entry": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
                 }
             }
         }

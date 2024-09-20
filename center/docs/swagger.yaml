@@ -1,21 +1,4 @@
 definitions:
-  dto.Login:
-    properties:
-      name:
-        type: string
-      password:
-        type: string
-    required:
-    - name
-    - password
-    type: object
-  dto.LoginResult:
-    properties:
-      name:
-        type: string
-      token:
-        type: string
-    type: object
   files.FileInfo:
     properties:
       content:
@@ -63,12 +46,128 @@ definitions:
       user:
         type: string
     type: object
+  model.Action:
+    properties:
+      action:
+        type: string
+      data:
+        type: string
+      result:
+        type: boolean
+    type: object
+  model.AddressInfo:
+    properties:
+      gate:
+        description: 网关
+        type: string
+      ip:
+        description: ip地址
+        type: string
+      mask:
+        description: 子网掩码
+        type: string
+      type:
+        description: 类型
+        type: string
+    type: object
+  model.ChangePassword:
+    properties:
+      password:
+        type: string
+      userId:
+        type: integer
+    required:
+    - password
+    - userId
+    type: object
+  model.Command:
+    properties:
+      command:
+        type: string
+      hostId:
+        type: integer
+    type: object
+  model.CommandGroup:
+    properties:
+      commands:
+        items:
+          type: string
+        type: array
+      hostId:
+        type: integer
+    type: object
   model.ContentUpdate:
     properties:
       content:
         type: string
       hostId:
         type: integer
+    type: object
+  model.CreateGroup:
+    properties:
+      groupName:
+        type: string
+    required:
+    - groupName
+    type: object
+  model.CreateHost:
+    properties:
+      addr:
+        type: string
+      authMode:
+        type: string
+      groupId:
+        type: integer
+      name:
+        type: string
+      passPhrase:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      privateKey:
+        type: string
+      user:
+        type: string
+    required:
+    - addr
+    - authMode
+    - groupId
+    - name
+    - port
+    - user
+    type: object
+  model.CreateUser:
+    properties:
+      groupId:
+        type: integer
+      password:
+        type: string
+      userName:
+        type: string
+    required:
+    - groupId
+    - password
+    - userName
+    type: object
+  model.DNSInfo:
+    properties:
+      retryTimes:
+        type: integer
+      servers:
+        items:
+          type: string
+        type: array
+      timeout:
+        type: integer
+    type: object
+  model.DeleteUser:
+    properties:
+      userId:
+        type: integer
+    required:
+    - userId
     type: object
   model.DirSizeReq:
     properties:
@@ -411,6 +510,75 @@ definitions:
     - encryptionMode
     - keyBits
     type: object
+  model.GroupInfo:
+    properties:
+      createdAt:
+        type: string
+      groupName:
+        type: string
+      id:
+        type: integer
+    type: object
+  model.HardwareInfo:
+    properties:
+      cpuCores:
+        description: cpu核心数
+        type: integer
+      cpuCount:
+        description: cpu个数
+        type: integer
+      memory:
+        description: 内存大小
+        type: string
+      moduleNames:
+        description: 型号
+        items:
+          type: string
+        type: array
+      processor:
+        description: 线程数
+        type: integer
+    type: object
+  model.HostAction:
+    properties:
+      action:
+        $ref: '#/definitions/model.Action'
+      hostId:
+        type: integer
+    type: object
+  model.HostInfo:
+    properties:
+      addr:
+        type: string
+      agentAddr:
+        type: string
+      agentKey:
+        type: string
+      agentMode:
+        type: string
+      agentPort:
+        type: integer
+      authMode:
+        type: string
+      createdAt:
+        type: string
+      group:
+        $ref: '#/definitions/model.GroupInfo'
+      id:
+        type: integer
+      name:
+        type: string
+      passPhrase:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      privateKey:
+        type: string
+      user:
+        type: string
+    type: object
   model.KeyValueForUpdate:
     properties:
       key:
@@ -422,11 +590,204 @@ definitions:
     required:
     - key
     type: object
+  model.ListHost:
+    properties:
+      groupId:
+        type: integer
+      keyword:
+        type: string
+      page:
+        type: integer
+      pageSize:
+        type: integer
+    required:
+    - groupId
+    - page
+    - pageSize
+    type: object
   model.ListKey:
     properties:
       hostId:
         type: integer
       keyword:
+        type: string
+    type: object
+  model.LoadState:
+    properties:
+      processCount1:
+        description: 1分钟进程数
+        type: string
+      processCount5:
+        description: 5分钟进程数
+        type: string
+      processCount15:
+        description: 15分钟进程数
+        type: string
+    type: object
+  model.Login:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - name
+    - password
+    type: object
+  model.LoginResult:
+    properties:
+      name:
+        type: string
+      token:
+        type: string
+    type: object
+  model.MemoryState:
+    properties:
+      buffered:
+        description: 缓冲区
+        type: string
+      cached:
+        description: 缓存区
+        type: string
+      free:
+        description: 剩余可用
+        type: string
+      freeRate:
+        description: 剩余率
+        type: number
+      kernel:
+        description: 内核占用
+        type: string
+      physical:
+        description: 物理内存
+        type: string
+      realUsed:
+        description: 进程占用
+        type: string
+      total:
+        description: 总可用 = 物理内存 - 内核占用
+        type: string
+      used:
+        description: 已使用 = 进程占用 + 缓冲区 + 缓存区
+        type: string
+      usedRate:
+        description: 使用率
+        type: number
+    type: object
+  model.NetworkInfo:
+    properties:
+      dns:
+        allOf:
+        - $ref: '#/definitions/model.DNSInfo'
+        description: Dns
+      networks:
+        description: 网络接口
+        items:
+          $ref: '#/definitions/model.NetworkInterface'
+        type: array
+    type: object
+  model.NetworkInterface:
+    properties:
+      Mac:
+        description: mac地址
+        type: string
+      address:
+        allOf:
+        - $ref: '#/definitions/model.AddressInfo'
+        description: 地址信息
+      name:
+        description: 名称
+        type: string
+      proto:
+        description: 分配方式
+        type: string
+      status:
+        description: 状态
+        type: string
+      traffic:
+        allOf:
+        - $ref: '#/definitions/model.TrafficInfo'
+        description: 流量信息
+    type: object
+  model.Overview:
+    properties:
+      bootTime:
+        description: 启动时间
+        type: string
+      cpuUsage:
+        description: CPU使用率
+        type: string
+      currentLoad:
+        allOf:
+        - $ref: '#/definitions/model.LoadState'
+        description: 当前负载
+      idleTime:
+        description: 空闲时间
+        type: string
+      memoryUsage:
+        allOf:
+        - $ref: '#/definitions/model.MemoryState'
+        description: 内存使用
+      runTime:
+        description: 运行时间
+        type: string
+      serverTime:
+        description: 服务器时间
+        type: string
+      serverTimeZone:
+        description: 服务器时区
+        type: string
+      storage:
+        description: 存储空间
+        items:
+          $ref: '#/definitions/model.Partition'
+        type: array
+      swapUsage:
+        allOf:
+        - $ref: '#/definitions/model.SwapState'
+        description: 交换分区
+    type: object
+  model.PageInfo:
+    properties:
+      page:
+        type: integer
+      pageSize:
+        type: integer
+    required:
+    - page
+    - pageSize
+    type: object
+  model.PageResult:
+    properties:
+      items: {}
+      total:
+        type: integer
+    type: object
+  model.Partition:
+    properties:
+      free:
+        description: 剩余可用
+        type: string
+      name:
+        description: 名称
+        type: string
+      total:
+        description: 总大小
+        type: string
+      used:
+        description: 已使用
+        type: string
+      usedRate:
+        description: 使用率
+        type: number
+    type: object
+  model.RoleInfo:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      roleName:
         type: string
     type: object
   model.SSHConfigContent:
@@ -531,9 +892,271 @@ definitions:
     - page
     - pageSize
     type: object
+  model.SwapState:
+    properties:
+      free:
+        description: 剩余可用
+        type: string
+      freeRate:
+        description: 剩余率
+        type: number
+      total:
+        description: 总大小
+        type: string
+      used:
+        description: 已使用
+        type: string
+      usedRate:
+        description: 使用率
+        type: number
+    type: object
+  model.SystemConfig:
+    properties:
+      maxOpendFiles:
+        description: 最大文件打开数
+        type: integer
+      maxWatchedFiles:
+        description: 最大监控文件数
+        type: integer
+    type: object
+  model.SystemInfo:
+    properties:
+      hostName:
+        description: 主机名称
+        type: string
+      kernel:
+        description: 内核版本
+        type: string
+      platform:
+        description: 系统类型 x86_64, arm64, etc.
+        type: string
+      version:
+        description: 发行版本
+        type: string
+      vertual:
+        description: 虚拟化平台
+        type: string
+    type: object
+  model.TestAgent:
+    properties:
+      agentAddr:
+        type: string
+      agentKey:
+        type: string
+      agentMode:
+        type: string
+      agentPort:
+        type: integer
+      hostId:
+        type: integer
+    required:
+    - agentAddr
+    - agentMode
+    - agentPort
+    - hostId
+    type: object
+  model.TestSSH:
+    properties:
+      addr:
+        type: string
+      authMode:
+        type: string
+      hostId:
+        type: integer
+      passPhrase:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      privateKey:
+        type: string
+      user:
+        type: string
+    required:
+    - addr
+    - authMode
+    - hostId
+    - port
+    - user
+    type: object
+  model.TrafficInfo:
+    properties:
+      rx:
+        description: 接收数据量
+        type: string
+      rxBytes:
+        description: 接收数据量
+        type: integer
+      rxSpeed:
+        description: 接收实时速率
+        type: string
+      tx:
+        description: 发送数据量
+        type: string
+      txBytes:
+        description: 发送数据量
+        type: integer
+      txSpeed:
+        description: 发送实时速率
+        type: string
+    type: object
+  model.UpdateGroup:
+    properties:
+      groupId:
+        type: integer
+      groupName:
+        type: string
+    required:
+    - groupId
+    - groupName
+    type: object
+  model.UpdateHost:
+    properties:
+      groupId:
+        type: integer
+      hostId:
+        type: integer
+      name:
+        type: string
+    required:
+    - groupId
+    - hostId
+    - name
+    type: object
+  model.UpdateHostAgent:
+    properties:
+      agentAddr:
+        type: string
+      agentKey:
+        type: string
+      agentMode:
+        type: string
+      agentPort:
+        type: integer
+      hostId:
+        type: integer
+    required:
+    - agentAddr
+    - agentMode
+    - agentPort
+    - hostId
+    type: object
+  model.UpdateHostSSH:
+    properties:
+      addr:
+        type: string
+      authMode:
+        type: string
+      hostId:
+        type: integer
+      passPhrase:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      privateKey:
+        type: string
+      user:
+        type: string
+    required:
+    - addr
+    - authMode
+    - hostId
+    - port
+    - user
+    type: object
+  model.UpdateUser:
+    properties:
+      groupId:
+        type: integer
+      userId:
+        type: integer
+      userName:
+        type: string
+      valid:
+        type: integer
+    required:
+    - groupId
+    - userId
+    - userName
+    - valid
+    type: object
+  model.UserInfo:
+    properties:
+      createdAt:
+        type: string
+      group:
+        $ref: '#/definitions/model.GroupInfo'
+      id:
+        type: integer
+      role:
+        $ref: '#/definitions/model.RoleInfo'
+      userName:
+        type: string
+      valid:
+        type: integer
+    type: object
+  model.ValidUser:
+    properties:
+      userId:
+        type: integer
+      valid:
+        type: integer
+    required:
+    - userId
+    - valid
+    type: object
+  plugin.MenuItem:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  plugin.PluginInfo:
+    properties:
+      description:
+        type: string
+      entry:
+        type: string
+      host:
+        type: string
+      name:
+        type: string
+      port:
+        type: string
+      version:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /act/send:
+    post:
+      consumes:
+      - application/json
+      description: 像目标设备发送action指令
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.HostAction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.HostAction'
+      summary: send action command to host
+      tags:
+      - Action
   /auth/login:
     post:
       consumes:
@@ -545,14 +1168,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.Login'
+          $ref: '#/definitions/model.Login'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.LoginResult'
+            $ref: '#/definitions/model.LoginResult'
       summary: User login
       tags:
       - Auth
@@ -575,6 +1198,46 @@ paths:
       summary: User logout
       tags:
       - Auth
+  /cmd/send:
+    post:
+      consumes:
+      - application/json
+      description: 向目标设备发送linux指令
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Command'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: send linux command to host
+      tags:
+      - Command
+  /cmd/send/group:
+    post:
+      consumes:
+      - application/json
+      description: 向目标设备发送一组linux指令
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CommandGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: send group of linux command to host
+      tags:
+      - Command
   /files/batch/del:
     post:
       consumes:
@@ -715,6 +1378,17 @@ paths:
       consumes:
       - application/json
       description: 下载文件
+      parameters:
+      - description: host ID
+        in: formData
+        name: host
+        required: true
+        type: string
+      - description: file path
+        in: query
+        name: path
+        required: true
+        type: string
       responses:
         "200":
           description: OK
@@ -773,6 +1447,21 @@ paths:
       summary: List favorites
       tags:
       - File
+  /files/info:
+    get:
+      consumes:
+      - application/json
+      description: 插件信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin info
+      tags:
+      - File
   /files/list:
     post:
       consumes:
@@ -791,6 +1480,21 @@ paths:
           schema:
             $ref: '#/definitions/model.FileInfo'
       summary: List files
+      tags:
+      - File
+  /files/menu:
+    get:
+      consumes:
+      - application/json
+      description: 插件菜单
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Plugin menu
       tags:
       - File
   /files/mode:
@@ -946,7 +1650,17 @@ paths:
     post:
       description: 上传文件
       parameters:
-      - description: request
+      - description: host ID
+        in: formData
+        name: host
+        required: true
+        type: string
+      - description: 目标目录
+        in: formData
+        name: path
+        required: true
+        type: string
+      - description: 文件
         in: formData
         name: file
         required: true
@@ -975,6 +1689,256 @@ paths:
       summary: Wget file
       tags:
       - File
+  /group/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建组
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GroupInfo'
+      summary: create group
+      tags:
+      - Group
+  /group/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除组
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete group
+      tags:
+      - Group
+  /group/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取组列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get group list
+      tags:
+      - Group
+  /group/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新组
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update group
+      tags:
+      - Group
+  /host/create:
+    post:
+      consumes:
+      - application/json
+      description: 新增设备
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateHost'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.HostInfo'
+      summary: create host
+      tags:
+      - Host
+  /host/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取设备组列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ListHost'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get host list
+      tags:
+      - Host
+  /host/list/group:
+    post:
+      consumes:
+      - application/json
+      description: 获取设备组列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get host group list
+      tags:
+      - Host
+  /host/test/agent:
+    post:
+      consumes:
+      - application/json
+      description: 测试设备agent
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TestAgent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: test host agent
+      tags:
+      - Host
+  /host/test/ssh:
+    post:
+      consumes:
+      - application/json
+      description: 测试设备ssh
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TestSSH'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: test host ssh
+      tags:
+      - Host
+  /host/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新设备
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateHost'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update host
+      tags:
+      - Host
+  /host/update/agent:
+    post:
+      consumes:
+      - application/json
+      description: 更新设备agent配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateHostAgent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update host agent config
+      tags:
+      - Host
+  /host/update/ssh:
+    post:
+      consumes:
+      - application/json
+      description: 更新设备ssh配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateHostSSH'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update host ssh config
+      tags:
+      - Host
   /idb/ws/terminal:
     get:
       description: 终端会话的websocket接口
@@ -1056,6 +2020,21 @@ paths:
       summary: Update host SSH setting
       tags:
       - SSH
+  /ssh/info:
+    get:
+      consumes:
+      - application/json
+      description: 插件信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin info
+      tags:
+      - SSH
   /ssh/key/create:
     post:
       consumes:
@@ -1112,6 +2091,21 @@ paths:
       summary: Load host SSH logs
       tags:
       - SSH
+  /ssh/menu:
+    get:
+      consumes:
+      - application/json
+      description: 插件菜单
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Plugin menu
+      tags:
+      - SSH
   /ssh/operate:
     post:
       consumes:
@@ -1139,4 +2133,263 @@ paths:
       summary: run systemctl start/stop/restart service commands
       tags:
       - SystemCtl
+  /sysctl/info:
+    get:
+      consumes:
+      - application/json
+      description: 插件信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin info
+      tags:
+      - Sysctl
+  /sysctl/menu:
+    get:
+      consumes:
+      - application/json
+      description: 插件菜单
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin menu
+      tags:
+      - Sysctl
+  /sysinfo/config:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统配置
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.SystemConfig'
+            type: array
+      summary: Get system config
+      tags:
+      - Sysinfo
+  /sysinfo/hardware:
+    get:
+      consumes:
+      - application/json
+      description: 获取硬件信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.HardwareInfo'
+            type: array
+      summary: Get hardware info
+      tags:
+      - Sysinfo
+  /sysinfo/info:
+    get:
+      consumes:
+      - application/json
+      description: 插件信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin info
+      tags:
+      - Sysinfo
+  /sysinfo/menu:
+    get:
+      consumes:
+      - application/json
+      description: 插件菜单
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.PluginInfo'
+            type: array
+      summary: Plugin menu
+      tags:
+      - Sysinfo
+  /sysinfo/network:
+    get:
+      consumes:
+      - application/json
+      description: 获取网络信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.NetworkInfo'
+            type: array
+      summary: Get network
+      tags:
+      - Sysinfo
+  /sysinfo/overview:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统概览
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Overview'
+            type: array
+      summary: Get overview
+      tags:
+      - Sysinfo
+  /sysinfo/system:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.SystemInfo'
+            type: array
+      summary: Get system info
+      tags:
+      - Sysinfo
+  /user/create:
+    post:
+      consumes:
+      - application/json
+      description: 新增用户
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserInfo'
+      summary: create user
+      tags:
+      - User
+  /user/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除用户
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DeleteUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete user
+      tags:
+      - User
+  /user/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取用户列表
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PageInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get user list
+      tags:
+      - User
+  /user/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新用户
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update user
+      tags:
+      - User
+  /user/update/password:
+    post:
+      consumes:
+      - application/json
+      description: 更新密码
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ChangePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: update password
+      tags:
+      - User
+  /user/valid:
+    post:
+      consumes:
+      - application/json
+      description: 禁用/启用用户
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ValidUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: valid user
+      tags:
+      - User
 swagger: "2.0"
