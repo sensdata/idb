@@ -27,7 +27,7 @@ archives:
     name_template: "idb-agent-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}"
     wrap_in_directory: true
     files:
-      - idb-agent.json
+      - idb-agent.conf
       - idb-agent.service
 
 checksum:

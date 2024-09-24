@@ -233,7 +233,7 @@ function Init_Panel(){
     LOG_DIR =/var/log/idb
 
     # 配置文件
-    CONFIG_FILE=idb.json
+    CONFIG_FILE=idb.conf
 
     # 注册服务文件
     SERVICE_FILE=idb.service
