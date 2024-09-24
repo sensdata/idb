@@ -42,7 +42,7 @@ type ICenter interface {
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
-	TestAgent(req core.TestAgent) error
+	TestAgent(id uint, req core.TestAgent) error
 }
 
 func NewCenter() ICenter {
@@ -846,9 +846,9 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	}
 }
 
-func (c *Center) TestAgent(req core.TestAgent) error {
+func (c *Center) TestAgent(id uint, req core.TestAgent) error {
 	//找host
-	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
 		return errors.WithMessage(constant.ErrHost, err.Error())
 	}

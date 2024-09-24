@@ -13,13 +13,13 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 	hostRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		hostRouter.POST("/group/list", baseApi.ListHostGroup)
-		hostRouter.POST("/list", baseApi.ListHost)
-		hostRouter.POST("/create", baseApi.CreateHost)
-		hostRouter.POST("/update", baseApi.UpdateHost)
-		hostRouter.POST("/update/ssh", baseApi.UpdateHostSSH)
-		hostRouter.POST("/update/agent", baseApi.UpdateHostAgent)
-		hostRouter.POST("/test/ssh", baseApi.TestHostSSH)
-		hostRouter.POST("/test/agent", baseApi.TestHostAgent)
+		hostRouter.GET("/groups", baseApi.ListHostGroup)          // 获取设备组列表
+		hostRouter.GET("", baseApi.ListHost)                      // 获取设备列表
+		hostRouter.POST("", baseApi.CreateHost)                   // 新增设备
+		hostRouter.PUT("/:id", baseApi.UpdateHost)                // 更新设备
+		hostRouter.PUT("/:id/ssh", baseApi.UpdateHostSSH)         // 更新设备ssh配置
+		hostRouter.PUT("/:id/agent", baseApi.UpdateHostAgent)     // 更新设备agent配置
+		hostRouter.POST("/:id/test/ssh", baseApi.TestHostSSH)     // 测试设备ssh
+		hostRouter.POST("/:id/test/agent", baseApi.TestHostAgent) // 测试设备agent
 	}
 }

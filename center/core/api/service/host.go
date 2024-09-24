@@ -20,10 +20,10 @@ type IHostService interface {
 	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
-	UpdateSSH(req core.UpdateHostSSH) error
-	UpdateAgent(req core.UpdateHostAgent) error
-	TestSSH(req core.TestSSH) error
-	TestAgent(req core.TestAgent) error
+	UpdateSSH(id uint, req core.UpdateHostSSH) error
+	UpdateAgent(id uint, req core.UpdateHostAgent) error
+	TestSSH(id uint, req core.TestSSH) error
+	TestAgent(id uint, req core.TestAgent) error
 }
 
 func NewIHostService() IHostService {
@@ -105,9 +105,9 @@ func (s *HostService) Delete(ids []uint) error {
 	return HostRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
-func (s *HostService) UpdateSSH(req core.UpdateHostSSH) error {
+func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	//找host
-	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
@@ -125,9 +125,9 @@ func (s *HostService) UpdateSSH(req core.UpdateHostSSH) error {
 	return HostRepo.Update(host.ID, upMap)
 }
 
-func (s *HostService) UpdateAgent(req core.UpdateHostAgent) error {
+func (s *HostService) UpdateAgent(id uint, req core.UpdateHostAgent) error {
 	// 找host
-	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
@@ -142,19 +142,20 @@ func (s *HostService) UpdateAgent(req core.UpdateHostAgent) error {
 	return HostRepo.Update(host.ID, upMap)
 }
 
-func (s *HostService) TestSSH(req core.TestSSH) error {
+func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 	var host model.Host
 	if err := copier.Copy(&host, &req); err != nil {
 		return err
 	}
+	host.ID = id
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *HostService) TestAgent(req core.TestAgent) error {
-	if err := conn.CENTER.TestAgent(req); err != nil {
+func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
+	if err := conn.CENTER.TestAgent(id, req); err != nil {
 		return err
 	}
 	return nil

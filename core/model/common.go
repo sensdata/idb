@@ -2,7 +2,7 @@ package model
 
 type PageInfo struct {
 	Page     int `json:"page" validate:"required,number"`
-	PageSize int `json:"pageSize" validate:"required,number"`
+	PageSize int `json:"page_size" validate:"required,number"`
 }
 
 type PageResult struct {
@@ -18,6 +18,6 @@ type Response struct {
 
 type KeyValueForUpdate struct {
 	Key      string `json:"key" validate:"required"`
-	OldValue string `json:"oldValue"`
-	NewValue string `json:"newValue"`
+	OldValue string `json:"old_value"`
+	NewValue string `json:"new_value"`
 }
