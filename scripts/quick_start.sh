@@ -57,7 +57,7 @@ echo "开始下载 idb ${VERSION} 版本在线安装包"
 echo "安装包下载地址： ${package_download_url}"
 
 curl -LOk -o ${package_file_name} ${package_download_url}
-# curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
+curl -sfL https://static.sensdata.com/idb/installation-log.sh | sh -s 1p install ${VERSION}
 if [ ! -f ${package_file_name} ];then
     echo "下载安装包失败，请稍候重试。"
     exit 1
