@@ -7,7 +7,7 @@ builds:
       - -tags=xpack
       - -trimpath
     ldflags:
-      - "-s -w"
+      - "-s -w -X 'github.com/sensdata/idb/agent/global.Version={{.Version}}'"  # 动态写入版本号
     env:
       - CGO_ENABLED=0
     goos:
@@ -32,8 +32,10 @@ archives:
 
 checksum:
   name_template: 'checksums.txt'
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 release:
   draft: true
   mode: append

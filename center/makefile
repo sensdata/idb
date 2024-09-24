@@ -4,6 +4,9 @@ BINARY_NAME=idb
 # 版本号
 VERSION=1.0.0
 
+# 从 Git 中获取版本号
+GIT_VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo $(VERSION))
+
 # 源代码目录
 SRC_DIR=.
 
@@ -11,7 +14,7 @@ SRC_DIR=.
 BIN_DIR=/usr/local/bin
 CONFIG_DIR=/etc/idb
 DATA_DIR=/var/lib/idb
-LOG_DIR =/var/log/idb
+LOG_DIR=/var/log/idb
 
 # 系统服务目录
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
@@ -27,8 +30,8 @@ LOG_FILE=/var/log/idb/idb-run.log
 
 # 构建命令
 build:
-	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME) $(SRC_DIR)
-	GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME)-macos $(SRC_DIR)
+	GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)'" -o $(BINARY_NAME) $(SRC_DIR)
+	GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X 'github.com/sensdata/idb/agent/global.Version=$(GIT_VERSION)'" -o $(BINARY_NAME)-macos $(SRC_DIR)
 
 # 安装命令
 install: build

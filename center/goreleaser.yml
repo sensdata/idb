@@ -7,7 +7,7 @@ builds:
       - -tags=xpack
       - -trimpath
     ldflags:
-      - "-s -w"
+      - "-s -w -X 'github.com/sensdata/idb/center/global.Version={{.Version}}'"  # 动态写入版本号
     env:
       - CGO_ENABLED=0
     goos:

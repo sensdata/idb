@@ -102,6 +102,8 @@ func StartServices() error {
 	}
 	global.LOG = logger
 
+	global.LOG.Info("Agent ver: %s", global.Version)
+
 	//初始化数据库
 	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.AgentDataDir, constant.AgentDb))
