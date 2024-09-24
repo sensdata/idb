@@ -12,7 +12,7 @@ func (s *AuthRouter) InitRouter(Router *gin.RouterGroup) {
 	baseRouter := Router.Group("auth")
 	baseApi := entry.ApiGroup
 	{
-		baseRouter.POST("/login", baseApi.Login)
-		baseRouter.GET("/logout", middleware.NewJWT().JWTAuth(), baseApi.Logout)
+		baseRouter.POST("/sessions", baseApi.Login)
+		baseRouter.DELETE("/sessions", middleware.NewJWT().JWTAuth(), baseApi.Logout)
 	}
 }

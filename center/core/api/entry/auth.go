@@ -13,7 +13,7 @@ import (
 // @Produce json
 // @Param request body model.Login true "request"
 // @Success 200 {object} model.LoginResult
-// @Router /auth/login [post]
+// @Router /auth/sessions [post]
 func (b *BaseApi) Login(c *gin.Context) {
 	var req model.Login
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -36,7 +36,7 @@ func (b *BaseApi) Login(c *gin.Context) {
 // @Produce json
 // @Param token header string true "Authentication token"
 // @Success 200
-// @Router /auth/logout [get]
+// @Router /auth/sessions [delete]
 func (b *BaseApi) Logout(c *gin.Context) {
 	if err := authService.LogOut(c); err != nil {
 		ErrorWithDetail(c, constant.CodeErrUnauthorized, constant.ErrInternalServer.Error(), err)
