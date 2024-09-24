@@ -24,22 +24,15 @@ type CreateUser struct {
 }
 
 type UpdateUser struct {
-	UserID   uint   `json:"userId" validate:"required,number"`
 	UserName string `json:"userName" validate:"required"`
 	GroupID  uint   `json:"groupId" validate:"required,number"`
 	Valid    uint   `json:"valid" validate:"required,number"`
 }
 
-type DeleteUser struct {
-	UserID uint `json:"userId" validate:"required,number"`
-}
-
 type ValidUser struct {
-	UserID uint `json:"userId" validate:"required,number"`
-	Valid  uint `json:"valid" validate:"required,number"`
+	Valid uint `json:"valid" validate:"required,number"`
 }
 
 type ChangePassword struct {
-	UserID   uint   `json:"userId" validate:"required,number"`
 	Password string `json:"password" validate:"required"`
 }

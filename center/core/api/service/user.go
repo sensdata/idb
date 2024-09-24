@@ -17,7 +17,7 @@ type IUserService interface {
 	Create(req core.CreateUser) (*core.UserInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
-	ChangePassword(req core.ChangePassword) error
+	ChangePassword(id uint, req core.ChangePassword) error
 }
 
 func NewIUserService() IUserService {
@@ -85,9 +85,9 @@ func (s *UserService) Delete(ids []uint) error {
 	return UserRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
-func (s *UserService) ChangePassword(req core.ChangePassword) error {
+func (s *UserService) ChangePassword(id uint, req core.ChangePassword) error {
 	//找用户
-	user, err := UserRepo.Get(UserRepo.WithByID(req.UserID))
+	user, err := UserRepo.Get(UserRepo.WithByID(id))
 	if err != nil {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}

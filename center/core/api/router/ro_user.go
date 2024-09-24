@@ -13,11 +13,11 @@ func (s *UserRouter) InitRouter(Router *gin.RouterGroup) {
 	userRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		userRouter.POST("/list", baseApi.ListUser)
-		userRouter.POST("/create", baseApi.CreateUser)
-		userRouter.POST("/update", baseApi.UpdateUser)
-		userRouter.POST("/delete", baseApi.DeleteUser)
-		userRouter.POST("/valid", baseApi.ValidUser)
-		userRouter.POST("/update/password", baseApi.ChangePassword)
+		userRouter.GET("", baseApi.ListUser)                    // 获取用户列表
+		userRouter.POST("", baseApi.CreateUser)                 // 新增用户
+		userRouter.PUT("/:id", baseApi.UpdateUser)              // 更新用户
+		userRouter.DELETE("/:id", baseApi.DeleteUser)           // 删除用户
+		userRouter.PUT("/:id/valid", baseApi.ValidUser)         // 禁用/启用用户
+		userRouter.PUT("/:id/password", baseApi.ChangePassword) // 更新密码
 	}
 }

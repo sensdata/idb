@@ -11,12 +11,13 @@ import (
 // @Description 获取用户列表
 // @Accept json
 // @Produce json
-// @Param request body model.PageInfo true "request"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /user/list [post]
+// @Router /users [get]
 func (b *BaseApi) ListUser(c *gin.Context) {
 	var req model.PageInfo
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	if err := CheckQueryAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -35,7 +36,7 @@ func (b *BaseApi) ListUser(c *gin.Context) {
 // @Produce json
 // @Param request body model.CreateUser true "request"
 // @Success 200 {object} model.UserInfo
-// @Router /user/create [post]
+// @Router /users [post]
 func (b *BaseApi) CreateUser(c *gin.Context) {
 	var req model.CreateUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -55,12 +56,19 @@ func (b *BaseApi) CreateUser(c *gin.Context) {
 // @Description 更新用户
 // @Accept json
 // @Produce json
+// @Param id path int true "User ID"
 // @Param request body model.UpdateUser true "request"
 // @Success 200
-// @Router /user/update [post]
+// @Router /users/{id} [put]
 func (b *BaseApi) UpdateUser(c *gin.Context) {
 	var req model.UpdateUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	userID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
 		return
 	}
 
@@ -68,7 +76,7 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 	upMap["user_name"] = req.UserName
 	upMap["group_id"] = req.GroupID
 	upMap["valid"] = req.Valid
-	if err := userService.Update(req.UserID, upMap); err != nil {
+	if err := userService.Update(userID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -80,16 +88,17 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 // @Description 删除用户
 // @Accept json
 // @Produce json
-// @Param request body model.DeleteUser true "request"
+// @Param id path int true "User ID"
 // @Success 200
-// @Router /user/delete [post]
+// @Router /users/{id} [delete]
 func (b *BaseApi) DeleteUser(c *gin.Context) {
-	var req model.DeleteUser
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	userID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
 		return
 	}
 
-	if err := userService.Delete([]uint{req.UserID}); err != nil {
+	if err := userService.Delete([]uint{userID}); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -101,18 +110,25 @@ func (b *BaseApi) DeleteUser(c *gin.Context) {
 // @Description 禁用/启用用户
 // @Accept json
 // @Produce json
+// @Param id path int true "User ID"
 // @Param request body model.ValidUser true "request"
 // @Success 200
-// @Router /user/valid [post]
+// @Router /users/{id}/valid [put]
 func (b *BaseApi) ValidUser(c *gin.Context) {
 	var req model.ValidUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
+	userID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
+		return
+	}
+
 	upMap := make(map[string]interface{})
 	upMap["valid"] = req.Valid
-	if err := userService.Update(req.UserID, upMap); err != nil {
+	if err := userService.Update(userID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -124,16 +140,23 @@ func (b *BaseApi) ValidUser(c *gin.Context) {
 // @Description 更新密码
 // @Accept json
 // @Produce json
+// @Param id path int true "User ID"
 // @Param request body model.ChangePassword true "request"
 // @Success 200
-// @Router /user/update/password [post]
+// @Router /users/{id}/password [put]
 func (b *BaseApi) ChangePassword(c *gin.Context) {
 	var req model.ChangePassword
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	if err := userService.ChangePassword(req); err != nil {
+	userID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
+		return
+	}
+
+	if err := userService.ChangePassword(userID, req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
