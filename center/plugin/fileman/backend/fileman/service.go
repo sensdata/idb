@@ -214,7 +214,7 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Param path path string true "File path"
 // @Param force_delete query bool false "Force delete flag"
 // @Param is_dir query bool false "Is directory flag"
-// @Success 204 "No Content"
+// @Success 200 "No Content"
 // @Router /files/{path} [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
