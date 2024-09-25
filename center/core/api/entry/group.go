@@ -12,12 +12,13 @@ import (
 // @Description 获取组列表
 // @Accept json
 // @Produce json
-// @Param request body model.PageInfo true "request"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /group/list [post]
+// @Router /groups [get]
 func (b *BaseApi) ListGroup(c *gin.Context) {
 	var req model.PageInfo
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	if err := CheckQueryAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -36,7 +37,7 @@ func (b *BaseApi) ListGroup(c *gin.Context) {
 // @Produce json
 // @Param request body model.CreateGroup true "request"
 // @Success 200 {object} model.GroupInfo
-// @Router /group/create [post]
+// @Router /groups [post]
 func (b *BaseApi) CreateGroup(c *gin.Context) {
 	var req model.CreateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -56,18 +57,25 @@ func (b *BaseApi) CreateGroup(c *gin.Context) {
 // @Description 更新组
 // @Accept json
 // @Produce json
+// @Param id path int true "Group ID"
 // @Param request body model.UpdateGroup true "request"
 // @Success 200
-// @Router /group/update [post]
+// @Router /groups/{id} [put]
 func (b *BaseApi) UpdateGroup(c *gin.Context) {
 	var req model.UpdateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
+	groupID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid group ID", err)
+		return
+	}
+
 	upMap := make(map[string]interface{})
 	upMap["group_name"] = req.GroupName
-	if err := groupService.Update(req.GroupID, upMap); err != nil {
+	if err := groupService.Update(groupID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -79,16 +87,17 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 // @Description 删除组
 // @Accept json
 // @Produce json
-// @Param request body model.UpdateGroup true "request"
+// @Param id path int true "Group ID"
 // @Success 200
-// @Router /group/delete [post]
+// @Router /groups/{id} [delete]
 func (b *BaseApi) DeleteGroup(c *gin.Context) {
-	var req model.DeleteGroup
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	groupID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid group ID", err)
 		return
 	}
 
-	if err := groupService.Delete([]uint{req.GroupID}); err != nil {
+	if err := groupService.Delete([]uint{groupID}); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}

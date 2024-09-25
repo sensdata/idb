@@ -13,9 +13,9 @@ func (s *GroupRouter) InitRouter(Router *gin.RouterGroup) {
 	groupRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		groupRouter.POST("/list", baseApi.ListGroup)
-		groupRouter.POST("/create", baseApi.CreateGroup)
-		groupRouter.POST("/update", baseApi.UpdateGroup)
-		groupRouter.POST("/delete", baseApi.DeleteGroup)
+		groupRouter.GET("", baseApi.ListGroup)          // 获取组列表
+		groupRouter.POST("", baseApi.CreateGroup)       // 创建组
+		groupRouter.PUT("/:id", baseApi.UpdateGroup)    // 更新组
+		groupRouter.DELETE("/:id", baseApi.DeleteGroup) // 删除组
 	}
 }

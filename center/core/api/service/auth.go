@@ -32,7 +32,7 @@ func (s *AuthService) Login(c *gin.Context, info model.Login) (*model.LoginResul
 	}
 
 	if !utils.ValidatePassword(user.Password, info.Password, user.Salt) {
-		return nil, errors.WithMessage(constant.ErrInvalidAccountOrPassword, err.Error())
+		return nil, errors.WithMessage(constant.ErrInvalidAccountOrPassword, constant.ErrInvalidAccountOrPassword.Error())
 	}
 
 	// TODO: jwt key需要初始化
