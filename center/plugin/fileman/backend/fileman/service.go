@@ -1,6 +1,7 @@
 package fileman
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"gopkg.in/yaml.v2"
 
@@ -36,8 +38,9 @@ func (s *FileMan) Initialize() {
 		return
 	}
 
+	baseUrl := fmt.Sprintf("http://%s:%d", "0.0.0.0", conn.CONFMAN.GetConfig().Port)
 	s.restyClient = resty.New().
-		SetBaseURL("http://127.0.0.1:8080").
+		SetBaseURL(baseUrl).
 		SetHeader("Content-Type", "application/json")
 
 	api.API.SetUpPluginRouters(

@@ -104,12 +104,12 @@ func (c *CmdHelper) SendCommand(hostId uint, command string) (*model.CommandResu
 		Command: command,
 	}
 
-	var commandRespons model.CommandResponse
+	var commandResponse model.CommandResponse
 
 	resp, err := c.RestyClient.R().
 		SetBody(commandRequest).
-		SetResult(&commandRespons).
-		Post("/idb/api/cmd/send")
+		SetResult(&commandResponse).
+		Post("/idb/api/commands")
 
 	if err != nil {
 		fmt.Printf("failed to send request: %v", err)
@@ -121,9 +121,9 @@ func (c *CmdHelper) SendCommand(hostId uint, command string) (*model.CommandResu
 		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
-	fmt.Printf("cmd response: %v", commandRespons)
+	fmt.Printf("cmd response: %v", commandResponse)
 
-	commandResult = commandRespons.Data
+	commandResult = commandResponse.Data
 
 	return &commandResult, nil
 }

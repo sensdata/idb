@@ -17,7 +17,7 @@ func (s *FileMan) sendAction(actionRequest model.HostAction) (*model.ActionRespo
 	resp, err := s.restyClient.R().
 		SetBody(actionRequest).
 		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/actions") // 修改URL路径
+		Post("/actions") // 修改URL路径
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)

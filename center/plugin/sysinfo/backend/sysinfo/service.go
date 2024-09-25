@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"gopkg.in/yaml.v2"
@@ -34,8 +35,9 @@ func (s *SysInfo) Initialize() {
 		return
 	}
 
+	baseUrl := fmt.Sprintf("http://%s:%d", "0.0.0.0", conn.CONFMAN.GetConfig().Port)
 	s.restyClient = resty.New().
-		SetBaseURL("http://127.0.0.1:8080").
+		SetBaseURL(baseUrl).
 		SetHeader("Content-Type", "application/json")
 
 	api.API.SetUpPluginRouters(
@@ -185,7 +187,7 @@ func (s *SysInfo) sendAction(actionRequest model.HostAction) (*model.ActionRespo
 	resp, err := s.restyClient.R().
 		SetBody(actionRequest).
 		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/actions") // 修改URL路径
+		Post("/actions") // 修改URL路径
 
 	if err != nil {
 		global.LOG.Error("failed to send request: %v", err)
