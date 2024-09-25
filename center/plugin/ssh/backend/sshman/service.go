@@ -68,7 +68,7 @@ func (s *SSHMan) Release() {
 // @Description Get plugin information
 // @Accept json
 // @Produce json
-// @Success 200 {array} plugin.PluginInfo
+// @Success 200 {object} plugin.PluginInfo
 // @Router /ssh/info [get]
 func (s *SSHMan) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()

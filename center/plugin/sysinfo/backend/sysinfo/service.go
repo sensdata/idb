@@ -61,10 +61,11 @@ func (s *SysInfo) Release() {
 }
 
 // @Tags Sysinfo
-// @Summary Plugin info
-// @Description 插件信息
+// @Summary Get plugin info
+// @Description Get plugin information
 // @Accept json
-// @Success 200 {array} plugin.PluginInfo
+// @Produce json
+// @Success 200 {object} plugin.PluginInfo
 // @Router /sysinfo/info [get]
 func (s *SysInfo) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
@@ -76,10 +77,11 @@ func (s *SysInfo) GetPluginInfo(c *gin.Context) {
 }
 
 // @Tags Sysinfo
-// @Summary Plugin menu
-// @Description 插件菜单
+// @Summary Get plugin menu
+// @Description Get plugin menu items
 // @Accept json
-// @Success 200 {array} plugin.PluginInfo
+// @Produce json
+// @Success 200 {array} plugin.MenuItem
 // @Router /sysinfo/menu [get]
 func (s *SysInfo) GetMenu(c *gin.Context) {
 	menuItems, err := s.getMenus()
@@ -91,10 +93,11 @@ func (s *SysInfo) GetMenu(c *gin.Context) {
 }
 
 // @Tags Sysinfo
-// @Summary Get overview
-// @Description 获取系统概览
+// @Summary Get system overview info
+// @Description Get system overview info
 // @Accept json
-// @Success 200 {array} model.Overview
+// @Produce json
+// @Success 200 {object} model.Overview
 // @Router /sysinfo/overview [get]
 func (s *SysInfo) GetOverview(c *gin.Context) {
 	overview, err := s.getOverview()
@@ -106,10 +109,11 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 }
 
 // @Tags Sysinfo
-// @Summary Get network
-// @Description 获取网络信息
+// @Summary Get network info
+// @Description Get network info
 // @Accept json
-// @Success 200 {array} model.NetworkInfo
+// @Produce json
+// @Success 200 {object} model.NetworkInfo
 // @Router /sysinfo/network [get]
 func (s *SysInfo) GetNetwork(c *gin.Context) {
 	network, err := s.getNetwork()
@@ -122,9 +126,10 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get system info
-// @Description 获取系统信息
+// @Description Get system info
 // @Accept json
-// @Success 200 {array} model.SystemInfo
+// @Produce json
+// @Success 200 {object} model.SystemInfo
 // @Router /sysinfo/system [get]
 func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 	system, err := s.getSystemInfo()
@@ -137,9 +142,10 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get system config
-// @Description 获取系统配置
+// @Description Get system config
 // @Accept json
-// @Success 200 {array} model.SystemConfig
+// @Produce json
+// @Success 200 {object} model.SystemConfig
 // @Router /sysinfo/config [get]
 func (s *SysInfo) GetConfig(c *gin.Context) {
 	config, err := s.getConfig()
@@ -152,9 +158,10 @@ func (s *SysInfo) GetConfig(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get hardware info
-// @Description 获取硬件信息
+// @Description Get hardware info
 // @Accept json
-// @Success 200 {array} model.HardwareInfo
+// @Produce json
+// @Success 200 {object} model.HardwareInfo
 // @Router /sysinfo/hardware [get]
 func (s *SysInfo) GetHardware(c *gin.Context) {
 	hardware, err := s.getHardware()
