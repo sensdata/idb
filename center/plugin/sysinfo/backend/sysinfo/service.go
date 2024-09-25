@@ -1,6 +1,7 @@
 package sysinfo
 
 import (
+	"fmt"
 	"net/http"
 
 	_ "embed"
@@ -176,4 +177,25 @@ func (s *SysInfo) getConfig() (model.SystemConfig, error) {
 
 func (s *SysInfo) getHardware() (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
+}
+
+func (s *SysInfo) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/actions") // 修改URL路径
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("received error response: %s", resp.Status())
+		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	return &actionResponse, nil
 }

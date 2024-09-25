@@ -11,6 +11,27 @@ import (
 	"github.com/sensdata/idb/core/utils"
 )
 
+func (s *FileMan) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/actions") // 修改URL路径
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("received error response: %s", resp.Status())
+		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	return &actionResponse, nil
+}
+
 func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 	var fileTree []model.FileTree
 
@@ -27,24 +48,10 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fileTree, fmt.Errorf("failed to send request: %v", err)
+		return fileTree, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fileTree, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -75,24 +82,10 @@ func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &fileInfo, fmt.Errorf("failed to send request: %v", err)
+		return &fileInfo, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &fileInfo, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -122,24 +115,10 @@ func (s *FileMan) create(op model.FileCreate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -162,24 +141,10 @@ func (s *FileMan) delete(op model.FileDelete) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -202,24 +167,10 @@ func (s *FileMan) batchDelete(op model.FileBatchDelete) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -242,24 +193,10 @@ func (s *FileMan) compress(op model.FileCompress) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -282,24 +219,10 @@ func (s *FileMan) decompress(op model.FileDeCompress) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -323,24 +246,10 @@ func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &fileInfo, fmt.Errorf("failed to send request: %v", err)
+		return &fileInfo, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &fileInfo, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -369,24 +278,10 @@ func (s *FileMan) saveContent(op model.FileEdit) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -419,24 +314,10 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &dirSize, fmt.Errorf("failed to send request: %v", err)
+		return &dirSize, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &dirSize, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -465,24 +346,10 @@ func (s *FileMan) changeName(op model.FileRename) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -505,24 +372,10 @@ func (s *FileMan) mvFile(op model.FileMove) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -545,24 +398,10 @@ func (s *FileMan) changeOwner(op model.FileRoleUpdate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -585,24 +424,10 @@ func (s *FileMan) changeMode(op model.FileCreate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -625,24 +450,10 @@ func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -667,24 +478,10 @@ func (s *FileMan) getFavoriteList(req model.FavoriteListReq) (*model.PageResult,
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &pageResult, fmt.Errorf("failed to send request: %v", err)
+		return &pageResult, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &pageResult, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -714,24 +511,10 @@ func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, err
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &favorite, fmt.Errorf("failed to send request: %v", err)
+		return &favorite, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &favorite, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -761,24 +544,10 @@ func (s *FileMan) deleteFavorite(req model.FavoriteDelete) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")

@@ -2,13 +2,12 @@ package sysinfo
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 )
 
-func (s *SysInfo) getNetwork() (model.NetworkInfo, error) {
+func (s *SysInfo) getNetwork() (*model.NetworkInfo, error) {
 	network := model.NetworkInfo{}
 
 	actionRequest := model.HostAction{
@@ -19,29 +18,15 @@ func (s *SysInfo) getNetwork() (model.NetworkInfo, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return network, fmt.Errorf("failed to send request: %v", err)
+		return &network, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return network, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("network result: %v", actionResponse)
 
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &network)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to Network: %v", err)
 	}
 
-	return network, nil
+	return &network, nil
 }

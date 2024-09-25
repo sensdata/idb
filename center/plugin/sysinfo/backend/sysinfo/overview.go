@@ -2,13 +2,12 @@ package sysinfo
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 )
 
-func (s *SysInfo) getOverview() (model.Overview, error) {
+func (s *SysInfo) getOverview() (*model.Overview, error) {
 	overview := model.Overview{}
 
 	actionRequest := model.HostAction{
@@ -19,29 +18,15 @@ func (s *SysInfo) getOverview() (model.Overview, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return overview, fmt.Errorf("failed to send request: %v", err)
+		return &overview, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return overview, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("overview result: %v", actionResponse)
 
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &overview)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to Overview: %v", err)
 	}
 
-	return overview, nil
+	return &overview, nil
 }

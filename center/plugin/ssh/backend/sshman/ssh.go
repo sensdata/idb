@@ -8,6 +8,27 @@ import (
 	"github.com/sensdata/idb/core/utils"
 )
 
+func (s *SSHMan) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("http://127.0.0.1:8080/actions") // 修改URL路径
+
+	if err != nil {
+		global.LOG.Error("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		global.LOG.Error("received error response: %s", resp.Status())
+		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	return &actionResponse, nil
+}
+
 func (s *SSHMan) getSSHConfig(req model.SSHConfigReq) (*model.SSHInfo, error) {
 	var sshInfo model.SSHInfo
 	data, err := utils.ToJSONString(req)
@@ -23,24 +44,10 @@ func (s *SSHMan) getSSHConfig(req model.SSHConfigReq) (*model.SSHInfo, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshInfo, fmt.Errorf("failed to send request: %v", err)
+		return &sshInfo, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshInfo, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -70,24 +77,10 @@ func (s *SSHMan) updateSSH(req model.SSHUpdate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -112,24 +105,10 @@ func (s *SSHMan) getSSHConfigContent(req model.SSHConfigReq) (*model.SSHConfigCo
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshContent, fmt.Errorf("failed to send request: %v", err)
+		return &sshContent, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshContent, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -159,24 +138,10 @@ func (s *SSHMan) updateSSHContent(req model.ContentUpdate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -200,24 +165,10 @@ func (s *SSHMan) operateSSH(req model.SSHOperate) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -241,24 +192,10 @@ func (s *SSHMan) createKey(req model.GenerateKey) error {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("failed to send request: %v", err)
+		return err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -283,24 +220,10 @@ func (s *SSHMan) listKeys(req model.ListKey) (*model.PageResult, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &pageResult, fmt.Errorf("failed to send request: %v", err)
+		return &pageResult, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &pageResult, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
@@ -331,24 +254,10 @@ func (s *SSHMan) loadLog(req model.SearchSSHLog) (*model.SSHLog, error) {
 		},
 	}
 
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("http://127.0.0.1:8080/idb/api/act/send")
-
+	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshLog, fmt.Errorf("failed to send request: %v", err)
+		return &sshLog, err
 	}
-
-	if resp.StatusCode() != 200 {
-		global.LOG.Error("failed to send request: %v", err)
-		return &sshLog, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	global.LOG.Info("ssh result: %v", actionResponse)
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
