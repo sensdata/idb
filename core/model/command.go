@@ -1,22 +1,22 @@
 package model
 
 type Command struct {
-	HostID  uint   `json:"hostId"`
+	HostID  uint   `json:"host_id"`
 	Command string `json:"command"`
 }
 
 type CommandResult struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Result string `json:"result"`
 }
 
 type CommandGroup struct {
-	HostID   uint     `json:"hostId"`
+	HostID   uint     `json:"host_id"`
 	Commands []string `json:"commands"`
 }
 
 type CommandGroupResult struct {
-	HostID  uint     `json:"hostId"`
+	HostID  uint     `json:"host_id"`
 	Results []string `json:"results"`
 }
 

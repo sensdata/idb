@@ -44,7 +44,7 @@ type Action struct {
 }
 
 type HostAction struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Action Action `json:"action"`
 }
 

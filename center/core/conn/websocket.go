@@ -55,27 +55,27 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		global.LOG.Error("Failed to upgrade to WebSocket: %v\n", err)
-		return err
+		return errors.Wrap(err, "failed to upgrade to WebSocket")
 	}
 	defer wsConn.Close()
 
-	global.LOG.Info("upgrade")
+	global.LOG.Info("upgrade successful")
 
 	id, err := strconv.Atoi(c.Query("id"))
-	if wsHandleError(wsConn, errors.WithMessage(err, "invalid param id in request")) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "invalid param id in request")
 	}
 	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
-	if wsHandleError(wsConn, errors.WithMessage(err, "invalid param cols in request")) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "invalid param cols in request")
 	}
 	rows, err := strconv.Atoi(c.DefaultQuery("rows", "40"))
-	if wsHandleError(wsConn, errors.WithMessage(err, "invalid param rows in request")) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "invalid param rows in request")
 	}
 	host, err := HostRepo.Get(HostRepo.WithByID((uint(id))))
-	if wsHandleError(wsConn, errors.WithMessage(err, "load host info by id failed")) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "load host info by id failed")
 	}
 
 	// 建立新的ssh连接
@@ -87,14 +87,14 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 	}
 
 	client, err := connInfo.NewSshClient()
-	if wsHandleError(wsConn, errors.WithMessage(err, "failed to set up the connection. Please check the host information")) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "failed to set up the connection. Please check the host information")
 	}
 	defer client.Close()
 
 	sws, err := NewSshWebSocketSession(cols, rows, true, connInfo.Client, wsConn)
-	if wsHandleError(wsConn, err) {
-		return err
+	if err != nil {
+		return errors.Wrap(err, "failed to create SSH WebSocket session")
 	}
 	defer sws.Close()
 
@@ -103,10 +103,6 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 	go sws.Wait(quitChan)
 
 	<-quitChan
-
-	if wsHandleError(wsConn, err) {
-		return err
-	}
 
 	global.LOG.Info("handle terminal end")
 	return nil

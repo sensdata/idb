@@ -13,7 +13,7 @@ import (
 // @Produce json
 // @Param request body model.Command true "request"
 // @Success 200
-// @Router /cmd/send [post]
+// @Router /commands [post]
 func (b *BaseApi) SendCommand(c *gin.Context) {
 	var req model.Command
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -29,13 +29,13 @@ func (b *BaseApi) SendCommand(c *gin.Context) {
 }
 
 // @Tags Command
-// @Summary send group of linux command to host
+// @Summary send group of linux commands to host
 // @Description 向目标设备发送一组linux指令
 // @Accept json
 // @Produce json
 // @Param request body model.CommandGroup true "request"
 // @Success 200
-// @Router /cmd/send/group [post]
+// @Router /commands/group [post]
 func (b *BaseApi) SendCommandGroup(c *gin.Context) {
 	var req model.CommandGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {

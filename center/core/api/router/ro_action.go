@@ -8,9 +8,9 @@ import (
 type ActionRouter struct{}
 
 func (s *ActionRouter) InitRouter(Router *gin.RouterGroup) {
-	actionRouter := Router.Group("act")
+	actionRouter := Router.Group("actions")
 	baseApi := entry.ApiGroup
 	{
-		actionRouter.POST("/send", baseApi.SendAction)
+		actionRouter.POST("", baseApi.SendAction) // 向目标设备发送action指令
 	}
 }
