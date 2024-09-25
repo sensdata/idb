@@ -7,12 +7,12 @@ import (
 )
 
 type FileOption struct {
-	HostID uint `json:"hostId"`
+	HostID uint `json:"host_id"`
 	files.FileOption
 }
 
 type FileContentReq struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Path   string `json:"path" validate:"required"`
 }
 
@@ -22,19 +22,19 @@ type SearchUploadWithPage struct {
 }
 
 type FileCreate struct {
-	HostID    uint   `json:"hostId"`
+	HostID    uint   `json:"host_id"`
 	Path      string `json:"path" validate:"required"`
 	Content   string `json:"content"`
-	IsDir     bool   `json:"isDir"`
+	IsDir     bool   `json:"is_dir"`
 	Mode      int64  `json:"mode"`
-	IsLink    bool   `json:"isLink"`
-	IsSymlink bool   `json:"isSymlink"`
-	LinkPath  string `json:"linkPath"`
+	IsLink    bool   `json:"is_link"`
+	IsSymlink bool   `json:"is_symlink"`
+	LinkPath  string `json:"link_path"`
 	Sub       bool   `json:"sub"`
 }
 
 type FileRoleReq struct {
-	HostID uint     `json:"hostId"`
+	HostID uint     `json:"host_id"`
 	Paths  []string `json:"paths" validate:"required"`
 	Mode   int64    `json:"mode" validate:"required"`
 	User   string   `json:"user" validate:"required"`
@@ -43,20 +43,20 @@ type FileRoleReq struct {
 }
 
 type FileDelete struct {
-	HostID      uint   `json:"hostId"`
+	HostID      uint   `json:"host_id"`
 	Path        string `json:"path" validate:"required"`
-	IsDir       bool   `json:"isDir"`
-	ForceDelete bool   `json:"forceDelete"`
+	ForceDelete bool   `json:"force_delete"`
+	IsDir       bool   `json:"is_dir"`
 }
 
 type FileBatchDelete struct {
-	HostID uint     `json:"hostId"`
+	HostID uint     `json:"host_id"`
 	Paths  []string `json:"paths" validate:"required"`
-	IsDir  bool     `json:"isDir"`
+	IsDir  bool     `json:"is_dir"`
 }
 
 type FileCompress struct {
-	HostID  uint     `json:"hostId"`
+	HostID  uint     `json:"host_id"`
 	Files   []string `json:"files" validate:"required"`
 	Dst     string   `json:"dst" validate:"required"`
 	Type    string   `json:"type" validate:"required"`
@@ -65,22 +65,22 @@ type FileCompress struct {
 }
 
 type FileDeCompress struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Dst    string `json:"dst"  validate:"required"`
 	Type   string `json:"type"  validate:"required"`
 	Path   string `json:"path" validate:"required"`
 }
 
 type FileEdit struct {
-	HostID  uint   `json:"hostId"`
+	HostID  uint   `json:"host_id"`
 	Path    string `json:"path"  validate:"required"`
 	Content string `json:"content"`
 }
 
 type FileRename struct {
-	HostID  uint   `json:"hostId"`
-	OldName string `json:"oldName" validate:"required"`
-	NewName string `json:"newName" validate:"required"`
+	HostID  uint   `json:"host_id"`
+	Path    string `json:"path"  validate:"required"`
+	NewName string `json:"new_name" validate:"required"`
 }
 
 type FilePathCheck struct {
@@ -91,14 +91,14 @@ type FileWget struct {
 	Url               string `json:"url" validate:"required"`
 	Path              string `json:"path" validate:"required"`
 	Name              string `json:"name" validate:"required"`
-	IgnoreCertificate bool   `json:"ignoreCertificate"`
+	IgnoreCertificate bool   `json:"ignore_certificate"`
 }
 
 type FileMove struct {
-	HostID   uint     `json:"hostId"`
+	HostID   uint     `json:"host_id"`
 	Type     string   `json:"type" validate:"required"`
-	OldPaths []string `json:"oldPaths" validate:"required"`
-	NewPath  string   `json:"newPath" validate:"required"`
+	OldPaths []string `json:"old_paths" validate:"required"`
+	NewPath  string   `json:"new_path" validate:"required"`
 	Name     string   `json:"name"`
 	Cover    bool     `json:"cover"`
 }
@@ -124,7 +124,7 @@ type FileChunkDownload struct {
 }
 
 type DirSizeReq struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Path   string `json:"path" validate:"required"`
 }
 
@@ -133,7 +133,7 @@ type FileProcessReq struct {
 }
 
 type FileRoleUpdate struct {
-	HostID uint   `json:"hostId"`
+	HostID uint   `json:"host_id"`
 	Path   string `json:"path" validate:"required"`
 	User   string `json:"user" validate:"required"`
 	Group  string `json:"group" validate:"required"`
@@ -142,9 +142,9 @@ type FileRoleUpdate struct {
 
 type FileReadByLineReq struct {
 	Page     int    `json:"page" validate:"required"`
-	PageSize int    `json:"pageSize" validate:"required"`
+	PageSize int    `json:"page_size" validate:"required"`
 	Type     string `json:"type" validate:"required"`
-	ID       uint   `json:"ID"`
+	ID       uint   `json:"id"`
 	Name     string `json:"name"`
 }
 
@@ -160,7 +160,7 @@ type FileInfo struct {
 type UploadInfo struct {
 	Name      string `json:"name"`
 	Size      int    `json:"size"`
-	CreatedAt string `json:"createdAt"`
+	CreatedAt string `json:"created_at"`
 }
 
 type FileTree struct {
@@ -193,12 +193,12 @@ type FileExist struct {
 }
 
 type RecycleBinCreate struct {
-	SourcePath string `json:"sourcePath" validate:"required"`
+	SourcePath string `json:"source_path" validate:"required"`
 }
 
 type RecycleBinReduce struct {
 	From  string `json:"from" validate:"required"`
-	RName string `json:"rName" validate:"required"`
+	RName string `json:"rname" validate:"required"`
 	Name  string `json:"name"`
 }
 
@@ -206,9 +206,9 @@ type RecycleBinDTO struct {
 	Name       string    `json:"name"`
 	Size       int       `json:"size"`
 	Type       string    `json:"type"`
-	DeleteTime time.Time `json:"deleteTime"`
+	DeleteTime time.Time `json:"delete_time"`
 	RName      string    `json:"rName"`
-	SourcePath string    `json:"sourcePath"`
-	IsDir      bool      `json:"isDir"`
+	SourcePath string    `json:"source_path"`
+	IsDir      bool      `json:"is_dir"`
 	From       string    `json:"from"`
 }

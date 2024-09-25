@@ -30,32 +30,32 @@ type FileInfo struct {
 	Extension  string      `json:"extension"`
 	Content    string      `json:"content"`
 	Size       int64       `json:"size"`
-	IsDir      bool        `json:"isDir"`
-	IsSymlink  bool        `json:"isSymlink"`
-	IsHidden   bool        `json:"isHidden"`
-	LinkPath   string      `json:"linkPath"`
+	IsDir      bool        `json:"is_dir"`
+	IsSymlink  bool        `json:"is_symlink"`
+	IsHidden   bool        `json:"is_hidden"`
+	LinkPath   string      `json:"link_path"`
 	Type       string      `json:"type"`
 	Mode       string      `json:"mode"`
-	MimeType   string      `json:"mimeType"`
-	UpdateTime time.Time   `json:"updateTime"`
-	ModTime    time.Time   `json:"modTime"`
+	MimeType   string      `json:"mime_type"`
+	UpdateTime time.Time   `json:"update_time"`
+	ModTime    time.Time   `json:"mod_time"`
 	FileMode   os.FileMode `json:"-"`
 	Items      []*FileInfo `json:"items"`
-	ItemTotal  int         `json:"itemTotal"`
-	FavoriteID uint        `json:"favoriteID"`
+	ItemTotal  int         `json:"item_total"`
+	FavoriteID uint        `json:"favorite_id"`
 }
 
 type FileOption struct {
 	Path       string `json:"path"`
 	Search     string `json:"search"`
-	ContainSub bool   `json:"containSub"`
+	ContainSub bool   `json:"contain_sub"`
 	Expand     bool   `json:"expand"`
 	Dir        bool   `json:"dir"`
-	ShowHidden bool   `json:"showHidden"`
+	ShowHidden bool   `json:"show_hidden"`
 	Page       int    `json:"page"`
-	PageSize   int    `json:"pageSize"`
-	SortBy     string `json:"sortBy"`
-	SortOrder  string `json:"sortOrder"`
+	PageSize   int    `json:"page_size"`
+	SortBy     string `json:"sort_by"`
+	SortOrder  string `json:"sort_order"`
 }
 
 type FileSearchInfo struct {

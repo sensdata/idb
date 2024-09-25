@@ -305,8 +305,20 @@ func (f FileOp) ChmodRWithMode(dst string, mode fs.FileMode, sub bool) error {
 	return nil
 }
 
-func (f FileOp) Rename(oldName string, newName string) error {
-	return f.Fs.Rename(oldName, newName)
+func (f FileOp) Rename(oldPath string, newName string) error {
+	// 获取旧文件的目录
+	dir := filepath.Dir(oldPath)
+
+	// 构造新的完整路径
+	newPath := filepath.Join(dir, newName)
+
+	// 检查新路径是否已存在
+	if f.Stat(newPath) {
+		return fmt.Errorf("file or directory already exists: %s", newPath)
+	}
+
+	// 执行重命名操作
+	return f.Fs.Rename(oldPath, newPath)
 }
 
 type WriteCounter struct {

@@ -11,6 +11,26 @@ import (
 
 var Validator = utils.InitValidator()
 
+func CheckQueryAndValidate(req interface{}, c *gin.Context) error {
+	if err := c.ShouldBindQuery(req); err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrInvalidParams.Error(), err)
+		return err
+	}
+	if err := Validator.Struct(req); err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrInvalidParams.Error(), err)
+		return err
+	}
+	return nil
+}
+
+func CheckQuery(req interface{}, c *gin.Context) error {
+	if err := c.ShouldBindQuery(req); err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrInvalidParams.Error(), err)
+		return err
+	}
+	return nil
+}
+
 func CheckBindAndValidate(req interface{}, c *gin.Context) error {
 	if err := c.ShouldBindJSON(req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrInvalidParams.Error(), err)

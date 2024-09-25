@@ -244,11 +244,16 @@ func (f *FileService) SaveContent(edit model.FileEdit) error {
 }
 
 func (f *FileService) ChangeName(req model.FileRename) error {
+	fo := files.NewFileOp()
+	if !fo.Stat(req.Path) {
+		return errors.New(constant.ErrPathNotFound)
+	}
+
 	if files.IsInvalidChar(req.NewName) {
 		return errors.New("ErrInvalidChar")
 	}
-	fo := files.NewFileOp()
-	return fo.Rename(req.OldName, req.NewName)
+
+	return fo.Rename(req.Path, req.NewName)
 }
 
 func (f *FileService) Wget(w model.FileWget) (string, error) {

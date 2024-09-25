@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	_ "embed"
 
@@ -15,6 +16,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/helper"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
@@ -48,27 +50,26 @@ func (s *FileMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "POST", Path: "/tree", Handler: s.GetFileTree},
-			{Method: "POST", Path: "/list", Handler: s.GetFileList},
-			{Method: "POST", Path: "/create", Handler: s.CreateFile},
-			{Method: "POST", Path: "/del", Handler: s.DeleteFile},
-			{Method: "POST", Path: "/batch/del", Handler: s.BatchDeleteFile},
+			{Method: "GET", Path: "/trees", Handler: s.GetFileTree},
+			{Method: "GET", Path: "", Handler: s.GetFileList},
+			{Method: "POST", Path: "", Handler: s.CreateFile},
+			{Method: "DELETE", Path: "/:path", Handler: s.DeleteFile},
+			{Method: "DELETE", Path: "/batch", Handler: s.BatchDeleteFile},
 			{Method: "POST", Path: "/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/decompress", Handler: s.DeCompressFile},
-			{Method: "POST", Path: "/content", Handler: s.GetContent},
-			{Method: "POST", Path: "/content/save", Handler: s.SaveContent},
-			{Method: "POST", Path: "/upload", Handler: s.Upload},
-			{Method: "GET", Path: "/download", Handler: s.Download},
-			{Method: "POST", Path: "/wget", Handler: s.WgetFile},
-			{Method: "POST", Path: "/size", Handler: s.Size},
-			{Method: "POST", Path: "/rename", Handler: s.ChangeFileName},
-			{Method: "POST", Path: "/move", Handler: s.MoveFile},
-			{Method: "POST", Path: "/owner", Handler: s.ChangeFileOwner},
-			{Method: "POST", Path: "/mode", Handler: s.ChangeFileMode},
-			{Method: "POST", Path: "/batch/role", Handler: s.BatchChangeModeAndOwner},
-			{Method: "POST", Path: "/favorite/list", Handler: s.GetFavoriteList},
-			{Method: "POST", Path: "/favorite/create", Handler: s.CreateFavorite},
-			{Method: "POST", Path: "/favorite/del", Handler: s.DeleteFavorite},
+			{Method: "GET", Path: "/content", Handler: s.GetContent},
+			{Method: "PUT", Path: "/content/:path", Handler: s.SaveContent},
+			{Method: "POST", Path: "/upload/:host_id/:path", Handler: s.Upload},
+			{Method: "GET", Path: "/download/:host_id/:file_path", Handler: s.Download},
+			{Method: "GET", Path: "/size", Handler: s.Size},
+			{Method: "PUT", Path: "/rename/:host_id/:old_path", Handler: s.ChangeFileName},
+			{Method: "PUT", Path: "/move", Handler: s.MoveFile},
+			{Method: "PUT", Path: "/owner", Handler: s.ChangeFileOwner},
+			{Method: "PUT", Path: "/mode", Handler: s.ChangeFileMode},
+			{Method: "PUT", Path: "/batch/role", Handler: s.BatchChangeModeAndOwner},
+			{Method: "GET", Path: "/favorites", Handler: s.GetFavoriteList},
+			{Method: "POST", Path: "/favorites", Handler: s.CreateFavorite},
+			{Method: "DELETE", Path: "/favorites/:id", Handler: s.DeleteFavorite},
 		},
 	)
 
@@ -80,10 +81,11 @@ func (s *FileMan) Release() {
 }
 
 // @Tags File
-// @Summary Plugin info
-// @Description 插件信息
+// @Summary Get plugin info
+// @Description Get plugin information
 // @Accept json
-// @Success 200 {array} plugin.PluginInfo
+// @Produce json
+// @Success 200 {object} plugin.PluginInfo
 // @Router /files/info [get]
 func (s *FileMan) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
@@ -95,9 +97,10 @@ func (s *FileMan) GetPluginInfo(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Plugin menu
-// @Description 插件菜单
+// @Summary Get plugin menu
+// @Description Get plugin menu items
 // @Accept json
+// @Produce json
 // @Success 200 {array} plugin.MenuItem
 // @Router /files/menu [get]
 func (s *FileMan) GetMenu(c *gin.Context) {
@@ -118,52 +121,77 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 }
 
 // @Tags File
-// @Summary Load files tree
-// @Description 加载文件树
+// @Summary Get file tree
+// @Description Get file tree structure
 // @Accept json
-// @Param request body model.FileOption true "request"
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path query string false "Root path"
 // @Success 200 {array} model.FileTree
-// @Router /files/tree [post]
+// @Router /files/trees [get]
 func (s *FileMan) GetFileTree(c *gin.Context) {
-	var req model.FileOption
-	if err := helper.CheckBind(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	path := c.Query("path")
+
+	req := model.FileOption{
+		HostID:     uint(hostID),
+		FileOption: files.FileOption{Path: path},
+	}
+
 	tree, err := s.getFileTree(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
+
 	helper.SuccessWithData(c, tree)
 }
 
 // @Tags File
 // @Summary List files
-// @Description 获取文件列表
+// @Description Get list of files in a directory
 // @Accept json
-// @Param request body model.FileOption true "request"
-// @Success 200 {object} model.FileInfo
-// @Router /files/list [post]
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path query string false "Directory path (default is root directory)"
+// @Success 200 {array} model.FileInfo
+// @Router /files [get]
 func (s *FileMan) GetFileList(c *gin.Context) {
-	var req model.FileOption
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	path := c.Query("path")
+
+	req := model.FileOption{
+		HostID:     uint(hostID),
+		FileOption: files.FileOption{Path: path},
+	}
+
 	files, err := s.getFileList(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
+
 	helper.SuccessWithData(c, files)
 }
 
 // @Tags File
-// @Summary Create file
-// @Description 创建文件/文件夹
+// @Summary Create file or directory
+// @Description Create a new file or directory
 // @Accept json
-// @Param request body model.FileCreate true "request"
-// @Success 200
-// @Router /files/create [post]
+// @Produce json
+// @Param request body model.FileCreate true "File creation details"
+// @Success 200 {object} model.FileInfo
+// @Router /files [post]
 func (s *FileMan) CreateFile(c *gin.Context) {
 	var req model.FileCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -179,50 +207,93 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 
 // @Tags File
 // @Summary Delete file
-// @Description 删除文件/文件夹
+// @Description Delete a file or directory
 // @Accept json
-// @Param request body model.FileDelete true "request"
-// @Success 200
-// @Router /files/del [post]
-// @x-panel-log {"bodyKeys":["path"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"删除文件/文件夹 [path]","formatEN":"Delete dir or file [path]"}
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path path string true "File path"
+// @Param force_delete query bool false "Force delete flag"
+// @Param is_dir query bool false "Is directory flag"
+// @Success 204 "No Content"
+// @Router /files/{path} [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
-	var req model.FileDelete
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
-	err := s.delete(req)
+
+	path := c.Param("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	forceDelete, _ := strconv.ParseBool(c.Query("force_delete"))
+	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
+
+	req := model.FileDelete{
+		HostID:      uint(hostID),
+		Path:        path,
+		ForceDelete: forceDelete,
+		IsDir:       isDir,
+	}
+
+	err = s.delete(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	helper.SuccessWithData(c, nil)
+
+	c.Status(http.StatusNoContent)
 }
 
 // @Tags File
-// @Summary Batch delete file
-// @Description 批量删除文件/文件夹
+// @Summary Batch delete files
+// @Description Delete multiple files or directories
 // @Accept json
-// @Param request body model.FileBatchDelete true "request"
-// @Success 200
-// @Router /files/batch/del [post]
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param paths query string true "Comma-separated list of file paths to delete"
+// @Param is_dir query bool false "Is directory flag"
+// @Success 200 "No Content"
+// @Router /files/batch [delete]
 func (s *FileMan) BatchDeleteFile(c *gin.Context) {
-	var req model.FileBatchDelete
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
-	err := s.batchDelete(req)
+
+	paths := c.Query("paths")
+	if paths == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No paths provided", nil)
+		return
+	}
+
+	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
+
+	req := model.FileBatchDelete{
+		HostID: uint(hostID),
+		Paths:  strings.Split(paths, ","),
+		IsDir:  isDir,
+	}
+
+	err = s.batchDelete(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	helper.SuccessWithData(c, nil)
+
+	c.Status(http.StatusNoContent)
 }
 
 // @Tags File
-// @Summary Compress file
-// @Description 压缩文件
+// @Summary Compress files
+// @Description Compress multiple files or directories into an archive
 // @Accept json
-// @Param request body model.FileCompress true "request"
+// @Produce json
+// @Param request body model.FileCompress true "Compression details"
 // @Success 200
 // @Router /files/compress [post]
 func (s *FileMan) CompressFile(c *gin.Context) {
@@ -240,7 +311,7 @@ func (s *FileMan) CompressFile(c *gin.Context) {
 
 // @Tags File
 // @Summary Decompress file
-// @Description 解压文件
+// @Description Decompress file into an archive
 // @Accept json
 // @Param request body model.FileDeCompress true "request"
 // @Success 200
@@ -259,17 +330,32 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Load file content
-// @Description 获取文件内容
+// @Summary Get file content
+// @Description Get the content of a file
 // @Accept json
-// @Param request body model.FileContentReq true "request"
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path query string true "File path"
 // @Success 200 {object} model.FileInfo
-// @Router /files/content [post]
+// @Router /files/content [get]
 func (s *FileMan) GetContent(c *gin.Context) {
-	var req model.FileContentReq
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	req := model.FileContentReq{
+		HostID: uint(hostID),
+		Path:   path,
+	}
+
 	info, err := s.getContent(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
@@ -280,16 +366,39 @@ func (s *FileMan) GetContent(c *gin.Context) {
 
 // @Tags File
 // @Summary Update file content
-// @Description 更新文件内容
+// @Description Update the content of a file
 // @Accept json
-// @Param request body model.FileEdit true "request"
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path path string true "File path"
+// @Param content body string true "New file content"
 // @Success 200
-// @Router /files/save [post]
+// @Router /files/content/{path} [put]
 func (s *FileMan) SaveContent(c *gin.Context) {
-	var req model.FileEdit
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	path := c.Param("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	var content string
+	if err := c.ShouldBindJSON(&content); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid content", err)
+		return
+	}
+
+	req := model.FileEdit{
+		HostID:  uint(hostID),
+		Path:    path,
+		Content: content,
+	}
+
 	if err := s.saveContent(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -299,43 +408,34 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 
 // @Tags File
 // @Summary Upload file
-// @Description 上传文件
-// @Param host formData string true "host ID"
-// @Param path formData string true "目标目录"
-// @Param file formData file true "文件"
-// @Success 200
-// @Router /files/upload [post]
+// @Description Upload a file to a specific host and path
+// @Accept multipart/form-data
+// @Produce json
+// @Param host_id path int true "Host ID"
+// @Param path path string true "Destination directory path"
+// @Param file formData file true "File to upload"
+// @Success 200 "No Content"
+// @Router /files/upload/{host_id}/{path} [post]
 func (s *FileMan) Upload(c *gin.Context) {
-	form, err := c.MultipartForm()
+	hostID, err := strconv.Atoi(c.Param("host_id"))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams form", err)
-		return
-	}
-	hostIds := form.Value["host"]
-	paths := form.Value["path"]
-	files := form.File["file"]
-	if len(hostIds) == 0 {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host", err)
-		return
-	}
-	if len(paths) == 0 {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", err)
-		return
-	}
-	if len(files) == 0 {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams file", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
 
-	hostID, err := strconv.Atoi(hostIds[0])
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
+	path := c.Param("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
 		return
 	}
-	path := paths[0]
-	uploadFile := files[0]
 
-	if err := s.uploadFile(uint(hostID), path, uploadFile); err != nil {
+	file, err := c.FormFile("file")
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid file", err)
+		return
+	}
+
+	if err := s.uploadFile(uint(hostID), path, file); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -344,29 +444,22 @@ func (s *FileMan) Upload(c *gin.Context) {
 
 // @Tags File
 // @Summary Download file
-// @Description 下载文件
-// @Accept json
-// @Param host formData string true "host ID"
-// @Param path query string true "file path"
-// @Success 200
-// @Router /files/download [get]
+// @Description Download a file from a specific host and path
+// @Produce octet-stream
+// @Param host_id path int true "Host ID"
+// @Param file_path path string true "File path"
+// @Success 200 {file} binary
+// @Router /files/download/{host_id}/{file_path} [get]
 func (s *FileMan) Download(c *gin.Context) {
-	// 从请求中获取文件路径
-	filePath := c.Query("path")
-	if filePath == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", nil)
+	hostID, err := strconv.Atoi(c.Param("host_id"))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
 
-	// 获取 host 参数
-	host := c.Query("host")
-	if host == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host", nil)
-		return
-	}
-	hostID, err := strconv.Atoi(host)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
+	filePath := c.Param("file_path")
+	if filePath == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "File path is required", nil)
 		return
 	}
 
@@ -377,17 +470,32 @@ func (s *FileMan) Download(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Load file size
-// @Description 获取文件夹大小
+// @Summary Get directory size
+// @Description Get the size of a directory
 // @Accept json
-// @Param request body model.DirSizeReq true "request"
-// @Success 200
-// @Router /files/size [post]
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param path query string true "Directory path"
+// @Success 200 {object} model.DirSizeRes
+// @Router /files/size [get]
 func (s *FileMan) Size(c *gin.Context) {
-	var req model.DirSizeReq
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	req := model.DirSizeReq{
+		HostID: uint(hostID),
+		Path:   path,
+	}
+
 	res, err := s.dirSize(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
@@ -398,16 +506,39 @@ func (s *FileMan) Size(c *gin.Context) {
 
 // @Tags File
 // @Summary Change file name
-// @Description 修改文件名称
+// @Description Rename a file
 // @Accept json
-// @Param request body model.FileRename true "request"
-// @Success 200
-// @Router /files/rename [post]
+// @Produce json
+// @Param host_id path int true "Host ID"
+// @Param old_path path string true "Current file path"
+// @Param new_name body string true "New file name"
+// @Success 200 "No Content"
+// @Router /files/rename/{host_id}/{old_path} [put]
 func (s *FileMan) ChangeFileName(c *gin.Context) {
-	var req model.FileRename
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.Atoi(c.Param("host_id"))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	oldPath := c.Param("old_path")
+	if oldPath == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Old path is required", nil)
+		return
+	}
+
+	var newName string
+	if err := c.ShouldBindJSON(&newName); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid new name", err)
+		return
+	}
+
+	req := model.FileRename{
+		HostID:  uint(hostID),
+		Path:    oldPath,
+		NewName: newName,
+	}
+
 	if err := s.changeName(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -415,30 +546,29 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags File
-// @Summary Wget file
-// @Description 下载远端文件
-// @Accept json
-// @Param request body model.FileWget true "request"
-// @Success 200
-// @Router /files/wget [post]
-func (s *FileMan) WgetFile(c *gin.Context) {
-	var req model.FileWget
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
-}
+// // @Tags File
+// // @Summary Wget file
+// // @Description 下载远端文件
+// // @Accept json
+// // @Param request body model.FileWget true "request"
+// // @Success 200
+// // @Router /files/wget [post]
+// func (s *FileMan) WgetFile(c *gin.Context) {
+// 	var req model.FileWget
+// 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+// 		return
+// 	}
+// 	helper.ErrorWithDetail(c, constant.CodeFailed, "not supported yet", nil)
+// }
 
 // @Tags File
-// @Summary Move file
-// @Description 移动文件
+// @Summary Move files
+// @Description Move one or more files to a new location
 // @Accept json
-// @Param request body model.FileMove true "request"
-// @Success 200
-// @Security ApiKeyAuth
-// @Router /files/move [post]
-// @x-panel-log {"bodyKeys":["oldPaths","newPath"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"移动文件 [oldPaths] => [newPath]","formatEN":"Move [oldPaths] => [newPath]"}
+// @Produce json
+// @Param move_request body model.FileMove true "File move details"
+// @Success 200 "No Content"
+// @Router /files/move [put]
 func (s *FileMan) MoveFile(c *gin.Context) {
 	var req model.FileMove
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -453,12 +583,12 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 
 // @Tags File
 // @Summary Change file owner
-// @Description 修改文件用户/组
+// @Description Change file user or/and group
 // @Accept json
-// @Param request body model.FileRoleUpdate true "request"
-// @Success 200
-// @Router /files/owner [post]
-// @x-panel-log {"bodyKeys":["path","user","group"],"paramKeys":[],"BeforeFunctions":[],"formatZH":"修改用户/组 [paths] => [user]/[group]","formatEN":"Change owner [paths] => [user]/[group]"}
+// @Produce json
+// @Param request body model.FileRoleUpdate true "File owner update details"
+// @Success 200 "No Content"
+// @Router /files/owner [put]
 func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 	var req model.FileRoleUpdate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -473,14 +603,15 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 
 // @Tags File
 // @Summary Change file mode
-// @Description 修改文件权限
+// @Description Change file mode
 // @Accept json
-// @Param request body model.FileCreate true "request"
-// @Success 200
-// @Router /files/mode [post]
+// @Produce json
+// @Param request body model.FileCreate true "File mode update details"
+// @Success 200 "No Content"
+// @Router /files/mode [put]
 func (s *FileMan) ChangeFileMode(c *gin.Context) {
 	var req model.FileCreate
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	if err := helper.CheckBind(&req, c); err != nil {
 		return
 	}
 	err := s.changeMode(req)
@@ -493,11 +624,12 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 
 // @Tags File
 // @Summary Batch change file mode and owner
-// @Description 批量修改文件权限和用户/组
+// @Description Batch modify file permissions and user/group
 // @Accept json
-// @Param request body model.FileRoleReq true "request"
-// @Success 200
-// @Router /files/batch/role [post]
+// @Produce json
+// @Param request body model.FileRoleReq true "Batch file mode and owner change request"
+// @Success 200 "No Content"
+// @Router /files/batch/role [put]
 func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 	var req model.FileRoleReq
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -510,12 +642,13 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary List favorites
-// @Description 获取收藏列表
+// @Summary Get favorites
+// @Description Get favorite files
 // @Accept json
-// @Param request body model.FavoriteListReq true "request"
-// @Success 200
-// @Router /files/favorite/list [post]
+// @Produce json
+// @Param request body model.FavoriteListReq true "Favorite list request"
+// @Success 200 {object} model.PageResult
+// @Router /files/favorites [get]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
 	var req model.FavoriteListReq
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -530,12 +663,13 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Create favorite
-// @Description 创建收藏
+// @Summary Collect a favorite file
+// @Description Collect a favorite file
 // @Accept json
-// @Param request body model.FavoriteCreate true "request"
-// @Success 200
-// @Router /files/favorite/create [post]
+// @Produce json
+// @Param request body model.FavoriteCreate true "Favorite create request"
+// @Success 200 {object} model.Favorite
+// @Router /files/favorites [post]
 func (s *FileMan) CreateFavorite(c *gin.Context) {
 	var req model.FavoriteCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -550,16 +684,32 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Delete favorite
-// @Description 删除收藏
+// @Summary Delete a favorite
+// @Description Delete a favorite
 // @Accept json
-// @Param request body model.FavoriteDelete true "request"
-// @Router /files/favorite/del [post]
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param id path uint true "Favorite ID"
+// @Success 200 "No Content"
+// @Router /files/favorites/{id} [delete]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
-	var req model.FavoriteDelete
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid favorite id", err)
+		return
+	}
+
+	req := model.FavoriteDelete{
+		HostID: uint(hostID),
+		ID:     uint(id),
+	}
+
 	if err := s.deleteFavorite(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
