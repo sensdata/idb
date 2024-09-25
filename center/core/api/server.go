@@ -1,8 +1,11 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api/router"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/plugin"
 	"github.com/sensdata/idb/core/utils"
@@ -28,7 +31,8 @@ func (s *ApiServer) Start() error {
 	global.LOG.Info("Init validator")
 	global.VALID = utils.InitValidator()
 
-	err := s.router.Run("0.0.0.0:8080")
+	addr := fmt.Sprintf("%s:%d", "0.0.0.0", conn.CONFMAN.GetConfig().Port)
+	err := s.router.Run(addr)
 	if err != nil {
 		global.LOG.Error("Failed to start HTTP server: %v\n", err)
 	}
