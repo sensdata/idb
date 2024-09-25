@@ -14,7 +14,7 @@ import (
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /host/groups [get]
+// @Router /hosts/groups [get]
 func (b *BaseApi) ListHostGroup(c *gin.Context) {
 	var req model.PageInfo
 	if err := CheckQueryAndValidate(&req, c); err != nil {
@@ -39,7 +39,7 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 // @Param group_id query int false "Group ID"
 // @Param keyword query string false "Keyword"
 // @Success 200 {object} model.PageResult
-// @Router /host [get]
+// @Router /hosts [get]
 func (b *BaseApi) ListHost(c *gin.Context) {
 	var req model.ListHost
 	if err := CheckQueryAndValidate(&req, c); err != nil {
@@ -61,7 +61,7 @@ func (b *BaseApi) ListHost(c *gin.Context) {
 // @Produce json
 // @Param request body model.CreateHost true "request"
 // @Success 200 {object} model.HostInfo
-// @Router /host [post]
+// @Router /hosts [post]
 func (b *BaseApi) CreateHost(c *gin.Context) {
 	var req model.CreateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {

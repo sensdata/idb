@@ -9,7 +9,7 @@ import (
 type GroupRouter struct{}
 
 func (s *GroupRouter) InitRouter(Router *gin.RouterGroup) {
-	groupRouter := Router.Group("group")
+	groupRouter := Router.Group("groups")
 	groupRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{

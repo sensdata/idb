@@ -15,7 +15,3 @@ type CreateGroup struct {
 type UpdateGroup struct {
 	GroupName string `json:"group_name" validate:"required"`
 }
-
-type DeleteGroup struct {
-	GroupID uint `json:"group_id" validate:"required,number"`
-}
