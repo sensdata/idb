@@ -54,12 +54,14 @@ func NewIFileService() IFileService {
 func (f *FileService) GetFileList(op model.FileOption) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	if _, err := os.Stat(op.Path); err != nil && os.IsNotExist(err) {
+		global.LOG.Error("File path not exist. %v", err)
 		return &fileInfo, nil
 	}
 	info, err := files.NewFileInfo(op.FileOption)
 	if err != nil {
 		return &fileInfo, err
 	}
+	global.LOG.Info("FileInfo: \n%v", info)
 	fileInfo.FileInfo = *info
 	return &fileInfo, nil
 }

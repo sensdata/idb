@@ -128,7 +128,9 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param path query string false "Root path"
+// @Param path query string false "Directory path (default is root directory)"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
 // @Success 200 {array} model.FileTree
 // @Router /files/trees [get]
 func (s *FileMan) GetFileTree(c *gin.Context) {
@@ -139,10 +141,30 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 	}
 
 	path := c.Query("path")
+	if path == "" {
+		path = "/"
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
 
 	req := model.FileOption{
-		HostID:     uint(hostID),
-		FileOption: files.FileOption{Path: path},
+		HostID: uint(hostID),
+		FileOption: files.FileOption{
+			Path:     path,
+			Expand:   true,
+			Page:     int(page),
+			PageSize: int(pageSize),
+		},
 	}
 
 	tree, err := s.getFileTree(req)
@@ -161,6 +183,8 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param path query string false "Directory path (default is root directory)"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
 // @Success 200 {array} model.FileInfo
 // @Router /files [get]
 func (s *FileMan) GetFileList(c *gin.Context) {
@@ -171,10 +195,30 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 	}
 
 	path := c.Query("path")
+	if path == "" {
+		path = "/"
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
 
 	req := model.FileOption{
-		HostID:     uint(hostID),
-		FileOption: files.FileOption{Path: path},
+		HostID: uint(hostID),
+		FileOption: files.FileOption{
+			Path:     path,
+			Expand:   true,
+			Page:     int(page),
+			PageSize: int(pageSize),
+		},
 	}
 
 	files, err := s.getFileList(req)
