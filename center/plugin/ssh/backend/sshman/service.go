@@ -36,7 +36,7 @@ func (s *SSHMan) Initialize() {
 		return
 	}
 
-	baseUrl := fmt.Sprintf("http://%s:%d", "0.0.0.0", conn.CONFMAN.GetConfig().Port)
+	baseUrl := fmt.Sprintf("http://%s:%d/idb/api", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).
 		SetHeader("Content-Type", "application/json")

@@ -3,9 +3,11 @@ package systemctl
 import (
 	_ "embed"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -33,7 +35,7 @@ func (s *SystemCtl) Initialize() {
 	}
 
 	// TODO: 根据配置传入
-	s.cmdHelper = helper.NewCmdHelper("127.0.0.1", "8080", nil)
+	s.cmdHelper = helper.NewCmdHelper("127.0.0.1", strconv.Itoa(conn.CONFMAN.GetConfig().Port), nil)
 
 	api.API.SetUpPluginRouters(
 		"sysctl",
