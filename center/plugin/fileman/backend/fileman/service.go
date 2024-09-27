@@ -64,7 +64,7 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/upload", Handler: s.Upload},
 			{Method: "GET", Path: "/download", Handler: s.Download},
 			{Method: "GET", Path: "/size", Handler: s.Size},
-			{Method: "PUT", Path: "/rename/:host_id/:old_path", Handler: s.ChangeFileName},
+			{Method: "PUT", Path: "/rename", Handler: s.ChangeFileName},
 			{Method: "PUT", Path: "/move", Handler: s.MoveFile},
 			{Method: "PUT", Path: "/owner", Handler: s.ChangeFileOwner},
 			{Method: "PUT", Path: "/mode", Handler: s.ChangeFileMode},
@@ -257,10 +257,10 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param path query string true "File path"
+// @Param source query string true "Source file path"
 // @Param force_delete query bool false "Force delete flag"
 // @Param is_dir query bool false "Is directory flag"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -269,9 +269,9 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	path := c.Query("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Source is required", nil)
 		return
 	}
 
@@ -280,7 +280,7 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 
 	req := model.FileDelete{
 		HostID:      uint(hostID),
-		Path:        path,
+		Path:        source,
 		ForceDelete: forceDelete,
 		IsDir:       isDir,
 	}
@@ -300,9 +300,9 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param paths query string true "Comma-separated list of file paths to delete"
+// @Param sources query string true "Comma-separated list of file paths to delete"
 // @Param is_dir query bool false "Is directory flag"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/batch [delete]
 func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -311,9 +311,9 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 		return
 	}
 
-	paths := c.Query("paths")
-	if paths == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No paths provided", nil)
+	sources := c.Query("sources")
+	if sources == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No sources provided", nil)
 		return
 	}
 
@@ -321,7 +321,7 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 
 	req := model.FileBatchDelete{
 		HostID: uint(hostID),
-		Paths:  strings.Split(paths, ","),
+		Paths:  strings.Split(sources, ","),
 		IsDir:  isDir,
 	}
 
@@ -415,34 +415,13 @@ func (s *FileMan) GetContent(c *gin.Context) {
 // @Description Update the content of a file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
-// @Param path query string true "File path"
-// @Param content body string true "New file content"
+// @Param request body model.FileEdit true "File edit details"
 // @Success 200
 // @Router /files/content [put]
 func (s *FileMan) SaveContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+	var req model.FileEdit
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
-	}
-
-	path := c.Query("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
-		return
-	}
-
-	var content string
-	if err := c.ShouldBindJSON(&content); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid content", err)
-		return
-	}
-
-	req := model.FileEdit{
-		HostID:  uint(hostID),
-		Path:    path,
-		Content: content,
 	}
 
 	if err := s.saveContent(req); err != nil {
@@ -458,9 +437,9 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Accept multipart/form-data
 // @Produce json
 // @Param host_id formData int true "Host ID"
-// @Param path formData string true "Destination directory path"
+// @Param dest formData string true "Destination directory path"
 // @Param file formData file true "File to upload"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/upload [post]
 func (s *FileMan) Upload(c *gin.Context) {
 	form, err := c.MultipartForm()
@@ -470,14 +449,14 @@ func (s *FileMan) Upload(c *gin.Context) {
 	}
 
 	hostIds := form.Value["host_id"]
-	paths := form.Value["path"]
+	paths := form.Value["dest"]
 	files := form.File["file"]
 	if len(hostIds) == 0 {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host_id", err)
 		return
 	}
 	if len(paths) == 0 {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams dest", err)
 		return
 	}
 	if len(files) == 0 {
@@ -505,7 +484,7 @@ func (s *FileMan) Upload(c *gin.Context) {
 // @Description Download a file from a specific host and path
 // @Produce octet-stream
 // @Param host_id query int true "Host ID"
-// @Param path query string true "File path"
+// @Param source query string true "Source file path"
 // @Success 200 {file} binary
 // @Router /files/download [get]
 func (s *FileMan) Download(c *gin.Context) {
@@ -515,13 +494,13 @@ func (s *FileMan) Download(c *gin.Context) {
 		return
 	}
 
-	filePath := c.Query("path")
-	if filePath == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "File path is required", nil)
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Source is required", nil)
 		return
 	}
 
-	if err := s.downloadFile(c, uint(hostID), filePath); err != nil {
+	if err := s.downloadFile(c, uint(hostID), source); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -533,7 +512,7 @@ func (s *FileMan) Download(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param path query string true "Directory path"
+// @Param source query string true "Source file path"
 // @Success 200 {object} model.DirSizeRes
 // @Router /files/size [get]
 func (s *FileMan) Size(c *gin.Context) {
@@ -543,15 +522,15 @@ func (s *FileMan) Size(c *gin.Context) {
 		return
 	}
 
-	path := c.Query("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Source is required", nil)
 		return
 	}
 
 	req := model.DirSizeReq{
 		HostID: uint(hostID),
-		Path:   path,
+		Path:   source,
 	}
 
 	res, err := s.dirSize(req)
@@ -567,34 +546,13 @@ func (s *FileMan) Size(c *gin.Context) {
 // @Description Rename a file
 // @Accept json
 // @Produce json
-// @Param host_id path int true "Host ID"
-// @Param old_path path string true "Current file path"
-// @Param new_name body string true "New file name"
-// @Success 200 "No Content"
-// @Router /files/rename/{host_id}/{old_path} [put]
+// @Param request body model.FileRename true "File rename details"
+// @Success 200
+// @Router /files/rename [put]
 func (s *FileMan) ChangeFileName(c *gin.Context) {
-	hostID, err := strconv.Atoi(c.Param("host_id"))
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+	var req model.FileRename
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
-	}
-
-	oldPath := c.Param("old_path")
-	if oldPath == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Old path is required", nil)
-		return
-	}
-
-	var newName string
-	if err := c.ShouldBindJSON(&newName); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid new name", err)
-		return
-	}
-
-	req := model.FileRename{
-		HostID:  uint(hostID),
-		Path:    oldPath,
-		NewName: newName,
 	}
 
 	if err := s.changeName(req); err != nil {
@@ -624,14 +582,15 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 // @Description Move one or more files to a new location
 // @Accept json
 // @Produce json
-// @Param move_request body model.FileMove true "File move details"
-// @Success 200 "No Content"
+// @Param request body model.FileMove true "File move details"
+// @Success 200
 // @Router /files/move [put]
 func (s *FileMan) MoveFile(c *gin.Context) {
 	var req model.FileMove
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+
 	if err := s.mvFile(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -645,7 +604,7 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body model.FileRoleUpdate true "File owner update details"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/owner [put]
 func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 	var req model.FileRoleUpdate
@@ -665,11 +624,11 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body model.FileCreate true "File mode update details"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/mode [put]
 func (s *FileMan) ChangeFileMode(c *gin.Context) {
 	var req model.FileCreate
-	if err := helper.CheckBind(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 	err := s.changeMode(req)
@@ -686,7 +645,7 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body model.FileRoleReq true "Batch file mode and owner change request"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/batch/role [put]
 func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 	var req model.FileRoleReq
@@ -704,14 +663,38 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 // @Description Get favorite files
 // @Accept json
 // @Produce json
-// @Param request body model.FavoriteListReq true "Favorite list request"
+// @Param host_id query uint true "Host ID"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
 // @Router /files/favorites [get]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
-	var req model.FavoriteListReq
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.FavoriteListReq{
+		HostID: uint(hostID),
+		PageInfo: model.PageInfo{
+			Page:     int(page),
+			PageSize: int(pageSize),
+		},
+	}
+
 	result, err := s.getFavoriteList(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
@@ -748,7 +731,7 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param id path uint true "Favorite ID"
-// @Success 200 "No Content"
+// @Success 200
 // @Router /files/favorites/{id} [delete]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)

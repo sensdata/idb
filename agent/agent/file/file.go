@@ -120,16 +120,16 @@ func (f *FileService) GetFileTree(op model.FileOption) ([]model.FileTree, error)
 }
 
 func (f *FileService) Create(op model.FileCreate) error {
-	if files.IsInvalidChar(op.Path) {
+	if files.IsInvalidChar(op.Source) {
 		return errors.New("ErrInvalidChar")
 	}
 	fo := files.NewFileOp()
-	if fo.Stat(op.Path) {
+	if fo.Stat(op.Source) {
 		return errors.New(constant.ErrFileIsExit)
 	}
 	mode := op.Mode
 	if mode == 0 {
-		fileInfo, err := os.Stat(filepath.Dir(op.Path))
+		fileInfo, err := os.Stat(filepath.Dir(op.Source))
 		if err == nil {
 			mode = int64(fileInfo.Mode().Perm())
 		} else {
@@ -137,15 +137,15 @@ func (f *FileService) Create(op model.FileCreate) error {
 		}
 	}
 	if op.IsDir {
-		return fo.CreateDirWithMode(op.Path, fs.FileMode(mode))
+		return fo.CreateDirWithMode(op.Source, fs.FileMode(mode))
 	}
 	if op.IsLink {
 		if !fo.Stat(op.LinkPath) {
 			return errors.New(constant.ErrLinkPathNotFound)
 		}
-		return fo.LinkFile(op.LinkPath, op.Path, op.IsSymlink)
+		return fo.LinkFile(op.LinkPath, op.Source, op.IsSymlink)
 	}
-	return fo.CreateFileWithMode(op.Path, fs.FileMode(mode))
+	return fo.CreateFileWithMode(op.Source, fs.FileMode(mode))
 }
 
 func (f *FileService) Delete(op model.FileDelete) error {
@@ -183,12 +183,12 @@ func (f *FileService) BatchDelete(op model.FileBatchDelete) error {
 
 func (f *FileService) ChangeMode(op model.FileCreate) error {
 	fo := files.NewFileOp()
-	return fo.ChmodR(op.Path, op.Mode, op.Sub)
+	return fo.ChmodR(op.Source, op.Mode, op.Sub)
 }
 
 func (f *FileService) BatchChangeModeAndOwner(op model.FileRoleReq) error {
 	fo := files.NewFileOp()
-	for _, path := range op.Paths {
+	for _, path := range op.Sources {
 		if !fo.Stat(path) {
 			return errors.New(constant.ErrPathNotFound)
 		}
@@ -205,7 +205,7 @@ func (f *FileService) BatchChangeModeAndOwner(op model.FileRoleReq) error {
 
 func (f *FileService) ChangeOwner(req model.FileRoleUpdate) error {
 	fo := files.NewFileOp()
-	return fo.ChownR(req.Path, req.User, req.Group, req.Sub)
+	return fo.ChownR(req.Source, req.User, req.Group, req.Sub)
 }
 
 func (f *FileService) Compress(c model.FileCompress) error {
@@ -234,7 +234,7 @@ func (f *FileService) GetContent(op model.FileContentReq) (*model.FileInfo, erro
 
 func (f *FileService) SaveContent(edit model.FileEdit) error {
 	info, err := files.NewFileInfo(files.FileOption{
-		Path:   edit.Path,
+		Path:   edit.Source,
 		Expand: false,
 	})
 	if err != nil {
@@ -242,12 +242,12 @@ func (f *FileService) SaveContent(edit model.FileEdit) error {
 	}
 
 	fo := files.NewFileOp()
-	return fo.WriteFile(edit.Path, strings.NewReader(edit.Content), info.FileMode)
+	return fo.WriteFile(edit.Source, strings.NewReader(edit.Content), info.FileMode)
 }
 
 func (f *FileService) ChangeName(req model.FileRename) error {
 	fo := files.NewFileOp()
-	if !fo.Stat(req.Path) {
+	if !fo.Stat(req.Source) {
 		return errors.New(constant.ErrPathNotFound)
 	}
 
@@ -255,7 +255,7 @@ func (f *FileService) ChangeName(req model.FileRename) error {
 		return errors.New("ErrInvalidChar")
 	}
 
-	return fo.Rename(req.Path, req.NewName)
+	return fo.Rename(req.Source, req.NewName)
 }
 
 func (f *FileService) Wget(w model.FileWget) (string, error) {
@@ -266,26 +266,26 @@ func (f *FileService) Wget(w model.FileWget) (string, error) {
 
 func (f *FileService) MvFile(m model.FileMove) error {
 	fo := files.NewFileOp()
-	if !fo.Stat(m.NewPath) {
+	if !fo.Stat(m.Dest) {
 		return errors.New(constant.ErrPathNotFound)
 	}
-	for _, oldPath := range m.OldPaths {
+	for _, oldPath := range m.Sources {
 		if !fo.Stat(oldPath) {
 			return errors.New(constant.ErrFileNotFound)
 		}
-		if oldPath == m.NewPath || strings.Contains(m.NewPath, filepath.Clean(oldPath)+"/") {
+		if oldPath == m.Dest || strings.Contains(m.Dest, filepath.Clean(oldPath)+"/") {
 			return errors.New(constant.ErrMovePathFailed)
 		}
 	}
 	if m.Type == "cut" {
-		return fo.Cut(m.OldPaths, m.NewPath, m.Name, m.Cover)
+		return fo.Cut(m.Sources, m.Dest, m.Name, m.Cover)
 	}
 	var errs []error
 	if m.Type == "copy" {
-		for _, src := range m.OldPaths {
-			if err := fo.CopyAndReName(src, m.NewPath, m.Name, m.Cover); err != nil {
+		for _, src := range m.Sources {
+			if err := fo.CopyAndReName(src, m.Dest, m.Name, m.Cover); err != nil {
 				errs = append(errs, err)
-				global.LOG.Error("copy file [%s] to [%s] failed, err: %s", src, m.NewPath, err.Error())
+				global.LOG.Error("copy file [%s] to [%s] failed, err: %s", src, m.Dest, err.Error())
 			}
 		}
 	}
