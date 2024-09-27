@@ -172,7 +172,7 @@ func (c *CmdHelper) WriteFile(hostId uint, path string, content string) error {
 
 	req := model.FileEdit{
 		HostID:  hostId,
-		Path:    path,
+		Source:  path,
 		Content: content,
 	}
 
