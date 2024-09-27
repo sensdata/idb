@@ -55,14 +55,14 @@ func (s *FileMan) Initialize() {
 			{Method: "GET", Path: "/trees", Handler: s.GetFileTree},
 			{Method: "GET", Path: "", Handler: s.GetFileList},
 			{Method: "POST", Path: "", Handler: s.CreateFile},
-			{Method: "DELETE", Path: "/:path", Handler: s.DeleteFile},
+			{Method: "DELETE", Path: "", Handler: s.DeleteFile},
 			{Method: "DELETE", Path: "/batch", Handler: s.BatchDeleteFile},
 			{Method: "POST", Path: "/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/decompress", Handler: s.DeCompressFile},
 			{Method: "GET", Path: "/content", Handler: s.GetContent},
-			{Method: "PUT", Path: "/content/:path", Handler: s.SaveContent},
-			{Method: "POST", Path: "/upload/:host_id/:path", Handler: s.Upload},
-			{Method: "GET", Path: "/download/:host_id/:file_path", Handler: s.Download},
+			{Method: "PUT", Path: "/content", Handler: s.SaveContent},
+			{Method: "POST", Path: "/upload", Handler: s.Upload},
+			{Method: "GET", Path: "/download", Handler: s.Download},
 			{Method: "GET", Path: "/size", Handler: s.Size},
 			{Method: "PUT", Path: "/rename/:host_id/:old_path", Handler: s.ChangeFileName},
 			{Method: "PUT", Path: "/move", Handler: s.MoveFile},
@@ -257,11 +257,11 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param path path string true "File path"
+// @Param path query string true "File path"
 // @Param force_delete query bool false "Force delete flag"
 // @Param is_dir query bool false "Is directory flag"
 // @Success 200 "No Content"
-// @Router /files/{path} [delete]
+// @Router /files [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
@@ -269,7 +269,7 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	path := c.Param("path")
+	path := c.Query("path")
 	if path == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
 		return
@@ -291,7 +291,7 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -331,7 +331,7 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags File
@@ -416,10 +416,10 @@ func (s *FileMan) GetContent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
-// @Param path path string true "File path"
+// @Param path query string true "File path"
 // @Param content body string true "New file content"
 // @Success 200
-// @Router /files/content/{path} [put]
+// @Router /files/content [put]
 func (s *FileMan) SaveContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
@@ -427,7 +427,7 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 		return
 	}
 
-	path := c.Param("path")
+	path := c.Query("path")
 	if path == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
 		return
@@ -457,29 +457,41 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Description Upload a file to a specific host and path
 // @Accept multipart/form-data
 // @Produce json
-// @Param host_id path int true "Host ID"
-// @Param path path string true "Destination directory path"
+// @Param host_id formData int true "Host ID"
+// @Param path formData string true "Destination directory path"
 // @Param file formData file true "File to upload"
 // @Success 200 "No Content"
-// @Router /files/upload/{host_id}/{path} [post]
+// @Router /files/upload [post]
 func (s *FileMan) Upload(c *gin.Context) {
-	hostID, err := strconv.Atoi(c.Param("host_id"))
+	form, err := c.MultipartForm()
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid form data", err)
 		return
 	}
 
-	path := c.Param("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+	hostIds := form.Value["host_id"]
+	paths := form.Value["path"]
+	files := form.File["file"]
+	if len(hostIds) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host_id", err)
+		return
+	}
+	if len(paths) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams path", err)
+		return
+	}
+	if len(files) == 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams file", err)
 		return
 	}
 
-	file, err := c.FormFile("file")
+	hostID, err := strconv.Atoi(hostIds[0])
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid file", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
 		return
 	}
+	path := paths[0]
+	file := files[0]
 
 	if err := s.uploadFile(uint(hostID), path, file); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
@@ -492,18 +504,18 @@ func (s *FileMan) Upload(c *gin.Context) {
 // @Summary Download file
 // @Description Download a file from a specific host and path
 // @Produce octet-stream
-// @Param host_id path int true "Host ID"
-// @Param file_path path string true "File path"
+// @Param host_id query int true "Host ID"
+// @Param path query string true "File path"
 // @Success 200 {file} binary
-// @Router /files/download/{host_id}/{file_path} [get]
+// @Router /files/download [get]
 func (s *FileMan) Download(c *gin.Context) {
-	hostID, err := strconv.Atoi(c.Param("host_id"))
+	hostID, err := strconv.Atoi(c.Query("host_id"))
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
 		return
 	}
 
-	filePath := c.Param("file_path")
+	filePath := c.Query("path")
 	if filePath == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "File path is required", nil)
 		return

@@ -63,6 +63,10 @@ func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute
 			pluginGroup.GET(route.Path, route.Handler)
 		case "POST":
 			pluginGroup.POST(route.Path, route.Handler)
+		case "DELETE":
+			pluginGroup.DELETE(route.Path, route.Handler)
+		case "PUT":
+			pluginGroup.PUT(route.Path, route.Handler)
 		}
 	}
 }
