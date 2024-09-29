@@ -70,7 +70,7 @@ func (s *UserService) Create(req core.CreateUser) (*core.UserInfo, error) {
 	return &core.UserInfo{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
-		UserName:  user.Name,
+		Name:      user.Name,
 		RoleInfo:  core.RoleInfo{ID: role.ID, RoleName: role.Name, CreatedAt: role.CreatedAt},
 		GroupInfo: core.GroupInfo{ID: group.ID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
 		Valid:     user.Valid,

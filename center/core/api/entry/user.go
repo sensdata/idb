@@ -73,7 +73,7 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 	}
 
 	upMap := make(map[string]interface{})
-	upMap["user_name"] = req.UserName
+	upMap["name"] = req.Name
 	upMap["group_id"] = req.GroupID
 	upMap["valid"] = req.Valid
 	if err := userService.Update(userID, upMap); err != nil {
