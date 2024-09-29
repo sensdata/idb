@@ -28,12 +28,12 @@ func (f *FavoriteRepo) WithByPath(path string) DBOption {
 }
 
 func (f *FavoriteRepo) Page(page, size int, opts ...DBOption) (int64, []model.Favorite, error) {
-	var (
-		favorites []model.Favorite
-		count     int64
-	)
-	count = int64(0)
-	db := getDb(opts...).Model(&model.Favorite{})
+	var favorites []model.Favorite
+	db := global.DB.Model(&model.Favorite{})
+	for _, opt := range opts {
+		db = opt(db)
+	}
+	count := int64(0)
 	db = db.Count(&count)
 	err := db.Limit(size).Offset(size * (page - 1)).Find(&favorites).Error
 	return count, favorites, err
