@@ -63,7 +63,7 @@ func (r *UserRepo) WithByID(id uint) DBOption {
 
 func (r *UserRepo) WithByName(name string) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
-		return g.Where("user_name = ?", name)
+		return g.Where("name = ?", name)
 	}
 }
 

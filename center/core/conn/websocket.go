@@ -28,14 +28,14 @@ type SshConn struct {
 	User       string `json:"user"`
 	Addr       string `json:"addr"`
 	Port       int    `json:"port"`
-	AuthMode   string `json:"authMode"`
+	AuthMode   string `json:"auth_mode"`
 	Password   string `json:"password"`
-	PrivateKey []byte `json:"privateKey"`
-	PassPhrase []byte `json:"passPhrase"`
+	PrivateKey []byte `json:"private_key"`
+	PassPhrase []byte `json:"pass_phrase"`
 
 	Client     *gossh.Client  `json:"client"`
 	Session    *gossh.Session `json:"session"`
-	LastResult string         `json:"lastResult"`
+	LastResult string         `json:"last_result"`
 }
 
 func NewIWebSocketService() IWebSocketService {

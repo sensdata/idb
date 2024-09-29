@@ -4,7 +4,7 @@ package model
 type User struct {
 	BaseModel
 
-	Username string `gorm:"unique;not null" json:"userName"`
+	Name     string `gorm:"unique;not null" json:"name"`
 	Password string `gorm:"not null" json:"-"`
 	Salt     string `gorm:"not null" json:"-"`
 	RoleID   uint   `gorm:"not null" json:"-"`

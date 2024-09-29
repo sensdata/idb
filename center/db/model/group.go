@@ -4,5 +4,5 @@ package model
 type Group struct {
 	BaseModel
 
-	GroupName string `gorm:"unique;not null" json:"groupName"`
+	GroupName string `gorm:"unique;not null" json:"group_name"`
 }

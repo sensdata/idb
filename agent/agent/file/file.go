@@ -357,15 +357,15 @@ func (f *FileService) GetFavoriteList(req model.PageInfo) (*model.PageResult, er
 }
 
 func (f *FileService) CreateFavorite(req model.FavoriteCreate) (*model.Favorite, error) {
-	exist, _ := db.FavoriteRepo.GetFirst(db.FavoriteRepo.WithByPath(req.Path))
+	exist, _ := db.FavoriteRepo.GetFirst(db.FavoriteRepo.WithByPath(req.Source))
 	if exist.ID > 0 {
 		return nil, errors.New(constant.ErrFavoriteExist)
 	}
 	op := files.NewFileOp()
-	if !op.Stat(req.Path) {
+	if !op.Stat(req.Source) {
 		return nil, errors.New(constant.ErrLinkPathNotFound)
 	}
-	openFile, err := op.OpenFile(req.Path)
+	openFile, err := op.OpenFile(req.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -374,13 +374,13 @@ func (f *FileService) CreateFavorite(req model.FavoriteCreate) (*model.Favorite,
 		return nil, err
 	}
 	favorite := &model.Favorite{
-		Name:  fileInfo.Name(),
-		IsDir: fileInfo.IsDir(),
-		Path:  req.Path,
+		Name:   fileInfo.Name(),
+		IsDir:  fileInfo.IsDir(),
+		Source: req.Source,
 	}
 	if fileInfo.Size() <= 10*1024*1024 {
 		afs := &afero.Afero{Fs: op.Fs}
-		cByte, err := afs.ReadFile(req.Path)
+		cByte, err := afs.ReadFile(req.Source)
 		if err == nil {
 			if len(cByte) > 0 && !files.DetectBinary(cByte) {
 				favorite.IsTxt = true

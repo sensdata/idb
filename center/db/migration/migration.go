@@ -69,7 +69,7 @@ var AddTableUser = &gormigrate.Migration{
 		salt := utils.GenerateNonce(8)
 		passwordHash := utils.HashPassword(password, salt)
 		adminUser := model.User{
-			Username: "admin",
+			Name:     "admin",
 			Password: passwordHash,
 			Salt:     salt,
 			RoleID:   adminRole.ID,
