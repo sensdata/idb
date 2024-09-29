@@ -5,29 +5,29 @@ definitions:
         type: string
       extension:
         type: string
-      favoriteID:
+      favorite_id:
         type: integer
       gid:
         type: string
       group:
         type: string
-      isDir:
+      is_dir:
         type: boolean
-      isHidden:
+      is_hidden:
         type: boolean
-      isSymlink:
+      is_symlink:
         type: boolean
-      itemTotal:
+      item_total:
         type: integer
       items:
         items:
           $ref: '#/definitions/files.FileInfo'
         type: array
-      linkPath:
+      link_path:
         type: string
-      mimeType:
+      mime_type:
         type: string
-      modTime:
+      mod_time:
         type: string
       mode:
         type: string
@@ -41,7 +41,7 @@ definitions:
         type: string
       uid:
         type: string
-      updateTime:
+      update_time:
         type: string
       user:
         type: string
@@ -74,17 +74,14 @@ definitions:
     properties:
       password:
         type: string
-      userId:
-        type: integer
     required:
     - password
-    - userId
     type: object
   model.Command:
     properties:
       command:
         type: string
-      hostId:
+      host_id:
         type: integer
     type: object
   model.CommandGroup:
@@ -93,63 +90,56 @@ definitions:
         items:
           type: string
         type: array
-      hostId:
-        type: integer
-    type: object
-  model.ContentUpdate:
-    properties:
-      content:
-        type: string
-      hostId:
+      host_id:
         type: integer
     type: object
   model.CreateGroup:
     properties:
-      groupName:
+      group_name:
         type: string
     required:
-    - groupName
+    - group_name
     type: object
   model.CreateHost:
     properties:
       addr:
         type: string
-      authMode:
+      auth_mode:
         type: string
-      groupId:
+      group_id:
         type: integer
       name:
         type: string
-      passPhrase:
+      pass_phrase:
         type: string
       password:
         type: string
       port:
         type: integer
-      privateKey:
+      private_key:
         type: string
       user:
         type: string
     required:
     - addr
-    - authMode
-    - groupId
+    - auth_mode
+    - group_id
     - name
     - port
     - user
     type: object
   model.CreateUser:
     properties:
-      groupId:
+      group_id:
         type: integer
+      name:
+        type: string
       password:
         type: string
-      userName:
-        type: string
     required:
-    - groupId
+    - group_id
+    - name
     - password
-    - userName
     type: object
   model.DNSInfo:
     properties:
@@ -162,64 +152,40 @@ definitions:
       timeout:
         type: integer
     type: object
-  model.DeleteUser:
+  model.DirSizeRes:
     properties:
-      userId:
-        type: integer
+      size:
+        type: number
     required:
-    - userId
+    - size
     type: object
-  model.DirSizeReq:
+  model.Favorite:
     properties:
-      hostId:
-        type: integer
-      path:
+      created_at:
         type: string
-    required:
-    - path
+      id:
+        type: integer
+      is_dir:
+        type: boolean
+      is_txt:
+        type: boolean
+      name:
+        type: string
+      source:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
     type: object
   model.FavoriteCreate:
     properties:
-      hostId:
+      host_id:
         type: integer
-      path:
+      source:
         type: string
     required:
-    - path
-    type: object
-  model.FavoriteDelete:
-    properties:
-      hostId:
-        type: integer
-      id:
-        type: integer
-    required:
-    - id
-    type: object
-  model.FavoriteListReq:
-    properties:
-      hostId:
-        type: integer
-      page:
-        type: integer
-      pageSize:
-        type: integer
-    required:
-    - page
-    - pageSize
-    type: object
-  model.FileBatchDelete:
-    properties:
-      hostId:
-        type: integer
-      isDir:
-        type: boolean
-      paths:
-        items:
-          type: string
-        type: array
-    required:
-    - paths
+    - source
     type: object
   model.FileCompress:
     properties:
@@ -229,7 +195,7 @@ definitions:
         items:
           type: string
         type: array
-      hostId:
+      host_id:
         type: integer
       name:
         type: string
@@ -243,43 +209,35 @@ definitions:
     - name
     - type
     type: object
-  model.FileContentReq:
-    properties:
-      hostId:
-        type: integer
-      path:
-        type: string
-    required:
-    - path
-    type: object
   model.FileCreate:
     properties:
       content:
         type: string
-      hostId:
+      host_id:
         type: integer
-      isDir:
+      is_dir:
         type: boolean
-      isLink:
+      is_link:
         type: boolean
-      isSymlink:
+      is_symlink:
         type: boolean
-      linkPath:
+      link_path:
         type: string
       mode:
         type: integer
-      path:
+      source:
         type: string
       sub:
         type: boolean
     required:
-    - path
+    - host_id
+    - source
     type: object
   model.FileDeCompress:
     properties:
       dst:
         type: string
-      hostId:
+      host_id:
         type: integer
       path:
         type: string
@@ -290,29 +248,18 @@ definitions:
     - path
     - type
     type: object
-  model.FileDelete:
-    properties:
-      forceDelete:
-        type: boolean
-      hostId:
-        type: integer
-      isDir:
-        type: boolean
-      path:
-        type: string
-    required:
-    - path
-    type: object
   model.FileEdit:
     properties:
       content:
         type: string
-      hostId:
+      host_id:
         type: integer
-      path:
+      source:
         type: string
     required:
-    - path
+    - content
+    - host_id
+    - source
     type: object
   model.FileInfo:
     properties:
@@ -320,29 +267,29 @@ definitions:
         type: string
       extension:
         type: string
-      favoriteID:
+      favorite_id:
         type: integer
       gid:
         type: string
       group:
         type: string
-      isDir:
+      is_dir:
         type: boolean
-      isHidden:
+      is_hidden:
         type: boolean
-      isSymlink:
+      is_symlink:
         type: boolean
-      itemTotal:
+      item_total:
         type: integer
       items:
         items:
           $ref: '#/definitions/files.FileInfo'
         type: array
-      linkPath:
+      link_path:
         type: string
-      mimeType:
+      mime_type:
         type: string
-      modTime:
+      mod_time:
         type: string
       mode:
         type: string
@@ -356,7 +303,7 @@ definitions:
         type: string
       uid:
         type: string
-      updateTime:
+      update_time:
         type: string
       user:
         type: string
@@ -365,69 +312,49 @@ definitions:
     properties:
       cover:
         type: boolean
-      hostId:
+      dest:
+        type: string
+      host_id:
         type: integer
       name:
         type: string
-      newPath:
-        type: string
-      oldPaths:
+      sources:
         items:
           type: string
         type: array
       type:
+        enum:
+        - copy
+        - move
         type: string
     required:
-    - newPath
-    - oldPaths
+    - dest
+    - host_id
+    - sources
     - type
-    type: object
-  model.FileOption:
-    properties:
-      containSub:
-        type: boolean
-      dir:
-        type: boolean
-      expand:
-        type: boolean
-      hostId:
-        type: integer
-      page:
-        type: integer
-      pageSize:
-        type: integer
-      path:
-        type: string
-      search:
-        type: string
-      showHidden:
-        type: boolean
-      sortBy:
-        type: string
-      sortOrder:
-        type: string
     type: object
   model.FileRename:
     properties:
-      hostId:
+      host_id:
         type: integer
-      newName:
+      name:
         type: string
-      oldName:
+      source:
         type: string
     required:
-    - newName
-    - oldName
+    - host_id
+    - name
+    - source
     type: object
   model.FileRoleReq:
     properties:
       group:
         type: string
-      hostId:
+      host_id:
         type: integer
       mode:
         type: integer
-      paths:
+      sources:
         items:
           type: string
         type: array
@@ -437,17 +364,18 @@ definitions:
         type: string
     required:
     - group
+    - host_id
     - mode
-    - paths
+    - sources
     - user
     type: object
   model.FileRoleUpdate:
     properties:
       group:
         type: string
-      hostId:
+      host_id:
         type: integer
-      path:
+      source:
         type: string
       sub:
         type: boolean
@@ -455,7 +383,8 @@ definitions:
         type: string
     required:
     - group
-    - path
+    - host_id
+    - source
     - user
     type: object
   model.FileTree:
@@ -471,35 +400,20 @@ definitions:
       path:
         type: string
     type: object
-  model.FileWget:
-    properties:
-      ignoreCertificate:
-        type: boolean
-      name:
-        type: string
-      path:
-        type: string
-      url:
-        type: string
-    required:
-    - name
-    - path
-    - url
-    type: object
   model.GenerateKey:
     properties:
       enabled:
         type: boolean
-      encryptionMode:
+      encryption_mode:
         enum:
         - rsa
         - ed25519
         - ecdsa
         - dsa
         type: string
-      hostId:
+      host_id:
         type: integer
-      keyBits:
+      key_bits:
         enum:
         - 1024
         - 2048
@@ -507,30 +421,30 @@ definitions:
       password:
         type: string
     required:
-    - encryptionMode
-    - keyBits
+    - encryption_mode
+    - key_bits
     type: object
   model.GroupInfo:
     properties:
-      createdAt:
+      created_at:
         type: string
-      groupName:
+      group_name:
         type: string
       id:
         type: integer
     type: object
   model.HardwareInfo:
     properties:
-      cpuCores:
+      cpu_cores:
         description: cpu核心数
         type: integer
-      cpuCount:
+      cpu_count:
         description: cpu个数
         type: integer
       memory:
         description: 内存大小
         type: string
-      moduleNames:
+      module_names:
         description: 型号
         items:
           type: string
@@ -543,24 +457,24 @@ definitions:
     properties:
       action:
         $ref: '#/definitions/model.Action'
-      hostId:
+      host_id:
         type: integer
     type: object
   model.HostInfo:
     properties:
       addr:
         type: string
-      agentAddr:
+      agent_addr:
         type: string
-      agentKey:
+      agent_key:
         type: string
-      agentMode:
+      agent_mode:
         type: string
-      agentPort:
+      agent_port:
         type: integer
-      authMode:
+      auth_mode:
         type: string
-      createdAt:
+      created_at:
         type: string
       group:
         $ref: '#/definitions/model.GroupInfo'
@@ -568,13 +482,13 @@ definitions:
         type: integer
       name:
         type: string
-      passPhrase:
+      pass_phrase:
         type: string
       password:
         type: string
       port:
         type: integer
-      privateKey:
+      private_key:
         type: string
       user:
         type: string
@@ -583,44 +497,22 @@ definitions:
     properties:
       key:
         type: string
-      newValue:
+      new_value:
         type: string
-      oldValue:
+      old_value:
         type: string
     required:
     - key
     type: object
-  model.ListHost:
-    properties:
-      groupId:
-        type: integer
-      keyword:
-        type: string
-      page:
-        type: integer
-      pageSize:
-        type: integer
-    required:
-    - groupId
-    - page
-    - pageSize
-    type: object
-  model.ListKey:
-    properties:
-      hostId:
-        type: integer
-      keyword:
-        type: string
-    type: object
   model.LoadState:
     properties:
-      processCount1:
+      process_count1:
         description: 1分钟进程数
         type: string
-      processCount5:
+      process_count5:
         description: 5分钟进程数
         type: string
-      processCount15:
+      process_count15:
         description: 15分钟进程数
         type: string
     type: object
@@ -652,7 +544,7 @@ definitions:
       free:
         description: 剩余可用
         type: string
-      freeRate:
+      free_rate:
         description: 剩余率
         type: number
       kernel:
@@ -661,7 +553,7 @@ definitions:
       physical:
         description: 物理内存
         type: string
-      realUsed:
+      real_used:
         description: 进程占用
         type: string
       total:
@@ -670,7 +562,7 @@ definitions:
       used:
         description: 已使用 = 进程占用 + 缓冲区 + 缓存区
         type: string
-      usedRate:
+      used_rate:
         description: 使用率
         type: number
     type: object
@@ -688,13 +580,13 @@ definitions:
     type: object
   model.NetworkInterface:
     properties:
-      Mac:
-        description: mac地址
-        type: string
       address:
         allOf:
         - $ref: '#/definitions/model.AddressInfo'
         description: 地址信息
+      mac:
+        description: mac地址
+        type: string
       name:
         description: 名称
         type: string
@@ -711,30 +603,30 @@ definitions:
     type: object
   model.Overview:
     properties:
-      bootTime:
+      boot_time:
         description: 启动时间
         type: string
-      cpuUsage:
+      cpu_usage:
         description: CPU使用率
         type: string
-      currentLoad:
+      current_load:
         allOf:
         - $ref: '#/definitions/model.LoadState'
         description: 当前负载
-      idleTime:
+      idle_time:
         description: 空闲时间
         type: string
-      memoryUsage:
+      memory_usage:
         allOf:
         - $ref: '#/definitions/model.MemoryState'
         description: 内存使用
-      runTime:
+      run_time:
         description: 运行时间
         type: string
-      serverTime:
+      server_time:
         description: 服务器时间
         type: string
-      serverTimeZone:
+      server_time_zone:
         description: 服务器时区
         type: string
       storage:
@@ -742,20 +634,10 @@ definitions:
         items:
           $ref: '#/definitions/model.Partition'
         type: array
-      swapUsage:
+      swap_usage:
         allOf:
         - $ref: '#/definitions/model.SwapState'
         description: 交换分区
-    type: object
-  model.PageInfo:
-    properties:
-      page:
-        type: integer
-      pageSize:
-        type: integer
-    required:
-    - page
-    - pageSize
     type: object
   model.PageResult:
     properties:
@@ -777,17 +659,25 @@ definitions:
       used:
         description: 已使用
         type: string
-      usedRate:
+      used_rate:
         description: 使用率
         type: number
     type: object
+  model.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
   model.RoleInfo:
     properties:
-      createdAt:
+      created_at:
         type: string
       id:
         type: integer
-      roleName:
+      role_name:
         type: string
     type: object
   model.SSHConfigContent:
@@ -795,22 +685,17 @@ definitions:
       content:
         type: string
     type: object
-  model.SSHConfigReq:
-    properties:
-      hostId:
-        type: integer
-    type: object
   model.SSHHistory:
     properties:
       address:
         type: string
       area:
         type: string
-      authMode:
+      auth_mode:
         type: string
       date:
         type: string
-      dateStr:
+      date_str:
         type: string
       message:
         type: string
@@ -823,81 +708,53 @@ definitions:
     type: object
   model.SSHInfo:
     properties:
-      autoStart:
+      auto_start:
         type: boolean
-      listenAddress:
+      listen_address:
         type: string
       message:
         type: string
-      passwordAuthentication:
+      password_authentication:
         type: string
-      permitRootLogin:
+      permit_root_login:
         type: string
       port:
         type: string
-      pubkeyAuthentication:
+      pubkey_authentication:
         type: string
       status:
         type: string
-      useDNS:
+      use_dns:
         type: string
     type: object
   model.SSHLog:
     properties:
-      failedCount:
+      failed_count:
         type: integer
       logs:
         items:
           $ref: '#/definitions/model.SSHHistory'
         type: array
-      successfulCount:
+      successful_count:
         type: integer
-      totalCount:
+      total_count:
         type: integer
-    type: object
-  model.SSHOperate:
-    properties:
-      hostId:
-        type: integer
-      operation:
-        type: string
     type: object
   model.SSHUpdate:
     properties:
-      hostId:
+      host_id:
         type: integer
       values:
         items:
           $ref: '#/definitions/model.KeyValueForUpdate'
         type: array
     type: object
-  model.SearchSSHLog:
-    properties:
-      Status:
-        enum:
-        - Success
-        - Failed
-        - All
-        type: string
-      hostId:
-        type: integer
-      info:
-        type: string
-      page:
-        type: integer
-      pageSize:
-        type: integer
-    required:
-    - Status
-    - page
-    - pageSize
-    type: object
   model.SwapState:
     properties:
       free:
         description: 剩余可用
         type: string
-      freeRate:
+      free_rate:
         description: 剩余率
         type: number
       total:
@@ -906,22 +763,22 @@ definitions:
       used:
         description: 已使用
         type: string
-      usedRate:
+      used_rate:
         description: 使用率
         type: number
     type: object
   model.SystemConfig:
     properties:
-      maxOpendFiles:
+      max_opend_files:
         description: 最大文件打开数
         type: integer
-      maxWatchedFiles:
+      max_watched_files:
         description: 最大监控文件数
         type: integer
     type: object
   model.SystemInfo:
     properties:
-      hostName:
+      host_name:
         description: 主机名称
         type: string
       kernel:
@@ -939,44 +796,38 @@ definitions:
     type: object
   model.TestAgent:
     properties:
-      agentAddr:
+      agent_addr:
         type: string
-      agentKey:
+      agent_key:
         type: string
-      agentMode:
+      agent_mode:
         type: string
-      agentPort:
-        type: integer
-      hostId:
+      agent_port:
         type: integer
     required:
-    - agentAddr
-    - agentMode
-    - agentPort
-    - hostId
+    - agent_addr
+    - agent_mode
+    - agent_port
     type: object
   model.TestSSH:
     properties:
       addr:
         type: string
-      authMode:
+      auth_mode:
         type: string
-      hostId:
-        type: integer
-      passPhrase:
+      pass_phrase:
         type: string
       password:
         type: string
       port:
         type: integer
-      privateKey:
+      private_key:
         type: string
       user:
         type: string
     required:
     - addr
-    - authMode
-    - hostId
+    - auth_mode
     - port
     - user
     type: object
@@ -985,128 +836,108 @@ definitions:
       rx:
         description: 接收数据量
         type: string
-      rxBytes:
+      rx_bytes:
         description: 接收数据量
         type: integer
-      rxSpeed:
+      rx_speed:
         description: 接收实时速率
         type: string
       tx:
         description: 发送数据量
         type: string
-      txBytes:
+      tx_bytes:
         description: 发送数据量
         type: integer
-      txSpeed:
+      tx_speed:
         description: 发送实时速率
         type: string
     type: object
   model.UpdateGroup:
     properties:
-      groupId:
-        type: integer
-      groupName:
+      group_name:
         type: string
     required:
-    - groupId
-    - groupName
+    - group_name
     type: object
   model.UpdateHost:
     properties:
-      groupId:
-        type: integer
-      hostId:
+      group_id:
         type: integer
       name:
         type: string
     required:
-    - groupId
-    - hostId
+    - group_id
     - name
     type: object
   model.UpdateHostAgent:
     properties:
-      agentAddr:
+      agent_addr:
         type: string
-      agentKey:
+      agent_key:
         type: string
-      agentMode:
+      agent_mode:
         type: string
-      agentPort:
-        type: integer
-      hostId:
+      agent_port:
         type: integer
     required:
-    - agentAddr
-    - agentMode
-    - agentPort
-    - hostId
+    - agent_addr
+    - agent_mode
+    - agent_port
     type: object
   model.UpdateHostSSH:
     properties:
       addr:
         type: string
-      authMode:
+      auth_mode:
         type: string
-      hostId:
-        type: integer
-      passPhrase:
+      pass_phrase:
         type: string
       password:
         type: string
       port:
         type: integer
-      privateKey:
+      private_key:
         type: string
       user:
         type: string
     required:
     - addr
-    - authMode
-    - hostId
+    - auth_mode
     - port
     - user
     type: object
   model.UpdateUser:
     properties:
-      groupId:
+      group_id:
         type: integer
-      userId:
-        type: integer
-      userName:
+      name:
         type: string
       valid:
         type: integer
     required:
-    - groupId
-    - userId
-    - userName
+    - group_id
+    - name
     - valid
     type: object
   model.UserInfo:
     properties:
-      createdAt:
+      created_at:
         type: string
       group:
         $ref: '#/definitions/model.GroupInfo'
       id:
         type: integer
+      name:
+        type: string
       role:
         $ref: '#/definitions/model.RoleInfo'
-      userName:
-        type: string
       valid:
         type: integer
     type: object
   model.ValidUser:
     properties:
-      userId:
-        type: integer
       valid:
         type: integer
-    required:
-    - userId
-    - valid
     type: object
   plugin.MenuItem:
     properties:
@@ -1135,11 +966,11 @@ definitions:
 info:
   contact: {}
 paths:
-  /act/send:
+  /actions:
     post:
       consumes:
       - application/json
-      description: 像目标设备发送action指令
+      description: 向目标设备发送action指令
       parameters:
       - description: request
         in: body
@@ -1157,7 +988,25 @@ paths:
       summary: send action command to host
       tags:
       - Action
-  /auth/login:
+  /auth/sessions:
+    delete:
+      consumes:
+      - application/json
+      description: 用户登出
+      parameters:
+      - description: Authentication token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: User logout
+      tags:
+      - Auth
     post:
       consumes:
       - application/json
@@ -1179,26 +1028,7 @@ paths:
       summary: User login
       tags:
       - Auth
-  /auth/logout:
-    get:
-      consumes:
-      - application/json
-      description: 用户登出
-      parameters:
-      - description: Authentication token
-        in: header
-        name: token
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: User logout
-      tags:
-      - Auth
-  /cmd/send:
+  /commands:
     post:
       consumes:
       - application/json
@@ -1218,7 +1048,7 @@ paths:
       summary: send linux command to host
       tags:
       - Command
-  /cmd/send/group:
+  /commands/group:
     post:
       consumes:
       - application/json
@@ -1235,39 +1065,140 @@ paths:
       responses:
         "200":
           description: OK
-      summary: send group of linux command to host
+      summary: send group of linux commands to host
       tags:
       - Command
-  /files/batch/del:
+  /files:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a file or directory
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: Source file path
+        in: query
+        name: source
+        required: true
+        type: string
+      - description: Force delete flag
+        in: query
+        name: force_delete
+        type: boolean
+      - description: Is directory flag
+        in: query
+        name: is_dir
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete file
+      tags:
+      - File
+    get:
+      consumes:
+      - application/json
+      description: Get list of files in a directory
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: Directory path (default is root directory)
+        in: query
+        name: path
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.FileInfo'
+            type: array
+      summary: List files
+      tags:
+      - File
     post:
       consumes:
       - application/json
-      description: 批量删除文件/文件夹
+      description: Create a new file or directory
       parameters:
-      - description: request
+      - description: File creation details
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.FileBatchDelete'
+          $ref: '#/definitions/model.FileCreate'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Batch delete file
+          schema:
+            $ref: '#/definitions/model.FileInfo'
+      summary: Create file or directory
+      tags:
+      - File
+  /files/batch:
+    delete:
+      consumes:
+      - application/json
+      description: Delete multiple files or directories
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: Comma-separated list of file paths to delete
+        in: query
+        name: sources
+        required: true
+        type: string
+      - description: Is directory flag
+        in: query
+        name: is_dir
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Batch delete files
       tags:
       - File
   /files/batch/role:
-    post:
+    put:
       consumes:
       - application/json
-      description: 批量修改文件权限和用户/组
+      description: Batch modify file permissions and user/group
       parameters:
-      - description: request
+      - description: Batch file mode and owner change request
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileRoleReq'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -1278,63 +1209,72 @@ paths:
     post:
       consumes:
       - application/json
-      description: 压缩文件
+      description: Compress multiple files or directories into an archive
       parameters:
-      - description: request
+      - description: Compression details
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileCompress'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Compress file
+      summary: Compress files
       tags:
       - File
   /files/content:
-    post:
+    get:
       consumes:
       - application/json
-      description: 获取文件内容
+      description: Get the content of a file
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: query
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.FileContentReq'
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/model.FileInfo'
-      summary: Load file content
+      summary: Get file content
       tags:
       - File
-  /files/create:
-    post:
+    put:
       consumes:
       - application/json
-      description: 创建文件/文件夹
+      description: Update the content of a file
       parameters:
-      - description: request
+      - description: File edit details
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.FileCreate'
+          $ref: '#/definitions/model.FileEdit'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Create file
+      summary: Update file content
       tags:
       - File
   /files/decompress:
     post:
       consumes:
       - application/json
-      description: 解压文件
+      description: Decompress file into an archive
       parameters:
       - description: request
         in: body
@@ -1348,145 +1288,128 @@ paths:
       summary: Decompress file
       tags:
       - File
-  /files/del:
-    post:
-      consumes:
-      - application/json
-      description: 删除文件/文件夹
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileDelete'
-      responses:
-        "200":
-          description: OK
-      summary: Delete file
-      tags:
-      - File
-      x-panel-log:
-        BeforeFunctions: []
-        bodyKeys:
-        - path
-        formatEN: Delete dir or file [path]
-        formatZH: 删除文件/文件夹 [path]
-        paramKeys: []
   /files/download:
     get:
-      consumes:
-      - application/json
-      description: 下载文件
+      description: Download a file from a specific host and path
       parameters:
-      - description: host ID
-        in: formData
-        name: host
-        required: true
-        type: string
-      - description: file path
+      - description: Host ID
         in: query
-        name: path
+        name: host_id
+        required: true
+        type: integer
+      - description: Source file path
+        in: query
+        name: source
         required: true
         type: string
+      produces:
+      - application/octet-stream
       responses:
         "200":
           description: OK
+          schema:
+            type: file
       summary: Download file
       tags:
       - File
-  /files/favorite/create:
+  /files/favorites:
+    get:
+      consumes:
+      - application/json
+      description: Get favorite files
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get favorites
+      tags:
+      - File
     post:
       consumes:
       - application/json
-      description: 创建收藏
+      description: Collect a favorite file
       parameters:
-      - description: request
+      - description: Favorite create request
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FavoriteCreate'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Create favorite
+          schema:
+            $ref: '#/definitions/model.Favorite'
+      summary: Collect a favorite file
       tags:
       - File
-  /files/favorite/del:
-    post:
+  /files/favorites/{id}:
+    delete:
       consumes:
       - application/json
-      description: 删除收藏
+      description: Delete a favorite
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: query
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.FavoriteDelete'
-      responses: {}
-      summary: Delete favorite
-      tags:
-      - File
-  /files/favorite/list:
-    post:
-      consumes:
+        type: integer
+      - description: Favorite ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
       - application/json
-      description: 获取收藏列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FavoriteListReq'
       responses:
         "200":
           description: OK
-      summary: List favorites
+      summary: Delete a favorite
       tags:
       - File
   /files/info:
     get:
       consumes:
       - application/json
-      description: 插件信息
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/plugin.PluginInfo'
-            type: array
-      summary: Plugin info
-      tags:
-      - File
-  /files/list:
-    post:
-      consumes:
+      description: Get plugin information
+      produces:
       - application/json
-      description: 获取文件列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileOption'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.FileInfo'
-      summary: List files
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
       tags:
       - File
   /files/menu:
     get:
       consumes:
       - application/json
-      description: 插件菜单
+      description: Get plugin menu items
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -1494,21 +1417,23 @@ paths:
             items:
               $ref: '#/definitions/plugin.MenuItem'
             type: array
-      summary: Plugin menu
+      summary: Get plugin menu
       tags:
       - File
   /files/mode:
-    post:
+    put:
       consumes:
       - application/json
-      description: 修改文件权限
+      description: Change file mode
       parameters:
-      - description: request
+      - description: File mode update details
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileCreate'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -1516,126 +1441,118 @@ paths:
       tags:
       - File
   /files/move:
-    post:
+    put:
       consumes:
       - application/json
-      description: 移动文件
+      description: Move one or more files to a new location
       parameters:
-      - description: request
+      - description: File move details
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileMove'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      security:
-      - ApiKeyAuth: []
-      summary: Move file
+      summary: Move files
       tags:
       - File
-      x-panel-log:
-        BeforeFunctions: []
-        bodyKeys:
-        - oldPaths
-        - newPath
-        formatEN: Move [oldPaths] => [newPath]
-        formatZH: 移动文件 [oldPaths] => [newPath]
-        paramKeys: []
   /files/owner:
-    post:
+    put:
       consumes:
       - application/json
-      description: 修改文件用户/组
+      description: Change file user or/and group
       parameters:
-      - description: request
+      - description: File owner update details
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileRoleUpdate'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
       summary: Change file owner
       tags:
       - File
-      x-panel-log:
-        BeforeFunctions: []
-        bodyKeys:
-        - path
-        - user
-        - group
-        formatEN: Change owner [paths] => [user]/[group]
-        formatZH: 修改用户/组 [paths] => [user]/[group]
-        paramKeys: []
   /files/rename:
-    post:
+    put:
       consumes:
       - application/json
-      description: 修改文件名称
+      description: Rename a file
       parameters:
-      - description: request
+      - description: File rename details
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.FileRename'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
       summary: Change file name
       tags:
       - File
-  /files/save:
-    post:
-      consumes:
-      - application/json
-      description: 更新文件内容
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileEdit'
-      responses:
-        "200":
-          description: OK
-      summary: Update file content
-      tags:
-      - File
   /files/size:
-    post:
+    get:
       consumes:
       - application/json
-      description: 获取文件夹大小
+      description: Get the size of a directory
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: query
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.DirSizeReq'
+        type: integer
+      - description: Source file path
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Load file size
+          schema:
+            $ref: '#/definitions/model.DirSizeRes'
+      summary: Get directory size
       tags:
       - File
-  /files/tree:
-    post:
+  /files/trees:
+    get:
       consumes:
       - application/json
-      description: 加载文件树
+      description: Get file tree structure
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: query
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.FileOption'
+        type: integer
+      - description: Directory path (default is root directory)
+        in: query
+        name: path
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -1643,53 +1560,64 @@ paths:
             items:
               $ref: '#/definitions/model.FileTree'
             type: array
-      summary: Load files tree
+      summary: Get file tree
       tags:
       - File
   /files/upload:
     post:
-      description: 上传文件
+      consumes:
+      - multipart/form-data
+      description: Upload a file to a specific host and path
       parameters:
-      - description: host ID
+      - description: Host ID
         in: formData
-        name: host
+        name: host_id
+        required: true
+        type: integer
+      - description: Destination directory path
+        in: formData
+        name: dest
         required: true
         type: string
-      - description: 目标目录
-        in: formData
-        name: path
-        required: true
-        type: string
-      - description: 文件
+      - description: File to upload
         in: formData
         name: file
         required: true
         type: file
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
       summary: Upload file
       tags:
       - File
-  /files/wget:
-    post:
+  /groups:
+    get:
       consumes:
       - application/json
-      description: 下载远端文件
+      description: 获取组列表
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Page number
+        in: query
+        name: page
         required: true
-        schema:
-          $ref: '#/definitions/model.FileWget'
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Wget file
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get group list
       tags:
-      - File
-  /group/create:
+      - Group
     post:
       consumes:
       - application/json
@@ -1711,18 +1639,17 @@ paths:
       summary: create group
       tags:
       - Group
-  /group/delete:
-    post:
+  /groups/{id}:
+    delete:
       consumes:
       - application/json
       description: 删除组
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Group ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/model.UpdateGroup'
+        type: integer
       produces:
       - application/json
       responses:
@@ -1731,34 +1658,16 @@ paths:
       summary: delete group
       tags:
       - Group
-  /group/list:
-    post:
-      consumes:
-      - application/json
-      description: 获取组列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.PageInfo'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: get group list
-      tags:
-      - Group
-  /group/update:
-    post:
+    put:
       consumes:
       - application/json
       description: 更新组
       parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -1773,7 +1682,40 @@ paths:
       summary: update group
       tags:
       - Group
-  /host/create:
+  /hosts:
+    get:
+      consumes:
+      - application/json
+      description: 获取设备组列表
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Group ID
+        in: query
+        name: group_id
+        type: integer
+      - description: Keyword
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get host list
+      tags:
+      - Host
     post:
       consumes:
       - application/json
@@ -1795,96 +1737,17 @@ paths:
       summary: create host
       tags:
       - Host
-  /host/list:
-    post:
-      consumes:
-      - application/json
-      description: 获取设备组列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ListHost'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: get host list
-      tags:
-      - Host
-  /host/list/group:
-    post:
-      consumes:
-      - application/json
-      description: 获取设备组列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.PageInfo'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: get host group list
-      tags:
-      - Host
-  /host/test/agent:
-    post:
-      consumes:
-      - application/json
-      description: 测试设备agent
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TestAgent'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: test host agent
-      tags:
-      - Host
-  /host/test/ssh:
-    post:
-      consumes:
-      - application/json
-      description: 测试设备ssh
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TestSSH'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: test host ssh
-      tags:
-      - Host
-  /host/update:
-    post:
+  /hosts/{id}:
+    put:
       consumes:
       - application/json
       description: 更新设备
       parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -1899,12 +1762,17 @@ paths:
       summary: update host
       tags:
       - Host
-  /host/update/agent:
-    post:
+  /hosts/{id}/agent:
+    put:
       consumes:
       - application/json
       description: 更新设备agent配置
       parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -1919,12 +1787,17 @@ paths:
       summary: update host agent config
       tags:
       - Host
-  /host/update/ssh:
-    post:
+  /hosts/{id}/ssh:
+    put:
       consumes:
       - application/json
       description: 更新设备ssh配置
       parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -1939,163 +1812,279 @@ paths:
       summary: update host ssh config
       tags:
       - Host
-  /idb/ws/terminal:
-    get:
-      description: 终端会话的websocket接口
-      responses:
-        "200":
-          description: OK
-      summary: 终端会话接口
-      tags:
-      - WebSocket
-  /ssh/config:
+  /hosts/{id}/test/agent:
     post:
-      description: 加载 SSH 配置信息
+      consumes:
+      - application/json
+      description: 测试设备agent
       parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.SSHConfigReq'
+          $ref: '#/definitions/model.TestAgent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: test host agent
+      tags:
+      - Host
+  /hosts/{id}/test/ssh:
+    post:
+      consumes:
+      - application/json
+      description: 测试设备ssh
+      parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TestSSH'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: test host ssh
+      tags:
+      - Host
+  /hosts/groups:
+    get:
+      consumes:
+      - application/json
+      description: 获取设备组列表
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get host group list
+      tags:
+      - Host
+  /ssh/config/{host_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get SSH configurations on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/model.SSHInfo'
-      summary: Load host SSH setting info
+      summary: Get SSH configurations on host
       tags:
       - SSH
-  /ssh/config/content:
-    post:
-      description: 加载 SSH 配置文件内容
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.SSHConfigReq'
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.SSHConfigContent'
-      summary: Load host SSH setting file content
-      tags:
-      - SSH
-  /ssh/config/content/update:
-    post:
+    put:
       consumes:
       - application/json
-      description: 更新 SSH 配置文件内容
+      description: Update SSH configurations on host
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: path
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.ContentUpdate'
-      responses:
-        "200":
-          description: OK
-      summary: Update host SSH setting
-      tags:
-      - SSH
-  /ssh/config/update:
-    post:
-      consumes:
-      - application/json
-      description: 更新 SSH 配置
-      parameters:
+        type: integer
       - description: request
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.SSHUpdate'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
-      summary: Update host SSH setting
+      summary: Update SSH configurations on host
+      tags:
+      - SSH
+  /ssh/config/content/{host_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get SSH config file content on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SSHConfigContent'
+      summary: Get SSH config file content on host
+      tags:
+      - SSH
+    put:
+      consumes:
+      - application/json
+      description: Update SSH configuration file content on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
+      - description: Content
+        in: body
+        name: content
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+      summary: Update SSH configuration file content on host
       tags:
       - SSH
   /ssh/info:
     get:
       consumes:
       - application/json
-      description: 插件信息
+      description: Get plugin information
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/plugin.PluginInfo'
-            type: array
-      summary: Plugin info
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
       tags:
       - SSH
-  /ssh/key/create:
+  /ssh/keys/{host_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get SSH secrets on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
+      - description: Keyword
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Get SSH secrets on host
+      tags:
+      - SSH
     post:
       consumes:
       - application/json
-      description: 生成 SSH 密钥
+      description: Generate host SSH secret
       parameters:
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/model.GenerateKey'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
       summary: Generate host SSH secret
       tags:
       - SSH
-  /ssh/key/list:
-    post:
+  /ssh/logs/{host_id}:
+    get:
       consumes:
       - application/json
-      description: 枚举 SSH 密钥
+      description: Get SSH logs on host
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: Host ID
+        in: path
+        name: host_id
         required: true
-        schema:
-          $ref: '#/definitions/model.ListKey'
-      responses:
-        "200":
-          description: OK
-      summary: Load host SSH secret
-      tags:
-      - SSH
-  /ssh/log:
-    post:
-      consumes:
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Info
+        in: query
+        name: info
+        type: string
+      - description: Status can be 'Success' or 'Failed' or 'All'
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
       - application/json
-      description: 获取 SSH 登录日志
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.SearchSSHLog'
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/model.SSHLog'
-      summary: Load host SSH logs
+      summary: Get SSH logs on host
       tags:
       - SSH
   /ssh/menu:
     get:
       consumes:
       - application/json
-      description: 插件菜单
+      description: Get plugin menu items
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -2103,24 +2092,31 @@ paths:
             items:
               $ref: '#/definitions/plugin.MenuItem'
             type: array
-      summary: Plugin menu
+      summary: Get plugin menu
       tags:
       - SSH
-  /ssh/operate:
+  /ssh/operate/{host_id}:
     post:
       consumes:
       - application/json
-      description: 修改 SSH 服务状态
+      description: modify SSH service status on host
       parameters:
-      - description: request
+      - description: Host ID
+        in: path
+        name: host_id
+        required: true
+        type: integer
+      - description: Operation, can be 'enable' or 'disable'
         in: body
-        name: request
+        name: operation
         required: true
         schema:
-          $ref: '#/definitions/model.SSHOperate'
+          type: string
+      produces:
+      - application/json
       responses:
         "200":
-          description: OK
+          description: No Content
       summary: Operate SSH
       tags:
       - SSH
@@ -2167,14 +2163,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取系统配置
+      description: Get system config
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.SystemConfig'
-            type: array
+            $ref: '#/definitions/model.SystemConfig'
       summary: Get system config
       tags:
       - Sysinfo
@@ -2182,14 +2178,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取硬件信息
+      description: Get hardware info
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.HardwareInfo'
-            type: array
+            $ref: '#/definitions/model.HardwareInfo'
       summary: Get hardware info
       tags:
       - Sysinfo
@@ -2197,78 +2193,105 @@ paths:
     get:
       consumes:
       - application/json
-      description: 插件信息
+      description: Get plugin information
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/plugin.PluginInfo'
-            type: array
-      summary: Plugin info
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
       tags:
       - Sysinfo
   /sysinfo/menu:
     get:
       consumes:
       - application/json
-      description: 插件菜单
+      description: Get plugin menu items
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: '#/definitions/plugin.PluginInfo'
+              $ref: '#/definitions/plugin.MenuItem'
             type: array
-      summary: Plugin menu
+      summary: Get plugin menu
       tags:
       - Sysinfo
   /sysinfo/network:
     get:
       consumes:
       - application/json
-      description: 获取网络信息
+      description: Get network info
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.NetworkInfo'
-            type: array
-      summary: Get network
+            $ref: '#/definitions/model.NetworkInfo'
+      summary: Get network info
       tags:
       - Sysinfo
   /sysinfo/overview:
     get:
       consumes:
       - application/json
-      description: 获取系统概览
+      description: Get system overview info
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Overview'
-            type: array
-      summary: Get overview
+            $ref: '#/definitions/model.Overview'
+      summary: Get system overview info
       tags:
       - Sysinfo
   /sysinfo/system:
     get:
       consumes:
       - application/json
-      description: 获取系统信息
+      description: Get system info
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.SystemInfo'
-            type: array
+            $ref: '#/definitions/model.SystemInfo'
       summary: Get system info
       tags:
       - Sysinfo
-  /user/create:
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: 获取用户列表
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: get user list
+      tags:
+      - User
     post:
       consumes:
       - application/json
@@ -2290,18 +2313,17 @@ paths:
       summary: create user
       tags:
       - User
-  /user/delete:
-    post:
+  /users/{id}:
+    delete:
       consumes:
       - application/json
       description: 删除用户
       parameters:
-      - description: request
-        in: body
-        name: request
+      - description: User ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/model.DeleteUser'
+        type: integer
       produces:
       - application/json
       responses:
@@ -2310,34 +2332,16 @@ paths:
       summary: delete user
       tags:
       - User
-  /user/list:
-    post:
-      consumes:
-      - application/json
-      description: 获取用户列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.PageInfo'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: get user list
-      tags:
-      - User
-  /user/update:
-    post:
+    put:
       consumes:
       - application/json
       description: 更新用户
       parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -2352,12 +2356,17 @@ paths:
       summary: update user
       tags:
       - User
-  /user/update/password:
-    post:
+  /users/{id}/password:
+    put:
       consumes:
       - application/json
       description: 更新密码
       parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -2372,12 +2381,17 @@ paths:
       summary: update password
       tags:
       - User
-  /user/valid:
-    post:
+  /users/{id}/valid:
+    put:
       consumes:
       - application/json
       description: 禁用/启用用户
       parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -2392,4 +2406,23 @@ paths:
       summary: valid user
       tags:
       - User
+  /ws/terminals:
+    get:
+      consumes:
+      - application/json
+      description: 终端会话的websocket接口
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols to websocket
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: 终端会话接口
+      tags:
+      - WebSocket
 swagger: "2.0"
