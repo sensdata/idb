@@ -11,7 +11,7 @@ type Favorite struct {
 
 type FavoriteListReq struct {
 	PageInfo
-	HostID uint `json:"host_id"`
+	HostID uint `form:"host_id"`
 }
 
 type FavoriteCreate struct {

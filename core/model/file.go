@@ -18,7 +18,7 @@ type FileContentReq struct {
 
 type SearchUploadWithPage struct {
 	PageInfo
-	Path string `json:"path" validate:"required"`
+	Path string `form:"path" validate:"required"`
 }
 
 type FileCreate struct {

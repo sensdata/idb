@@ -24,8 +24,8 @@ type HostInfo struct {
 
 type ListHost struct {
 	PageInfo
-	GroupID uint   `json:"group_id"`
-	Keyword string `json:"keyword"`
+	GroupID uint   `form:"group_id"`
+	Keyword string `form:"keyword"`
 }
 
 type CreateHost struct {
