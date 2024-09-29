@@ -19,6 +19,7 @@ func ErrorWithDetail(ctx *gin.Context, code int, msg string, err error) {
 	res := model.Response{
 		Code:    code,
 		Message: msg,
+		Data:    err.Error(),
 	}
 	ctx.JSON(http.StatusOK, res)
 	ctx.Abort()
