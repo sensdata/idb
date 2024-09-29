@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
@@ -21,6 +22,7 @@ import (
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sensdata/idb/core/utils/common"
 	"github.com/sensdata/idb/core/utils/systemctl"
+	"golang.org/x/crypto/ssh"
 )
 
 const sshPath = "/etc/ssh/sshd_config"
@@ -414,6 +416,32 @@ func getKeyBits(fileData []byte) (int, error) {
 			return 0, fmt.Errorf("parse EC private key failed: %v", err)
 		}
 		return key.Params().BitSize, nil
+
+	case "OPENSSH PRIVATE KEY":
+		signer, err := ssh.ParsePrivateKey(fileData)
+		if err != nil {
+			return 0, fmt.Errorf("parse OpenSSH private key failed: %v", err)
+		}
+
+		pubKey := signer.PublicKey()
+		switch pubKey.Type() {
+		case "ssh-rsa":
+			// 通过 Marshal 方法获取字节数组并解析为 x509 格式
+			rsaPubKey, err := x509.ParsePKIXPublicKey(pubKey.Marshal())
+			if err != nil {
+				return 0, fmt.Errorf("parse RSA public key failed: %v", err)
+			}
+
+			if rsaKey, ok := rsaPubKey.(*rsa.PublicKey); ok {
+				return rsaKey.N.BitLen(), nil
+			}
+			return 0, fmt.Errorf("unsupported RSA public key type")
+		case "ecdsa-sha2-nistp256":
+			// 返回 ECDSA 固定位数
+			return 256, nil
+		}
+
+		return 0, fmt.Errorf("unsupported OpenSSH key type")
 
 	default:
 		return 0, fmt.Errorf("unsupported key type: %s", block.Type)

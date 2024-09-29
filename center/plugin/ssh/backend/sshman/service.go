@@ -46,14 +46,14 @@ func (s *SSHMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/config/{host_id}", Handler: s.GetSSHConfig},
-			{Method: "PUT", Path: "/config/update/{host_id}", Handler: s.UpdateSSHConfig},
-			{Method: "GET", Path: "/config/content/{host_id}", Handler: s.GetSSHConfigContent},
-			{Method: "PUT", Path: "/config/content/update/{host_id}", Handler: s.UpdateSSHConfigContent},
-			{Method: "POST", Path: "/operate/{host_id}", Handler: s.OperateSSH},
-			{Method: "POST", Path: "/keys/create/{host_id}", Handler: s.CreateKey},
-			{Method: "GET", Path: "/keys/{host_id}", Handler: s.ListKey},
-			{Method: "GET", Path: "/logs/{host_id}", Handler: s.LoadSSHLogs},
+			{Method: "GET", Path: "/config/:host_id", Handler: s.GetSSHConfig},
+			{Method: "PUT", Path: "/config/:host_id", Handler: s.UpdateSSHConfig},
+			{Method: "GET", Path: "/config/content/:host_id", Handler: s.GetSSHConfigContent},
+			{Method: "PUT", Path: "/config/content/:host_id", Handler: s.UpdateSSHConfigContent},
+			{Method: "POST", Path: "/operate/:host_id", Handler: s.OperateSSH},
+			{Method: "POST", Path: "/keys/:host_id", Handler: s.CreateKey},
+			{Method: "GET", Path: "/keys/:host_id", Handler: s.ListKey},
+			{Method: "GET", Path: "/logs/:host_id", Handler: s.LoadSSHLogs},
 		},
 	)
 	global.LOG.Info("sshman init end")
@@ -138,7 +138,7 @@ func (s *SSHMan) GetSSHConfig(c *gin.Context) {
 // @Param host_id path uint true "Host ID"
 // @Param request body model.SSHUpdate true "request"
 // @Success 200
-// @Router /ssh/config/update/{host_id} [put]
+// @Router /ssh/config/{host_id} [put]
 func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
 	if err != nil {
@@ -193,7 +193,7 @@ func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
 // @Param host_id path uint true "Host ID"
 // @Param content body string true "Content"
 // @Success 200
-// @Router /ssh/config/content/update/{host_id} [put]
+// @Router /ssh/config/content/{host_id} [put]
 func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
 	if err != nil {
@@ -225,7 +225,7 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host_id path uint true "Host ID"
-// @Param operation body string true "Operation"
+// @Param operation body string true "Operation, can be 'enable' or 'disable'"
 // @Success 200 "No Content"
 // @Router /ssh/operate/{host_id} [post]
 func (s *SSHMan) OperateSSH(c *gin.Context) {
@@ -261,7 +261,7 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 // @Param host_id path uint true "Host ID"
 // @Param request body model.GenerateKey true "request"
 // @Success 200
-// @Router /ssh/keys/create/{host_id} [post]
+// @Router /ssh/keys/{host_id} [post]
 func (s *SSHMan) CreateKey(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
 	if err != nil {
@@ -322,7 +322,7 @@ func (s *SSHMan) ListKey(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Param info query string false "Info"
-// @Param status query string true "Status"
+// @Param status query string true "Status can be 'Success' or 'Failed' or 'All'"
 // @Success 200 {object} model.SSHLog
 // @Router /ssh/logs/{host_id} [get]
 func (s *SSHMan) LoadSSHLogs(c *gin.Context) {
