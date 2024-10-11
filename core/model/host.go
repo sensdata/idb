@@ -29,52 +29,52 @@ type ListHost struct {
 }
 
 type CreateHost struct {
-	GroupID    uint   `json:"group_id" validate:"required,number"`
+	GroupID    uint   `json:"group_id" validate:"required"`
 	Name       string `json:"name" validate:"required"`
-	Addr       string `json:"addr" validate:"required,string"`
-	Port       int    `json:"port" validate:"required,number"`
-	User       string `json:"user" validate:"required,string"`
-	AuthMode   string `json:"auth_mode" validate:"required,string"`
+	Addr       string `json:"addr" validate:"required"`
+	Port       int    `json:"port" validate:"required"`
+	User       string `json:"user" validate:"required"`
+	AuthMode   string `json:"auth_mode" validate:"required"`
 	Password   string `json:"password"`
 	PrivateKey string `json:"private_key"`
 	PassPhrase string `json:"pass_phrase"`
 }
 
 type UpdateHost struct {
-	GroupID uint   `json:"group_id" validate:"required,number"`
+	GroupID uint   `json:"group_id" validate:"required"`
 	Name    string `json:"name" validate:"required"`
 }
 
 type UpdateHostSSH struct {
-	Addr       string `json:"addr" validate:"required,string"`
-	Port       int    `json:"port" validate:"required,number"`
-	User       string `json:"user" validate:"required,string"`
-	AuthMode   string `json:"auth_mode" validate:"required,string"`
+	Addr       string `json:"addr" validate:"required"`
+	Port       int    `json:"port" validate:"required"`
+	User       string `json:"user" validate:"required"`
+	AuthMode   string `json:"auth_mode" validate:"required"`
 	Password   string `json:"password"`
 	PrivateKey string `json:"private_key"`
 	PassPhrase string `json:"pass_phrase"`
 }
 
 type UpdateHostAgent struct {
-	AgentAddr string `json:"agent_addr" validate:"required,string"`
-	AgentPort int    `json:"agent_port" validate:"required,number"`
-	AgentMode string `json:"agent_mode" validate:"required,string"`
+	AgentAddr string `json:"agent_addr" validate:"required"`
+	AgentPort int    `json:"agent_port" validate:"required"`
+	AgentMode string `json:"agent_mode" validate:"required"`
 	AgentKey  string `json:"agent_key"`
 }
 
 type TestSSH struct {
-	Addr       string `json:"addr" validate:"required,string"`
-	Port       int    `json:"port" validate:"required,number"`
-	User       string `json:"user" validate:"required,string"`
-	AuthMode   string `json:"auth_mode" validate:"required,string"`
+	Addr       string `json:"addr" validate:"required"`
+	Port       int    `json:"port" validate:"required"`
+	User       string `json:"user" validate:"required"`
+	AuthMode   string `json:"auth_mode" validate:"required"`
 	Password   string `json:"password"`
 	PrivateKey string `json:"private_key"`
 	PassPhrase string `json:"pass_phrase"`
 }
 
 type TestAgent struct {
-	AgentAddr string `json:"agent_addr" validate:"required,string"`
-	AgentPort int    `json:"agent_port" validate:"required,number"`
-	AgentMode string `json:"agent_mode" validate:"required,string"`
+	AgentAddr string `json:"agent_addr" validate:"required"`
+	AgentPort int    `json:"agent_port" validate:"required"`
+	AgentMode string `json:"agent_mode" validate:"required"`
 	AgentKey  string `json:"agent_key"`
 }

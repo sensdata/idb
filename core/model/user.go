@@ -20,13 +20,13 @@ type UserInfo struct {
 type CreateUser struct {
 	Name     string `json:"name" validate:"required"`
 	Password string `json:"password" validate:"required"`
-	GroupID  uint   `json:"group_id" validate:"required,number"`
+	GroupID  uint   `json:"group_id" validate:"required"`
 }
 
 type UpdateUser struct {
 	Name    string `json:"name" validate:"required"`
-	GroupID uint   `json:"group_id" validate:"required,number"`
-	Valid   uint   `json:"valid" validate:"required,number"`
+	GroupID uint   `json:"group_id" validate:"required"`
+	Valid   uint   `json:"valid" validate:"required"`
 }
 
 type ValidUser struct {

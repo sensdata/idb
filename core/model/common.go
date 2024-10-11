@@ -1,8 +1,8 @@
 package model
 
 type PageInfo struct {
-	Page     int `form:"page" validate:"required,number"`
-	PageSize int `form:"page_size" validate:"required,number"`
+	Page     int `form:"page" validate:"required"`
+	PageSize int `form:"page_size" validate:"required"`
 }
 
 type PageResult struct {
