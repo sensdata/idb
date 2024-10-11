@@ -116,24 +116,29 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
-	//获取private_key文件内容
-	privateKey, err := os.ReadFile(req.PrivateKey)
-	if err != nil {
-		return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
-	}
-	// Encode private key
-	encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
-	global.LOG.Info("private key content: \n %s", encodedPrivateKey)
-
 	//更新字段
 	upMap := make(map[string]interface{})
 	upMap["addr"] = req.Addr
 	upMap["port"] = req.Port
 	upMap["user"] = req.User
 	upMap["auth_mode"] = req.AuthMode
-	upMap["password"] = req.Password
-	upMap["private_key"] = encodedPrivateKey
-	upMap["pass_phrase"] = req.PassPhrase
+
+	// 校验模式
+	if req.AuthMode == "password" {
+		upMap["password"] = req.Password
+	} else {
+		// 获取private_key文件内容
+		privateKey, err := os.ReadFile(req.PrivateKey)
+		if err != nil {
+			return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
+		}
+		// Encode private key
+		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
+		global.LOG.Info("private key content: \n %s", encodedPrivateKey)
+
+		upMap["private_key"] = encodedPrivateKey
+		upMap["pass_phrase"] = req.PassPhrase
+	}
 
 	return HostRepo.Update(host.ID, upMap)
 }
@@ -162,15 +167,18 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 	}
 	host.ID = id
 
-	//获取private_key文件内容
-	privateKey, err := os.ReadFile(req.PrivateKey)
-	if err != nil {
-		return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
+	// 校验模式
+	if req.AuthMode != "password" {
+		//获取private_key文件内容
+		privateKey, err := os.ReadFile(req.PrivateKey)
+		if err != nil {
+			return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
+		}
+		// Encode private key
+		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
+		global.LOG.Info("private key content: \n %s", encodedPrivateKey)
+		host.PrivateKey = encodedPrivateKey
 	}
-	// Encode private key
-	encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
-	global.LOG.Info("private key content: \n %s", encodedPrivateKey)
-	host.PrivateKey = encodedPrivateKey
 
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err
