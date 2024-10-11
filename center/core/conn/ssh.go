@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -132,10 +133,16 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	if host.AuthMode == "password" {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
-		privateKey := []byte(host.PrivateKey)
+		// Decode private key after retrieving
+		decodedPrivateKey, err := base64.StdEncoding.DecodeString(host.PrivateKey)
+		if err != nil {
+			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
+			resultCh <- err
+			return
+		}
 		passPhrase := []byte(host.PassPhrase)
 
-		signer, err := makePrivateKeySigner(privateKey, passPhrase)
+		signer, err := makePrivateKeySigner(decodedPrivateKey, passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
 			resultCh <- err

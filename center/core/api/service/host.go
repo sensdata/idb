@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/base64"
 	"os"
 
 	"github.com/jinzhu/copier"
@@ -120,7 +121,9 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	if err != nil {
 		return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
 	}
-	global.LOG.Info("private key content: \n %s", string(privateKey))
+	// Encode private key
+	encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
+	global.LOG.Info("private key content: \n %s", encodedPrivateKey)
 
 	//更新字段
 	upMap := make(map[string]interface{})
@@ -129,7 +132,7 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	upMap["user"] = req.User
 	upMap["auth_mode"] = req.AuthMode
 	upMap["password"] = req.Password
-	upMap["private_key"] = string(privateKey)
+	upMap["private_key"] = encodedPrivateKey
 	upMap["pass_phrase"] = req.PassPhrase
 
 	return HostRepo.Update(host.ID, upMap)
@@ -164,8 +167,10 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 	if err != nil {
 		return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
 	}
-	global.LOG.Info("private key content: \n %s", string(privateKey))
-	host.PrivateKey = string(privateKey)
+	// Encode private key
+	encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
+	global.LOG.Info("private key content: \n %s", encodedPrivateKey)
+	host.PrivateKey = encodedPrivateKey
 
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err

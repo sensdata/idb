@@ -87,7 +87,14 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 	// 建立新的ssh连接
 	var connInfo SshConn
 	_ = copier.Copy(&connInfo, &host)
-	connInfo.PrivateKey = []byte(host.PrivateKey)
+
+	// Decode private key after retrieving
+	decodedPrivateKey, err := base64.StdEncoding.DecodeString(host.PrivateKey)
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "failed to decode private key")
+	}
+	connInfo.PrivateKey = decodedPrivateKey
 	if len(host.PassPhrase) != 0 {
 		connInfo.PassPhrase = []byte(host.PassPhrase)
 	}
