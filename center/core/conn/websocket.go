@@ -78,6 +78,8 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "load host info by id failed")
 	}
 
+	global.LOG.Info("private key content: \n %s", host.PrivateKey)
+
 	// 建立新的ssh连接
 	var connInfo SshConn
 	_ = copier.Copy(&connInfo, &host)
@@ -123,6 +125,7 @@ func (c *SshConn) NewSshClient() (*SshConn, error) {
 	config := &gossh.ClientConfig{}
 	config.SetDefaults()
 	config.User = c.User
+	global.LOG.Info("authmode: %s, %s", c.AuthMode, c.Password)
 	if c.AuthMode == "password" {
 		config.Auth = []gossh.AuthMethod{gossh.Password(c.Password)}
 	} else {

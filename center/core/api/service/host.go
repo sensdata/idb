@@ -1,12 +1,15 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -112,6 +115,38 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
+	//获取host主机上的private_key文件内容
+	fileContentReq := core.FileContentReq{
+		HostID: uint(host.ID),
+		Path:   req.PrivateKey,
+	}
+	data, err := utils.ToJSONString(fileContentReq)
+	if err != nil {
+		return errors.WithMessage(fmt.Errorf("failed to get private key content"), err.Error())
+	}
+	action := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.File_Content,
+			Data:   data,
+		},
+	}
+
+	result, err := conn.CENTER.ExecuteAction(action)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return errors.WithMessage(fmt.Errorf("failed to get private key content"), err.Error())
+	}
+	if !result.Result {
+		return errors.WithMessage(fmt.Errorf("failed to get private key content"), "")
+	}
+	var privateKeyFile core.FileInfo
+	err = utils.FromJSONString(result.Data, &privateKeyFile)
+	if err != nil {
+		return errors.WithMessage(fmt.Errorf("failed to get private key content"), err.Error())
+	}
+	global.LOG.Info("private key content: \n %s", privateKeyFile.Content)
+
 	//更新字段
 	upMap := make(map[string]interface{})
 	upMap["addr"] = req.Addr
@@ -119,7 +154,7 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	upMap["user"] = req.User
 	upMap["auth_mode"] = req.AuthMode
 	upMap["password"] = req.Password
-	upMap["private_key"] = req.PrivateKey
+	upMap["private_key"] = privateKeyFile.Content
 	upMap["pass_phrase"] = req.PassPhrase
 
 	return HostRepo.Update(host.ID, upMap)
