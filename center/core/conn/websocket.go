@@ -63,18 +63,22 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 
 	id, err := strconv.Atoi(c.Query("id"))
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param id in request")
 	}
 	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param cols in request")
 	}
 	rows, err := strconv.Atoi(c.DefaultQuery("rows", "40"))
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param rows in request")
 	}
 	host, err := HostRepo.Get(HostRepo.WithByID((uint(id))))
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "load host info by id failed")
 	}
 
@@ -90,12 +94,14 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 
 	client, err := connInfo.NewSshClient()
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to set up the connection. Please check the host information")
 	}
 	defer client.Close()
 
 	sws, err := NewSshWebSocketSession(cols, rows, true, connInfo.Client, wsConn)
 	if err != nil {
+		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create SSH WebSocket session")
 	}
 	defer sws.Close()
