@@ -1,0 +1,18 @@
+version: '3'
+services:
+  idb:
+    build: .
+    container_name: idb
+    env_file: 
+      - .env   # 加载 .env 文件中的变量，如 HOST_PORT 和 CONTAINER_PORT
+    volumes:
+      - /etc/idb:/etc/idb
+      - /var/lib/idb:/var/lib/idb
+      - /var/log/idb:/var/log/idb
+      - /run/idb:/run/idb
+    ports:
+      - "${HOST_PORT:-25900}:${CONTAINER_PORT:-25900}"  # 默认端口25900
+    environment:
+      - CONTAINER_PORT=${CONTAINER_PORT:-25900}  # 传递 CONTAINER_PORT 环境变量
+    restart: unless-stopped
+    command: ["/app/configure.sh", "/var/lib/idb/idb"]  # 在容器启动时运行 configure.sh 脚本
