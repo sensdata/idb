@@ -4,7 +4,13 @@ on:
   push:
     tags:
       - 'v*.*.*'
-
+  workflow_dispatch:  # 添加手动触发
+    inputs:
+      version:
+        description: "Specify the version tag for the build (e.g., v1.0.0)"
+        required: false  # 手动触发时允许不传递版本号
+        default: "manual"  # 如果手动触发时没有传递版本号，默认使用 "manual"
+        
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,14 +26,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 定义 VERSION_TAG 变量
+      - name: Set VERSION_TAG
+        run: |
+          if [ "${{ github.ref_name }}" ]; then
+            echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "VERSION_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        shell: bash
+
+      # 构建 Docker 镜像
       - name: Build Docker Image
         run: |
           cd center
-          docker build -t idb:${{ github.ref_name }} .
+          docker build -t idb:${{ env.VERSION_TAG }} .
 
+      # 保存 Docker 镜像
       - name: Save Docker Image as Tarball
         run: |
-          docker save -o idb_${{ github.ref_name }}.tar idb:${{ github.ref_name }}
+          docker save -o idb_image_${{ env.VERSION_TAG }}.tar idb:${{ env.VERSION_TAG }}
 
       # 设置 SSH
       - name: Set up SSH
@@ -38,12 +55,12 @@ jobs:
       # 创建远程目录
       - name: Create deploy directory
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ github.ref_name }}'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}'
 
       # 上传 Docker 镜像到目标服务器
       - name: Deploy Center
         run: | 
-          scp -q idb_${{ github.ref_name }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ github.ref_name }}
+          scp idb_image_${{ env.VERSION_TAG }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
 
     # steps:
     # - name: Checkout repository
