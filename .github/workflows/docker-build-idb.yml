@@ -33,6 +33,7 @@ jobs:
             echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           else
             echo "VERSION_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          fi
         shell: bash
 
       # 构建 Docker 镜像
