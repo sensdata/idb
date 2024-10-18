@@ -15,7 +15,7 @@ var StopCommand = &cli.Command{
 	Usage: "stop idb-agent",
 	Action: func(c *cli.Context) error {
 		// 检查sock文件
-		sockFile := filepath.Join(constant.AgentDataDir, constant.AgentSock)
+		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
 		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to agent: %w", err)
@@ -77,7 +77,7 @@ var ConfigCommand = &cli.Command{
 		}
 
 		// 检查sock文件
-		sockFile := filepath.Join(constant.AgentDataDir, constant.AgentSock)
+		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
 		conn, err := net.Dial("unix", sockFile)
 		if err != nil {
 			return fmt.Errorf("failed to connect to agent: %w", err)

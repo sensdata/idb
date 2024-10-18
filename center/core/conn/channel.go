@@ -91,7 +91,7 @@ func (c *Center) Stop() error {
 	}
 
 	//删除sock文件
-	sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
+	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
 	os.Remove(sockFile)
 
 	return nil
@@ -104,7 +104,7 @@ func (a *Center) listenToUnix() error {
 	}
 
 	// 检查sock文件
-	sockFile := filepath.Join(constant.CenterDataDir, constant.CenterSock)
+	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
 
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)

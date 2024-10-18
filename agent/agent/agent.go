@@ -91,7 +91,7 @@ func (a *Agent) Stop() error {
 	}
 
 	//删除sock文件
-	sockFile := filepath.Join(constant.AgentDataDir, constant.AgentSock)
+	sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
 	os.Remove(sockFile)
 
 	return nil
@@ -104,7 +104,7 @@ func (a *Agent) listenToUnix() error {
 	}
 
 	// 检查sock文件
-	sockFile := filepath.Join(constant.AgentDataDir, constant.AgentSock)
+	sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
 
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)

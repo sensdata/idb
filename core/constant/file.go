@@ -4,6 +4,7 @@ const (
 	CenterConfDir = "/etc/idb"
 	CenterDataDir = "/var/lib/idb"
 	CenterLogDir  = "/var/log/idb"
+	CenterRunDir  = "/run/idb"
 
 	CenterDb      = "idb.db"
 	CenterPid     = "idb.pid"
@@ -16,6 +17,7 @@ const (
 	AgentConfDir = "/etc/idb-agent"
 	AgentDataDir = "/var/lib/idb-agent"
 	AgentLogDir  = "/var/log/idb-agent"
+	AgentRunDir  = "/run/idb-agent"
 
 	AgentDb      = "idb-agent.db"
 	AgentPid     = "idb-agent.pid"

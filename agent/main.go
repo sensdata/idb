@@ -61,7 +61,7 @@ func Run() error {
 	}
 
 	// 判断pid文件是否存在
-	pidfile := filepath.Join(constant.AgentDataDir, constant.AgentPid)
+	pidfile := filepath.Join(constant.AgentRunDir, constant.AgentPid)
 	running, err := utils.IsRunning(pidfile)
 	if err != nil {
 		return fmt.Errorf("agent error %v", err)
@@ -125,7 +125,7 @@ func StopServices() error {
 	agent.AGENT.Stop()
 
 	// 删除pid文件
-	pidfile := filepath.Join(constant.AgentDataDir, constant.AgentPid)
+	pidfile := filepath.Join(constant.AgentRunDir, constant.AgentPid)
 	utils.RemovePIDFile(pidfile)
 
 	return nil

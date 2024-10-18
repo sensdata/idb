@@ -59,13 +59,13 @@ func main() {
 
 func Run() error {
 	// 检查目录
-	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterLogDir}
+	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterLogDir, constant.CenterRunDir}
 	if err := utils.EnsurePaths(paths); err != nil {
 		return fmt.Errorf("center directories error: %v", err)
 	}
 
 	// 判断pid文件是否存在
-	pidfile := filepath.Join(constant.CenterDataDir, constant.CenterPid)
+	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
 	running, err := utils.IsRunning(pidfile)
 	if err != nil {
 		return fmt.Errorf("center error %v", err)
@@ -156,7 +156,7 @@ func StopServices() error {
 	conn.SSH.Stop()
 
 	// 删除pid文件
-	pidfile := filepath.Join(constant.CenterDataDir, constant.CenterPid)
+	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
 	utils.RemovePIDFile(pidfile)
 
 	return nil
