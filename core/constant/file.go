@@ -2,7 +2,7 @@ package constant
 
 const (
 	CenterConfDir = "/etc/idb"
-	CenterDataDir = "/var/lib/idb"
+	CenterDataDir = "/var/lib/idb/data"
 	CenterLogDir  = "/var/log/idb"
 	CenterRunDir  = "/run/idb"
 
@@ -15,7 +15,7 @@ const (
 	CenterSock    = "idb.sock"
 
 	AgentConfDir = "/etc/idb-agent"
-	AgentDataDir = "/var/lib/idb-agent"
+	AgentDataDir = "/var/lib/idb-agent/data"
 	AgentLogDir  = "/var/log/idb-agent"
 	AgentRunDir  = "/run/idb-agent"
 

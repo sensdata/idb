@@ -33,7 +33,7 @@ var app = &cli.App{
 
 func main() {
 	// Open the log file
-	runLogFile := filepath.Join(constant.CenterLogDir, constant.CenterRunLog)
+	runLogFile := filepath.Join(constant.CenterRunDir, constant.CenterRunLog)
 	logFile, err := os.OpenFile(runLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Error opening log file: %v\n", err)
