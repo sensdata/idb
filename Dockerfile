@@ -7,14 +7,14 @@ RUN apk add --no-cache gcc musl-dev
 # 设置工作目录
 WORKDIR /app
 
-# 复制 go.mod 和 go.sum 文件
-COPY go.mod go.sum ./
+# 复制整个项目目录
+COPY . .
+
+# 进入 center 目录
+WORKDIR /app/center
 
 # 下载依赖
 RUN go mod download
-
-# 复制源代码
-COPY . .
 
 # 设置构建参数
 ARG GOOS=linux
