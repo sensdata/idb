@@ -4,13 +4,12 @@ FROM golang:1.22-alpine AS builder
 # Step 2: 设置工作目录
 WORKDIR /app
 
-# Step 3: 复制当前目录下的所有文件到工作目录
-COPY . .
-# 将 core 目录也拷贝至app下
-COPY ../core /app/core
+# Step 3: 复制 idb 目录下的所有文件到工作目录
+COPY . /app
 
-# Step 4: 安装必要的依赖（如果有的话），并编译项目
-RUN go mod tidy && \
+# Step 4: 切换到 center 目录并安装依赖，编译项目
+RUN cd /app/center && \
+    go mod tidy && \
     go build -o idb .
 
 # Step 5: 使用更小的镜像作为最终运行环境
@@ -23,9 +22,9 @@ RUN apk add --no-cache bash curl sed
 RUN mkdir -p /etc/idb /var/lib/idb /var/log/idb /run/idb
 
 # Step 8: 复制编译好的二进制文件和配置文件到对应的目录
-COPY --from=builder /app/idb /var/lib/idb/idb
-COPY idb.conf /etc/idb/idb.conf
-COPY entrypoint.sh /var/lib/idb/entrypoint.sh
+COPY --from=builder /app/center/idb /var/lib/idb/idb
+COPY /app/center/idb.conf /etc/idb/idb.conf
+COPY /app/center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
 # Step 9: 设置执行权限
 RUN chmod +x /var/lib/idb/entrypoint.sh /var/lib/idb/idb

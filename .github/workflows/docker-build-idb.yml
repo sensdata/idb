@@ -39,7 +39,6 @@ jobs:
       # 构建 Docker 镜像
       - name: Build Docker Image
         run: |
-          cd center
           docker build -t idb:${{ env.VERSION_TAG }} .
 
       # 保存 Docker 镜像
