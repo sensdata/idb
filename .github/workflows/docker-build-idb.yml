@@ -38,7 +38,9 @@ jobs:
 
       # 打印 VERSION_TAG 用于调试
       - name: Debug VERSION_TAG
-        run: echo "VERSION_TAG is: $VERSION_TAG"
+        run: |
+          VERSION=${{ env.VERSION_TAG }}
+          echo "VERSION_TAG is: $VERSION"
 
       # 构建 Docker 镜像
       - name: Build Docker Image
