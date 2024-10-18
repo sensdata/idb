@@ -29,12 +29,16 @@ jobs:
       # 定义 VERSION_TAG 变量
       - name: Set VERSION_TAG
         run: |
-          if [ "${{ github.ref_name }}" ]; then
-            echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
-          else
+          if [ "${{ github.event.inputs.version }}" ]; then
             echo "VERSION_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           fi
         shell: bash
+
+      # 打印 VERSION_TAG 用于调试
+      - name: Debug VERSION_TAG
+        run: echo "VERSION_TAG is: ${{ env.VERSION_TAG }}"
 
       # 构建 Docker 镜像
       - name: Build Docker Image
