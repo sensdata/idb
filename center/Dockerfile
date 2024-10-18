@@ -6,6 +6,8 @@ WORKDIR /app
 
 # Step 3: 复制当前目录下的所有文件到工作目录
 COPY . .
+# 将 core 目录也拷贝至app下
+COPY ../core /app/core
 
 # Step 4: 安装必要的依赖（如果有的话），并编译项目
 RUN go mod tidy && \
