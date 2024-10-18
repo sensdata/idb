@@ -38,6 +38,9 @@ COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 # Step 9: 设置执行权限
 RUN chmod +x /var/lib/idb/entrypoint.sh /var/lib/idb/idb
 
+# Debugging: 查看 /var/lib/idb/ 中的文件
+RUN ls -l /var/lib/idb/
+
 # Step 10: 设置工作目录，并指定容器启动命令
 WORKDIR /var/lib/idb
 
