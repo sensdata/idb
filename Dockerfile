@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Step 4: 设置环境变量
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
@@ -25,7 +25,7 @@ RUN cd /app/center && \
 FROM alpine:3.18
 
 # Step 7: 安装必要的工具 (alpine镜像可能没有)
-RUN apk add --no-cache bash curl sed
+RUN apk add --no-cache bash curl sed gcc musl-dev
 
 # Step 8: 创建必要的目录结构（应用目录）
 RUN mkdir -p /etc/idb /var/lib/idb /var/log/idb /run/idb
