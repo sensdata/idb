@@ -1,19 +1,30 @@
-# Step 1: 构建阶段，使用 Golang 1.22
+# 构建阶段
 FROM golang:1.22-alpine AS builder
 
-# Step 2: 设置工作目录
+# 安装必要的构建工具
+RUN apk add --no-cache gcc musl-dev
+
+# 设置工作目录
 WORKDIR /app
 
-# Step 3: 复制 idb 项目到工作目录
-COPY . /app
+# 复制 go.mod 和 go.sum 文件
+COPY go.mod go.sum ./
 
-# Step 4: 设置环境变量
-ENV CGO_ENABLED=1
+# 下载依赖
+RUN go mod download
+
+# 复制源代码
+COPY . .
+
+# 设置构建参数
 ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
 
-# Step 5: 编译center
+# 设置环境变量
+ENV CGO_ENABLED=1
+
+# 编译 center
 RUN cd /app/center && \
     go mod tidy && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
@@ -21,28 +32,33 @@ RUN cd /app/center && \
     -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}'" \
     -o idb .
 
-# Step 6: 选择运行时镜像(alpine:3.18支持arch amd64)
+# 运行阶段
 FROM alpine:3.18
 
-# Step 7: 安装必要的工具 (alpine镜像可能没有)
-RUN apk add --no-cache bash curl sed gcc musl-dev
+# 安装运行时必要的工具
+RUN apk add --no-cache bash curl sed
 
-# Step 8: 创建必要的目录结构（应用目录）
+# 创建必要的目录结构
 RUN mkdir -p /etc/idb /var/lib/idb /var/log/idb /run/idb
 
-# Step 8: 复制可执行文件和配置文件到对应的目录
+# 从构建阶段复制编译好的应用和必要文件
 COPY --from=builder /app/center/idb /var/lib/idb/idb
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
-# Step 9: 设置执行权限
+# 设置执行权限
 RUN chmod +x /var/lib/idb/entrypoint.sh /var/lib/idb/idb
 
-# Debugging: 查看 /var/lib/idb/ 中的文件
-RUN ls -l /var/lib/idb/
+# # 创建健康检查脚本
+# COPY center/healthcheck.sh /var/lib/idb/healthcheck.sh
+# RUN chmod +x /var/lib/idb/healthcheck.sh
 
-# Step 10: 设置工作目录，并指定容器启动命令
+# 设置工作目录
 WORKDIR /var/lib/idb
 
-# 使用脚本作为 ENTRYPOINT，确保启动时端口写入配置文件
+# # 设置健康检查
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#   CMD /var/lib/idb/healthcheck.sh
+
+# 设置入口点
 ENTRYPOINT ["/var/lib/idb/entrypoint.sh", "/var/lib/idb/idb"]

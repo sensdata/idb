@@ -1,13 +1,12 @@
-version: '3'
 services:
   idb:
-    build: .
+    image: idb:v0.0.2 # 镜像版本
     container_name: idb
-    env_file: 
+    env_file:
       - .env   # 加载 .env 文件中的变量，如 HOST_PORT 和 CONTAINER_PORT
     volumes:
       - /etc/idb:/etc/idb
-      - /var/lib/idb:/var/lib/idb
+      - /var/lib/idb/data:/var/lib/idb/data
       - /var/log/idb:/var/log/idb
       - /run/idb:/run/idb
     ports:
