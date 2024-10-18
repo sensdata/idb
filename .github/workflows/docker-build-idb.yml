@@ -39,7 +39,7 @@ jobs:
       # 构建 Docker 镜像
       - name: Build Docker Image
         run: |
-          docker build -t idb:${{ env.VERSION_TAG }} .
+          docker build --build-arg VERSION=${{ env.VERSION_TAG }} -t idb:${{ env.VERSION_TAG }} .
 
       # 保存 Docker 镜像
       - name: Save Docker Image as Tarball
