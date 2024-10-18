@@ -23,8 +23,8 @@ RUN mkdir -p /etc/idb /var/lib/idb /var/log/idb /run/idb
 
 # Step 8: 复制编译好的二进制文件和配置文件到对应的目录
 COPY --from=builder /app/center/idb /var/lib/idb/idb
-COPY /app/center/idb.conf /etc/idb/idb.conf
-COPY /app/center/entrypoint.sh /var/lib/idb/entrypoint.sh
+COPY center/idb.conf /etc/idb/idb.conf
+COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
 # Step 9: 设置执行权限
 RUN chmod +x /var/lib/idb/entrypoint.sh /var/lib/idb/idb
