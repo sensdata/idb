@@ -76,6 +76,11 @@ jobs:
           scp idb_image_${{ env.VERSION_TAG }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
           scp idb-agent_${{ env.VERSION_TAG }}.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
 
+      # 更新 Latest 版本号
+      - name: Update Latest Version File
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo '${{ env.VERSION_TAG }}' > /data/www/static.sensdata.com/idb/release/latest"
+
     # steps:
     # - name: Checkout repository
     #   uses: actions/checkout@v3
