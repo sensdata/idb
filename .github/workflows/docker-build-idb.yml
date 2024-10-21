@@ -52,6 +52,13 @@ jobs:
         run: |
           docker save -o idb_image_${{ env.VERSION_TAG }}.tar idb:${{ env.VERSION_TAG }}
 
+      # 复制 Agent 包
+      - name: Extract Agent Package
+        run: |
+          docker create --name temp_container idb:${{ env.VERSION_TAG }}
+          docker cp temp_container:/var/lib/idb/agent/idb-agent.tar.gz ./idb-agent_${{ env.VERSION_TAG }}.tar.gz
+          docker rm temp_container
+
       # 设置 SSH
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
@@ -67,6 +74,7 @@ jobs:
       - name: Deploy Center
         run: | 
           scp idb_image_${{ env.VERSION_TAG }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
+          scp idb-agent_${{ env.VERSION_TAG }}.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
 
     # steps:
     # - name: Checkout repository

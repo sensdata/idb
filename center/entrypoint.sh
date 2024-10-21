@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-DEFAULT_PORT=25900
+DEFAULT_PORT=9918
 PORT=${PORT:-$DEFAULT_PORT}
 CONFIG_FILE=/etc/idb/idb.conf
 LOG_FILE=/run/idb/idb-run.log

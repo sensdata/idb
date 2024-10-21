@@ -10,8 +10,8 @@ services:
       - /var/log/idb:/var/log/idb
       - /run/idb:/run/idb
     ports:
-      - "${HOST_PORT:-25900}:${CONTAINER_PORT:-25900}"  # 默认端口25900
+      - "${HOST_PORT:-9918}:${CONTAINER_PORT:-9918}"  # 默认端口9918
     environment:
-      - PORT=${CONTAINER_PORT:-25900} # 容器内部的 PORT 变量
+      - PORT=${CONTAINER_PORT:-9918} # 容器内部的 PORT 变量
     restart: unless-stopped
     command: ["/var/lib/idb/entrypoint.sh", "/var/lib/idb/idb"]  # 在容器启动时运行 configure.sh 脚本

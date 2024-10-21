@@ -10,12 +10,6 @@ WORKDIR /app
 # 复制整个项目目录
 COPY . .
 
-# 进入 center 目录
-WORKDIR /app/center
-
-# 下载依赖
-RUN go mod download
-
 # 设置构建参数
 ARG GOOS=linux
 ARG GOARCH=amd64
@@ -24,13 +18,39 @@ ARG VERSION
 # 设置环境变量
 ENV CGO_ENABLED=1
 
+# 进入 center 目录
+WORKDIR /app/center
+
+# 下载依赖
+RUN go mod download
+
 # 编译 center
-RUN cd /app/center && \
-    go mod tidy && \
+RUN go mod tidy && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
     -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}'" \
     -o idb .
+
+# 进入 agent 目录
+WORKDIR /app/agent
+
+# 下载依赖
+RUN go mod download
+
+# 编译 agent
+RUN go mod tidy && \
+    GOOS=${GOOS} GOARCH=${GOARCH} \
+    go build -tags=xpack -trimpath \
+    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}'" \
+    -o idb-agent .
+
+# 创建 agent 包
+RUN mkdir -p /app/agent-pkg && \
+    cp idb-agent /app/agent-pkg/ && \
+    cp idb-agent.service /app/agent-pkg/ && \
+    cp idb-agent.conf /app/agent-pkg/ && \
+    cp install-agent.sh /app/agent-pkg/ && \
+    tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
 
 # 运行阶段
 FROM alpine:3.18
@@ -38,11 +58,12 @@ FROM alpine:3.18
 # 安装运行时必要的工具
 RUN apk add --no-cache bash curl sed
 
-# 创建必要的目录结构
-RUN mkdir -p /etc/idb /var/lib/idb /var/log/idb /run/idb
+# 创建 center 必要的目录结构
+RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/lib/idb/agent
 
-# 从构建阶段复制编译好的应用和必要文件
+# 从构建阶段复制编译好的 center 应用和必要文件
 COPY --from=builder /app/center/idb /var/lib/idb/idb
+COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar.gz
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 

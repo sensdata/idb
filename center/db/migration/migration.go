@@ -176,7 +176,7 @@ var AddTableHost = &gormigrate.Migration{
 				PrivateKey: "",
 				PassPhrase: "",
 				AgentAddr:  "127.0.0.1",
-				AgentPort:  25901,
+				AgentPort:  9919,
 				AgentMode:  "http",
 				AgentKey:   "idbidbidbidbidbidbidbidb",
 			}

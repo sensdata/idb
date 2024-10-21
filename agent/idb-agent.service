@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/idb-agent start
-ExecStop=/usr/local/bin/idb-agent stop
+ExecStart=/var/lib/idb-agent/idb-agent start
+ExecStop=/var/lib/idb-agent/idb-agent stop
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
@@ -15,8 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
-StandardOutput=append:/var/log/idb-agent/idb-agent-run.log
-StandardError=append:/var/log/idb-agent/idb-agent-run.log
+StandardOutput=append:/run/idb-agent/idb-agent-run.log
+StandardError=append:/run/idb-agent/idb-agent-run.log
 
 [Install]
 WantedBy=multi-user.target

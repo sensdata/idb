@@ -169,7 +169,7 @@ function Install_Compose(){
 }
 
 function Set_Port(){
-    DEFAULT_PORT=`25900`
+    DEFAULT_PORT=`9918`
 
     while true; do
         read -p "设置 idb 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
@@ -263,7 +263,7 @@ function Init_Panel(){
     cp ./$CONFIG_FILE $CONFIG_DIR
     
     # 修改端口
-    sed -i 's/port=25900/port=${PANEL_PORT}/' config.conf
+    sed -i 's/port=9918/port=${PANEL_PORT}/' config.conf
 
     # 拷贝服务定义文件
     cp ./$SERVICE_FILE $SERVICE_DIR
