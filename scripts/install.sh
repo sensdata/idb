@@ -179,9 +179,9 @@ function Install_Compose(){
     fi
 }
 
-function Check_Installation(){
-    if docker ps -q -f name=idb >/dev/null 2>&1; then
-        log "IDB 容器已在运行，请勿重复安装"
+function Check_Installation() {
+    if docker ps -a -q -f name=idb >/dev/null 2>&1; then
+        log "IDB 容器已存在，请勿重复安装"
         exit 1
     fi
 }
@@ -328,7 +328,7 @@ function Install_IDB() {
     sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
     
     log ".env 文件中的端口配置已更新为: iDB_service_port=${PANEL_PORT}, iDB_service_container_port=${CONTAINER_PORT}"
-    
+
     # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
     log "正在启动 IDB..."
     cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
