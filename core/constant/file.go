@@ -1,18 +1,20 @@
 package constant
 
 const (
-	CenterConfDir = "/etc/idb"
-	CenterDataDir = "/var/lib/idb/data"
-	CenterLogDir  = "/var/log/idb"
-	CenterRunDir  = "/run/idb"
+	CenterConfDir  = "/etc/idb"
+	CenterDataDir  = "/var/lib/idb/data"
+	CenterAgentDir = "/var/lib/idb/agent"
+	CenterLogDir   = "/var/log/idb"
+	CenterRunDir   = "/run/idb"
 
-	CenterDb      = "idb.db"
-	CenterPid     = "idb.pid"
-	CenterService = "idb.service"
-	CenterConfig  = "idb.conf"
-	CenterLog     = "idb.log"
-	CenterRunLog  = "idb-run.log"
-	CenterSock    = "idb.sock"
+	CenterDb       = "idb.db"
+	CenterPid      = "idb.pid"
+	CenterService  = "idb.service"
+	CenterConfig   = "idb.conf"
+	CenterLog      = "idb.log"
+	CenterRunLog   = "idb-run.log"
+	CenterSock     = "idb.sock"
+	CenterAgentPkg = "idb-agent.tar.gz"
 
 	AgentConfDir = "/etc/idb-agent"
 	AgentDataDir = "/var/lib/idb-agent/data"

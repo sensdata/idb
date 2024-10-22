@@ -59,7 +59,7 @@ func main() {
 
 func Run() error {
 	// 检查目录
-	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterLogDir, constant.CenterRunDir}
+	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterAgentDir, constant.CenterLogDir, constant.CenterRunDir}
 	if err := utils.EnsurePaths(paths); err != nil {
 		return fmt.Errorf("center directories error: %v", err)
 	}
