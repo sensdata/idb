@@ -29,9 +29,20 @@ function Check_Root() {
     fi
 }
 
-function Prepare_System(){
-    if which idb >/dev/null 2>&1; then
-        log "IDB Linux 服务器运维管理面板已安装，请勿重复安装"
+function Check_Architecture() {
+    osCheck=`uname -a`
+    if [[ $osCheck =~ 'x86_64' ]];then
+        architecture="amd64"
+    # elif [[ $osCheck =~ 'arm64' ]] || [[ $osCheck =~ 'aarch64' ]];then
+    #     architecture="arm64"
+    # elif [[ $osCheck =~ 'armv7l' ]];then
+    #     architecture="armv7"
+    # elif [[ $osCheck =~ 'ppc64le' ]];then
+    #     architecture="ppc64le"
+    # elif [[ $osCheck =~ 's390x' ]];then
+    #     architecture="s390x"
+    else
+        echo "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
         exit 1
     fi
 }
@@ -168,6 +179,44 @@ function Install_Compose(){
     fi
 }
 
+function Check_Installation(){
+    if docker ps -q -f name=idb >/dev/null 2>&1; then
+        log "IDB 容器已在运行，请勿重复安装"
+        exit 1
+    fi
+}
+
+function Set_Dir(){
+    DEFAULT_DIR='/var/lib/idb'
+
+    while true; do
+        read -p "设置 idb 的目录（默认为 $DEFAULT_DIR）: " PANEL_DIR
+
+        if [[ "$PANEL_DIR" == "" ]]; then
+            PANEL_DIR=$DEFAULT_DIR
+        fi
+
+        # 判断目录是否合法
+        if [[ ! "$PANEL_DIR" =~ ^/ ]]; then
+            echo "错误：目录必须是绝对路径。"
+            continue
+        fi
+
+        # 判断目录是否存在，如果不存在，则创建
+        if [[ ! -d "$PANEL_DIR" ]]; then
+            log "目录 $PANEL_DIR 不存在，正在创建..."
+            mkdir -p "$PANEL_DIR"
+            if [[ $? -ne 0 ]]; then
+                log "创建目录 $PANEL_DIR 失败，请检查权限。"
+                exit 1
+            fi
+        fi
+
+        log "您设置的目录为：$PANEL_DIR"
+        break
+    done
+}
+
 function Set_Port(){
     DEFAULT_PORT=`9918`
 
@@ -222,72 +271,116 @@ function Set_Firewall(){
     fi
 }
 
-function Init_Panel(){
-    log "配置 IDB Service"
+# function Init_Panel(){
+#     log "配置 IDB Service"
 
-    # 目录
-    BIN_DIR=/usr/local/bin
-    SERVICE_DIR=/etc/systemd/system/
-    CONFIG_DIR=/etc/idb
-    DATA_DIR=/var/lib/idb
-    LOG_DIR =/var/log/idb
+#     # 目录
+#     BIN_DIR=/usr/local/bin
+#     SERVICE_DIR=/etc/systemd/system/
+#     CONFIG_DIR=/etc/idb
+#     DATA_DIR=/var/lib/idb
+#     LOG_DIR =/var/log/idb
 
-    # 配置文件
-    CONFIG_FILE=idb.conf
+#     # 配置文件
+#     CONFIG_FILE=idb.conf
 
-    # 注册服务文件
-    SERVICE_FILE=idb.service
+#     # 注册服务文件
+#     SERVICE_FILE=idb.service
 
-    # 日志文件路径
-    LOG_FILE=/var/log/idb/idb-run.log
+#     # 日志文件路径
+#     LOG_FILE=/var/log/idb/idb-run.log
 
-    # 创建
-    mkdir -p $CONFIG_DIR
-    mkdir -p $DATA_DIR
-    mkdir -p $LOG_DIR
+#     # 创建
+#     mkdir -p $CONFIG_DIR
+#     mkdir -p $DATA_DIR
+#     mkdir -p $LOG_DIR
 
-    # 清理
-    rm -rf $CONFIG_DIR/*
-    rm -rf $DATA_DIR/*
-    rm -rf $LOG_DIR/*
+#     # 清理
+#     rm -rf $CONFIG_DIR/*
+#     rm -rf $DATA_DIR/*
+#     rm -rf $LOG_DIR/*
 
-    cd ${CURRENT_DIR}
+#     cd ${CURRENT_DIR}
 
-    # 拷贝二进制文件
-    cp ./idb $BIN_DIR && chmod +x $BIN_DIR/idb
-    if [[ ! -f /usr/bin/idb ]]; then
-        ln -s /usr/local/bin/idb /usr/bin/idb >/dev/null 2>&1
+#     # 拷贝二进制文件
+#     cp ./idb $BIN_DIR && chmod +x $BIN_DIR/idb
+#     if [[ ! -f /usr/bin/idb ]]; then
+#         ln -s /usr/local/bin/idb /usr/bin/idb >/dev/null 2>&1
+#     fi
+    
+#     # 拷贝配置文件
+#     cp ./$CONFIG_FILE $CONFIG_DIR
+    
+#     # 修改端口
+#     sed -i 's/port=9918/port=${PANEL_PORT}/' config.conf
+
+#     # 拷贝服务定义文件
+#     cp ./$SERVICE_FILE $SERVICE_DIR
+
+#     # 运行日志
+#     touch $LOG_FILE
+
+#     systemctl enable $SERVICE_FILE; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+#     log "启动 IDB 服务"
+#     systemctl start $SERVICE_FILE | tee -a ${CURRENT_DIR}/install.log
+
+#     for b in {1..30}
+#     do
+#         sleep 3
+#         service_status=`systemctl status $SERVICE_FILE 2>&1 | grep Active`
+#         if [[ $service_status == *running* ]];then
+#             log "IDB 服务启动成功!"
+#             break;
+#         else
+#             log "IDB 服务启动出错!"
+#             exit 1
+#         fi
+#     done
+# }
+
+function Install_IDB() {
+    # 获取版本号
+    VERSION=$(curl -s https://static.sensdata.com/idb/release/latest)
+
+    if [[ "x${VERSION}" == "x" ]];then
+        echo "获取最新版本失败，请稍候重试"
+        exit 1
     fi
+
+    # 下载 .env和docker-compose.yml 到 PANEL_DIR 中
+    # .env 地址: "https://static.sensdata.com/idb/release/${VERSION}/.env"
+    # docker-compose.yml 地址: "https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yml"
+    ENV_URL="https://static.sensdata.com/idb/release/${VERSION}/.env"
+    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yml"
+
+    log "正在下载 .env 文件..."
+    curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log ".env 文件下载失败，请检查网络连接或 URL 是否正确。"
+        exit 1
+    fi
+
+    log "正在下载 docker-compose.yml 文件..."
+    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yml" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log "docker-compose.yml 文件下载失败，请检查网络连接或 URL 是否正确。"
+        exit 1
+    fi
+
+    log ".env 和 docker-compose.yml 文件下载成功。"
     
-    # 拷贝配置文件
-    cp ./$CONFIG_FILE $CONFIG_DIR
+    # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
+    log "正在启动 IDB..."
+    cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
     
-    # 修改端口
-    sed -i 's/port=9918/port=${PANEL_PORT}/' config.conf
+    docker-compose up -d 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log "启动 IDB 失败，请检查 docker-compose 配置。"
+        exit 1
+    fi
 
-    # 拷贝服务定义文件
-    cp ./$SERVICE_FILE $SERVICE_DIR
-
-    # 运行日志
-    touch $LOG_FILE
-
-    systemctl enable $SERVICE_FILE; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-    log "启动 IDB 服务"
-    systemctl start $SERVICE_FILE | tee -a ${CURRENT_DIR}/install.log
-
-    for b in {1..30}
-    do
-        sleep 3
-        service_status=`systemctl status $SERVICE_FILE 2>&1 | grep Active`
-        if [[ $service_status == *running* ]];then
-            log "IDB 服务启动成功!"
-            break;
-        else
-            log "IDB 服务启动出错!"
-            exit 1
-        fi
-    done
+    log "IDB 启动成功！"
 }
 
 function Get_Ip(){
@@ -330,13 +423,14 @@ function Show_Result(){
 
 function main(){
     Check_Root
-    Prepare_System
     Install_Docker
     Install_Compose
+    Check_Installation
+    Set_Dir
     Set_Port
     Set_Firewall
-    Init_Panel
     Get_Ip
+    Install_IDB
     Show_Result
 }
 main

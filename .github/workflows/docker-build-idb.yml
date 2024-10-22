@@ -81,11 +81,10 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo '${{ env.VERSION_TAG }}' > /data/www/static.sensdata.com/idb/release/latest"
 
-      # 上传 install.sh 和 quick_start.sh 到 latest 版本目录
+      # 上传 install.sh
       - name: Upload scripts
         run: |
           scp /scripts/install.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
-          scp /scripts/quick_start.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
 
       # 创建临时 .env 文件并替换 iDB_image_version
       - name: Create temporary .env file
@@ -94,7 +93,7 @@ jobs:
           cp /center/docker-compose.yml docker-compose.yml  # 从 center 目录复制 docker-compose.yml 文件
           sed -i "s/^iDB_image_version=.*/iDB_image_version=${{ env.VERSION_TAG }}/" .env  # 修改 iDB_image_version
 
-      # 上传临时 .env 和 docker-compose.yml 到目标服务器
+      # 上传临时 .env 和 docker-compose.yml 到对应版本的 release 目录下
       - name: Upload temporary .env and docker-compose.yml
         run: |
           scp .env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
