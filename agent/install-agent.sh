@@ -16,14 +16,15 @@ cp ./idb-agent.service /etc/systemd/system/idb-agent.service
 
 # 设置正确的权限
 chmod +x /var/lib/idb-agent/idb-agent
+touch /var/log/idb-agent/idb-agent.log
 
 # 重新加载 systemd 配置
 systemctl daemon-reload
 
-# 启动 idb-agent 服务
-systemctl start idb-agent.service
-
 # 设置 idb-agent 服务开机自启
 systemctl enable idb-agent.service
+
+# 启动 idb-agent 服务
+systemctl start idb-agent.service
 
 echo "idb-agent 安装完成并已启动"

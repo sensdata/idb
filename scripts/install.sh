@@ -190,7 +190,7 @@ function Set_Dir(){
     DEFAULT_DIR='/var/lib/idb'
 
     while true; do
-        read -p "设置 idb 的目录（默认为 $DEFAULT_DIR）: " PANEL_DIR
+        read -p "设置 idb 的目录 (默认为 ${DEFAULT_DIR}): " PANEL_DIR
 
         if [[ "$PANEL_DIR" == "" ]]; then
             PANEL_DIR=$DEFAULT_DIR
@@ -204,24 +204,24 @@ function Set_Dir(){
 
         # 判断目录是否存在，如果不存在，则创建
         if [[ ! -d "$PANEL_DIR" ]]; then
-            log "目录 $PANEL_DIR 不存在，正在创建..."
+            log "目录 ${PANEL_DIR} 不存在，正在创建..."
             mkdir -p "$PANEL_DIR"
             if [[ $? -ne 0 ]]; then
-                log "创建目录 $PANEL_DIR 失败，请检查权限。"
+                log "创建目录 ${PANEL_DIR} 失败，请检查权限。"
                 exit 1
             fi
         fi
 
-        log "您设置的目录为：$PANEL_DIR"
+        log "您设置的目录为：${PANEL_DIR}"
         break
     done
 }
 
 function Set_Port(){
-    DEFAULT_PORT=`9918`
+    DEFAULT_PORT='9918'
 
     while true; do
-        read -p "设置 idb 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
+        read -p "设置 idb 端口 (默认为 ${DEFAULT_PORT}): " PANEL_PORT
 
         if [[ "$PANEL_PORT" == "" ]];then
             PANEL_PORT=$DEFAULT_PORT
@@ -234,17 +234,17 @@ function Set_Port(){
 
         if command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口$PANEL_PORT被占用，请重新输入..."
+                echo "端口${PANEL_PORT}被占用，请重新输入..."
                 continue
             fi
         elif command -v netstat >/dev/null 2>&1; then
             if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口$PANEL_PORT被占用，请重新输入..."
+                echo "端口${PANEL_PORT}被占用，请重新输入..."
                 continue
             fi
         fi
 
-        log "您设置的端口为：$PANEL_PORT"
+        log "您设置的端口为：${PANEL_PORT}"
         break
     done
 }
@@ -252,7 +252,7 @@ function Set_Port(){
 function Set_Firewall(){
     if which firewall-cmd >/dev/null 2>&1; then
         if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
-            log "防火墙开放 $PANEL_PORT 端口"
+            log "防火墙开放 ${PANEL_PORT} 端口"
             firewall-cmd --zone=public --add-port=$PANEL_PORT/tcp --permanent
             firewall-cmd --reload
         else
@@ -262,7 +262,7 @@ function Set_Firewall(){
 
     if which ufw >/dev/null 2>&1; then
         if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
-            log "防火墙开放 $PANEL_PORT 端口"
+            log "防火墙开放 ${PANEL_PORT} 端口"
             ufw allow $PANEL_PORT/tcp
             ufw reload
         else
@@ -272,10 +272,10 @@ function Set_Firewall(){
 }
 
 function Set_Container_Port(){
-    DEFAULT_CONTAINER_PORT=`9918`
+    DEFAULT_CONTAINER_PORT='9918'
 
     while true; do
-        read -p "设置容器端口（默认为$DEFAULT_CONTAINER_PORT）：" CONTAINER_PORT
+        read -p "设置容器端口 (默认为${DEFAULT_CONTAINER_PORT}) :" CONTAINER_PORT
 
         if [[ "$CONTAINER_PORT" == "" ]];then
             CONTAINER_PORT=$DEFAULT_CONTAINER_PORT
@@ -286,7 +286,7 @@ function Set_Container_Port(){
             continue
         fi
 
-        log "您设置的容器端口为：$CONTAINER_PORT"
+        log "您设置的容器端口为：${CONTAINER_PORT}"
         break
     done
 }
@@ -344,14 +344,14 @@ function Install_IDB() {
     # 从 idb 容器的 /var/lib/idb/agent 目录下，拷贝 idb-agent_${VERSION}.tar.gz 至当前目录下的 agent目录
     log "正在拷贝 idb-agent 文件..."
     mkdir -p "${CURRENT_DIR}/agent"  # 创建 agent 目录
-    docker cp "idb:/var/lib/idb/agent/idb-agent_${VERSION}.tar.gz" "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    docker cp "idb:/var/lib/idb/agent/idb-agent.tar.gz" "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "拷贝 idb-agent 文件失败，请检查容器是否存在。"
         exit 1
     fi
 
     log "正在解压 idb-agent 文件..."
-    tar -xzvf "${CURRENT_DIR}/agent/idb-agent_${VERSION}.tar.gz" -C "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    tar -xzvf "${CURRENT_DIR}/agent/idb-agent.tar.gz" -C "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "解压 idb-agent 文件失败。"
         exit 1
@@ -363,7 +363,7 @@ function Install_IDB() {
     log "正在执行 install-agent.sh..."
     cd "${CURRENT_DIR}/agent" || { log "无法进入目录 ${CURRENT_DIR}/agent"; exit 1; }
     
-    sudo ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    sudo bash ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "执行 install-agent.sh 失败，请检查脚本内容。"
         exit 1
@@ -394,8 +394,8 @@ function Show_Result(){
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "外网地址: http://$PUBLIC_IP:$PANEL_PORT/idb"
-    log "内网地址: http://$LOCAL_IP:$PANEL_PORT/idb"
+    log "外网地址: http://${PUBLIC_IP}:${PANEL_PORT}/idb"
+    log "内网地址: http://${LOCAL_IP}:${PANEL_PORT}/idb"
     log "初始用户: admin"
     log "初始密码: admin123"
     log ""
@@ -414,7 +414,7 @@ function main(){
     Check_Root
     Install_Docker
     Install_Compose
-    Check_Installation
+    #Check_Installation
     Set_Dir
     Set_Port
     Set_Firewall
