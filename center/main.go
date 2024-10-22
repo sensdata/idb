@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -32,46 +32,51 @@ var app = &cli.App{
 }
 
 func main() {
-	// Open the log file
-	runLogFile := filepath.Join(constant.CenterRunDir, constant.CenterRunLog)
-	logFile, err := os.OpenFile(runLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("Error opening log file: %v\n", err)
+	// 检查目录
+	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterAgentDir, constant.CenterLogDir, constant.CenterRunDir}
+	if err := utils.EnsurePaths(paths); err != nil {
+		fmt.Printf("center directories error: %v", err)
 		return
 	}
-	defer logFile.Close()
 
-	// Set log output to the log file
-	log.SetOutput(logFile)
+	//初始化日志模块
+	if global.LOG == nil {
+		logger, err := logger.InitLogger(constant.CenterLogDir, constant.CenterLog)
+		if err != nil {
+			fmt.Printf("Failed to initialize logger: %v \n", err)
+			return
+		}
+		global.LOG = logger
+	}
 
 	if len(os.Args) > 1 && os.Args[1] == "start" {
 		err := Run()
 		if err != nil {
-			log.Printf("Error: %v", err)
+			global.LOG.Error("Error start center: %v", err)
 		}
 	} else {
 		err := app.Run(os.Args)
 		if err != nil {
-			log.Printf("Error: %v", err)
+			global.LOG.Error("Error run center cmd: %v", err)
 		}
 	}
 }
 
 func Run() error {
-	// 检查目录
-	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterAgentDir, constant.CenterLogDir, constant.CenterRunDir}
-	if err := utils.EnsurePaths(paths); err != nil {
-		return fmt.Errorf("center directories error: %v", err)
-	}
+	global.LOG.Info("Center ver: %s", global.Version)
 
 	// 判断pid文件是否存在
 	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
 	running, err := utils.IsRunning(pidfile)
 	if err != nil {
-		return fmt.Errorf("center error %v", err)
+		errMsg := fmt.Sprintf("center error %v", err)
+		global.LOG.Error(errMsg)
+		return errors.New(errMsg)
 	}
 	if running {
-		return fmt.Errorf("center running %v", err)
+		errMsg := fmt.Sprintf("center running %v", err)
+		global.LOG.Error(errMsg)
+		return errors.New(errMsg)
 	}
 	// 创建pid文件
 	utils.CreatePIDFile(pidfile)
@@ -84,7 +89,7 @@ func Run() error {
 	// 捕捉系统信号，保持运行
 	utils.WaitForSignal()
 
-	log.Println("Center shutting down...")
+	global.LOG.Info("Center shutting down...")
 	return StopServices()
 }
 
@@ -93,20 +98,10 @@ func StartServices() error {
 	cfgFilePath := filepath.Join(constant.CenterConfDir, constant.CenterConfig)
 	manager, err := config.NewManager(cfgFilePath)
 	if err != nil {
-		log.Printf("Failed to initialize config manager: %v \n", err)
+		global.LOG.Error("Failed to initialize config manager: %v \n", err)
 		return err
 	}
 	conn.CONFMAN = manager
-
-	//初始化日志模块
-	logger, err := logger.InitLogger(constant.CenterLogDir, constant.CenterLog)
-	if err != nil {
-		log.Printf("Failed to initialize logger: %v \n", err)
-		return err
-	}
-	global.LOG = logger
-
-	global.LOG.Info("Agent ver: %s", global.Version)
 
 	//初始化数据库
 	global.LOG.Info("Init db")

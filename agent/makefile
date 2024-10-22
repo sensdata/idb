@@ -11,10 +11,11 @@ GIT_VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo $(VERSION
 SRC_DIR=.
 
 # 安装目录
-BIN_DIR=/usr/local/bin
+BIN_DIR=/var/lib/idb-agent
 CONFIG_DIR=/etc/idb-agent
-DATA_DIR=/var/lib/idb-agent
+DATA_DIR=/var/lib/idb-agent/data
 LOG_DIR=/var/log/idb-agent
+RUN_DIR=/run/idb-agent
 
 # 系统服务目录
 SYSTEM_SERVICE_DIR=/etc/systemd/system/
@@ -26,7 +27,7 @@ CONFIG_FILE=idb-agent.conf
 SERVICE_FILE=idb-agent.service
 
 # 日志文件路径
-LOG_FILE=/var/log/idb-agent/idb-agent-run.log
+LOG_FILE=/var/log/idb-agent/idb-agent.log
 
 # 构建命令
 build:
@@ -40,6 +41,7 @@ install: build
 		sudo mkdir -p $(CONFIG_DIR); \
 		sudo mkdir -p $(DATA_DIR); \
 		sudo mkdir -p $(LOG_DIR); \
+		sudo mkdir -p $(RUN_DIR); \
 		sudo cp $(BINARY_NAME) $(BIN_DIR); \
 		sudo cp $(CONFIG_FILE) $(CONFIG_DIR); \
 		sudo cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
@@ -54,6 +56,7 @@ install: build
 		sudo mkdir -p $(CONFIG_DIR); \
 		sudo mkdir -p $(DATA_DIR); \
 		sudo mkdir -p $(LOG_DIR); \
+		sudo mkdir -p $(RUN_DIR); \
 		sudo cp $(BINARY_NAME) $(BIN_DIR); \
 		sudo cp $(CONFIG_FILE) $(CONFIG_DIR); \
 		sudo chmod +x $(BIN_DIR)/$(BINARY_NAME); \
@@ -71,6 +74,7 @@ uninstall:
 		sudo rm -rf $(CONFIG_DIR); \
 		sudo rm -rf $(DATA_DIR); \
 		sudo rm -rf $(LOG_DIR); \
+		sudo rm -rf $(RUN_DIR); \
 		sudo systemctl daemon-reload; \
 	fi
 	@if [ "$(shell uname)" = "Darwin" ]; then \
@@ -78,6 +82,7 @@ uninstall:
 		sudo rm -rf $(CONFIG_DIR); \
 		sudo rm -rf $(DATA_DIR); \
 		sudo rm -rf $(LOG_DIR); \
+		sudo rm -rf $(RUN_DIR); \
 	fi
 
 # 清理构建文件

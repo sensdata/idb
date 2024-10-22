@@ -12,7 +12,6 @@ const (
 	CenterService  = "idb.service"
 	CenterConfig   = "idb.conf"
 	CenterLog      = "idb.log"
-	CenterRunLog   = "idb-run.log"
 	CenterSock     = "idb.sock"
 	CenterAgentPkg = "idb-agent.tar.gz"
 
@@ -26,7 +25,6 @@ const (
 	AgentService = "idb-agent.service"
 	AgentConfig  = "idb-agent.conf"
 	AgentLog     = "idb-agent.log"
-	AgentRunLog  = "idb-agent-run.log"
 	AgentSock    = "idb-agent.sock"
 
 	ClashDir = "idb_clash"
