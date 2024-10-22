@@ -4,7 +4,7 @@ set -e
 DEFAULT_PORT=9918
 PORT=${PORT:-$DEFAULT_PORT}
 CONFIG_FILE=/etc/idb/idb.conf
-LOG_FILE=/run/idb/idb-run.log
+LOG_FILE=/var/log/idb/idb.log
 IDB_EXECUTABLE="$1"
 
 if [ -z "$IDB_EXECUTABLE" ]; then

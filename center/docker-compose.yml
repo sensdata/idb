@@ -1,0 +1,18 @@
+services:
+  idb:
+    image: idb:${iDB_image_version} # 镜像版本
+    container_name: ${iDB_service_name} #容器名
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PORT=${iDB_service_container_port:-9918} # 容器内部的 PORT 变量
+    network_mode: ${iDB_service_network_mode}
+    ports:
+      - "${iDB_service_port:-9918}:${iDB_service_container_port:-9918}"
+    volumes:
+      - ${iDB_service_conf_path}:/etc/idb
+      - ${iDB_service_data_path}:/var/lib/idb/data
+      - ${iDB_service_log_path}:/var/log/idb
+      - /run/idb:/run/idb
+    command: ["/var/lib/idb/entrypoint.sh", "/var/lib/idb/idb"]  # 在容器启动时运行 configure.sh 脚本
