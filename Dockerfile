@@ -1,8 +1,5 @@
 # 构建阶段
-FROM golang:1.22-alpine AS builder
-
-# 安装必要的构建工具
-RUN apk add --no-cache gcc musl-dev
+FROM golang:1.22 AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -16,7 +13,7 @@ ARG GOARCH=amd64
 ARG VERSION
 
 # 设置环境变量
-ENV CGO_ENABLED=1
+ENV CGO_ENABLED=0
 
 # 进入 center 目录
 WORKDIR /app/center

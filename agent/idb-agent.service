@@ -15,8 +15,8 @@ LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
 KillMode=process
-StandardOutput=journal
-StandardError=journal
+#StandardOutput=journal
+#StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
