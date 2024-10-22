@@ -271,73 +271,25 @@ function Set_Firewall(){
     fi
 }
 
-# function Init_Panel(){
-#     log "配置 IDB Service"
+function Set_Container_Port(){
+    DEFAULT_CONTAINER_PORT=`9918`
 
-#     # 目录
-#     BIN_DIR=/usr/local/bin
-#     SERVICE_DIR=/etc/systemd/system/
-#     CONFIG_DIR=/etc/idb
-#     DATA_DIR=/var/lib/idb
-#     LOG_DIR =/var/log/idb
+    while true; do
+        read -p "设置容器端口（默认为$DEFAULT_CONTAINER_PORT）：" CONTAINER_PORT
 
-#     # 配置文件
-#     CONFIG_FILE=idb.conf
+        if [[ "$CONTAINER_PORT" == "" ]];then
+            CONTAINER_PORT=$DEFAULT_CONTAINER_PORT
+        fi
 
-#     # 注册服务文件
-#     SERVICE_FILE=idb.service
+        if ! [[ "$CONTAINER_PORT" =~ ^[1-9][0-9]{0,4}$ && "$CONTAINER_PORT" -le 65535 ]]; then
+            echo "错误：输入的端口号必须在 1 到 65535 之间"
+            continue
+        fi
 
-#     # 日志文件路径
-#     LOG_FILE=/var/log/idb/idb-run.log
-
-#     # 创建
-#     mkdir -p $CONFIG_DIR
-#     mkdir -p $DATA_DIR
-#     mkdir -p $LOG_DIR
-
-#     # 清理
-#     rm -rf $CONFIG_DIR/*
-#     rm -rf $DATA_DIR/*
-#     rm -rf $LOG_DIR/*
-
-#     cd ${CURRENT_DIR}
-
-#     # 拷贝二进制文件
-#     cp ./idb $BIN_DIR && chmod +x $BIN_DIR/idb
-#     if [[ ! -f /usr/bin/idb ]]; then
-#         ln -s /usr/local/bin/idb /usr/bin/idb >/dev/null 2>&1
-#     fi
-    
-#     # 拷贝配置文件
-#     cp ./$CONFIG_FILE $CONFIG_DIR
-    
-#     # 修改端口
-#     sed -i 's/port=9918/port=${PANEL_PORT}/' config.conf
-
-#     # 拷贝服务定义文件
-#     cp ./$SERVICE_FILE $SERVICE_DIR
-
-#     # 运行日志
-#     touch $LOG_FILE
-
-#     systemctl enable $SERVICE_FILE; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-#     log "启动 IDB 服务"
-#     systemctl start $SERVICE_FILE | tee -a ${CURRENT_DIR}/install.log
-
-#     for b in {1..30}
-#     do
-#         sleep 3
-#         service_status=`systemctl status $SERVICE_FILE 2>&1 | grep Active`
-#         if [[ $service_status == *running* ]];then
-#             log "IDB 服务启动成功!"
-#             break;
-#         else
-#             log "IDB 服务启动出错!"
-#             exit 1
-#         fi
-#     done
-# }
+        log "您设置的容器端口为：$CONTAINER_PORT"
+        break
+    done
+}
 
 function Install_IDB() {
     # 获取版本号
@@ -370,6 +322,13 @@ function Install_IDB() {
 
     log ".env 和 docker-compose.yml 文件下载成功。"
     
+    # 修改 .env 文件中的端口配置
+    log "正在修改 .env 文件中的端口配置..."
+    sed -i "s/^iDB_service_port=.*/iDB_service_port=${PANEL_PORT}/" "${PANEL_DIR}/.env"
+    sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
+    
+    log ".env 文件中的端口配置已更新为: iDB_service_port=${PANEL_PORT}, iDB_service_container_port=${CONTAINER_PORT}"
+    
     # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
     log "正在启动 IDB..."
     cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
@@ -381,6 +340,36 @@ function Install_IDB() {
     fi
 
     log "IDB 启动成功！"
+
+    # 从 idb 容器的 /var/lib/idb/agent 目录下，拷贝 idb-agent_${VERSION}.tar.gz 至当前目录下的 agent目录
+    log "正在拷贝 idb-agent 文件..."
+    mkdir -p "${CURRENT_DIR}/agent"  # 创建 agent 目录
+    docker cp "idb:/var/lib/idb/agent/idb-agent_${VERSION}.tar.gz" "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log "拷贝 idb-agent 文件失败，请检查容器是否存在。"
+        exit 1
+    fi
+
+    log "正在解压 idb-agent 文件..."
+    tar -xzvf "${CURRENT_DIR}/agent/idb-agent_${VERSION}.tar.gz" -C "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log "解压 idb-agent 文件失败。"
+        exit 1
+    fi
+
+    log "idb-agent 文件解压成功。"
+
+    # 进入 agent 目录并执行 install-agent.sh
+    log "正在执行 install-agent.sh..."
+    cd "${CURRENT_DIR}/agent" || { log "无法进入目录 ${CURRENT_DIR}/agent"; exit 1; }
+    
+    sudo ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ $? -ne 0 ]]; then
+        log "执行 install-agent.sh 失败，请检查脚本内容。"
+        exit 1
+    fi
+
+    log "install-agent.sh 执行成功。"
 }
 
 function Get_Ip(){
@@ -429,6 +418,7 @@ function main(){
     Set_Dir
     Set_Port
     Set_Firewall
+    Set_Container_Port
     Get_Ip
     Install_IDB
     Show_Result

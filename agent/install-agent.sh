@@ -6,16 +6,13 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
-# 解压 agent 包
-tar -xzvf idb-agent.tar.gz -C /tmp
-
 # 创建必要的目录
 mkdir -p /etc/idb-agent /var/log/idb-agent /run/idb-agent /var/lib/idb-agent /var/lib/idb-agent/data 
 
 # 复制文件到正确的位置
-cp idb-agent /var/lib/idb-agent/idb-agent
-cp idb-agent.conf /etc/idb-agent/idb-agent.conf
-cp idb-agent.service /etc/systemd/system/idb-agent.service
+cp ./idb-agent /var/lib/idb-agent/idb-agent
+cp ./idb-agent.conf /etc/idb-agent/idb-agent.conf
+cp ./idb-agent.service /etc/systemd/system/idb-agent.service
 
 # 设置正确的权限
 chmod +x /var/lib/idb-agent/idb-agent
