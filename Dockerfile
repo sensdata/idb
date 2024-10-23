@@ -50,10 +50,14 @@ RUN mkdir -p /app/agent-pkg && \
     tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
 
 # 运行阶段
-FROM alpine:3.18
+FROM debian:bullseye-slim
 
 # 安装运行时必要的工具
-RUN apk add --no-cache bash curl sed
+RUN apt-get update && apt-get install -y \
+    bash \
+    curl \
+    sed \
+    && rm -rf /var/lib/apt/lists/*
 
 # 创建 center 必要的目录结构
 RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/lib/idb/agent
