@@ -38,4 +38,4 @@ ulimit -c 1048576
 
 # 启动应用
 echo "Starting IDB service..."
-exec "$IDB_EXECUTABLE" start >> "$LOG_FILE" 2>&1
+exec "$IDB_EXECUTABLE" start #>> "$LOG_FILE" 2>&1
