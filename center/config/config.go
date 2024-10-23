@@ -12,6 +12,7 @@ import (
 
 // Config定义
 type CenterConfig struct {
+	Host      string `json:"host"`
 	Port      int    `json:"port"`
 	SecretKey string `json:"secret_key"`
 }
@@ -63,6 +64,8 @@ func (m *Manager) loadConfig() error {
 		value := strings.TrimSpace(parts[1])
 
 		switch key {
+		case "host":
+			config.Host = value
 		case "port":
 			fmt.Sscanf(value, "%d", &config.Port)
 		case "secret_key":
@@ -107,6 +110,8 @@ func validateItem(item string) bool {
 	switch item {
 	case "":
 		return true
+	case "host":
+		return true
 	case "port":
 		return true
 	case "key":
@@ -128,10 +133,13 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 	var result strings.Builder
 
 	if item == "" {
+		result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
 		result.WriteString(fmt.Sprintf("secret_key=%s\n", m.config.SecretKey))
 	} else {
 		switch item {
+		case "host":
+			result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		case "port":
 			result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
 		case "secret_key":
@@ -149,6 +157,8 @@ func (m *Manager) SetConfig(key, value string) error {
 	}
 
 	switch key {
+	case "host":
+		m.config.Host = value
 	case "port":
 		portValue, err := strconv.Atoi(value)
 		if err != nil {

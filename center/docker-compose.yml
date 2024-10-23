@@ -7,6 +7,7 @@ services:
       - .env
     environment:
       - PORT=${iDB_service_container_port:-9918} # 容器内部的 PORT 变量
+      - HOST=${iDB_service_host_ip:127.0.0.1} # 宿主机ip
     network_mode: ${iDB_service_network_mode}
     ports:
       - "${iDB_service_port:-9918}:${iDB_service_container_port:-9918}"

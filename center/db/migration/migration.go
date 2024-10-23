@@ -1,8 +1,6 @@
 package migration
 
 import (
-	"net"
-
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
@@ -161,16 +159,6 @@ var AddTableHost = &gormigrate.Migration{
 			return err
 		}
 
-		// 尝试获取宿主机的 IP 地址
-		hostAddr := "host.docker.internal" // 使用 Docker 提供的特殊 DNS 名称
-		// 或者使用 getHostIP() 函数动态获取
-		hostIp, err := getHostIP()
-		if err != nil {
-			global.LOG.Error("Failed to get host IP: %v", err)
-		} else {
-			global.LOG.Info("get host ip: %s", hostIp)
-		}
-
 		if err := db.Transaction(func(tx *gorm.DB) error {
 			group := model.HostGroup{GroupName: "default"}
 			if err := tx.Create(&group).Error; err != nil {
@@ -180,14 +168,14 @@ var AddTableHost = &gormigrate.Migration{
 			host := model.Host{
 				GroupID:    group.ID,
 				Name:       "localhost",
-				Addr:       hostAddr,
+				Addr:       global.Host,
 				Port:       22,
 				User:       "root",
 				AuthMode:   "password",
 				Password:   "Bh.127.zhy",
 				PrivateKey: "",
 				PassPhrase: "",
-				AgentAddr:  hostAddr,
+				AgentAddr:  global.Host,
 				AgentPort:  9919,
 				AgentMode:  "http",
 				AgentKey:   "idbidbidbidbidbidbidbidb",
@@ -203,17 +191,4 @@ var AddTableHost = &gormigrate.Migration{
 		global.LOG.Info("Table Host added successfully")
 		return nil
 	},
-}
-
-func getHostIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-			return ipnet.IP.String(), nil
-		}
-	}
-	return "", nil
 }

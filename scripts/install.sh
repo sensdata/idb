@@ -323,11 +323,12 @@ function Install_IDB() {
     log ".env 和 docker-compose.yml 文件下载成功。"
     
     # 修改 .env 文件中的端口配置
-    log "正在修改 .env 文件中的端口配置..."
+    log "正在修改 .env 文件中的配置..."
+    sed -i "s/^iDB_service_host_ip=.*/iDB_service_host_ip=${LOCAL_IP}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_port=.*/iDB_service_port=${PANEL_PORT}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
     
-    log ".env 文件中的端口配置已更新为: iDB_service_port=${PANEL_PORT}, iDB_service_container_port=${CONTAINER_PORT}"
+    log ".env 文件中的端口配置已更新为: iDB_service_host_ip=${LOCAL_IP}, iDB_service_port=${PANEL_PORT}, iDB_service_container_port=${CONTAINER_PORT}"
 
     # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
     log "正在启动 IDB..."

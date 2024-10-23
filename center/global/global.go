@@ -7,6 +7,7 @@ import (
 )
 
 var Version string = "0.0.1"
+var Host string = "127.0.0.1"
 
 var (
 	LOG   *log.Log

@@ -102,6 +102,7 @@ func StartServices() error {
 		return err
 	}
 	conn.CONFMAN = manager
+	global.Host = manager.GetConfig().Host
 
 	//初始化数据库
 	global.LOG.Info("Init db")
