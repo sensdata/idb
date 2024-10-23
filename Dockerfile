@@ -50,7 +50,7 @@ RUN mkdir -p /app/agent-pkg && \
     tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
 
 # 运行阶段
-FROM debian:bullseye-slim
+FROM debian:bookworm
 
 # 安装运行时必要的工具
 RUN apt-get update && apt-get install -y \
