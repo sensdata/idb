@@ -154,7 +154,9 @@ func (s *HostService) UpdateAgent(id uint, req core.UpdateHostAgent) error {
 	upMap := make(map[string]interface{})
 	upMap["agent_addr"] = req.AgentAddr
 	upMap["agent_port"] = req.AgentPort
-	upMap["agent_key"] = req.AgentKey
+	if req.AgentKey != "" {
+		upMap["agent_key"] = req.AgentKey
+	}
 	upMap["agent_mode"] = req.AgentMode
 
 	return HostRepo.Update(host.ID, upMap)
