@@ -13,7 +13,7 @@ ARG GOARCH=amd64
 ARG VERSION
 
 # 设置环境变量
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 
 # 进入 center 目录
 WORKDIR /app/center
