@@ -193,7 +193,7 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 
 // @Tags Host
 // @Summary test host agent
-// @Description 测试设备agent
+// @Description 测试设备 agent
 // @Accept json
 // @Produce json
 // @Param id path int true "Host ID"
@@ -213,6 +213,28 @@ func (b *BaseApi) TestHostAgent(c *gin.Context) {
 	}
 
 	if err := hostService.TestAgent(hostID, req); err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
+// @Summary install agent on host
+// @Description 在设备上安装 agent
+// @Accept json
+// @Produce json
+// @Param id path int true "Host ID"
+// @Success 200
+// @Router /hosts/{id}/install/agent [post]
+func (b *BaseApi) InstallAgent(c *gin.Context) {
+	hostID, err := GetParamID(c)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
+		return
+	}
+
+	if err := hostService.InstallAgent(hostID); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}

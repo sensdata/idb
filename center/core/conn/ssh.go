@@ -147,7 +147,7 @@ func (s *SSHService) InstallAgent(host model.Host) error {
         mkdir -p /tmp/idb-agent && 
         tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
         cd /tmp/idb-agent && 
-        sudo ./install_agent.sh && 
+        sudo ./install-agent.sh && 
         rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
     `
 	output, err = executeCommand(client, installCmd)

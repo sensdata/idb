@@ -28,6 +28,7 @@ type IHostService interface {
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(id uint, req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
+	InstallAgent(id uint) error
 }
 
 func NewIHostService() IHostService {
@@ -190,6 +191,20 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 
 func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
 	if err := conn.CENTER.TestAgent(id, req); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *HostService) InstallAgent(id uint) error {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 安装
+	if err := conn.SSH.InstallAgent(host); err != nil {
 		return err
 	}
 	return nil
