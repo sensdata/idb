@@ -1,5 +1,5 @@
 plugin:
-  name: "File Mangement"
+  name: "File Management"
   description: "This module provides file operations on device."
   version: "1.0.0"
   host: "127.0.0.1"

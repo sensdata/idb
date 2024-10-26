@@ -1,5 +1,5 @@
 plugin:
-  name: "SSH Mangement"
+  name: "SSH Management"
   description: "This module provides ssh configuration management on device."
   version: "1.0.0"
   host: "127.0.0.1"

@@ -16,7 +16,7 @@ type PluginInfo struct {
 	Version     string `yaml:"version"`
 	Host        string `yaml:"host"`
 	Port        string `yaml:"port"`
-	Entry       string `yaml:"sysinfo"`
+	Entry       string `yaml:"entry"`
 }
 
 // MenuItem 定义菜单项
