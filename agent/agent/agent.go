@@ -14,6 +14,7 @@ import (
 
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/file"
+	"github.com/sensdata/idb/agent/agent/script"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
@@ -26,10 +27,11 @@ import (
 )
 
 var (
-	CONFMAN     *config.Manager
-	AGENT       IAgent
-	FileService = file.NewIFileService()
-	SshService  = ssh.NewISSHService()
+	CONFMAN       *config.Manager
+	AGENT         IAgent
+	FileService   = file.NewIFileService()
+	SshService    = ssh.NewISSHService()
+	ScriptService = script.NewIScriptService()
 )
 
 type Agent struct {
@@ -996,6 +998,79 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			Action: actionData.Action,
 			Result: true,
 			Data:   result,
+		}, nil
+
+	// script 列表
+	case model.Script_List:
+		var req model.QueryScript
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		pageResult, err := ScriptService.GetScriptList(req)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(pageResult)
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   result,
+		}, nil
+
+	// script 创建
+	case model.Script_Create:
+		var req model.CreateScript
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := ScriptService.Create(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// script 更新
+	case model.Script_Update:
+		var req model.UpdateScript
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := ScriptService.Update(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
+		}, nil
+
+	// script 删除
+	case model.Script_Delete:
+		var req model.DeleteScript
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := ScriptService.Delete(req)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Action{
+			Action: actionData.Action,
+			Result: true,
+			Data:   "",
 		}, nil
 
 	default:

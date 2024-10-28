@@ -34,6 +34,11 @@ const (
 	Ssh_Secret                string = "ssh_secret"
 	Ssh_Secret_Create         string = "ssh_secret_create"
 	Ssh_Log                   string = "ssh_log"
+
+	Script_List   string = "script_list"
+	Script_Create string = "script_create"
+	Script_Update string = "script_update"
+	Script_Delete string = "script_delete"
 )
 
 // Action消息结构

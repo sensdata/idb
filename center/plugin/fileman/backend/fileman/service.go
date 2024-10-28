@@ -236,7 +236,7 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body model.FileCreate true "File creation details"
-// @Success 200 {object} model.FileInfo
+// @Success 200
 // @Router /files [post]
 func (s *FileMan) CreateFile(c *gin.Context) {
 	var req model.FileCreate
