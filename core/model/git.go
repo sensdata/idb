@@ -21,6 +21,12 @@ type GitCommit struct {
 	Message    string    `json:"message"`
 }
 
+type GitInit struct {
+	HostID   uint   `json:"host_id" validate:"required"`
+	RepoPath string `json:"repo_path" validate:"required"`
+	IsBare   bool   `json:"is_bare" validate:"required"`
+}
+
 type GitQuery struct {
 	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
@@ -28,6 +34,12 @@ type GitQuery struct {
 	Extension    string `json:"extension"`
 	Page         int    `json:"page"`
 	PageSize     int    `json:"page_size"`
+}
+
+type GitGetFile struct {
+	HostID       uint   `json:"host_id" validate:"required"`
+	RepoPath     string `json:"repo_path" validate:"required"`
+	RelativePath string `json:"relative_path" validate:"required"`
 }
 
 type GitCreate struct {
@@ -54,5 +66,18 @@ type GitRestore struct {
 	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
 	RelativePath string `json:"relative_path" validate:"required"`
-	CommitHash   string `json:"commit_hash"`
+	CommitHash   string `json:"commit_hash" validate:"required"`
+}
+
+type GitLog struct {
+	HostID       uint   `json:"host_id" validate:"required"`
+	RepoPath     string `json:"repo_path" validate:"required"`
+	RelativePath string `json:"relative_path" validate:"required"`
+}
+
+type GitDiff struct {
+	HostID       uint   `json:"host_id" validate:"required"`
+	RepoPath     string `json:"repo_path" validate:"required"`
+	RelativePath string `json:"relative_path" validate:"required"`
+	CommitHash   string `json:"commit_hash" validate:"required"`
 }

@@ -39,6 +39,16 @@ const (
 	Script_Create string = "script_create"
 	Script_Update string = "script_update"
 	Script_Delete string = "script_delete"
+
+	Git_Init      string = "git_init"
+	Git_File_List string = "git_file_list"
+	Git_File      string = "git_file"
+	Git_Create    string = "git_create"
+	Git_Update    string = "git_update"
+	Git_Delete    string = "git_delete"
+	Git_Restore   string = "git_restore"
+	Git_Log       string = "git_log"
+	Git_Diff      string = "git_diff"
 )
 
 // Action消息结构

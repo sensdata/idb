@@ -14,6 +14,7 @@ import (
 
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/file"
+	"github.com/sensdata/idb/agent/agent/git"
 	"github.com/sensdata/idb/agent/agent/script"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/config"
@@ -32,6 +33,7 @@ var (
 	FileService   = file.NewIFileService()
 	SshService    = ssh.NewISSHService()
 	ScriptService = script.NewIScriptService()
+	GitService    = git.NewIGitService()
 )
 
 type Agent struct {
@@ -451,11 +453,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 获取network
 	case model.SysInfo_Network:
@@ -467,11 +465,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 获取SystemInfo
 	case model.SysInfo_System:
@@ -483,11 +477,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 		// 文件树
 	case model.File_Tree:
@@ -505,12 +495,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 列出文件
 	case model.File_List:
@@ -528,28 +513,15 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 		// TODO: 上传文件
 	case model.File_Upload:
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 		// TODO: 下载文件
 	case model.File_Download:
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 创建文件
 	case model.File_Create:
@@ -562,11 +534,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 删除文件
 	case model.File_Delete:
@@ -579,11 +547,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 		// 批量删除
 	case model.File_Batch_Delete:
@@ -596,11 +560,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 批量修改用户/组
 	case model.File_Batch_Change_Owner:
@@ -613,11 +573,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 		// 修改文件权限
 	case model.File_Change_Mode:
@@ -630,11 +586,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 修改文件用户/组
 	case model.File_Change_Owner:
@@ -647,11 +599,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 修改文件名称
 	case model.File_Change_Name:
@@ -665,11 +613,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 压缩文件
 	case model.File_Compress:
@@ -683,11 +627,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 解压文件
 	case model.File_Decompress:
@@ -700,11 +640,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 获取文件内容
 	case model.File_Content:
@@ -722,12 +658,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 保存文件内容
 	case model.File_Content_Modify:
@@ -740,11 +671,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 移动文件
 	case model.File_Move:
@@ -757,11 +684,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 目录大小
 	case model.File_Dir_Size:
@@ -779,12 +702,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 收藏列表
 	case model.Favorite_List:
@@ -802,12 +720,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 创建收藏
 	case model.Favorite_Create:
@@ -825,12 +738,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 删除收藏
 	case model.Favorite_Delete:
@@ -843,12 +751,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 获取ssh配置
 	case model.Ssh_Config:
@@ -861,12 +764,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 更新ssh配置
 	case model.Ssh_Config_Update:
@@ -879,12 +777,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 获取ssh配置文件内容
 	case model.Ssh_Config_Content:
@@ -897,12 +790,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// 更新ssh配置文件内容
 	case model.Ssh_Config_Content_Update:
@@ -915,12 +803,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 操作ssh
 	case model.Ssh_Operate:
@@ -933,12 +816,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 创建秘钥
 	case model.Ssh_Secret_Create:
@@ -951,12 +829,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
 
 	// 枚举秘钥
 	case model.Ssh_Secret:
@@ -974,12 +847,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
+		return actionSuccessResult(actionData.Action, result)
 
 	// ssh日志
 	case model.Ssh_Log:
@@ -993,89 +861,143 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
+		return actionSuccessResult(actionData.Action, result)
 
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
-
-	// script 列表
-	case model.Script_List:
-		var req model.QueryScript
+		// git 初始化
+	case model.Git_Init:
+		var req model.GitInit
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		pageResult, err := ScriptService.GetScriptList(req)
+		err := GitService.InitRepo(req.RepoPath, req.IsBare)
 		if err != nil {
 			return nil, err
 		}
+		return actionSuccessResult(actionData.Action, "")
 
-		result, err := utils.ToJSONString(pageResult)
-		if err != nil {
-			return nil, err
-		}
-
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   result,
-		}, nil
-
-	// script 创建
-	case model.Script_Create:
-		var req model.CreateScript
+		// git 文件列表
+	case model.Git_File_List:
+		var req model.GitQuery
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-
-		err := ScriptService.Create(req)
+		files, err := GitService.GetFileList(req.RepoPath, req.RelativePath, req.Extension, req.Page, req.PageSize)
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		result, err := utils.ToJSONString(files)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
-	// script 更新
-	case model.Script_Update:
-		var req model.UpdateScript
+		// git 文件信息
+	case model.Git_File:
+		var req model.GitGetFile
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-
-		err := ScriptService.Update(req)
+		file, err := GitService.GetFile(req.RepoPath, req.RelativePath)
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		result, err := utils.ToJSONString(file)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
-	// script 删除
-	case model.Script_Delete:
-		var req model.DeleteScript
+		// git 创建文件
+	case model.Git_Create:
+		var req model.GitCreate
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-
-		err := ScriptService.Delete(req)
+		err := GitService.Create(req.RepoPath, req.RelativePath, req.Content)
 		if err != nil {
 			return nil, err
 		}
-		return &model.Action{
-			Action: actionData.Action,
-			Result: true,
-			Data:   "",
-		}, nil
+		return actionSuccessResult(actionData.Action, "")
+
+		// git 更新文件
+	case model.Git_Update:
+		var req model.GitUpdate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := GitService.Update(req.RepoPath, req.RelativePath, req.Content)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// git 删除文件
+	case model.Git_Delete:
+		var req model.GitDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := GitService.Delete(req.RepoPath, req.RelativePath)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// git 恢复文件
+	case model.Git_Restore:
+		var req model.GitRestore
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := GitService.Restore(req.RepoPath, req.RelativePath, req.CommitHash)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// git 文件历史
+	case model.Git_Log:
+		var req model.GitLog
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		logs, err := GitService.Log(req.RepoPath, req.RelativePath)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(logs)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// git 文件差异
+	case model.Git_Diff:
+		var req model.GitDiff
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		diffs, err := GitService.Diff(req.RepoPath, req.RelativePath, req.CommitHash)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(diffs)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	default:
 		return nil, nil
 	}
+}
+
+func actionSuccessResult(action string, data string) (*model.Action, error) {
+	return &model.Action{
+		Action: action,
+		Result: true,
+		Data:   data,
+	}, nil
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {
