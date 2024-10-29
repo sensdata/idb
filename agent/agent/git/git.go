@@ -25,7 +25,7 @@ type IGitService interface {
 	Update(repoPath string, relativePath string, content string) error
 	Delete(repoPath string, relativePath string) error
 	Restore(repoPath string, relativePath string, commitHash string) error
-	Log(repoPath string, relativePath string) ([]string, error)
+	Log(repoPath string, relativePath string) ([]model.GitCommit, error)
 	Diff(repoPath string, relativePath string, commitHash string) (string, error)
 }
 
@@ -114,22 +114,32 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 
 	// 分页处理
 	totalFiles := int64(len(files))
-	startIndex := (page - 1) * pageSize
-	endIndex := startIndex + pageSize
 
-	if startIndex >= int(totalFiles) {
-		// 页数超出范围，返回空列表
-		pageResult = model.PageResult{Total: totalFiles, Items: []model.GitFile{}}
-		return &pageResult, nil
-	}
+	// 检查 page 和 pageSize 是否有效
+	if page > 0 && pageSize > 0 {
+		startIndex := (page - 1) * pageSize
+		endIndex := startIndex + pageSize
 
-	if endIndex > int(totalFiles) {
-		endIndex = int(totalFiles)
-	}
+		if startIndex >= int(totalFiles) {
+			// 页数超出范围，返回空列表
+			pageResult = model.PageResult{Total: totalFiles, Items: []model.GitFile{}}
+			return &pageResult, nil
+		}
 
-	pageResult = model.PageResult{
-		Total: totalFiles,
-		Items: files[startIndex:endIndex],
+		if endIndex > int(totalFiles) {
+			endIndex = int(totalFiles)
+		}
+
+		pageResult = model.PageResult{
+			Total: totalFiles,
+			Items: files[startIndex:endIndex],
+		}
+	} else {
+		// 如果 page 和 pageSize 无效，返回所有文件
+		pageResult = model.PageResult{
+			Total: totalFiles,
+			Items: files,
+		}
 	}
 
 	return &pageResult, nil
@@ -395,8 +405,8 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	return err
 }
 
-func (s *GitService) Log(repoPath string, relativePath string) ([]string, error) {
-	var commits []string
+func (s *GitService) Log(repoPath string, relativePath string) ([]model.GitCommit, error) {
+	var commits []model.GitCommit
 
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
@@ -427,7 +437,16 @@ func (s *GitService) Log(repoPath string, relativePath string) ([]string, error)
 		// 遍历文件，检查是否包含指定文件的更改
 		err = files.ForEach(func(file *object.File) error {
 			if file.Name == relativePath {
-				commits = append(commits, c.Hash.String())
+				commits = append(
+					commits,
+					model.GitCommit{
+						CommitHash: c.Hash.String(), // 提交Hash
+						Author:     c.Author.Name,   // 添加作者
+						Email:      c.Author.Email,  // 添加作者邮箱
+						Time:       c.Author.When,   // 添加时间
+						Message:    c.Message,       // 添加提交信息
+					},
+				)
 			}
 			return nil
 		})
