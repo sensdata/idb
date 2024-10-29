@@ -1,0 +1,497 @@
+package git
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
+	"github.com/sergi/go-diff/diffmatchpatch"
+)
+
+type GitService struct{}
+
+type IGitService interface {
+	InitRepo(repoPath string, isBare bool) error
+	GetFileList(repoPath string, relativePath string, extension string, page int, pageSize int) (*model.PageResult, error)
+	GetFile(repoPath string, relativePath string) (*model.GitFile, error)
+	Create(repoPath string, relativePath string, content string) error
+	Update(repoPath string, relativePath string, content string) error
+	Delete(repoPath string, relativePath string) error
+	Restore(repoPath string, relativePath string, commitHash string) error
+	Log(repoPath string, relativePath string) ([]string, error)
+	Diff(repoPath string, relativePath string, commitHash string) (string, error)
+}
+
+func NewIGitService() IGitService {
+	return &GitService{}
+}
+
+func (s *GitService) InitRepo(repoPath string, isBare bool) error {
+	// 检查目录是否存在
+	if err := utils.EnsurePaths([]string{repoPath}); err != nil {
+		return err
+	}
+
+	// 检查目录是否已经是一个仓库了
+	_, err := git.PlainOpen(repoPath)
+	if err == git.ErrRepositoryNotExists {
+		global.LOG.Info("Initializing Git repository at: %s", repoPath)
+		_, err := git.PlainInit(repoPath, isBare)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *GitService) GetFileList(repoPath string, relativePath string, extension string, page int, pageSize int) (*model.PageResult, error) {
+	var pageResult model.PageResult
+	var files []model.GitFile
+
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	// 获取工作区的路径
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return &pageResult, err
+	}
+	rootPath := worktree.Filesystem.Root() // 获取工作区的根路径
+
+	// 确定目标目录
+	dirPath := rootPath
+	if relativePath != "" {
+		dirPath = filepath.Join(rootPath, relativePath)
+	}
+
+	// 检查目录是否存在
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		return &pageResult, fmt.Errorf("directory %s does not exist", dirPath)
+	}
+
+	// 遍历目录，获取文件信息
+	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// 排除非文件或不符合后缀条件的文件
+		if !info.Mode().IsRegular() || (extension != "" && filepath.Ext(info.Name()) != extension) {
+			return nil
+		}
+
+		// 填充 GitFile 信息
+		file := model.GitFile{
+			Source:       path,
+			RepoPath:     repoPath,
+			RelativePath: filepath.Join(relativePath, info.Name()),
+			Name:         info.Name(),
+			Extension:    filepath.Ext(info.Name()),
+			Content:      "",
+			Size:         info.Size(),
+			ModTime:      info.ModTime(),
+		}
+		files = append(files, file)
+		return nil
+	})
+
+	if err != nil {
+		return &pageResult, err
+	}
+
+	// 分页处理
+	totalFiles := int64(len(files))
+	startIndex := (page - 1) * pageSize
+	endIndex := startIndex + pageSize
+
+	if startIndex >= int(totalFiles) {
+		// 页数超出范围，返回空列表
+		pageResult = model.PageResult{Total: totalFiles, Items: []model.GitFile{}}
+		return &pageResult, nil
+	}
+
+	if endIndex > int(totalFiles) {
+		endIndex = int(totalFiles)
+	}
+
+	pageResult = model.PageResult{
+		Total: totalFiles,
+		Items: files[startIndex:endIndex],
+	}
+
+	return &pageResult, nil
+}
+
+func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFile, error) {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取工作区的路径
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return nil, err
+	}
+	rootPath := worktree.Filesystem.Root()
+
+	// 确定目标文件的完整路径
+	filePath := filepath.Join(rootPath, relativePath)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("file %s does not exist", filePath)
+	}
+
+	// 读取文件内容
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件信息
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 填充到结果
+	gitFile := &model.GitFile{
+		Source:       filePath,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+		Name:         filepath.Base(relativePath),
+		Extension:    filepath.Ext(relativePath),
+		Content:      string(content), // 将内容转换为字符串
+		Size:         fileInfo.Size(),
+		ModTime:      fileInfo.ModTime(),
+	}
+
+	return gitFile, nil
+}
+
+func (s *GitService) Create(repoPath string, relativePath string, content string) error {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 获取工作区路径
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+	rootPath := worktree.Filesystem.Root()
+
+	// 确定目标文件的完整路径
+	filePath := filepath.Join(rootPath, relativePath)
+
+	// 检查文件是否已存在
+	if _, err := os.Stat(filePath); err == nil {
+		return fmt.Errorf("file %s already exists", filePath)
+	}
+
+	// 确保相对目录的创建（若存在目录部分）
+	dirPath := filepath.Dir(filePath)
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	// 创建文件并写入内容
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	// 将新创建的改动添加到 Git 索引
+	_, err = worktree.Add(relativePath)
+	if err != nil {
+		return err
+	}
+
+	// 提交更改
+	commitMsg := fmt.Sprintf("Add %s", relativePath)
+	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "IDB",
+			Email: "idb@sensdata.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *GitService) Update(repoPath string, relativePath string, content string) error {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 获取工作区路径
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+	rootPath := worktree.Filesystem.Root()
+
+	// 确定目标文件的完整路径
+	filePath := filepath.Join(rootPath, relativePath)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return fmt.Errorf("file %s does not exist", filePath)
+	}
+
+	// 更新文件内容
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	// 将更新的文件添加到 Git 索引
+	_, err = worktree.Add(relativePath)
+	if err != nil {
+		return err
+	}
+
+	// 提交更改
+	commitMsg := fmt.Sprintf("Update %s", relativePath)
+	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "IDB",
+			Email: "idb@sensdata.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *GitService) Delete(repoPath string, relativePath string) error {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 获取工作区路径
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+	rootPath := worktree.Filesystem.Root()
+
+	// 确定目标文件的完整路径
+	filePath := filepath.Join(rootPath, relativePath)
+
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return fmt.Errorf("file %s does not exist", filePath)
+	}
+
+	// 删除文件
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+
+	// 将删除的文件从 Git 索引中删除
+	_, err = worktree.Remove(relativePath)
+	if err != nil {
+		return err
+	}
+
+	// 提交更改
+	commitMsg := fmt.Sprintf("Delete %s", relativePath)
+	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "IDB",
+			Email: "idb@sensdata.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *GitService) Restore(repoPath string, relativePath string, commitHash string) error {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 获取目标提交对象
+	commit, err := repo.CommitObject(plumbing.NewHash(commitHash))
+	if err != nil {
+		return fmt.Errorf("commit %s does not exist", commitHash)
+	}
+
+	// 获取提交的树对象
+	tree, err := commit.Tree()
+	if err != nil {
+		return err
+	}
+
+	// 获取指定路径的文件对象
+	file, err := tree.File(relativePath)
+	if err != nil {
+		return fmt.Errorf("file %s does not exist in commit %s", relativePath, commitHash)
+	}
+
+	// 读取文件内容
+	content, err := file.Contents()
+	if err != nil {
+		return err
+	}
+
+	// 确定目标文件的完整路径
+	filePath := filepath.Join(repoPath, relativePath)
+
+	// 将内容写入目标文件
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	// 提交恢复的文件
+	w, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	// 添加文件到工作树
+	if _, err := w.Add(relativePath); err != nil {
+		return err
+	}
+
+	// 提交恢复操作
+	_, err = w.Commit(fmt.Sprintf("Restore %s to %s", relativePath, commitHash), &git.CommitOptions{
+		All: true,
+	})
+
+	return err
+}
+
+func (s *GitService) Log(repoPath string, relativePath string) ([]string, error) {
+	var commits []string
+
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取引用
+	ref, err := repo.Reference(plumbing.HEAD, true)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取历史记录
+	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return nil, err
+	}
+
+	// 遍历历史记录
+	err = iter.ForEach(func(c *object.Commit) error {
+		// 获取当前提交的文件列表
+		files, err := c.Files()
+		if err != nil {
+			return err
+		}
+
+		// 遍历文件，检查是否包含指定文件的更改
+		err = files.ForEach(func(file *object.File) error {
+			if file.Name == relativePath {
+				commits = append(commits, c.Hash.String())
+			}
+			return nil
+		})
+
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return commits, nil
+}
+
+func (s *GitService) Diff(repoPath string, relativePath string, commitHash string) (string, error) {
+	// 打开仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return "", err
+	}
+
+	// 获取当前文件版本
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return "", err
+	}
+	rootPath := worktree.Filesystem.Root()
+
+	currentFilePath := filepath.Join(rootPath, relativePath)
+	currentContent, err := os.ReadFile(currentFilePath)
+	if err != nil {
+		return "", err
+	}
+
+	// 获取历史版本的提交对象
+	commit, err := repo.CommitObject(plumbing.NewHash(commitHash))
+	if err != nil {
+		return "", fmt.Errorf("commit %s does not exist", commitHash)
+	}
+
+	// 获取指定提交中的文件内容
+	file, err := commit.File(relativePath)
+	if err != nil {
+		return "", fmt.Errorf("file %s does not exist in commit %s", relativePath, commitHash)
+	}
+
+	historicalContent, err := file.Contents()
+	if err != nil {
+		return "", err
+	}
+
+	// 比较内容并生成差异
+	diff := diffText(string(currentContent), historicalContent)
+
+	return diff, nil
+}
+
+// diffText 简单实现比较两个文本并返回差异，使用html格式
+func diffText(currentContent string, historicalContent string) string {
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(currentContent, historicalContent, false)
+	dmp.DiffCleanupSemantic(diffs)
+
+	// 将差异转换为 HTML 格式
+	html := dmp.DiffPrettyHtml(diffs)
+	return html
+}
