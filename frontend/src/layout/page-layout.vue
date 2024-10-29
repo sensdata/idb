@@ -1,7 +1,7 @@
 <template>
-  <div class="page-container">
-    <router-view v-slot="{ Component, route }">
-      <transition name="fade" mode="out-in" appear>
+  <router-view v-slot="{ Component, route }">
+    <transition name="fade" mode="out-in" appear>
+      <div class="page-container">
         <component
           :is="Component"
           v-if="route.meta.ignoreCache"
@@ -10,9 +10,9 @@
         <keep-alive v-else :include="cacheList">
           <component :is="Component" :key="route.fullPath" />
         </keep-alive>
-      </transition>
-    </router-view>
-  </div>
+      </div>
+    </transition>
+  </router-view>
 </template>
 
 <script lang="ts" setup>

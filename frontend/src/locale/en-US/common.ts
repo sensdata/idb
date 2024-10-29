@@ -6,6 +6,7 @@ export default {
   'common.form.submitText': 'Submit',
   'common.form.saveText': 'Save',
   'common.form.cancelText': 'Cancel',
+  'common.table.operation': 'Operation',
 
   'common.request.timeout': 'Request timeout, please try again later',
 

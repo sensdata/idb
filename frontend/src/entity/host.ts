@@ -1,7 +1,6 @@
 import { GroupEntity } from './group';
 
 export interface HostEntity {
-  id: number;
   created_at: number;
 
   group: GroupEntity;
@@ -19,6 +18,7 @@ export interface HostEntity {
   agent_mode: string;
   agent_key: string;
 
+  is_default?: boolean;
   cpu_rate: number;
   memory_rate: number;
   disk_rate: number;

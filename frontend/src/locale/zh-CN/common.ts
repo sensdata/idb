@@ -6,6 +6,7 @@ export default {
   'common.form.submitText': '提交',
   'common.form.saveText': '保存',
   'common.form.cancelText': '取消',
+  'common.table.operation': '操作',
 
   'common.request.timeout': '请求超时，请稍后重试',
 

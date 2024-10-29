@@ -1,11 +1,12 @@
 import { ComponentProps } from '@/types/utils';
-import { BaseEntity, ApiListParams, ApiListResult } from '@/types/global';
+import { ApiListParams, ApiListResult } from '@/types/global';
 import {
   SelectOptionData,
   SelectOptionGroup,
   TableColumnData,
   Table,
 } from '@arco-design/web-vue';
+import { VNodeChild } from 'vue';
 
 type TableProps = ComponentProps<typeof Table>;
 
@@ -48,8 +49,14 @@ export interface FilterItem {
 }
 
 export type SizeProps = 'mini' | 'small' | 'medium' | 'large';
-export type Column = TableColumnData & { checked?: boolean };
-
+export type Column<T = any> = Omit<TableColumnData, 'render'> & {
+  checked?: boolean;
+  render?: (data: {
+    record: T;
+    column?: TableColumnData;
+    rowIndex?: number;
+  }) => VNodeChild;
+};
 export interface Props extends /* @vue-ignore */ TableProps {
   // 过滤项
   filters?: FilterItem[];
@@ -58,15 +65,13 @@ export interface Props extends /* @vue-ignore */ TableProps {
   // 下载
   download?: DownloadFn;
   // 接口
-  fetch?: <T extends BaseEntity>(
-    params: ApiListParams
-  ) => Promise<ApiListResult<T>>;
+  fetch?: (params: ApiListParams) => Promise<ApiListResult<any>>;
   // 每页条数
   pageSize?: number;
   // 请求参数
   params?: Record<string, any>;
   // 表格列
-  columns: TableColumnData[];
+  columns: Omit<Column, 'checked'>[];
   // 自动加载
   autoLoad?: boolean;
   // 是否有选择列(即批量操作)

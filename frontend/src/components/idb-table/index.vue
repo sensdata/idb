@@ -6,7 +6,7 @@
     @init="onFilterReady"
   />
   <a-divider v-if="filters.length" style="margin-top: 0" />
-  <a-row style="margin-bottom: 16px">
+  <a-row align="center" style="margin-bottom: 16px">
     <a-col :span="12">
       <a-space>
         <slot name="leftActions" />
@@ -74,9 +74,7 @@
                 <div>
                   <a-checkbox
                     v-model="item.checked"
-                    @change="
-                      handleToggleColumn($event, item as TableColumnData)
-                    "
+                    @change="handleToggleColumn($event, item as Column)"
                   >
                     {{ item.title }}
                   </a-checkbox>

@@ -8,11 +8,39 @@
         {{ $t('manage.host.list.action.add') }}
       </a-button>
     </template>
+    <template #name="{ record }: { record: HostEntity }">
+      <div>{{ record.addr }}</div>
+      <div>
+        <template v-if="record.is_default">
+          <span>{{ $t('manage.host.list.name_local') }}</span>
+          <span class="green-6"
+            >({{ $t('manage.host.list.name_default') }})</span
+          >
+        </template>
+        <template v-else>
+          <span>{{ record.name }}</span>
+        </template>
+      </div>
+    </template>
     <template #cpu="{ record }: { record: HostEntity }">
-      <a-progress :percent="record.cpu_rate" />
+      <a-progress class="inline-progress" :percent="record.cpu_rate" />
     </template>
     <template #memory="{ record }: { record: HostEntity }">
-      <a-progress :percent="record.memory_rate" color="#0FC6C2" />
+      <a-progress
+        class="inline-progress bg-cyan-6"
+        :percent="record.memory_rate"
+        color="#0FC6C2"
+      />
+    </template>
+    <template #disk="{ record }: { record: HostEntity }">
+      <a-progress
+        class="inline-progress bg-green-6"
+        :percent="record.disk_rate"
+        color="#0FC6C2"
+      />
+    </template>
+    <template #operation="{ record }: { record: HostEntity }">
+      <idb-dropdown-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
   <host-create ref="formRef" @ok="reload"></host-create>
@@ -31,14 +59,17 @@
     {
       dataIndex: 'name',
       title: t('manage.host.list.column.name'),
-      width: 175,
+      width: 150,
+      slotName: 'name',
     },
     {
       dataIndex: 'group_name',
       title: t('manage.host.list.column.group_name'),
-      width: 130,
+      width: 125,
       render: ({ record }: { record: HostEntity }) => {
-        return record.group?.group_name || '';
+        return record.group
+          ? record.group?.group_name
+          : t('manage.host.list.group_default');
       },
     },
     {
@@ -63,12 +94,13 @@
       dataIndex: 'memory',
       title: t('manage.host.list.column.memory'),
       width: 110,
-      // todo
+      slotName: 'memory',
     },
     {
       dataIndex: 'disk',
       title: t('manage.host.list.column.disk'),
       width: 110,
+      slotName: 'disk',
       // todo
     },
     {
@@ -77,7 +109,30 @@
       width: 160,
       // todo
     },
+    {
+      dataIndex: 'operation',
+      title: t('common.table.operation'),
+      width: 100,
+      slotName: 'operation',
+    },
   ];
+
+  const getOperationOptions = (record: HostEntity) => {
+    return [
+      {
+        text: t('manage.host.list.operation.goto'),
+        click: () => {
+          console.log('goto', record);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.setting'),
+        click: () => {
+          console.log('setting', record);
+        },
+      },
+    ];
+  };
 
   const gridRef = ref();
   const reload = () => {
@@ -92,3 +147,10 @@
     form?.show();
   };
 </script>
+
+<style scoped>
+  .inline-progress :deep(.arco-progress-line-text, .arco-progress-steps-text) {
+    min-width: 0;
+    margin-left: 10px;
+  }
+</style>
