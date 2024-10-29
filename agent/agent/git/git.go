@@ -25,7 +25,7 @@ type IGitService interface {
 	Update(repoPath string, relativePath string, content string) error
 	Delete(repoPath string, relativePath string) error
 	Restore(repoPath string, relativePath string, commitHash string) error
-	Log(repoPath string, relativePath string) ([]model.GitCommit, error)
+	Log(repoPath string, relativePath string, page int, pageSize int) (*model.PageResult, error)
 	Diff(repoPath string, relativePath string, commitHash string) (string, error)
 }
 
@@ -95,14 +95,12 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 
 		// 填充 GitFile 信息
 		file := model.GitFile{
-			Source:       path,
-			RepoPath:     repoPath,
-			RelativePath: filepath.Join(relativePath, info.Name()),
-			Name:         info.Name(),
-			Extension:    filepath.Ext(info.Name()),
-			Content:      "",
-			Size:         info.Size(),
-			ModTime:      info.ModTime(),
+			Source:    path,
+			Name:      info.Name(),
+			Extension: filepath.Ext(info.Name()),
+			Content:   "",
+			Size:      info.Size(),
+			ModTime:   info.ModTime(),
 		}
 		files = append(files, file)
 		return nil
@@ -181,14 +179,12 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 
 	// 填充到结果
 	gitFile := &model.GitFile{
-		Source:       filePath,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Name:         filepath.Base(relativePath),
-		Extension:    filepath.Ext(relativePath),
-		Content:      string(content), // 将内容转换为字符串
-		Size:         fileInfo.Size(),
-		ModTime:      fileInfo.ModTime(),
+		Source:    filePath,
+		Name:      filepath.Base(relativePath),
+		Extension: filepath.Ext(relativePath),
+		Content:   string(content), // 将内容转换为字符串
+		Size:      fileInfo.Size(),
+		ModTime:   fileInfo.ModTime(),
 	}
 
 	return gitFile, nil
@@ -405,25 +401,26 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	return err
 }
 
-func (s *GitService) Log(repoPath string, relativePath string) ([]model.GitCommit, error) {
+func (s *GitService) Log(repoPath string, relativePath string, page int, pageSize int) (*model.PageResult, error) {
+	var pageResult model.PageResult
 	var commits []model.GitCommit
 
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return nil, err
+		return &pageResult, err
 	}
 
 	// 获取引用
 	ref, err := repo.Reference(plumbing.HEAD, true)
 	if err != nil {
-		return nil, err
+		return &pageResult, err
 	}
 
 	// 获取历史记录
 	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
 	if err != nil {
-		return nil, err
+		return &pageResult, err
 	}
 
 	// 遍历历史记录
@@ -455,10 +452,40 @@ func (s *GitService) Log(repoPath string, relativePath string) ([]model.GitCommi
 	})
 
 	if err != nil {
-		return nil, err
+		return &pageResult, err
 	}
 
-	return commits, nil
+	// 分页处理
+	totalFiles := int64(len(commits))
+
+	// 检查 page 和 pageSize 是否有效
+	if page > 0 && pageSize > 0 {
+		startIndex := (page - 1) * pageSize
+		endIndex := startIndex + pageSize
+
+		if startIndex >= int(totalFiles) {
+			// 页数超出范围，返回空列表
+			pageResult = model.PageResult{Total: totalFiles, Items: []model.GitCommit{}}
+			return &pageResult, nil
+		}
+
+		if endIndex > int(totalFiles) {
+			endIndex = int(totalFiles)
+		}
+
+		pageResult = model.PageResult{
+			Total: totalFiles,
+			Items: commits[startIndex:endIndex],
+		}
+	} else {
+		// 如果 page 和 pageSize 无效，返回所有文件
+		pageResult = model.PageResult{
+			Total: totalFiles,
+			Items: commits,
+		}
+	}
+
+	return &pageResult, nil
 }
 
 func (s *GitService) Diff(repoPath string, relativePath string, commitHash string) (string, error) {

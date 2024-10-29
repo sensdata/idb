@@ -961,7 +961,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		logs, err := GitService.Log(req.RepoPath, req.RelativePath)
+		logs, err := GitService.Log(req.RepoPath, req.RelativePath, req.Page, req.PageSize)
 		if err != nil {
 			return nil, err
 		}

@@ -4,8 +4,11 @@ import (
 	_ "embed"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
@@ -20,6 +23,7 @@ import (
 
 type ScriptMan struct {
 	pluginConfig plugin.PluginConfig
+	scriptConfig *model.Script
 	restyClient  *resty.Client
 }
 
@@ -31,11 +35,26 @@ var LOG *log.Log
 var plugYAML []byte
 
 func (s *ScriptMan) Initialize() {
-	fmt.Printf("scriptman init begin")
+	fmt.Printf("scriptman init begin \n")
+
+	confPath := filepath.Join(constant.CenterConfDir, "script", "script.toml")
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		// 创建配置文件并写入默认内容
+		defaultConfig := "[script]\ndata_path = /var/lib/idb/data/script\nlog_path = /var/lib/idb\n"
+		if err := os.WriteFile(confPath, []byte(defaultConfig), 0644); err != nil {
+			fmt.Printf("Failed to create script toml: %v \n", err)
+			return
+		}
+	}
+	if _, err := toml.DecodeFile(confPath, &s.scriptConfig); err != nil {
+		fmt.Printf("Failed to load script toml: %v \n", err)
+		return
+	}
 
 	//初始化日志模块
 	if LOG == nil {
-		logger, err := log.InitLogger(constant.CenterLogDir, "script.log")
+		logger, err := log.InitLogger(s.scriptConfig.Script.LogPath, "script.log")
 		if err != nil {
 			fmt.Printf("Failed to initialize logger: %v \n", err)
 			return
@@ -61,6 +80,13 @@ func (s *ScriptMan) Initialize() {
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 			{Method: "GET", Path: "", Handler: s.GetScriptList},
+			{Method: "GET", Path: "/detail", Handler: s.GetScriptDetail},
+			{Method: "POST", Path: "", Handler: s.Create},
+			{Method: "PUT", Path: "", Handler: s.Update},
+			{Method: "DELETE", Path: "", Handler: s.Delete},
+			{Method: "PUT", Path: "/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/log", Handler: s.GetScriptLog},
+			{Method: "GET", Path: "/diff", Handler: s.GetScriptDiff},
 		},
 	)
 
@@ -172,6 +198,58 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 }
 
 // @Tags Script
+// @Summary Get script detail
+// @Description Get detail of a script file
+// @Accept json
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Success 200 {array} model.GitFile
+// @Router /scripts/detail [get]
+func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	name := c.Query("name")
+	if name == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
+		return
+	}
+
+	req := model.GetScript{
+		HostID:   uint(hostID),
+		Type:     scriptType,
+		Category: category,
+		Name:     name,
+	}
+
+	detail, err := s.getScriptDetail(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, detail)
+}
+
+// @Tags Script
 // @Summary Create script file or category
 // @Description Create a new script file or category
 // @Accept json
@@ -263,4 +341,153 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Script
+// @Summary Restore script file
+// @Description Restore script file to specified version
+// @Accept json
+// @Produce json
+// @Param request body model.RestoreScript true "Script file restore details"
+// @Success 200
+// @Router /scripts/restore [put]
+func (s *ScriptMan) Restore(c *gin.Context) {
+	var req model.RestoreScript
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err := s.restore(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Script
+// @Summary Get script histories
+// @Description Get histories of a script file
+// @Accept json
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {array} model.PageResult
+// @Router /scripts/log [get]
+func (s *ScriptMan) GetScriptLog(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	name := c.Query("name")
+	if name == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.ScriptLog{
+		HostID:   uint(hostID),
+		Type:     scriptType,
+		Category: category,
+		Name:     name,
+		Page:     int(page),
+		PageSize: int(pageSize),
+	}
+
+	logs, err := s.getScriptLog(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, logs)
+}
+
+// @Tags Script
+// @Summary Get script diff
+// @Description Get script diff compare to specfied version
+// @Accept json
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Param commit query string true "Commit hash"
+// @Success 200 {array} model.GitFile
+// @Router /scripts/diff [get]
+func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	name := c.Query("name")
+	if name == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
+		return
+	}
+
+	commitHash := c.Query("commit")
+	if commitHash == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid commit hash", err)
+		return
+	}
+
+	req := model.ScriptDiff{
+		HostID:     uint(hostID),
+		Type:       scriptType,
+		Category:   category,
+		Name:       name,
+		CommitHash: commitHash,
+	}
+
+	diff, err := s.getScriptDiff(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, diff)
 }
