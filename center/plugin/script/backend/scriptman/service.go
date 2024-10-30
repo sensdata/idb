@@ -38,6 +38,11 @@ func (s *ScriptMan) Initialize() {
 	fmt.Printf("scriptman init begin \n")
 
 	confPath := filepath.Join(constant.CenterConfDir, "script", "script.toml")
+	// 检查配置文件的目录是否存在
+	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
+		fmt.Printf("Failed to create directory: %v \n", err)
+		return
+	}
 	// 检查配置文件是否存在
 	if _, err := os.Stat(confPath); os.IsNotExist(err) {
 		// 创建配置文件并写入默认内容
