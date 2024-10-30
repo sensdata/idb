@@ -47,7 +47,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	global.LOG.Info("register router - api")
-	apiGroup := s.router.Group("idb/api")
+	apiGroup := s.router.Group("api/v1")
 	for _, router := range router.RouterGroups {
 		router.InitRouter(apiGroup)
 	}
@@ -56,7 +56,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 // SetUpPluginRouters sets up routers from plugins
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
 	global.LOG.Info("register router - " + group)
-	pluginGroup := s.router.Group("idb/api" + group)
+	pluginGroup := s.router.Group("api/v1" + group)
 	for _, route := range routes {
 		switch route.Method {
 		case "GET":

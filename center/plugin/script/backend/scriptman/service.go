@@ -67,7 +67,7 @@ func (s *ScriptMan) Initialize() {
 		return
 	}
 
-	baseUrl := fmt.Sprintf("http://%s:%d/idb/api", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
+	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
 	LOG.Info("baseurl: %s", baseUrl)
 
 	s.restyClient = resty.New().

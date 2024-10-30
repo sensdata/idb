@@ -109,7 +109,7 @@ func (c *CmdHelper) SendCommand(hostId uint, command string) (*model.CommandResu
 	resp, err := c.RestyClient.R().
 		SetBody(commandRequest).
 		SetResult(&commandResponse).
-		Post("/idb/api/commands")
+		Post("/api/v1/commands")
 
 	if err != nil {
 		fmt.Printf("failed to send request: %v", err)
