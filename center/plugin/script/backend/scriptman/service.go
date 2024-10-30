@@ -46,7 +46,7 @@ func (s *ScriptMan) Initialize() {
 	// 检查配置文件是否存在
 	if _, err := os.Stat(confPath); os.IsNotExist(err) {
 		// 创建配置文件并写入默认内容
-		defaultConfig := "[script]\ndata_path = /var/lib/idb/data/script\nlog_path = /var/lib/idb\n"
+		defaultConfig := "[script]\ndata_path = '/var/lib/idb/data/script'\nlog_path = '/var/lib/idb'\n"
 		if err := os.WriteFile(confPath, []byte(defaultConfig), 0644); err != nil {
 			fmt.Printf("Failed to create script toml: %v \n", err)
 			return
