@@ -75,7 +75,7 @@ func (s *ScriptMan) Initialize() {
 		SetHeader("Content-Type", "application/json")
 
 	api.API.SetUpPluginRouters(
-		"script",
+		"scripts",
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
