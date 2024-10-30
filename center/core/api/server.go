@@ -56,7 +56,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 // SetUpPluginRouters sets up routers from plugins
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
 	global.LOG.Info("register router - " + group)
-	pluginGroup := s.router.Group("idb/" + group)
+	pluginGroup := s.router.Group("idb/api" + group)
 	for _, route := range routes {
 		switch route.Method {
 		case "GET":
