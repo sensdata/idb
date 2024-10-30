@@ -14,9 +14,10 @@ export default mergeConfig(
         '/api': {
           target: 'http://8.138.47.21:9918',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '/idb/api'),
+          // rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
       },
+      port: 5300,
     },
     plugins: [
       eslint({

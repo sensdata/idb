@@ -11,7 +11,12 @@ export interface LoginRes {
   name: string;
 }
 export function login(data: LoginData) {
-  return request.post<LoginRes>('auth/sessions', data);
+  return {
+    token: 'test',
+    name: 'admin',
+    role: 'admin',
+  };
+  // return request.post<LoginRes>('auth/sessions', data);
 }
 
 export function logout() {

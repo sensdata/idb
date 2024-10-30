@@ -20,6 +20,8 @@ export default {
   'menu.faq': '常见问题',
   'menu.manage.host': '节点管理',
   'menu.manage.host.list': '节点列表',
+  'menu.app.sysinfo': '系统信息',
+  'menu.app.sysinfo.overview': '状态概览',
   'navbar.docs': '文档中心',
   'navbar.action.locale': '切换为中文',
   ...localeMessageBox,
