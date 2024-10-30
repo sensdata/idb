@@ -128,6 +128,23 @@ definitions:
     - port
     - user
     type: object
+  model.CreateScript:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - host_id
+    - name
+    - type
+    type: object
   model.CreateUser:
     properties:
       group_id:
@@ -424,6 +441,21 @@ definitions:
     - encryption_mode
     - key_bits
     type: object
+  model.GitFile:
+    properties:
+      content:
+        type: string
+      extension:
+        type: string
+      mod_time:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+      source:
+        type: string
+    type: object
   model.GroupInfo:
     properties:
       created_at:
@@ -671,6 +703,24 @@ definitions:
       message:
         type: string
     type: object
+  model.RestoreScript:
+    properties:
+      category:
+        type: string
+      commit_hash:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - commit_hash
+    - host_id
+    - name
+    - type
+    type: object
   model.RoleInfo:
     properties:
       created_at:
@@ -905,6 +955,24 @@ definitions:
     - auth_mode
     - port
     - user
+    type: object
+  model.UpdateScript:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - host_id
+    - name
+    - type
     type: object
   model.UpdateUser:
     properties:
@@ -1152,8 +1220,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/model.FileInfo'
       summary: Create file or directory
       tags:
       - File
@@ -1787,6 +1853,25 @@ paths:
       summary: update host agent config
       tags:
       - Host
+  /hosts/{id}/install/agent:
+    post:
+      consumes:
+      - application/json
+      description: 在设备上安装 agent
+      parameters:
+      - description: Host ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: install agent on host
+      tags:
+      - Host
   /hosts/{id}/ssh:
     put:
       consumes:
@@ -1816,7 +1901,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 测试设备agent
+      description: 测试设备 agent
       parameters:
       - description: Host ID
         in: path
@@ -1888,6 +1973,296 @@ paths:
       summary: get host group list
       tags:
       - Host
+  /scripts:
+    delete:
+      consumes:
+      - application/json
+      description: Delete  a script file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete script file
+      tags:
+      - Script
+    get:
+      consumes:
+      - application/json
+      description: Get list of scripts in a directory
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PageResult'
+            type: array
+      summary: List scripts
+      tags:
+      - Script
+    post:
+      consumes:
+      - application/json
+      description: Create a new script file or category
+      parameters:
+      - description: Script file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateScript'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create script file or category
+      tags:
+      - Script
+    put:
+      consumes:
+      - application/json
+      description: Update the content of a script file
+      parameters:
+      - description: Script file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateScript'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update script file content
+      tags:
+      - Script
+  /scripts/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get detail of a script file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Script file name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.GitFile'
+            type: array
+      summary: Get script detail
+      tags:
+      - Script
+  /scripts/diff:
+    get:
+      consumes:
+      - application/json
+      description: Get script diff compare to specfied version
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Script file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Commit hash
+        in: query
+        name: commit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.GitFile'
+            type: array
+      summary: Get script diff
+      tags:
+      - Script
+  /scripts/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - File
+  /scripts/log:
+    get:
+      consumes:
+      - application/json
+      description: Get histories of a script file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Script file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PageResult'
+            type: array
+      summary: Get script histories
+      tags:
+      - Script
+  /scripts/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - File
+  /scripts/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore script file to specified version
+      parameters:
+      - description: Script file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreScript'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore script file
+      tags:
+      - Script
   /ssh/config/{host_id}:
     get:
       consumes:
