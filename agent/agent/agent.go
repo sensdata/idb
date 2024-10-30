@@ -15,7 +15,6 @@ import (
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
-	"github.com/sensdata/idb/agent/agent/script"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
@@ -28,12 +27,11 @@ import (
 )
 
 var (
-	CONFMAN       *config.Manager
-	AGENT         IAgent
-	FileService   = file.NewIFileService()
-	SshService    = ssh.NewISSHService()
-	ScriptService = script.NewIScriptService()
-	GitService    = git.NewIGitService()
+	CONFMAN     *config.Manager
+	AGENT       IAgent
+	FileService = file.NewIFileService()
+	SshService  = ssh.NewISSHService()
+	GitService  = git.NewIGitService()
 )
 
 type Agent struct {
