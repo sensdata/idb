@@ -63,9 +63,9 @@ func (s *ScriptMan) getScriptList(req model.QueryScript) (*model.PageResult, err
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	gitQuery := model.GitQuery{
 		HostID:       req.HostID,
@@ -119,9 +119,9 @@ func (s *ScriptMan) getScriptDetail(req model.GetScript) (*model.GitFile, error)
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -179,9 +179,9 @@ func (s *ScriptMan) create(req model.CreateScript) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -233,9 +233,9 @@ func (s *ScriptMan) update(req model.UpdateScript) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -287,9 +287,9 @@ func (s *ScriptMan) delete(req model.DeleteScript) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -340,9 +340,9 @@ func (s *ScriptMan) restore(req model.RestoreScript) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -396,9 +396,9 @@ func (s *ScriptMan) getScriptLog(req model.ScriptLog) (*model.PageResult, error)
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -457,9 +457,9 @@ func (s *ScriptMan) getScriptDiff(req model.ScriptDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "global")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "script", "local")
+		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
