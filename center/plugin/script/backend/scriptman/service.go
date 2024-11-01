@@ -152,7 +152,7 @@ func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 {array} model.PageResult
+// @Success 200 model.PageResult
 // @Router /scripts [get]
 func (s *ScriptMan) GetScriptList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -211,7 +211,7 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
-// @Success 200 {array} model.GitFile
+// @Success 200 {object} model.GitFile
 // @Router /scripts/detail [get]
 func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -380,7 +380,7 @@ func (s *ScriptMan) Restore(c *gin.Context) {
 // @Param name query string true "Script file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 {array} model.PageResult
+// @Success 200 model.PageResult
 // @Router /scripts/log [get]
 func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -447,7 +447,7 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Param commit query string true "Commit hash"
-// @Success 200 {array} model.GitFile
+// @Success 200 {string} string
 // @Router /scripts/diff [get]
 func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -495,4 +495,49 @@ func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, diff)
+}
+
+// @Tags Script
+// @Summary Execute script
+// @Description Execute script
+// @Accept json
+// @Produce json
+// @Param request body model.ExecuteScript true "Script file creation details"
+// @Success 200 {object} model.ScriptResult
+// @Router /scripts/run [post]
+func (s *ScriptMan) Execute(c *gin.Context) {
+	var req model.ExecuteScript
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	result, err := s.execute(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Script
+// @Summary Get run log content
+// @Description Get content of run log
+// @Accept json
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Success 200 {object} model.GitFile
+// @Router /scripts/run/log [get]
+func (s *ScriptMan) GetScriptRunLog(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	content, err := s.getScriptRunLog(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, content)
 }

@@ -35,10 +35,7 @@ const (
 	Ssh_Secret_Create         string = "ssh_secret_create"
 	Ssh_Log                   string = "ssh_log"
 
-	Script_List   string = "script_list"
-	Script_Create string = "script_create"
-	Script_Update string = "script_update"
-	Script_Delete string = "script_delete"
+	Script_Exec string = "script_exec"
 
 	Git_Init      string = "git_init"
 	Git_File_List string = "git_file_list"

@@ -3,7 +3,9 @@ package scriptman
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -318,7 +320,7 @@ func (s *ScriptMan) delete(req model.DeleteScript) error {
 	actionRequest := model.HostAction{
 		HostID: gitDelete.HostID,
 		Action: model.Action{
-			Action: model.Script_Delete,
+			Action: model.Git_Delete,
 			Data:   data,
 		},
 	}
@@ -505,4 +507,92 @@ func (s *ScriptMan) getScriptDiff(req model.ScriptDiff) (string, error) {
 	}
 
 	return actionResponse.Data.Action.Data, nil
+}
+
+func (s *ScriptMan) execute(req model.ExecuteScript) (*model.ScriptResult, error) {
+	result := model.ScriptResult{
+		Start: time.Now(),
+		End:   time.Now(),
+		Out:   "",
+		Err:   "",
+	}
+
+	logPath := filepath.Join(s.scriptConfig.Script.LogPath, "script-run.log")
+
+	scriptExec := model.ScriptExec{
+		ScriptPath: req.ScriptPath,
+		LogPath:    logPath,
+	}
+
+	data, err := utils.ToJSONString(scriptExec)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: req.HostID,
+		Action: model.Action{
+			Action: model.Script_Exec,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to get filetree")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to filetree: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (s *ScriptMan) getScriptRunLog(hostID uint64) (string, error) {
+
+	logPath := filepath.Join(s.scriptConfig.Script.LogPath, "script-run.log")
+	req := model.FileContentReq{
+		HostID: uint(hostID),
+		Path:   logPath,
+	}
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return "", err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: req.HostID,
+		Action: model.Action{
+			Action: model.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return "", err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return "", fmt.Errorf("failed to get file content")
+	}
+
+	var fileInfo model.FileInfo
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return "", fmt.Errorf("json err: %v", err)
+	}
+
+	return fileInfo.Content, nil
 }

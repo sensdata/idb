@@ -861,6 +861,19 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+		// 执行脚本
+	case model.Script_Exec:
+		var req model.ScriptExec
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		scriptResult := shell.ExecuteScript(req)
+		result, err := utils.ToJSONString(scriptResult)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 		// git 初始化
 	case model.Git_Init:
 		var req model.GitInit
