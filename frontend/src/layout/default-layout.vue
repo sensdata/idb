@@ -35,6 +35,7 @@
         <a-layout class="layout-content" :style="paddingStyle">
           <TabBar v-if="appStore.tabBar" />
           <a-layout-content>
+            <SwitchHost v-if="isAppRoute" />
             <PageLayout />
           </a-layout-content>
           <Footer v-if="footer" />
@@ -52,6 +53,7 @@
   import Menu from '@/components/menu/index.vue';
   import Footer from '@/components/footer/index.vue';
   import TabBar from '@/components/tab-bar/index.vue';
+  import SwitchHost from '@/components/switch-host/index.vue';
   import usePermission from '@/hooks/permission';
   import useResponsive from '@/hooks/responsive';
   import PageLayout from './page-layout.vue';
@@ -64,6 +66,7 @@
   const permission = usePermission();
   useResponsive(true);
   const navbarHeight = `60px`;
+  const isAppRoute = computed(() => route.fullPath.startsWith('/app'));
   const navbar = computed(() => appStore.navbar);
   const renderMenu = computed(() => appStore.menu && !appStore.topMenu);
   const hideMenu = computed(() => appStore.hideMenu);

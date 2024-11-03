@@ -76,6 +76,8 @@ export interface Props extends /* @vue-ignore */ TableProps {
   autoLoad?: boolean;
   // 是否有选择列(即批量操作)
   hasBatch?: boolean;
-  // 搜索
-  allowSearch?: boolean;
+  // 是否有搜索
+  hasSearch?: boolean;
+  // 是否有顶部工具栏
+  hasToolbar?: boolean;
 }

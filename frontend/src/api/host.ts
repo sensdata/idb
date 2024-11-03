@@ -2,7 +2,7 @@ import { HostEntity } from '@/entity/host';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
-export function getHostListApi(params: ApiListParams) {
+export function getHostListApi(params?: ApiListParams) {
   return request.get<ApiListResult<HostEntity>>('hosts', params);
 }
 

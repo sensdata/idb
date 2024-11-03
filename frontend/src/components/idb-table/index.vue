@@ -6,7 +6,7 @@
     @init="onFilterReady"
   />
   <a-divider v-if="filters.length" style="margin-top: 0" />
-  <a-row align="center" style="margin-bottom: 16px">
+  <a-row v-if="hasToolbar" align="center" style="margin-bottom: 16px">
     <a-col :span="12">
       <a-space>
         <slot name="leftActions" />
@@ -18,7 +18,7 @@
     >
       <slot name="rightActions" />
       <a-input-search
-        v-if="allowSearch"
+        v-if="hasSearch"
         v-model:value="searchValue"
         class="w-[240px] mr-4"
         :placeholder="$t('components.idbTable.search.placeholder')"
@@ -166,7 +166,8 @@
   const props = withDefaults(defineProps<Props>(), {
     filters: () => [],
     pageSize: 20,
-    allowSearch: false,
+    hasSearch: false,
+    hasToolbar: true,
     autoLoad: true,
   });
 

@@ -2,16 +2,7 @@
   <div class="navbar">
     <div class="left-side">
       <a-space>
-        <img
-          alt="logo"
-          src="//p3-armor.byteimg.com/tos-cn-i-49unhts6dw/dfdba5317c0c20ce20e64fac803d52bc.svg~tplv-49unhts6dw-image.image"
-        />
-        <a-typography-title
-          :style="{ margin: 0, fontSize: '18px' }"
-          :heading="5"
-        >
-          Arco Pro
-        </a-typography-title>
+        <img class="logo" alt="logo" :src="LogoImage" />
         <icon-menu-fold
           v-if="!topMenu && appStore.device === 'mobile'"
           style="font-size: 22px; cursor: pointer"
@@ -150,7 +141,8 @@
             :size="32"
             :style="{ marginRight: '8px', cursor: 'pointer' }"
           >
-            <img alt="avatar" :src="avatar" />
+            <img v-if="avatar" alt="avatar" :src="avatar" />
+            <IconUser v-else />
           </a-avatar>
           <template #content>
             <a-doption>
@@ -200,6 +192,7 @@
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';
+  import LogoImage from '@/assets/logo-wide.png';
   import Menu from '@/components/menu/index.vue';
   import MessageBox from '../message-box/index.vue';
 
@@ -275,6 +268,9 @@
     display: flex;
     align-items: center;
     padding-left: 20px;
+    .logo {
+      height: 28px;
+    }
   }
 
   .center-side {

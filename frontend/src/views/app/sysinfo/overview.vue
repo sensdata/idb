@@ -107,7 +107,7 @@
           <div class="col2">进程占用：</div>
           <div class="col3">0.00</div>
           <div class="col4">
-            <span class="color-primary text-sm">查看内存使用情况</span>
+            <a-link class="text-sm">查看内存使用情况</a-link>
           </div>
         </div>
         <div class="subline">
@@ -153,7 +153,7 @@
     </div>
     <div class="line">
       <div class="col1">存储空间</div>
-      <div class="colspan">
+      <div class="colspan mb-6">
         <a-table :columns="mountColumns" :data="mountData" :pagination="false">
           <template #rate="{ record }">
             <a-tag :color="record.rate >= 80 ? 'orangered' : 'green'">
@@ -220,6 +220,9 @@
     padding: 12px 40px;
     line-height: 24px;
     border-bottom: 1px solid var(--color-border-2);
+    &:last-child {
+      border-bottom: none;
+    }
   }
   .no-border {
     border-bottom: none;
@@ -253,6 +256,8 @@
   .col3 {
     width: 50px;
     margin-right: 30px;
+    color: var(--color-text-1);
+    font-size: 14px;
   }
   .col4 {
     min-width: 160px;

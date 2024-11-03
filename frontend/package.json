@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@arco-design/web-vue": "^2.44.7",
-    "@arco-themes/vue-idb-theme": "^0.0.1",
+    "@arco-themes/vue-idb-theme": "^0.0.3",
     "@vueuse/core": "^9.3.0",
     "arco-design-pro-vue": "^2.7.3",
     "axios": "^0.24.0",

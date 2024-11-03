@@ -13,6 +13,9 @@ const componentLocales: LocaleModules = import.meta.glob(
     eager: true,
   }
 );
+const routerLocales: LocaleModules = import.meta.glob('../router/**/zh-CN.ts', {
+  eager: true,
+});
 
 export default {
   'menu.dashboard': '仪表盘',
@@ -28,6 +31,7 @@ export default {
   ...Object.values({
     ...componentLocales,
     ...viewLocales,
+    ...routerLocales,
     ...locales,
   }).reduce((result, locale) => {
     return {
