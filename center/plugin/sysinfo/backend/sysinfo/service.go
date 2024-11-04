@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	_ "embed"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/helper"
 	"github.com/sensdata/idb/core/model"
 	"gopkg.in/yaml.v2"
 
@@ -97,10 +100,17 @@ func (s *SysInfo) GetMenu(c *gin.Context) {
 // @Description Get system overview info
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
 // @Success 200 {object} model.Overview
 // @Router /sysinfo/overview [get]
 func (s *SysInfo) GetOverview(c *gin.Context) {
-	overview, err := s.getOverview()
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	overview, err := s.getOverview(uint(hostID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -113,10 +123,17 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 // @Description Get network info
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
 // @Success 200 {object} model.NetworkInfo
 // @Router /sysinfo/network [get]
 func (s *SysInfo) GetNetwork(c *gin.Context) {
-	network, err := s.getNetwork()
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	network, err := s.getNetwork(uint(hostID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -129,10 +146,17 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 // @Description Get system info
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
 // @Success 200 {object} model.SystemInfo
 // @Router /sysinfo/system [get]
 func (s *SysInfo) GetSystemInfo(c *gin.Context) {
-	system, err := s.getSystemInfo()
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	system, err := s.getSystemInfo(uint(hostID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -142,13 +166,21 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get system config
-// @Description Get system config
+// @Description (not implemented yet) Get system config
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
 // @Success 200 {object} model.SystemConfig
 // @Router /sysinfo/config [get]
+// @Deprecated
 func (s *SysInfo) GetConfig(c *gin.Context) {
-	config, err := s.getConfig()
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	config, err := s.getConfig(uint(hostID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -158,13 +190,21 @@ func (s *SysInfo) GetConfig(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get hardware info
-// @Description Get hardware info
+// @Description (not implemented yet) Get hardware info
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
 // @Success 200 {object} model.HardwareInfo
 // @Router /sysinfo/hardware [get]
+// @Deprecated
 func (s *SysInfo) GetHardware(c *gin.Context) {
-	hardware, err := s.getHardware()
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	hardware, err := s.getHardware(uint(hostID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -180,11 +220,11 @@ func (s *SysInfo) getMenus() ([]plugin.MenuItem, error) {
 	return s.config.Menu, nil
 }
 
-func (s *SysInfo) getConfig() (model.SystemConfig, error) {
+func (s *SysInfo) getConfig(hostID uint) (model.SystemConfig, error) {
 	return model.SystemConfig{}, nil
 }
 
-func (s *SysInfo) getHardware() (model.HardwareInfo, error) {
+func (s *SysInfo) getHardware(hostID uint) (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
 }
 

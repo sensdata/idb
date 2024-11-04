@@ -7,11 +7,11 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-func (s *SysInfo) getNetwork() (*model.NetworkInfo, error) {
+func (s *SysInfo) getNetwork(hostID uint) (*model.NetworkInfo, error) {
 	network := model.NetworkInfo{}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: hostID,
 		Action: model.Action{
 			Action: model.SysInfo_Network,
 			Data:   "",

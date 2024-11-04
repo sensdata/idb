@@ -7,11 +7,11 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-func (s *SysInfo) getOverview() (*model.Overview, error) {
+func (s *SysInfo) getOverview(hostID uint) (*model.Overview, error) {
 	overview := model.Overview{}
 
 	actionRequest := model.HostAction{
-		HostID: 1,
+		HostID: hostID,
 		Action: model.Action{
 			Action: model.SysInfo_OverView,
 			Data:   "",
