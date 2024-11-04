@@ -1,0 +1,3 @@
+conf:
+  work_dir: "/var/lib/idb/data/ssh"
+  log_dir: "/var/lib/idb"

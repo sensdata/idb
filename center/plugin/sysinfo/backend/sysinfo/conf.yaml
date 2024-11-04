@@ -1,0 +1,3 @@
+conf:
+  work_dir: "/var/lib/idb/data/sysinfo"
+  log_dir: "/var/lib/idb"

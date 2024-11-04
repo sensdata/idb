@@ -3,6 +3,8 @@ package systemctl
 import (
 	_ "embed"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,30 +13,70 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
+	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
 	"gopkg.in/yaml.v2"
 )
 
 type SystemCtl struct {
-	config    plugin.PluginConfig
-	cmdHelper *helper.CmdHelper
+	plugin     plugin.Plugin
+	pluginConf plugin.PluginConf
+	cmdHelper  *helper.CmdHelper
 }
 
-var Plugin = SystemCtl{}
+var LOG *log.Log
 
 //go:embed plug.yaml
 var plugYAML []byte
 
+//go:embed conf.yaml
+var confYAML []byte
+
 func (s *SystemCtl) Initialize() {
 	global.LOG.Info("systemctl init begin")
 
-	if err := yaml.Unmarshal(plugYAML, &s.config); err != nil {
-		global.LOG.Error("Failed to load fileman yaml: %v", err)
+	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
+		global.LOG.Error("Failed to load sysctl yaml: %v", err)
 		return
 	}
 
-	// TODO: 根据配置传入
+	confPath := filepath.Join(constant.CenterConfDir, "files", "conf.yaml")
+	// 检查配置文件的目录是否存在
+	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
+		global.LOG.Error("Failed to create conf directory: %v \n", err)
+		return
+	}
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		// 创建配置文件并写入默认内容
+		if err := os.WriteFile(confPath, confYAML, 0644); err != nil {
+			global.LOG.Error("Failed to create conf: %v \n", err)
+			return
+		}
+	}
+	// 读取文件内容
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		global.LOG.Error("Failed to read conf: %v \n", err)
+		return
+	}
+	// 解析 YAML 内容
+	if err := yaml.Unmarshal(data, &s.pluginConf); err != nil {
+		global.LOG.Error("Failed to load conf: %v", err)
+		return
+	}
+
+	//初始化日志模块
+	if LOG == nil {
+		logger, err := log.InitLogger(s.pluginConf.LogDir, "files.log")
+		if err != nil {
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
+			return
+		}
+		LOG = logger
+	}
+
 	s.cmdHelper = helper.NewCmdHelper("127.0.0.1", strconv.Itoa(conn.CONFMAN.GetConfig().Port), nil)
 
 	api.API.SetUpPluginRouters(
@@ -82,11 +124,11 @@ func (s *SystemCtl) GetMenu(c *gin.Context) {
 }
 
 func (s *SystemCtl) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.config.Plugin, nil
+	return s.plugin.Info, nil
 }
 
 func (s *SystemCtl) getMenus() ([]plugin.MenuItem, error) {
-	return s.config.Menu, nil
+	return s.plugin.Menu, nil
 }
 
 // @Tags SystemCtl
@@ -111,7 +153,7 @@ func (s *SystemCtl) ServiceBoot(c *gin.Context) {
 func (s *SystemCtl) serviceBoot(req model.ServiceBootReq) error {
 	_, err := s.cmdHelper.RunSystemCtl(req.HostID, req.ServiceName)
 	if err != nil {
-		global.LOG.Info("service boot err %v", err)
+		LOG.Info("service boot err %v", err)
 		return err
 	}
 	return nil

@@ -59,15 +59,15 @@ func (s *ScriptMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
-func (s *ScriptMan) getScriptList(req model.QueryScript) (*model.PageResult, error) {
+func (s *ScriptMan) getScriptList(req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
 		HostID:       req.HostID,
@@ -117,13 +117,13 @@ func (s *ScriptMan) getScriptList(req model.QueryScript) (*model.PageResult, err
 	return &pageResult, nil
 }
 
-func (s *ScriptMan) getScriptDetail(req model.GetScript) (*model.GitFile, error) {
+func (s *ScriptMan) getScriptDetail(req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -177,13 +177,13 @@ func (s *ScriptMan) getScriptDetail(req model.GetScript) (*model.GitFile, error)
 	return &gitFile, nil
 }
 
-func (s *ScriptMan) create(req model.CreateScript) error {
+func (s *ScriptMan) create(req model.CreateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -231,13 +231,13 @@ func (s *ScriptMan) create(req model.CreateScript) error {
 	return nil
 }
 
-func (s *ScriptMan) update(req model.UpdateScript) error {
+func (s *ScriptMan) update(req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -285,13 +285,13 @@ func (s *ScriptMan) update(req model.UpdateScript) error {
 	return nil
 }
 
-func (s *ScriptMan) delete(req model.DeleteScript) error {
+func (s *ScriptMan) delete(req model.DeleteGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -338,13 +338,13 @@ func (s *ScriptMan) delete(req model.DeleteScript) error {
 	return nil
 }
 
-func (s *ScriptMan) restore(req model.RestoreScript) error {
+func (s *ScriptMan) restore(req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -392,15 +392,15 @@ func (s *ScriptMan) restore(req model.RestoreScript) error {
 	return nil
 }
 
-func (s *ScriptMan) getScriptLog(req model.ScriptLog) (*model.PageResult, error) {
+func (s *ScriptMan) getScriptLog(req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -455,13 +455,13 @@ func (s *ScriptMan) getScriptLog(req model.ScriptLog) (*model.PageResult, error)
 	return &pageResult, nil
 }
 
-func (s *ScriptMan) getScriptDiff(req model.ScriptDiff) (string, error) {
+func (s *ScriptMan) getScriptDiff(req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "global")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.scriptConfig.Script.DataPath, "local")
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -517,7 +517,7 @@ func (s *ScriptMan) execute(req model.ExecuteScript) (*model.ScriptResult, error
 		Err:   "",
 	}
 
-	logPath := filepath.Join(s.scriptConfig.Script.LogPath, "script-run.log")
+	logPath := filepath.Join(s.pluginConf.LogDir, "script-run.log")
 
 	scriptExec := model.ScriptExec{
 		ScriptPath: req.ScriptPath,
@@ -558,7 +558,7 @@ func (s *ScriptMan) execute(req model.ExecuteScript) (*model.ScriptResult, error
 
 func (s *ScriptMan) getScriptRunLog(hostID uint64) (string, error) {
 
-	logPath := filepath.Join(s.scriptConfig.Script.LogPath, "script-run.log")
+	logPath := filepath.Join(s.pluginConf.LogDir, "script-run.log")
 	req := model.FileContentReq{
 		HostID: uint(hostID),
 		Path:   logPath,

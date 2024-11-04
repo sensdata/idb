@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -13,30 +15,72 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
+	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
 	"gopkg.in/yaml.v2"
 )
 
 type SSHMan struct {
-	config      plugin.PluginConfig
+	plugin      plugin.Plugin
+	pluginConf  plugin.PluginConf
 	restyClient *resty.Client
 }
 
-var Plugin = SSHMan{}
+var LOG *log.Log
 
 //go:embed plug.yaml
 var plugYAML []byte
 
+//go:embed conf.yaml
+var confYAML []byte
+
 func (s *SSHMan) Initialize() {
 	global.LOG.Info("sshman init begin")
 
-	if err := yaml.Unmarshal(plugYAML, &s.config); err != nil {
+	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
 		global.LOG.Error("Failed to load fileman yaml: %v", err)
 		return
 	}
 
+	confPath := filepath.Join(constant.CenterConfDir, "files", "conf.yaml")
+	// 检查配置文件的目录是否存在
+	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
+		global.LOG.Error("Failed to create conf directory: %v \n", err)
+		return
+	}
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		// 创建配置文件并写入默认内容
+		if err := os.WriteFile(confPath, confYAML, 0644); err != nil {
+			global.LOG.Error("Failed to create conf: %v \n", err)
+			return
+		}
+	}
+	// 读取文件内容
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		global.LOG.Error("Failed to read conf: %v \n", err)
+		return
+	}
+	// 解析 YAML 内容
+	if err := yaml.Unmarshal(data, &s.pluginConf); err != nil {
+		global.LOG.Error("Failed to load conf: %v", err)
+		return
+	}
+
+	//初始化日志模块
+	if LOG == nil {
+		logger, err := log.InitLogger(s.pluginConf.LogDir, "files.log")
+		if err != nil {
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
+			return
+		}
+		LOG = logger
+	}
+
 	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
+
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).
 		SetHeader("Content-Type", "application/json")
@@ -96,11 +140,11 @@ func (s *SSHMan) GetMenu(c *gin.Context) {
 }
 
 func (s *SSHMan) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.config.Plugin, nil
+	return s.plugin.Info, nil
 }
 
 func (s *SSHMan) getMenus() ([]plugin.MenuItem, error) {
-	return s.config.Menu, nil
+	return s.plugin.Menu, nil
 }
 
 // @Tags SSH

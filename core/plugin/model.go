@@ -14,9 +14,6 @@ type PluginInfo struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Version     string `yaml:"version"`
-	Host        string `yaml:"host"`
-	Port        string `yaml:"port"`
-	Entry       string `yaml:"entry"`
 }
 
 // MenuItem 定义菜单项
@@ -26,8 +23,14 @@ type MenuItem struct {
 	Description string `yaml:"description"`
 }
 
-// Config 定义插件配置结构
-type PluginConfig struct {
-	Plugin PluginInfo `yaml:"plugin"`
-	Menu   []MenuItem `yaml:"menu"`
+// Plugin 定义插件结构
+type Plugin struct {
+	Info PluginInfo `yaml:"plugin"`
+	Menu []MenuItem `yaml:"menu"`
+}
+
+// PluginConf
+type PluginConf struct {
+	WorkDir string `yaml:"work_dir"`
+	LogDir  string `yaml:"log_dir"`
 }

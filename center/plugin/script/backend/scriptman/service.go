@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
 	"github.com/sensdata/idb/core/log"
@@ -22,58 +22,64 @@ import (
 )
 
 type ScriptMan struct {
-	pluginConfig plugin.PluginConfig
-	scriptConfig *model.Script
-	restyClient  *resty.Client
+	plugin      plugin.Plugin
+	pluginConf  plugin.PluginConf
+	restyClient *resty.Client
 }
-
-var Plugin = ScriptMan{}
 
 var LOG *log.Log
 
 //go:embed plug.yaml
 var plugYAML []byte
 
-func (s *ScriptMan) Initialize() {
-	fmt.Printf("scriptman init begin \n")
+//go:embed conf.yaml
+var confYAML []byte
 
-	confPath := filepath.Join(constant.CenterConfDir, "script", "script.toml")
+func (s *ScriptMan) Initialize() {
+	global.LOG.Info("scriptman init begin \n")
+
+	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
+		global.LOG.Error("Failed to load info: %v", err)
+		return
+	}
+
+	confPath := filepath.Join(constant.CenterConfDir, "script", "conf.yaml")
 	// 检查配置文件的目录是否存在
 	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
-		fmt.Printf("Failed to create directory: %v \n", err)
+		global.LOG.Error("Failed to create conf directory: %v \n", err)
 		return
 	}
 	// 检查配置文件是否存在
 	if _, err := os.Stat(confPath); os.IsNotExist(err) {
 		// 创建配置文件并写入默认内容
-		defaultConfig := "[script]\ndata_path = '/var/lib/idb/data/script'\nlog_path = '/var/lib/idb'\n"
-		if err := os.WriteFile(confPath, []byte(defaultConfig), 0644); err != nil {
-			fmt.Printf("Failed to create script toml: %v \n", err)
+		if err := os.WriteFile(confPath, confYAML, 0644); err != nil {
+			global.LOG.Error("Failed to create conf: %v \n", err)
 			return
 		}
 	}
-	if _, err := toml.DecodeFile(confPath, &s.scriptConfig); err != nil {
-		fmt.Printf("Failed to load script toml: %v \n", err)
+	// 读取文件内容
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		global.LOG.Error("Failed to read conf: %v \n", err)
+		return
+	}
+	// 解析 YAML 内容
+	if err := yaml.Unmarshal(data, &s.pluginConf); err != nil {
+		global.LOG.Error("Failed to load conf: %v", err)
 		return
 	}
 
 	//初始化日志模块
 	if LOG == nil {
-		logger, err := log.InitLogger(s.scriptConfig.Script.LogPath, "script.log")
+		logger, err := log.InitLogger(s.pluginConf.LogDir, "script.log")
 		if err != nil {
-			fmt.Printf("Failed to initialize logger: %v \n", err)
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
 			return
 		}
 		LOG = logger
 	}
 
-	if err := yaml.Unmarshal(plugYAML, &s.pluginConfig); err != nil {
-		LOG.Error("Failed to load scriptman yaml: %v", err)
-		return
-	}
-
 	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
-	LOG.Info("baseurl: %s", baseUrl)
 
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).
@@ -95,7 +101,7 @@ func (s *ScriptMan) Initialize() {
 		},
 	)
 
-	LOG.Info("scriptman init end")
+	global.LOG.Info("scriptman init end")
 }
 
 func (s *ScriptMan) Release() {
@@ -135,11 +141,11 @@ func (s *ScriptMan) GetMenu(c *gin.Context) {
 }
 
 func (s *ScriptMan) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.pluginConfig.Plugin, nil
+	return s.plugin.Info, nil
 }
 
 func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
-	return s.pluginConfig.Menu, nil
+	return s.plugin.Menu, nil
 }
 
 // @Tags Script
@@ -185,7 +191,7 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 		return
 	}
 
-	req := model.QueryScript{
+	req := model.QueryGitFile{
 		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
@@ -238,7 +244,7 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 		return
 	}
 
-	req := model.GetScript{
+	req := model.GetGitFileDetail{
 		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
@@ -259,11 +265,11 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 // @Description Create a new script file or category
 // @Accept json
 // @Produce json
-// @Param request body model.CreateScript true "Script file creation details"
+// @Param request body model.CreateGitFile true "Script file creation details"
 // @Success 200
 // @Router /scripts [post]
 func (s *ScriptMan) Create(c *gin.Context) {
-	var req model.CreateScript
+	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -280,11 +286,11 @@ func (s *ScriptMan) Create(c *gin.Context) {
 // @Description Update the content of a script file
 // @Accept json
 // @Produce json
-// @Param request body model.UpdateScript true "Script file edit details"
+// @Param request body model.UpdateGitFile true "Script file edit details"
 // @Success 200
 // @Router /scripts [put]
 func (s *ScriptMan) Update(c *gin.Context) {
-	var req model.UpdateScript
+	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -332,7 +338,7 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 		return
 	}
 
-	req := model.DeleteScript{
+	req := model.DeleteGitFile{
 		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
@@ -353,11 +359,11 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 // @Description Restore script file to specified version
 // @Accept json
 // @Produce json
-// @Param request body model.RestoreScript true "Script file restore details"
+// @Param request body model.RestoreGitFile true "Script file restore details"
 // @Success 200
 // @Router /scripts/restore [put]
 func (s *ScriptMan) Restore(c *gin.Context) {
-	var req model.RestoreScript
+	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -419,7 +425,7 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 		return
 	}
 
-	req := model.ScriptLog{
+	req := model.GitFileLog{
 		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
@@ -480,7 +486,7 @@ func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 		return
 	}
 
-	req := model.ScriptDiff{
+	req := model.GitFileDiff{
 		HostID:     uint(hostID),
 		Type:       scriptType,
 		Category:   category,

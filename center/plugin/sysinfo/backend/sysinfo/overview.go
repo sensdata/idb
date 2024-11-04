@@ -3,7 +3,6 @@ package sysinfo
 import (
 	"encoding/json"
 
-	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 )
 
@@ -25,7 +24,7 @@ func (s *SysInfo) getOverview(hostID uint) (*model.Overview, error) {
 
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &overview)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to Overview: %v", err)
+		LOG.Error("Error unmarshaling data to Overview: %v", err)
 	}
 
 	return &overview, nil

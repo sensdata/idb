@@ -3,6 +3,8 @@ package sysinfo
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	_ "embed"
@@ -14,6 +16,7 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
+	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/model"
 	"gopkg.in/yaml.v2"
 
@@ -21,21 +24,61 @@ import (
 )
 
 type SysInfo struct {
-	config      plugin.PluginConfig
+	plugin      plugin.Plugin
+	pluginConf  plugin.PluginConf
 	restyClient *resty.Client
 }
 
-var Plugin = SysInfo{}
+var LOG *log.Log
 
 //go:embed plug.yaml
 var plugYAML []byte
 
+//go:embed conf.yaml
+var confYAML []byte
+
 func (s *SysInfo) Initialize() {
 	global.LOG.Info("sysinfo init begin")
 
-	if err := yaml.Unmarshal(plugYAML, &s.config); err != nil {
+	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
 		global.LOG.Error("Failed to load sysinfo yaml: %v", err)
 		return
+	}
+
+	confPath := filepath.Join(constant.CenterConfDir, "files", "conf.yaml")
+	// 检查配置文件的目录是否存在
+	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
+		global.LOG.Error("Failed to create conf directory: %v \n", err)
+		return
+	}
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		// 创建配置文件并写入默认内容
+		if err := os.WriteFile(confPath, confYAML, 0644); err != nil {
+			global.LOG.Error("Failed to create conf: %v \n", err)
+			return
+		}
+	}
+	// 读取文件内容
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		global.LOG.Error("Failed to read conf: %v \n", err)
+		return
+	}
+	// 解析 YAML 内容
+	if err := yaml.Unmarshal(data, &s.pluginConf); err != nil {
+		global.LOG.Error("Failed to load conf: %v", err)
+		return
+	}
+
+	//初始化日志模块
+	if LOG == nil {
+		logger, err := log.InitLogger(s.pluginConf.LogDir, "files.log")
+		if err != nil {
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
+			return
+		}
+		LOG = logger
 	}
 
 	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
@@ -213,18 +256,18 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 }
 
 func (s *SysInfo) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.config.Plugin, nil
+	return s.plugin.Info, nil
 }
 
 func (s *SysInfo) getMenus() ([]plugin.MenuItem, error) {
-	return s.config.Menu, nil
+	return s.plugin.Menu, nil
 }
 
-func (s *SysInfo) getConfig(hostID uint) (model.SystemConfig, error) {
+func (s *SysInfo) getConfig(_ uint) (model.SystemConfig, error) {
 	return model.SystemConfig{}, nil
 }
 
-func (s *SysInfo) getHardware(hostID uint) (model.HardwareInfo, error) {
+func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
 }
 
@@ -237,12 +280,12 @@ func (s *SysInfo) sendAction(actionRequest model.HostAction) (*model.ActionRespo
 		Post("/actions") // 修改URL路径
 
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
+		LOG.Error("failed to send request: %v", err)
 		return nil, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		global.LOG.Error("received error response: %s", resp.Status())
+		LOG.Error("received error response: %s", resp.Status())
 		return nil, fmt.Errorf("received error response: %s", resp.Status())
 	}
 

@@ -3,6 +3,8 @@ package fileman
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -18,30 +20,70 @@ import (
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/helper"
+	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
 )
 
 type FileMan struct {
-	config      plugin.PluginConfig
+	plugin      plugin.Plugin
+	pluginConf  plugin.PluginConf
 	restyClient *resty.Client
 }
 
-var Plugin = FileMan{}
+var LOG *log.Log
 
 //go:embed plug.yaml
 var plugYAML []byte
 
+//go:embed conf.yaml
+var confYAML []byte
+
 func (s *FileMan) Initialize() {
 	global.LOG.Info("fileman init begin")
 
-	if err := yaml.Unmarshal(plugYAML, &s.config); err != nil {
-		global.LOG.Error("Failed to load fileman yaml: %v", err)
+	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
+		global.LOG.Error("Failed to load info: %v", err)
 		return
 	}
 
+	confPath := filepath.Join(constant.CenterConfDir, "files", "conf.yaml")
+	// 检查配置文件的目录是否存在
+	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
+		global.LOG.Error("Failed to create conf directory: %v \n", err)
+		return
+	}
+	// 检查配置文件是否存在
+	if _, err := os.Stat(confPath); os.IsNotExist(err) {
+		// 创建配置文件并写入默认内容
+		if err := os.WriteFile(confPath, confYAML, 0644); err != nil {
+			global.LOG.Error("Failed to create conf: %v \n", err)
+			return
+		}
+	}
+	// 读取文件内容
+	data, err := os.ReadFile(confPath)
+	if err != nil {
+		global.LOG.Error("Failed to read conf: %v \n", err)
+		return
+	}
+	// 解析 YAML 内容
+	if err := yaml.Unmarshal(data, &s.pluginConf); err != nil {
+		global.LOG.Error("Failed to load conf: %v", err)
+		return
+	}
+
+	//初始化日志模块
+	if LOG == nil {
+		logger, err := log.InitLogger(s.pluginConf.LogDir, "files.log")
+		if err != nil {
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
+			return
+		}
+		LOG = logger
+	}
+
 	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
-	global.LOG.Info("baseurl: %s", baseUrl)
 
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).
@@ -115,11 +157,11 @@ func (s *FileMan) GetMenu(c *gin.Context) {
 }
 
 func (s *FileMan) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.config.Plugin, nil
+	return s.plugin.Info, nil
 }
 
 func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
-	return s.config.Menu, nil
+	return s.plugin.Menu, nil
 }
 
 // @Tags File

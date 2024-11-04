@@ -3,7 +3,6 @@ package sshman
 import (
 	"fmt"
 
-	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -17,12 +16,12 @@ func (s *SSHMan) sendAction(actionRequest model.HostAction) (*model.ActionRespon
 		Post("/actions") // 修改URL路径
 
 	if err != nil {
-		global.LOG.Error("failed to send request: %v", err)
+		LOG.Error("failed to send request: %v", err)
 		return nil, fmt.Errorf("failed to send request: %v", err)
 	}
 
 	if resp.StatusCode() != 200 {
-		global.LOG.Error("received error response: %s", resp.Status())
+		LOG.Error("received error response: %s", resp.Status())
 		return nil, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
@@ -50,13 +49,13 @@ func (s *SSHMan) getSSHConfig(req model.SSHConfigReq) (*model.SSHInfo, error) {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return &sshInfo, fmt.Errorf("failed to get ssh config")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &sshInfo)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to ssh config: %v", err)
+		LOG.Error("Error unmarshaling data to ssh config: %v", err)
 		return &sshInfo, fmt.Errorf("json err: %v", err)
 	}
 
@@ -83,7 +82,7 @@ func (s *SSHMan) updateSSH(req model.SSHUpdate) error {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return fmt.Errorf("failed to update ssh config")
 	}
 
@@ -111,13 +110,13 @@ func (s *SSHMan) getSSHConfigContent(req model.SSHConfigReq) (*model.SSHConfigCo
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return &sshContent, fmt.Errorf("failed to get ssh config content")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &sshContent)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to ssh config content: %v", err)
+		LOG.Error("Error unmarshaling data to ssh config content: %v", err)
 		return &sshContent, fmt.Errorf("json err: %v", err)
 	}
 
@@ -144,7 +143,7 @@ func (s *SSHMan) updateSSHContent(req model.ContentUpdate) error {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return fmt.Errorf("failed to update ssh config content")
 	}
 
@@ -171,7 +170,7 @@ func (s *SSHMan) operateSSH(req model.SSHOperate) error {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return fmt.Errorf("failed to operate ssh service")
 	}
 
@@ -198,7 +197,7 @@ func (s *SSHMan) createKey(req model.GenerateKey) error {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return fmt.Errorf("failed to create ssh key")
 	}
 
@@ -226,13 +225,13 @@ func (s *SSHMan) listKeys(req model.ListKey) (*model.PageResult, error) {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return &pageResult, fmt.Errorf("failed to get ssh keys")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to ssh keys: %v", err)
+		LOG.Error("Error unmarshaling data to ssh keys: %v", err)
 		return &pageResult, fmt.Errorf("json err: %v", err)
 	}
 
@@ -260,13 +259,13 @@ func (s *SSHMan) loadLog(req model.SearchSSHLog) (*model.SSHLog, error) {
 	}
 
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
+		LOG.Error("action failed")
 		return &sshLog, fmt.Errorf("failed to get ssh log")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &sshLog)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to ssh logs: %v", err)
+		LOG.Error("Error unmarshaling data to ssh logs: %v", err)
 		return &sshLog, fmt.Errorf("json err: %v", err)
 	}
 
