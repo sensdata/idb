@@ -1,0 +1,4 @@
+plugin:
+  name: "Service Management"
+  description: "This module provides service management operations on device."
+  version: "1.0.0"

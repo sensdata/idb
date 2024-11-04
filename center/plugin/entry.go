@@ -4,6 +4,7 @@ import (
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/plugin/fileman/backend/fileman"
 	"github.com/sensdata/idb/center/plugin/script/backend/scriptman"
+	"github.com/sensdata/idb/center/plugin/service/backend/serviceman"
 	"github.com/sensdata/idb/center/plugin/ssh/backend/sshman"
 	"github.com/sensdata/idb/center/plugin/sysinfo/backend/sysinfo"
 	"github.com/sensdata/idb/center/plugin/systemctl"
@@ -11,15 +12,17 @@ import (
 
 func RegisterPlugins() {
 	// 注册sysinfo
-	conn.RegisterIdbPlugin(&sysinfo.Plugin)
+	conn.RegisterIdbPlugin(&sysinfo.SysInfo{})
 	// 注册files
-	conn.RegisterIdbPlugin(&fileman.Plugin)
+	conn.RegisterIdbPlugin(&fileman.FileMan{})
 	// 注册ssh
-	conn.RegisterIdbPlugin(&sshman.Plugin)
+	conn.RegisterIdbPlugin(&sshman.SSHMan{})
 	// 注册sysctl
-	conn.RegisterIdbPlugin(&systemctl.Plugin)
+	conn.RegisterIdbPlugin(&systemctl.SystemCtl{})
 	// 注册scripts
-	conn.RegisterIdbPlugin(&scriptman.Plugin)
+	conn.RegisterIdbPlugin(&scriptman.ScriptMan{})
+	// 注册service
+	conn.RegisterIdbPlugin(&serviceman.ServiceMan{})
 
 	// 执行所有模块的初始化
 	conn.InitializePlugins()
