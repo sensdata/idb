@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -83,13 +84,14 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 	}
 
 	// 遍历目录，获取文件信息
+	extList := strings.Split(extension, ";") //支持多后缀筛选
 	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// 排除非文件或不符合后缀条件的文件
-		if !info.Mode().IsRegular() || (extension != "" && filepath.Ext(info.Name()) != extension) {
+		if !info.Mode().IsRegular() || (extension != "" && !isValidExtension(info.Name(), extList)) {
 			return nil
 		}
 
@@ -141,6 +143,15 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 	}
 
 	return &pageResult, nil
+}
+
+func isValidExtension(fileName string, extensions []string) bool {
+	for _, ext := range extensions {
+		if filepath.Ext(fileName) == ext {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFile, error) {
