@@ -158,7 +158,7 @@ func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 model.PageResult
+// @Success 200 {object} model.PageResult
 // @Router /scripts [get]
 func (s *ScriptMan) GetScriptList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -386,7 +386,7 @@ func (s *ScriptMan) Restore(c *gin.Context) {
 // @Param name query string true "Script file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 model.PageResult
+// @Success 200 {object} model.PageResult
 // @Router /scripts/log [get]
 func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)

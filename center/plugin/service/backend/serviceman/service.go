@@ -158,7 +158,7 @@ func (s *ServiceMan) getMenus() ([]plugin.MenuItem, error) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 model.PageResult
+// @Success 200 {object} model.PageResult
 // @Router /services [get]
 func (s *ServiceMan) GetServiceList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
@@ -386,7 +386,7 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 // @Param name query string true "Service file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
-// @Success 200 model.PageResult
+// @Success 200 {object} model.PageResult
 // @Router /services/log [get]
 func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
