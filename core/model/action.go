@@ -46,8 +46,6 @@ const (
 	Git_Diff      string = "git_diff"
 
 	Script_Exec string = "script_exec"
-
-	Service_Action string = "service_action"
 )
 
 // Action消息结构

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -25,7 +24,6 @@ import (
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
-	"github.com/sensdata/idb/core/utils/systemctl"
 )
 
 var (
@@ -1000,18 +998,6 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
-		// 操作服务
-	case model.Service_Action:
-		var req model.ServiceActionInfo
-		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-			return nil, err
-		}
-		err := a.processServiceAction(req)
-		if err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, "")
-
 	default:
 		return nil, nil
 	}
@@ -1023,86 +1009,6 @@ func actionSuccessResult(action string, data string) (*model.Action, error) {
 		Result: true,
 		Data:   data,
 	}, nil
-}
-
-func (a *Agent) processServiceAction(req model.ServiceActionInfo) error {
-	// 检查service文件是否存在
-	file, err := GitService.GetFile(req.RepoPath, req.RelativePath)
-	if err != nil {
-		return err
-	}
-	servicePath := file.Source
-	serviceName := filepath.Base(servicePath)
-	// /etc/systemd/system 下链接的路径
-	serviceLinkPath := filepath.Join("/etc/systemd/system", serviceName)
-	// linked文件
-	linkedPath := strings.Replace(servicePath, ".service", ".linked", 1)
-	switch req.Action {
-	case "activate":
-		// 检查.linked文件是否存在
-
-		_, err = os.Stat(linkedPath)
-		if os.IsNotExist(err) {
-			// 创建到servicePath的链接
-			err = os.Symlink(servicePath, serviceLinkPath)
-			if err != nil {
-				global.LOG.Error("Failed to create symlink %s", serviceLinkPath)
-				return err
-			}
-
-			// 添加.linked标记文件到仓库
-			linkedRelativePath := strings.Replace(req.RelativePath, ".service", ".linked", 1)
-			err = GitService.Create(req.RepoPath, linkedRelativePath, "")
-			if err != nil {
-				global.LOG.Error("Failed to create linked file %s", linkedRelativePath)
-				return err
-			}
-
-			// 通知systemd进行reload
-			_, err = systemctl.RunSystemCtl("daemon-reload")
-			if err != nil {
-				global.LOG.Error("Failed to reload daemon")
-				return err
-			}
-			global.LOG.Info("Service activated and linked file created successfully")
-		} else {
-			global.LOG.Info("Linked file already exists")
-		}
-
-	case "deactivate":
-		// 检查.linked文件是否存在
-		_, err = os.Stat(linkedPath)
-		if os.IsNotExist(err) {
-			global.LOG.Info("Linked file not exists")
-		} else {
-			// 删除 /etc/systemd/system 下的服务链接
-			err = os.Remove(serviceLinkPath)
-			if err != nil {
-				global.LOG.Error("Failed to remove symlink %s", serviceLinkPath)
-				return err
-			}
-
-			// 从仓库中删除.linked标记文件
-			linkedRelativePath := strings.Replace(req.RelativePath, ".service", ".linked", 1)
-			err = GitService.Delete(req.RepoPath, linkedRelativePath)
-			if err != nil {
-				global.LOG.Error("Failed to remove linked file %s", linkedRelativePath)
-				return err
-			}
-
-			// 通知systemd进行reload
-			_, err = systemctl.RunSystemCtl("daemon-reload")
-			if err != nil {
-				global.LOG.Error("Failed to reload daemon")
-				return err
-			}
-			global.LOG.Info("Service deactivated and linked file removed successfully")
-		}
-
-	default:
-		return errors.New("unsupported action")
-	}
-	return nil
 }
 
 func (a *Agent) sendHeartbeat(conn net.Conn) {

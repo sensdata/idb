@@ -1,12 +1,14 @@
 package serviceman
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/jinzhu/copier"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -133,6 +135,38 @@ func (s *ServiceMan) sendAction(actionRequest model.HostAction) (*model.ActionRe
 	return &actionResponse, nil
 }
 
+func (s *ServiceMan) sendCommand(hostId uint, command string) (*model.CommandResult, error) {
+	var commandResult model.CommandResult
+
+	commandRequest := model.Command{
+		HostID:  hostId,
+		Command: command,
+	}
+
+	var commandResponse model.CommandResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(commandRequest).
+		SetResult(&commandResponse).
+		Post("/commands")
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	LOG.Info("cmd response: %v", commandResponse)
+
+	commandResult = commandResponse.Data
+
+	return &commandResult, nil
+}
+
 func (s *ServiceMan) checkRepo(hostID uint, repoPath string) error {
 	req := model.GitInit{HostID: hostID, RepoPath: repoPath, IsBare: false}
 	data, err := utils.ToJSONString(req)
@@ -156,6 +190,60 @@ func (s *ServiceMan) checkRepo(hostID uint, repoPath string) error {
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("Failed to init repo %s in host %d", repoPath, hostID)
 		return fmt.Errorf("failed to init repo")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) createFile(op model.FileCreate) error {
+	data, err := utils.ToJSONString(op)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: op.HostID,
+		Action: model.Action{
+			Action: model.File_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("failed to create file")
+		return fmt.Errorf("failed to create file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) deleteFile(op model.FileDelete) error {
+	data, err := utils.ToJSONString(op)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: op.HostID,
+		Action: model.Action{
+			Action: model.File_Delete,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to delete file")
+		return fmt.Errorf("failed to delete file")
 	}
 
 	return nil
@@ -498,7 +586,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 	return nil
 }
 
-func (s *ServiceMan) create(req model.CreateGitFile) error {
+func (s *ServiceMan) create(req model.CreateGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -508,9 +596,9 @@ func (s *ServiceMan) create(req model.CreateGitFile) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".service")
+		relativePath = filepath.Join(req.Category, req.Name+extension)
 	} else {
-		relativePath = req.Name + ".service"
+		relativePath = req.Name + extension
 	}
 	gitCreate := model.GitCreate{
 		HostID:       req.HostID,
@@ -666,7 +754,7 @@ func (s *ServiceMan) update(req model.UpdateGitFile) error {
 	return nil
 }
 
-func (s *ServiceMan) delete(req model.DeleteGitFile) error {
+func (s *ServiceMan) delete(req model.DeleteGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -676,9 +764,9 @@ func (s *ServiceMan) delete(req model.DeleteGitFile) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".service")
+		relativePath = filepath.Join(req.Category, req.Name+extension)
 	} else {
-		relativePath = req.Name + ".service"
+		relativePath = req.Name + extension
 	}
 	gitDelete := model.GitDelete{
 		HostID:       req.HostID,
@@ -905,40 +993,93 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 	} else {
 		relativePath = req.Name + ".service"
 	}
-	actionInfo := model.ServiceActionInfo{
-		HostID:       req.HostID,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Action:       req.Action,
-	}
 
 	// 检查repo
-	err := s.checkRepo(actionInfo.HostID, actionInfo.RepoPath)
+	err := s.checkRepo(req.HostID, repoPath)
 	if err != nil {
 		return err
 	}
 
-	data, err := utils.ToJSONString(actionInfo)
-	if err != nil {
-		return err
-	}
+	// service file path
+	servicePath := filepath.Join(repoPath, relativePath)
+	// service file name
+	serviceName := filepath.Base(servicePath)
+	// service link file path
+	serviceLinkPath := filepath.Join("/etc/systemd/system", serviceName)
 
-	actionRequest := model.HostAction{
-		HostID: req.HostID,
-		Action: model.Action{
-			Action: model.Service_Action,
-			Data:   data,
-		},
-	}
+	switch req.Action {
+	case "activate":
+		// 创建服务链接 /etc/systemd/system/source -> LinkPath
+		createFile := model.FileCreate{
+			HostID:    req.HostID,
+			Source:    serviceLinkPath,
+			IsLink:    true,
+			IsSymlink: true,
+			LinkPath:  servicePath,
+		}
+		err := s.createFile(createFile)
+		if err != nil {
+			LOG.Error("Failed to create symlink")
+			return err
+		}
 
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
+		// 添加.linked标记文件到仓库
+		createGitFile := model.CreateGitFile{
+			HostID:   req.HostID,
+			Type:     req.Type,
+			Category: req.Category,
+			Name:     req.Name,
+			Content:  "",
+		}
+		err = s.create(createGitFile, ".linked")
+		if err != nil {
+			LOG.Error("Failed to create linked file")
+			return err
+		}
 
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to execute service action")
+		// systemctl daemon-reload
+		command := "systemctl daemon-reload"
+		_, err = s.sendCommand(req.HostID, command)
+		if err != nil {
+			LOG.Error("Failed to reload daemon")
+			return err
+		}
+
+	case "deactivate":
+		// 删除务链接
+		deleteFile := model.FileDelete{
+			HostID: req.HostID,
+			Path:   serviceLinkPath,
+		}
+		err := s.deleteFile(deleteFile)
+		if err != nil {
+			LOG.Error("Failed to delete symlink")
+			return err
+		}
+
+		// 从仓库中删除.linked标记文件
+		deleteGitFile := model.DeleteGitFile{
+			HostID:   req.HostID,
+			Type:     req.Type,
+			Category: req.Category,
+			Name:     req.Name,
+		}
+		err = s.delete(deleteGitFile, ".linked")
+		if err != nil {
+			LOG.Error("Failed to delete linked file")
+			return err
+		}
+
+		// systemctl daemon-reload
+		command := "systemctl daemon-reload"
+		_, err = s.sendCommand(req.HostID, command)
+		if err != nil {
+			LOG.Error("Failed to reload daemon")
+			return err
+		}
+
+	default:
+		return errors.New("unsupported action")
 	}
 
 	return nil

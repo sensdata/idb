@@ -248,7 +248,7 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req)
+	err := s.create(req, ".service")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -461,7 +461,7 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 		Name:     name,
 	}
 
-	err = s.delete(req)
+	err = s.delete(req, ".service")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
