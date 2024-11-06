@@ -40,3 +40,10 @@ type ServiceAction struct {
 	Name     string `json:"name" validate:"required"`
 	Action   string `json:"action" validate:"required,oneof=activate deactivate"`
 }
+
+type ServiceActionInfo struct {
+	HostID       uint   `json:"host_id" validate:"required"`
+	RepoPath     string `json:"repo_path" validate:"required"`
+	RelativePath string `json:"relative_path" validate:"required"`
+	Action       string `json:"action" validate:"required,oneof=activate deactivate"`
+}

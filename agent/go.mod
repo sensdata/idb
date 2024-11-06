@@ -7,6 +7,7 @@ replace github.com/sensdata/idb/core => ../core
 require (
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
 	github.com/sensdata/idb/core v0.0.0
+	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3
 	github.com/spf13/afero v1.11.0
 	gorm.io/driver/sqlite v1.5.6
 )
@@ -46,7 +47,6 @@ require (
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
@@ -61,11 +61,9 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
-	github.com/BurntSushi/toml v1.4.0
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-playground/locales v0.14.1 // indirect

@@ -891,7 +891,34 @@ func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
 }
 
 func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
-	data, err := utils.ToJSONString(req)
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".service")
+	} else {
+		relativePath = req.Name + ".service"
+	}
+	actionInfo := model.ServiceActionInfo{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+		Action:       req.Action,
+	}
+
+	// 检查repo
+	err := s.checkRepo(actionInfo.HostID, actionInfo.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	data, err := utils.ToJSONString(actionInfo)
 	if err != nil {
 		return err
 	}
