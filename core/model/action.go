@@ -35,8 +35,6 @@ const (
 	Ssh_Secret_Create         string = "ssh_secret_create"
 	Ssh_Log                   string = "ssh_log"
 
-	Script_Exec string = "script_exec"
-
 	Git_Init      string = "git_init"
 	Git_File_List string = "git_file_list"
 	Git_File      string = "git_file"
@@ -46,6 +44,10 @@ const (
 	Git_Restore   string = "git_restore"
 	Git_Log       string = "git_log"
 	Git_Diff      string = "git_diff"
+
+	Script_Exec string = "script_exec"
+
+	Service_Action string = "service_action"
 )
 
 // Action消息结构

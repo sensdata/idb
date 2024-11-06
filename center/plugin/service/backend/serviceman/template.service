@@ -1,0 +1,18 @@
+[Unit]
+Description=${iDB_service_description}
+After=network.target
+
+[Service]
+Type=${iDB_service_type}
+ExecStart=${iDB_service_exec_start}
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -SIGTERM $MAINPID
+Restart=on-failure
+RestartSec=5s
+WorkingDirectory=${iDB_service_working_dir}
+User=${iDB_service_user}
+Group=${iDB_service_group}
+Environment="${iDB_service_env}"
+
+[Install]
+WantedBy=multi-user.target

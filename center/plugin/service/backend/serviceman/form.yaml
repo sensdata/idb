@@ -1,0 +1,68 @@
+form:
+  - name: "iDB_service_description"
+    label: "Service description"
+    key: "Description"
+    type: "string"
+    default: "MyService"
+    required: true
+    hint: "Provide the description of the service."
+    validation:
+      min_length: 3
+      max_length: 80
+
+  - name: "iDB_service_type"
+    label: "Service Type"
+    key: "Type"
+    type: "select"
+    options:
+      - "simple"
+      - "forking"
+      - "oneshot"
+      - "dbus"
+      - "notify"
+      - "idle"
+    default: "simple"
+    required: true
+    hint: "Specify the boot type of the service."
+
+  - name: "iDB_service_exec_start"
+    label: "Exec Start"
+    key: "ExecStart"
+    type: "string"
+    default: "/usr/bin/my_service --option value"
+    required: true
+    hint: "Specify the command executed when the service is started."
+
+  - name: "iDB_service_working_dir"
+    label: "Working Dir"
+    key: "WorkingDirectory"
+    type: "string"
+    default: "/var/lib/my_service"
+    required: true
+    hint: "Specify the working directory when the service is running."
+
+  - name: "iDB_service_user"
+    label: "Service User"
+    key: "User"
+    type: "string"
+    default: "root"
+    required: false
+    hint: "Specify the user when the service is running."
+
+  - name: "iDB_service_group"
+    label: "Service Group"
+    key: "Group"
+    type: "string"
+    default: "root"
+    required: false
+    hint: "Specify the user group when the service is running."
+
+  - name: "iDB_service_env"
+    label: "Environment variables"
+    key: "Environment"
+    type: "string"
+    default: "key=value"
+    required: false
+    hint: "Specify the environment variables of the service process."
+    validation:
+      pattern: "^(\"[a-zA-Z_][a-zA-Z0-9_]*=[^\"]*\"$|[a-zA-Z_][a-zA-Z0-9_]*=[^\"\s]+)$"

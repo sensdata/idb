@@ -22,9 +22,11 @@ import (
 )
 
 type ServiceMan struct {
-	plugin      plugin.Plugin
-	pluginConf  plugin.PluginConf
-	restyClient *resty.Client
+	plugin              plugin.Plugin
+	pluginConf          plugin.PluginConf
+	form                model.Form
+	templateServiceForm model.ServiceForm
+	restyClient         *resty.Client
 }
 
 var LOG *log.Log
@@ -35,11 +37,32 @@ var plugYAML []byte
 //go:embed conf.yaml
 var confYAML []byte
 
+//go:embed form.yaml
+var formYaml []byte
+
+//go:embed template.service
+var templateService []byte
+
 func (s *ServiceMan) Initialize() {
 	global.LOG.Info("serviceman init begin \n")
 
+	// 解析plugYAML
 	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
 		global.LOG.Error("Failed to load info: %v", err)
+		return
+	}
+
+	// 解析formYaml
+	if err := yaml.Unmarshal(formYaml, &s.form); err != nil {
+		global.LOG.Error("Failed to load form: %v", err)
+		return
+	}
+
+	// 由templateService解析出模板的templateServiceForm
+	var err error
+	s.templateServiceForm, err = parseServiceBytesToServiceForm(templateService, s.form.Fields)
+	if err != nil {
+		global.LOG.Error("Failed to parse template: %v", err)
 		return
 	}
 
@@ -91,13 +114,17 @@ func (s *ServiceMan) Initialize() {
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 			{Method: "GET", Path: "", Handler: s.GetServiceList},
-			{Method: "GET", Path: "/detail", Handler: s.GetServiceDetail},
-			{Method: "POST", Path: "", Handler: s.Create},
-			{Method: "PUT", Path: "", Handler: s.Update},
+			{Method: "GET", Path: "", Handler: s.GetContent},       // 源文模式获取
+			{Method: "POST", Path: "", Handler: s.CreateContent},   // 源文模式创建
+			{Method: "PUT", Path: "", Handler: s.UpdateContent},    // 源文模式更新
+			{Method: "GET", Path: "/form", Handler: s.GetForm},     // 表单模式获取
+			{Method: "POST", Path: "/form", Handler: s.CreateForm}, // 表单模式创建
+			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},  // 表单模式更新
 			{Method: "DELETE", Path: "", Handler: s.Delete},
 			{Method: "PUT", Path: "/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/log", Handler: s.GetServiceLog},
 			{Method: "GET", Path: "/diff", Handler: s.GetServiceDiff},
+			{Method: "POST", Path: "/action", Handler: s.ServiceAction},
 		},
 	)
 
@@ -209,17 +236,38 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 }
 
 // @Tags Service
-// @Summary Get service detail
-// @Description Get detail of a service file
+// @Summary CreateContent service file or category
+// @Description CreateContent a new service file or category
+// @Accept json
+// @Produce json
+// @Param request body model.CreateGitFile true "Service file creation details"
+// @Success 200
+// @Router /services [post]
+func (s *ServiceMan) CreateContent(c *gin.Context) {
+	var req model.CreateGitFile
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err := s.create(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Service
+// @Summary Get service file content
+// @Description Get content of a service file
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Service file name"
-// @Success 200 {object} model.GitFile
-// @Router /services/detail [get]
-func (s *ServiceMan) GetServiceDetail(c *gin.Context) {
+// @Success 200 {string} string
+// @Router /services [get]
+func (s *ServiceMan) GetContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -251,7 +299,75 @@ func (s *ServiceMan) GetServiceDetail(c *gin.Context) {
 		Name:     name,
 	}
 
-	detail, err := s.getServiceDetail(req)
+	detail, err := s.getContent(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, detail.Content)
+}
+
+// @Tags Service
+// @Summary Save service file content
+// @Description Save the content of a service file
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateGitFile true "Service file edit details"
+// @Success 200
+// @Router /services [put]
+func (s *ServiceMan) UpdateContent(c *gin.Context) {
+	var req model.UpdateGitFile
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err := s.update(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Service
+// @Summary Get service file in form mode
+// @Description Get details of a service file in form mode.
+// @Accept json
+// @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param name query string false "Service file name. If this parameter is left empty, return template data."
+// @Success 200 {object} model.ServiceForm
+// @Router /services/form [get]
+func (s *ServiceMan) GetForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+	name := c.Query("name")
+
+	req := model.GetGitFileDetail{
+		HostID:   uint(hostID),
+		Type:     scriptType,
+		Category: category,
+		Name:     name,
+	}
+
+	detail, err := s.getForm(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -261,19 +377,19 @@ func (s *ServiceMan) GetServiceDetail(c *gin.Context) {
 }
 
 // @Tags Service
-// @Summary Create service file or category
-// @Description Create a new service file or category
+// @Summary Create service file in form mode
+// @Description Create a new service file in form mode
 // @Accept json
 // @Produce json
-// @Param request body model.CreateGitFile true "Service file creation details"
+// @Param request body model.CreateServiceForm true "Form details"
 // @Success 200
-// @Router /services [post]
-func (s *ServiceMan) Create(c *gin.Context) {
-	var req model.CreateGitFile
+// @Router /services/form [post]
+func (s *ServiceMan) CreateForm(c *gin.Context) {
+	var req model.CreateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req)
+	err := s.createForm(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -282,19 +398,19 @@ func (s *ServiceMan) Create(c *gin.Context) {
 }
 
 // @Tags Service
-// @Summary Update service file content
-// @Description Update the content of a service file
+// @Summary Save service file in form mode
+// @Description Save the details of a service file in form mode
 // @Accept json
 // @Produce json
-// @Param request body model.UpdateGitFile true "Service file edit details"
+// @Param request body model.UpdateServiceForm true "Service file edit details"
 // @Success 200
-// @Router /services [put]
-func (s *ServiceMan) Update(c *gin.Context) {
-	var req model.UpdateGitFile
+// @Router /services/form [put]
+func (s *ServiceMan) UpdateForm(c *gin.Context) {
+	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.update(req)
+	err := s.updateForm(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -501,4 +617,25 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, diff)
+}
+
+// @Tags Service
+// @Summary Execute service actions
+// @Description Execute service actions
+// @Accept json
+// @Produce json
+// @Param request body model.ServiceAction true "Service action details"
+// @Success 200
+// @Router /services/action [post]
+func (s *ServiceMan) ServiceAction(c *gin.Context) {
+	var req model.ServiceAction
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err := s.serviceAction(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }

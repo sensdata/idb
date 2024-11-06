@@ -3,10 +3,114 @@ package serviceman
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
+	"strings"
 
+	"github.com/jinzhu/copier"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
+
+func parseServiceBytesToServiceForm(serviceBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
+	var serviceForm model.ServiceForm
+
+	if len(serviceBytes) == 0 {
+		return serviceForm, fmt.Errorf("invalid service bytes")
+	}
+
+	// 将 standardFormFields 的 key 存入一个集合中以便快速查找
+	validKeys := make(map[string]model.FormField)
+	for _, field := range standardFormFields {
+		validKeys[field.Key] = field
+	}
+
+	// 按行解析 serviceBytes
+	lines := strings.Split(string(serviceBytes), "\n")
+	for _, line := range lines {
+		// 跳过空行和注释
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// 跳过[Unit]这种行
+		if line[0] == '[' && line[len(line)-1] == ']' {
+			continue
+		}
+
+		// 分割 key=value
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue // 如果格式不正确，跳过
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		// 检查 key 是否在 validKeys 中
+		if formField, exists := validKeys[key]; exists {
+			var serviceFormField model.ServiceFormField
+			if err := copier.Copy(&serviceFormField, &formField); err != nil {
+				LOG.Error("Failed to copy formFields to serviceFormField key=%s, value=%s, error=%v", key, value, err)
+				continue
+			}
+			serviceFormField.Value = value // 设置当前值
+			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
+		}
+	}
+
+	return serviceForm, nil
+}
+
+func replaceValuesInServiceBytes(serviceBytes []byte, keyValues []model.KeyValue) (string, error) {
+	var newLines []string
+
+	// 构建 keyValues 的查找表
+	keyValuesMap := make(map[string]string)
+	for _, field := range keyValues {
+		keyValuesMap[field.Key] = field.Value
+	}
+
+	// 按行解析 serviceBytes
+	lines := strings.Split(string(serviceBytes), "\n")
+	for _, line := range lines {
+		// 跳过空行和注释
+		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+			newLines = append(newLines, line)
+			continue
+		}
+
+		// 跳过类似 "[Unit]" 的节定义行
+		if line[0] == '[' && line[len(line)-1] == ']' {
+			newLines = append(newLines, line)
+			continue
+		}
+
+		// 分割 key=value
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			// 如果格式不正确，直接添加原始行
+			newLines = append(newLines, line)
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+
+		// 检查 key 是否在 keyValuesMap 中
+		if newValue, exists := keyValuesMap[key]; exists {
+			// 如果 key 存在于 keyValuesMap 中，用新值替换
+			newLine := fmt.Sprintf("%s=%s", key, newValue)
+			newLines = append(newLines, newLine)
+		} else {
+			// 如果 key 不存在于 keyValuesMap 中，保留原始行
+			newLines = append(newLines, line)
+		}
+	}
+
+	// 将 newLines 转换成单个字符串
+	newContent := strings.Join(newLines, "\n")
+	return newContent, nil
+}
 
 func (s *ServiceMan) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
 	var actionResponse model.ActionResponse
@@ -115,7 +219,340 @@ func (s *ServiceMan) getServiceList(req model.QueryGitFile) (*model.PageResult, 
 	return &pageResult, nil
 }
 
-func (s *ServiceMan) getServiceDetail(req model.GetGitFileDetail) (*model.GitFile, error) {
+func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error) {
+	// If name is empty, return template data
+	if req.Name == "" {
+		return &s.templateServiceForm, nil
+	}
+
+	// Get content
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".service")
+	} else {
+		relativePath = req.Name + ".service"
+	}
+	gitGetFile := model.GitGetFile{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取脚本详情
+	data, err := utils.ToJSONString(gitGetFile)
+	if err != nil {
+		return nil, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitGetFile.HostID,
+		Action: model.Action{
+			Action: model.Git_File,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return nil, fmt.Errorf("failed to get service detail")
+	}
+
+	serviceForm, err := parseServiceBytesToServiceForm([]byte(actionResponse.Data.Action.Data), s.form.Fields)
+	if err != nil {
+		LOG.Error("Failed to parse service content: %v", err)
+		return nil, fmt.Errorf("failed to parse service content")
+	}
+
+	return &serviceForm, nil
+}
+
+func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
+	// 判断提交的form中，有没有不合法的字段
+	validKeys := make(map[string]model.FormField)
+	for _, field := range s.form.Fields {
+		validKeys[field.Key] = field
+	}
+	for _, item := range req.Form {
+		// 检查 key 是否在 validKeys 中
+		formField, exists := validKeys[item.Key]
+		if exists {
+			// 存在，进行值校验
+			if formField.Validation.Pattern != "" {
+				// 使用正则表达式校验
+				matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
+				if err != nil {
+					LOG.Error("Invalid regex pattern:", err)
+					return fmt.Errorf("invalid regex pattern for key %s: %v", item.Key, err)
+				}
+				if !matched {
+					LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
+					return fmt.Errorf("invalid value for key %s", item.Key)
+				}
+			}
+		} else {
+			// 不存在，返回错误
+			LOG.Error("Invalid form key:", item.Key)
+			return fmt.Errorf("invalid key: %s", item.Key)
+		}
+	}
+
+	// service内容: templateService
+	serviceBytes := templateService
+	// 将service内容中的相关字段替换value
+	newContent, err := replaceValuesInServiceBytes(serviceBytes, req.Form)
+	if err != nil {
+		LOG.Error("Failed to replace service content: %v", err)
+		return constant.ErrInternalServer
+	}
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".service")
+	} else {
+		relativePath = req.Name + ".service"
+	}
+	gitCreate := model.GitCreate{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+		Content:      newContent,
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 创建
+	data, err := utils.ToJSONString(gitCreate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitCreate.HostID,
+		Action: model.Action{
+			Action: model.Git_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to get create service file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
+	// 判断提交的form中，有没有不合法的字段
+	validKeys := make(map[string]model.FormField)
+	for _, field := range s.form.Fields {
+		validKeys[field.Key] = field
+	}
+	for _, item := range req.Form {
+		// 检查 key 是否在 validKeys 中
+		formField, exists := validKeys[item.Key]
+		if exists {
+			// 存在，进行值校验
+			if formField.Validation.Pattern != "" {
+				// 使用正则表达式校验
+				matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
+				if err != nil {
+					LOG.Error("Invalid regex pattern:", err)
+					return fmt.Errorf("invalid regex pattern for key %s: %w", item.Key, err)
+				}
+				if !matched {
+					LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
+					return fmt.Errorf("invalid value for key %s", item.Key)
+				}
+			}
+		} else {
+			// 不存在，返回错误
+			LOG.Error("Invalid form key:", item.Key)
+			return fmt.Errorf("invalid key: %s", item.Key)
+		}
+	}
+
+	// Get content
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".service")
+	} else {
+		relativePath = req.Name + ".service"
+	}
+	gitGetFile := model.GitGetFile{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 获取脚本详情
+	data, err := utils.ToJSONString(gitGetFile)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitGetFile.HostID,
+		Action: model.Action{
+			Action: model.Git_File,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return constant.ErrInternalServer
+	}
+
+	// service内容
+	serviceBytes := []byte(actionResponse.Data.Action.Data)
+	// 将service内容中的相关字段替换value
+	newContent, err := replaceValuesInServiceBytes(serviceBytes, req.Form)
+	if err != nil {
+		LOG.Error("Failed to replace service content: %v", err)
+		return constant.ErrInternalServer
+	}
+
+	// 更新
+	gitUpdate := model.GitUpdate{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+		Content:      newContent,
+	}
+	data, err = utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest = model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err = s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to update service file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) create(req model.CreateGitFile) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".service")
+	} else {
+		relativePath = req.Name + ".service"
+	}
+	gitCreate := model.GitCreate{
+		HostID:       req.HostID,
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+		Content:      req.Content,
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 创建
+	data, err := utils.ToJSONString(gitCreate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitCreate.HostID,
+		Action: model.Action{
+			Action: model.Git_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to get create service file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) getContent(req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -173,60 +610,6 @@ func (s *ServiceMan) getServiceDetail(req model.GetGitFileDetail) (*model.GitFil
 	}
 
 	return &gitFile, nil
-}
-
-func (s *ServiceMan) create(req model.CreateGitFile) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
-	}
-	var relativePath string
-	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".service")
-	} else {
-		relativePath = req.Name + ".service"
-	}
-	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Content:      req.Content,
-	}
-
-	// 检查repo
-	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
-	if err != nil {
-		return err
-	}
-
-	// 创建
-	data, err := utils.ToJSONString(gitCreate)
-	if err != nil {
-		return err
-	}
-
-	actionRequest := model.HostAction{
-		HostID: gitCreate.HostID,
-		Action: model.Action{
-			Action: model.Git_Create,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to get create service file")
-	}
-
-	return nil
 }
 
 func (s *ServiceMan) update(req model.UpdateGitFile) error {
@@ -505,4 +888,31 @@ func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
 	}
 
 	return actionResponse.Data.Action.Data, nil
+}
+
+func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: req.HostID,
+		Action: model.Action{
+			Action: model.Service_Action,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to execute service action")
+	}
+
+	return nil
 }

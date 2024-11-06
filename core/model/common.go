@@ -16,6 +16,11 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type KeyValueForUpdate struct {
 	Key      string `json:"key" validate:"required"`
 	OldValue string `json:"old_value"`

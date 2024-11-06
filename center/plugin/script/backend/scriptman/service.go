@@ -98,6 +98,8 @@ func (s *ScriptMan) Initialize() {
 			{Method: "PUT", Path: "/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/log", Handler: s.GetScriptLog},
 			{Method: "GET", Path: "/diff", Handler: s.GetScriptDiff},
+			{Method: "POST", Path: "/run", Handler: s.Execute},
+			{Method: "GET", Path: "/run/log", Handler: s.GetScriptRunLog},
 		},
 	)
 
