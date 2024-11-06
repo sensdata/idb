@@ -1492,10 +1492,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PageResult"
-                            }
+                            "$ref": "#/definitions/model.PageResult"
                         }
                     }
                 }
@@ -1519,7 +1516,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.UpdateScript"
+                            "$ref": "#/definitions/model.UpdateGitFile"
                         }
                     }
                 ],
@@ -1548,7 +1545,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.CreateScript"
+                            "$ref": "#/definitions/model.CreateGitFile"
                         }
                     }
                 ],
@@ -1652,10 +1649,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.GitFile"
-                            }
+                            "$ref": "#/definitions/model.GitFile"
                         }
                     }
                 }
@@ -1714,10 +1708,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.GitFile"
-                            }
+                            "type": "string"
                         }
                     }
                 }
@@ -1806,10 +1797,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PageResult"
-                            }
+                            "$ref": "#/definitions/model.PageResult"
                         }
                     }
                 }
@@ -1861,7 +1849,575 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.RestoreScript"
+                            "$ref": "#/definitions/model.RestoreGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/scripts/run": {
+            "post": {
+                "description": "Execute script",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Execute script",
+                "parameters": [
+                    {
+                        "description": "Script file creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ExecuteScript"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ScriptResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/run/log": {
+            "get": {
+                "description": "Get content of run log",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get run log content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GitFile"
+                        }
+                    }
+                }
+            }
+        },
+        "/services": {
+            "get": {
+                "description": "Get content of a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get service file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Save the content of a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Save service file content",
+                "parameters": [
+                    {
+                        "description": "Service file edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "CreateContent a new service file or category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "CreateContent service file or category",
+                "parameters": [
+                    {
+                        "description": "Service file creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Delete service file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/services/action": {
+            "post": {
+                "description": "Execute service actions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Execute service actions",
+                "parameters": [
+                    {
+                        "description": "Service action details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceAction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/services/diff": {
+            "get": {
+                "description": "Get service diff compare to specfied version",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get service diff",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Commit hash",
+                        "name": "commit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/form": {
+            "get": {
+                "description": "Get details of a service file in form mode.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get service file in form mode",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name. If this parameter is left empty, return template data.",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceForm"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Save the details of a service file in form mode",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Save service file in form mode",
+                "parameters": [
+                    {
+                        "description": "Service file edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateServiceForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new service file in form mode",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Create service file in form mode",
+                "parameters": [
+                    {
+                        "description": "Form details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateServiceForm"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/services/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/log": {
+            "get": {
+                "description": "Get histories of a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get service histories",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/services/restore": {
+            "put": {
+                "description": "Restore service file to specified version",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Restore service file",
+                "parameters": [
+                    {
+                        "description": "Service file restore details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RestoreGitFile"
                         }
                     }
                 ],
@@ -2284,7 +2840,7 @@ const docTemplate = `{
         },
         "/sysinfo/config": {
             "get": {
-                "description": "Get system config",
+                "description": "(not implemented yet) Get system config",
                 "consumes": [
                     "application/json"
                 ],
@@ -2295,6 +2851,16 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get system config",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2307,7 +2873,7 @@ const docTemplate = `{
         },
         "/sysinfo/hardware": {
             "get": {
-                "description": "Get hardware info",
+                "description": "(not implemented yet) Get hardware info",
                 "consumes": [
                     "application/json"
                 ],
@@ -2318,6 +2884,16 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get hardware info",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2390,6 +2966,15 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get network info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2413,6 +2998,15 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get system overview info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2436,6 +3030,15 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get system info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2831,6 +3434,31 @@ const docTemplate = `{
                 }
             }
         },
+        "model.CreateGitFile": {
+            "type": "object",
+            "required": [
+                "host_id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "host_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "model.CreateGroup": {
             "type": "object",
             "required": [
@@ -2882,7 +3510,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.CreateScript": {
+        "model.CreateServiceForm": {
             "type": "object",
             "required": [
                 "host_id",
@@ -2893,8 +3521,11 @@ const docTemplate = `{
                 "category": {
                     "type": "string"
                 },
-                "content": {
-                    "type": "string"
+                "form": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
                 },
                 "host_id": {
                     "type": "integer"
@@ -2951,6 +3582,21 @@ const docTemplate = `{
             "properties": {
                 "size": {
                     "type": "number"
+                }
+            }
+        },
+        "model.ExecuteScript": {
+            "type": "object",
+            "required": [
+                "host_id",
+                "script_path"
+            ],
+            "properties": {
+                "host_id": {
+                    "type": "integer"
+                },
+                "script_path": {
+                    "type": "string"
                 }
             }
         },
@@ -3471,6 +4117,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.KeyValue": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
         "model.KeyValueForUpdate": {
             "type": "object",
             "required": [
@@ -3739,7 +4396,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.RestoreScript": {
+        "model.RestoreGitFile": {
             "type": "object",
             "required": [
                 "commit_hash",
@@ -3882,6 +4539,102 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.KeyValueForUpdate"
                     }
+                }
+            }
+        },
+        "model.ScriptResult": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "string"
+                },
+                "err": {
+                    "type": "string"
+                },
+                "out": {
+                    "type": "string"
+                },
+                "start": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceAction": {
+            "type": "object",
+            "required": [
+                "action",
+                "host_id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "activate",
+                        "deactivate"
+                    ]
+                },
+                "category": {
+                    "type": "string"
+                },
+                "host_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceForm": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ServiceFormField"
+                    }
+                }
+            }
+        },
+        "model.ServiceFormField": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "hint": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "validation": {
+                    "$ref": "#/definitions/model.Validation"
+                },
+                "value": {
+                    "type": "string"
                 }
             }
         },
@@ -4031,6 +4784,32 @@ const docTemplate = `{
                 }
             }
         },
+        "model.UpdateGitFile": {
+            "type": "object",
+            "required": [
+                "content",
+                "host_id",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "host_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "model.UpdateGroup": {
             "type": "object",
             "required": [
@@ -4111,10 +4890,9 @@ const docTemplate = `{
                 }
             }
         },
-        "model.UpdateScript": {
+        "model.UpdateServiceForm": {
             "type": "object",
             "required": [
-                "content",
                 "host_id",
                 "name",
                 "type"
@@ -4123,8 +4901,11 @@ const docTemplate = `{
                 "category": {
                     "type": "string"
                 },
-                "content": {
-                    "type": "string"
+                "form": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
                 },
                 "host_id": {
                     "type": "integer"
@@ -4187,6 +4968,20 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Validation": {
+            "type": "object",
+            "properties": {
+                "maxLength": {
+                    "type": "integer"
+                },
+                "minLength": {
+                    "type": "integer"
+                },
+                "pattern": {
+                    "type": "string"
+                }
+            }
+        },
         "plugin.MenuItem": {
             "type": "object",
             "properties": {
@@ -4207,16 +5002,7 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "entry": {
-                    "type": "string"
-                },
-                "host": {
-                    "type": "string"
-                },
                 "name": {
-                    "type": "string"
-                },
-                "port": {
                     "type": "string"
                 },
                 "version": {

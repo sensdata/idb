@@ -93,6 +93,23 @@ definitions:
       host_id:
         type: integer
     type: object
+  model.CreateGitFile:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - host_id
+    - name
+    - type
+    type: object
   model.CreateGroup:
     properties:
       group_name:
@@ -128,12 +145,14 @@ definitions:
     - port
     - user
     type: object
-  model.CreateScript:
+  model.CreateServiceForm:
     properties:
       category:
         type: string
-      content:
-        type: string
+      form:
+        items:
+          $ref: '#/definitions/model.KeyValue'
+        type: array
       host_id:
         type: integer
       name:
@@ -175,6 +194,16 @@ definitions:
         type: number
     required:
     - size
+    type: object
+  model.ExecuteScript:
+    properties:
+      host_id:
+        type: integer
+      script_path:
+        type: string
+    required:
+    - host_id
+    - script_path
     type: object
   model.Favorite:
     properties:
@@ -525,6 +554,13 @@ definitions:
       user:
         type: string
     type: object
+  model.KeyValue:
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+    type: object
   model.KeyValueForUpdate:
     properties:
       key:
@@ -703,7 +739,7 @@ definitions:
       message:
         type: string
     type: object
-  model.RestoreScript:
+  model.RestoreGitFile:
     properties:
       category:
         type: string
@@ -798,6 +834,70 @@ definitions:
         items:
           $ref: '#/definitions/model.KeyValueForUpdate'
         type: array
+    type: object
+  model.ScriptResult:
+    properties:
+      end:
+        type: string
+      err:
+        type: string
+      out:
+        type: string
+      start:
+        type: string
+    type: object
+  model.ServiceAction:
+    properties:
+      action:
+        enum:
+        - activate
+        - deactivate
+        type: string
+      category:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - action
+    - host_id
+    - name
+    - type
+    type: object
+  model.ServiceForm:
+    properties:
+      fields:
+        items:
+          $ref: '#/definitions/model.ServiceFormField'
+        type: array
+    type: object
+  model.ServiceFormField:
+    properties:
+      default:
+        type: string
+      hint:
+        type: string
+      key:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      options:
+        items:
+          type: string
+        type: array
+      required:
+        type: boolean
+      type:
+        type: string
+      validation:
+        $ref: '#/definitions/model.Validation'
+      value:
+        type: string
     type: object
   model.SwapState:
     properties:
@@ -902,6 +1002,24 @@ definitions:
         description: 发送实时速率
         type: string
     type: object
+  model.UpdateGitFile:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      host_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - content
+    - host_id
+    - name
+    - type
+    type: object
   model.UpdateGroup:
     properties:
       group_name:
@@ -956,12 +1074,14 @@ definitions:
     - port
     - user
     type: object
-  model.UpdateScript:
+  model.UpdateServiceForm:
     properties:
       category:
         type: string
-      content:
-        type: string
+      form:
+        items:
+          $ref: '#/definitions/model.KeyValue'
+        type: array
       host_id:
         type: integer
       name:
@@ -969,7 +1089,6 @@ definitions:
       type:
         type: string
     required:
-    - content
     - host_id
     - name
     - type
@@ -1007,6 +1126,15 @@ definitions:
       valid:
         type: integer
     type: object
+  model.Validation:
+    properties:
+      maxLength:
+        type: integer
+      minLength:
+        type: integer
+      pattern:
+        type: string
+    type: object
   plugin.MenuItem:
     properties:
       description:
@@ -1020,13 +1148,7 @@ definitions:
     properties:
       description:
         type: string
-      entry:
-        type: string
-      host:
-        type: string
       name:
-        type: string
-      port:
         type: string
       version:
         type: string
@@ -2041,9 +2163,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.PageResult'
-            type: array
+            $ref: '#/definitions/model.PageResult'
       summary: List scripts
       tags:
       - Script
@@ -2057,7 +2177,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.CreateScript'
+          $ref: '#/definitions/model.CreateGitFile'
       produces:
       - application/json
       responses:
@@ -2076,7 +2196,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UpdateScript'
+          $ref: '#/definitions/model.UpdateGitFile'
       produces:
       - application/json
       responses:
@@ -2116,9 +2236,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.GitFile'
-            type: array
+            $ref: '#/definitions/model.GitFile'
       summary: Get script detail
       tags:
       - Script
@@ -2158,9 +2276,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.GitFile'
-            type: array
+            type: string
       summary: Get script diff
       tags:
       - Script
@@ -2220,9 +2336,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.PageResult'
-            type: array
+            $ref: '#/definitions/model.PageResult'
       summary: Get script histories
       tags:
       - Script
@@ -2254,7 +2368,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RestoreScript'
+          $ref: '#/definitions/model.RestoreGitFile'
       produces:
       - application/json
       responses:
@@ -2263,6 +2377,384 @@ paths:
       summary: Restore script file
       tags:
       - Script
+  /scripts/run:
+    post:
+      consumes:
+      - application/json
+      description: Execute script
+      parameters:
+      - description: Script file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ExecuteScript'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ScriptResult'
+      summary: Execute script
+      tags:
+      - Script
+  /scripts/run/log:
+    get:
+      consumes:
+      - application/json
+      description: Get content of run log
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GitFile'
+      summary: Get run log content
+      tags:
+      - Script
+  /services:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a service file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete service file
+      tags:
+      - Service
+    get:
+      consumes:
+      - application/json
+      description: Get content of a service file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Service file name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get service file content
+      tags:
+      - Service
+    post:
+      consumes:
+      - application/json
+      description: CreateContent a new service file or category
+      parameters:
+      - description: Service file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: CreateContent service file or category
+      tags:
+      - Service
+    put:
+      consumes:
+      - application/json
+      description: Save the content of a service file
+      parameters:
+      - description: Service file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save service file content
+      tags:
+      - Service
+  /services/action:
+    post:
+      consumes:
+      - application/json
+      description: Execute service actions
+      parameters:
+      - description: Service action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceAction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Execute service actions
+      tags:
+      - Service
+  /services/diff:
+    get:
+      consumes:
+      - application/json
+      description: Get service diff compare to specfied version
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Service file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Commit hash
+        in: query
+        name: commit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get service diff
+      tags:
+      - Service
+  /services/form:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a service file in form mode.
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Service file name. If this parameter is left empty, return template
+          data.
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceForm'
+      summary: Get service file in form mode
+      tags:
+      - Service
+    post:
+      consumes:
+      - application/json
+      description: Create a new service file in form mode
+      parameters:
+      - description: Form details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create service file in form mode
+      tags:
+      - Service
+    put:
+      consumes:
+      - application/json
+      description: Save the details of a service file in form mode
+      parameters:
+      - description: Service file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save service file in form mode
+      tags:
+      - Service
+  /services/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - File
+  /services/log:
+    get:
+      consumes:
+      - application/json
+      description: Get histories of a service file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Service file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get service histories
+      tags:
+      - Service
+  /services/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - File
+  /services/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore service file to specified version
+      parameters:
+      - description: Service file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore service file
+      tags:
+      - Service
   /ssh/config/{host_id}:
     get:
       consumes:
@@ -2538,7 +3030,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get system config
+      deprecated: true
+      description: (not implemented yet) Get system config
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -2553,7 +3052,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get hardware info
+      deprecated: true
+      description: (not implemented yet) Get hardware info
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -2601,6 +3107,12 @@ paths:
       consumes:
       - application/json
       description: Get network info
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -2616,6 +3128,12 @@ paths:
       consumes:
       - application/json
       description: Get system overview info
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -2631,6 +3149,12 @@ paths:
       consumes:
       - application/json
       description: Get system info
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
