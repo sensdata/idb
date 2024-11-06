@@ -299,7 +299,7 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 				// 使用正则表达式校验
 				matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
 				if err != nil {
-					LOG.Error("Invalid regex pattern:", err)
+					LOG.Error("Invalid regex pattern: %v", err)
 					return fmt.Errorf("invalid regex pattern for key %s: %v", item.Key, err)
 				}
 				if !matched {
@@ -309,7 +309,7 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 			}
 		} else {
 			// 不存在，返回错误
-			LOG.Error("Invalid form key:", item.Key)
+			LOG.Error("Invalid form key: %s", item.Key)
 			return fmt.Errorf("invalid key: %s", item.Key)
 		}
 	}
@@ -391,7 +391,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 				// 使用正则表达式校验
 				matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
 				if err != nil {
-					LOG.Error("Invalid regex pattern:", err)
+					LOG.Error("Invalid regex pattern: %v", err)
 					return fmt.Errorf("invalid regex pattern for key %s: %w", item.Key, err)
 				}
 				if !matched {
@@ -401,7 +401,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 			}
 		} else {
 			// 不存在，返回错误
-			LOG.Error("Invalid form key:", item.Key)
+			LOG.Error("Invalid form key: %s", item.Key)
 			return fmt.Errorf("invalid key: %s", item.Key)
 		}
 	}
