@@ -31,6 +31,10 @@ type Plugin struct {
 
 // PluginConf
 type PluginConf struct {
+	Items PluginConfItems `yaml:"conf"`
+}
+
+type PluginConfItems struct {
 	WorkDir string `yaml:"work_dir"`
 	LogDir  string `yaml:"log_dir"`
 }

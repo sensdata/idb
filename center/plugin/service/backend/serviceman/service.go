@@ -96,7 +96,7 @@ func (s *ServiceMan) Initialize() {
 
 	//初始化日志模块
 	if LOG == nil {
-		logger, err := log.InitLogger(s.pluginConf.LogDir, "service.log")
+		logger, err := log.InitLogger(s.pluginConf.Items.LogDir, "service.log")
 		if err != nil {
 			global.LOG.Error("Failed to initialize logger: %v \n", err)
 			return

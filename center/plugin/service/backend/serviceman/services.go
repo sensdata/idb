@@ -255,9 +255,9 @@ func (s *ServiceMan) getServiceList(req model.QueryGitFile) (*model.PageResult, 
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
 		HostID:       req.HostID,
@@ -317,9 +317,9 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -414,9 +414,9 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -498,9 +498,9 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -590,9 +590,9 @@ func (s *ServiceMan) create(req model.CreateGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -644,9 +644,9 @@ func (s *ServiceMan) getContent(req model.GetGitFileDetail) (*model.GitFile, err
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -704,9 +704,9 @@ func (s *ServiceMan) update(req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -758,9 +758,9 @@ func (s *ServiceMan) delete(req model.DeleteGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -811,9 +811,9 @@ func (s *ServiceMan) restore(req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -867,9 +867,9 @@ func (s *ServiceMan) getServiceLog(req model.GitFileLog) (*model.PageResult, err
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -928,9 +928,9 @@ func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
@@ -983,9 +983,9 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "global")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
 	default:
-		repoPath = filepath.Join(s.pluginConf.WorkDir, "local")
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	var relativePath string
 	if req.Category != "" {
