@@ -37,8 +37,8 @@ export interface GeneralChart {
 }
 
 export interface ApiListParams {
-  page: number;
-  page_size: number;
+  page?: number;
+  page_size?: number;
   [key: string]: any;
 }
 

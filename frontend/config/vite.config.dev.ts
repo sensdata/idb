@@ -14,7 +14,7 @@ export default mergeConfig(
         '/api': {
           target: 'http://8.138.47.21:9918',
           changeOrigin: true,
-          // rewrite: (path) => path.replace(/^\/api/, '/api'),
+          rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
         },
       },
       port: 5300,

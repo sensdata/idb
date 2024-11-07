@@ -49,11 +49,14 @@
 <script lang="ts" setup>
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { getHostListApi } from '@/api/host';
   import { HostEntity } from '@/entity/host';
+  import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import HostCreate from './components/create.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const columns = [
     {
@@ -122,7 +125,10 @@
       {
         text: t('manage.host.list.operation.goto'),
         click: () => {
-          console.log('goto', record);
+          router.push({
+            name: DEFAULT_APP_ROUTE_NAME,
+            query: { id: record.id },
+          });
         },
       },
       {

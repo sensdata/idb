@@ -6,10 +6,6 @@ export function getHostListApi(params?: ApiListParams) {
   return request.get<ApiListResult<HostEntity>>('hosts', params);
 }
 
-export function getHostOptionsApi() {
-  return request.get<{ items: HostEntity[] }>('hosts/options');
-}
-
 export type CreateHostParams = Partial<HostEntity>;
 export function createHostApi(data: CreateHostParams) {
   return request.post<HostEntity>('hosts', data);

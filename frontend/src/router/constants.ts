@@ -14,6 +14,7 @@ export const SELECT_HOST = {
 export const REDIRECT_ROUTE_NAME = 'Redirect';
 
 export const DEFAULT_ROUTE_NAME = 'manageHost';
+export const DEFAULT_APP_ROUTE_NAME = 'appSysinfo';
 
 export const DEFAULT_ROUTE = {
   title: 'menu.dashboard.workplace',

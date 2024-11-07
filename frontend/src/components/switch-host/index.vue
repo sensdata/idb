@@ -41,11 +41,15 @@
             type="primary"
             disabled
             size="mini"
-            @click="handleSelect(record)"
           >
             {{ $t('components.switchHost.operation.selected') }}
           </a-button>
-          <a-button v-else type="primary" size="mini">
+          <a-button
+            v-else
+            type="primary"
+            size="mini"
+            @click="handleSelect(record)"
+          >
             {{ $t('components.switchHost.operation.select') }}
           </a-button>
         </template>

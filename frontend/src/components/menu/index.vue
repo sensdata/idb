@@ -147,7 +147,7 @@
             v-model:collapsed={collapsed.value}
             v-model:open-keys={openKeys.value}
             show-collapse-button={appStore.device !== 'mobile'}
-            auto-open={false}
+            auto-open
             selected-keys={selectedKey.value}
             auto-open-selected={true}
             level-indent={34}

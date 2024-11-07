@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getHostOptionsApi } from '@/api/host';
+import { getHostListApi } from '@/api/host';
 import { HostState } from './types';
 
 const useHostStore = defineStore('host', {
@@ -11,7 +11,10 @@ const useHostStore = defineStore('host', {
 
   actions: {
     async init() {
-      const data = await getHostOptionsApi();
+      const data = await getHostListApi({
+        page: 1,
+        page_size: 1000,
+      });
       this.setItems(data.items);
     },
     setItems(items: HostState['items']) {

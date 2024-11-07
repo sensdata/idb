@@ -12,7 +12,8 @@ export interface LoginRes {
 }
 export function login(data: LoginData) {
   return {
-    token: 'test',
+    token:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJJRCI6MSwiTmFtZSI6ImFkbWluIiwiQnVmZmVyVGltZSI6MzYwMCwiaXNzIjoiaWRiIiwiZXhwIjoxNzMwOTAxODU0fQ.s5r9tuJi3KIjM-rklhuG5fW-oX8fLxx0Ipex6rVXKwc',
     name: 'admin',
     role: 'admin',
   };
