@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/core/api/middleware"
 	"github.com/sensdata/idb/center/core/api/router"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
@@ -57,6 +58,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
 	global.LOG.Info("register router - " + group)
 	pluginGroup := s.router.Group("api/v1/" + group)
+	pluginGroup.Use(middleware.NewJWT().JWTAuth())
 	for _, route := range routes {
 		switch route.Method {
 		case "GET":
