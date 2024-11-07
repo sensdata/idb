@@ -65,4 +65,4 @@ form:
     required: false
     hint: "Specify the environment variables of the service process."
     validation:
-      pattern: "^(\"[a-zA-Z_][a-zA-Z0-9_]*=[^\"]*\"$|[a-zA-Z_][a-zA-Z0-9_]*=[^\"\s]+)$"
+      pattern: "^([a-zA-Z_][a-zA-Z0-9_]*=[^\"\\s]+|\"[a-zA-Z_][a-zA-Z0-9_]*=[^\"]*\")$"
