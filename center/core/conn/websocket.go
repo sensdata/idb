@@ -61,7 +61,7 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
-	id, err := strconv.Atoi(c.Query("id"))
+	hostID, err := strconv.Atoi(c.Query("host_id"))
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param id in request")
@@ -76,7 +76,7 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param rows in request")
 	}
-	host, err := HostRepo.Get(HostRepo.WithByID((uint(id))))
+	host, err := HostRepo.Get(HostRepo.WithByID((uint(hostID))))
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "load host info by id failed")

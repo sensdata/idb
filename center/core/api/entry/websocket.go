@@ -13,6 +13,10 @@ import (
 // @Description 终端会话的websocket接口
 // @Accept json
 // @Produce json
+// @Param host_id query uint true "Host ID"
+// @Param cols query uint false "Window cols, default 80"
+// @Param rows query uint false "Window rows, default 40"
+// @Param host_id query uint true "Host ID"
 // @Success 101 {string} string "Switching Protocols to websocket"
 // @Failure 400 {object} model.Response "Bad Request"
 // @Router /ws/terminals [get]
