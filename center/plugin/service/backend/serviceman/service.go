@@ -116,12 +116,12 @@ func (s *ServiceMan) Initialize() {
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 			{Method: "GET", Path: "", Handler: s.GetServiceList},
-			{Method: "GET", Path: "", Handler: s.GetContent},       // 源文模式获取
-			{Method: "POST", Path: "", Handler: s.CreateContent},   // 源文模式创建
-			{Method: "PUT", Path: "", Handler: s.UpdateContent},    // 源文模式更新
-			{Method: "GET", Path: "/form", Handler: s.GetForm},     // 表单模式获取
-			{Method: "POST", Path: "/form", Handler: s.CreateForm}, // 表单模式创建
-			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},  // 表单模式更新
+			{Method: "GET", Path: "/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "GET", Path: "/form", Handler: s.GetForm},       // 表单模式获取
+			{Method: "POST", Path: "/form", Handler: s.CreateForm},   // 表单模式创建
+			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},    // 表单模式更新
 			{Method: "DELETE", Path: "", Handler: s.Delete},
 			{Method: "PUT", Path: "/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/log", Handler: s.GetServiceLog},
@@ -244,7 +244,7 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 // @Produce json
 // @Param request body model.CreateGitFile true "Service file creation details"
 // @Success 200
-// @Router /services [post]
+// @Router /services/raw [post]
 func (s *ServiceMan) CreateContent(c *gin.Context) {
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -268,7 +268,7 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Service file name"
 // @Success 200 {string} string
-// @Router /services [get]
+// @Router /services/raw [get]
 func (s *ServiceMan) GetContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
@@ -317,7 +317,7 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 // @Produce json
 // @Param request body model.UpdateGitFile true "Service file edit details"
 // @Success 200
-// @Router /services [put]
+// @Router /services/raw [put]
 func (s *ServiceMan) UpdateContent(c *gin.Context) {
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
