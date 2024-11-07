@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sensdata/idb/core/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -20,6 +21,10 @@ func InitLogger(installDir string, fileName string) (*Log, error) {
 	logfilePath := filepath.Join(installDir, fileName)
 
 	// 打开日志文件
+	if err := utils.EnsureFile(logfilePath); err != nil {
+		return nil, err
+	}
+
 	logFile, err := os.OpenFile(logfilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
