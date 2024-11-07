@@ -35,8 +35,11 @@ func NewIGitService() IGitService {
 }
 
 func (s *GitService) InitRepo(repoPath string, isBare bool) error {
+	global.LOG.Info("init repo %s", repoPath)
+
 	// 检查目录是否存在
 	if err := utils.EnsurePaths([]string{repoPath}); err != nil {
+		global.LOG.Error("Failed to create dir %s, %v", repoPath, err)
 		return err
 	}
 
@@ -46,9 +49,11 @@ func (s *GitService) InitRepo(repoPath string, isBare bool) error {
 		global.LOG.Info("Initializing Git repository at: %s", repoPath)
 		_, err := git.PlainInit(repoPath, isBare)
 		if err != nil {
+			global.LOG.Error("Failed to init repo %s, %v", repoPath, err)
 			return err
 		}
 	} else if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
 	}
 
@@ -62,12 +67,14 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return &pageResult, err
 	}
 
 	// 获取工作区的路径
 	worktree, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get work tree of repo %s, %v", repoPath, err)
 		return &pageResult, err
 	}
 	rootPath := worktree.Filesystem.Root() // 获取工作区的根路径
@@ -80,10 +87,12 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 
 	// 检查目录是否存在
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		global.LOG.Error("Directory %s does not exist %v", dirPath, err)
 		return &pageResult, fmt.Errorf("directory %s does not exist", dirPath)
 	}
 
 	// 遍历目录，获取文件信息
+	global.LOG.Info("Scan file in directory %s", dirPath)
 	extList := strings.Split(extension, ";") //支持多后缀筛选
 	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -158,12 +167,14 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return nil, err
 	}
 
 	// 获取工作区的路径
 	worktree, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get work tree in repo %s, %v", repoPath, err)
 		return nil, err
 	}
 	rootPath := worktree.Filesystem.Root()
@@ -172,19 +183,23 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 	filePath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否存在
+	global.LOG.Info("Try get file  %s", filePath)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		global.LOG.Error("File %s does not exist, %v", filePath, err)
 		return nil, fmt.Errorf("file %s does not exist", filePath)
 	}
 
 	// 读取文件内容
 	content, err := os.ReadFile(filePath)
 	if err != nil {
+		global.LOG.Error("Failed to read file %s, %v", filePath, err)
 		return nil, err
 	}
 
 	// 获取文件信息
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
+		global.LOG.Error("Failed to get stat of file %s, %v", filePath, err)
 		return nil, err
 	}
 
@@ -205,12 +220,14 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
 	}
 
 	// 获取工作区路径
 	worktree, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get work tree in repo %s, %v", repoPath, err)
 		return err
 	}
 	rootPath := worktree.Filesystem.Root()
@@ -218,25 +235,31 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 	// 确定目标文件的完整路径
 	filePath := filepath.Join(rootPath, relativePath)
 
+	global.LOG.Info("Try create file %s", filePath)
+
 	// 检查文件是否已存在
 	if _, err := os.Stat(filePath); err == nil {
+		global.LOG.Error("File %s already exists, %v", filePath, err)
 		return fmt.Errorf("file %s already exists", filePath)
 	}
 
 	// 确保相对目录的创建（若存在目录部分）
 	dirPath := filepath.Dir(filePath)
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		global.LOG.Error("Failed to make dir for file %s, %v", filePath, err)
 		return err
 	}
 
 	// 创建文件并写入内容
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		global.LOG.Error("Failed to write to file %s, %v", filePath, err)
 		return err
 	}
 
 	// 将新创建的改动添加到 Git 索引
 	_, err = worktree.Add(relativePath)
 	if err != nil {
+		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
 		return err
 	}
 
@@ -250,6 +273,7 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 		},
 	})
 	if err != nil {
+		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
 		return err
 	}
 
@@ -260,6 +284,7 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
 	}
 
@@ -309,6 +334,7 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
 	}
 
@@ -358,6 +384,7 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
 	}
 
@@ -419,6 +446,7 @@ func (s *GitService) Log(repoPath string, relativePath string, page int, pageSiz
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return &pageResult, err
 	}
 
@@ -503,6 +531,7 @@ func (s *GitService) Diff(repoPath string, relativePath string, commitHash strin
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
+		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return "", err
 	}
 
