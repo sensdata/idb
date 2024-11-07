@@ -97,7 +97,7 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 
 		// 填充 GitFile 信息
 		file := model.GitFile{
-			Source:    path,
+			Source:    filepath.Join(dirPath, path),
 			Name:      info.Name(),
 			Extension: filepath.Ext(info.Name()),
 			Content:   "",
