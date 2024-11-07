@@ -69,6 +69,8 @@ func (s *ScriptMan) Initialize() {
 		return
 	}
 
+	global.LOG.Info("Scriptman conf: %v", s.pluginConf)
+
 	//初始化日志模块
 	if LOG == nil {
 		logger, err := log.InitLogger(s.pluginConf.LogDir, "script.log")

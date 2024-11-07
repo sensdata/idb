@@ -92,6 +92,8 @@ func (s *ServiceMan) Initialize() {
 		return
 	}
 
+	global.LOG.Info("Serviceman conf: %v", s.pluginConf)
+
 	//初始化日志模块
 	if LOG == nil {
 		logger, err := log.InitLogger(s.pluginConf.LogDir, "service.log")

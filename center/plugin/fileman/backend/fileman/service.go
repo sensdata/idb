@@ -73,6 +73,8 @@ func (s *FileMan) Initialize() {
 		return
 	}
 
+	global.LOG.Info("Fileman conf: %v", s.pluginConf)
+
 	//初始化日志模块
 	if LOG == nil {
 		logger, err := log.InitLogger(s.pluginConf.LogDir, "files.log")
