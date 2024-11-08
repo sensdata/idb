@@ -1,3 +1,19 @@
+// @title IDB API Documentation
+// @version 1.0
+// @description This is the API documentation for idb application.
+// @termsOfService https://static.sensdata.com/terms/
+
+// @contact.name API Support
+// @contact.url https://static.sensdata.com/support
+// @contact.email support@sensdata.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host http://8.138.47.21:9918
+// @BasePath /api/v1
+// @schemes http
+
 package main
 
 import (
