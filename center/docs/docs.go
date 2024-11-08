@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "https://static.sensdata.com/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "https://static.sensdata.com/support",
+            "email": "support@sensdata.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -1928,7 +1937,7 @@ const docTemplate = `{
         },
         "/services": {
             "get": {
-                "description": "Get content of a service file",
+                "description": "Get custom service file list in work dir",
                 "consumes": [
                     "application/json"
                 ],
@@ -1938,7 +1947,7 @@ const docTemplate = `{
                 "tags": [
                     "Service"
                 ],
-                "summary": "Get service file content",
+                "summary": "List services",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1961,9 +1970,16 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "description": "Service file name",
-                        "name": "name",
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
                         "in": "query",
                         "required": true
                     }
@@ -1972,66 +1988,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.PageResult"
                         }
-                    }
-                }
-            },
-            "put": {
-                "description": "Save the content of a service file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Service"
-                ],
-                "summary": "Save service file content",
-                "parameters": [
-                    {
-                        "description": "Service file edit details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateGitFile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
-            "post": {
-                "description": "CreateContent a new service file or category",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Service"
-                ],
-                "summary": "CreateContent service file or category",
-                "parameters": [
-                    {
-                        "description": "Service file creation details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.CreateGitFile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
                     }
                 }
             },
@@ -2393,6 +2351,116 @@ const docTemplate = `{
                                 "$ref": "#/definitions/plugin.MenuItem"
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/services/raw": {
+            "get": {
+                "description": "Get content of a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get service file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Save the content of a service file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Save service file content",
+                "parameters": [
+                    {
+                        "description": "Service file edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "CreateContent a new service file or category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "CreateContent service file or category",
+                "parameters": [
+                    {
+                        "description": "Service file creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -3274,6 +3342,34 @@ const docTemplate = `{
                     "WebSocket"
                 ],
                 "summary": "终端会话接口",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window cols, default 80",
+                        "name": "cols",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window rows, default 40",
+                        "name": "rows",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "101": {
                         "description": "Switching Protocols to websocket",
@@ -5015,12 +5111,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0",
+	Host:             "http://8.138.47.21:9918",
+	BasePath:         "/api/v1",
+	Schemes:          []string{"http"},
+	Title:            "IDB API Documentation",
+	Description:      "This is the API documentation for idb application.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
