@@ -271,6 +271,7 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
+		AllowEmptyCommits: false,
 	})
 	if err != nil {
 		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
@@ -291,6 +292,7 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 	// 获取工作区路径
 	worktree, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get work tree in repo %s, %v", repoPath, err)
 		return err
 	}
 	rootPath := worktree.Filesystem.Root()
@@ -300,17 +302,20 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 
 	// 检查文件是否存在
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		global.LOG.Error("File %s does not exists, %v", filePath, err)
 		return fmt.Errorf("file %s does not exist", filePath)
 	}
 
 	// 更新文件内容
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		global.LOG.Error("Failed to write to file %s, %v", filePath, err)
 		return err
 	}
 
 	// 将更新的文件添加到 Git 索引
 	_, err = worktree.Add(relativePath)
 	if err != nil {
+		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
 		return err
 	}
 
@@ -322,8 +327,10 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
+		AllowEmptyCommits: false,
 	})
 	if err != nil {
+		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
 		return err
 	}
 
@@ -334,14 +341,15 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
-		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
+		global.LOG.Error("Failed to open repo %s: %v", repoPath, err)
 		return err
 	}
 
 	// 获取工作区路径
 	worktree, err := repo.Worktree()
 	if err != nil {
-		return err
+		global.LOG.Error("Failed to get worktree %s: %v", repoPath, err)
+		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 	rootPath := worktree.Filesystem.Root()
 
@@ -350,18 +358,31 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 
 	// 检查文件是否存在
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		global.LOG.Error("File does not exist %s: %v", filePath, err)
 		return fmt.Errorf("file %s does not exist", filePath)
 	}
 
 	// 删除文件
 	if err := os.Remove(filePath); err != nil {
-		return err
+		global.LOG.Error("Failed to remove file %s: %v", filePath, err)
+		return fmt.Errorf("failed to remove file %s: %w", filePath, err)
 	}
 
 	// 将删除的文件从 Git 索引中删除
-	_, err = worktree.Remove(relativePath)
+	if _, err = worktree.Remove(relativePath); err != nil {
+		global.LOG.Error("Failed to remove %s from index: %v", relativePath, err)
+		return fmt.Errorf("failed to remove file from index: %w", err)
+	}
+
+	// 检查工作区状态，确保删除操作生效
+	status, err := worktree.Status()
 	if err != nil {
-		return err
+		global.LOG.Error("Failed to get worktree status: %v", err)
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+	if status.IsClean() {
+		global.LOG.Error("No changes to commit for  %s", relativePath)
+		return fmt.Errorf("no changes to commit for %s", relativePath)
 	}
 
 	// 提交更改
@@ -372,9 +393,11 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
+		AllowEmptyCommits: false,
 	})
 	if err != nil {
-		return err
+		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
+		return fmt.Errorf("failed to commit changes: %w", err)
 	}
 
 	return nil
@@ -391,24 +414,28 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	// 获取目标提交对象
 	commit, err := repo.CommitObject(plumbing.NewHash(commitHash))
 	if err != nil {
+		global.LOG.Error("Commit %s does not exist: %v", commitHash, err)
 		return fmt.Errorf("commit %s does not exist", commitHash)
 	}
 
 	// 获取提交的树对象
 	tree, err := commit.Tree()
 	if err != nil {
+		global.LOG.Error("Failed to get commit tree %s: %v", commitHash, err)
 		return err
 	}
 
 	// 获取指定路径的文件对象
 	file, err := tree.File(relativePath)
 	if err != nil {
+		global.LOG.Error("Failed to get file %s in commit %s: %v", relativePath, commitHash, err)
 		return fmt.Errorf("file %s does not exist in commit %s", relativePath, commitHash)
 	}
 
 	// 读取文件内容
 	content, err := file.Contents()
 	if err != nil {
+		global.LOG.Error("Failed to get file %s content in commit %s: %v", relativePath, commitHash, err)
 		return err
 	}
 
@@ -417,17 +444,20 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 
 	// 将内容写入目标文件
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		global.LOG.Error("Failed to write to file %s: %v", filePath, err)
 		return err
 	}
 
 	// 提交恢复的文件
 	w, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get worktree %s: %v", repoPath, err)
 		return err
 	}
 
 	// 添加文件到工作树
 	if _, err := w.Add(relativePath); err != nil {
+		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
 		return err
 	}
 
@@ -435,8 +465,12 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	_, err = w.Commit(fmt.Sprintf("Restore %s to %s", relativePath, commitHash), &git.CommitOptions{
 		All: true,
 	})
+	if err != nil {
+		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (s *GitService) Log(repoPath string, relativePath string, page int, pageSize int) (*model.PageResult, error) {
@@ -453,12 +487,14 @@ func (s *GitService) Log(repoPath string, relativePath string, page int, pageSiz
 	// 获取引用
 	ref, err := repo.Reference(plumbing.HEAD, true)
 	if err != nil {
+		global.LOG.Error("Failed to get reference of repo %s: %v", repoPath, err)
 		return &pageResult, err
 	}
 
 	// 获取历史记录
 	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
 	if err != nil {
+		global.LOG.Error("Failed to get log iter of repo %s: %v", repoPath, err)
 		return &pageResult, err
 	}
 
@@ -491,6 +527,7 @@ func (s *GitService) Log(repoPath string, relativePath string, page int, pageSiz
 	})
 
 	if err != nil {
+		global.LOG.Error("Failed to scan log for %s: %v", relativePath, err)
 		return &pageResult, err
 	}
 
@@ -538,6 +575,7 @@ func (s *GitService) Diff(repoPath string, relativePath string, commitHash strin
 	// 获取当前文件版本
 	worktree, err := repo.Worktree()
 	if err != nil {
+		global.LOG.Error("Failed to get worktree %s: %v", repoPath, err)
 		return "", err
 	}
 	rootPath := worktree.Filesystem.Root()
@@ -545,23 +583,27 @@ func (s *GitService) Diff(repoPath string, relativePath string, commitHash strin
 	currentFilePath := filepath.Join(rootPath, relativePath)
 	currentContent, err := os.ReadFile(currentFilePath)
 	if err != nil {
+		global.LOG.Error("Failed to read file %s: %v", currentFilePath, err)
 		return "", err
 	}
 
 	// 获取历史版本的提交对象
 	commit, err := repo.CommitObject(plumbing.NewHash(commitHash))
 	if err != nil {
+		global.LOG.Error("Commit %s of file %s does not exist: %v", commitHash, repoPath, err)
 		return "", fmt.Errorf("commit %s does not exist", commitHash)
 	}
 
 	// 获取指定提交中的文件内容
 	file, err := commit.File(relativePath)
 	if err != nil {
+		global.LOG.Error("File %s does not exist in commit %s: %v", relativePath, commitHash, err)
 		return "", fmt.Errorf("file %s does not exist in commit %s", relativePath, commitHash)
 	}
 
 	historicalContent, err := file.Contents()
 	if err != nil {
+		global.LOG.Error("Failed to get file %s content in commit %s: %v", relativePath, commitHash, err)
 		return "", err
 	}
 
