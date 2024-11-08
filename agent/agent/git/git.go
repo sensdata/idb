@@ -362,12 +362,6 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 		return fmt.Errorf("file %s does not exist", filePath)
 	}
 
-	// 删除文件
-	if err := os.Remove(filePath); err != nil {
-		global.LOG.Error("Failed to remove file %s: %v", filePath, err)
-		return fmt.Errorf("failed to remove file %s: %w", filePath, err)
-	}
-
 	// 将删除的文件从 Git 索引中删除
 	if _, err = worktree.Remove(relativePath); err != nil {
 		global.LOG.Error("Failed to remove %s from index: %v", relativePath, err)
