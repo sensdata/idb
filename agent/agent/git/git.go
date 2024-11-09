@@ -271,7 +271,7 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
-		AllowEmptyCommits: false,
+		AllowEmptyCommits: true,
 	})
 	if err != nil {
 		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
@@ -327,7 +327,7 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
-		AllowEmptyCommits: false,
+		AllowEmptyCommits: true,
 	})
 	if err != nil {
 		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
@@ -387,10 +387,10 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 			Email: "idb@sensdata.com",
 			When:  time.Now(),
 		},
-		AllowEmptyCommits: false,
+		AllowEmptyCommits: true,
 	})
 	if err != nil {
-		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
+		global.LOG.Error("Failed to commit %s/%s, %v", repoPath, relativePath, err)
 		return fmt.Errorf("failed to commit changes: %w", err)
 	}
 
