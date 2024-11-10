@@ -1,5 +1,5 @@
 <template>
-  <div ref="domRef" />
+  <div ref="domRef" class="xterm-container" />
 </template>
 
 <script lang="ts" setup>
@@ -10,6 +10,7 @@
   import { FitAddon } from '@xterm/addon-fit';
   import { AttachAddon } from '@xterm/addon-attach';
   import { debounce } from 'lodash';
+  import '@xterm/xterm/css/xterm.css';
 
   const props = defineProps<{
     hostId: number;
@@ -42,25 +43,29 @@
       cursorBlink: true,
       scrollback: 100,
     });
-    attachRef.value = new AttachAddon(wsRef.value!);
+    // attachRef.value = new AttachAddon(wsRef.value!);
     fitRef.value = new FitAddon();
-    termRef.value.loadAddon(attachRef.value);
+    // termRef.value.loadAddon(attachRef.value);
     termRef.value.loadAddon(fitRef.value);
     termRef.value.open(domRef.value!);
     fitRef.value.fit();
+    termRef.value.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
     addResizeListener();
   }
 
   function initWs() {
-    wsRef.value = new WebSocket(`ws://localhost:3000?id=${props.hostId}`);
-    wsRef.value.onopen = () => {
-      initTerminal();
-    };
-    wsRef.value.onerror = (e) => {
-      // eslint-disable-next-line no-console
-      console.warn('WebSocket error', e);
-      Message.error(t('components.xterm.connectError'));
-    };
+    initTerminal();
+    // wsRef.value = new WebSocket(
+    //   `ws://${window.location.host}/ws/terminnals?host_id=${props.hostId}`
+    // );
+    // wsRef.value.onopen = () => {
+    //   initTerminal();
+    // };
+    // wsRef.value.onerror = (e) => {
+    //   // eslint-disable-next-line no-console
+    //   console.warn('WebSocket error', e);
+    //   Message.error(t('components.xterm.connectError'));
+    // };
   }
 
   function disconnectWs() {
@@ -78,8 +83,8 @@
   });
 </script>
 
-<style lang="scss" scoped>
-  #terminal {
+<style scoped>
+  .xterm-container {
     width: 100%;
     height: 100%;
   }

@@ -19,7 +19,7 @@
       <slot name="rightActions" />
       <a-input-search
         v-if="hasSearch"
-        v-model:value="searchValue"
+        v-model="searchValue"
         class="w-[240px] mr-4"
         :placeholder="$t('components.idbTable.search.placeholder')"
         :loading="loading"

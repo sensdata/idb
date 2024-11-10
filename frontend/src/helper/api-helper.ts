@@ -11,8 +11,6 @@ export interface ApiResponse<T = unknown> {
 }
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-export const API_PROXY_PREFIX = 'proxy/';
-export const API_PROXY_BASE_URL = API_BASE_URL + API_PROXY_PREFIX;
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
 axios.interceptors.request.use(

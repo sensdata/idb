@@ -19,7 +19,7 @@
       <strong> {{ currentHost?.name }}({{ currentHost?.addr }}) </strong>
     </template>
     <a-input-search
-      v-model:value="searchValue"
+      v-model="searchValue"
       class="mt-2"
       :placeholder="$t('components.switchHost.searchPlaceholder')"
       search-button

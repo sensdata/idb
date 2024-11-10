@@ -32,6 +32,7 @@
         >
           <Menu />
         </a-drawer>
+        <terminal-drawer v-model:visible="terminalVisible" />
         <a-layout class="layout-content" :style="paddingStyle">
           <TabBar v-if="appStore.tabBar" />
           <a-layout-content>
@@ -49,13 +50,14 @@
   import { ref, computed, watch, provide, onMounted } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import { useAppStore, useUserStore } from '@/store';
+  import usePermission from '@/hooks/permission';
+  import useResponsive from '@/hooks/responsive';
   import NavBar from '@/components/navbar/index.vue';
   import Menu from '@/components/menu/index.vue';
   import Footer from '@/components/footer/index.vue';
   import TabBar from '@/components/tab-bar/index.vue';
   import SwitchHost from '@/components/switch-host/index.vue';
-  import usePermission from '@/hooks/permission';
-  import useResponsive from '@/hooks/responsive';
+  import TerminalDrawer from '@/components/terminal-drawer/index.vue';
   import PageLayout from './page-layout.vue';
 
   const isInit = ref(false);
@@ -65,6 +67,7 @@
   const route = useRoute();
   const permission = usePermission();
   useResponsive(true);
+  const terminalVisible = ref(true);
   const navbarHeight = `60px`;
   const isAppRoute = computed(() => route.fullPath.startsWith('/app'));
   const navbar = computed(() => appStore.navbar);

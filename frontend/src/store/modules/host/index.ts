@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { getHostListApi } from '@/api/host';
+import { HostEntity } from '@/entity/host';
 import { HostState } from './types';
 
 const useHostStore = defineStore('host', {
@@ -8,6 +9,12 @@ const useHostStore = defineStore('host', {
     currentId: undefined,
     items: [],
   }),
+
+  getters: {
+    default(): HostEntity {
+      return this.items.find((item) => item.is_default)!;
+    },
+  },
 
   actions: {
     async init() {

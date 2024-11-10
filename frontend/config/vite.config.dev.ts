@@ -16,6 +16,11 @@ export default mergeConfig(
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
         },
+        '/ws': {
+          target: 'ws://8.138.47.21:9918',
+          ws: true,
+          changeOrigin: true,
+        },
       },
       port: 5300,
     },
