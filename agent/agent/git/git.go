@@ -443,21 +443,28 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	}
 
 	// 提交恢复的文件
-	w, err := repo.Worktree()
+	worktree, err := repo.Worktree()
 	if err != nil {
-		global.LOG.Error("Failed to get worktree %s: %v", repoPath, err)
+		global.LOG.Error("Failed to get work tree in repo %s, %v", repoPath, err)
 		return err
 	}
 
-	// 添加文件到工作树
-	if _, err := w.Add(relativePath); err != nil {
+	// 将更新的文件添加到 Git 索引
+	_, err = worktree.Add(relativePath)
+	if err != nil {
 		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
 		return err
 	}
 
-	// 提交恢复操作
-	_, err = w.Commit(fmt.Sprintf("Restore %s to %s", relativePath, commitHash), &git.CommitOptions{
-		All: true,
+	// 提交更改
+	commitMsg := fmt.Sprintf("Restore %s to %s", relativePath, commitHash)
+	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "IDB",
+			Email: "idb@sensdata.com",
+			When:  time.Now(),
+		},
+		AllowEmptyCommits: true,
 	})
 	if err != nil {
 		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
