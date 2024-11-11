@@ -384,8 +384,6 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 }
 
 func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
-	LOG.Info("Create service in form mode")
-
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -425,7 +423,6 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 		}
 	}
 
-	LOG.Info("Try fill form datas into template content")
 	// service内容: templateService
 	serviceBytes := templateService
 	// 将service内容中的相关字段替换value
@@ -434,8 +431,6 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 		LOG.Error("Failed to replace service content: %v", err)
 		return constant.ErrInternalServer
 	}
-
-	LOG.Info("Content: %s", newContent)
 
 	var repoPath string
 	switch req.Type {
@@ -500,17 +495,27 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 		// 检查 key 是否在 validKeys 中
 		formField, exists := validKeys[item.Key]
 		if exists {
-			// 存在，进行值校验
-			if formField.Validation.Pattern != "" {
-				// 使用正则表达式校验
-				matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
-				if err != nil {
-					LOG.Error("Invalid regex pattern: %v", err)
-					return fmt.Errorf("invalid regex pattern for key %s: %w", item.Key, err)
+			// 设置了校验规则
+			if formField.Validation != nil {
+				// 设置了正则匹配，优先正则匹配
+				if formField.Validation.Pattern != "" {
+					// 使用正则表达式校验
+					matched, err := regexp.MatchString(formField.Validation.Pattern, item.Value)
+					if err != nil {
+						LOG.Error("Invalid regex pattern: %v", err)
+						return fmt.Errorf("invalid regex pattern for key %s: %v", item.Key, err)
+					}
+					if !matched {
+						LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
+						return fmt.Errorf("invalid value for key %s", item.Key)
+					}
 				}
-				if !matched {
-					LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
-					return fmt.Errorf("invalid value for key %s", item.Key)
+				// 设置了长度限制
+				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
+					if len(item.Value) < formField.Validation.MinLength || len(item.Value) > formField.Validation.MaxLength {
+						LOG.Error("Value %s does not has valid length for key %s", item.Value, item.Key)
+						return fmt.Errorf("invalid value for key %s", item.Key)
+					}
 				}
 			}
 		} else {
