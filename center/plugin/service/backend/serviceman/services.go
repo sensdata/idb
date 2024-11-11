@@ -133,6 +133,8 @@ func (s *ServiceMan) sendAction(actionRequest model.HostAction) (*model.ActionRe
 		return nil, fmt.Errorf("received error response: %s", resp.Status())
 	}
 
+	LOG.Info("action response: %v", actionResponse)
+
 	return &actionResponse, nil
 }
 
