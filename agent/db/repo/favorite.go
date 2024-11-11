@@ -23,7 +23,7 @@ func NewFavoriteRepo() IFavoriteRepo {
 
 func (f *FavoriteRepo) WithByPath(path string) DBOption {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("path = ?", path)
+		return db.Where("source = ?", path)
 	}
 }
 
