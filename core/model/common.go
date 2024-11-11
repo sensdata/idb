@@ -17,12 +17,12 @@ type Response struct {
 }
 
 type KeyValue struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key   string `json:"key" validate:"required"`
+	Value string `json:"value" validate:"required"`
 }
 
 type KeyValueForUpdate struct {
 	Key      string `json:"key" validate:"required"`
-	OldValue string `json:"old_value"`
-	NewValue string `json:"new_value"`
+	OldValue string `json:"old_value" validate:"required"`
+	NewValue string `json:"new_value" validate:"required"`
 }
