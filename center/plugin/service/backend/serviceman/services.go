@@ -367,7 +367,14 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 		return nil, fmt.Errorf("failed to get service detail")
 	}
 
-	serviceForm, err := parseServiceBytesToServiceForm([]byte(actionResponse.Data.Action.Data), s.form.Fields)
+	var gitFile model.GitFile
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &gitFile)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to service detail: %v", err)
+		return nil, fmt.Errorf("json err: %v", err)
+	}
+
+	serviceForm, err := parseServiceBytesToServiceForm([]byte(gitFile.Content), s.form.Fields)
 	if err != nil {
 		LOG.Error("Failed to parse service content: %v", err)
 		return nil, fmt.Errorf("failed to parse service content")
@@ -548,8 +555,15 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 		return constant.ErrInternalServer
 	}
 
+	var gitFile model.GitFile
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &gitFile)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to service detail: %v", err)
+		return err
+	}
+
 	// service内容
-	serviceBytes := []byte(actionResponse.Data.Action.Data)
+	serviceBytes := []byte(gitFile.Content)
 	// 将service内容中的相关字段替换value
 	newContent, err := replaceValuesInServiceBytes(serviceBytes, req.Form)
 	if err != nil {
