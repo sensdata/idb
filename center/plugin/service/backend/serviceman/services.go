@@ -384,6 +384,8 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 }
 
 func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
+	LOG.Info("Create service in form mode")
+
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -413,6 +415,7 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 		}
 	}
 
+	LOG.Info("Try fill form datas into template content")
 	// service内容: templateService
 	serviceBytes := templateService
 	// 将service内容中的相关字段替换value
@@ -421,6 +424,8 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 		LOG.Error("Failed to replace service content: %v", err)
 		return constant.ErrInternalServer
 	}
+
+	LOG.Info("Content: %s", newContent)
 
 	var repoPath string
 	switch req.Type {
