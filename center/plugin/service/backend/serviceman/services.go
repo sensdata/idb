@@ -18,6 +18,7 @@ func parseServiceBytesToServiceForm(serviceBytes []byte, standardFormFields []mo
 	var serviceForm model.ServiceForm
 
 	if len(serviceBytes) == 0 {
+		LOG.Error("Invalid service file bytes")
 		return serviceForm, fmt.Errorf("invalid service bytes")
 	}
 
@@ -355,11 +356,12 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
+		LOG.Error("Action error: %v", err)
 		return nil, err
 	}
 
 	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
+		LOG.Error("Action failed")
 		return nil, fmt.Errorf("failed to get service detail")
 	}
 
