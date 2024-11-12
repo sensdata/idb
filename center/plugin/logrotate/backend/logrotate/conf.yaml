@@ -1,0 +1,3 @@
+conf:
+  work_dir: "/var/lib/idb/data/logrotate"
+  log_dir: "/var/log/idb"

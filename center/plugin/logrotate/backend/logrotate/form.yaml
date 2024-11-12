@@ -1,0 +1,101 @@
+form:
+  - name: "iDB_logrotate_log_path"
+    label: "Log path"
+    key: "Path"
+    type: "string"
+    default: ""
+    required: true
+    hint: "Specify the path of log file to rotate."
+
+  - name: "iDB_logrotate_frequency"
+    label: "Frequency"
+    key: "Frequency"
+    type: "select"
+    options:
+      - "daily"
+      - "weekly"
+      - "monthly"
+      - "yearly"
+    default: "daily"
+    required: true
+    hint: "Specify the frequency of log rotation."
+
+  - name: "iDB_logrotate_count"
+    label: "Rotate count"
+    key: "Count"
+    type: "integer"
+    default: "5"
+    required: true
+    hint: "Specify the number of rotated log files retained."
+
+  - name: "iDB_logrotate_compress"
+    label: "Compress"
+    key: "Compress"
+    type: "bool"
+    default: "false"
+    required: false
+    hint: "Specify whether to compress old log files."
+
+  - name: "iDB_logrotate_delay_compress"
+    label: "Delay compress"
+    key: "DelayCompress"
+    type: "bool"
+    default: "false"
+    required: false
+    hint: "Specify whether to delay compression. Used together with Compress."
+
+  - name: "iDB_logrotate_create_mode"
+    label: "New log file mode"
+    key: "CreateMode"
+    type: "integer"
+    default: "0644"
+    required: false
+    hint: "Specify the file mode for creating new log file after rotation."
+
+  - name: "iDB_logrotate_create_owner"
+    label: "New log file owner"
+    key: "CreateOwner"
+    type: "string"
+    default: "root"
+    required: false
+    hint: "Specify the file owner for creating new log file after rotation. Used together with CreateMode"
+
+  - name: "iDB_logrotate_create_group"
+    label: "New log file group"
+    key: "CreateGroup"
+    type: "string"
+    default: "root"
+    required: false
+    hint: "Specify the file mode for creating new log file after rotation. Used together with CreateOwner"
+
+  - name: "iDB_logrotate_missing_ok"
+    label: "Ignore missing log files"
+    key: "MissingOk"
+    type: "bool"
+    default: "false"
+    required: false
+    hint: "Specify whether to ignore non-existent log files without reporting errors."
+
+  - name: "iDB_logrotate_notif_empty"
+    label: "Ignore empty log files"
+    key: "NotIfEmpty"
+    type: "bool"
+    default: "false"
+    required: false
+    hint: "Specify whether rotation should not be performed when the log file is empty."
+
+  - name: "iDB_logrotate_pre"
+    label: "Command to execute before log rotation"
+    key: "PreCommand"
+    type: "string"
+    default: ""
+    required: false
+    hint: "Specify the commands to be executed before log rotation."
+
+  - name: "iDB_logrotate_post"
+    label: "Command to execute after log rotation"
+    key: "PostCommand"
+    type: "string"
+    default: ""
+    required: false
+    hint: "Specify the commands to be executed after log rotation."

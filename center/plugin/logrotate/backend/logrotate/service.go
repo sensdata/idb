@@ -1,4 +1,4 @@
-package serviceman
+package logrotate
 
 import (
 	_ "embed"
@@ -21,12 +21,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ServiceMan struct {
-	plugin              plugin.Plugin
-	pluginConf          plugin.PluginConf
-	form                model.Form
-	templateServiceForm model.ServiceForm
-	restyClient         *resty.Client
+type LogRotate struct {
+	plugin       plugin.Plugin
+	pluginConf   plugin.PluginConf
+	form         model.Form
+	templateForm model.ServiceForm
+	restyClient  *resty.Client
 }
 
 var LOG *log.Log
@@ -40,11 +40,11 @@ var confYAML []byte
 //go:embed form.yaml
 var formYaml []byte
 
-//go:embed template.service
+//go:embed template.conf
 var templateService []byte
 
-func (s *ServiceMan) Initialize() {
-	global.LOG.Info("serviceman init begin \n")
+func (s *LogRotate) Initialize() {
+	global.LOG.Info("logrotate init begin \n")
 
 	// 解析plugYAML
 	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
@@ -60,13 +60,13 @@ func (s *ServiceMan) Initialize() {
 
 	// 由templateService解析出模板的templateServiceForm
 	var err error
-	s.templateServiceForm, err = parseServiceBytesToServiceForm(templateService, s.form.Fields)
+	s.templateForm, err = parseConfBytesToServiceForm(templateService, s.form.Fields)
 	if err != nil {
 		global.LOG.Error("Failed to parse template: %v", err)
 		return
 	}
 
-	confPath := filepath.Join(constant.CenterConfDir, "service", "conf.yaml")
+	confPath := filepath.Join(constant.CenterConfDir, "logrotate", "conf.yaml")
 	// 检查配置文件的目录是否存在
 	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
 		global.LOG.Error("Failed to create conf directory: %v \n", err)
@@ -92,11 +92,11 @@ func (s *ServiceMan) Initialize() {
 		return
 	}
 
-	global.LOG.Info("Serviceman conf: %v", s.pluginConf)
+	global.LOG.Info("logrotate conf: %v", s.pluginConf)
 
 	//初始化日志模块
 	if LOG == nil {
-		logger, err := log.InitLogger(s.pluginConf.Items.LogDir, "service.log")
+		logger, err := log.InitLogger(s.pluginConf.Items.LogDir, "logrotate.log")
 		if err != nil {
 			global.LOG.Error("Failed to initialize logger: %v \n", err)
 			return
@@ -111,11 +111,11 @@ func (s *ServiceMan) Initialize() {
 		SetHeader("Content-Type", "application/json")
 
 	api.API.SetUpPluginRouters(
-		"services",
+		"logrotate",
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetServiceList},
+			{Method: "GET", Path: "", Handler: s.GetConfList},
 			{Method: "GET", Path: "/raw", Handler: s.GetContent},     // 源文模式获取
 			{Method: "POST", Path: "/raw", Handler: s.CreateContent}, // 源文模式创建
 			{Method: "PUT", Path: "/raw", Handler: s.UpdateContent},  // 源文模式更新
@@ -124,16 +124,16 @@ func (s *ServiceMan) Initialize() {
 			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},    // 表单模式更新
 			{Method: "DELETE", Path: "", Handler: s.Delete},
 			{Method: "PUT", Path: "/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/log", Handler: s.GetServiceLog},
-			{Method: "GET", Path: "/diff", Handler: s.GetServiceDiff},
-			{Method: "POST", Path: "/action", Handler: s.ServiceAction},
+			{Method: "GET", Path: "/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/diff", Handler: s.GetConfDiff},
+			{Method: "POST", Path: "/action", Handler: s.ConfAction},
 		},
 	)
 
-	global.LOG.Info("serviceman init end")
+	global.LOG.Info("logrotate init end")
 }
 
-func (s *ServiceMan) Release() {
+func (s *LogRotate) Release() {
 
 }
 
@@ -143,8 +143,8 @@ func (s *ServiceMan) Release() {
 // @Accept json
 // @Produce json
 // @Success 200 {object} plugin.PluginInfo
-// @Router /services/info [get]
-func (s *ServiceMan) GetPluginInfo(c *gin.Context) {
+// @Router /logrotate/info [get]
+func (s *LogRotate) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -159,8 +159,8 @@ func (s *ServiceMan) GetPluginInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {array} plugin.MenuItem
-// @Router /services/menu [get]
-func (s *ServiceMan) GetMenu(c *gin.Context) {
+// @Router /logrotate/menu [get]
+func (s *LogRotate) GetMenu(c *gin.Context) {
 	menuItems, err := s.getMenus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -169,17 +169,17 @@ func (s *ServiceMan) GetMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "menu", "payload": menuItems})
 }
 
-func (s *ServiceMan) getPluginInfo() (plugin.PluginInfo, error) {
+func (s *LogRotate) getPluginInfo() (plugin.PluginInfo, error) {
 	return s.plugin.Info, nil
 }
 
-func (s *ServiceMan) getMenus() ([]plugin.MenuItem, error) {
+func (s *LogRotate) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
 }
 
-// @Tags Service
-// @Summary List services
-// @Description Get custom service file list in work dir
+// @Tags Logrotate
+// @Summary List logrotate conf files
+// @Description Get custom logrotate conf file list in work dir
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
@@ -188,8 +188,8 @@ func (s *ServiceMan) getMenus() ([]plugin.MenuItem, error) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /services [get]
-func (s *ServiceMan) GetServiceList(c *gin.Context) {
+// @Router /logrotate [get]
+func (s *LogRotate) GetConfList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -228,7 +228,7 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	services, err := s.getServiceList(req)
+	services, err := s.getConfList(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -237,20 +237,20 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 	helper.SuccessWithData(c, services)
 }
 
-// @Tags Service
-// @Summary Create service file
-// @Description CreateContent a new service file
+// @Tags Logrotate
+// @Summary Create conf file
+// @Description Create a new conf file
 // @Accept json
 // @Produce json
-// @Param request body model.CreateGitFile true "Service file creation details"
+// @Param request body model.CreateGitFile true "Conf file creation details"
 // @Success 200
-// @Router /services/raw [post]
-func (s *ServiceMan) CreateContent(c *gin.Context) {
+// @Router /logrotate/raw [post]
+func (s *LogRotate) CreateContent(c *gin.Context) {
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req, ".service")
+	err := s.create(req, ".conf")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -258,18 +258,18 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Get service file content
-// @Description Get content of a service file
+// @Tags Logrotate
+// @Summary Get conf file content
+// @Description Get content of a conf file
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Service file name"
+// @Param name query string true "Conf file name"
 // @Success 200 {string} string
-// @Router /services/raw [get]
-func (s *ServiceMan) GetContent(c *gin.Context) {
+// @Router /logrotate/raw [get]
+func (s *LogRotate) GetContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -310,15 +310,15 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 	helper.SuccessWithData(c, detail.Content)
 }
 
-// @Tags Service
-// @Summary Save service file content
-// @Description Save the content of a service file
+// @Tags Logrotate
+// @Summary Save conf file content
+// @Description Save the content of a conf file
 // @Accept json
 // @Produce json
-// @Param request body model.UpdateGitFile true "Service file edit details"
+// @Param request body model.UpdateGitFile true "Conf file edit details"
 // @Success 200
-// @Router /services/raw [put]
-func (s *ServiceMan) UpdateContent(c *gin.Context) {
+// @Router /logrotate/raw [put]
+func (s *LogRotate) UpdateContent(c *gin.Context) {
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
@@ -331,18 +331,18 @@ func (s *ServiceMan) UpdateContent(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Get service file in form mode
-// @Description Get details of a service file in form mode.
+// @Tags Logrotate
+// @Summary Get conf file in form mode
+// @Description Get details of a conf file in form mode.
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string false "Service file name. If this parameter is left empty, return template data."
+// @Param name query string false "Conf file name. If this parameter is left empty, return template data."
 // @Success 200 {object} model.ServiceForm
-// @Router /services/form [get]
-func (s *ServiceMan) GetForm(c *gin.Context) {
+// @Router /logrotate/form [get]
+func (s *LogRotate) GetForm(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -378,15 +378,15 @@ func (s *ServiceMan) GetForm(c *gin.Context) {
 	helper.SuccessWithData(c, detail)
 }
 
-// @Tags Service
-// @Summary Create service file in form mode
-// @Description Create a new service file in form mode
+// @Tags Logrotate
+// @Summary Create conf file in form mode
+// @Description Create a new conf file in form mode
 // @Accept json
 // @Produce json
 // @Param request body model.CreateServiceForm true "Form details"
 // @Success 200
-// @Router /services/form [post]
-func (s *ServiceMan) CreateForm(c *gin.Context) {
+// @Router /logrotate/form [post]
+func (s *LogRotate) CreateForm(c *gin.Context) {
 	var req model.CreateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
@@ -399,15 +399,15 @@ func (s *ServiceMan) CreateForm(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Save service file in form mode
-// @Description Save the details of a service file in form mode
+// @Tags Logrotate
+// @Summary Save conf file in form mode
+// @Description Save the details of a conf file in form mode
 // @Accept json
 // @Produce json
-// @Param request body model.UpdateServiceForm true "Service file edit details"
+// @Param request body model.UpdateServiceForm true "Conf file edit details"
 // @Success 200
-// @Router /services/form [put]
-func (s *ServiceMan) UpdateForm(c *gin.Context) {
+// @Router /logrotate/form [put]
+func (s *LogRotate) UpdateForm(c *gin.Context) {
 	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
@@ -420,9 +420,9 @@ func (s *ServiceMan) UpdateForm(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Delete service file
-// @Description Delete a service file
+// @Tags Logrotate
+// @Summary Delete conf file
+// @Description Delete a conf file
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
@@ -430,8 +430,8 @@ func (s *ServiceMan) UpdateForm(c *gin.Context) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /services [delete]
-func (s *ServiceMan) Delete(c *gin.Context) {
+// @Router /logrotate [delete]
+func (s *LogRotate) Delete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -463,7 +463,7 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 		Name:     name,
 	}
 
-	err = s.delete(req, ".service")
+	err = s.delete(req, ".conf")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -472,15 +472,15 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Restore service file
-// @Description Restore service file to specified version
+// @Tags Logrotate
+// @Summary Restore conf file
+// @Description Restore conf file to specified version
 // @Accept json
 // @Produce json
-// @Param request body model.RestoreGitFile true "Service file restore details"
+// @Param request body model.RestoreGitFile true "Conf file restore details"
 // @Success 200
-// @Router /services/restore [put]
-func (s *ServiceMan) Restore(c *gin.Context) {
+// @Router /logrotate/restore [put]
+func (s *LogRotate) Restore(c *gin.Context) {
 	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
@@ -493,20 +493,20 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Service
-// @Summary Get service histories
-// @Description Get histories of a service file
+// @Tags Logrotate
+// @Summary Get conf histories
+// @Description Get histories of a conf file
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Service file name"
+// @Param name query string true "Conf file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /services/log [get]
-func (s *ServiceMan) GetServiceLog(c *gin.Context) {
+// @Router /logrotate/log [get]
+func (s *LogRotate) GetConfLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -552,7 +552,7 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	logs, err := s.getServiceLog(req)
+	logs, err := s.getConfLog(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -561,19 +561,19 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 	helper.SuccessWithData(c, logs)
 }
 
-// @Tags Service
-// @Summary Get service diff
-// @Description Get service diff compare to specfied version
+// @Tags Logrotate
+// @Summary Get conf diff
+// @Description Get conf diff compare to specfied version
 // @Accept json
 // @Produce json
 // @Param host_id query uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Service file name"
+// @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /services/diff [get]
-func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
+// @Router /logrotate/diff [get]
+func (s *LogRotate) GetConfDiff(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
@@ -612,7 +612,7 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 		CommitHash: commitHash,
 	}
 
-	diff, err := s.getServiceDiff(req)
+	diff, err := s.getConfDiff(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -621,20 +621,20 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 	helper.SuccessWithData(c, diff)
 }
 
-// @Tags Service
-// @Summary Execute service actions
-// @Description Execute service actions
+// @Tags Logrotate
+// @Summary Execute conf actions
+// @Description Execute conf actions
 // @Accept json
 // @Produce json
-// @Param request body model.ServiceAction true "Service action details"
+// @Param request body model.ConfAction true "Conf action details"
 // @Success 200
-// @Router /services/action [post]
-func (s *ServiceMan) ServiceAction(c *gin.Context) {
+// @Router /logrotate/action [post]
+func (s *LogRotate) ConfAction(c *gin.Context) {
 	var req model.ServiceAction
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.serviceAction(req)
+	err := s.confAction(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
