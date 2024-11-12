@@ -10,11 +10,12 @@
     @select="handleSelect"
   >
     <a-input
+      ref="inputRef"
       v-model="value"
       :placeholder="$t('components.addressBar.input.placeholder')"
       class="address-bar"
       allow-clear
-      ref="inputRef"
+      @press-enter="handleGo"
     >
       <template #prefix>
         <div class="before" @click="handleHome" @mousedown.stop>
@@ -42,13 +43,6 @@
       </a-doption>
     </template>
   </a-dropdown>
-  <!-- <div class="address-bar">
-    <a-auto-complete
-      v-model="value"
-      :data="formatedOptions"
-      :style="{ width: '720px' }"
-    />
-  </div> -->
 </template>
 
 <script lang="ts" setup>
@@ -61,6 +55,8 @@
       path: string;
     }>;
   }>();
+
+  const emit = defineEmits(['goto']);
 
   const inputRef = ref();
   const breadcrumbItems = computed(() => {
@@ -111,57 +107,75 @@
   }
 
   function handleHome() {
-    console.log('home');
+    emit('goto', '/');
   }
 
   function handleGo() {
-    console.log('go', value.value);
+    const v = value.value.trim();
+    if (!v) {
+      return;
+    }
+
+    if (!props.items.some((item) => item.name === v)) {
+      return;
+    }
+
+    emit('goto', [props.path, value.value].join('/'));
   }
 </script>
 
 <style scoped>
   .address-bar {
-    padding-left: 0;
     padding-right: 0;
+    padding-left: 0;
   }
+
   .address-bar :deep(.arco-input-prefix) {
     padding-right: 4px;
+
+    .address-bar :deep(.arco-input-suffix) {
+      padding: 0;
+    }
   }
+
   .before {
     display: flex;
-    width: 36px;
-    height: 32px;
-    cursor: pointer;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 32px;
     background-color: var(--color-fill-2);
     border-right: 1px solid var(--color-border-2);
+    cursor: pointer;
   }
-  .address-bar :deep(.arco-input-suffix) {
-    padding: 0;
-  }
+
   .after {
     display: flex;
-    width: 36px;
-    height: 32px;
-    cursor: pointer;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 32px;
     border-left: 1px solid var(--color-border-2);
+    cursor: pointer;
   }
+
   .address-bar :deep(.arco-input-clear-btn) {
     margin-right: 10px;
   }
+
   .address-bar :deep(.arco-input) {
     margin-right: 8px;
   }
+
   .breadcrumb {
     margin-left: 4px;
   }
+
   .breadcrumb :deep(.arco-breadcrumb-item.link) {
-    cursor: pointer;
     color: rgb(var(--link-6));
+    cursor: pointer;
   }
+
   .breadcrumb :deep(.arco-breadcrumb-item-separator) {
     margin: 0;
   }
