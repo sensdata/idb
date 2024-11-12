@@ -1,4 +1,4 @@
-import { GroupEntity } from '@/entity/group';
+import { GroupEntity } from '@/entity/Group';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 

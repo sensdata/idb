@@ -51,7 +51,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { getHostListApi } from '@/api/host';
-  import { HostEntity } from '@/entity/host';
+  import { HostEntity } from '@/entity/Host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import HostCreate from './components/create.vue';
 

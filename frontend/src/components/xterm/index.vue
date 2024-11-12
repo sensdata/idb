@@ -38,7 +38,7 @@
     termRef.value = new Terminal({
       lineHeight: 1.2,
       fontSize: 12,
-      fontFamily: "Monaco, Menlo, Consolas, 'Courier New', monospace",
+      fontFamily: "Roboto, Monaco, Menlo, Consolas, 'Courier New', monospace",
       cursorStyle: 'underline',
       cursorBlink: true,
       scrollback: 100,

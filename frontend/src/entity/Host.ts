@@ -1,5 +1,5 @@
 import { BaseEntity } from '@/types/global';
-import { GroupEntity } from './group';
+import { GroupEntity } from './Group';
 
 export interface HostEntity extends BaseEntity {
   created_at: number;

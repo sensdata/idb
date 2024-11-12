@@ -78,7 +78,7 @@
   import { ref, watch, Ref } from 'vue';
   import XTerm from '@/components/xterm/index.vue';
   import { useHostStore } from '@/store';
-  import { HostEntity } from '@/entity/host';
+  import { HostEntity } from '@/entity/Host';
 
   type XTermInstance = InstanceType<typeof XTerm> | undefined;
 

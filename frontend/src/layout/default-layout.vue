@@ -67,7 +67,7 @@
   const route = useRoute();
   const permission = usePermission();
   useResponsive(true);
-  const terminalVisible = ref(true);
+  const terminalVisible = ref(false);
   const navbarHeight = `60px`;
   const isAppRoute = computed(() => route.fullPath.startsWith('/app'));
   const navbar = computed(() => appStore.navbar);

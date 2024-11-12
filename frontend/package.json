@@ -11,7 +11,7 @@
     "preview": "npm run build && vite preview --host",
     "type:check": "vue-tsc --noEmit --skipLibCheck",
     "lint-staged": "npx lint-staged",
-    "prepare": "husky install"
+    "prepare": "cd .. && husky install frontend/.husky"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@arco-design/web-vue": "^2.44.7",
-    "@arco-themes/vue-idb-theme": "^0.0.3",
+    "@arco-themes/vue-idb-theme": "^0.0.6",
     "@vueuse/core": "^9.3.0",
     "@xterm/addon-attach": "^0.11.0",
     "@xterm/addon-fit": "^0.10.0",

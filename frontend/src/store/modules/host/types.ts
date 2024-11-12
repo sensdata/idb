@@ -1,4 +1,4 @@
-import { HostEntity } from '@/entity/host';
+import { HostEntity } from '@/entity/Host';
 
 export interface HostState {
   currentId?: number;

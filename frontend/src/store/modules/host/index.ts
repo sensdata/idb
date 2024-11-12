@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { getHostListApi } from '@/api/host';
-import { HostEntity } from '@/entity/host';
+import { HostEntity } from '@/entity/Host';
 import { HostState } from './types';
 
 const useHostStore = defineStore('host', {

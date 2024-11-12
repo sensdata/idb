@@ -21,6 +21,7 @@ export default {
   'menu.dashboard': '仪表盘',
   'menu.profile': '个人中心',
   'menu.faq': '常见问题',
+  'menu.manage.test': '测试',
   'menu.manage.host': '节点管理',
   'menu.manage.host.list': '节点列表',
   'menu.app.sysinfo': '系统信息',

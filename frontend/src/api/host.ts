@@ -1,4 +1,4 @@
-import { HostEntity } from '@/entity/host';
+import { HostEntity } from '@/entity/Host';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 

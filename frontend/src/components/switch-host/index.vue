@@ -61,7 +61,7 @@
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { HostEntity } from '@/entity/host';
+  import { HostEntity } from '@/entity/Host';
   import { getHostListApi } from '@/api/host';
   import { useHostStore } from '@/store';
   import usetCurrentHost from '@/hooks/current-host';
