@@ -1,0 +1,4 @@
+plugin:
+  name: "Logrotate Management"
+  description: "This module provides the management function of the logrotate configurations."
+  version: "1.0.0"

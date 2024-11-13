@@ -1,0 +1,26 @@
+form:
+  - name: "iDB_crontab_time"
+    label: "Time Rules"
+    key: "Time"
+    type: "string"
+    default: "0 3 * * *"
+    required: true
+    hint: "Specify the time rules setting of the crontab task."
+    validation:
+      pattern: "^([0-5]?\d|\*)\s+([01]?\d|2[0-3]|\*)\s+([1-9]|[12]\d|3[01]|\*)\s+([1-9]|1[0-2]|\*)\s+([0-6]|\*)$"
+
+  - name: "iDB_crontab_user"
+    label: "User"
+    key: "User"
+    type: "string"
+    default: "root"
+    required: true
+    hint: "Specify the user who executes the command."
+
+  - name: "iDB_crontab_cmd"
+    label: "Command to execute"
+    key: "Command"
+    type: "string"
+    default: ""
+    required: true
+    hint: "Specify the commands to be executed."
