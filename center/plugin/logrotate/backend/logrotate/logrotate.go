@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jinzhu/copier"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
@@ -21,92 +22,344 @@ func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.Fo
 		return serviceForm, fmt.Errorf("invalid conf bytes")
 	}
 
-	// 将 standardFormFields 的 key 存入一个集合中以便快速查找
-	validKeys := make(map[string]model.FormField)
+	boolOptions := make(map[string]model.FormField)
+	var pathOption model.FormField
+	var frequencyOption model.FormField
+	var rotateCountOption model.FormField
+	var createOption model.FormField
+	var preRotateOption model.FormField
+	var postRotateOption model.FormField
 	for _, field := range standardFormFields {
-		validKeys[field.Key] = field
+		downCaseKey := strings.ToLower(field.Key)
+		switch downCaseKey {
+		case "path":
+			pathOption = field
+		case "frequency":
+			frequencyOption = field
+		case "count":
+			rotateCountOption = field
+		case "create":
+			createOption = field
+		case "prerotate":
+			preRotateOption = field
+		case "postrotate":
+			postRotateOption = field
+		default:
+			if utils.MatchPattern(
+				downCaseKey,
+				"^(compress|delaycompress|missingok|notifempty)$",
+			) {
+				boolOptions[downCaseKey] = field
+			}
+		}
 	}
 
-	// 按行解析 confBytes
-	lines := strings.Split(string(confBytes), "\n")
+	// 将 confBytes 转换为字符串
+	confContent := string(confBytes)
+
+	// 1. 查找选项起始符和结束符
+	startIndex := strings.Index(confContent, "{")
+	endIndex := strings.LastIndex(confContent, "}")
+
+	if startIndex == -1 || endIndex == -1 || endIndex <= startIndex {
+		return serviceForm, fmt.Errorf("missing option delimiters '{' or '}'")
+	}
+
+	// 2. 获取日志文件路径
+	logPath := strings.TrimSpace(confContent[:startIndex])
+	if logPath == "" {
+		return serviceForm, fmt.Errorf("invalid log file path: %s", logPath)
+	}
+	var pathFormField model.ServiceFormField
+	if err := copier.Copy(&pathFormField, &pathOption); err != nil {
+		LOG.Error("Failed to copy frequencyOption field")
+		return serviceForm, err
+	}
+	pathFormField.Value = logPath
+	serviceForm.Fields = append(serviceForm.Fields, pathFormField)
+
+	// 3. 截取选项内容并按行分割
+	options := confContent[startIndex+1 : endIndex]
+	lines := strings.Split(options, "\n")
+
+	// 4. 解析每一行选项
 	for _, line := range lines {
+		option := strings.TrimSpace(line)
 		// 跳过空行和注释
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+		if option == "" || strings.HasPrefix(option, "#") {
 			continue
 		}
 
-		// 跳过[Unit]这种行
-		if line[0] == '[' && line[len(line)-1] == ']' {
+		// 如果是频率设置
+		if frequencyOption.Validation != nil && utils.MatchPattern(option, frequencyOption.Validation.Pattern) {
+			var serviceFormField model.ServiceFormField
+			if err := copier.Copy(&serviceFormField, &frequencyOption); err != nil {
+				LOG.Error("Failed to copy frequencyOption field")
+				continue
+			}
+			serviceFormField.Value = option
+			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
 			continue
 		}
 
-		// 	// 分割 key=value
-		// 	parts := strings.SplitN(line, "=", 2)
-		// 	if len(parts) != 2 {
-		// 		continue // 如果格式不正确，跳过
-		// 	}
+		// 如果是轮转数量
+		if rotateCountOption.Validation != nil && utils.MatchPattern(option, rotateCountOption.Validation.Pattern) {
+			var serviceFormField model.ServiceFormField
+			if err := copier.Copy(&serviceFormField, &rotateCountOption); err != nil {
+				LOG.Error("Failed to copy rotateCountOption field")
+				continue
+			}
+			serviceFormField.Value = option
+			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
+			continue
+		}
 
-		// 	key := strings.TrimSpace(parts[0])
-		// 	value := strings.TrimSpace(parts[1])
+		// 如果是创建新日志文件
+		if createOption.Validation != nil && utils.MatchPattern(option, createOption.Validation.Pattern) {
+			var serviceFormField model.ServiceFormField
+			if err := copier.Copy(&serviceFormField, &createOption); err != nil {
+				LOG.Error("Failed to copy createOption field")
+				continue
+			}
+			serviceFormField.Value = option
+			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
+			continue
+		}
 
-		// 	// 检查 key 是否在 validKeys 中
-		// 	if formField, exists := validKeys[key]; exists {
-		// 		var serviceFormField model.ServiceFormField
-		// 		if err := copier.Copy(&serviceFormField, &formField); err != nil {
-		// 			LOG.Error("Failed to copy formFields to serviceFormField key=%s, value=%s, error=%v", key, value, err)
-		// 			continue
-		// 		}
-		// 		serviceFormField.Value = value // 设置当前值
-		// 		serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
-		// 	}
+		// 如果是bool选项
+		for _, boolOption := range boolOptions {
+			// 这种选项，用key来承载了写入配置文件的值
+			// 文件中已配置的，或者未配置的，都入列
+			var serviceFormField model.ServiceFormField
+			if err := copier.Copy(&serviceFormField, &boolOption); err != nil {
+				LOG.Error("Failed to copy createOption field")
+				continue
+			}
+			// 如果命中，为true
+			if option == strings.ToLower(boolOption.Key) {
+				serviceFormField.Value = "true"
+			} else {
+				serviceFormField.Value = "false"
+			}
+			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
+		}
 	}
+
+	// 匹配 prerotate 到第一个 endscript
+	preRotateCommand := ""
+	prerotatePattern := `prerotate(.*?)endscript`
+	prerotateRe := regexp.MustCompile(prerotatePattern)
+
+	prerotateMatch := prerotateRe.FindStringSubmatch(confContent)
+	if len(prerotateMatch) > 0 {
+		preRotateCommand = strings.TrimSpace(prerotateMatch[1])
+		if preRotateCommand == ":" {
+			preRotateCommand = ""
+		}
+	}
+	var prerotateFormField model.ServiceFormField
+	if err := copier.Copy(&prerotateFormField, &preRotateOption); err != nil {
+		LOG.Error("Failed to copy preRotateOption field")
+		return serviceForm, err
+	}
+	prerotateFormField.Value = preRotateCommand
+	serviceForm.Fields = append(serviceForm.Fields, prerotateFormField)
+
+	// 匹配 postrotate 到第一个 endscript
+	postRotateCommand := ""
+	postrotatePattern := `postrotate(.*?)endscript`
+	postrotateRe := regexp.MustCompile(postrotatePattern)
+
+	postrotateMatch := postrotateRe.FindStringSubmatch(confContent)
+	if len(postrotateMatch) > 0 {
+		postRotateCommand = strings.TrimSpace(postrotateMatch[1])
+		if postRotateCommand == ":" {
+			postRotateCommand = ""
+		}
+	}
+	var postrotateFormField model.ServiceFormField
+	if err := copier.Copy(&postrotateFormField, &postRotateOption); err != nil {
+		LOG.Error("Failed to copy postRotateOption field")
+		return serviceForm, err
+	}
+	postrotateFormField.Value = postRotateCommand
+	serviceForm.Fields = append(serviceForm.Fields, postrotateFormField)
 
 	return serviceForm, nil
 }
 
-func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue) (string, error) {
+func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, standardFormFields []model.FormField) (string, error) {
 	var newLines []string
 
 	// 构建 keyValues 的查找表
 	keyValuesMap := make(map[string]string)
 	for _, field := range keyValues {
-		keyValuesMap[field.Key] = field.Value
+		keyValuesMap[strings.ToLower(field.Key)] = field.Value
 	}
 
-	// 按行解析 confBytes
-	lines := strings.Split(string(confBytes), "\n")
+	boolOptions := make(map[string]model.FormField)
+	var frequencyOption model.FormField
+	var rotateCountOption model.FormField
+	var createOption model.FormField
+	var preRotateOption model.FormField
+	var postRotateOption model.FormField
+	for _, field := range standardFormFields {
+		downCaseKey := strings.ToLower(field.Key)
+		switch downCaseKey {
+		case "frequency":
+			frequencyOption = field
+		case "count":
+			rotateCountOption = field
+		case "create":
+			createOption = field
+		case "prerotate":
+			preRotateOption = field
+		case "postrotate":
+			postRotateOption = field
+		default:
+			if utils.MatchPattern(
+				downCaseKey,
+				"^(compress|delaycompress|missingok|notifempty)$",
+			) {
+				boolOptions[downCaseKey] = field
+			}
+		}
+	}
+
+	// 将 confBytes 转换为字符串
+	confContent := string(confBytes)
+
+	// 1. 查找选项起始符和结束符
+	startIndex := strings.Index(confContent, "{")
+	endIndex := strings.LastIndex(confContent, "}")
+
+	if startIndex == -1 || endIndex == -1 || endIndex <= startIndex {
+		return strings.Join(newLines, "\n"), fmt.Errorf("missing option delimiters '{' or '}'")
+	}
+
+	// 2. 获取日志文件路径
+	logPath := strings.TrimSpace(confContent[:startIndex])
+	if logPath != "" {
+		newLines = append(newLines, logPath+"{")
+	}
+
+	// 3. 截取选项内容并按行分割
+	options := confContent[startIndex+1 : endIndex]
+	lines := strings.Split(options, "\n")
+
+	// 4. 解析每一行选项
 	for _, line := range lines {
+		option := strings.TrimSpace(line)
 		// 跳过空行和注释
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+		if option == "" || strings.HasPrefix(option, "#") {
 			newLines = append(newLines, line)
 			continue
 		}
 
-		// 	// 跳过类似 "[Unit]" 的节定义行
-		// 	if line[0] == '[' && line[len(line)-1] == ']' {
-		// 		newLines = append(newLines, line)
-		// 		continue
-		// 	}
+		// 如果是频率设置
+		if frequencyOption.Validation != nil && utils.MatchPattern(option, frequencyOption.Validation.Pattern) {
+			// 检查 key 是否在 keyValuesMap 中
+			if newValue, exists := keyValuesMap[strings.ToLower(frequencyOption.Key)]; exists {
+				// 如果 key 存在于 keyValuesMap 中，用新值替换
+				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
+			} else {
+				// 如果 key 不存在于 keyValuesMap 中，保留原始行
+				newLines = append(newLines, line)
+			}
+			continue
+		}
 
-		// 	// 分割 key=value
-		// 	parts := strings.SplitN(line, "=", 2)
-		// 	if len(parts) != 2 {
-		// 		// 如果格式不正确，直接添加原始行
-		// 		newLines = append(newLines, line)
-		// 		continue
-		// 	}
+		// 如果是轮转数量
+		if rotateCountOption.Validation != nil && utils.MatchPattern(option, rotateCountOption.Validation.Pattern) {
+			// 检查 key 是否在 keyValuesMap 中
+			if newValue, exists := keyValuesMap[strings.ToLower(rotateCountOption.Key)]; exists {
+				// 如果 key 存在于 keyValuesMap 中，用新值替换
+				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
+			} else {
+				// 如果 key 不存在于 keyValuesMap 中，保留原始行
+				newLines = append(newLines, line)
+			}
+			continue
+		}
 
-		// 	key := strings.TrimSpace(parts[0])
+		// 如果是创建新日志文件
+		if createOption.Validation != nil && utils.MatchPattern(option, createOption.Validation.Pattern) {
+			// 检查 key 是否在 keyValuesMap 中
+			if newValue, exists := keyValuesMap[strings.ToLower(createOption.Key)]; exists {
+				// 如果 key 存在于 keyValuesMap 中，用新值替换
+				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
+			} else {
+				// 如果 key 不存在于 keyValuesMap 中，保留原始行
+				newLines = append(newLines, line)
+			}
+			continue
+		}
 
-		// 	// 检查 key 是否在 keyValuesMap 中
-		// 	if newValue, exists := keyValuesMap[key]; exists {
-		// 		// 如果 key 存在于 keyValuesMap 中，用新值替换
-		// 		newLine := fmt.Sprintf("%s=%s", key, newValue)
-		// 		newLines = append(newLines, newLine)
-		// 	} else {
-		// 		// 如果 key 不存在于 keyValuesMap 中，保留原始行
-		// 		newLines = append(newLines, line)
-		// 	}
+		// 如果是bool选项
+		// 这种选项，用key来承载了写入配置文件的值
+		// 文件中命中了，入列
+		if _, exists := boolOptions[option]; exists {
+			// 检查 key 是否在 keyValuesMap 中
+			if newValue, exists := keyValuesMap[option]; exists {
+				// 如果 key 存在于 keyValuesMap 中，用新值替换
+				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
+			} else {
+				// 如果 key 不存在于 keyValuesMap 中，保留原始行
+				newLines = append(newLines, line)
+			}
+			continue
+		}
+	}
+
+	// 匹配 prerotate 到第一个 endscript
+	prerotatePattern := `prerotate(.*?)endscript`
+	prerotateRe := regexp.MustCompile(prerotatePattern)
+	prerotateMatch := prerotateRe.FindStringSubmatch(confContent)
+	if len(prerotateMatch) > 0 {
+		preRotateCommand := strings.TrimSpace(prerotateMatch[1])
+		newLines = append(newLines, "prerotate")
+		// 检查 key 是否在 keyValuesMap 中
+		if newValue, exists := keyValuesMap[strings.ToLower(preRotateOption.Key)]; exists {
+			// 如果 key 存在于 keyValuesMap 中，用新值替换
+			if newValue == "" {
+				newLines = append(newLines, ":")
+			} else {
+				newLines = append(newLines, newValue)
+			}
+		} else {
+			// 如果 key 不存在于 keyValuesMap 中，保留原始行
+			newLines = append(newLines, preRotateCommand)
+		}
+		newLines = append(newLines, "endscript")
+	}
+
+	// 匹配 postrotate 到第一个 endscript
+	postrotatePattern := `postrotate(.*?)endscript`
+	postrotateRe := regexp.MustCompile(postrotatePattern)
+	postrotateMatch := postrotateRe.FindStringSubmatch(confContent)
+	if len(postrotateMatch) > 0 {
+		postRotateCommand := strings.TrimSpace(postrotateMatch[1])
+		newLines = append(newLines, "postrotate")
+		// 检查 key 是否在 keyValuesMap 中
+		if newValue, exists := keyValuesMap[strings.ToLower(postRotateOption.Key)]; exists {
+			// 如果 key 存在于 keyValuesMap 中，用新值替换
+			if newValue == "" {
+				newLines = append(newLines, ":")
+			} else {
+				newLines = append(newLines, newValue)
+			}
+		} else {
+			// 如果 key 不存在于 keyValuesMap 中，保留原始行
+			newLines = append(newLines, postRotateCommand)
+		}
+		newLines = append(newLines, "endscript")
+	}
+
+	// 结尾
+	newLines = append(newLines, "}")
+	// 选项行添加空格
+	for i := 1; i < len(newLines)-1; i++ {
+		newLines[i] = "    " + newLines[i] // 添加四个空格
 	}
 
 	// 将 newLines 转换成单个字符串
@@ -265,7 +518,7 @@ func (s *LogRotate) getConfList(req model.QueryGitFile) (*model.PageResult, erro
 		HostID:       req.HostID,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
-		Extension:    ".conf;.linked", //筛选.conf.linked
+		Extension:    ".logrotate;.linked", //筛选.logrotate.linked
 		Page:         req.Page,
 		PageSize:     req.PageSize,
 	}
@@ -325,9 +578,9 @@ func (s *LogRotate) getForm(req model.GetGitFileDetail) (*model.ServiceForm, err
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
 		HostID:       req.HostID,
@@ -425,7 +678,7 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 	// conf内容: templateService
 	confBytes := templateService
 	// 将conf内容中的相关字段替换value
-	newContent, err := replaceValuesInServiceBytes(confBytes, req.Form)
+	newContent, err := replaceValuesInServiceBytes(confBytes, req.Form, s.form.Fields)
 	if err != nil {
 		LOG.Error("Failed to replace conf content: %v", err)
 		return constant.ErrInternalServer
@@ -440,9 +693,9 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitCreate := model.GitCreate{
 		HostID:       req.HostID,
@@ -534,9 +787,9 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
 		HostID:       req.HostID,
@@ -584,7 +837,7 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 	// conf内容
 	confBytes := []byte(gitFile.Content)
 	// 将conf内容中的相关字段替换value
-	newContent, err := replaceValuesInServiceBytes(confBytes, req.Form)
+	newContent, err := replaceValuesInServiceBytes(confBytes, req.Form, s.form.Fields)
 	if err != nil {
 		LOG.Error("Failed to replace conf content: %v", err)
 		return constant.ErrInternalServer
@@ -687,9 +940,9 @@ func (s *LogRotate) getContent(req model.GetGitFileDetail) (*model.GitFile, erro
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
 		HostID:       req.HostID,
@@ -747,9 +1000,9 @@ func (s *LogRotate) update(req model.UpdateGitFile) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitUpdate := model.GitUpdate{
 		HostID:       req.HostID,
@@ -854,9 +1107,9 @@ func (s *LogRotate) restore(req model.RestoreGitFile) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitRestore := model.GitRestore{
 		HostID:       req.HostID,
@@ -910,9 +1163,9 @@ func (s *LogRotate) getConfLog(req model.GitFileLog) (*model.PageResult, error) 
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitLog := model.GitLog{
 		HostID:       req.HostID,
@@ -971,9 +1224,9 @@ func (s *LogRotate) getConfDiff(req model.GitFileDiff) (string, error) {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 	gitDiff := model.GitDiff{
 		HostID:       req.HostID,
@@ -1026,9 +1279,9 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 	}
 	var relativePath string
 	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".conf")
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
 	} else {
-		relativePath = req.Name + ".conf"
+		relativePath = req.Name + ".logrotate"
 	}
 
 	// 检查repo
@@ -1042,7 +1295,8 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 	// conf file name
 	confName := filepath.Base(confPath)
 	// conf link file path
-	confLinkPath := filepath.Join("/etc/logrotate.d", confName)
+	confLinkName := fmt.Sprintf("iDB_%s", strings.TrimSuffix(confName, ".logrotate")) // 链接命名使用 iDB 前缀，且不带后缀
+	confLinkPath := filepath.Join("/etc/logrotate.d", confLinkName)
 
 	switch req.Action {
 	case "activate":

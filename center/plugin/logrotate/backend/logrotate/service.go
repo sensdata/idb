@@ -250,7 +250,7 @@ func (s *LogRotate) CreateContent(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req, ".conf")
+	err := s.create(req, ".logrotate")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -463,7 +463,7 @@ func (s *LogRotate) Delete(c *gin.Context) {
 		Name:     name,
 	}
 
-	err = s.delete(req, ".conf")
+	err = s.delete(req, ".logrotate")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

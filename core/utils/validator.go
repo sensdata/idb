@@ -83,3 +83,15 @@ func checkPasswordPattern(fl validator.FieldLevel) bool {
 
 	return false
 }
+
+func MatchPattern(option string, pattern string) bool {
+	if pattern == "" {
+		return true
+	}
+
+	// 编译正则表达式
+	re := regexp.MustCompile(pattern)
+
+	// 使用正则表达式进行匹配
+	return re.MatchString(option)
+}
