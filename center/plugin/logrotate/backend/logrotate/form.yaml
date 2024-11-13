@@ -19,14 +19,18 @@ form:
     default: "daily"
     required: true
     hint: "Specify the frequency of log rotation."
+    validation:
+      pattern: "^(daily|weekly|monthly|yearly)$"
 
   - name: "iDB_logrotate_count"
     label: "Rotate count"
     key: "Count"
-    type: "integer"
-    default: "5"
+    type: "string"
+    default: "rotate 5"
     required: true
     hint: "Specify the number of rotated log files retained."
+    validation:
+      pattern: "^rotate\s+(\d+)$"
 
   - name: "iDB_logrotate_compress"
     label: "Compress"
@@ -44,29 +48,15 @@ form:
     required: false
     hint: "Specify whether to delay compression. Used together with Compress."
 
-  - name: "iDB_logrotate_create_mode"
-    label: "New log file mode"
-    key: "CreateMode"
-    type: "integer"
-    default: "0644"
-    required: false
-    hint: "Specify the file mode for creating new log file after rotation."
-
-  - name: "iDB_logrotate_create_owner"
-    label: "New log file owner"
-    key: "CreateOwner"
+  - name: "iDB_logrotate_create_mode_owner_group"
+    label: "New log file mode, owner, group"
+    key: "Create"
     type: "string"
-    default: "root"
+    default: "0644 root root"
     required: false
-    hint: "Specify the file owner for creating new log file after rotation. Used together with CreateMode"
-
-  - name: "iDB_logrotate_create_group"
-    label: "New log file group"
-    key: "CreateGroup"
-    type: "string"
-    default: "root"
-    required: false
-    hint: "Specify the file mode for creating new log file after rotation. Used together with CreateOwner"
+    hint: "Specify the file mode, owner and group for creating new log file after rotation."
+    validation:
+      pattern: "^create\s+(\d{4})\s+(\S+)\s+(\S+)$"
 
   - name: "iDB_logrotate_missing_ok"
     label: "Ignore missing log files"
@@ -84,17 +74,17 @@ form:
     required: false
     hint: "Specify whether rotation should not be performed when the log file is empty."
 
-  - name: "iDB_logrotate_pre"
+  - name: "iDB_logrotate_pre_cmd"
     label: "Command to execute before log rotation"
-    key: "PreCommand"
+    key: "PreRotate"
     type: "string"
     default: ""
     required: false
     hint: "Specify the commands to be executed before log rotation."
 
-  - name: "iDB_logrotate_post"
+  - name: "iDB_logrotate_post_cmd"
     label: "Command to execute after log rotation"
-    key: "PostCommand"
+    key: "PostRotate"
     type: "string"
     default: ""
     required: false
