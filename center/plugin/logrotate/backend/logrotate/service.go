@@ -626,7 +626,7 @@ func (s *LogRotate) GetConfDiff(c *gin.Context) {
 // @Description Execute conf actions
 // @Accept json
 // @Produce json
-// @Param request body model.ConfAction true "Conf action details"
+// @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
 // @Router /logrotate/action [post]
 func (s *LogRotate) ConfAction(c *gin.Context) {
