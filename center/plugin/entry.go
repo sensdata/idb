@@ -2,7 +2,9 @@ package plugin
 
 import (
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/plugin/crontab/backend/crontab"
 	"github.com/sensdata/idb/center/plugin/fileman/backend/fileman"
+	"github.com/sensdata/idb/center/plugin/logrotate/backend/logrotate"
 	"github.com/sensdata/idb/center/plugin/script/backend/scriptman"
 	"github.com/sensdata/idb/center/plugin/service/backend/serviceman"
 	"github.com/sensdata/idb/center/plugin/ssh/backend/sshman"
@@ -23,6 +25,10 @@ func RegisterPlugins() {
 	conn.RegisterIdbPlugin(&scriptman.ScriptMan{})
 	// 注册service
 	conn.RegisterIdbPlugin(&serviceman.ServiceMan{})
+	// 注册logrotate
+	conn.RegisterIdbPlugin(&logrotate.LogRotate{})
+	// 注册crontab
+	conn.RegisterIdbPlugin(&crontab.CronTab{})
 
 	// 执行所有模块的初始化
 	conn.InitializePlugins()
