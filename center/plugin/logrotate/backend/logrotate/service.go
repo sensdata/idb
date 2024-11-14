@@ -40,7 +40,7 @@ var confYAML []byte
 //go:embed form.yaml
 var formYaml []byte
 
-//go:embed template.conf
+//go:embed template.logrotate
 var templateService []byte
 
 func (s *LogRotate) Initialize() {
@@ -137,7 +137,7 @@ func (s *LogRotate) Release() {
 
 }
 
-// @Tags File
+// @Tags Logrotate
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
@@ -153,7 +153,7 @@ func (s *LogRotate) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags File
+// @Tags Logrotate
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json

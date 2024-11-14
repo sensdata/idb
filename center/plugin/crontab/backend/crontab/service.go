@@ -40,7 +40,7 @@ var confYAML []byte
 //go:embed form.yaml
 var formYaml []byte
 
-//go:embed template.conf
+//go:embed template.crontab
 var templateService []byte
 
 func (s *CronTab) Initialize() {
@@ -137,7 +137,7 @@ func (s *CronTab) Release() {
 
 }
 
-// @Tags File
+// @Tags Crontab
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
@@ -153,7 +153,7 @@ func (s *CronTab) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags File
+// @Tags Crontab
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json

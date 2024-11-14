@@ -112,7 +112,7 @@ func (s *ScriptMan) Release() {
 
 }
 
-// @Tags File
+// @Tags Script
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
@@ -128,7 +128,7 @@ func (s *ScriptMan) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags File
+// @Tags Script
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json

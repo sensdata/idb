@@ -137,7 +137,7 @@ func (s *ServiceMan) Release() {
 
 }
 
-// @Tags File
+// @Tags Service
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
@@ -153,7 +153,7 @@ func (s *ServiceMan) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags File
+// @Tags Service
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json
