@@ -30,7 +30,7 @@ form:
     required: true
     hint: "Specify the number of rotated log files retained."
     validation:
-      pattern: "^rotate\s+(\d+)$"
+      pattern: "^rotate\\s+(\\d+)$"
 
   - name: "iDB_logrotate_compress"
     label: "Compress"
@@ -56,7 +56,7 @@ form:
     required: false
     hint: "Specify the file mode, owner and group for creating new log file after rotation."
     validation:
-      pattern: "^create\s+(\d{4})\s+(\S+)\s+(\S+)$"
+      pattern: "^create\\s+(\\d{4})\\s+(\\S+)\\s+(\\S+)$"
 
   - name: "iDB_logrotate_missing_ok"
     label: "Ignore missing log files"
