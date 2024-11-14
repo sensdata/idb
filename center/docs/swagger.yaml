@@ -47,15 +47,6 @@ definitions:
       user:
         type: string
     type: object
-  model.Action:
-    properties:
-      action:
-        type: string
-      data:
-        type: string
-      result:
-        type: boolean
-    type: object
   model.AddressInfo:
     properties:
       gate:
@@ -77,22 +68,6 @@ definitions:
         type: string
     required:
     - password
-    type: object
-  model.Command:
-    properties:
-      command:
-        type: string
-      host_id:
-        type: integer
-    type: object
-  model.CommandGroup:
-    properties:
-      commands:
-        items:
-          type: string
-        type: array
-      host_id:
-        type: integer
     type: object
   model.CreateGitFile:
     properties:
@@ -514,13 +489,6 @@ definitions:
         type: array
       processor:
         description: 线程数
-        type: integer
-    type: object
-  model.HostAction:
-    properties:
-      action:
-        $ref: '#/definitions/model.Action'
-      host_id:
         type: integer
     type: object
   model.HostInfo:
@@ -1175,28 +1143,6 @@ info:
   title: IDB API Documentation
   version: "1.0"
 paths:
-  /actions:
-    post:
-      consumes:
-      - application/json
-      description: 向目标设备发送action指令
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.HostAction'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.HostAction'
-      summary: send action command to host
-      tags:
-      - Action
   /auth/sessions:
     delete:
       consumes:
@@ -1237,46 +1183,6 @@ paths:
       summary: User login
       tags:
       - Auth
-  /commands:
-    post:
-      consumes:
-      - application/json
-      description: 向目标设备发送linux指令
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.Command'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: send linux command to host
-      tags:
-      - Command
-  /commands/group:
-    post:
-      consumes:
-      - application/json
-      description: 向目标设备发送一组linux指令
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.CommandGroup'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: send group of linux commands to host
-      tags:
-      - Command
   /crontab:
     delete:
       consumes:
@@ -3805,7 +3711,7 @@ paths:
           description: OK
       summary: run systemctl start/stop/restart service commands
       tags:
-      - SystemCtl
+      - Sysctl
   /sysctl/info:
     get:
       consumes:

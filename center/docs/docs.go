@@ -24,40 +24,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/actions": {
-            "post": {
-                "description": "向目标设备发送action指令",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Action"
-                ],
-                "summary": "send action command to host",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.HostAction"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.HostAction"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/sessions": {
             "post": {
                 "description": "用户登录",
@@ -110,68 +76,6 @@ const docTemplate = `{
                         "name": "token",
                         "in": "header",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/commands": {
-            "post": {
-                "description": "向目标设备发送linux指令",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Command"
-                ],
-                "summary": "send linux command to host",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.Command"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/commands/group": {
-            "post": {
-                "description": "向目标设备发送一组linux指令",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Command"
-                ],
-                "summary": "send group of linux commands to host",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.CommandGroup"
-                        }
                     }
                 ],
                 "responses": {
@@ -3972,7 +3876,7 @@ const docTemplate = `{
             "post": {
                 "description": "运行systemctl的服务启动相关命令",
                 "tags": [
-                    "SystemCtl"
+                    "Sysctl"
                 ],
                 "summary": "run systemctl start/stop/restart service commands",
                 "responses": {
@@ -4581,20 +4485,6 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Action": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string"
-                },
-                "data": {
-                    "type": "string"
-                },
-                "result": {
-                    "type": "boolean"
-                }
-            }
-        },
         "model.AddressInfo": {
             "type": "object",
             "properties": {
@@ -4624,31 +4514,6 @@ const docTemplate = `{
             "properties": {
                 "password": {
                     "type": "string"
-                }
-            }
-        },
-        "model.Command": {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "model.CommandGroup": {
-            "type": "object",
-            "properties": {
-                "commands": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "host_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -5271,17 +5136,6 @@ const docTemplate = `{
                 },
                 "processor": {
                     "description": "线程数",
-                    "type": "integer"
-                }
-            }
-        },
-        "model.HostAction": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "$ref": "#/definitions/model.Action"
-                },
-                "host_id": {
                     "type": "integer"
                 }
             }
