@@ -161,6 +161,7 @@ definitions:
       type:
         type: string
     required:
+    - form
     - host_id
     - name
     - type
@@ -561,6 +562,9 @@ definitions:
         type: string
       value:
         type: string
+    required:
+    - key
+    - value
     type: object
   model.KeyValueForUpdate:
     properties:
@@ -572,6 +576,8 @@ definitions:
         type: string
     required:
     - key
+    - new_value
+    - old_value
     type: object
   model.LoadState:
     properties:
@@ -1090,6 +1096,7 @@ definitions:
       type:
         type: string
     required:
+    - form
     - host_id
     - name
     - type
@@ -1270,6 +1277,382 @@ paths:
       summary: send group of linux commands to host
       tags:
       - Command
+  /crontab:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete conf file
+      tags:
+      - Crontab
+    get:
+      consumes:
+      - application/json
+      description: Get custom crontab conf file list in work dir
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List crontab conf files
+      tags:
+      - Crontab
+  /crontab/action:
+    post:
+      consumes:
+      - application/json
+      description: Execute conf actions
+      parameters:
+      - description: Conf action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceAction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Execute conf actions
+      tags:
+      - Crontab
+  /crontab/diff:
+    get:
+      consumes:
+      - application/json
+      description: Get conf diff compare to specfied version
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Commit hash
+        in: query
+        name: commit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf diff
+      tags:
+      - Crontab
+  /crontab/form:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a conf file in form mode.
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name. If this parameter is left empty, return template
+          data.
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceForm'
+      summary: Get conf file in form mode
+      tags:
+      - Crontab
+    post:
+      consumes:
+      - application/json
+      description: Create a new conf file in form mode.
+      parameters:
+      - description: Form details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create conf file in form mode
+      tags:
+      - Crontab
+    put:
+      consumes:
+      - application/json
+      description: Save the details of a conf file in form mode. This will fully overwrite
+        the original file content with the submitted data.
+      parameters:
+      - description: Conf file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save conf file in form mode
+      tags:
+      - Crontab
+  /crontab/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Crontab
+  /crontab/log:
+    get:
+      consumes:
+      - application/json
+      description: Get histories of a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get conf histories
+      tags:
+      - Crontab
+  /crontab/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Crontab
+  /crontab/raw:
+    get:
+      consumes:
+      - application/json
+      description: Get content of a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf file content
+      tags:
+      - Crontab
+    post:
+      consumes:
+      - application/json
+      description: Create a new conf file
+      parameters:
+      - description: Conf file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create conf file
+      tags:
+      - Crontab
+    put:
+      consumes:
+      - application/json
+      description: Save the content of a conf file
+      parameters:
+      - description: Conf file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save conf file content
+      tags:
+      - Crontab
+  /crontab/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore conf file to specified version
+      parameters:
+      - description: Conf file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore conf file
+      tags:
+      - Crontab
   /files:
     delete:
       consumes:
@@ -2107,6 +2490,381 @@ paths:
       summary: get host group list
       tags:
       - Host
+  /logrotate:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete conf file
+      tags:
+      - Logrotate
+    get:
+      consumes:
+      - application/json
+      description: Get custom logrotate conf file list in work dir
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List logrotate conf files
+      tags:
+      - Logrotate
+  /logrotate/action:
+    post:
+      consumes:
+      - application/json
+      description: Execute conf actions
+      parameters:
+      - description: Conf action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceAction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Execute conf actions
+      tags:
+      - Logrotate
+  /logrotate/diff:
+    get:
+      consumes:
+      - application/json
+      description: Get conf diff compare to specfied version
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Commit hash
+        in: query
+        name: commit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf diff
+      tags:
+      - Logrotate
+  /logrotate/form:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a conf file in form mode.
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name. If this parameter is left empty, return template
+          data.
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceForm'
+      summary: Get conf file in form mode
+      tags:
+      - Logrotate
+    post:
+      consumes:
+      - application/json
+      description: Create a new conf file in form mode
+      parameters:
+      - description: Form details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create conf file in form mode
+      tags:
+      - Logrotate
+    put:
+      consumes:
+      - application/json
+      description: Save the details of a conf file in form mode
+      parameters:
+      - description: Conf file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateServiceForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save conf file in form mode
+      tags:
+      - Logrotate
+  /logrotate/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Logrotate
+  /logrotate/log:
+    get:
+      consumes:
+      - application/json
+      description: Get histories of a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get conf histories
+      tags:
+      - Logrotate
+  /logrotate/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Logrotate
+  /logrotate/raw:
+    get:
+      consumes:
+      - application/json
+      description: Get content of a conf file
+      parameters:
+      - description: Host ID
+        in: query
+        name: host_id
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf file content
+      tags:
+      - Logrotate
+    post:
+      consumes:
+      - application/json
+      description: Create a new conf file
+      parameters:
+      - description: Conf file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create conf file
+      tags:
+      - Logrotate
+    put:
+      consumes:
+      - application/json
+      description: Save the content of a conf file
+      parameters:
+      - description: Conf file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save conf file content
+      tags:
+      - Logrotate
+  /logrotate/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore conf file to specified version
+      parameters:
+      - description: Conf file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore conf file
+      tags:
+      - Logrotate
   /scripts:
     delete:
       consumes:
@@ -2306,7 +3064,7 @@ paths:
             $ref: '#/definitions/plugin.PluginInfo'
       summary: Get plugin info
       tags:
-      - File
+      - Script
   /scripts/log:
     get:
       consumes:
@@ -2368,7 +3126,7 @@ paths:
             type: array
       summary: Get plugin menu
       tags:
-      - File
+      - Script
   /scripts/restore:
     put:
       consumes:
@@ -2651,7 +3409,7 @@ paths:
             $ref: '#/definitions/plugin.PluginInfo'
       summary: Get plugin info
       tags:
-      - File
+      - Service
   /services/log:
     get:
       consumes:
@@ -2713,7 +3471,7 @@ paths:
             type: array
       summary: Get plugin menu
       tags:
-      - File
+      - Service
   /services/raw:
     get:
       consumes:
@@ -2752,7 +3510,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: CreateContent a new service file or category
+      description: CreateContent a new service file
       parameters:
       - description: Service file creation details
         in: body
@@ -2765,7 +3523,7 @@ paths:
       responses:
         "200":
           description: OK
-      summary: CreateContent service file or category
+      summary: Create service file
       tags:
       - Service
     put:
