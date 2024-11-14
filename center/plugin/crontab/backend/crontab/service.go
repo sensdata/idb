@@ -626,7 +626,7 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 // @Description Execute conf actions
 // @Accept json
 // @Produce json
-// @Param request body model.ConfAction true "Conf action details"
+// @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
 // @Router /crontab/action [post]
 func (s *CronTab) ConfAction(c *gin.Context) {
