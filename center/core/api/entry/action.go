@@ -6,14 +6,6 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-// @Tags Action
-// @Summary send action command to host
-// @Description 向目标设备发送action指令
-// @Accept json
-// @Produce json
-// @Param request body model.HostAction true "request"
-// @Success 200 {object} model.HostAction
-// @Router /actions [post]
 func (b *BaseApi) SendAction(c *gin.Context) {
 	var req model.HostAction
 	if err := CheckBindAndValidate(&req, c); err != nil {

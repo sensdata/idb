@@ -131,7 +131,7 @@ func (s *SystemCtl) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
 }
 
-// @Tags SystemCtl
+// @Tags Sysctl
 // @Summary run systemctl start/stop/restart service commands
 // @Description 运行systemctl的服务启动相关命令
 // @Success 200
