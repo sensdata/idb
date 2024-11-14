@@ -380,7 +380,7 @@ func (s *CronTab) GetForm(c *gin.Context) {
 
 // @Tags Crontab
 // @Summary Create conf file in form mode
-// @Description Create a new conf file in form mode
+// @Description Create a new conf file in form mode.
 // @Accept json
 // @Produce json
 // @Param request body model.CreateServiceForm true "Form details"
@@ -401,7 +401,7 @@ func (s *CronTab) CreateForm(c *gin.Context) {
 
 // @Tags Crontab
 // @Summary Save conf file in form mode
-// @Description Save the details of a conf file in form mode
+// @Description Save the details of a conf file in form mode. This will fully overwrite the original file content with the submitted data.
 // @Accept json
 // @Produce json
 // @Param request body model.UpdateServiceForm true "Conf file edit details"
