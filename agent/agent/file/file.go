@@ -145,7 +145,13 @@ func (f *FileService) Create(op model.FileCreate) error {
 		}
 		return fo.LinkFile(op.LinkPath, op.Source, op.IsSymlink)
 	}
-	return fo.CreateFileWithMode(op.Source, fs.FileMode(mode))
+	if err := fo.CreateFileWithMode(op.Source, fs.FileMode(mode)); err != nil {
+		return err
+	}
+	if op.Content != "" {
+		return fo.WriteFile(op.Source, strings.NewReader(op.Content), fs.FileMode(mode))
+	}
+	return nil
 }
 
 func (f *FileService) Delete(op model.FileDelete) error {
