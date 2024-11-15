@@ -354,6 +354,8 @@ func (s *CronTab) createForm(req model.CreateServiceForm) error {
 						LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
@@ -361,6 +363,8 @@ func (s *CronTab) createForm(req model.CreateServiceForm) error {
 						LOG.Error("Value %s does not has valid length for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 			}
 		} else {
@@ -454,6 +458,8 @@ func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
 						LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
@@ -461,6 +467,8 @@ func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
 						LOG.Error("Value %s does not has valid length for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 			}
 		} else {
