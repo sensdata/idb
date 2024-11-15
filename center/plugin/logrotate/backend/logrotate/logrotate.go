@@ -198,6 +198,7 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	}
 
 	boolOptions := make(map[string]model.FormField)
+	var pathOption model.FormField
 	var frequencyOption model.FormField
 	var rotateCountOption model.FormField
 	var createOption model.FormField
@@ -206,6 +207,8 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	for _, field := range standardFormFields {
 		downCaseKey := strings.ToLower(field.Key)
 		switch downCaseKey {
+		case "path":
+			pathOption = field
 		case "frequency":
 			frequencyOption = field
 		case "count":
@@ -240,7 +243,14 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	// 2. 获取日志文件路径
 	logPath := strings.TrimSpace(confContent[:startIndex])
 	if logPath != "" {
-		newLines = append(newLines, logPath+"{")
+		// 检查 key 是否在 keyValuesMap 中
+		if newValue, exists := keyValuesMap[strings.ToLower(pathOption.Key)]; exists {
+			// 如果 key 存在于 keyValuesMap 中，用新值替换
+			newLines = append(newLines, newValue+"{")
+		} else {
+			// 如果 key 不存在于 keyValuesMap 中，保留原始行
+			newLines = append(newLines, logPath+"{")
+		}
 	}
 
 	// 3. 截取选项内容并按行分割
@@ -301,8 +311,10 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 		if _, exists := boolOptions[option]; exists {
 			// 检查 key 是否在 keyValuesMap 中
 			if newValue, exists := keyValuesMap[option]; exists {
-				// 如果 key 存在于 keyValuesMap 中，用新值替换
-				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
+				// 如果是true，则保留，否则不添加
+				if newValue == "true" {
+					newLines = append(newLines, line)
+				}
 			} else {
 				// 如果 key 不存在于 keyValuesMap 中，保留原始行
 				newLines = append(newLines, line)
@@ -359,7 +371,8 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	newLines = append(newLines, "}")
 	// 选项行添加空格
 	for i := 1; i < len(newLines)-1; i++ {
-		newLines[i] = "    " + newLines[i] // 添加四个空格
+		newLine := strings.TrimSpace(newLines[i])
+		newLines[i] = "    " + newLine // 添加四个空格
 	}
 
 	// 将 newLines 转换成单个字符串
@@ -659,6 +672,8 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 						LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
@@ -666,6 +681,8 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 						LOG.Error("Value %s does not has valid length for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 			}
 		} else {
@@ -761,6 +778,8 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 						LOG.Error("Value %s does not match the required pattern for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
@@ -768,6 +787,8 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 						LOG.Error("Value %s does not has valid length for key %s", item.Value, item.Key)
 						return fmt.Errorf("invalid value for key %s", item.Key)
 					}
+					// 校验通过
+					continue
 				}
 			}
 		} else {
