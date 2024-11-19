@@ -1,0 +1,3 @@
+conf:
+  work_dir: "/var/lib/idb/data/docker"
+  log_dir: "/var/log/idb"
