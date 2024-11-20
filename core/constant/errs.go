@@ -46,6 +46,14 @@ var (
 	ErrCmdNotFound = "ErrCmdNotFound"
 )
 
+// common
+var (
+	ErrInUsed       = "ErrInUsed"
+	ErrObjectInUsed = "ErrObjectInUsed"
+	ErrPortInUsed   = "ErrPortInUsed"
+	ErrPortRules    = "ErrPortRules"
+)
+
 // file
 var (
 	ErrPathNotFound     = "ErrPathNotFound"
@@ -65,4 +73,9 @@ var (
 // json
 var (
 	ErrJSONMarshal = errors.New("ErrJSONMarshal")
+)
+
+// docker
+var (
+	ErrContainerName = "ErrContainerName"
 )

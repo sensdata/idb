@@ -6,7 +6,7 @@ func (s *DockerMan) getNetworks(hostID uint64) (*model.PageResult, error) {
 	return nil, nil
 }
 
-func (s *DockerMan) createNetwork(hostID uint64, req model.CreateNetwork) error {
+func (s *DockerMan) createNetwork(hostID uint64, req model.NetworkCreate) error {
 	return nil
 }
 

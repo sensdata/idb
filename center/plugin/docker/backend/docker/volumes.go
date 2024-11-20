@@ -6,7 +6,7 @@ func (s *DockerMan) getVolumes(hostID uint64) (*model.PageResult, error) {
 	return nil, nil
 }
 
-func (s *DockerMan) createVolume(hostID uint64, req model.CreateVolume) error {
+func (s *DockerMan) createVolume(hostID uint64, req model.VolumeCreate) error {
 	return nil
 }
 

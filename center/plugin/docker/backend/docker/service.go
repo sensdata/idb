@@ -246,7 +246,7 @@ func (s *DockerMan) CreateContainer(c *gin.Context) {
 		return
 	}
 
-	var req model.CreateContainer
+	var req model.ContainerOperate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -338,7 +338,7 @@ func (s *DockerMan) UpdateContainer(c *gin.Context) {
 		return
 	}
 
-	var req model.UpdateContainer
+	var req model.ContainerOperate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -393,25 +393,25 @@ func (s *DockerMan) DeleteContainer(c *gin.Context) {
 // @Success 200 {object} model.ContainerLog
 // @Router /containers/:host/:id/log [get]
 func (s *DockerMan) GetContainerLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
+	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	// if err != nil {
+	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+	// 	return
+	// }
 
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
+	// containerID := c.Param("id")
+	// if containerID == "" {
+	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
+	// 	return
+	// }
 
-	result, err := s.getContainerLog(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
+	// result, err := s.getContainerLog(hostID, containerID)
+	// if err != nil {
+	// 	helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+	// 	return
+	// }
 
-	helper.SuccessWithData(c, result)
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Docker
@@ -704,7 +704,7 @@ func (s *DockerMan) PruneImage(c *gin.Context) {
 		return
 	}
 
-	var req model.PruneImage
+	var req model.Prune
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -734,7 +734,7 @@ func (s *DockerMan) PullImage(c *gin.Context) {
 		return
 	}
 
-	var req model.PullImage
+	var req model.ImagePull
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -764,7 +764,7 @@ func (s *DockerMan) ImportImage(c *gin.Context) {
 		return
 	}
 
-	var req model.ImportImage
+	var req model.ImageLoad
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -794,7 +794,7 @@ func (s *DockerMan) BuildImage(c *gin.Context) {
 		return
 	}
 
-	var req model.BuildImage
+	var req model.ImageBuild
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -888,7 +888,7 @@ func (s *DockerMan) PushImage(c *gin.Context) {
 		return
 	}
 
-	var req model.PushImage
+	var req model.ImagePush
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -925,7 +925,7 @@ func (s *DockerMan) ExportImage(c *gin.Context) {
 		return
 	}
 
-	var req model.ExportImage
+	var req model.ImageSave
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -962,7 +962,7 @@ func (s *DockerMan) SetImageTag(c *gin.Context) {
 		return
 	}
 
-	var req model.SetImageTag
+	var req model.ImageTag
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -1049,7 +1049,7 @@ func (s *DockerMan) CreateVolume(c *gin.Context) {
 		return
 	}
 
-	var req model.CreateVolume
+	var req model.VolumeCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -1191,7 +1191,7 @@ func (s *DockerMan) CreateNetwork(c *gin.Context) {
 		return
 	}
 
-	var req model.CreateNetwork
+	var req model.NetworkCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -1289,4 +1289,36 @@ func (s *DockerMan) DeleteNetwork(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, nil)
+}
+
+func (s *DockerMan) sendCommand(hostId uint, command string) (*model.CommandResult, error) {
+	var commandResult model.CommandResult
+
+	commandRequest := model.Command{
+		HostID:  hostId,
+		Command: command,
+	}
+
+	var commandResponse model.CommandResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(commandRequest).
+		SetResult(&commandResponse).
+		Post("/commands")
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	LOG.Info("cmd response: %v", commandResponse)
+
+	commandResult = commandResponse.Data
+
+	return &commandResult, nil
 }
