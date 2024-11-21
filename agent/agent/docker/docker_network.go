@@ -5,38 +5,38 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-func (u *ContainerService) VolumePage(req model.SearchPageInfo) (*model.PageResult, error) {
+func (s *DockerService) NetworkPage(req model.SearchPageInfo) (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return &model.PageResult{}, err
 	}
 	defer client.Close()
-	return client.VolumePage(req)
+	return client.NetworkPage(req)
 }
 
-func (u *ContainerService) VolumeList() ([]model.Options, error) {
+func (s *DockerService) NetworkList() ([]model.Options, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return nil, err
 	}
 	defer client.Close()
-	return client.VolumeList()
+	return client.NetworkList()
 }
 
-func (u *ContainerService) VolumeDelete(req model.BatchDelete) error {
+func (s *DockerService) NetworkDelete(req model.BatchDelete) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-	return client.VolumeDelete(req)
+	return client.NetworkDelete(req)
 }
 
-func (u *ContainerService) VolumeCreate(req model.VolumeCreate) error {
+func (s *DockerService) NetworkCreate(req model.NetworkCreate) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
 	}
 	defer client.Close()
-	return client.VolumeCreate(req)
+	return client.NetworkCreate(req)
 }

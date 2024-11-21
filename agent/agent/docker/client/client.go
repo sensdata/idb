@@ -440,11 +440,11 @@ func (c DockerClient) simplifyPort(ports []types.Port) []string {
 	return datas
 }
 
-func (c DockerClient) loadCpuAndMem(container string) model.ContainerResourceUsage {
+func (c DockerClient) loadCpuAndMem(containerID string) model.ContainerResourceUsage {
 	data := model.ContainerResourceUsage{
-		ContainerID: container,
+		ContainerID: containerID,
 	}
-	res, err := c.cli.ContainerStats(context.Background(), container, false)
+	res, err := c.cli.ContainerStats(context.Background(), containerID, false)
 	if err != nil {
 		return data
 	}
@@ -454,7 +454,7 @@ func (c DockerClient) loadCpuAndMem(container string) model.ContainerResourceUsa
 	if err != nil {
 		return data
 	}
-	var stats *types.StatsJSON
+	var stats *container.StatsResponse
 	if err := json.Unmarshal(body, &stats); err != nil {
 		return data
 	}
@@ -516,7 +516,7 @@ func (c DockerClient) loadConfigInfo(isCreate bool, req model.ContainerOperate, 
 		}
 	} else {
 		if req.Ipv4 != "" || req.Ipv6 != "" {
-			return nil, nil, nil, fmt.Errorf("Please set up the network")
+			return nil, nil, nil, fmt.Errorf("please set up the network")
 		}
 		networkConf = network.NetworkingConfig{}
 	}

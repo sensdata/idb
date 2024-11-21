@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -20,85 +19,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
-type ContainerService struct{}
-
-type IContainerService interface {
-	Inspect(req model.Inspect) (string, error)
-	Prune(req model.Prune) (*model.PruneResult, error)
-
-	ContainerQuery(req model.QueryContainer) (*model.PageResult, error)
-	ContainerNames() ([]string, error)
-	ContainerCreate(req model.ContainerOperate) error
-	ContainerUpdate(req model.ContainerOperate) error
-	ContainerUpgrade(req model.ContainerUpgrade) error
-	ContainerInfo(containerID string) (*model.ContainerOperate, error)
-	ContainerResourceUsage() ([]model.ContainerResourceUsage, error)
-	ContainerResourceLimit() (*model.ContainerResourceLimit, error)
-	ContainerStats(id string) (*model.ContainerStats, error)
-	ContainerRename(req model.Rename) error
-	ContainerLogClean(containerID string) error
-	ContainerOperation(req model.ContainerOperation) error
-	ContainerLogs(wsConn *websocket.Conn, containerType, container, since, tail string, follow bool) error
-
-	// ComposePage(req model.SearchPageInfo) (int64, interface{}, error)
-	// ComposeCreate(req model.ComposeCreate) (string, error)
-	// ComposeOperation(req model.ComposeOperation) error
-	// ComposeTest(req model.ComposeCreate) (bool, error)
-	// ComposeUpdate(req model.ComposeUpdate) error
-
-	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)
-	ImageList() ([]model.Options, error)
-	ImageBuild(req model.ImageBuild) (string, error)
-	ImagePull(req model.ImagePull) (string, error)
-	ImageLoad(req model.ImageLoad) error
-	ImageSave(req model.ImageSave) error
-	ImagePush(req model.ImagePush) (string, error)
-	ImageRemove(req model.BatchDelete) error
-	ImageTag(req model.ImageTag) error
-
-	VolumePage(req model.SearchPageInfo) (*model.PageResult, error)
-	VolumeList() ([]model.Options, error)
-	VolumeDelete(req model.BatchDelete) error
-	VolumeCreate(req model.VolumeCreate) error
-
-	NetworkPage(req model.SearchPageInfo) (*model.PageResult, error)
-	NetworkList() ([]model.Options, error)
-	NetworkDelete(req model.BatchDelete) error
-	NetworkCreate(req model.NetworkCreate) error
-}
-
-func NewIContainerService() IContainerService {
-	return &ContainerService{}
-}
-
-func (u *ContainerService) Inspect(req model.Inspect) (string, error) {
-	client, err := client.NewClient()
-	if err != nil {
-		return "", err
-	}
-	defer client.Close()
-
-	inspectInfo, err := client.Inspect(req)
-	if err != nil {
-		return "", err
-	}
-	bytes, err := json.Marshal(inspectInfo)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-func (u *ContainerService) Prune(req model.Prune) (*model.PruneResult, error) {
-	client, err := client.NewClient()
-	if err != nil {
-		return &model.PruneResult{}, err
-	}
-	defer client.Close()
-	return client.Prune(req)
-}
-
-func (u *ContainerService) ContainerQuery(req model.QueryContainer) (*model.PageResult, error) {
+func (s *DockerService) ContainerQuery(req model.QueryContainer) (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return &model.PageResult{}, err
@@ -107,7 +28,7 @@ func (u *ContainerService) ContainerQuery(req model.QueryContainer) (*model.Page
 	return client.ContainerQuery(req)
 }
 
-func (u *ContainerService) ContainerNames() ([]string, error) {
+func (s *DockerService) ContainerNames() ([]string, error) {
 	var names []string
 	client, err := client.NewClient()
 	if err != nil {
@@ -117,7 +38,7 @@ func (u *ContainerService) ContainerNames() ([]string, error) {
 	return client.ContainerNames()
 }
 
-func (u *ContainerService) ContainerCreate(req model.ContainerOperate) error {
+func (s *DockerService) ContainerCreate(req model.ContainerOperate) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -126,7 +47,7 @@ func (u *ContainerService) ContainerCreate(req model.ContainerOperate) error {
 	return client.ContainerCreate(req, global.LOG)
 }
 
-func (u *ContainerService) ContainerUpdate(req model.ContainerOperate) error {
+func (s *DockerService) ContainerUpdate(req model.ContainerOperate) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -135,7 +56,7 @@ func (u *ContainerService) ContainerUpdate(req model.ContainerOperate) error {
 	return client.ContainerUpdate(req, global.LOG)
 }
 
-func (u *ContainerService) ContainerUpgrade(req model.ContainerUpgrade) error {
+func (s *DockerService) ContainerUpgrade(req model.ContainerUpgrade) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -144,7 +65,7 @@ func (u *ContainerService) ContainerUpgrade(req model.ContainerUpgrade) error {
 	return client.ContainerUpgrade(req, global.LOG)
 }
 
-func (u *ContainerService) ContainerInfo(containerID string) (*model.ContainerOperate, error) {
+func (s *DockerService) ContainerInfo(containerID string) (*model.ContainerOperate, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return nil, err
@@ -153,7 +74,7 @@ func (u *ContainerService) ContainerInfo(containerID string) (*model.ContainerOp
 	return client.ContainerInfo(containerID)
 }
 
-func (u *ContainerService) ContainerResourceUsage() ([]model.ContainerResourceUsage, error) {
+func (s *DockerService) ContainerResourceUsage() ([]model.ContainerResourceUsage, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return nil, err
@@ -162,7 +83,7 @@ func (u *ContainerService) ContainerResourceUsage() ([]model.ContainerResourceUs
 	return client.ContainerResourceUsage()
 }
 
-func (u *ContainerService) ContainerResourceLimit() (*model.ContainerResourceLimit, error) {
+func (s *DockerService) ContainerResourceLimit() (*model.ContainerResourceLimit, error) {
 	cpuCounts, err := cpu.Counts(true)
 	if err != nil {
 		return nil, fmt.Errorf("load cpu limit failed, err: %v", err)
@@ -179,7 +100,7 @@ func (u *ContainerService) ContainerResourceLimit() (*model.ContainerResourceLim
 	return &data, nil
 }
 
-func (u *ContainerService) ContainerStats(id string) (*model.ContainerStats, error) {
+func (s *DockerService) ContainerStats(id string) (*model.ContainerStats, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return nil, err
@@ -188,7 +109,7 @@ func (u *ContainerService) ContainerStats(id string) (*model.ContainerStats, err
 	return client.ContainerStats(id)
 }
 
-func (u *ContainerService) ContainerRename(req model.Rename) error {
+func (s *DockerService) ContainerRename(req model.Rename) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -197,7 +118,7 @@ func (u *ContainerService) ContainerRename(req model.Rename) error {
 	return client.ContainerRename(req)
 }
 
-func (u *ContainerService) ContainerLogClean(containerID string) error {
+func (s *DockerService) ContainerLogClean(containerID string) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -206,7 +127,7 @@ func (u *ContainerService) ContainerLogClean(containerID string) error {
 	return client.ContainerLogClean(containerID)
 }
 
-func (u *ContainerService) ContainerOperation(req model.ContainerOperation) error {
+func (s *DockerService) ContainerOperation(req model.ContainerOperation) error {
 	client, err := client.NewClient()
 	if err != nil {
 		return err
@@ -215,7 +136,7 @@ func (u *ContainerService) ContainerOperation(req model.ContainerOperation) erro
 	return client.ContainerOperation(req)
 }
 
-func (u *ContainerService) ContainerLogs(wsConn *websocket.Conn, containerType, container, since, tail string, follow bool) error {
+func (s *DockerService) ContainerLogs(wsConn *websocket.Conn, containerType, container, since, tail string, follow bool) error {
 	defer func() { wsConn.Close() }()
 	if utils.CheckIllegal(container, since, tail) {
 		return errors.New(constant.ErrCmdIllegal)

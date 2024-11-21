@@ -1,6 +1,6 @@
 package docker
 
-// func (u *ContainerService) ComposePage(req model.SearchPageInfo) (int64, interface{}, error) {
+// func (s *DockerService) ComposePage(req model.SearchPageInfo) (int64, interface{}, error) {
 // 	var (
 // 		records   []model.ComposeInfo
 // 		BackDatas []model.ComposeInfo
@@ -99,7 +99,7 @@ package docker
 // 	return int64(total), BackDatas, nil
 // }
 
-// func (u *ContainerService) TestCompose(req model.ComposeCreate) (bool, error) {
+// func (s *DockerService) TestCompose(req model.ComposeCreate) (bool, error) {
 // 	if utils.CheckIllegal(req.Path) {
 // 		return false, errors.New(constant.ErrCmdIllegal)
 // 	}
@@ -118,7 +118,7 @@ package docker
 // 	return true, nil
 // }
 
-// func (u *ContainerService) CreateCompose(req model.ComposeCreate) (string, error) {
+// func (s *DockerService) CreateCompose(req model.ComposeCreate) (string, error) {
 // 	if utils.CheckIllegal(req.Name, req.Path) {
 // 		return "", errors.New(constant.ErrCmdIllegal)
 // 	}
@@ -162,7 +162,7 @@ package docker
 // 	return path.Base(logItem), nil
 // }
 
-// func (u *ContainerService) ComposeOperation(req model.ComposeOperation) error {
+// func (s *DockerService) ComposeOperation(req model.ComposeOperation) error {
 // 	if utils.CheckIllegal(req.Path, req.Operation) {
 // 		return errors.New(constant.ErrCmdIllegal)
 // 	}
@@ -183,7 +183,7 @@ package docker
 // 	return nil
 // }
 
-// func (u *ContainerService) ComposeUpdate(req model.ComposeUpdate) error {
+// func (s *DockerService) ComposeUpdate(req model.ComposeUpdate) error {
 // 	if utils.CheckIllegal(req.Name, req.Path) {
 // 		return errors.New(constant.ErrCmdIllegal)
 // 	}
@@ -217,7 +217,7 @@ package docker
 // 	return nil
 // }
 
-// func (u *ContainerService) loadPath(req *model.ComposeCreate) error {
+// func (s *DockerService) loadPath(req *model.ComposeCreate) error {
 // 	if req.From == "template" || req.From == "edit" {
 // 		dir := fmt.Sprintf("%s/docker/compose/%s", constant.DataDir, req.Name)
 // 		if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {

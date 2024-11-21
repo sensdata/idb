@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/core/constant"
@@ -33,14 +32,14 @@ func (c DockerClient) NetworkPage(req model.SearchPageInfo) (*model.PageResult, 
 	}
 	var (
 		data    []model.Network
-		records []types.NetworkResource
+		records []network.Inspect
 	)
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Created.Before(list[j].Created)
 	})
 	total, start, end := len(list), (req.Page-1)*req.PageSize, req.Page*req.PageSize
 	if start > total {
-		records = make([]types.NetworkResource, 0)
+		records = make([]network.Inspect, 0)
 	} else {
 		if end >= total {
 			end = total
