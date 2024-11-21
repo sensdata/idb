@@ -61,12 +61,10 @@ type PruneResult struct {
 // container
 type QueryContainer struct {
 	PageInfo
-	Name            string `json:"name"`
-	State           string `json:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
-	OrderBy         string `json:"order_by"`
-	Order           string `json:"order"`
-	Filters         string `json:"filters"`
-	ExcludeAppStore bool   `json:"exclude_app_store"`
+	Name    string `json:"name"`
+	State   string `json:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
+	OrderBy string `json:"order_by"`
+	Order   string `json:"order"`
 }
 
 type ContainerInfo struct {
@@ -81,8 +79,7 @@ type ContainerInfo struct {
 	Network []string `json:"network"`
 	Ports   []string `json:"ports"`
 
-	IsFromApp     bool `json:"is_from_app"`
-	IsFromCompose bool `json:"is_from_compose"`
+	From string `json:"from"`
 
 	// AppName        string   `json:"app_name"`
 	// AppInstallName string   `json:"app_install_name"`

@@ -320,3 +320,14 @@ func SplitStr(str string, spi ...string) []string {
 func IsValidIP(ip string) bool {
 	return net.ParseIP(ip) != nil
 }
+
+func StringsToMap(list []string) map[string]string {
+	var labelMap = make(map[string]string)
+	for _, label := range list {
+		if strings.Contains(label, "=") {
+			sps := strings.SplitN(label, "=", 2)
+			labelMap[sps[0]] = sps[1]
+		}
+	}
+	return labelMap
+}
