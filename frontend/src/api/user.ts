@@ -19,9 +19,5 @@ export function logout() {
 }
 
 export function getUserInfo() {
-  return {
-    name: 'admin',
-    role: 'admin',
-  };
-  // return request.post<UserState>('user/info');
+  return request.post<UserState>('user/info');
 }
