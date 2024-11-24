@@ -18,6 +18,10 @@
 </script>
 
 <style scoped>
+  .file-tree {
+    padding-left: 8px;
+  }
+
   .file-tree:hover :deep(.tree-level-line) {
     background-color: var(--color-border-2);
   }

@@ -1,7 +1,7 @@
 <template>
   <div
     class="tree-item-container"
-    :class="{ selected: selected === item.path }"
+    :class="{ selected: selected === item.path, ['level-' + level]: true }"
     :style="{ paddingLeft: level * 8 + 'px' }"
     @click="handleClick"
   >
@@ -68,7 +68,7 @@
       });
       Object.assign(props.item, { open: true });
       setLoading(false);
-    }, 3000);
+    }, 1000);
   }
 
   function handleToggle() {
@@ -97,19 +97,33 @@
 
 <style scoped>
   .tree-item-container {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     height: 32px;
-    overflow: hidden;
     line-height: 32px;
     border-radius: 4px;
     cursor: pointer;
   }
 
-  .tree-item-container:hover,
+  .tree-item-container:hover {
+    background-color: var(--color-fill-1);
+  }
+
   .tree-item-container.selected {
     background-color: var(--color-fill-2);
+  }
+
+  .tree-item-container.selected::before {
+    position: absolute;
+    top: 12.5%;
+    left: -8px;
+    width: 4px;
+    height: 75%;
+    background-color: rgb(var(--primary-6));
+    border-radius: 11px;
+    content: '';
   }
 
   .tree-item-toggle {
@@ -123,6 +137,10 @@
     justify-content: center;
     width: 16px;
     height: 100%;
+  }
+
+  .level-0 .tree-item-toggle span {
+    border-radius: 4px 0 0 4px;
   }
 
   .tree-item-toggle span:hover {
