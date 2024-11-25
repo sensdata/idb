@@ -28,11 +28,10 @@ func (s *DockerService) ContainerQuery(req model.QueryContainer) (*model.PageRes
 	return client.ContainerQuery(req)
 }
 
-func (s *DockerService) ContainerNames() ([]string, error) {
-	var names []string
+func (s *DockerService) ContainerNames() (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return names, err
+		return &model.PageResult{}, err
 	}
 	defer client.Close()
 	return client.ContainerNames()
@@ -74,10 +73,10 @@ func (s *DockerService) ContainerInfo(containerID string) (*model.ContainerOpera
 	return client.ContainerInfo(containerID)
 }
 
-func (s *DockerService) ContainerResourceUsage() ([]model.ContainerResourceUsage, error) {
+func (s *DockerService) ContainerResourceUsage() (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return nil, err
+		return &model.PageResult{}, err
 	}
 	defer client.Close()
 	return client.ContainerResourceUsage()

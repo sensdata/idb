@@ -1,23 +1,128 @@
 package docker
 
-import "github.com/sensdata/idb/core/model"
+import (
+	"fmt"
 
-func (s *DockerMan) getVolumes(hostID uint64) (*model.PageResult, error) {
-	return nil, nil
+	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
+)
+
+func (s *DockerMan) getVolumes(hostID uint64, req model.SearchPageInfo) (*model.PageResult, error) {
+	var result model.PageResult
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Volume_Page,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to query volumes")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to volumes result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (s *DockerMan) volumeNames(hostID uint64) (*model.PageResult, error) {
+	var result model.PageResult
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Volume_List,
+			Data:   "",
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to query volume names")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to volume names result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (s *DockerMan) deleteVolume(hostID uint64, req model.BatchDelete) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Volume_Delete,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to remove volumes")
+	}
+
+	return nil
 }
 
 func (s *DockerMan) createVolume(hostID uint64, req model.VolumeCreate) error {
-	return nil
-}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
 
-func (s *DockerMan) pruneVolume(hostID uint64) error {
-	return nil
-}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Volume_Create,
+			Data:   data,
+		},
+	}
 
-func (s *DockerMan) getVolume(hostID uint64, volumeID string) (*model.Volume, error) {
-	return nil, nil
-}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
 
-func (s *DockerMan) deleteVolume(hostID uint64, volumeID string) error {
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to create volume")
+	}
+
 	return nil
 }

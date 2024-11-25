@@ -12,15 +12,15 @@ import (
 	"github.com/sensdata/idb/core/shell"
 )
 
-func (c DockerClient) LoadDockerStatus() string {
+func (c DockerClient) LoadDockerStatus() (*model.DockerStatus, error) {
 	if _, err := c.cli.Ping(context.Background()); err != nil {
-		return constant.Stopped
+		return &model.DockerStatus{Status: constant.Stopped}, err
 	}
 
-	return constant.StatusRunning
+	return &model.DockerStatus{Status: constant.StatusRunning}, nil
 }
 
-func (c DockerClient) LoadDockerConf() *model.DaemonJsonConf {
+func (c DockerClient) LoadDockerConf() (*model.DaemonJsonConf, error) {
 	ctx := context.Background()
 	var data model.DaemonJsonConf
 	data.IPTables = true
@@ -39,24 +39,24 @@ func (c DockerClient) LoadDockerConf() *model.DaemonJsonConf {
 		data.IsSwarm = true
 	}
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil {
-		return &data
+		return &data, err
 	}
 	file, err := os.ReadFile(constant.DaemonJsonPath)
 	if err != nil {
-		return &data
+		return &data, err
 	}
 	var conf daemonJsonItem
 	daemonMap := make(map[string]interface{})
 	if err := json.Unmarshal(file, &daemonMap); err != nil {
-		return &data
+		return &data, err
 	}
 	arr, err := json.Marshal(daemonMap)
 	if err != nil {
-		return &data
+		return &data, err
 	}
 	if err := json.Unmarshal(arr, &conf); err != nil {
 		fmt.Println(err)
-		return &data
+		return &data, err
 	}
 	if _, ok := daemonMap["iptables"]; !ok {
 		conf.IPTables = true
@@ -78,5 +78,5 @@ func (c DockerClient) LoadDockerConf() *model.DaemonJsonConf {
 	data.Registries = conf.Registries
 	data.IPTables = conf.IPTables
 	data.LiveRestore = conf.LiveRestore
-	return &data
+	return &data, nil
 }

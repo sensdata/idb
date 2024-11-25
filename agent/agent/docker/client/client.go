@@ -68,7 +68,12 @@ func (c DockerClient) Close() {
 	_ = c.cli.Close()
 }
 
-func (c DockerClient) Inspect(req model.Inspect) (interface{}, error) {
+func (c DockerClient) Inspect(req model.Inspect) (*model.InspectResult, error) {
+	result := model.InspectResult{
+		Type: req.Type,
+		ID:   req.ID,
+	}
+
 	var inspectInfo interface{}
 	var err error
 	switch req.Type {
@@ -82,9 +87,16 @@ func (c DockerClient) Inspect(req model.Inspect) (interface{}, error) {
 		inspectInfo, err = c.cli.VolumeInspect(context.TODO(), req.ID)
 	}
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
-	return inspectInfo, nil
+
+	bytes, err := json.Marshal(inspectInfo)
+	if err != nil {
+		return &result, err
+	}
+	result.Info = string(bytes)
+
+	return &result, nil
 }
 
 func (c DockerClient) Prune(req model.Prune) (*model.PruneResult, error) {

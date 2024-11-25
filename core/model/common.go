@@ -7,9 +7,9 @@ type PageInfo struct {
 
 type SearchPageInfo struct {
 	PageInfo
-	Info    string `json:"info"`
-	OrderBy string `json:"order_by"`
-	Order   string `json:"order"`
+	Info    string `form:"info"`
+	OrderBy string `form:"order_by"`
+	Order   string `form:"order"`
 }
 
 type PageResult struct {

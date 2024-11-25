@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/sensdata/idb/agent/agent/docker/client"
+	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
@@ -19,24 +20,24 @@ import (
 type DockerService struct{}
 
 type IDockerService interface {
-	DockerStatus() string
-	DockerConf() *model.DaemonJsonConf
+	DockerStatus() (*model.DockerStatus, error)
+	DockerConf() (*model.DaemonJsonConf, error)
 	DockerUpdateConf(req model.KeyValue) error
-	DockerUpdateConfByFile(info model.DaemonJsonUpdateByFile) error
+	DockerUpdateConfByFile(req model.DaemonJsonUpdateByFile) error
 	DockerUpdateLogOption(req model.LogOption) error
 	DockerUpdateIpv6Option(req model.Ipv6Option) error
 	DockerOperation(req model.DockerOperation) error
 
-	Inspect(req model.Inspect) (string, error)
+	Inspect(req model.Inspect) (*model.InspectResult, error)
 	Prune(req model.Prune) (*model.PruneResult, error)
 
 	ContainerQuery(req model.QueryContainer) (*model.PageResult, error)
-	ContainerNames() ([]string, error)
+	ContainerNames() (*model.PageResult, error)
 	ContainerCreate(req model.ContainerOperate) error
 	ContainerUpdate(req model.ContainerOperate) error
 	ContainerUpgrade(req model.ContainerUpgrade) error
 	ContainerInfo(containerID string) (*model.ContainerOperate, error)
-	ContainerResourceUsage() ([]model.ContainerResourceUsage, error)
+	ContainerResourceUsage() (*model.PageResult, error)
 	ContainerResourceLimit() (*model.ContainerResourceLimit, error)
 	ContainerStats(id string) (*model.ContainerStats, error)
 	ContainerRename(req model.Rename) error
@@ -51,22 +52,22 @@ type IDockerService interface {
 	// ComposeUpdate(req model.ComposeUpdate) error
 
 	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)
-	ImageList() ([]model.Options, error)
-	ImageBuild(req model.ImageBuild) (string, error)
-	ImagePull(req model.ImagePull) (string, error)
-	ImageLoad(req model.ImageLoad) error
+	ImageList() (*model.PageResult, error)
+	ImageBuild(req model.ImageBuild) (*model.ImageOperationResult, error)
+	ImagePull(req model.ImagePull) (*model.ImageOperationResult, error)
+	ImageLoad(req model.ImageLoad) (*model.ImageOperationResult, error)
 	ImageSave(req model.ImageSave) error
-	ImagePush(req model.ImagePush) (string, error)
+	ImagePush(req model.ImagePush) (*model.ImageOperationResult, error)
 	ImageRemove(req model.BatchDelete) error
 	ImageTag(req model.ImageTag) error
 
 	VolumePage(req model.SearchPageInfo) (*model.PageResult, error)
-	VolumeList() ([]model.Options, error)
+	VolumeList() (*model.PageResult, error)
 	VolumeDelete(req model.BatchDelete) error
 	VolumeCreate(req model.VolumeCreate) error
 
 	NetworkPage(req model.SearchPageInfo) (*model.PageResult, error)
-	NetworkList() ([]model.Options, error)
+	NetworkList() (*model.PageResult, error)
 	NetworkDelete(req model.BatchDelete) error
 	NetworkCreate(req model.NetworkCreate) error
 }
@@ -75,25 +76,26 @@ func NewIDockerService() IDockerService {
 	return &DockerService{}
 }
 
-func (s *DockerService) DockerStatus() string {
+func (s *DockerService) DockerStatus() (*model.DockerStatus, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return constant.Stopped
+		return &model.DockerStatus{Status: constant.Stopped}, err
 	}
 	defer client.Close()
 	return client.LoadDockerStatus()
 }
 
-func (s *DockerService) DockerConf() *model.DaemonJsonConf {
+func (s *DockerService) DockerConf() (*model.DaemonJsonConf, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer client.Close()
 	return client.LoadDockerConf()
 }
 
 func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
+	global.LOG.Info("upd conf start")
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(path.Dir(constant.DaemonJsonPath), os.ModePerm); err != nil {
 			return err
@@ -168,6 +170,7 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 		_ = os.Remove(constant.DaemonJsonPath)
 		return nil
 	}
+	global.LOG.Info("upd conf")
 	newJson, err := json.MarshalIndent(daemonMap, "", "\t")
 	if err != nil {
 		return err
@@ -175,11 +178,13 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 	if err := os.WriteFile(constant.DaemonJsonPath, newJson, 0640); err != nil {
 		return err
 	}
-
-	stdout, err := shell.ExecuteCommand("systemctl restart docker")
-	if err != nil {
-		return errors.New(string(stdout))
-	}
+	global.LOG.Info("restart docker")
+	go func() {
+		stdout, err := shell.ExecuteCommand("systemctl restart docker")
+		if err != nil {
+			global.LOG.Error(string(stdout))
+		}
+	}()
 	return nil
 }
 
@@ -203,10 +208,12 @@ func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateByFile)
 	_, _ = write.WriteString(req.File)
 	write.Flush()
 
-	stdout, err := shell.ExecuteCommand("systemctl restart docker")
-	if err != nil {
-		return errors.New(string(stdout))
-	}
+	go func() {
+		stdout, err := shell.ExecuteCommand("systemctl restart docker")
+		if err != nil {
+			global.LOG.Error(string(stdout))
+		}
+	}()
 	return nil
 }
 
@@ -238,10 +245,12 @@ func (s *DockerService) DockerUpdateLogOption(req model.LogOption) error {
 		return err
 	}
 
-	stdout, err := shell.ExecuteCommand("systemctl restart docker")
-	if err != nil {
-		return errors.New(string(stdout))
-	}
+	go func() {
+		stdout, err := shell.ExecuteCommand("systemctl restart docker")
+		if err != nil {
+			global.LOG.Error(string(stdout))
+		}
+	}()
 	return nil
 }
 
@@ -280,10 +289,12 @@ func (s *DockerService) DockerUpdateIpv6Option(req model.Ipv6Option) error {
 		return err
 	}
 
-	stdout, err := shell.ExecuteCommand("systemctl restart docker")
-	if err != nil {
-		return errors.New(string(stdout))
-	}
+	go func() {
+		stdout, err := shell.ExecuteCommand("systemctl restart docker")
+		if err != nil {
+			global.LOG.Error(string(stdout))
+		}
+	}()
 	return nil
 }
 
@@ -299,22 +310,13 @@ func (s *DockerService) DockerOperation(req model.DockerOperation) error {
 	return nil
 }
 
-func (s *DockerService) Inspect(req model.Inspect) (string, error) {
+func (s *DockerService) Inspect(req model.Inspect) (*model.InspectResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return "", err
+		return &model.InspectResult{Type: req.Type, ID: req.ID}, err
 	}
 	defer client.Close()
-
-	inspectInfo, err := client.Inspect(req)
-	if err != nil {
-		return "", err
-	}
-	bytes, err := json.Marshal(inspectInfo)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
+	return client.Inspect(req)
 }
 
 func (s *DockerService) Prune(req model.Prune) (*model.PruneResult, error) {

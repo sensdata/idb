@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
@@ -110,50 +111,55 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 			// {Method: "GET", Path: "/apps", Handler: s.GetApps}, // 获取应用列表
+			// docker
+			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},              // 获取docker状态
+			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},                  // 获取docker配置
+			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},            // 更新docker配置
+			{Method: "PUT", Path: "/:host/conf/file", Handler: s.DockerUpdateConfByFile}, // 更新docker配置
+			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},        // 日志设置
+			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},      // ipv6设置
+			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},       // 操作docker服务
+			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},                  // 获取信息（container image volume network）
+			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                     // 清理（container image volume network buildcache）
 
 			// containers
-			{Method: "GET", Path: "/containers/:host", Handler: s.GetContainers},                      // 获取容器列表
-			{Method: "POST", Path: "/containers/:host", Handler: s.CreateContainer},                   // 创建容器
-			{Method: "POST", Path: "/containers/:host/prune", Handler: s.PruneContainer},              // 清理容器
-			{Method: "GET", Path: "/containers/:host/:id", Handler: s.GetContainer},                   // 获取容器详情
-			{Method: "PUT", Path: "/containers/:host/:id", Handler: s.UpdateContainer},                // 编辑容器
-			{Method: "DELETE", Path: "/containers/:host/:id", Handler: s.DeleteContainer},             // 删除容器
-			{Method: "GET", Path: "/containers/:host/:id/log", Handler: s.GetContainerLog},            // 获取容器日志
-			{Method: "GET", Path: "/containers/:host/:id/status", Handler: s.GetContainerStatus},      // 获取容器监控数据
-			{Method: "POST", Path: "/containers/:host/:id/upgrade", Handler: s.UpgradeContainer},      // 升级容器
-			{Method: "POST", Path: "/containers/:host/:id/start", Handler: s.StartContainer},          // 启动容器
-			{Method: "POST", Path: "/containers/:host/:id/stop", Handler: s.StopContainer},            // 停止容器
-			{Method: "POST", Path: "/containers/:host/:id/stop/force", Handler: s.ForceStopContainer}, // 强制停止容器
-			{Method: "POST", Path: "/containers/:host/:id/reboot", Handler: s.RebootContainer},        // 暂停容器
-			{Method: "POST", Path: "/containers/:host/:id/pause", Handler: s.PauseContainer},          // 暂停容器
-			{Method: "POST", Path: "/containers/:host/:id/resume", Handler: s.ResumeContainer},        // 恢复容器
+			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                  // 获取容器列表
+			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},            // 获取容器名列表
+			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},          // 获取容器资源占用
+			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},            // 获取容器资源限制
+			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},                // 创建容器
+			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},                 // 编辑容器
+			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},       // 升级容器
+			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},         // 重命名容器
+			{Method: "POST", Path: "/:host/containers/operatetion", Handler: s.ContainerOperation}, // 操作容器
+
+			{Method: "GET", Path: "/:host/containers/:id", Handler: s.ContainerInfo},            // 获取容器详情
+			{Method: "GET", Path: "/:host/containers/:id/stats", Handler: s.ContainerStats},     // 获取容器监控数据
+			{Method: "DELETE", Path: "/:host/containers/:id/log", Handler: s.ContainerLogClean}, // 清理容器日志
+			{Method: "GET", Path: "/:host/containers/:id/log", Handler: s.ContainerLogs},        // 获取容器日志
 
 			// images
-			{Method: "GET", Path: "/images/:host", Handler: s.GetImages},               // 获取镜像列表
-			{Method: "POST", Path: "/images/:host/prune", Handler: s.PruneImage},       // 清理镜像
-			{Method: "POST", Path: "/images/:host/pull", Handler: s.PullImage},         // 拉取镜像
-			{Method: "POST", Path: "/images/:host/import", Handler: s.ImportImage},     // 导入镜像
-			{Method: "POST", Path: "/images/:host/build", Handler: s.BuildImage},       // 构建镜像
-			{Method: "POST", Path: "/images/:host/build/clean", Handler: s.CleanBuild}, // 清理构建缓存
-			{Method: "GET", Path: "/images/:host/:id", Handler: s.GetImage},            // 获取镜像详情
-			{Method: "POST", Path: "/images/:host/:id/push", Handler: s.PushImage},     // 推送镜像
-			{Method: "POST", Path: "/images/:host/:id/export", Handler: s.ExportImage}, // 导出镜像
-			{Method: "PUT", Path: "/images/:host/:id/tag", Handler: s.SetImageTag},     // 设置镜像标签
-			{Method: "DELETE", Path: "/images/:host/:id", Handler: s.DeleteImage},      // 删除镜像
+			{Method: "GET", Path: "/:host/images", Handler: s.ImagePage},         // 获取镜像列表
+			{Method: "GET", Path: "/:host/images/names", Handler: s.ImageNames},  // 获取镜像名列表
+			{Method: "POST", Path: "/:host/images/build", Handler: s.ImageBuild}, // 构建镜像
+			{Method: "POST", Path: "/:host/images/pull", Handler: s.ImagePull},   // 拉取镜像
+			{Method: "POST", Path: "/:host/images/push", Handler: s.ImagePush},   // 推送镜像
+			{Method: "POST", Path: "/:host/images/import", Handler: s.ImageLoad}, // 导入镜像
+			{Method: "POST", Path: "/:host/images/export", Handler: s.ImageSave}, // 导出镜像
+			{Method: "DELETE", Path: "/:host/images", Handler: s.ImageRemove},    // 批量删除镜像
+			{Method: "PUT", Path: "/:host/images/tag", Handler: s.ImageTag},      // 设置镜像标签
 
 			// volumes
-			{Method: "GET", Path: "/volumes/:host", Handler: s.GetVolumes},          // 获取卷列表
-			{Method: "POST", Path: "/volumes/:host", Handler: s.CreateVolume},       // 创建卷
-			{Method: "POST", Path: "/volumes/:host/prune", Handler: s.PruneVolume},  // 清理卷
-			{Method: "GET", Path: "/volumes/:host/:id", Handler: s.GetVolume},       // 获取卷详情
-			{Method: "DELETE", Path: "/volumes/:host/:id", Handler: s.DeleteVolume}, // 删除卷
+			{Method: "GET", Path: "/:host/volumes", Handler: s.VolumePage},        // 获取卷列表
+			{Method: "GET", Path: "/:host/volumes/names", Handler: s.VolumeNames}, // 获取卷名列表
+			{Method: "DELETE", Path: "/:host/volumes", Handler: s.VolumeDelete},   // 批量删除卷
+			{Method: "POST", Path: "/:host/volumes", Handler: s.VolumeCreate},     // 创建卷
 
 			// networks
-			{Method: "GET", Path: "/networks/:host", Handler: s.GetNetworks},          // 获取网络列表
-			{Method: "POST", Path: "/networks/:host", Handler: s.CreateNetwork},       // 创建网络
-			{Method: "POST", Path: "/networks/:host/prune", Handler: s.PruneNetwork},  // 清理网络
-			{Method: "GET", Path: "/networks/:host/:id", Handler: s.GetNetwork},       // 获取网络详情
-			{Method: "DELETE", Path: "/networks/:host/:id", Handler: s.DeleteNetwork}, // 删除网络
+			{Method: "GET", Path: "/:host/networks", Handler: s.NetworkPage},        // 获取网络列表
+			{Method: "GET", Path: "/:host/networks/names", Handler: s.NetworkNames}, // 获取网络列表
+			{Method: "DELETE", Path: "/:host/networks", Handler: s.NetworkDelete},   // 批量删除网络
+			{Method: "POST", Path: "/:host/networks", Handler: s.NetworkCreate},     // 创建网络
 		},
 	)
 
@@ -162,6 +168,29 @@ func (s *DockerMan) Initialize() {
 
 func (s *DockerMan) Release() {
 
+}
+
+func (s *DockerMan) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("/actions") // 修改URL路径
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("received error response: %s", resp.Status())
+		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	LOG.Info("action response: %v", actionResponse)
+
+	return &actionResponse, nil
 }
 
 // @Tags Docker
@@ -205,23 +234,374 @@ func (s *DockerMan) getMenus() ([]plugin.MenuItem, error) {
 }
 
 // @Tags Docker
-// @Summary List containers
-// @Description 获取容器列表
+// @Summary Docker status
+// @Description Get docker status
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param page query int true "Page number"
-// @Param page_size query int true "Page size"
-// @Success 200 {object} model.PageResult
-// @Router /containers/:host [get]
-func (s *DockerMan) GetContainers(c *gin.Context) {
+// @Success 200 {object} model.DockerStatus
+// @Router /:host/status [get]
+func (s *DockerMan) DockerStatus(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	result, err := s.getContainers(hostID)
+	result, err := s.dockerStatus(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Docker configurations
+// @Description Get docker configurations
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.DaemonJsonConf
+// @Router /:host/conf [get]
+func (s *DockerMan) DockerConf(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.dockerConf(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Update Docker conf
+// @Description Update docker conf with key-value
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.KeyValue true "Configuration key and value"
+// @Success 200
+// @Router /:host/conf [put]
+func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.KeyValue
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.dockerUpdateConf(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Update Docker conf file
+// @Description Update docker conf file with content
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.DaemonJsonUpdateByFile true "Configuration file details"
+// @Success 200
+// @Router /:host/conf [put]
+func (s *DockerMan) DockerUpdateConfByFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.DaemonJsonUpdateByFile
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.dockerUpdateConfByFile(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Update Docker log option
+// @Description Update docker log option
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.LogOption true "Configuration key and value"
+// @Success 200
+// @Router /:host/log [put]
+func (s *DockerMan) DockerUpdateLogOption(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.LogOption
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.dockerUpdateLogOption(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Update Docker ipv6 option
+// @Description Update docker ipv6 option
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.Ipv6Option true "Configuration key and value"
+// @Success 200
+// @Router /:host/ipv6 [put]
+func (s *DockerMan) DockerUpdateIpv6Option(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.Ipv6Option
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.dockerUpdateIpv6Option(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Docker operations
+// @Description To start, stop, restart docker
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.DockerOperation true "Operation options"
+// @Success 200
+// @Router /:host/operation [post]
+func (s *DockerMan) DockerOperation(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.DockerOperation
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.dockerOperation(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Inspect
+// @Description Get details of a container, image, volume or network
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param type query string true "Type of inspection, can be one of container, image, volume and network"
+// @Param id query string true "ID of the object"
+// @Success 200
+// @Router /:host/inspect [get]
+func (s *DockerMan) Inspect(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	objectType := c.Query("type")
+	if objectType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	objectID := c.Query("id")
+	if objectID == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", err)
+		return
+	}
+
+	req := model.Inspect{
+		Type: objectType,
+		ID:   objectID,
+	}
+
+	result, err := s.inspect(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Prune
+// @Description Prune operation for container, image, volume, network or buildcache
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.Prune true "Prune details"
+// @Success 200 {object} model.PruneResult
+// @Router /:host/prune [post]
+func (s *DockerMan) Prune(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.Prune
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.prune(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Query containers
+// @Description Query containers
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param name query string false "Container Name"
+// @Param state query string true "Container state, one of (all created running paused restarting removing exited dead)"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Param order_by query string false "Order by one of (name, state, created)"
+// @Success 200 {object} model.PageResult
+// @Router /:host/containers [get]
+func (s *DockerMan) ContainerQuery(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.QueryContainer
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.containerQuery(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Query container names
+// @Description Query container names
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /:host/containers/names [get]
+func (s *DockerMan) ContainerNames(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.containerNames(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Get container resource usage list
+// @Description Get container resource usage list
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /:host/containers/usages [get]
+func (s *DockerMan) ContainerUsages(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.containerUsages(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Get container resource usage list
+// @Description Get container resource usage list
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.ContainerResourceLimit
+// @Router /:host/containers/limit [get]
+func (s *DockerMan) ContainerLimit(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.containerLimit(hostID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -236,10 +616,10 @@ func (s *DockerMan) GetContainers(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.CreateContainer true "Container creation details"
+// @Param request body model.ContainerOperate true "Container creation details"
 // @Success 200
-// @Router /containers/:host [post]
-func (s *DockerMan) CreateContainer(c *gin.Context) {
+// @Router /:host/containers [post]
+func (s *DockerMan) ContainerCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -261,21 +641,27 @@ func (s *DockerMan) CreateContainer(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Prune container
-// @Description Prune container
+// @Summary Update Container
+// @Description Update detail of the specified container
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param request body model.ContainerOperate true "Container edit details"
 // @Success 200
-// @Router /containers/:host/prune [post]
-func (s *DockerMan) PruneContainer(c *gin.Context) {
+// @Router /:host/containers [put]
+func (s *DockerMan) ContainerUpdate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	err = s.pruneContainer(hostID)
+	var req model.ContainerOperate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.updateContainer(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -285,15 +671,105 @@ func (s *DockerMan) PruneContainer(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Get Container
+// @Summary Upgrade container
+// @Description Upgrade container
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ContainerUpgrade true "Container upgrade details"
+// @Success 200
+// @Router /:host/containers/upgrade [post]
+func (s *DockerMan) ContainerUpgrade(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ContainerUpgrade
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.upgradeContainer(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Rename container
+// @Description Rename container
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.Rename true "Container rename details"
+// @Success 200
+// @Router /:host/containers/rename [post]
+func (s *DockerMan) ContainerRename(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.Rename
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.renameContainer(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Execute operations to container
+// @Description Execute operations to container
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ContainerOperation true "Container operation details"
+// @Success 200
+// @Router /:host/containers/operatetion [post]
+func (s *DockerMan) ContainerOperation(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ContainerOperation
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.operateContainer(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Get Container info
 // @Description Get detail of the specified container
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
-// @Success 200 {object} model.Container
-// @Router /containers/:host/:id [get]
-func (s *DockerMan) GetContainer(c *gin.Context) {
+// @Success 200 {object} model.ContainerOperate
+// @Router /:host/containers/:id [get]
+func (s *DockerMan) ContainerInfo(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -306,7 +782,7 @@ func (s *DockerMan) GetContainer(c *gin.Context) {
 		return
 	}
 
-	result, err := s.getContainer(hostID, containerID)
+	result, err := s.containerInfo(hostID, containerID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -316,16 +792,15 @@ func (s *DockerMan) GetContainer(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Update Container
-// @Description Update detail of the specified container
+// @Summary Get Container stats
+// @Description Get stats of the specified container
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
-// @Param request body model.UpdateContainer true "Container edit details"
-// @Success 200 {object} model.Container
-// @Router /containers/:host/:id [put]
-func (s *DockerMan) UpdateContainer(c *gin.Context) {
+// @Success 200 {object} model.ContainerStats
+// @Router /:host/containers/:id/stats [get]
+func (s *DockerMan) ContainerStats(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -338,30 +813,25 @@ func (s *DockerMan) UpdateContainer(c *gin.Context) {
 		return
 	}
 
-	var req model.ContainerOperate
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
-	err = s.updateContainer(hostID, containerID, req)
+	result, err := s.containerStats(hostID, containerID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
-// @Summary Delete Container
-// @Description Delete the specified container
+// @Summary Clean Container log
+// @Description Clean container log
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200
-// @Router /containers/:host/:id [delete]
-func (s *DockerMan) DeleteContainer(c *gin.Context) {
+// @Router /:host/containers/:id/log [delete]
+func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -374,7 +844,7 @@ func (s *DockerMan) DeleteContainer(c *gin.Context) {
 		return
 	}
 
-	err = s.deleteContainer(hostID, containerID)
+	err = s.containerLogClean(hostID, containerID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -383,6 +853,7 @@ func (s *DockerMan) DeleteContainer(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
+// @Deprecated
 // @Tags Docker
 // @Summary Get container log
 // @Description Get container log
@@ -391,8 +862,8 @@ func (s *DockerMan) DeleteContainer(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200 {object} model.ContainerLog
-// @Router /containers/:host/:id/log [get]
-func (s *DockerMan) GetContainerLog(c *gin.Context) {
+// @Router /:host/containers/:id/log [get]
+func (s *DockerMan) ContainerLogs(c *gin.Context) {
 	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	// if err != nil {
 	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -415,254 +886,6 @@ func (s *DockerMan) GetContainerLog(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Get container status
-// @Description Get container status
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200 {object} model.ContainerStatus
-// @Router /containers/:host/:id/status [get]
-func (s *DockerMan) GetContainerStatus(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	result, err := s.getContainerStatus(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, result)
-}
-
-// @Tags Docker
-// @Summary Upgrade container
-// @Description Upgrade container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/upgrade [post]
-func (s *DockerMan) UpgradeContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.upgradeContainer(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Start container
-// @Description Start container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/start [post]
-func (s *DockerMan) StartContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.startContainer(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Stop container
-// @Description Stop container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/stop [post]
-func (s *DockerMan) StopContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.stopContainer(hostID, containerID, false)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Force Stop container
-// @Description Force Stop container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/stop/force [post]
-func (s *DockerMan) ForceStopContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.stopContainer(hostID, containerID, true)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Reboot container
-// @Description Reboot container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/reboot [post]
-func (s *DockerMan) RebootContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.rebootContainer(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Pause container
-// @Description Pause container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/pause [post]
-func (s *DockerMan) PauseContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.pauseContainer(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Resume container
-// @Description Resume container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
-// @Success 200
-// @Router /containers/:host/:id/resume [post]
-func (s *DockerMan) ResumeContainer(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	containerID := c.Param("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	err = s.resumeContainer(hostID, containerID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
 // @Summary Get images
 // @Description Get images
 // @Accept json
@@ -671,15 +894,20 @@ func (s *DockerMan) ResumeContainer(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /images/:host [get]
-func (s *DockerMan) GetImages(c *gin.Context) {
+// @Router /:host/images [get]
+func (s *DockerMan) ImagePage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	result, err := s.getImages(hostID)
+	var req model.SearchPageInfo
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.getImages(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -689,93 +917,27 @@ func (s *DockerMan) GetImages(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Prune images
-// @Description Prune images
+// @Summary Query image names
+// @Description Query image names
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.PruneImage true "Prune image details"
-// @Success 200
-// @Router /images/:host/prune [post]
-func (s *DockerMan) PruneImage(c *gin.Context) {
+// @Success 200 {object} model.PageResult
+// @Router /:host/images/names [get]
+func (s *DockerMan) ImageNames(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	var req model.Prune
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
-	err = s.pruneImage(hostID, req)
+	result, err := s.imageNames(hostID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Pull image
-// @Description Pull image
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param request body model.PullImage true "Pull image details"
-// @Success 200
-// @Router /images/:host/pull [post]
-func (s *DockerMan) PullImage(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	var req model.ImagePull
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
-	err = s.pullImage(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Import image
-// @Description Import image
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param request body model.ImportImage true "Import image details"
-// @Success 200
-// @Router /images/:host/import [post]
-func (s *DockerMan) ImportImage(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	var req model.ImageLoad
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
-	err = s.importImage(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -784,10 +946,10 @@ func (s *DockerMan) ImportImage(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.BuildImage true "Build image details"
+// @Param request body model.ImageBuild true "Build image details"
 // @Success 200
-// @Router /images/:host/build [post]
-func (s *DockerMan) BuildImage(c *gin.Context) {
+// @Router /:host/images/build [post]
+func (s *DockerMan) ImageBuild(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -799,64 +961,7 @@ func (s *DockerMan) BuildImage(c *gin.Context) {
 		return
 	}
 
-	err = s.buildImage(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Clean Build Cache
-// @Description Clean build cache
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Success 200
-// @Router /images/:host/build/clean [post]
-func (s *DockerMan) CleanBuild(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	err = s.cleanBuild(hostID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Get image
-// @Description Get image
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Image ID"
-// @Param page query int true "Page number"
-// @Param page_size query int true "Page size"
-// @Success 200 {object} model.PageResult
-// @Router /images/:host/:id [get]
-func (s *DockerMan) GetImage(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	imageID := c.Param("id")
-	if imageID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid image id", err)
-		return
-	}
-
-	result, err := s.getImage(hostID, imageID)
+	result, err := s.buildImage(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -866,34 +971,87 @@ func (s *DockerMan) GetImage(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Push image
-// @Description Push image
+// @Summary Pull image
+// @Description Pull image
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path string true "Image ID"
-// @Param request body model.PushImage true "Push image details"
+// @Param request body model.ImagePull true "Pull image details"
 // @Success 200
-// @Router /images/:host/:id/push [post]
-func (s *DockerMan) PushImage(c *gin.Context) {
+// @Router /:host/images/pull [post]
+func (s *DockerMan) ImagePull(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	imageID := c.Param("id")
-	if imageID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid image id", err)
-		return
-	}
-
-	var req model.ImagePush
+	var req model.ImagePull
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	err = s.pushImage(hostID, imageID, req)
+	result, err := s.pullImage(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Import image
+// @Description Import image
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ImageLoad true "Import image details"
+// @Success 200
+// @Router /:host/images/import [post]
+func (s *DockerMan) ImageLoad(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ImageLoad
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.loadImage(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Export image
+// @Description Export image
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ImageSave true "Export image details"
+// @Success 200
+// @Router /:host/images/export [post]
+func (s *DockerMan) ImageSave(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ImageSave
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.exportImage(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -903,34 +1061,67 @@ func (s *DockerMan) PushImage(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Export image
-// @Description Export image
+// @Summary Push image
+// @Description Push image
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param id path string true "Image ID"
-// @Param request body model.ExportImage true "Push image details"
+// @Param request body model.ImagePush true "Push image details"
 // @Success 200
-// @Router /images/:host/:id/export [post]
-func (s *DockerMan) ExportImage(c *gin.Context) {
+// @Router /:host/images/push [post]
+func (s *DockerMan) ImagePush(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	imageID := c.Param("id")
-	if imageID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid image id", err)
-		return
-	}
-
-	var req model.ImageSave
+	var req model.ImagePush
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	err = s.exportImage(hostID, imageID, req)
+	result, err := s.pushImage(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Batch Delete images
+// @Description Batch Delete images
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param force query bool true "Force delete"
+// @Param sources query string true "Comma-separated list of image names to delete"
+// @Success 200
+// @Router /:host/images [delete]
+func (s *DockerMan) ImageRemove(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	force, _ := strconv.ParseBool(c.Query("force"))
+
+	sources := c.Query("sources")
+	if sources == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No sources provided", nil)
+		return
+	}
+
+	req := model.BatchDelete{
+		Force: force,
+		Names: strings.Split(sources, ","),
+	}
+
+	err = s.deleteImage(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -945,20 +1136,13 @@ func (s *DockerMan) ExportImage(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path string true "Image ID"
-// @Param request body model.SetImageTag true "Push image details"
+// @Param request body model.ImageTag true "Set image tag details"
 // @Success 200
-// @Router /images/:host/:id/tag [put]
-func (s *DockerMan) SetImageTag(c *gin.Context) {
+// @Router /:host/images/tag [put]
+func (s *DockerMan) ImageTag(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	imageID := c.Param("id")
-	if imageID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid image id", err)
 		return
 	}
 
@@ -967,38 +1151,7 @@ func (s *DockerMan) SetImageTag(c *gin.Context) {
 		return
 	}
 
-	err = s.setImageTag(hostID, imageID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Delete image
-// @Description Delete image
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Image ID"
-// @Success 200
-// @Router /images/:host/:id [delete]
-func (s *DockerMan) DeleteImage(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	imageID := c.Param("id")
-	if imageID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid image id", err)
-		return
-	}
-
-	err = s.deleteImage(hostID, imageID)
+	err = s.setImageTag(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -1016,15 +1169,20 @@ func (s *DockerMan) DeleteImage(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /volumes/:host [get]
-func (s *DockerMan) GetVolumes(c *gin.Context) {
+// @Router /:host/volumes [get]
+func (s *DockerMan) VolumePage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	result, err := s.getVolumes(hostID)
+	var req model.SearchPageInfo
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.getVolumes(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -1034,15 +1192,78 @@ func (s *DockerMan) GetVolumes(c *gin.Context) {
 }
 
 // @Tags Docker
+// @Summary Query volume names
+// @Description Query volume names
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /:host/volumes/names [get]
+func (s *DockerMan) VolumeNames(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.volumeNames(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Batch Delete volume
+// @Description Batch Delete volume
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param force query bool true "Force delete"
+// @Param sources query string true "Comma-separated list of volume ids to delete"
+// @Success 200
+// @Router /:host/volumes [delete]
+func (s *DockerMan) VolumeDelete(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	force, _ := strconv.ParseBool(c.Query("force"))
+
+	sources := c.Query("sources")
+	if sources == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No sources provided", nil)
+		return
+	}
+
+	req := model.BatchDelete{
+		Force: force,
+		Names: strings.Split(sources, ","),
+	}
+
+	err = s.deleteVolume(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
 // @Summary Create volume
 // @Description Create volume
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.CreateVolume true "Create volume details"
+// @Param request body model.VolumeCreate true "Create volume details"
 // @Success 200
-// @Router /volumes/:host [post]
-func (s *DockerMan) CreateVolume(c *gin.Context) {
+// @Router /:host/volumes [post]
+func (s *DockerMan) VolumeCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -1064,92 +1285,6 @@ func (s *DockerMan) CreateVolume(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Prune volume
-// @Description Prune volume
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Success 200
-// @Router /volumes/:host/prune [post]
-func (s *DockerMan) PruneVolume(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	err = s.pruneVolume(hostID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Get volume
-// @Description Get volume
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Volume ID"
-// @Success 200 {object} model.Volume
-// @Router /volumes/:host/:id [get]
-func (s *DockerMan) GetVolume(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	volumeID := c.Param("id")
-	if volumeID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid volume id", err)
-		return
-	}
-
-	result, err := s.getVolume(hostID, volumeID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, result)
-}
-
-// @Tags Docker
-// @Summary Delete volume
-// @Description Delete volume
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Volume ID"
-// @Success 200
-// @Router /volumes/:host/:id [delete]
-func (s *DockerMan) DeleteVolume(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	volumeID := c.Param("id")
-	if volumeID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid volume id", err)
-		return
-	}
-
-	err = s.deleteVolume(hostID, volumeID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
 // @Summary Get networks
 // @Description Get networks
 // @Accept json
@@ -1158,15 +1293,20 @@ func (s *DockerMan) DeleteVolume(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /networks/:host [get]
-func (s *DockerMan) GetNetworks(c *gin.Context) {
+// @Router /:host/networks [get]
+func (s *DockerMan) NetworkPage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	result, err := s.getNetworks(hostID)
+	var req model.SearchPageInfo
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.getNetworks(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -1176,15 +1316,78 @@ func (s *DockerMan) GetNetworks(c *gin.Context) {
 }
 
 // @Tags Docker
+// @Summary Query network names
+// @Description Query network names
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /:host/networks/names [get]
+func (s *DockerMan) NetworkNames(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.networkNames(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Batch Delete network
+// @Description Batch Delete network
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param force query bool true "Force delete"
+// @Param sources query string true "Comma-separated list of volume ids to delete"
+// @Success 200
+// @Router /:host/networks [delete]
+func (s *DockerMan) NetworkDelete(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	force, _ := strconv.ParseBool(c.Query("force"))
+
+	sources := c.Query("sources")
+	if sources == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "No sources provided", nil)
+		return
+	}
+
+	req := model.BatchDelete{
+		Force: force,
+		Names: strings.Split(sources, ","),
+	}
+
+	err = s.deleteNetwork(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
 // @Summary Create network
 // @Description Create network
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.CreateNetwork true "Create network details"
+// @Param request body model.NetworkCreate true "Create network details"
 // @Success 200
-// @Router /networks/:host [post]
-func (s *DockerMan) CreateNetwork(c *gin.Context) {
+// @Router /:host/networks [post]
+func (s *DockerMan) NetworkCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -1203,122 +1406,4 @@ func (s *DockerMan) CreateNetwork(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Prune network
-// @Description Prune network
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Success 200
-// @Router /networks/:host/prune [post]
-func (s *DockerMan) PruneNetwork(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	err = s.pruneNetwork(hostID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Docker
-// @Summary Get network
-// @Description Get network
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Network ID"
-// @Success 200 {object} model.Network
-// @Router /networks/:host/:id [get]
-func (s *DockerMan) GetNetwork(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	networkID := c.Param("id")
-	if networkID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid network id", err)
-		return
-	}
-
-	result, err := s.getNetwork(hostID, networkID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, result)
-}
-
-// @Tags Docker
-// @Summary Delete network
-// @Description Delete network
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id path string true "Network ID"
-// @Success 200
-// @Router /networks/:host/:id [delete]
-func (s *DockerMan) DeleteNetwork(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-		return
-	}
-
-	networkID := c.Param("id")
-	if networkID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid network id", err)
-		return
-	}
-
-	err = s.deleteNetwork(hostID, networkID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, nil)
-}
-
-func (s *DockerMan) sendCommand(hostId uint, command string) (*model.CommandResult, error) {
-	var commandResult model.CommandResult
-
-	commandRequest := model.Command{
-		HostID:  hostId,
-		Command: command,
-	}
-
-	var commandResponse model.CommandResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(commandRequest).
-		SetResult(&commandResponse).
-		Post("/commands")
-
-	if err != nil {
-		LOG.Error("failed to send request: %v", err)
-		return &commandResult, fmt.Errorf("failed to send request: %v", err)
-	}
-
-	if resp.StatusCode() != 200 {
-		LOG.Error("failed to send request: %v", err)
-		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
-	}
-
-	LOG.Info("cmd response: %v", commandResponse)
-
-	commandResult = commandResponse.Data
-
-	return &commandResult, nil
 }

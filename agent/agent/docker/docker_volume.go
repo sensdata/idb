@@ -14,10 +14,10 @@ func (s *DockerService) VolumePage(req model.SearchPageInfo) (*model.PageResult,
 	return client.VolumePage(req)
 }
 
-func (s *DockerService) VolumeList() ([]model.Options, error) {
+func (s *DockerService) VolumeList() (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return nil, err
+		return &model.PageResult{}, err
 	}
 	defer client.Close()
 	return client.VolumeList()

@@ -76,10 +76,11 @@ func (c DockerClient) VolumePage(req model.SearchPageInfo) (*model.PageResult, e
 	return &result, nil
 }
 
-func (c DockerClient) VolumeList() ([]model.Options, error) {
+func (c DockerClient) VolumeList() (*model.PageResult, error) {
+	var result model.PageResult
 	list, err := c.cli.VolumeList(context.TODO(), volume.ListOptions{})
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
 	var datas []model.Options
 	for _, item := range list.Volumes {
@@ -90,7 +91,9 @@ func (c DockerClient) VolumeList() ([]model.Options, error) {
 	sort.Slice(datas, func(i, j int) bool {
 		return datas[i].Option < datas[j].Option
 	})
-	return datas, nil
+	result.Total = int64(len(datas))
+	result.Items = datas
+	return &result, nil
 }
 
 func (c DockerClient) VolumeDelete(req model.BatchDelete) error {

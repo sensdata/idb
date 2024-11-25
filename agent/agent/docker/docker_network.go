@@ -14,10 +14,10 @@ func (s *DockerService) NetworkPage(req model.SearchPageInfo) (*model.PageResult
 	return client.NetworkPage(req)
 }
 
-func (s *DockerService) NetworkList() ([]model.Options, error) {
+func (s *DockerService) NetworkList() (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return nil, err
+		return &model.PageResult{}, err
 	}
 	defer client.Close()
 	return client.NetworkList()

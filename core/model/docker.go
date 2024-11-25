@@ -4,6 +4,10 @@ import "time"
 
 // docker
 
+type DockerStatus struct {
+	Status string `json:"status"`
+}
+
 type LogOption struct {
 	LogMaxSize string `json:"log_max_size"`
 	LogMaxFile string `json:"log_max_file"`
@@ -48,6 +52,12 @@ type Inspect struct {
 	Type string `json:"type" validate:"required,oneof=container image volume network"`
 }
 
+type InspectResult struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	Info string `json:"info"`
+}
+
 type Prune struct {
 	PruneType  string `json:"type" validate:"required,oneof=container image volume network buildcache"`
 	WithTagAll bool   `json:"with_tag_all"`
@@ -61,10 +71,10 @@ type PruneResult struct {
 // container
 type QueryContainer struct {
 	PageInfo
-	Name    string `json:"name"`
-	State   string `json:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
-	OrderBy string `json:"order_by"`
-	Order   string `json:"order"`
+	Name    string `form:"name"`
+	State   string `form:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
+	OrderBy string `form:"order_by"`
+	Order   string `form:"order"`
 }
 
 type ContainerInfo struct {
@@ -217,6 +227,10 @@ type Image struct {
 
 type ImageLoad struct {
 	Path string `json:"path" validate:"required"`
+}
+
+type ImageOperationResult struct {
+	Result string `json:"result"`
 }
 
 type ImageBuild struct {

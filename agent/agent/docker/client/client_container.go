@@ -128,10 +128,11 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 	return &result, nil
 }
 
-func (c DockerClient) ContainerNames() ([]string, error) {
+func (c DockerClient) ContainerNames() (*model.PageResult, error) {
+	var result model.PageResult
 	containers, err := c.cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
 
 	var datas []string
@@ -142,7 +143,10 @@ func (c DockerClient) ContainerNames() ([]string, error) {
 	}
 
 	sort.Strings(datas) // 按字母顺序排序
-	return datas, nil
+
+	result.Total = int64(len(datas))
+	result.Items = datas
+	return &result, nil
 }
 
 func (c DockerClient) ContainerCreate(req model.ContainerOperate, logger *log.Log) error {
@@ -354,10 +358,11 @@ func (c DockerClient) ContainerInfo(containerID string) (*model.ContainerOperate
 	return &data, nil
 }
 
-func (c DockerClient) ContainerResourceUsage() ([]model.ContainerResourceUsage, error) {
+func (c DockerClient) ContainerResourceUsage() (*model.PageResult, error) {
+	var result model.PageResult
 	list, err := c.cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
 	var datas []model.ContainerResourceUsage
 	var wg sync.WaitGroup
@@ -369,7 +374,10 @@ func (c DockerClient) ContainerResourceUsage() ([]model.ContainerResourceUsage, 
 		}(list[i])
 	}
 	wg.Wait()
-	return datas, nil
+
+	result.Total = int64(len(datas))
+	result.Items = datas
+	return &result, nil
 }
 
 func (c DockerClient) ContainerStats(id string) (*model.ContainerStats, error) {

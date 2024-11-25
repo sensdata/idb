@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/agent/agent/action"
+	"github.com/sensdata/idb/agent/agent/docker"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
 	"github.com/sensdata/idb/agent/agent/ssh"
@@ -27,11 +28,12 @@ import (
 )
 
 var (
-	CONFMAN     *config.Manager
-	AGENT       IAgent
-	FileService = file.NewIFileService()
-	SshService  = ssh.NewISSHService()
-	GitService  = git.NewIGitService()
+	CONFMAN       *config.Manager
+	AGENT         IAgent
+	FileService   = file.NewIFileService()
+	SshService    = ssh.NewISSHService()
+	GitService    = git.NewIGitService()
+	DockerService = docker.NewIDockerService()
 )
 
 type Agent struct {
@@ -997,6 +999,494 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, result)
+
+		// docker 状态
+	case model.Docker_Status:
+		status, err := DockerService.DockerStatus()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(status)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// docker 配置
+	case model.Docker_Conf:
+		conf, err := DockerService.DockerConf()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(conf)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// 更新 docker 配置
+	case model.Docker_Upd_Conf:
+		var req model.KeyValue
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.DockerUpdateConf(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 更新 docker 配置
+	case model.Docker_Upd_Conf_File:
+		var req model.DaemonJsonUpdateByFile
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.DockerUpdateConfByFile(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 更新 docker log配置
+	case model.Docker_Upd_Log:
+		var req model.LogOption
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.DockerUpdateLogOption(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 更新 docker ipv6配置
+	case model.Docker_Upd_Ipv6:
+		var req model.Ipv6Option
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.DockerUpdateIpv6Option(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// docker 操作
+	case model.Docker_Operation:
+		var req model.DockerOperation
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.DockerOperation(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// inspect
+	case model.Docker_Inspect:
+		var req model.Inspect
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.Inspect(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// prune
+	case model.Docker_Prune:
+		var req model.Prune
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		report, err := DockerService.Prune(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(report)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Query:
+		var req model.QueryContainer
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ContainerQuery(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Names:
+		names, err := DockerService.ContainerNames()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(names)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Create:
+		var req model.ContainerOperate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ContainerCreate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Update:
+		var req model.ContainerOperate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ContainerUpdate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Upgrade:
+		var req model.ContainerUpgrade
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ContainerUpgrade(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Info:
+		containerID := actionData.Data
+		info, err := DockerService.ContainerInfo(containerID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Resource_Usage:
+		info, err := DockerService.ContainerResourceUsage()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Resource_Limit:
+		info, err := DockerService.ContainerResourceLimit()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Stats:
+		containerID := actionData.Data
+		info, err := DockerService.ContainerStats(containerID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Rename:
+		var req model.Rename
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ContainerRename(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Log_Clean:
+		containerID := actionData.Data
+		err := DockerService.ContainerLogClean(containerID)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Operation:
+		var req model.ContainerOperation
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ContainerOperation(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Container_Logs:
+		// var req model.ContainerOperation
+		// if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+		// 	return nil, err
+		// }
+		// err := DockerService.ContainerLogs(req)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Image_Page:
+		var req model.SearchPageInfo
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ImagePage(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_List:
+		info, err := DockerService.ImageList()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_Build:
+		var req model.ImageBuild
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ImageBuild(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_Pull:
+		var req model.ImagePull
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ImagePull(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_Load:
+		var req model.ImageLoad
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ImageLoad(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_Save:
+		var req model.ImageSave
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ImageSave(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Image_Push:
+		var req model.ImagePush
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ImagePush(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Image_Remove:
+		var req model.BatchDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ImageRemove(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Image_Tag:
+		var req model.ImageTag
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ImageTag(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Volume_Page:
+		var req model.SearchPageInfo
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.VolumePage(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Volume_List:
+		info, err := DockerService.VolumeList()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Volume_Delete:
+		var req model.BatchDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.VolumeDelete(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Volume_Create:
+		var req model.VolumeCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.VolumeCreate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Network_Page:
+		var req model.SearchPageInfo
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.NetworkPage(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Network_List:
+		info, err := DockerService.NetworkList()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Network_Delete:
+		var req model.BatchDelete
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.NetworkDelete(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Network_Create:
+		var req model.NetworkCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.NetworkCreate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Docker_Compose_Page:
+		return actionSuccessResult(actionData.Action, "")
+	case model.Docker_Compose_Create:
+		return actionSuccessResult(actionData.Action, "")
+	case model.Docker_Compose_Operation:
+		return actionSuccessResult(actionData.Action, "")
+	case model.Docker_Compose_Test:
+		return actionSuccessResult(actionData.Action, "")
+	case model.Docker_Compose_Update:
+		return actionSuccessResult(actionData.Action, "")
 
 	default:
 		return nil, nil

@@ -96,7 +96,7 @@ type FileWget struct {
 
 type FileMove struct {
 	HostID  uint     `json:"host_id" validate:"required"`
-	Type    string   `json:"type" validate:"required,oneof=copy move"`
+	Type    string   `json:"type" validate:"required`
 	Sources []string `json:"sources" validate:"required"`
 	Dest    string   `json:"dest" validate:"required"`
 	Name    string   `json:"name"`

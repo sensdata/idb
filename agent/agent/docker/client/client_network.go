@@ -74,10 +74,11 @@ func (c DockerClient) NetworkPage(req model.SearchPageInfo) (*model.PageResult, 
 	return &result, nil
 }
 
-func (c DockerClient) NetworkList() ([]model.Options, error) {
+func (c DockerClient) NetworkList() (*model.PageResult, error) {
+	var result model.PageResult
 	list, err := c.cli.NetworkList(context.TODO(), network.ListOptions{})
 	if err != nil {
-		return nil, err
+		return &result, err
 	}
 	var datas []model.Options
 	for _, item := range list {
@@ -86,7 +87,9 @@ func (c DockerClient) NetworkList() ([]model.Options, error) {
 	sort.Slice(datas, func(i, j int) bool {
 		return datas[i].Option < datas[j].Option
 	})
-	return datas, nil
+	result.Total = int64(len(datas))
+	result.Items = datas
+	return &result, nil
 }
 
 func (c DockerClient) NetworkDelete(req model.BatchDelete) error {
