@@ -861,7 +861,7 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
-// @Success 200 {object} model.ContainerLog
+// @Success 200
 // @Router /:host/containers/:id/log [get]
 func (s *DockerMan) ContainerLogs(c *gin.Context) {
 	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)

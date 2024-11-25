@@ -24,6 +24,1464 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/:host/conf": {
+            "get": {
+                "description": "Get docker configurations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker configurations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.DaemonJsonConf"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update docker conf file with content",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Update Docker conf file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Configuration file details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DaemonJsonUpdateByFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers": {
+            "get": {
+                "description": "Query containers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query containers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container Name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container state, one of (all created running paused restarting removing exited dead)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Order by one of (name, state, created)",
+                        "name": "order_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update detail of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Update Container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "创建容器",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Create container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers/:id": {
+            "get": {
+                "description": "Get detail of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get Container info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperate"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/containers/:id/log": {
+            "get": {
+                "description": "Get container log",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container log",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Clean container log",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Clean Container log",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers/:id/stats": {
+            "get": {
+                "description": "Get stats of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get Container stats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerStats"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/containers/limit": {
+            "get": {
+                "description": "Get container resource usage list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container resource usage list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerResourceLimit"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/containers/names": {
+            "get": {
+                "description": "Query container names",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query container names",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/containers/operatetion": {
+            "post": {
+                "description": "Execute operations to container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Execute operations to container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container operation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers/rename": {
+            "post": {
+                "description": "Rename container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Rename container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container rename details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Rename"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers/upgrade": {
+            "post": {
+                "description": "Upgrade container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Upgrade container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container upgrade details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerUpgrade"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/containers/usages": {
+            "get": {
+                "description": "Get container resource usage list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container resource usage list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/images": {
+            "get": {
+                "description": "Get images",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get images",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Batch Delete images",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Batch Delete images",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Force delete",
+                        "name": "force",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of image names to delete",
+                        "name": "sources",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/build": {
+            "post": {
+                "description": "Build image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Build image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Build image details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImageBuild"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/export": {
+            "post": {
+                "description": "Export image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Export image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Export image details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImageSave"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/import": {
+            "post": {
+                "description": "Import image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Import image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Import image details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImageLoad"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/names": {
+            "get": {
+                "description": "Query image names",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query image names",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/images/pull": {
+            "post": {
+                "description": "Pull image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Pull image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Pull image details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImagePull"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/push": {
+            "post": {
+                "description": "Push image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Push image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Push image details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImagePush"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/images/tag": {
+            "put": {
+                "description": "Set image tag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Set image tag",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Set image tag details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ImageTag"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/inspect": {
+            "get": {
+                "description": "Get details of a container, image, volume or network",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Inspect",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type of inspection, can be one of container, image, volume and network",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID of the object",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/ipv6": {
+            "put": {
+                "description": "Update docker ipv6 option",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Update Docker ipv6 option",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Configuration key and value",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Ipv6Option"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/log": {
+            "put": {
+                "description": "Update docker log option",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Update Docker log option",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Configuration key and value",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LogOption"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/networks": {
+            "get": {
+                "description": "Get networks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get networks",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create network",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Create network",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create network details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.NetworkCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Batch Delete network",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Batch Delete network",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Force delete",
+                        "name": "force",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of volume ids to delete",
+                        "name": "sources",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/networks/names": {
+            "get": {
+                "description": "Query network names",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query network names",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/operation": {
+            "post": {
+                "description": "To start, stop, restart docker",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker operations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Operation options",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DockerOperation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/prune": {
+            "post": {
+                "description": "Prune operation for container, image, volume, network or buildcache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Prune",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Prune details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Prune"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PruneResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/status": {
+            "get": {
+                "description": "Get docker status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.DockerStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/:host/volumes": {
+            "get": {
+                "description": "Get volumes",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get volumes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create volume",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Create volume",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create volume details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.VolumeCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Batch Delete volume",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Batch Delete volume",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Force delete",
+                        "name": "force",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of volume ids to delete",
+                        "name": "sources",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/:host/volumes/names": {
+            "get": {
+                "description": "Query volume names",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query volume names",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/sessions": {
             "post": {
                 "description": "用户登录",
@@ -642,6 +2100,55 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
                     }
                 }
             }
@@ -4517,6 +6024,184 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ContainerOperate": {
+            "type": "object",
+            "required": [
+                "image",
+                "name"
+            ],
+            "properties": {
+                "auto_remove": {
+                    "type": "boolean"
+                },
+                "cmd": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "container_id": {
+                    "type": "string"
+                },
+                "cpu_shares": {
+                    "type": "integer"
+                },
+                "entry_point": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "env": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "exposed_ports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.PortHelper"
+                    }
+                },
+                "force_pull": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "ipv4": {
+                    "type": "string"
+                },
+                "ipv6": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "memory": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nano_cpus": {
+                    "type": "number"
+                },
+                "network": {
+                    "type": "string"
+                },
+                "open_stdin": {
+                    "type": "boolean"
+                },
+                "privileged": {
+                    "type": "boolean"
+                },
+                "publish_all_ports": {
+                    "type": "boolean"
+                },
+                "restart_policy": {
+                    "type": "string"
+                },
+                "tty": {
+                    "type": "boolean"
+                },
+                "volumes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.VolumeHelper"
+                    }
+                }
+            }
+        },
+        "model.ContainerOperation": {
+            "type": "object",
+            "required": [
+                "names",
+                "operation"
+            ],
+            "properties": {
+                "names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "start",
+                        "stop",
+                        "restart",
+                        "kill",
+                        "pause",
+                        "resume",
+                        "remove"
+                    ]
+                }
+            }
+        },
+        "model.ContainerResourceLimit": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "integer"
+                },
+                "memory": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ContainerStats": {
+            "type": "object",
+            "properties": {
+                "cache": {
+                    "type": "number"
+                },
+                "cpu_percent": {
+                    "type": "number"
+                },
+                "io_read": {
+                    "type": "number"
+                },
+                "io_write": {
+                    "type": "number"
+                },
+                "memory": {
+                    "type": "number"
+                },
+                "network_rx": {
+                    "type": "number"
+                },
+                "network_tx": {
+                    "type": "number"
+                },
+                "shot_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ContainerUpgrade": {
+            "type": "object",
+            "required": [
+                "image",
+                "name"
+            ],
+            "properties": {
+                "force_pull": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "model.CreateGitFile": {
             "type": "object",
             "required": [
@@ -4658,6 +6343,67 @@ const docTemplate = `{
                 }
             }
         },
+        "model.DaemonJsonConf": {
+            "type": "object",
+            "properties": {
+                "cgroup_driver": {
+                    "type": "string"
+                },
+                "experimental": {
+                    "type": "boolean"
+                },
+                "fixed_cidr_v6": {
+                    "type": "string"
+                },
+                "insecure_registries": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ip6_tables": {
+                    "type": "boolean"
+                },
+                "ip_tables": {
+                    "type": "boolean"
+                },
+                "ipv6": {
+                    "type": "boolean"
+                },
+                "is_swarm": {
+                    "type": "boolean"
+                },
+                "live_restore": {
+                    "type": "boolean"
+                },
+                "log_max_file": {
+                    "type": "string"
+                },
+                "log_max_size": {
+                    "type": "string"
+                },
+                "registry_mirrors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.DaemonJsonUpdateByFile": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "string"
+                }
+            }
+        },
         "model.DirSizeRes": {
             "type": "object",
             "required": [
@@ -4666,6 +6412,30 @@ const docTemplate = `{
             "properties": {
                 "size": {
                     "type": "number"
+                }
+            }
+        },
+        "model.DockerOperation": {
+            "type": "object",
+            "required": [
+                "operation"
+            ],
+            "properties": {
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "start",
+                        "restart",
+                        "stop"
+                    ]
+                }
+            }
+        },
+        "model.DockerStatus": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
                 }
             }
         },
@@ -4912,8 +6682,7 @@ const docTemplate = `{
             "required": [
                 "dest",
                 "host_id",
-                "sources",
-                "type"
+                "sources"
             ],
             "properties": {
                 "cover": {
@@ -4935,11 +6704,7 @@ const docTemplate = `{
                     }
                 },
                 "type": {
-                    "type": "string",
-                    "enum": [
-                        "copy",
-                        "move"
-                    ]
+                    "type": "string"
                 }
             }
         },
@@ -5190,6 +6955,119 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ImageBuild": {
+            "type": "object",
+            "required": [
+                "docker_file",
+                "from",
+                "name"
+            ],
+            "properties": {
+                "docker_file": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.ImageLoad": {
+            "type": "object",
+            "required": [
+                "path"
+            ],
+            "properties": {
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ImagePull": {
+            "type": "object",
+            "required": [
+                "image_name"
+            ],
+            "properties": {
+                "image_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ImagePush": {
+            "type": "object",
+            "required": [
+                "name",
+                "tag_name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "tag_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ImageSave": {
+            "type": "object",
+            "required": [
+                "name",
+                "path",
+                "tag_name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "tag_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ImageTag": {
+            "type": "object",
+            "required": [
+                "source_id",
+                "target_name"
+            ],
+            "properties": {
+                "source_id": {
+                    "type": "string"
+                },
+                "target_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Ipv6Option": {
+            "type": "object",
+            "required": [
+                "ip6_tables"
+            ],
+            "properties": {
+                "experimental": {
+                    "type": "boolean"
+                },
+                "fixed_cidr_v6": {
+                    "type": "string"
+                },
+                "ip6_tables": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.KeyValue": {
             "type": "object",
             "required": [
@@ -5237,6 +7115,17 @@ const docTemplate = `{
                 },
                 "process_count5": {
                     "description": "5分钟进程数",
+                    "type": "string"
+                }
+            }
+        },
+        "model.LogOption": {
+            "type": "object",
+            "properties": {
+                "log_max_file": {
+                    "type": "string"
+                },
+                "log_max_size": {
                     "type": "string"
                 }
             }
@@ -5309,6 +7198,69 @@ const docTemplate = `{
                 "used_rate": {
                     "description": "使用率",
                     "type": "number"
+                }
+            }
+        },
+        "model.NetworkCreate": {
+            "type": "object",
+            "required": [
+                "driver",
+                "name"
+            ],
+            "properties": {
+                "aux_address": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
+                },
+                "aux_address_v6": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
+                },
+                "driver": {
+                    "type": "string"
+                },
+                "gateway": {
+                    "type": "string"
+                },
+                "gateway_v6": {
+                    "type": "string"
+                },
+                "ip_range": {
+                    "type": "string"
+                },
+                "ip_range_v6": {
+                    "type": "string"
+                },
+                "ipv4": {
+                    "type": "boolean"
+                },
+                "ipv6": {
+                    "type": "boolean"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "subnet": {
+                    "type": "string"
+                },
+                "subnet_v6": {
+                    "type": "string"
                 }
             }
         },
@@ -5460,6 +7412,70 @@ const docTemplate = `{
                 "used_rate": {
                     "description": "使用率",
                     "type": "number"
+                }
+            }
+        },
+        "model.PortHelper": {
+            "type": "object",
+            "properties": {
+                "container_port": {
+                    "type": "string"
+                },
+                "host_ip": {
+                    "type": "string"
+                },
+                "host_port": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Prune": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "container",
+                        "image",
+                        "volume",
+                        "network",
+                        "buildcache"
+                    ]
+                },
+                "with_tag_all": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.PruneResult": {
+            "type": "object",
+            "properties": {
+                "deleted_number": {
+                    "type": "integer"
+                },
+                "space_reclaimed": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Rename": {
+            "type": "object",
+            "required": [
+                "name",
+                "new_name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "new_name": {
+                    "type": "string"
                 }
             }
         },
@@ -6058,6 +8074,50 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "pattern": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.VolumeCreate": {
+            "type": "object",
+            "required": [
+                "driver",
+                "name"
+            ],
+            "properties": {
+                "driver": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.VolumeHelper": {
+            "type": "object",
+            "properties": {
+                "container_dir": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "source_dir": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
