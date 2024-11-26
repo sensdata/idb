@@ -110,7 +110,7 @@ func (s *DockerMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			// {Method: "GET", Path: "/apps", Handler: s.GetApps}, // 获取应用列表
+
 			// docker
 			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},              // 获取docker状态
 			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},                  // 获取docker配置
@@ -121,6 +121,13 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},       // 操作docker服务
 			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},                  // 获取信息（container image volume network）
 			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                     // 清理（container image volume network buildcache）
+
+			// compose
+			{Method: "GET", Path: "/:host/compose", Handler: s.ComposeQuery},                // 获取编排列表
+			{Method: "POST", Path: "/:host/compose", Handler: s.ComposeCreate},              // 创建编排
+			{Method: "PUT", Path: "/:host/compose", Handler: s.ComposeUpdate},               // 更新编排
+			{Method: "POST", Path: "/:host/compose/test", Handler: s.ComposeTest},           // 测试编排
+			{Method: "POST", Path: "/:host/compose/operation", Handler: s.ComposeOperation}, // 操作编排
 
 			// containers
 			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                  // 获取容器列表
@@ -505,12 +512,164 @@ func (s *DockerMan) Prune(c *gin.Context) {
 }
 
 // @Tags Docker
+// @Summary Query compose
+// @Description Query compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /:host/compose [get]
+func (s *DockerMan) ComposeQuery(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.SearchPageInfo
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.composeQuery(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Create compose
+// @Description Create compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ComposeCreate true "Compose creation details"
+// @Success 200 {object} model.ComposeCreateResult
+// @Router /:host/compose [post]
+func (s *DockerMan) ComposeCreate(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ComposeCreate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.composeCreate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Update compose
+// @Description Update compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ComposeCreate true "Compose edit details"
+// @Success 200
+// @Router /:host/compose [put]
+func (s *DockerMan) ComposeUpdate(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ComposeUpdate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.composeUpdate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Test compose
+// @Description Test compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ComposeCreate true "Compose creation details"
+// @Success 200 {object} model.ComposeTestResult
+// @Router /:host/compose/test [post]
+func (s *DockerMan) ComposeTest(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ComposeCreate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.composeTest(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Operate compose
+// @Description Operate compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param request body model.ComposeOperation true "Compose operation details"
+// @Success 200
+// @Router /:host/compose/operation [post]
+func (s *DockerMan) ComposeOperation(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.ComposeOperation
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = s.composeOperation(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
 // @Summary Query containers
 // @Description Query containers
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param name query string false "Container Name"
+// @Param info query string false "Info for searching"
 // @Param state query string true "Container state, one of (all created running paused restarting removing exited dead)"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
@@ -891,6 +1050,7 @@ func (s *DockerMan) ContainerLogs(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
@@ -1166,6 +1326,7 @@ func (s *DockerMan) ImageTag(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
@@ -1290,6 +1451,7 @@ func (s *DockerMan) VolumeCreate(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult

@@ -45,11 +45,11 @@ type IDockerService interface {
 	ContainerOperation(req model.ContainerOperation) error
 	ContainerLogs(wsConn *websocket.Conn, containerType, container, since, tail string, follow bool) error
 
-	// ComposePage(req model.SearchPageInfo) (int64, interface{}, error)
-	// ComposeCreate(req model.ComposeCreate) (string, error)
-	// ComposeOperation(req model.ComposeOperation) error
-	// ComposeTest(req model.ComposeCreate) (bool, error)
-	// ComposeUpdate(req model.ComposeUpdate) error
+	ComposePage(req model.QueryCompose) (*model.PageResult, error)
+	ComposeTest(req model.ComposeCreate) (*model.ComposeTestResult, error)
+	ComposeCreate(req model.ComposeCreate) (*model.ComposeCreateResult, error)
+	ComposeOperation(req model.ComposeOperation) error
+	ComposeUpdate(req model.ComposeUpdate) error
 
 	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)
 	ImageList() (*model.PageResult, error)

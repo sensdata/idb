@@ -1478,14 +1478,67 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Docker_Compose_Page:
-		return actionSuccessResult(actionData.Action, "")
-	case model.Docker_Compose_Create:
-		return actionSuccessResult(actionData.Action, "")
-	case model.Docker_Compose_Operation:
-		return actionSuccessResult(actionData.Action, "")
+		var req model.QueryCompose
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ComposePage(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 	case model.Docker_Compose_Test:
+		var req model.ComposeCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ComposeTest(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+	case model.Docker_Compose_Create:
+		var req model.ComposeCreate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ComposeCreate(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+	case model.Docker_Compose_Operation:
+		var req model.ComposeOperation
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ComposeOperation(req)
+		if err != nil {
+			return nil, err
+		}
 		return actionSuccessResult(actionData.Action, "")
+
 	case model.Docker_Compose_Update:
+		var req model.ComposeUpdate
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ComposeUpdate(req)
+		if err != nil {
+			return nil, err
+		}
 		return actionSuccessResult(actionData.Action, "")
 
 	default:

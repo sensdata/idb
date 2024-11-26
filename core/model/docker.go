@@ -71,7 +71,7 @@ type PruneResult struct {
 // container
 type QueryContainer struct {
 	PageInfo
-	Name    string `form:"name"`
+	Info    string `form:"info"`
 	State   string `form:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
 	OrderBy string `form:"order_by"`
 	Order   string `form:"order"`
@@ -180,7 +180,7 @@ type ContainerResourceLimit struct {
 type ComposeInfo struct {
 	Name            string             `json:"name"`
 	CreatedAt       string             `json:"created_at"`
-	CreatedBy       string             `json:"created_by"`
+	IdbType         string             `json:"idb_type"`
 	ContainerNumber int                `json:"container_number"`
 	ConfigFile      string             `json:"config_file"`
 	Workdir         string             `json:"work_dir"`
@@ -195,25 +195,39 @@ type ComposeContainer struct {
 	State       string `json:"state"`
 }
 
+type QueryCompose struct {
+	PageInfo
+	Info    string `form:"info"`
+	WorkDir string `json:"work_dir"`
+}
+
+type ComposeTestResult struct {
+	Success bool
+	Error   string
+}
+
 type ComposeCreate struct {
-	Name     string `json:"name"`
-	From     string `json:"from" validate:"required,oneof=edit path template"`
-	File     string `json:"file"`
-	Path     string `json:"path"`
-	Template uint   `json:"template"`
+	Name           string `json:"name"`
+	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
+	WorkDir        string `json:"work_dir"`
+}
+
+type ComposeCreateResult struct {
+	Log string
 }
 
 type ComposeOperation struct {
 	Name      string `json:"name" validate:"required"`
-	Path      string `json:"path" validate:"required"`
 	Operation string `json:"operation" validate:"required,oneof=start stop down"`
-	WithFile  bool   `json:"with_file"`
+	WorkDir   string `json:"work_dir"`
 }
 
 type ComposeUpdate struct {
-	Name    string `json:"name" validate:"required"`
-	Path    string `json:"path" validate:"required"`
-	Content string `json:"content" validate:"required"`
+	Name           string `json:"name" validate:"required"`
+	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
+	WorkDir        string `json:"work_dir"`
 }
 
 // image

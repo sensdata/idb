@@ -34,8 +34,8 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 		All:     true,
 		Filters: filters.NewArgs(), // 初始化过滤器
 	}
-	if len(req.Name) > 0 {
-		options.Filters.Add("name", req.Name)
+	if len(req.Info) > 0 {
+		options.Filters.Add("name", req.Info)
 	}
 	if req.State != "all" {
 		options.Filters.Add("status", req.State)

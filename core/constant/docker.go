@@ -9,6 +9,19 @@ const (
 )
 
 const (
+	/*
+		com.docker.compose.* 系列标签：
+		com.docker.compose.project
+		com.docker.compose.project.config_files
+		com.docker.compose.project.working_dir
+		com.docker.compose.service
+		com.docker.compose.version
+		com.docker.compose.container-number
+	*/
+	ComposeProjectLabel   = "com.docker.compose.project"
+	ComposeWorkDirLabel   = "com.docker.compose.project.working_dir"
+	ComposeConfFilesLabel = "com.docker.compose.project.config_files"
+
 	ContainerOpStart   = "start"
 	ContainerOpStop    = "stop"
 	ContainerOpRestart = "restart"
