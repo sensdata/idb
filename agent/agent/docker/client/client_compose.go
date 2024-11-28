@@ -276,22 +276,19 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	}
 	result.Log = logPath
 
-	// 异步启动
-	go func() {
-		defer file.Close()
-		cmd := exec.Command("docker-compose", "-f", composePath, "up", "-d")
-		multiWriter := io.MultiWriter(os.Stdout, file)
-		cmd.Stdout = multiWriter
-		cmd.Stderr = multiWriter
-		if err := cmd.Run(); err != nil {
-			global.LOG.Error("docker-compose up %s failed, err: %v", req.Name, err)
-			_, _ = down(composePath)
-			_, _ = file.WriteString("docker-compose up failed!")
-			return
-		}
-		global.LOG.Info("docker-compose up %s successful!", req.Name)
-		_, _ = file.WriteString("docker-compose up successful!")
-	}()
+	defer file.Close()
+	cmd := exec.Command("docker-compose", "-f", composePath, "up", "-d")
+	multiWriter := io.MultiWriter(os.Stdout, file)
+	cmd.Stdout = multiWriter
+	cmd.Stderr = multiWriter
+	if err := cmd.Run(); err != nil {
+		global.LOG.Error("docker-compose up %s failed, err: %v", req.Name, err)
+		_, _ = down(composePath)
+		_, _ = file.WriteString("docker-compose up failed!")
+		return &result, err
+	}
+	global.LOG.Info("docker-compose up %s successful!", req.Name)
+	_, _ = file.WriteString("docker-compose up successful!")
 
 	return &result, nil
 }

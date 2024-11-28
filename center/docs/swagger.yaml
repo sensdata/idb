@@ -69,6 +69,45 @@ definitions:
     required:
     - password
     type: object
+  model.ComposeCreate:
+    properties:
+      compose_content:
+        type: string
+      env_content:
+        type: string
+      name:
+        type: string
+      work_dir:
+        type: string
+    type: object
+  model.ComposeCreateResult:
+    properties:
+      log:
+        type: string
+    type: object
+  model.ComposeOperation:
+    properties:
+      name:
+        type: string
+      operation:
+        enum:
+        - start
+        - stop
+        - down
+        type: string
+      work_dir:
+        type: string
+    required:
+    - name
+    - operation
+    type: object
+  model.ComposeTestResult:
+    properties:
+      error:
+        type: string
+      success:
+        type: boolean
+    type: object
   model.ContainerOperate:
     properties:
       auto_remove:
@@ -1511,978 +1550,6 @@ info:
   title: IDB API Documentation
   version: "1.0"
 paths:
-  /:host/conf:
-    get:
-      consumes:
-      - application/json
-      description: Get docker configurations
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.DaemonJsonConf'
-      summary: Docker configurations
-      tags:
-      - Docker
-    put:
-      consumes:
-      - application/json
-      description: Update docker conf file with content
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Configuration file details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.DaemonJsonUpdateByFile'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update Docker conf file
-      tags:
-      - Docker
-  /:host/containers:
-    get:
-      consumes:
-      - application/json
-      description: Query containers
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container Name
-        in: query
-        name: name
-        type: string
-      - description: Container state, one of (all created running paused restarting
-          removing exited dead)
-        in: query
-        name: state
-        required: true
-        type: string
-      - description: Page number
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      - description: Order by one of (name, state, created)
-        in: query
-        name: order_by
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Query containers
-      tags:
-      - Docker
-    post:
-      consumes:
-      - application/json
-      description: 创建容器
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container creation details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ContainerOperate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Create container
-      tags:
-      - Docker
-    put:
-      consumes:
-      - application/json
-      description: Update detail of the specified container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container edit details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ContainerOperate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update Container
-      tags:
-      - Docker
-  /:host/containers/:id:
-    get:
-      consumes:
-      - application/json
-      description: Get detail of the specified container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ContainerOperate'
-      summary: Get Container info
-      tags:
-      - Docker
-  /:host/containers/:id/log:
-    delete:
-      consumes:
-      - application/json
-      description: Clean container log
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Clean Container log
-      tags:
-      - Docker
-    get:
-      consumes:
-      - application/json
-      deprecated: true
-      description: Get container log
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Get container log
-      tags:
-      - Docker
-  /:host/containers/:id/stats:
-    get:
-      consumes:
-      - application/json
-      description: Get stats of the specified container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ContainerStats'
-      summary: Get Container stats
-      tags:
-      - Docker
-  /:host/containers/limit:
-    get:
-      consumes:
-      - application/json
-      description: Get container resource usage list
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ContainerResourceLimit'
-      summary: Get container resource usage list
-      tags:
-      - Docker
-  /:host/containers/names:
-    get:
-      consumes:
-      - application/json
-      description: Query container names
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Query container names
-      tags:
-      - Docker
-  /:host/containers/operatetion:
-    post:
-      consumes:
-      - application/json
-      description: Execute operations to container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container operation details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ContainerOperation'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Execute operations to container
-      tags:
-      - Docker
-  /:host/containers/rename:
-    post:
-      consumes:
-      - application/json
-      description: Rename container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container rename details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.Rename'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Rename container
-      tags:
-      - Docker
-  /:host/containers/upgrade:
-    post:
-      consumes:
-      - application/json
-      description: Upgrade container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container upgrade details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ContainerUpgrade'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Upgrade container
-      tags:
-      - Docker
-  /:host/containers/usages:
-    get:
-      consumes:
-      - application/json
-      description: Get container resource usage list
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Get container resource usage list
-      tags:
-      - Docker
-  /:host/images:
-    delete:
-      consumes:
-      - application/json
-      description: Batch Delete images
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Force delete
-        in: query
-        name: force
-        required: true
-        type: boolean
-      - description: Comma-separated list of image names to delete
-        in: query
-        name: sources
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Batch Delete images
-      tags:
-      - Docker
-    get:
-      consumes:
-      - application/json
-      description: Get images
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Page number
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Get images
-      tags:
-      - Docker
-  /:host/images/build:
-    post:
-      consumes:
-      - application/json
-      description: Build image
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Build image details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImageBuild'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Build image
-      tags:
-      - Docker
-  /:host/images/export:
-    post:
-      consumes:
-      - application/json
-      description: Export image
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Export image details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImageSave'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Export image
-      tags:
-      - Docker
-  /:host/images/import:
-    post:
-      consumes:
-      - application/json
-      description: Import image
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Import image details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImageLoad'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Import image
-      tags:
-      - Docker
-  /:host/images/names:
-    get:
-      consumes:
-      - application/json
-      description: Query image names
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Query image names
-      tags:
-      - Docker
-  /:host/images/pull:
-    post:
-      consumes:
-      - application/json
-      description: Pull image
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Pull image details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImagePull'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Pull image
-      tags:
-      - Docker
-  /:host/images/push:
-    post:
-      consumes:
-      - application/json
-      description: Push image
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Image ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Push image details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImagePush'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Push image
-      tags:
-      - Docker
-  /:host/images/tag:
-    put:
-      consumes:
-      - application/json
-      description: Set image tag
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Set image tag details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ImageTag'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Set image tag
-      tags:
-      - Docker
-  /:host/inspect:
-    get:
-      consumes:
-      - application/json
-      description: Get details of a container, image, volume or network
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Type of inspection, can be one of container, image, volume and
-          network
-        in: query
-        name: type
-        required: true
-        type: string
-      - description: ID of the object
-        in: query
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Inspect
-      tags:
-      - Docker
-  /:host/ipv6:
-    put:
-      consumes:
-      - application/json
-      description: Update docker ipv6 option
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Configuration key and value
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.Ipv6Option'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update Docker ipv6 option
-      tags:
-      - Docker
-  /:host/log:
-    put:
-      consumes:
-      - application/json
-      description: Update docker log option
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Configuration key and value
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.LogOption'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update Docker log option
-      tags:
-      - Docker
-  /:host/networks:
-    delete:
-      consumes:
-      - application/json
-      description: Batch Delete network
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Force delete
-        in: query
-        name: force
-        required: true
-        type: boolean
-      - description: Comma-separated list of volume ids to delete
-        in: query
-        name: sources
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Batch Delete network
-      tags:
-      - Docker
-    get:
-      consumes:
-      - application/json
-      description: Get networks
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Page number
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Get networks
-      tags:
-      - Docker
-    post:
-      consumes:
-      - application/json
-      description: Create network
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Create network details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.NetworkCreate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Create network
-      tags:
-      - Docker
-  /:host/networks/names:
-    get:
-      consumes:
-      - application/json
-      description: Query network names
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Query network names
-      tags:
-      - Docker
-  /:host/operation:
-    post:
-      consumes:
-      - application/json
-      description: To start, stop, restart docker
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Operation options
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.DockerOperation'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Docker operations
-      tags:
-      - Docker
-  /:host/prune:
-    post:
-      consumes:
-      - application/json
-      description: Prune operation for container, image, volume, network or buildcache
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Prune details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.Prune'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PruneResult'
-      summary: Prune
-      tags:
-      - Docker
-  /:host/status:
-    get:
-      consumes:
-      - application/json
-      description: Get docker status
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.DockerStatus'
-      summary: Docker status
-      tags:
-      - Docker
-  /:host/volumes:
-    delete:
-      consumes:
-      - application/json
-      description: Batch Delete volume
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Force delete
-        in: query
-        name: force
-        required: true
-        type: boolean
-      - description: Comma-separated list of volume ids to delete
-        in: query
-        name: sources
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Batch Delete volume
-      tags:
-      - Docker
-    get:
-      consumes:
-      - application/json
-      description: Get volumes
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Page number
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Get volumes
-      tags:
-      - Docker
-    post:
-      consumes:
-      - application/json
-      description: Create volume
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Create volume details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.VolumeCreate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Create volume
-      tags:
-      - Docker
-  /:host/volumes/names:
-    get:
-      consumes:
-      - application/json
-      description: Query volume names
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: Query volume names
-      tags:
-      - Docker
   /auth/sessions:
     delete:
       consumes:
@@ -2899,6 +1966,1127 @@ paths:
       summary: Restore conf file
       tags:
       - Crontab
+  /docker/:host/compose:
+    get:
+      consumes:
+      - application/json
+      description: Query compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query compose
+      tags:
+      - Docker
+    post:
+      consumes:
+      - application/json
+      description: Create compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ComposeCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeCreateResult'
+      summary: Create compose
+      tags:
+      - Docker
+    put:
+      consumes:
+      - application/json
+      description: Update compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ComposeCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update compose
+      tags:
+      - Docker
+  /docker/:host/compose/operation:
+    post:
+      consumes:
+      - application/json
+      description: Operate compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose operation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ComposeOperation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Operate compose
+      tags:
+      - Docker
+  /docker/:host/compose/test:
+    post:
+      consumes:
+      - application/json
+      description: Test compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ComposeCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeTestResult'
+      summary: Test compose
+      tags:
+      - Docker
+  /docker/:host/conf:
+    get:
+      consumes:
+      - application/json
+      description: Get docker configurations
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DaemonJsonConf'
+      summary: Docker configurations
+      tags:
+      - Docker
+    put:
+      consumes:
+      - application/json
+      description: Update docker conf file with content
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Configuration file details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DaemonJsonUpdateByFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update Docker conf file
+      tags:
+      - Docker
+  /docker/:host/containers:
+    get:
+      consumes:
+      - application/json
+      description: Query containers
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Container state, one of (all created running paused restarting
+          removing exited dead)
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Order by one of (name, state, created)
+        in: query
+        name: order_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query containers
+      tags:
+      - Docker
+    post:
+      consumes:
+      - application/json
+      description: 创建容器
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ContainerOperate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create container
+      tags:
+      - Docker
+    put:
+      consumes:
+      - application/json
+      description: Update detail of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ContainerOperate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update Container
+      tags:
+      - Docker
+  /docker/:host/containers/:id:
+    get:
+      consumes:
+      - application/json
+      description: Get detail of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ContainerOperate'
+      summary: Get Container info
+      tags:
+      - Docker
+  /docker/:host/containers/:id/log:
+    delete:
+      consumes:
+      - application/json
+      description: Clean container log
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Clean Container log
+      tags:
+      - Docker
+    get:
+      consumes:
+      - application/json
+      deprecated: true
+      description: Get container log
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Get container log
+      tags:
+      - Docker
+  /docker/:host/containers/:id/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get stats of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ContainerStats'
+      summary: Get Container stats
+      tags:
+      - Docker
+  /docker/:host/containers/limit:
+    get:
+      consumes:
+      - application/json
+      description: Get container resource usage list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ContainerResourceLimit'
+      summary: Get container resource usage list
+      tags:
+      - Docker
+  /docker/:host/containers/names:
+    get:
+      consumes:
+      - application/json
+      description: Query container names
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query container names
+      tags:
+      - Docker
+  /docker/:host/containers/operatetion:
+    post:
+      consumes:
+      - application/json
+      description: Execute operations to container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container operation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ContainerOperation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Execute operations to container
+      tags:
+      - Docker
+  /docker/:host/containers/rename:
+    post:
+      consumes:
+      - application/json
+      description: Rename container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container rename details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Rename'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Rename container
+      tags:
+      - Docker
+  /docker/:host/containers/upgrade:
+    post:
+      consumes:
+      - application/json
+      description: Upgrade container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container upgrade details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ContainerUpgrade'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Upgrade container
+      tags:
+      - Docker
+  /docker/:host/containers/usages:
+    get:
+      consumes:
+      - application/json
+      description: Get container resource usage list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get container resource usage list
+      tags:
+      - Docker
+  /docker/:host/images:
+    delete:
+      consumes:
+      - application/json
+      description: Batch Delete images
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Force delete
+        in: query
+        name: force
+        required: true
+        type: boolean
+      - description: Comma-separated list of image names to delete
+        in: query
+        name: sources
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Batch Delete images
+      tags:
+      - Docker
+    get:
+      consumes:
+      - application/json
+      description: Get images
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get images
+      tags:
+      - Docker
+  /docker/:host/images/build:
+    post:
+      consumes:
+      - application/json
+      description: Build image
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Build image details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImageBuild'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Build image
+      tags:
+      - Docker
+  /docker/:host/images/export:
+    post:
+      consumes:
+      - application/json
+      description: Export image
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Export image details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImageSave'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Export image
+      tags:
+      - Docker
+  /docker/:host/images/import:
+    post:
+      consumes:
+      - application/json
+      description: Import image
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Import image details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImageLoad'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Import image
+      tags:
+      - Docker
+  /docker/:host/images/names:
+    get:
+      consumes:
+      - application/json
+      description: Query image names
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query image names
+      tags:
+      - Docker
+  /docker/:host/images/pull:
+    post:
+      consumes:
+      - application/json
+      description: Pull image
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Pull image details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImagePull'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Pull image
+      tags:
+      - Docker
+  /docker/:host/images/push:
+    post:
+      consumes:
+      - application/json
+      description: Push image
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Image ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Push image details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImagePush'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Push image
+      tags:
+      - Docker
+  /docker/:host/images/tag:
+    put:
+      consumes:
+      - application/json
+      description: Set image tag
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Set image tag details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImageTag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set image tag
+      tags:
+      - Docker
+  /docker/:host/inspect:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a container, image, volume or network
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Type of inspection, can be one of container, image, volume and
+          network
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: ID of the object
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Inspect
+      tags:
+      - Docker
+  /docker/:host/ipv6:
+    put:
+      consumes:
+      - application/json
+      description: Update docker ipv6 option
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Configuration key and value
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Ipv6Option'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update Docker ipv6 option
+      tags:
+      - Docker
+  /docker/:host/log:
+    put:
+      consumes:
+      - application/json
+      description: Update docker log option
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Configuration key and value
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LogOption'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update Docker log option
+      tags:
+      - Docker
+  /docker/:host/networks:
+    delete:
+      consumes:
+      - application/json
+      description: Batch Delete network
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Force delete
+        in: query
+        name: force
+        required: true
+        type: boolean
+      - description: Comma-separated list of volume ids to delete
+        in: query
+        name: sources
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Batch Delete network
+      tags:
+      - Docker
+    get:
+      consumes:
+      - application/json
+      description: Get networks
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get networks
+      tags:
+      - Docker
+    post:
+      consumes:
+      - application/json
+      description: Create network
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Create network details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.NetworkCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create network
+      tags:
+      - Docker
+  /docker/:host/networks/names:
+    get:
+      consumes:
+      - application/json
+      description: Query network names
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query network names
+      tags:
+      - Docker
+  /docker/:host/operation:
+    post:
+      consumes:
+      - application/json
+      description: To start, stop, restart docker
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Operation options
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DockerOperation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Docker operations
+      tags:
+      - Docker
+  /docker/:host/prune:
+    post:
+      consumes:
+      - application/json
+      description: Prune operation for container, image, volume, network or buildcache
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Prune details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.Prune'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PruneResult'
+      summary: Prune
+      tags:
+      - Docker
+  /docker/:host/status:
+    get:
+      consumes:
+      - application/json
+      description: Get docker status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DockerStatus'
+      summary: Docker status
+      tags:
+      - Docker
+  /docker/:host/volumes:
+    delete:
+      consumes:
+      - application/json
+      description: Batch Delete volume
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Force delete
+        in: query
+        name: force
+        required: true
+        type: boolean
+      - description: Comma-separated list of volume ids to delete
+        in: query
+        name: sources
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Batch Delete volume
+      tags:
+      - Docker
+    get:
+      consumes:
+      - application/json
+      description: Get volumes
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get volumes
+      tags:
+      - Docker
+    post:
+      consumes:
+      - application/json
+      description: Create volume
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Create volume details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VolumeCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create volume
+      tags:
+      - Docker
+  /docker/:host/volumes/names:
+    get:
+      consumes:
+      - application/json
+      description: Query volume names
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Query volume names
+      tags:
+      - Docker
   /docker/info:
     get:
       consumes:
