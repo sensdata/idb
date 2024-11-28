@@ -1,8 +1,6 @@
 <template>
-  <div class="p-4">
-    <address-bar path="idb-prd/apps/my-sql" :items="items" @goto="handleGoto" />
-    <tree-item :items="items" />
-  </div>
+  <address-bar path="idb-prd/apps/my-sql" :items="items" @goto="handleGoto" />
+  <tree-item :items="items" />
 </template>
 
 <script lang="ts" setup>

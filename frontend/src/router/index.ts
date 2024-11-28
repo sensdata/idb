@@ -3,7 +3,7 @@ import NProgress from 'nprogress'; // progress bar
 import 'nprogress/nprogress.css';
 
 import { manageRoutes, appRoutes } from './routes';
-import { REDIRECT_MAIN, NOT_FOUND_ROUTE } from './routes/base';
+import { REDIRECT_MAIN, NOT_FOUND_ROUTE, DEFAULT_LAYOUT } from './routes/base';
 import createRouteGuard from './guard';
 
 NProgress.configure({ showSpinner: false }); // NProgress Configuration
@@ -23,10 +23,13 @@ const router = createRouter({
         requiresAuth: false,
       },
     },
-    ...manageRoutes,
-    ...appRoutes,
     REDIRECT_MAIN,
-    NOT_FOUND_ROUTE,
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'all',
+      component: DEFAULT_LAYOUT,
+      children: [...manageRoutes, ...appRoutes, NOT_FOUND_ROUTE],
+    },
   ],
   scrollBehavior() {
     return { top: 0 };

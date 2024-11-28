@@ -20,6 +20,7 @@ export default {
   'components.idbTable.batch.selectedPrefix': '已选择',
   'components.idbTable.batch.selectedSuffix': '项',
   'components.idbTable.batch.cancelSelected': '取消选择',
+  'components.idbTable.batch.clearSelected': '清空已选{0}条',
 
   // search
   'components.idbTable.search.placeholder': '请输入搜索内容',

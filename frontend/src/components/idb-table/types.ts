@@ -58,6 +58,10 @@ export type Column<T = any> = Omit<TableColumnData, 'render'> & {
   }) => VNodeChild;
 };
 export interface Props extends /* @vue-ignore */ TableProps {
+  // 行key字段
+  rowKey?: string;
+  // 数据源
+  dataSource?: ApiListResult<any>;
   // 过滤项
   filters?: FilterItem[];
   // 过滤项label对齐方式

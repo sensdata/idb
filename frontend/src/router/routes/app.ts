@@ -1,12 +1,12 @@
 import { RouteRecordRaw } from 'vue-router';
+import DeskTopIcon from '@/assets/icons/desktop.svg?raw';
 import HomeIcon from '@/assets/icons/home.svg?raw';
-import { DEFAULT_LAYOUT } from './base';
+import FileIcon from '@/assets/icons/folder.svg?raw';
 
 const appRoutes: RouteRecordRaw[] = [
   {
     path: '/app/sysinfo',
     name: 'appSysinfo',
-    component: DEFAULT_LAYOUT,
     meta: {
       locale: 'menu.app.sysinfo',
       requiresAuth: true,
@@ -25,6 +25,27 @@ const appRoutes: RouteRecordRaw[] = [
         },
       },
     ],
+  },
+  {
+    path: '/app/file',
+    name: 'appFile',
+    component: () => import('@/views/app/file/main.vue'),
+    meta: {
+      locale: 'menu.app.file',
+      requiresAuth: true,
+      icon: FileIcon,
+    },
+  },
+  {
+    path: '/app/test',
+    name: 'appTest',
+    meta: {
+      locale: 'menu.app.test',
+      requiresAuth: true,
+      card: true,
+      icon: DeskTopIcon,
+    },
+    component: () => import('@/views/app/test/test.vue'),
   },
 ];
 

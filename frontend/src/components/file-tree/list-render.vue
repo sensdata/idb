@@ -35,6 +35,7 @@
   }
 
   .tree-list {
+    margin: 0;
     padding-left: 0;
     list-style: none;
   }

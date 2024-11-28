@@ -20,6 +20,7 @@ export default {
   'components.idbTable.batch.selectedPrefix': 'Selected',
   'components.idbTable.batch.selectedSuffix': 'items',
   'components.idbTable.batch.cancelSelected': 'Cancel selected',
+  'components.idbTable.batch.clearSelected': 'Clear selected {0} items',
 
   // search
   'components.idbTable.search.placeholder': 'Please enter search content',

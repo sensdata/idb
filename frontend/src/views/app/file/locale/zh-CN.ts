@@ -1,0 +1,20 @@
+export default {
+  'app.file.list.action.back': '返回',
+  'app.file.list.action.create': '创建',
+  'app.file.list.action.createFolder': '创建文件夹',
+  'app.file.list.action.createFile': '创建文件',
+  'app.file.list.action.upload': '上传',
+  'app.file.list.action.download': '下载',
+  'app.file.list.action.copy': '复制',
+  'app.file.list.action.paste': '粘贴({count})',
+  'app.file.list.action.cut': '剪切',
+  'app.file.list.action.terminal': '终端',
+  'app.file.list.filter.showHidden': '显示隐藏文件和系统文件',
+
+  'app.file.list.column.name': '文件名',
+  'app.file.list.column.size': '大小',
+  'app.file.list.column.mod_time': '修改时间',
+  'app.file.list.column.mode': '权限',
+  'app.file.list.column.user': '用户',
+  'app.file.list.column.group': '组',
+};

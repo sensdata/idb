@@ -13,6 +13,7 @@ import App from './App.vue';
 import '@/assets/style/util.less';
 import '@/assets/style/twilwind.css';
 import '@/assets/style/global.less';
+import '@/assets/style/overlay.less';
 
 const app = createApp(App);
 

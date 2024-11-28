@@ -114,7 +114,7 @@
         {{ $t('components.idbTable.batch.selectedSuffix') }}
       </span>
       <a-button type="text" class="cancel-selected" @click="cancelSelected">{{
-        t('components.idbTable.batch.cancelSelected')
+        $t('components.idbTable.batch.cancelSelected')
       }}</a-button>
     </template>
     <template #right>
@@ -136,10 +136,11 @@
     watch,
     nextTick,
     useSlots,
+    onMounted,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/hooks/loading';
-  import { ApiListParams, BaseEntity } from '@/types/global';
+  import { ApiListParams, ApiListResult, BaseEntity } from '@/types/global';
   import type {
     TableChangeExtra,
     TableColumnData,
@@ -162,6 +163,8 @@
     rightActions: (props: any) => any;
     [key: string]: (props: any) => any;
   }>();
+
+  const emit = defineEmits(['selectedChange', 'filter']);
 
   const props = withDefaults(defineProps<Props>(), {
     filters: () => [],
@@ -251,12 +254,21 @@
   watch(selectedRowKeys, (newValue, oldValue) => {
     const newAdd = newValue.filter((item) => !oldValue.includes(item));
     selectedRows.value = selectedRows.value
-      .filter((item) => newValue.includes(item.id))
-      .concat(renderData.value.filter((item) => newAdd.includes(item.id)));
+      .concat(
+        renderData.value.filter((item: any) =>
+          newAdd.includes(item[rowKey.value])
+        )
+      )
+      .filter((item: any) =>
+        selectedRowKeys.value.includes(item[rowKey.value])
+      );
+
+    emit('selectedChange', selectedRows.value);
   });
   const cancelSelected = () => {
     selectedRows.value = [];
     selectedRowKeys.value = [];
+    emit('selectedChange', selectedRows.value);
   };
 
   // 调整密度
@@ -275,7 +287,7 @@
   };
 
   // 数据加载和参数处理
-  const { loading, setLoading } = useLoading(true);
+  const { loading, setLoading } = useLoading(false);
   const params = reactive<ApiListParams>({
     page: 1,
     page_size: props.pageSize,
@@ -309,24 +321,25 @@
     try {
       Object.assign(params, newParams);
       const data = await props.fetch(toRaw(params));
-      renderData.value = data.items;
-      if (data.amount) {
-        (data.amount as any)[rowKey.value] = t(
-          'components.idbTable.summaryText'
-        );
-      }
-      summaryData.value = data.amount;
-      if (data.total) {
-        pagination.total = data.total;
-      }
-      if (data.page) {
-        pagination.current = data.page;
-      }
-      if (data.page_size) {
-        pagination.pageSize = data.page_size;
-      }
+      setData(data);
     } finally {
       setLoading(false);
+    }
+  };
+  const setData = (data: ApiListResult<any>) => {
+    renderData.value = data.items;
+    if (data.amount) {
+      (data.amount as any)[rowKey.value] = t('components.idbTable.summaryText');
+    }
+    summaryData.value = data.amount;
+    if (data.total) {
+      pagination.total = data.total;
+    }
+    if (data.page) {
+      pagination.current = data.page;
+    }
+    if (data.page_size) {
+      pagination.pageSize = data.page_size;
     }
   };
   const reload = () => {
@@ -374,6 +387,7 @@
       ...filterParams,
       page: 1,
     });
+    emit('filter', filterParams);
   };
   const onFilterReady = (filterParams: any) => {
     if (!props.autoLoad) {
@@ -385,11 +399,18 @@
     });
   };
 
+  onMounted(() => {
+    if (props.dataSource) {
+      setData(props.dataSource);
+    }
+  });
+
   defineExpose({
     load,
+    setData,
     reload,
     setLoading,
-    clearSelection: cancelSelected,
+    clearSelected: cancelSelected,
     getSelectedRows: () => selectedRows.value,
   });
 </script>
