@@ -28,4 +28,5 @@ const (
 	AgentSock    = "idb-agent.sock"
 
 	ClashDir = "idb_clash"
+	StoreDir = "idb-store"
 )

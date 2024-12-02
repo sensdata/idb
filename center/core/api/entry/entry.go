@@ -13,4 +13,5 @@ var (
 	hostService    = service.NewIHostService()
 	commandService = service.NewICommandService()
 	actionService  = service.NewIActionService()
+	appService     = service.NewIAppService()
 )
