@@ -3,9 +3,11 @@ package service
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+
+	"github.com/compose-spec/compose-go/types"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -127,6 +129,8 @@ func (s *AppService) SyncApp() error {
 			if err != nil {
 				continue
 			}
+			// TODO: load form.yaml and save in app db
+
 			// create or update app
 			appRecord, err := AppRepo.Get(AppRepo.WithByName(app.Name))
 			if err != nil {
@@ -159,7 +163,7 @@ func (s *AppService) SyncApp() error {
 			}
 
 			// versions
-			appVersions, err := loadVersions(appDir)
+			appVersions, err := loadVersions(appId, appDir)
 			if err != nil {
 				continue
 			}
@@ -212,7 +216,7 @@ func loadManifest(appDir string) (*model.App, error) {
 	}, nil
 }
 
-func loadVersions(appDir string) ([]model.AppVersion, error) {
+func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 	var appVersions []model.AppVersion
 	appDirEntries, err := os.ReadDir(appDir)
 	if err != nil {
@@ -224,9 +228,12 @@ func loadVersions(appDir string) ([]model.AppVersion, error) {
 			var appVersion model.AppVersion
 			versionDir := filepath.Join(appDir, appDirEntry.Name())
 
+			// app id
+			appVersion.AppId = appId
+
 			// compose.yml
 			fileOp := files.NewFileOp()
-			dockerComposePath := path.Join(versionDir, "docker-compose.yml")
+			dockerComposePath := filepath.Join(versionDir, "docker-compose.yml")
 			if !fileOp.Stat(dockerComposePath) {
 				global.LOG.Error("docker-compose.yaml missed in %s", versionDir)
 				continue
@@ -238,8 +245,33 @@ func loadVersions(appDir string) ([]model.AppVersion, error) {
 			}
 			appVersion.ComposeContent = string(dockerComposeByte)
 
+			var composeConfig types.Config
+			err = yaml.Unmarshal(dockerComposeByte, &composeConfig)
+			if err != nil {
+				global.LOG.Error("Failed to unmarshal Compose YAML: %v", err)
+				continue
+			}
+			// 遍历 services 部分，拿到版本和升级版本
+			for _, service := range composeConfig.Services {
+				if service.Labels != nil {
+					for key, value := range service.Labels {
+						switch key {
+						case constant.IDBVersion:
+							if appVersion.Version == "" {
+								appVersion.Version = value
+							}
+						case constant.IDBUpdateVersion:
+							if appVersion.UpdateVersion == "" {
+								appVersion.UpdateVersion = value
+							}
+						default:
+						}
+					}
+				}
+			}
+
 			// .env
-			envPath := path.Join(versionDir, ".env")
+			envPath := filepath.Join(versionDir, ".env")
 			if !fileOp.Stat(envPath) {
 				global.LOG.Error(".env missed in %s", versionDir)
 				continue
@@ -252,7 +284,7 @@ func loadVersions(appDir string) ([]model.AppVersion, error) {
 			appVersion.EnvContent = string(envByte)
 
 			// config (might not exist)
-			configDir := path.Join(versionDir, "config")
+			configDir := filepath.Join(versionDir, "config")
 			if fileOp.Stat(configDir) {
 				// find conf file
 				confFiles, err := os.ReadDir(configDir)
@@ -266,8 +298,6 @@ func loadVersions(appDir string) ([]model.AppVersion, error) {
 					}
 				}
 			}
-
-			// TODO: form.yaml
 
 			appVersions = append(appVersions, appVersion)
 		}
@@ -360,10 +390,46 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 		BackDatas []core.App
 	)
 	for _, compose := range composeInfos {
+		// 查询App
 		appData, err := AppRepo.Get(AppRepo.WithByName(compose.IdbName))
 		if err != nil {
 			global.LOG.Error("Error query app %s, %v", compose.IdbName, err)
 			continue
+		}
+		// 查询版本信息
+		appVersions, err := AppVersionRepo.GetList(AppVersionRepo.WithByID(appData.ID))
+		if err != nil {
+			global.LOG.Error("Error query app %s version, %v", compose.IdbName, err)
+			continue
+		}
+		hasUpdate := false
+		var versions []core.AppVersion
+		for _, version := range appVersions {
+			versions = append(versions, core.AppVersion{
+				ID:             version.ID,
+				Version:        version.Version,
+				UpdateVersion:  version.UpdateVersion,
+				ComposeContent: version.ComposeContent,
+				EnvContent:     version.EnvContent,
+				// ConfigName:     version.ConfigName,    // TODO：config文件的处理
+				// ConfigContent:  version.ConfigContent,
+			})
+			if version.Version == compose.IdbVersion {
+				composeUpdtVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
+				if err != nil {
+					global.LOG.Error("Failed to convert Compose update version: %v", err)
+					composeUpdtVersion = 0
+				}
+
+				dbUpdtVersion, err := strconv.Atoi(version.UpdateVersion)
+				if err != nil {
+					global.LOG.Error("Failed to convert DB update version: %v", err)
+					dbUpdtVersion = 0
+				}
+
+				// 判断是否可以更新
+				hasUpdate = dbUpdtVersion > composeUpdtVersion
+			}
 		}
 		apps = append(apps, core.App{
 			Name:        appData.Name,
@@ -374,6 +440,8 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			Description: appData.Description,
 			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
 			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+			HasUpdate:   hasUpdate,
+			Versions:    versions,
 		})
 	}
 
@@ -415,7 +483,7 @@ func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {
 		appInfo.Versions = append(appInfo.Versions, core.AppVersion{
 			ID:             version.ID,
 			Version:        version.Version,
-			FormContent:    version.FormContent,
+			UpdateVersion:  version.UpdateVersion,
 			ComposeContent: version.ComposeContent,
 			EnvContent:     version.EnvContent,
 			// ConfigName:     version.ConfigName,    // TODO：config文件的处理

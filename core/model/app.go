@@ -1,23 +1,23 @@
 package model
 
 type App struct {
-	ID          uint     `yaml:"-" json:"id"`
-	Type        string   `yaml:"type" json:"type"`
-	Name        string   `yaml:"name" json:"name"`
-	DisplayName string   `yaml:"display_name" json:"display_name"`
-	Category    string   `yaml:"category" json:"category"`
-	Tags        []string `yaml:"tags" json:"tags"`
-	Title       string   `yaml:"title" json:"title"`
-	Description string   `yaml:"description" json:"description"`
-	Vendor      NameUrl  `yaml:"vendor" json:"vendor"`
-	Packager    NameUrl  `yaml:"packager" json:"packager"`
-
-	Versions []AppVersion `json:"versions"`
+	ID          uint         `yaml:"-" json:"id"`
+	Type        string       `yaml:"type" json:"type"`
+	Name        string       `yaml:"name" json:"name"`
+	DisplayName string       `yaml:"display_name" json:"display_name"`
+	Category    string       `yaml:"category" json:"category"`
+	Tags        []string     `yaml:"tags" json:"tags"`
+	Title       string       `yaml:"title" json:"title"`
+	Description string       `yaml:"description" json:"description"`
+	Vendor      NameUrl      `yaml:"vendor" json:"vendor"`
+	Packager    NameUrl      `yaml:"packager" json:"packager"`
+	HasUpdate   bool         `yaml:"-" json:"has_update"`
+	Versions    []AppVersion `json:"versions"`
 }
 type AppVersion struct {
 	ID             uint   `json:"id"`
 	Version        string `json:"version"`
-	FormContent    string `json:"form_content"`
+	UpdateVersion  string `json:"update_version"`
 	ComposeContent string `json:"compose_content"`
 	EnvContent     string `json:"env_content"`
 	ConfigName     string `json:"config_name"`
