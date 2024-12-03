@@ -182,6 +182,29 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 				if ok {
 					composeItem.IdbType = idbType
 				}
+				// 如果限制了类型
+				if req.IdbType != "" && idbType != req.IdbType {
+					global.LOG.Info("Container %s type %s, is not %s, ignoring", containerItem.Name, idbType, req.IdbType)
+					continue
+				}
+
+				idbName, ok := container.Labels[constant.IDBName]
+				if ok {
+					composeItem.IdbName = idbName
+				}
+				idbVersion, ok := container.Labels[constant.IDBVersion]
+				if ok {
+					composeItem.IdbVersion = idbVersion
+				}
+				idbUpdateVersion, ok := container.Labels[constant.IDBUpdateVersion]
+				if ok {
+					composeItem.IdbUpdateVersion = idbUpdateVersion
+				}
+				idbPanel, ok := container.Labels[constant.IDBPanel]
+				if ok {
+					composeItem.IdbPanel = idbPanel
+				}
+
 				composeMap[projectName] = composeItem
 			}
 		}

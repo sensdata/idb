@@ -178,14 +178,18 @@ type ContainerResourceLimit struct {
 
 // compose
 type ComposeInfo struct {
-	Name            string             `json:"name"`
-	CreatedAt       string             `json:"created_at"`
-	IdbType         string             `json:"idb_type"`
-	ContainerNumber int                `json:"container_number"`
-	ConfigFile      string             `json:"config_file"`
-	Workdir         string             `json:"work_dir"`
-	Path            string             `json:"path"`
-	Containers      []ComposeContainer `json:"containers"`
+	Name             string             `json:"name"`
+	CreatedAt        string             `json:"created_at"`
+	IdbType          string             `json:"idb_type"`
+	IdbName          string             `json:"idb_name"`
+	IdbVersion       string             `json:"idb_version"`
+	IdbUpdateVersion string             `json:"idb_update_version"`
+	IdbPanel         string             `json:"idb_panel"`
+	ContainerNumber  int                `json:"container_number"`
+	ConfigFile       string             `json:"config_file"`
+	Workdir          string             `json:"work_dir"`
+	Path             string             `json:"path"`
+	Containers       []ComposeContainer `json:"containers"`
 }
 
 type ComposeContainer struct {
@@ -199,6 +203,7 @@ type QueryCompose struct {
 	PageInfo
 	Info    string `form:"info"`
 	WorkDir string `json:"work_dir"`
+	IdbType string `json:"idb_type"`
 }
 
 type ComposeTestResult struct {
