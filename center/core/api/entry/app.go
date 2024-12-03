@@ -67,12 +67,41 @@ func (b *BaseApi) AppDetail(c *gin.Context) {
 }
 
 // @Tags App
+// @Summary Get installed app list
+// @Description Get installed app list
+// @Param host path int true "Host ID"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Param name query string false "Name"
+// @Success 200
+// @Router /store/:host/apps/installed [get]
+func (b *BaseApi) InstalledAppPage(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.QueryInstalledApp
+	if err := CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := appService.InstalledAppPage(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}
+
+// @Tags App
 // @Summary Install app
 // @Description Install app
 // @Param host path int true "Host ID"
 // @Param request body model.ComposeCreate true "request"
 // @Success 200 {object} model.ComposeCreateResult
-// @Router /store/apps/:host/install [post]
+// @Router /store/:host/apps/install [post]
 func (b *BaseApi) InstallApp(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

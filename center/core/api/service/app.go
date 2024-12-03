@@ -21,17 +21,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type AppService struct{}
+type AppService struct {
+	AppDir string // App目录
+}
 
 type IAppService interface {
 	SyncApp() error
 	AppPage(req core.QueryApp) (*core.PageResult, error)
+	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.ComposeCreate) (*core.ComposeCreateResult, error)
 }
 
 func NewIAppService() IAppService {
-	return &AppService{}
+	return &AppService{AppDir: constant.AgentDockerDir}
 }
 
 func (s *AppService) SyncApp() error {
@@ -286,6 +289,46 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 	return &core.PageResult{Total: total, Items: apps}, nil
+}
+
+func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error) {
+	var result core.PageResult
+
+	queryCompose := core.QueryCompose{
+		PageInfo: req.PageInfo,
+		Info:     req.Name,
+		WorkDir:  s.AppDir,
+		IdbType:  constant.TYPE_APP,
+	}
+	data, err := utils.ToJSONString(queryCompose)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest := core.HostAction{
+		HostID: uint(hostID),
+		Action: core.Action{
+			Action: core.Docker_Compose_Page,
+			Data:   data,
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return &result, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to query compose")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose query result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
 }
 
 func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {

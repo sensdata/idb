@@ -11,6 +11,7 @@ import (
 	"github.com/sensdata/idb/center/plugin/ssh/backend/sshman"
 	"github.com/sensdata/idb/center/plugin/sysinfo/backend/sysinfo"
 	"github.com/sensdata/idb/center/plugin/systemctl"
+	"github.com/sensdata/idb/core/constant"
 )
 
 func RegisterPlugins() {
@@ -31,7 +32,7 @@ func RegisterPlugins() {
 	// 注册crontab
 	conn.RegisterIdbPlugin(&crontab.CronTab{})
 	// 注册docker, TODO: AppDir从安装传入
-	conn.RegisterIdbPlugin(&docker.DockerMan{AppDir: "/opt/idb"})
+	conn.RegisterIdbPlugin(&docker.DockerMan{AppDir: constant.AgentDockerDir})
 
 	// 执行所有模块的初始化
 	conn.InitializePlugins()

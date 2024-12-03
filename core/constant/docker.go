@@ -9,6 +9,11 @@ const (
 )
 
 const (
+	TYPE_APP   = "app"
+	TYPE_Panel = "panel"
+)
+
+const (
 	/*
 		com.docker.compose.* 系列标签：
 		com.docker.compose.project

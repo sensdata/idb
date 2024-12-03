@@ -8,7 +8,7 @@ import (
 	"github.com/sensdata/idb/core/utils"
 )
 
-func (s *DockerMan) composeQuery(hostID uint64, req model.SearchPageInfo) (*model.PageResult, error) {
+func (s *DockerMan) composeQuery(hostID uint64, req model.QueryCompose) (*model.PageResult, error) {
 	var result model.PageResult
 
 	data, err := utils.ToJSONString(req)

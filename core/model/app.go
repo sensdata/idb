@@ -32,6 +32,10 @@ type QueryApp struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
 }
+type QueryInstalledApp struct {
+	PageInfo
+	Name string `json:"name"`
+}
 type QueryAppDetail struct {
 	ID uint `json:"id"`
 }

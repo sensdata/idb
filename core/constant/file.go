@@ -15,10 +15,11 @@ const (
 	CenterSock     = "idb.sock"
 	CenterAgentPkg = "idb-agent.tar.gz"
 
-	AgentConfDir = "/etc/idb-agent"
-	AgentDataDir = "/var/lib/idb-agent/data"
-	AgentLogDir  = "/var/log/idb-agent"
-	AgentRunDir  = "/run/idb-agent"
+	AgentConfDir   = "/etc/idb-agent"
+	AgentDataDir   = "/var/lib/idb-agent/data"
+	AgentLogDir    = "/var/log/idb-agent"
+	AgentRunDir    = "/run/idb-agent"
+	AgentDockerDir = "/opt/idb/docker"
 
 	AgentDb      = "idb-agent.db"
 	AgentPid     = "idb-agent.pid"

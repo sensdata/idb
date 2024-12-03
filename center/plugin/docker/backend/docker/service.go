@@ -529,11 +529,11 @@ func (s *DockerMan) ComposeQuery(c *gin.Context) {
 		return
 	}
 
-	var req model.SearchPageInfo
+	var req model.QueryCompose
 	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
 		return
 	}
-
+	req.WorkDir = s.AppDir
 	result, err := s.composeQuery(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
