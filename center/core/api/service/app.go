@@ -288,14 +288,28 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
-	return &core.PageResult{Total: total, Items: apps}, nil
+	// db -> dto
+	var items []core.App
+	for _, appData := range apps {
+		items = append(items, core.App{
+			Name:        appData.Name,
+			DisplayName: appData.DisplayName,
+			Category:    appData.Category,
+			Tags:        strings.Split(appData.Tags, ","),
+			Title:       appData.Title,
+			Description: appData.Description,
+			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
+			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+		})
+	}
+	return &core.PageResult{Total: total, Items: items}, nil
 }
 
 func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error) {
 	var result core.PageResult
 
 	queryCompose := core.QueryCompose{
-		PageInfo: req.PageInfo,
+		PageInfo: core.PageInfo{Page: 1, PageSize: 10000}, // get all
 		Info:     req.Name,
 		WorkDir:  s.AppDir,
 		IdbType:  constant.TYPE_APP,
@@ -321,12 +335,60 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 		global.LOG.Error("action failed")
 		return &result, fmt.Errorf("failed to query compose")
 	}
-
-	err = utils.FromJSONString(actionResponse.Data, &result)
+	var composeResult core.PageResult
+	err = utils.FromJSONString(actionResponse.Data, &composeResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to compose query result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+
+	// 将 Items 转换为 []ComposeInfo 类型
+	itemsJSON, err := utils.ToJSONString(composeResult.Items)
+	if err != nil {
+		global.LOG.Error("Error marshaling Items: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+	var composeInfos []core.ComposeInfo
+	if err := utils.FromJSONString(itemsJSON, &composeInfos); err != nil {
+		global.LOG.Error("Error unmarshaling Items to []ComposeInfo: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	// 遍历 ComposeInfo 查询对应的 App
+	var (
+		apps      []core.App
+		BackDatas []core.App
+	)
+	for _, compose := range composeInfos {
+		appData, err := AppRepo.Get(AppRepo.WithByName(compose.IdbName))
+		if err != nil {
+			global.LOG.Error("Error query app %s, %v", compose.IdbName, err)
+			continue
+		}
+		apps = append(apps, core.App{
+			Name:        appData.Name,
+			DisplayName: appData.DisplayName,
+			Category:    appData.Category,
+			Tags:        strings.Split(appData.Tags, ","),
+			Title:       appData.Title,
+			Description: appData.Description,
+			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
+			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+		})
+	}
+
+	// 分页
+	total, start, end := len(apps), (req.Page-1)*req.PageSize, req.Page*req.PageSize
+	if start > total {
+		BackDatas = make([]core.App, 0)
+	} else {
+		if end >= total {
+			end = total
+		}
+		BackDatas = apps[start:end]
+	}
+	result.Total = int64(total)
+	result.Items = BackDatas
 
 	return &result, nil
 }
