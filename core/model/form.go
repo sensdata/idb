@@ -16,6 +16,8 @@ type Validation struct {
 	MinLength int    `yaml:"min_length,omitempty"`
 	MaxLength int    `yaml:"max_length,omitempty"`
 	Pattern   string `yaml:"pattern,omitempty"`
+	MinValue  int    `yaml:"min_value,omitempty"`
+	MaxValue  int    `yaml:"max_value,omitempty"`
 }
 
 type Form struct {

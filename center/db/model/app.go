@@ -13,4 +13,5 @@ type App struct {
 	VendorUrl   string `gorm:"type:longtext;not null" json:"-"`
 	Packager    string `gorm:"type:varchar(128);not null" json:"-"`
 	PackagerUrl string `gorm:"type:longtext;not null" json:"-"`
+	FormContent string `gorm:"type:longtext;not null" json:"-"`
 }

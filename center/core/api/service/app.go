@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
@@ -32,7 +34,7 @@ type IAppService interface {
 	AppPage(req core.QueryApp) (*core.PageResult, error)
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(req core.QueryAppDetail) (*core.App, error)
-	AppInstall(hostID uint64, req core.ComposeCreate) (*core.ComposeCreateResult, error)
+	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
 }
 
 func NewIAppService() IAppService {
@@ -129,7 +131,12 @@ func (s *AppService) SyncApp() error {
 			if err != nil {
 				continue
 			}
-			// TODO: load form.yaml and save in app db
+			// form.yaml
+			form, err := loadForm(appDir)
+			if err != nil {
+				continue
+			}
+			app.FormContent = form
 
 			// create or update app
 			appRecord, err := AppRepo.Get(AppRepo.WithByName(app.Name))
@@ -214,6 +221,21 @@ func loadManifest(appDir string) (*model.App, error) {
 		Packager:    appData.Packager.Name,
 		PackagerUrl: appData.Packager.Url,
 	}, nil
+}
+
+func loadForm(appDir string) (string, error) {
+	formYamlPath := filepath.Join(appDir, "form.yaml")
+	fileOp := files.NewFileOp()
+	if !fileOp.Stat(formYamlPath) {
+		global.LOG.Error("form.yaml missed in %s", appDir)
+		return "", errors.New(constant.ErrFileNotFound)
+	}
+	formYamlByte, err := fileOp.GetContent(formYamlPath)
+	if err != nil {
+		global.LOG.Error("faile to get form.yaml content %s", formYamlPath)
+		return "", err
+	}
+	return string(formYamlByte), nil
 }
 
 func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
@@ -369,19 +391,19 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 	err = utils.FromJSONString(actionResponse.Data, &composeResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to compose query result: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return &result, fmt.Errorf("unmarshal err: %v", err)
 	}
 
 	// 将 Items 转换为 []ComposeInfo 类型
 	itemsJSON, err := utils.ToJSONString(composeResult.Items)
 	if err != nil {
 		global.LOG.Error("Error marshaling Items: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return &result, fmt.Errorf("marshal err: %v", err)
 	}
 	var composeInfos []core.ComposeInfo
 	if err := utils.FromJSONString(itemsJSON, &composeInfos); err != nil {
 		global.LOG.Error("Error unmarshaling Items to []ComposeInfo: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return &result, fmt.Errorf("unmarshal err: %v", err)
 	}
 
 	// 遍历 ComposeInfo 查询对应的 App
@@ -410,9 +432,6 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 				Version:        version.Version,
 				UpdateVersion:  version.UpdateVersion,
 				ComposeContent: version.ComposeContent,
-				EnvContent:     version.EnvContent,
-				// ConfigName:     version.ConfigName,    // TODO：config文件的处理
-				// ConfigContent:  version.ConfigContent,
 			})
 			if version.Version == compose.IdbVersion {
 				composeUpdtVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
@@ -464,6 +483,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {
 	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
 	if err != nil {
+		global.LOG.Error("App %d data not found", req.ID)
 		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 	appInfo := core.App{
@@ -485,19 +505,143 @@ func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {
 			Version:        version.Version,
 			UpdateVersion:  version.UpdateVersion,
 			ComposeContent: version.ComposeContent,
-			EnvContent:     version.EnvContent,
-			// ConfigName:     version.ConfigName,    // TODO：config文件的处理
-			// ConfigContent:  version.ConfigContent,
 		})
 	}
+
+	var form core.Form
+	if err := yaml.Unmarshal([]byte(app.FormContent), &form); err != nil {
+		global.LOG.Error("Failed to unmarshal app form data: %v", err)
+		return nil, fmt.Errorf("unmarshal form err: %v", err)
+	}
+	appInfo.Form = form
 
 	return &appInfo, nil
 }
 
-func (s *AppService) AppInstall(hostID uint64, req core.ComposeCreate) (*core.ComposeCreateResult, error) {
+func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error) {
 	var result core.ComposeCreateResult
 
-	data, err := utils.ToJSONString(req)
+	// 查找应用
+	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
+	if err != nil {
+		global.LOG.Error("App %d not found", req.ID)
+		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+	var form core.Form
+	if err := yaml.Unmarshal([]byte(app.FormContent), &form); err != nil {
+		global.LOG.Error("Failed to unmarshal app form data: %v", err)
+		return &result, fmt.Errorf("unmarshal form err: %v", err)
+	}
+	appName := app.Name
+
+	// 找版本
+	version, err := AppVersionRepo.Get(AppVersionRepo.WithByID(req.VersionID))
+	if err != nil {
+		global.LOG.Error("App version %d not found", req.VersionID)
+		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 处理env
+	envMap, err := godotenv.Unmarshal(version.EnvContent)
+	if err != nil {
+		return &result, fmt.Errorf("unmarshal env err : %v", err)
+	}
+	// 校验form params
+	if len(req.FormParams) > 0 {
+		// 字段规则
+		validKeys := make(map[string]core.FormField)
+		for _, field := range form.Fields {
+			validKeys[field.Key] = field
+		}
+		// 校验env params
+		for _, param := range req.FormParams {
+			// 检查 key 是否在 validKeys 中
+			formField, exists := validKeys[param.Key]
+			if exists {
+				// 设置了校验规则
+				if formField.Validation != nil {
+					// 设置了正则匹配，优先正则匹配
+					if formField.Validation.Pattern != "" {
+						// 使用正则表达式校验
+						matched, err := regexp.MatchString(formField.Validation.Pattern, param.Value)
+						if err != nil {
+							global.LOG.Error("Invalid regex pattern: %v", err)
+							return &result, fmt.Errorf("invalid regex pattern for key %s: %v", param.Key, err)
+						}
+						if !matched {
+							global.LOG.Error("Value %s does not match the required pattern for key %s", param.Value, param.Key)
+							return &result, fmt.Errorf("invalid value for key %s", param.Key)
+						}
+						// 校验通过
+						continue
+					}
+					// 设置了长度限制
+					if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
+						if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
+							global.LOG.Error("Value %s does not has valid length for key %s", param.Value, param.Key)
+							return &result, fmt.Errorf("invalid value for key %s", param.Key)
+						}
+						// 校验通过
+						continue
+					}
+					// 是数值类型，且设置了值大小
+					if formField.Type == "number" && formField.Validation.MinValue >= 0 && formField.Validation.MaxValue >= formField.Validation.MinValue {
+						paramValue, err := strconv.Atoi(param.Value)
+						if err != nil || (paramValue < formField.Validation.MinValue || paramValue > formField.Validation.MaxValue) {
+							global.LOG.Error("Value %s is not valid number for key %s", param.Value, param.Key)
+							return &result, fmt.Errorf("invalid number value for key %s", param.Key)
+						}
+					}
+				}
+				// 校验通过，根据传入的form params，替换env中的对应值
+				if _, exist := envMap[param.Key]; exist {
+					// 密码类型，可能包含特殊字符，以单引号包含，避免转义错误
+					if formField.Type == "password" {
+						envMap[param.Key] = fmt.Sprintf("'%s'", param.Value)
+					} else {
+						envMap[param.Key] = param.Value
+					}
+				}
+			} else {
+				// 不存在，返回错误
+				global.LOG.Error("Invalid form key: %s", param.Key)
+				return &result, fmt.Errorf("invalid key: %s", param.Key)
+			}
+		}
+	}
+	// 额外的params
+	for _, param := range req.ExtraParams {
+		envMap[param.Key] = param.Value
+	}
+	// 转换成env内容
+	var envArray []string
+	for key, value := range envMap {
+		// 应用名
+		if key == "iDB_name" {
+			appName = value
+		}
+		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
+	}
+	envContent := strings.Join(envArray, "\n")
+
+	// 处理compose内容
+	var composeContent string
+	if req.ComposeContent != "" {
+		// 使用传入的内容
+		composeContent = req.ComposeContent
+	} else {
+		// 使用版本内容
+		composeContent = version.ComposeContent
+	}
+
+	// 发送compose create请求
+	composeCreate := core.ComposeCreate{
+		Name:           appName,
+		ComposeContent: composeContent,
+		EnvContent:     envContent,
+		WorkDir:        s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeCreate)
 	if err != nil {
 		return &result, err
 	}

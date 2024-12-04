@@ -109,7 +109,7 @@ func (b *BaseApi) InstallApp(c *gin.Context) {
 		return
 	}
 
-	var req model.ComposeCreate
+	var req model.InstallApp
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
