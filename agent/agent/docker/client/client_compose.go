@@ -100,6 +100,26 @@ func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error
 	return composePath, nil
 }
 
+func (c DockerClient) initConf(req *model.ComposeCreate) error {
+	dir := filepath.Dir(req.ConfPath)
+	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	file, err := os.OpenFile(req.ConfPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	write := bufio.NewWriter(file)
+	_, _ = write.WriteString(req.ConfContent)
+	write.Flush()
+
+	return nil
+}
+
 func pull(filePath string) (string, error) {
 	stdout, err := utils.Execf("docker-compose -f %s pull", filePath)
 	return stdout, err
@@ -282,7 +302,18 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	if err != nil {
 		return &result, err
 	}
-	global.LOG.Info("compose and env init successful, try docker-compose up %s", req.Name)
+	global.LOG.Info("init compose and env successful")
+
+	// 写入conf
+	if req.ConfPath != "" && req.ConfContent != "" {
+		if err := c.initConf(&req); err != nil {
+			global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
+			return &result, err
+		}
+		global.LOG.Info("init conf successful")
+	}
+
+	global.LOG.Info("try docker-compose up %s", req.Name)
 
 	// 初始化日志
 	projectDir := filepath.Dir(composePath)

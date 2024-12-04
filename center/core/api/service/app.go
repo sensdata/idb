@@ -634,11 +634,20 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		composeContent = version.ComposeContent
 	}
 
+	// 处理conf
+	var confPath, confContent string
+	if confDir, exist := envMap["iDB_service_conf_path"]; exist {
+		confPath = filepath.Join(confDir, version.ConfigName)
+		confContent = version.ConfigContent
+	}
+
 	// 发送compose create请求
 	composeCreate := core.ComposeCreate{
 		Name:           appName,
 		ComposeContent: composeContent,
 		EnvContent:     envContent,
+		ConfContent:    confContent,
+		ConfPath:       confPath,
 		WorkDir:        s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeCreate)
