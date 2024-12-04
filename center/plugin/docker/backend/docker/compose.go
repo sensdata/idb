@@ -43,10 +43,18 @@ func (s *DockerMan) composeQuery(hostID uint64, req model.QueryCompose) (*model.
 	return &result, nil
 }
 
-func (s *DockerMan) composeCreate(hostID uint64, req model.ComposeCreate) (*model.ComposeCreateResult, error) {
+func (s *DockerMan) composeCreate(hostID uint64, req model.CreateCompose) (*model.ComposeCreateResult, error) {
 	var result model.ComposeCreateResult
 
-	data, err := utils.ToJSONString(req)
+	composeCreate := model.ComposeCreate{
+		Name:           req.Name,
+		ComposeContent: req.ComposeContent,
+		EnvContent:     req.EnvContent,
+		ConfPath:       "",
+		ConfContent:    "",
+		WorkDir:        s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeCreate)
 	if err != nil {
 		return &result, err
 	}
@@ -78,8 +86,15 @@ func (s *DockerMan) composeCreate(hostID uint64, req model.ComposeCreate) (*mode
 	return &result, nil
 }
 
-func (s *DockerMan) composeUpdate(hostID uint64, req model.ComposeUpdate) error {
-	data, err := utils.ToJSONString(req)
+func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error {
+	composeUpdate := model.ComposeUpdate{
+		Name:           req.Name,
+		ComposeContent: req.ComposeContent,
+		EnvContent:     req.EnvContent,
+		WorkDir:        s.AppDir,
+	}
+
+	data, err := utils.ToJSONString(composeUpdate)
 	if err != nil {
 		return err
 	}
@@ -105,10 +120,18 @@ func (s *DockerMan) composeUpdate(hostID uint64, req model.ComposeUpdate) error 
 	return nil
 }
 
-func (s *DockerMan) composeTest(hostID uint64, req model.ComposeCreate) (*model.ComposeTestResult, error) {
+func (s *DockerMan) composeTest(hostID uint64, req model.CreateCompose) (*model.ComposeTestResult, error) {
 	var result model.ComposeTestResult
 
-	data, err := utils.ToJSONString(req)
+	composeCreate := model.ComposeCreate{
+		Name:           req.Name,
+		ComposeContent: req.ComposeContent,
+		EnvContent:     req.EnvContent,
+		ConfPath:       "",
+		ConfContent:    "",
+		WorkDir:        s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeCreate)
 	if err != nil {
 		return &result, err
 	}
@@ -140,8 +163,14 @@ func (s *DockerMan) composeTest(hostID uint64, req model.ComposeCreate) (*model.
 	return &result, nil
 }
 
-func (s *DockerMan) composeOperation(hostID uint64, req model.ComposeOperation) error {
-	data, err := utils.ToJSONString(req)
+func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) error {
+
+	composeOperation := model.ComposeOperation{
+		Name:      req.Name,
+		Operation: req.Operation,
+		WorkDir:   s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeOperation)
 	if err != nil {
 		return err
 	}

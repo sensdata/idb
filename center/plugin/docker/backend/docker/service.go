@@ -549,7 +549,7 @@ func (s *DockerMan) ComposeQuery(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.ComposeCreate true "Compose creation details"
+// @Param request body model.CreateCompose true "Compose creation details"
 // @Success 200 {object} model.ComposeCreateResult
 // @Router /docker/:host/compose [post]
 func (s *DockerMan) ComposeCreate(c *gin.Context) {
@@ -559,7 +559,7 @@ func (s *DockerMan) ComposeCreate(c *gin.Context) {
 		return
 	}
 
-	var req model.ComposeCreate
+	var req model.CreateCompose
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -579,7 +579,7 @@ func (s *DockerMan) ComposeCreate(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.ComposeCreate true "Compose edit details"
+// @Param request body model.CreateCompose true "Compose edit details"
 // @Success 200
 // @Router /docker/:host/compose [put]
 func (s *DockerMan) ComposeUpdate(c *gin.Context) {
@@ -589,7 +589,7 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 		return
 	}
 
-	var req model.ComposeUpdate
+	var req model.CreateCompose
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -609,7 +609,7 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.ComposeCreate true "Compose creation details"
+// @Param request body model.CreateCompose true "Compose creation details"
 // @Success 200 {object} model.ComposeTestResult
 // @Router /docker/:host/compose/test [post]
 func (s *DockerMan) ComposeTest(c *gin.Context) {
@@ -619,7 +619,7 @@ func (s *DockerMan) ComposeTest(c *gin.Context) {
 		return
 	}
 
-	var req model.ComposeCreate
+	var req model.CreateCompose
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
@@ -639,7 +639,7 @@ func (s *DockerMan) ComposeTest(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.ComposeOperation true "Compose operation details"
+// @Param request body model.OperateCompose true "Compose operation details"
 // @Success 200
 // @Router /docker/:host/compose/operation [post]
 func (s *DockerMan) ComposeOperation(c *gin.Context) {
@@ -649,7 +649,7 @@ func (s *DockerMan) ComposeOperation(c *gin.Context) {
 		return
 	}
 
-	var req model.ComposeOperation
+	var req model.OperateCompose
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

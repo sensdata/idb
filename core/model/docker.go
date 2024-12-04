@@ -211,15 +211,28 @@ type ComposeTestResult struct {
 	Error   string
 }
 
+type ComposeCreateResult struct {
+	Log string
+}
+
+type CreateCompose struct {
+	Name           string `json:"name"`
+	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
+}
+
+type OperateCompose struct {
+	Name      string `json:"name" validate:"required"`
+	Operation string `json:"operation" validate:"required,oneof=start stop down"`
+}
+
 type ComposeCreate struct {
 	Name           string `json:"name"`
 	ComposeContent string `json:"compose_content"`
 	EnvContent     string `json:"env_content"`
+	ConfContent    string `json:"conf_content"`
+	ConfPath       string `json:"conf_path"`
 	WorkDir        string `json:"work_dir"`
-}
-
-type ComposeCreateResult struct {
-	Log string
 }
 
 type ComposeOperation struct {
