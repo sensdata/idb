@@ -163,7 +163,16 @@
     [key: string]: (props: any) => any;
   }>();
 
-  const emit = defineEmits(['selectedChange', 'filter']);
+  const emit = defineEmits([
+    'selectedChange',
+    'filter',
+    'filterReady',
+    'reload',
+    'search',
+    'pageChange',
+    'pageSizeChange',
+    'sortChange',
+  ]);
 
   const props = withDefaults(defineProps<Props>(), {
     filters: () => [],
@@ -355,11 +364,17 @@
   };
   const reload = () => {
     load();
+    emit('reload');
   };
 
   const onChange = (_: any, extra: TableChangeExtra) => {
     if (extra.type === 'sorter') {
-      load({
+      const sortParams = {
+        sort_field: extra.sorter?.field,
+        sort_order: extra.sorter?.direction === 'descend' ? 'desc' : 'asc',
+      };
+      load(sortParams);
+      emit('sortChange', {
         sort_field: extra.sorter?.field,
         sort_order: extra.sorter?.direction === 'descend' ? 'desc' : 'asc',
       });
@@ -371,12 +386,14 @@
     load({
       page,
     });
+    emit('pageChange', page);
   };
   const onPageSizeChange = (pageSize: number) => {
     pagination.pageSize = pageSize;
     load({
       page_size: pageSize,
     });
+    emit('pageSizeChange', pageSize);
   };
 
   // 搜索
@@ -387,6 +404,7 @@
       search: value,
       page: 1,
     });
+    emit('search', value);
   };
   const onSearchEnter = () => {
     onSearch(searchValue.value);
@@ -408,6 +426,7 @@
       ...filterParams,
       page: 1,
     });
+    emit('filterReady', filterParams);
   };
 
   watch(

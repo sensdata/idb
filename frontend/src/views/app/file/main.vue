@@ -1,6 +1,11 @@
 <template>
   <div class="file-page">
-    <address-bar :path="pwd" :items="data.items" @goto="store.handleGoto" />
+    <address-bar
+      :path="store.pwd"
+      :items="store.addressItems"
+      @search="store.handleAddressSearch"
+      @goto="store.handleGoto"
+    />
     <div class="file-layout">
       <div class="file-sidebar">
         <file-tree
@@ -81,7 +86,7 @@
             </a-button>
           </a-button-group>
           <a-button-group v-if="pasteVisible" class="idb-button-group ml-4">
-            <a-button @click="store.handlePaste">
+            <a-button @click="handlePaste">
               <icon-paste />
               <span class="ml-2">
                 {{
@@ -98,9 +103,9 @@
         </div>
         <idb-table
           ref="gridRef"
-          :loading="loading"
+          :params="params"
           :columns="columns"
-          :data-source="data"
+          :fetch="mockFetch"
           has-batch
           row-key="path"
           @selected-change="store.handleSelected"
@@ -121,6 +126,13 @@
                 record.name
               }}</span>
             </div>
+          </template>
+          <template #mode="{ record }: { record: FileItem }">
+            <div
+              class="color-primary cursor-pointer"
+              @click="handleModifyMode(record)"
+              >{{ record.mode }}</div
+            >
           </template>
           <template #operation="{ record }: { record: FileItem }">
             <a-dropdown
@@ -162,7 +174,7 @@
 
 <script lang="ts" setup>
   import { storeToRefs } from 'pinia';
-  import { computed, GlobalComponents, ref } from 'vue';
+  import { computed, GlobalComponents, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { formatFileSize } from '@/utils/format';
@@ -178,8 +190,36 @@
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const modeDrawerRef = ref<InstanceType<typeof ModeDrawer>>();
   const store = useFileStore();
-  const { current, pwd, tree, data, loading, pasteVisible, selected } =
-    storeToRefs(store);
+  const { current, tree, pasteVisible, selected } = storeToRefs(store);
+
+  const mockFetch = (params: any) => {
+    return new Promise<any>((resolve) => {
+      window.setTimeout(() => {
+        const pwd = params.path || '/';
+        resolve({
+          page: 1,
+          page_size: 20,
+          total: 2,
+          items: [
+            {
+              name: pwd.split('/').pop() + '-1',
+              path: pwd + '/' + pwd.split('/').pop() + '-1',
+              is_dir: true,
+              mode: '0755',
+              user: 'root',
+              group: 'root',
+              size: 0,
+            },
+            {
+              name: pwd.split('/').pop() + '-2',
+              path: pwd + '/' + pwd.split('/').pop() + '-2',
+              is_dir: true,
+            },
+          ],
+        });
+      }, 1000);
+    });
+  };
 
   const columns = [
     {
@@ -209,6 +249,7 @@
       dataIndex: 'mode',
       title: t('app.file.list.column.mode'),
       width: 100,
+      slotName: 'mode',
     },
     {
       dataIndex: 'user',
@@ -229,9 +270,15 @@
     },
   ];
 
-  const showHidden = computed({
-    get: () => store.showHidden,
-    set: (val) => store.handleShowHiddenChange(val),
+  const showHidden = ref(false);
+  const params = computed(() => {
+    return {
+      showHidden: showHidden.value,
+      path: store.pwd,
+    };
+  });
+  watch(params, () => {
+    gridRef.value?.reload();
   });
 
   const handleClearSelected = () => {
@@ -252,9 +299,15 @@
     }
   };
 
-  const handleMode = (record: FileItem) => {
+  const handleModifyMode = (record: FileItem) => {
     modeDrawerRef.value?.setData(record);
     modeDrawerRef.value?.show();
+  };
+
+  const handlePaste = async () => {
+    if (await store.handlePaste()) {
+      gridRef.value?.reload();
+    }
   };
 
   const handleRename = (record: FileItem) => {
@@ -279,7 +332,7 @@
         store.handleOpen(record);
         break;
       case 'mode':
-        handleMode(record);
+        handleModifyMode(record);
         break;
       case 'rename':
         handleRename(record);

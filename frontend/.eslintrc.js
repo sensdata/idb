@@ -75,5 +75,6 @@ module.exports = {
     'no-restricted-syntax': ['off', 'ForOfStatement'],
     'no-continue': 'off',
     'no-bitwise': 'off',
+    'prefer-destructuring': 'off',
   },
 };

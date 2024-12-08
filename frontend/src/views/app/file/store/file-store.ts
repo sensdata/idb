@@ -21,43 +21,7 @@ const useFileStore = defineStore('file-manage', {
         name: 'aac',
       },
     ] as FileItem[],
-    loading: false,
-    data: {
-      items: [
-        {
-          path: 'idb-prd/apps/my-sql/aaa',
-          name: 'aaa',
-          mod_time: '2021-08-01 12:00:00',
-          mode: '0755',
-          user: 'root',
-          group: 'root',
-          size: 0,
-          is_dir: true,
-        },
-        {
-          path: 'idb-prd/apps/my-sql/aab',
-          name: 'aab',
-          mod_time: '2021-08-01 12:00:00',
-          mode: '0755',
-          user: 'root',
-          group: 'root',
-          is_dir: true,
-        },
-        {
-          path: 'idb-prd/apps/my-sql/aac',
-          name: 'aac',
-          mod_time: '2021-08-01 12:00:00',
-          mode: '0755',
-          user: 'root',
-          group: 'root',
-          size: 43232,
-        },
-      ] as FileItem[],
-      total: 3,
-      page: 1,
-      page_size: 20,
-    },
-    showHidden: false,
+    addressItems: [] as FileItem[],
     selected: [] as any[],
     copyActive: false,
     cutActive: false,
@@ -120,32 +84,7 @@ const useFileStore = defineStore('file-manage', {
       }
       return findParentByPath(this.$state.tree, item.path);
     },
-    load() {
-      const { pwd } = this;
-      this.$state.loading = true;
-      window.setTimeout(() => {
-        this.$state.data = {
-          page: 1,
-          page_size: 20,
-          total: 2,
-          items: [
-            {
-              name: pwd.split('/').pop() + '-1',
-              path: pwd + '/' + pwd.split('/').pop() + '-1',
-              is_dir: true,
-            },
-            {
-              name: pwd.split('/').pop() + '-2',
-              path: pwd + '/' + pwd.split('/').pop() + '-2',
-              is_dir: true,
-            },
-          ] as FileItem[],
-        };
-
-        this.$state.loading = false;
-      }, 1000);
-    },
-    loadChildren(treeItem: FileItem) {
+    loadTreeChildren(treeItem: FileItem) {
       treeItem.loading = true;
       window.setTimeout(() => {
         Object.assign(treeItem, {
@@ -167,13 +106,32 @@ const useFileStore = defineStore('file-manage', {
         this.$state.tree = [...this.$state.tree];
       }, 1000);
     },
+    handleAddressSearch(payload: { path: string; word?: string }) {
+      if (!payload.word) {
+        this.$state.addressItems = [];
+        return;
+      }
+      window.setTimeout(() => {
+        this.$state.addressItems = [
+          {
+            name: payload.word + '-1',
+            path: payload.path + '/' + payload.word + '-1',
+            is_dir: true,
+          },
+          {
+            name: payload.word + '-2',
+            path: payload.path + '/' + payload.word + '-2',
+            is_dir: true,
+          },
+        ] as any[];
+      }, 1000);
+    },
     handleGoto(path: string) {
       console.log('goto', path);
     },
     handleTreeItemSelect(treeItem: FileItem) {
       if (this.$state.current?.path !== treeItem?.path) {
         this.$state.current = treeItem;
-        this.load();
       }
     },
     handleTreeItemOpenChange(treeItem: FileItem, open: boolean) {
@@ -193,7 +151,7 @@ const useFileStore = defineStore('file-manage', {
       }
 
       if (!treeItem.loading && !treeItem.items) {
-        this.loadChildren(treeItem);
+        this.loadTreeChildren(treeItem);
       }
     },
     handleBack() {
@@ -201,7 +159,6 @@ const useFileStore = defineStore('file-manage', {
         return;
       }
       this.current = this.getParent(this.current);
-      this.load();
     },
     handleSelected(selected: any[]) {
       this.$state.selected = selected;
@@ -223,7 +180,7 @@ const useFileStore = defineStore('file-manage', {
       console.log('paste', this.selected);
       // todo submit paste
       this.clearSelected();
-      this.load();
+      return true;
     },
     handleOpen(item: FileItem) {
       const treeItem = this.getItemByPath(item.path);
@@ -232,17 +189,13 @@ const useFileStore = defineStore('file-manage', {
       }
       if (treeItem.is_dir) {
         if (!treeItem?.items) {
-          this.loadChildren(treeItem);
+          this.loadTreeChildren(treeItem);
         } else if (!treeItem.open) {
           treeItem.open = !treeItem.open;
           this.$state.tree = [...this.$state.tree];
         }
       }
       this.handleTreeItemSelect(treeItem || item);
-    },
-    handleShowHiddenChange(value: boolean) {
-      this.$state.showHidden = value;
-      this.load();
     },
     handleCreateFolder() {},
     handleCreateFile() {},

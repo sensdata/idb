@@ -39,7 +39,7 @@
         />
       </a-form-item>
       <a-form-item field="mode" :label="$t('app.file.modeDrawer.mode')">
-        <a-input v-model="formState.mode" class="w-60" max-length="4" />
+        <a-input v-model="formState.mode" class="w-60" :max-length="4" />
       </a-form-item>
       <a-form-item field="user" :label="$t('app.file.modeDrawer.user')">
         <a-input v-model="formState.user" class="w-60" />

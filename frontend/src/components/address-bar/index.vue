@@ -15,6 +15,8 @@
       :placeholder="$t('components.addressBar.input.placeholder')"
       class="address-bar"
       allow-clear
+      @clear="handleClear"
+      @input="handleInputValueChange"
       @press-enter="handleGo"
     >
       <template #prefix>
@@ -46,21 +48,21 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref } from 'vue';
+  import { FileInfoEntity } from '@/entity/FileInfo';
+  import { Options } from '@/types/global';
+  import { debounce } from 'lodash';
+  import { computed, ref, watch } from 'vue';
 
   const props = defineProps<{
     path: string;
-    items: Array<{
-      name: string;
-      path: string;
-    }>;
+    items?: FileInfoEntity[];
   }>();
 
-  const emit = defineEmits(['goto']);
+  const emit = defineEmits(['goto', 'search', 'clear']);
 
   const inputRef = ref();
   const breadcrumbItems = computed(() => {
-    const arr = props.path.split('/');
+    const arr = props.path.split('/').filter((item) => !!item);
     const bcItems = arr.map((item, index) => {
       return {
         name: item,
@@ -79,17 +81,27 @@
 
   const value = ref('');
 
-  const formatedOptions = computed(() => {
-    return props.items.map((item) => ({
+  const handleInputValueChange = debounce(() => {
+    emit('search', {
+      path: props.path,
+      word: value.value,
+    });
+  }, 300);
+
+  const handleClear = () => {
+    value.value = '';
+    emit('clear');
+    emit('search', {
+      path: props.path,
+      word: '',
+    });
+  };
+
+  const validOptions = computed(() => {
+    return (props.items || []).map((item) => ({
       value: item.name,
       label: item.name,
     }));
-  });
-
-  const validOptions = computed(() => {
-    return formatedOptions.value.filter((item) =>
-      item.label.includes(value.value)
-    );
   });
 
   const popupVisible = ref(false);
@@ -99,11 +111,6 @@
 
   function handlePopupVisibleChange(visible: boolean) {
     popupVisible.value = visible;
-  }
-
-  function handleSelect(item: any) {
-    inputRef.value?.blur();
-    value.value = item.value;
   }
 
   function handleHome() {
@@ -116,11 +123,17 @@
       return;
     }
 
-    if (!props.items.some((item) => item.name === v)) {
-      return;
-    }
+    // if (!(props.items || []).some((item) => item.name === v)) {
+    //   return;
+    // }
 
     emit('goto', [props.path, value.value].join('/'));
+  }
+
+  function handleSelect(item: any) {
+    inputRef.value?.blur();
+    value.value = item.value;
+    handleGo();
   }
 </script>
 
