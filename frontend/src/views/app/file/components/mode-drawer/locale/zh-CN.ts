@@ -1,0 +1,17 @@
+export default {
+  'app.file.modeDrawer.title': '设置文件权限',
+  'app.file.modeDrawer.path': '文件路径',
+  'app.file.modeDrawer.ownerAccess': '所有者权限',
+  'app.file.modeDrawer.groupAccess': '用户组权限',
+  'app.file.modeDrawer.otherAccess': '公共权限',
+  'app.file.modeDrawer.read': '读取',
+  'app.file.modeDrawer.write': '写入',
+  'app.file.modeDrawer.execute': '可执行',
+  'app.file.modeDrawer.mode': '权限码',
+  'app.file.modeDrawer.user': '用户',
+  'app.file.modeDrawer.group': '用户组',
+  'app.file.modeDrawer.sub': '同时修改子文件属性',
+  'app.file.modeDrawer.modeError': '权限错误',
+  'app.file.modeDrawer.userRequired': '请输入用户',
+  'app.file.modeDrawer.groupRequired': '请输入用户组',
+};

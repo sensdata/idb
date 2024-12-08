@@ -72,5 +72,8 @@ module.exports = {
     'prefer-template': 'off',
     '@typescript-eslint/no-shadow': 'warn',
     '@typescript-eslint/no-non-null-assertion': 0,
+    'no-restricted-syntax': ['off', 'ForOfStatement'],
+    'no-continue': 'off',
+    'no-bitwise': 'off',
   },
 };

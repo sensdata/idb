@@ -62,6 +62,8 @@ export interface Props extends /* @vue-ignore */ TableProps {
   rowKey?: string;
   // 数据源
   dataSource?: ApiListResult<any>;
+  // 加载中
+  loading?: boolean;
   // 过滤项
   filters?: FilterItem[];
   // 过滤项label对齐方式

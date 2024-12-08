@@ -17,4 +17,10 @@ export default {
   'app.file.list.column.mode': '权限',
   'app.file.list.column.user': '用户',
   'app.file.list.column.group': '组',
+  'app.file.list.operation.open': '打开',
+  'app.file.list.operation.mode': '权限',
+  'app.file.list.operation.rename': '重命名',
+  'app.file.list.operation.copyPath': '复制路径',
+  'app.file.list.operation.property': '属性',
+  'app.file.list.operation.delete': '删除',
 };

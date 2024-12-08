@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { FileItem } from './type';
+  import { FileItem } from '../../types/file-item';
   import ItemRender from './item-render.vue';
 
   const props = defineProps<{

@@ -136,7 +136,6 @@
     watch,
     nextTick,
     useSlots,
-    onMounted,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/hooks/loading';
@@ -288,6 +287,18 @@
 
   // 数据加载和参数处理
   const { loading, setLoading } = useLoading(false);
+  watch(
+    () => props.loading,
+    (val) => {
+      if (val !== undefined) {
+        setLoading(val);
+      }
+    },
+    {
+      immediate: true,
+    }
+  );
+
   const params = reactive<ApiListParams>({
     page: 1,
     page_size: props.pageSize,
@@ -399,11 +410,17 @@
     });
   };
 
-  onMounted(() => {
-    if (props.dataSource) {
-      setData(props.dataSource);
+  watch(
+    () => props.dataSource,
+    (val) => {
+      if (val) {
+        setData(val);
+      }
+    },
+    {
+      immediate: true,
     }
-  });
+  );
 
   defineExpose({
     load,

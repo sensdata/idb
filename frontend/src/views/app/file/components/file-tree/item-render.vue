@@ -1,7 +1,10 @@
 <template>
   <div
     class="tree-item-container"
-    :class="{ selected: selected === item.path, ['level-' + level]: true }"
+    :class="{
+      selected: selected?.path === item.path,
+      ['level-' + level]: true,
+    }"
     :style="{ paddingLeft: level * 8 + 'px' }"
     @click="handleClick"
   >
@@ -21,7 +24,7 @@
     </div>
   </div>
   <div
-    v-if="loading"
+    v-if="item.loading"
     class="tree-item-loading"
     :style="{ paddingLeft: level * 8 + 'px' }"
   >
@@ -37,61 +40,28 @@
 
 <script lang="ts" setup>
   import { inject, Ref } from 'vue';
-  import useLoading from '@/hooks/loading';
   import DownIcon from '@/assets/icons/down.svg';
   import RightIcon from '@/assets/icons/direction-right.svg';
   import ListRender from './list-render.vue';
   import IconRender from './icon-render';
-  import { FileItem } from './type';
+  import { FileItem } from '../../types/file-item';
 
   const props = defineProps<{
     item: FileItem;
     level: number;
   }>();
-  const selected = inject<Ref<string>>('selected')!;
-
-  const { loading, setLoading } = useLoading(false);
-
-  function loadChildren() {
-    setLoading(true);
-    window.setTimeout(() => {
-      Object.assign(props.item, {
-        items: [
-          {
-            name: props.item.name + '-1',
-            path: `idb-prd/apps/my-sql/aaa/aaa1/aaa1-2/aaa1-2${Math.random()
-              .toString(32)
-              .slice(2)}`,
-            is_dir: true,
-          },
-        ],
-      });
-      Object.assign(props.item, { open: true });
-      setLoading(false);
-    }, 1000);
-  }
+  const selected = inject<Ref<FileItem | undefined | null>>('selected')!;
+  const selectedChange = inject<(item: FileItem) => void>('selectedChange');
+  const openChange =
+    inject<(item: FileItem, open: boolean) => void>('openChange');
 
   function handleToggle() {
-    if (!props.item.is_dir) {
-      return;
-    }
-
-    if (props.item.open) {
-      Object.assign(props.item, { open: false });
-      return;
-    }
-
-    if (props.item.items) {
-      Object.assign(props.item, { open: true });
-      return;
-    }
-
-    loadChildren();
+    openChange?.(props.item, !props.item.open);
   }
 
   function handleClick() {
-    handleToggle();
-    selected.value = props.item.path;
+    openChange?.(props.item, true);
+    selectedChange?.(props.item);
   }
 </script>
 
@@ -157,6 +127,7 @@
     flex: 1;
     align-items: center;
     width: 100%;
+    min-width: 0;
     height: 100%;
     padding: 5px 8px;
   }
@@ -174,6 +145,8 @@
   }
 
   .tree-item-text {
+    flex: 1;
+    min-width: 0;
     margin-left: 8px;
     font-size: 14px;
     line-height: 22px;
