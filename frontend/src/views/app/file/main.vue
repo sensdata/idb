@@ -134,6 +134,20 @@
               >{{ record.mode }}</div
             >
           </template>
+          <template #user="{ record }: { record: FileItem }">
+            <div
+              class="color-primary cursor-pointer"
+              @click="handleModifyOwner(record)"
+              >{{ record.user }}</div
+            >
+          </template>
+          <template #group="{ record }: { record: FileItem }">
+            <div
+              class="color-primary cursor-pointer"
+              @click="handleModifyOwner(record)"
+              >{{ record.group }}</div
+            >
+          </template>
           <template #operation="{ record }: { record: FileItem }">
             <a-dropdown
               :popup-max-height="false"
@@ -169,12 +183,15 @@
       </div>
     </div>
     <mode-drawer ref="modeDrawerRef" />
+    <owner-drawer ref="ownerDrawerRef" />
+    <create-file-drawer ref="createFileDrawerRef" />
+    <create-folder-drawer ref="createFolderDrawerRef" />
   </div>
 </template>
 
 <script lang="ts" setup>
   import { storeToRefs } from 'pinia';
-  import { computed, GlobalComponents, ref, watch } from 'vue';
+  import { computed, GlobalComponents, onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { formatFileSize } from '@/utils/format';
@@ -183,12 +200,18 @@
   import AddressBar from '@/components/address-bar/index.vue';
   import FileTree from './components/file-tree/index.vue';
   import ModeDrawer from './components/mode-drawer/index.vue';
+  import OwnerDrawer from './components/owner-drawer/index.vue';
+  import CreateFileDrawer from './components/create-file-drawer/index.vue';
+  import CreateFolderDrawer from './components/create-folder-drawer/index.vue';
   import useFileStore from './store/file-store';
   import { FileItem } from './types/file-item';
 
   const { t } = useI18n();
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const modeDrawerRef = ref<InstanceType<typeof ModeDrawer>>();
+  const ownerDrawerRef = ref<InstanceType<typeof OwnerDrawer>>();
+  const createFileDrawerRef = ref<InstanceType<typeof CreateFileDrawer>>();
+  const createFolderDrawerRef = ref<InstanceType<typeof CreateFolderDrawer>>();
   const store = useFileStore();
   const { current, tree, pasteVisible, selected } = storeToRefs(store);
 
@@ -254,12 +277,14 @@
     {
       dataIndex: 'user',
       title: t('app.file.list.column.user'),
-      width: 150,
+      width: 120,
+      slotName: 'user',
     },
     {
       dataIndex: 'group',
       title: t('app.file.list.column.group'),
-      width: 110,
+      width: 120,
+      slotName: 'group',
     },
     {
       dataIndex: 'operation',
@@ -289,10 +314,16 @@
   const handleCreate = (key: any) => {
     switch (key) {
       case 'createFolder':
-        store.handleCreateFolder();
+        createFolderDrawerRef.value?.setData({
+          pwd: store.pwd,
+        });
+        createFolderDrawerRef.value?.show();
         break;
       case 'createFile':
-        store.handleCreateFile();
+        createFileDrawerRef.value?.setData({
+          pwd: store.pwd,
+        });
+        createFileDrawerRef.value?.show();
         break;
       default:
         break;
@@ -302,6 +333,11 @@
   const handleModifyMode = (record: FileItem) => {
     modeDrawerRef.value?.setData(record);
     modeDrawerRef.value?.show();
+  };
+
+  const handleModifyOwner = (record: FileItem) => {
+    ownerDrawerRef.value?.setData(record);
+    ownerDrawerRef.value?.show();
   };
 
   const handlePaste = async () => {
@@ -350,6 +386,10 @@
         break;
     }
   };
+
+  onMounted(() => {
+    store.initTree();
+  });
 </script>
 
 <style scoped>

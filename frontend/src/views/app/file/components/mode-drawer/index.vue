@@ -12,29 +12,29 @@
         <span>{{ formState.path }}</span>
       </a-form-item>
       <a-form-item
-        field="ownerAccess"
-        :label="$t('app.file.modeDrawer.ownerAccess')"
+        field="owner_access"
+        :label="$t('app.file.modeDrawer.owner_access')"
       >
         <a-checkbox-group
-          v-model="formState.ownerAccess"
+          v-model="formState.owner_access"
           :options="accessOptions"
         />
       </a-form-item>
       <a-form-item
-        field="groupAccess"
-        :label="$t('app.file.modeDrawer.groupAccess')"
+        field="group_access"
+        :label="$t('app.file.modeDrawer.group_access')"
       >
         <a-checkbox-group
-          v-model="formState.groupAccess"
+          v-model="formState.group_access"
           :options="accessOptions"
         />
       </a-form-item>
       <a-form-item
-        field="otherAccess"
-        :label="$t('app.file.modeDrawer.otherAccess')"
+        field="other_access"
+        :label="$t('app.file.modeDrawer.other_access')"
       >
         <a-checkbox-group
-          v-model="formState.otherAccess"
+          v-model="formState.other_access"
           :options="accessOptions"
         />
       </a-form-item>
@@ -69,9 +69,9 @@
     mode: '0755',
     user: '',
     group: '',
-    ownerAccess: ['4', '2', '1'],
-    groupAccess: ['4', '1'],
-    otherAccess: ['4', '1'],
+    owner_access: ['4', '2', '1'],
+    group_access: ['4', '1'],
+    other_access: ['4', '1'],
     sub: true,
   });
 
@@ -86,13 +86,13 @@
       required: true,
       validator: (value: string, cb: any) => {
         if (!/^0?[0-7]{3}$/.test(value)) {
-          cb(t('app.file.modeDrawer.modeError'));
+          cb(t('app.file.modeDrawer.mode_error'));
         }
         cb();
       },
     },
-    user: { required: true, message: t('app.file.modeDrawer.userRequired') },
-    group: { required: true, message: t('app.file.modeDrawer.groupRequired') },
+    user: { required: true, message: t('app.file.modeDrawer.user_required') },
+    group: { required: true, message: t('app.file.modeDrawer.group_required') },
   };
 
   const visible = ref(false);
@@ -120,7 +120,11 @@
   let isUpdatingMode = false;
   let isUpdatingAccess = false;
   watch(
-    () => [formState.ownerAccess, formState.groupAccess, formState.otherAccess],
+    () => [
+      formState.owner_access,
+      formState.group_access,
+      formState.other_access,
+    ],
     ([newOwner, newGroup, newOthers]) => {
       if (isUpdatingAccess) {
         return;
@@ -146,9 +150,9 @@
       }
       isUpdatingAccess = true;
       const [owner, group, others] = newMode.slice(1).split('');
-      formState.ownerAccess = calculateAccess(owner);
-      formState.groupAccess = calculateAccess(group);
-      formState.otherAccess = calculateAccess(others);
+      formState.owner_access = calculateAccess(owner);
+      formState.group_access = calculateAccess(group);
+      formState.other_access = calculateAccess(others);
       isUpdatingAccess = false;
     }
   );
@@ -161,9 +165,9 @@
     formState.mode = mode;
     formState.user = data.user;
     formState.group = data.group;
-    formState.ownerAccess = calculateAccess(mode.charAt(1));
-    formState.groupAccess = calculateAccess(mode.charAt(2));
-    formState.otherAccess = calculateAccess(mode.charAt(3));
+    formState.owner_access = calculateAccess(mode.charAt(1));
+    formState.group_access = calculateAccess(mode.charAt(2));
+    formState.other_access = calculateAccess(mode.charAt(3));
   };
 
   const handleOk = () => {};

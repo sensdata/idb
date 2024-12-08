@@ -49,9 +49,8 @@
 
 <script lang="ts" setup>
   import { FileInfoEntity } from '@/entity/FileInfo';
-  import { Options } from '@/types/global';
   import { debounce } from 'lodash';
-  import { computed, ref, watch } from 'vue';
+  import { computed, ref } from 'vue';
 
   const props = defineProps<{
     path: string;

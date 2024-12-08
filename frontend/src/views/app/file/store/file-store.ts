@@ -1,28 +1,13 @@
 import { defineStore } from 'pinia';
+import { getFileInfoApi, getFileListApi, moveFileApi } from '@/api/file';
 import { FileItem } from '../types/file-item';
 
 const useFileStore = defineStore('file-manage', {
   state: () => ({
     current: null as FileItem | null,
-    tree: [
-      {
-        path: 'idb-prd/apps/my-sql/aaa',
-        name: 'aaa',
-        is_dir: true,
-        loading: false,
-      },
-      {
-        path: 'idb-prd/apps/my-sql/aab',
-        name: 'aab',
-        is_dir: true,
-      },
-      {
-        path: 'idb-prd/apps/my-sql/aac',
-        name: 'aac',
-      },
-    ] as FileItem[],
+    tree: [] as FileItem[],
     addressItems: [] as FileItem[],
-    selected: [] as any[],
+    selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
   }),
@@ -34,6 +19,30 @@ const useFileStore = defineStore('file-manage', {
     },
   },
   actions: {
+    initTree() {
+      // getFileListApi().then((res) => {
+      //   this.$state.tree = res.items;
+      // });
+      window.setTimeout(() => {
+        this.$state.tree = [
+          {
+            path: 'idb-prd/apps/my-sql/aaa',
+            name: 'aaa',
+            is_dir: true,
+            loading: false,
+          },
+          {
+            path: 'idb-prd/apps/my-sql/aab',
+            name: 'aab',
+            is_dir: true,
+          },
+          {
+            path: 'idb-prd/apps/my-sql/aac',
+            name: 'aac',
+          },
+        ] as FileItem[];
+      }, 1000);
+    },
     getItemByPath(path: string) {
       function findItemByPath(
         tree: FileItem[],
@@ -84,8 +93,14 @@ const useFileStore = defineStore('file-manage', {
       }
       return findParentByPath(this.$state.tree, item.path);
     },
-    loadTreeChildren(treeItem: FileItem) {
+    async loadTreeChildren(treeItem: FileItem) {
       treeItem.loading = true;
+      // const data = await getFileListApi();
+      // treeItem.items = data.items;
+      // Object.assign(treeItem, { open: true });
+      // Object.assign(treeItem, { loading: false });
+      // this.$state.tree = [...this.$state.tree];
+
       window.setTimeout(() => {
         Object.assign(treeItem, {
           items: [
@@ -105,29 +120,6 @@ const useFileStore = defineStore('file-manage', {
         Object.assign(treeItem, { loading: false });
         this.$state.tree = [...this.$state.tree];
       }, 1000);
-    },
-    handleAddressSearch(payload: { path: string; word?: string }) {
-      if (!payload.word) {
-        this.$state.addressItems = [];
-        return;
-      }
-      window.setTimeout(() => {
-        this.$state.addressItems = [
-          {
-            name: payload.word + '-1',
-            path: payload.path + '/' + payload.word + '-1',
-            is_dir: true,
-          },
-          {
-            name: payload.word + '-2',
-            path: payload.path + '/' + payload.word + '-2',
-            is_dir: true,
-          },
-        ] as any[];
-      }, 1000);
-    },
-    handleGoto(path: string) {
-      console.log('goto', path);
     },
     handleTreeItemSelect(treeItem: FileItem) {
       if (this.$state.current?.path !== treeItem?.path) {
@@ -154,33 +146,25 @@ const useFileStore = defineStore('file-manage', {
         this.loadTreeChildren(treeItem);
       }
     },
-    handleBack() {
-      if (!this.current || this.pwd === '/') {
+    handleAddressSearch(payload: { path: string; word?: string }) {
+      if (!payload.word) {
+        this.$state.addressItems = [];
         return;
       }
-      this.current = this.getParent(this.current);
-    },
-    handleSelected(selected: any[]) {
-      this.$state.selected = selected;
-    },
-    clearSelected() {
-      this.$state.selected = [];
-      this.$state.copyActive = false;
-      this.$state.cutActive = false;
-    },
-    handleCopy() {
-      this.$state.cutActive = false;
-      this.$state.copyActive = true;
-    },
-    handleCut() {
-      this.$state.copyActive = false;
-      this.$state.cutActive = true;
-    },
-    handlePaste() {
-      console.log('paste', this.selected);
-      // todo submit paste
-      this.clearSelected();
-      return true;
+      window.setTimeout(() => {
+        this.$state.addressItems = [
+          {
+            name: payload.word + '-1',
+            path: payload.path + '/' + payload.word + '-1',
+            is_dir: true,
+          },
+          {
+            name: payload.word + '-2',
+            path: payload.path + '/' + payload.word + '-2',
+            is_dir: true,
+          },
+        ] as any[];
+      }, 1000);
     },
     handleOpen(item: FileItem) {
       const treeItem = this.getItemByPath(item.path);
@@ -197,8 +181,45 @@ const useFileStore = defineStore('file-manage', {
       }
       this.handleTreeItemSelect(treeItem || item);
     },
-    handleCreateFolder() {},
-    handleCreateFile() {},
+    async handleGoto(path: string) {
+      const item = await getFileInfoApi({ path });
+      if (item?.is_dir) {
+        this.handleOpen(item);
+        this.$state.current = item;
+      }
+    },
+    handleBack() {
+      if (!this.current || this.pwd === '/') {
+        return;
+      }
+      this.current = this.getParent(this.current);
+    },
+    handleSelected(selected: FileItem[]) {
+      this.$state.selected = selected;
+    },
+    clearSelected() {
+      this.$state.selected = [];
+      this.$state.copyActive = false;
+      this.$state.cutActive = false;
+    },
+    handleCopy() {
+      this.$state.cutActive = false;
+      this.$state.copyActive = true;
+    },
+    handleCut() {
+      this.$state.copyActive = false;
+      this.$state.cutActive = true;
+    },
+    async handlePaste() {
+      await moveFileApi({
+        sources: this.$state.selected.map((item) => item.path),
+        dest: this.pwd,
+        cover: false,
+        type: this.$state.cutActive ? 'move' : 'copy',
+      });
+      this.clearSelected();
+      return true;
+    },
   },
 });
 
