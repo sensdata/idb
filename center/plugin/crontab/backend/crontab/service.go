@@ -115,14 +115,15 @@ func (s *CronTab) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetConfList},
-			{Method: "GET", Path: "/raw", Handler: s.GetContent},     // 源文模式获取
-			{Method: "POST", Path: "/raw", Handler: s.CreateContent}, // 源文模式创建
-			{Method: "PUT", Path: "/raw", Handler: s.UpdateContent},  // 源文模式更新
-			{Method: "GET", Path: "/form", Handler: s.GetForm},       // 表单模式获取
-			{Method: "POST", Path: "/form", Handler: s.CreateForm},   // 表单模式创建
-			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},    // 表单模式更新
-			{Method: "DELETE", Path: "", Handler: s.Delete},
+
+			{Method: "GET", Path: "/:host", Handler: s.GetConfList},
+			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "GET", Path: "/:host/form", Handler: s.GetForm},       // 表单模式获取
+			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
+			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
 			{Method: "PUT", Path: "/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/log", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/diff", Handler: s.GetConfDiff},
@@ -182,17 +183,17 @@ func (s *CronTab) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get custom crontab conf file list in work dir
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /crontab [get]
+// @Router /crontab/{host} [get]
 func (s *CronTab) GetConfList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -221,14 +222,13 @@ func (s *CronTab) GetConfList(c *gin.Context) {
 	}
 
 	req := model.QueryGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Page:     int(page),
 		PageSize: int(pageSize),
 	}
 
-	services, err := s.getConfList(req)
+	services, err := s.getConfList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -242,15 +242,22 @@ func (s *CronTab) GetConfList(c *gin.Context) {
 // @Description Create a new conf file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Conf file creation details"
 // @Success 200
-// @Router /crontab/raw [post]
+// @Router /crontab/{host}/raw [post]
 func (s *CronTab) CreateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req, ".crontab")
+	err = s.create(hostID, req, ".crontab")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -263,16 +270,16 @@ func (s *CronTab) CreateContent(c *gin.Context) {
 // @Description Get content of a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Success 200 {string} string
-// @Router /crontab/raw [get]
+// @Router /crontab/{host}/raw [get]
 func (s *CronTab) GetContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -295,13 +302,12 @@ func (s *CronTab) GetContent(c *gin.Context) {
 	}
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getContent(req)
+	detail, err := s.getContent(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -315,15 +321,22 @@ func (s *CronTab) GetContent(c *gin.Context) {
 // @Description Save the content of a conf file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Conf file edit details"
 // @Success 200
-// @Router /crontab/raw [put]
+// @Router /crontab/{host}/raw [put]
 func (s *CronTab) UpdateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.update(req)
+	err = s.update(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -336,16 +349,16 @@ func (s *CronTab) UpdateContent(c *gin.Context) {
 // @Description Get details of a conf file in form mode.
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string false "Conf file name. If this parameter is left empty, return template data."
 // @Success 200 {object} model.ServiceForm
-// @Router /crontab/form [get]
+// @Router /crontab/{host}/form [get]
 func (s *CronTab) GetForm(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -363,13 +376,12 @@ func (s *CronTab) GetForm(c *gin.Context) {
 	name := c.Query("name")
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getForm(req)
+	detail, err := s.getForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -383,15 +395,22 @@ func (s *CronTab) GetForm(c *gin.Context) {
 // @Description Create a new conf file in form mode.
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateServiceForm true "Form details"
 // @Success 200
-// @Router /crontab/form [post]
+// @Router /crontab/{host}/form [post]
 func (s *CronTab) CreateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.createForm(req)
+	err = s.createForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -404,15 +423,22 @@ func (s *CronTab) CreateForm(c *gin.Context) {
 // @Description Save the details of a conf file in form mode. This will fully overwrite the original file content with the submitted data.
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateServiceForm true "Conf file edit details"
 // @Success 200
-// @Router /crontab/form [put]
+// @Router /crontab/{host}/form [put]
 func (s *CronTab) UpdateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.updateForm(req)
+	err = s.updateForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -425,16 +451,16 @@ func (s *CronTab) UpdateForm(c *gin.Context) {
 // @Description Delete a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /crontab [delete]
+// @Router /crontab/{host} [delete]
 func (s *CronTab) Delete(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -457,13 +483,12 @@ func (s *CronTab) Delete(c *gin.Context) {
 	}
 
 	req := model.DeleteGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	err = s.delete(req, ".crontab")
+	err = s.delete(hostID, req, ".crontab")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -477,15 +502,22 @@ func (s *CronTab) Delete(c *gin.Context) {
 // @Description Restore conf file to specified version
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.RestoreGitFile true "Conf file restore details"
 // @Success 200
-// @Router /crontab/restore [put]
+// @Router /crontab/{host}/restore [put]
 func (s *CronTab) Restore(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.restore(req)
+	err = s.restore(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -498,18 +530,18 @@ func (s *CronTab) Restore(c *gin.Context) {
 // @Description Get histories of a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /crontab/log [get]
+// @Router /crontab/{host}/log [get]
 func (s *CronTab) GetConfLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -544,7 +576,6 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 	}
 
 	req := model.GitFileLog{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
@@ -552,7 +583,7 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	logs, err := s.getConfLog(req)
+	logs, err := s.getConfLog(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -566,17 +597,17 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 // @Description Get conf diff compare to specfied version
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /crontab/diff [get]
+// @Router /crontab/{host}/diff [get]
 func (s *CronTab) GetConfDiff(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -605,14 +636,13 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 	}
 
 	req := model.GitFileDiff{
-		HostID:     uint(hostID),
 		Type:       scriptType,
 		Category:   category,
 		Name:       name,
 		CommitHash: commitHash,
 	}
 
-	diff, err := s.getConfDiff(req)
+	diff, err := s.getConfDiff(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -626,15 +656,22 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 // @Description Execute conf actions
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
-// @Router /crontab/action [post]
+// @Router /crontab/{host}/action [post]
 func (s *CronTab) ConfAction(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.ServiceAction
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.confAction(req)
+	err = s.confAction(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

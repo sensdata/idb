@@ -39,7 +39,7 @@ func (s *ScriptMan) checkRepo(hostID uint, repoPath string) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Git_Init,
 			Data:   data,
@@ -59,7 +59,7 @@ func (s *ScriptMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
-func (s *ScriptMan) getScriptList(req model.QueryGitFile) (*model.PageResult, error) {
+func (s *ScriptMan) getScriptList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -70,7 +70,7 @@ func (s *ScriptMan) getScriptList(req model.QueryGitFile) (*model.PageResult, er
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".sh",
@@ -117,7 +117,7 @@ func (s *ScriptMan) getScriptList(req model.QueryGitFile) (*model.PageResult, er
 	return &pageResult, nil
 }
 
-func (s *ScriptMan) getScriptDetail(req model.GetGitFileDetail) (*model.GitFile, error) {
+func (s *ScriptMan) getScriptDetail(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -132,7 +132,7 @@ func (s *ScriptMan) getScriptDetail(req model.GetGitFileDetail) (*model.GitFile,
 		relativePath = req.Name + ".sh"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -177,7 +177,7 @@ func (s *ScriptMan) getScriptDetail(req model.GetGitFileDetail) (*model.GitFile,
 	return &gitFile, nil
 }
 
-func (s *ScriptMan) create(req model.CreateGitFile) error {
+func (s *ScriptMan) create(hostID uint64, req model.CreateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -192,7 +192,7 @@ func (s *ScriptMan) create(req model.CreateGitFile) error {
 		relativePath = req.Name + ".sh"
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -231,7 +231,7 @@ func (s *ScriptMan) create(req model.CreateGitFile) error {
 	return nil
 }
 
-func (s *ScriptMan) update(req model.UpdateGitFile) error {
+func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -246,7 +246,7 @@ func (s *ScriptMan) update(req model.UpdateGitFile) error {
 		relativePath = req.Name + ".sh"
 	}
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -285,7 +285,7 @@ func (s *ScriptMan) update(req model.UpdateGitFile) error {
 	return nil
 }
 
-func (s *ScriptMan) delete(req model.DeleteGitFile) error {
+func (s *ScriptMan) delete(hostID uint64, req model.DeleteGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -300,7 +300,7 @@ func (s *ScriptMan) delete(req model.DeleteGitFile) error {
 		relativePath = req.Name + ".sh"
 	}
 	gitDelete := model.GitDelete{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -338,7 +338,7 @@ func (s *ScriptMan) delete(req model.DeleteGitFile) error {
 	return nil
 }
 
-func (s *ScriptMan) restore(req model.RestoreGitFile) error {
+func (s *ScriptMan) restore(hostID uint64, req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -353,7 +353,7 @@ func (s *ScriptMan) restore(req model.RestoreGitFile) error {
 		relativePath = req.Name + ".sh"
 	}
 	gitRestore := model.GitRestore{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -392,7 +392,7 @@ func (s *ScriptMan) restore(req model.RestoreGitFile) error {
 	return nil
 }
 
-func (s *ScriptMan) getScriptLog(req model.GitFileLog) (*model.PageResult, error) {
+func (s *ScriptMan) getScriptLog(hostID uint64, req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -409,7 +409,7 @@ func (s *ScriptMan) getScriptLog(req model.GitFileLog) (*model.PageResult, error
 		relativePath = req.Name + ".sh"
 	}
 	gitLog := model.GitLog{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -455,7 +455,7 @@ func (s *ScriptMan) getScriptLog(req model.GitFileLog) (*model.PageResult, error
 	return &pageResult, nil
 }
 
-func (s *ScriptMan) getScriptDiff(req model.GitFileDiff) (string, error) {
+func (s *ScriptMan) getScriptDiff(hostID uint64, req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -470,7 +470,7 @@ func (s *ScriptMan) getScriptDiff(req model.GitFileDiff) (string, error) {
 		relativePath = req.Name + ".sh"
 	}
 	gitDiff := model.GitDiff{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -509,7 +509,7 @@ func (s *ScriptMan) getScriptDiff(req model.GitFileDiff) (string, error) {
 	return actionResponse.Data.Action.Data, nil
 }
 
-func (s *ScriptMan) execute(req model.ExecuteScript) (*model.ScriptResult, error) {
+func (s *ScriptMan) execute(hostID uint64, req model.ExecuteScript) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
 		Start: time.Now(),
 		End:   time.Now(),
@@ -530,7 +530,7 @@ func (s *ScriptMan) execute(req model.ExecuteScript) (*model.ScriptResult, error
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Script_Exec,
 			Data:   data,
@@ -560,8 +560,7 @@ func (s *ScriptMan) getScriptRunLog(hostID uint64) (string, error) {
 
 	logPath := filepath.Join(s.pluginConf.Items.LogDir, "script-run.log")
 	req := model.FileContentReq{
-		HostID: uint(hostID),
-		Path:   logPath,
+		Path: logPath,
 	}
 
 	data, err := utils.ToJSONString(req)
@@ -570,7 +569,7 @@ func (s *ScriptMan) getScriptRunLog(hostID uint64) (string, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Content,
 			Data:   data,

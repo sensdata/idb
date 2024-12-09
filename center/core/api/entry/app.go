@@ -50,7 +50,7 @@ func (b *BaseApi) AppPage(c *gin.Context) {
 // @Description Get app detail
 // @Param id path int true "App ID"
 // @Success 200
-// @Router /store/apps/:id [get]
+// @Router /store/apps/{id} [get]
 func (b *BaseApi) AppDetail(c *gin.Context) {
 	appID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -74,7 +74,7 @@ func (b *BaseApi) AppDetail(c *gin.Context) {
 // @Param page_size query int true "Page size"
 // @Param name query string false "Name"
 // @Success 200
-// @Router /store/:host/apps/installed [get]
+// @Router /store/{host}/apps/installed [get]
 func (b *BaseApi) InstalledAppPage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -101,7 +101,7 @@ func (b *BaseApi) InstalledAppPage(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ComposeCreate true "request"
 // @Success 200 {object} model.ComposeCreateResult
-// @Router /store/:host/apps/install [post]
+// @Router /store/{host}/apps/install [post]
 func (b *BaseApi) InstallApp(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

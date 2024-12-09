@@ -90,14 +90,14 @@ func (s *SSHMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/config/:host_id", Handler: s.GetSSHConfig},
-			{Method: "PUT", Path: "/config/:host_id", Handler: s.UpdateSSHConfig},
-			{Method: "GET", Path: "/config/content/:host_id", Handler: s.GetSSHConfigContent},
-			{Method: "PUT", Path: "/config/content/:host_id", Handler: s.UpdateSSHConfigContent},
-			{Method: "POST", Path: "/operate/:host_id", Handler: s.OperateSSH},
-			{Method: "POST", Path: "/keys/:host_id", Handler: s.CreateKey},
-			{Method: "GET", Path: "/keys/:host_id", Handler: s.ListKey},
-			{Method: "GET", Path: "/logs/:host_id", Handler: s.LoadSSHLogs},
+			{Method: "GET", Path: "/:host/config", Handler: s.GetSSHConfig},
+			{Method: "PUT", Path: "/:host/config", Handler: s.UpdateSSHConfig},
+			{Method: "GET", Path: "/:host/config/content", Handler: s.GetSSHConfigContent},
+			{Method: "PUT", Path: "/:host/config/content", Handler: s.UpdateSSHConfigContent},
+			{Method: "POST", Path: "/:host/operate", Handler: s.OperateSSH},
+			{Method: "POST", Path: "/:host/keys", Handler: s.CreateKey},
+			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
+			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
 		},
 	)
 	global.LOG.Info("sshman init end")
@@ -152,21 +152,17 @@ func (s *SSHMan) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get SSH configurations on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.SSHInfo
-// @Router /ssh/config/{host_id} [get]
+// @Router /ssh/{host}/config [get]
 func (s *SSHMan) GetSSHConfig(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	req := model.SSHConfigReq{
-		HostID: uint(hostID),
-	}
-
-	info, err := s.getSSHConfig(req)
+	info, err := s.getSSHConfig(hostID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -179,14 +175,14 @@ func (s *SSHMan) GetSSHConfig(c *gin.Context) {
 // @Description Update SSH configurations on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param request body model.SSHUpdate true "request"
 // @Success 200
-// @Router /ssh/config/{host_id} [put]
+// @Router /ssh/{host}/config [put]
 func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -194,9 +190,8 @@ func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 	if err := helper.CheckBind(&req, c); err != nil {
 		return
 	}
-	req.HostID = uint(hostID)
 
-	if err := s.updateSSH(req); err != nil {
+	if err := s.updateSSH(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -208,21 +203,17 @@ func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 // @Description Get SSH config file content on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.SSHConfigContent
-// @Router /ssh/config/content/{host_id} [get]
+// @Router /ssh/{host}/config/content [get]
 func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	req := model.SSHConfigReq{
-		HostID: uint(hostID),
-	}
-
-	info, err := s.getSSHConfigContent(req)
+	info, err := s.getSSHConfigContent(hostID)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -234,14 +225,14 @@ func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
 // @Summary Update SSH configuration file content on host
 // @Description Update SSH configuration file content on host
 // @Accept json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param content body string true "Content"
 // @Success 200
-// @Router /ssh/config/content/{host_id} [put]
+// @Router /ssh/{host}/config/content [put]
 func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -252,11 +243,10 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 	}
 
 	req := model.ContentUpdate{
-		HostID:  uint(hostID),
 		Content: content,
 	}
 
-	if err := s.updateSSHContent(req); err != nil {
+	if err := s.updateSSHContent(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -268,14 +258,14 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 // @Description modify SSH service status on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param operation body string true "Operation, can be 'enable' or 'disable'"
 // @Success 200 "No Content"
-// @Router /ssh/operate/{host_id} [post]
+// @Router /ssh/{host}/operate [post]
 func (s *SSHMan) OperateSSH(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -286,11 +276,10 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 	}
 
 	req := model.SSHOperate{
-		HostID:    uint(hostID),
 		Operation: operation,
 	}
 
-	if err := s.operateSSH(req); err != nil {
+	if err := s.operateSSH(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -302,14 +291,14 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 // @Description Generate host SSH secret
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param request body model.GenerateKey true "request"
 // @Success 200
-// @Router /ssh/keys/{host_id} [post]
+// @Router /ssh/{host}/keys [post]
 func (s *SSHMan) CreateKey(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -317,9 +306,8 @@ func (s *SSHMan) CreateKey(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	req.HostID = uint(hostID)
 
-	if err := s.createKey(req); err != nil {
+	if err := s.createKey(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -331,25 +319,24 @@ func (s *SSHMan) CreateKey(c *gin.Context) {
 // @Description Get SSH secrets on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param keyword query string false "Keyword"
 // @Success 200
-// @Router /ssh/keys/{host_id} [get]
+// @Router /ssh/{host}/keys [get]
 func (s *SSHMan) ListKey(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
 	keyword := c.Query("keyword")
 
 	req := model.ListKey{
-		HostID:  uint(hostID),
 		Keyword: keyword,
 	}
 
-	data, err := s.listKeys(req)
+	data, err := s.listKeys(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -362,17 +349,17 @@ func (s *SSHMan) ListKey(c *gin.Context) {
 // @Description Get SSH logs on host
 // @Accept json
 // @Produce json
-// @Param host_id path uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Param info query string false "Info"
 // @Param status query string true "Status can be 'Success' or 'Failed' or 'All'"
 // @Success 200 {object} model.SSHLog
-// @Router /ssh/logs/{host_id} [get]
+// @Router /ssh/{host}/logs [get]
 func (s *SSHMan) LoadSSHLogs(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -380,9 +367,8 @@ func (s *SSHMan) LoadSSHLogs(c *gin.Context) {
 	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
 		return
 	}
-	req.HostID = uint(hostID)
 
-	data, err := s.loadLog(req)
+	data, err := s.loadLog(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

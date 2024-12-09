@@ -115,18 +115,18 @@ func (s *LogRotate) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetConfList},
-			{Method: "GET", Path: "/raw", Handler: s.GetContent},     // 源文模式获取
-			{Method: "POST", Path: "/raw", Handler: s.CreateContent}, // 源文模式创建
-			{Method: "PUT", Path: "/raw", Handler: s.UpdateContent},  // 源文模式更新
-			{Method: "GET", Path: "/form", Handler: s.GetForm},       // 表单模式获取
-			{Method: "POST", Path: "/form", Handler: s.CreateForm},   // 表单模式创建
-			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},    // 表单模式更新
-			{Method: "DELETE", Path: "", Handler: s.Delete},
-			{Method: "PUT", Path: "/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/log", Handler: s.GetConfLog},
-			{Method: "GET", Path: "/diff", Handler: s.GetConfDiff},
-			{Method: "POST", Path: "/action", Handler: s.ConfAction},
+			{Method: "GET", Path: "/:host", Handler: s.GetConfList},
+			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "GET", Path: "/:host/form", Handler: s.GetForm},       // 表单模式获取
+			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
+			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
+			{Method: "POST", Path: "/:host/action", Handler: s.ConfAction},
 		},
 	)
 
@@ -182,17 +182,17 @@ func (s *LogRotate) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get custom logrotate conf file list in work dir
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /logrotate [get]
+// @Router /logrotate/{host} [get]
 func (s *LogRotate) GetConfList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -221,14 +221,13 @@ func (s *LogRotate) GetConfList(c *gin.Context) {
 	}
 
 	req := model.QueryGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Page:     int(page),
 		PageSize: int(pageSize),
 	}
 
-	services, err := s.getConfList(req)
+	services, err := s.getConfList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -242,15 +241,22 @@ func (s *LogRotate) GetConfList(c *gin.Context) {
 // @Description Create a new conf file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Conf file creation details"
 // @Success 200
-// @Router /logrotate/raw [post]
+// @Router /logrotate/{host}/raw [post]
 func (s *LogRotate) CreateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req, ".logrotate")
+	err = s.create(hostID, req, ".logrotate")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -263,16 +269,16 @@ func (s *LogRotate) CreateContent(c *gin.Context) {
 // @Description Get content of a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Success 200 {string} string
-// @Router /logrotate/raw [get]
+// @Router /logrotate/{host}/raw [get]
 func (s *LogRotate) GetContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -295,13 +301,12 @@ func (s *LogRotate) GetContent(c *gin.Context) {
 	}
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getContent(req)
+	detail, err := s.getContent(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -315,15 +320,22 @@ func (s *LogRotate) GetContent(c *gin.Context) {
 // @Description Save the content of a conf file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Conf file edit details"
 // @Success 200
-// @Router /logrotate/raw [put]
+// @Router /logrotate/{host}/raw [put]
 func (s *LogRotate) UpdateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.update(req)
+	err = s.update(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -336,16 +348,16 @@ func (s *LogRotate) UpdateContent(c *gin.Context) {
 // @Description Get details of a conf file in form mode.
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string false "Conf file name. If this parameter is left empty, return template data."
 // @Success 200 {object} model.ServiceForm
-// @Router /logrotate/form [get]
+// @Router /logrotate/{host}/form [get]
 func (s *LogRotate) GetForm(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -363,13 +375,12 @@ func (s *LogRotate) GetForm(c *gin.Context) {
 	name := c.Query("name")
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getForm(req)
+	detail, err := s.getForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -383,15 +394,22 @@ func (s *LogRotate) GetForm(c *gin.Context) {
 // @Description Create a new conf file in form mode
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateServiceForm true "Form details"
 // @Success 200
-// @Router /logrotate/form [post]
+// @Router /logrotate/{host}/form [post]
 func (s *LogRotate) CreateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.createForm(req)
+	err = s.createForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -404,15 +422,22 @@ func (s *LogRotate) CreateForm(c *gin.Context) {
 // @Description Save the details of a conf file in form mode
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateServiceForm true "Conf file edit details"
 // @Success 200
-// @Router /logrotate/form [put]
+// @Router /logrotate/{host}/form [put]
 func (s *LogRotate) UpdateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.updateForm(req)
+	err = s.updateForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -425,16 +450,16 @@ func (s *LogRotate) UpdateForm(c *gin.Context) {
 // @Description Delete a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /logrotate [delete]
+// @Router /logrotate/{host} [delete]
 func (s *LogRotate) Delete(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -457,13 +482,12 @@ func (s *LogRotate) Delete(c *gin.Context) {
 	}
 
 	req := model.DeleteGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	err = s.delete(req, ".logrotate")
+	err = s.delete(hostID, req, ".logrotate")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -477,15 +501,22 @@ func (s *LogRotate) Delete(c *gin.Context) {
 // @Description Restore conf file to specified version
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.RestoreGitFile true "Conf file restore details"
 // @Success 200
-// @Router /logrotate/restore [put]
+// @Router /logrotate/{host}/restore [put]
 func (s *LogRotate) Restore(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.restore(req)
+	err = s.restore(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -498,18 +529,18 @@ func (s *LogRotate) Restore(c *gin.Context) {
 // @Description Get histories of a conf file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /logrotate/log [get]
+// @Router /logrotate/{host}/log [get]
 func (s *LogRotate) GetConfLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -544,7 +575,6 @@ func (s *LogRotate) GetConfLog(c *gin.Context) {
 	}
 
 	req := model.GitFileLog{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
@@ -552,7 +582,7 @@ func (s *LogRotate) GetConfLog(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	logs, err := s.getConfLog(req)
+	logs, err := s.getConfLog(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -566,17 +596,17 @@ func (s *LogRotate) GetConfLog(c *gin.Context) {
 // @Description Get conf diff compare to specfied version
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /logrotate/diff [get]
+// @Router /logrotate/{host}/diff [get]
 func (s *LogRotate) GetConfDiff(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -605,14 +635,13 @@ func (s *LogRotate) GetConfDiff(c *gin.Context) {
 	}
 
 	req := model.GitFileDiff{
-		HostID:     uint(hostID),
 		Type:       scriptType,
 		Category:   category,
 		Name:       name,
 		CommitHash: commitHash,
 	}
 
-	diff, err := s.getConfDiff(req)
+	diff, err := s.getConfDiff(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -626,15 +655,22 @@ func (s *LogRotate) GetConfDiff(c *gin.Context) {
 // @Description Execute conf actions
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
-// @Router /logrotate/action [post]
+// @Router /logrotate/{host}/action [post]
 func (s *LogRotate) ConfAction(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.ServiceAction
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.confAction(req)
+	err = s.confAction(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

@@ -247,7 +247,7 @@ func (s *DockerMan) getMenus() ([]plugin.MenuItem, error) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.DockerStatus
-// @Router /docker/:host/status [get]
+// @Router /docker/{host}/status [get]
 func (s *DockerMan) DockerStatus(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -271,7 +271,7 @@ func (s *DockerMan) DockerStatus(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.DaemonJsonConf
-// @Router /docker/:host/conf [get]
+// @Router /docker/{host}/conf [get]
 func (s *DockerMan) DockerConf(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -296,7 +296,7 @@ func (s *DockerMan) DockerConf(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.KeyValue true "Configuration key and value"
 // @Success 200
-// @Router /docker/:host/conf [put]
+// @Router /docker/{host}/conf [put]
 func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -326,7 +326,7 @@ func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.DaemonJsonUpdateByFile true "Configuration file details"
 // @Success 200
-// @Router /docker/:host/conf [put]
+// @Router /docker/{host}/conf [put]
 func (s *DockerMan) DockerUpdateConfByFile(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -356,7 +356,7 @@ func (s *DockerMan) DockerUpdateConfByFile(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.LogOption true "Configuration key and value"
 // @Success 200
-// @Router /docker/:host/log [put]
+// @Router /docker/{host}/log [put]
 func (s *DockerMan) DockerUpdateLogOption(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -386,7 +386,7 @@ func (s *DockerMan) DockerUpdateLogOption(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.Ipv6Option true "Configuration key and value"
 // @Success 200
-// @Router /docker/:host/ipv6 [put]
+// @Router /docker/{host}/ipv6 [put]
 func (s *DockerMan) DockerUpdateIpv6Option(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -416,7 +416,7 @@ func (s *DockerMan) DockerUpdateIpv6Option(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.DockerOperation true "Operation options"
 // @Success 200
-// @Router /docker/:host/operation [post]
+// @Router /docker/{host}/operation [post]
 func (s *DockerMan) DockerOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -447,7 +447,7 @@ func (s *DockerMan) DockerOperation(c *gin.Context) {
 // @Param type query string true "Type of inspection, can be one of container, image, volume and network"
 // @Param id query string true "ID of the object"
 // @Success 200
-// @Router /docker/:host/inspect [get]
+// @Router /docker/{host}/inspect [get]
 func (s *DockerMan) Inspect(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -489,7 +489,7 @@ func (s *DockerMan) Inspect(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.Prune true "Prune details"
 // @Success 200 {object} model.PruneResult
-// @Router /docker/:host/prune [post]
+// @Router /docker/{host}/prune [post]
 func (s *DockerMan) Prune(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -521,7 +521,7 @@ func (s *DockerMan) Prune(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/compose [get]
+// @Router /docker/{host}/compose [get]
 func (s *DockerMan) ComposeQuery(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -551,7 +551,7 @@ func (s *DockerMan) ComposeQuery(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.CreateCompose true "Compose creation details"
 // @Success 200 {object} model.ComposeCreateResult
-// @Router /docker/:host/compose [post]
+// @Router /docker/{host}/compose [post]
 func (s *DockerMan) ComposeCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -581,7 +581,7 @@ func (s *DockerMan) ComposeCreate(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.CreateCompose true "Compose edit details"
 // @Success 200
-// @Router /docker/:host/compose [put]
+// @Router /docker/{host}/compose [put]
 func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -611,7 +611,7 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.CreateCompose true "Compose creation details"
 // @Success 200 {object} model.ComposeTestResult
-// @Router /docker/:host/compose/test [post]
+// @Router /docker/{host}/compose/test [post]
 func (s *DockerMan) ComposeTest(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -641,7 +641,7 @@ func (s *DockerMan) ComposeTest(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.OperateCompose true "Compose operation details"
 // @Success 200
-// @Router /docker/:host/compose/operation [post]
+// @Router /docker/{host}/compose/operation [post]
 func (s *DockerMan) ComposeOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -675,7 +675,7 @@ func (s *DockerMan) ComposeOperation(c *gin.Context) {
 // @Param page_size query int true "Page size"
 // @Param order_by query string false "Order by one of (name, state, created)"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/containers [get]
+// @Router /docker/{host}/containers [get]
 func (s *DockerMan) ContainerQuery(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -704,7 +704,7 @@ func (s *DockerMan) ContainerQuery(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/containers/names [get]
+// @Router /docker/{host}/containers/names [get]
 func (s *DockerMan) ContainerNames(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -728,7 +728,7 @@ func (s *DockerMan) ContainerNames(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/containers/usages [get]
+// @Router /docker/{host}/containers/usages [get]
 func (s *DockerMan) ContainerUsages(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -752,7 +752,7 @@ func (s *DockerMan) ContainerUsages(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.ContainerResourceLimit
-// @Router /docker/:host/containers/limit [get]
+// @Router /docker/{host}/containers/limit [get]
 func (s *DockerMan) ContainerLimit(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -777,7 +777,7 @@ func (s *DockerMan) ContainerLimit(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerOperate true "Container creation details"
 // @Success 200
-// @Router /docker/:host/containers [post]
+// @Router /docker/{host}/containers [post]
 func (s *DockerMan) ContainerCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -807,7 +807,7 @@ func (s *DockerMan) ContainerCreate(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerOperate true "Container edit details"
 // @Success 200
-// @Router /docker/:host/containers [put]
+// @Router /docker/{host}/containers [put]
 func (s *DockerMan) ContainerUpdate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -837,7 +837,7 @@ func (s *DockerMan) ContainerUpdate(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerUpgrade true "Container upgrade details"
 // @Success 200
-// @Router /docker/:host/containers/upgrade [post]
+// @Router /docker/{host}/containers/upgrade [post]
 func (s *DockerMan) ContainerUpgrade(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -867,7 +867,7 @@ func (s *DockerMan) ContainerUpgrade(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.Rename true "Container rename details"
 // @Success 200
-// @Router /docker/:host/containers/rename [post]
+// @Router /docker/{host}/containers/rename [post]
 func (s *DockerMan) ContainerRename(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -897,7 +897,7 @@ func (s *DockerMan) ContainerRename(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerOperation true "Container operation details"
 // @Success 200
-// @Router /docker/:host/containers/operatetion [post]
+// @Router /docker/{host}/containers/operatetion [post]
 func (s *DockerMan) ContainerOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -927,7 +927,7 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200 {object} model.ContainerOperate
-// @Router /docker/:host/containers/:id [get]
+// @Router /docker/{host}/containers/{id} [get]
 func (s *DockerMan) ContainerInfo(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -958,7 +958,7 @@ func (s *DockerMan) ContainerInfo(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200 {object} model.ContainerStats
-// @Router /docker/:host/containers/:id/stats [get]
+// @Router /docker/{host}/containers/{id}/stats [get]
 func (s *DockerMan) ContainerStats(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -989,7 +989,7 @@ func (s *DockerMan) ContainerStats(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200
-// @Router /docker/:host/containers/:id/log [delete]
+// @Router /docker/{host}/containers/{id}/log [delete]
 func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1021,7 +1021,7 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path int true "Container ID"
 // @Success 200
-// @Router /docker/:host/containers/:id/log [get]
+// @Router /docker/{host}/containers/{id}/log [get]
 func (s *DockerMan) ContainerLogs(c *gin.Context) {
 	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	// if err != nil {
@@ -1054,7 +1054,7 @@ func (s *DockerMan) ContainerLogs(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/images [get]
+// @Router /docker/{host}/images [get]
 func (s *DockerMan) ImagePage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1083,7 +1083,7 @@ func (s *DockerMan) ImagePage(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/images/names [get]
+// @Router /docker/{host}/images/names [get]
 func (s *DockerMan) ImageNames(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1108,7 +1108,7 @@ func (s *DockerMan) ImageNames(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ImageBuild true "Build image details"
 // @Success 200
-// @Router /docker/:host/images/build [post]
+// @Router /docker/{host}/images/build [post]
 func (s *DockerMan) ImageBuild(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1138,7 +1138,7 @@ func (s *DockerMan) ImageBuild(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ImagePull true "Pull image details"
 // @Success 200
-// @Router /docker/:host/images/pull [post]
+// @Router /docker/{host}/images/pull [post]
 func (s *DockerMan) ImagePull(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1168,7 +1168,7 @@ func (s *DockerMan) ImagePull(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ImageLoad true "Import image details"
 // @Success 200
-// @Router /docker/:host/images/import [post]
+// @Router /docker/{host}/images/import [post]
 func (s *DockerMan) ImageLoad(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1198,7 +1198,7 @@ func (s *DockerMan) ImageLoad(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ImageSave true "Export image details"
 // @Success 200
-// @Router /docker/:host/images/export [post]
+// @Router /docker/{host}/images/export [post]
 func (s *DockerMan) ImageSave(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1229,7 +1229,7 @@ func (s *DockerMan) ImageSave(c *gin.Context) {
 // @Param id path string true "Image ID"
 // @Param request body model.ImagePush true "Push image details"
 // @Success 200
-// @Router /docker/:host/images/push [post]
+// @Router /docker/{host}/images/push [post]
 func (s *DockerMan) ImagePush(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1260,7 +1260,7 @@ func (s *DockerMan) ImagePush(c *gin.Context) {
 // @Param force query bool true "Force delete"
 // @Param sources query string true "Comma-separated list of image names to delete"
 // @Success 200
-// @Router /docker/:host/images [delete]
+// @Router /docker/{host}/images [delete]
 func (s *DockerMan) ImageRemove(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1298,7 +1298,7 @@ func (s *DockerMan) ImageRemove(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ImageTag true "Set image tag details"
 // @Success 200
-// @Router /docker/:host/images/tag [put]
+// @Router /docker/{host}/images/tag [put]
 func (s *DockerMan) ImageTag(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1330,7 +1330,7 @@ func (s *DockerMan) ImageTag(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/volumes [get]
+// @Router /docker/{host}/volumes [get]
 func (s *DockerMan) VolumePage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1359,7 +1359,7 @@ func (s *DockerMan) VolumePage(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/volumes/names [get]
+// @Router /docker/{host}/volumes/names [get]
 func (s *DockerMan) VolumeNames(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1385,7 +1385,7 @@ func (s *DockerMan) VolumeNames(c *gin.Context) {
 // @Param force query bool true "Force delete"
 // @Param sources query string true "Comma-separated list of volume ids to delete"
 // @Success 200
-// @Router /docker/:host/volumes [delete]
+// @Router /docker/{host}/volumes [delete]
 func (s *DockerMan) VolumeDelete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1423,7 +1423,7 @@ func (s *DockerMan) VolumeDelete(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.VolumeCreate true "Create volume details"
 // @Success 200
-// @Router /docker/:host/volumes [post]
+// @Router /docker/{host}/volumes [post]
 func (s *DockerMan) VolumeCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1455,7 +1455,7 @@ func (s *DockerMan) VolumeCreate(c *gin.Context) {
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/networks [get]
+// @Router /docker/{host}/networks [get]
 func (s *DockerMan) NetworkPage(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1484,7 +1484,7 @@ func (s *DockerMan) NetworkPage(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200 {object} model.PageResult
-// @Router /docker/:host/networks/names [get]
+// @Router /docker/{host}/networks/names [get]
 func (s *DockerMan) NetworkNames(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1510,7 +1510,7 @@ func (s *DockerMan) NetworkNames(c *gin.Context) {
 // @Param force query bool true "Force delete"
 // @Param sources query string true "Comma-separated list of volume ids to delete"
 // @Success 200
-// @Router /docker/:host/networks [delete]
+// @Router /docker/{host}/networks [delete]
 func (s *DockerMan) NetworkDelete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1548,7 +1548,7 @@ func (s *DockerMan) NetworkDelete(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.NetworkCreate true "Create network details"
 // @Success 200
-// @Router /docker/:host/networks [post]
+// @Router /docker/{host}/networks [post]
 func (s *DockerMan) NetworkCreate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

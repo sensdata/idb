@@ -91,11 +91,11 @@ func (s *SysInfo) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/overview", Handler: s.GetOverview},
-			{Method: "GET", Path: "/network", Handler: s.GetNetwork},
-			{Method: "GET", Path: "/system", Handler: s.GetSystemInfo},
-			{Method: "GET", Path: "/config", Handler: s.GetConfig},
-			{Method: "GET", Path: "/hardware", Handler: s.GetHardware},
+			{Method: "GET", Path: "/:host/overview", Handler: s.GetOverview},
+			{Method: "GET", Path: "/:host/network", Handler: s.GetNetwork},
+			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
+			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
+			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
 		},
 	)
 
@@ -143,13 +143,13 @@ func (s *SysInfo) GetMenu(c *gin.Context) {
 // @Description Get system overview info
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.Overview
-// @Router /sysinfo/overview [get]
+// @Router /sysinfo/{host}/overview [get]
 func (s *SysInfo) GetOverview(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -166,13 +166,13 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 // @Description Get network info
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.NetworkInfo
-// @Router /sysinfo/network [get]
+// @Router /sysinfo/{host}/network [get]
 func (s *SysInfo) GetNetwork(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -189,13 +189,13 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 // @Description Get system info
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.SystemInfo
-// @Router /sysinfo/system [get]
+// @Router /sysinfo/{host}/system [get]
 func (s *SysInfo) GetSystemInfo(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -212,14 +212,14 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 // @Description (not implemented yet) Get system config
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.SystemConfig
-// @Router /sysinfo/config [get]
+// @Router /sysinfo/{host}/config [get]
 // @Deprecated
 func (s *SysInfo) GetConfig(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -236,14 +236,14 @@ func (s *SysInfo) GetConfig(c *gin.Context) {
 // @Description (not implemented yet) Get hardware info
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.HardwareInfo
-// @Router /sysinfo/hardware [get]
+// @Router /sysinfo/{host}/hardware [get]
 // @Deprecated
 func (s *SysInfo) GetHardware(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 

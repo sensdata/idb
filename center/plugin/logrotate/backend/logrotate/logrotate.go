@@ -443,7 +443,7 @@ func (s *LogRotate) checkRepo(hostID uint, repoPath string) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Git_Init,
 			Data:   data,
@@ -463,14 +463,14 @@ func (s *LogRotate) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
-func (s *LogRotate) createFile(op model.FileCreate) error {
+func (s *LogRotate) createFile(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Create,
 			Data:   data,
@@ -490,14 +490,14 @@ func (s *LogRotate) createFile(op model.FileCreate) error {
 	return nil
 }
 
-func (s *LogRotate) deleteFile(op model.FileDelete) error {
+func (s *LogRotate) deleteFile(hostID uint64, op model.FileDelete) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Delete,
 			Data:   data,
@@ -517,7 +517,7 @@ func (s *LogRotate) deleteFile(op model.FileDelete) error {
 	return nil
 }
 
-func (s *LogRotate) getConfList(req model.QueryGitFile) (*model.PageResult, error) {
+func (s *LogRotate) getConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -528,7 +528,7 @@ func (s *LogRotate) getConfList(req model.QueryGitFile) (*model.PageResult, erro
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".logrotate;.linked", //筛选.logrotate.linked
@@ -575,7 +575,7 @@ func (s *LogRotate) getConfList(req model.QueryGitFile) (*model.PageResult, erro
 	return &pageResult, nil
 }
 
-func (s *LogRotate) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error) {
+func (s *LogRotate) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateForm, nil
@@ -596,7 +596,7 @@ func (s *LogRotate) getForm(req model.GetGitFileDetail) (*model.ServiceForm, err
 		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -648,7 +648,7 @@ func (s *LogRotate) getForm(req model.GetGitFileDetail) (*model.ServiceForm, err
 	return &serviceForm, nil
 }
 
-func (s *LogRotate) createForm(req model.CreateServiceForm) error {
+func (s *LogRotate) createForm(hostID uint64, req model.CreateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -715,7 +715,7 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 		relativePath = req.Name + ".logrotate"
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -754,7 +754,7 @@ func (s *LogRotate) createForm(req model.CreateServiceForm) error {
 	return nil
 }
 
-func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
+func (s *LogRotate) updateForm(hostID uint64, req model.UpdateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -813,7 +813,7 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -866,7 +866,7 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -897,7 +897,7 @@ func (s *LogRotate) updateForm(req model.UpdateServiceForm) error {
 	return nil
 }
 
-func (s *LogRotate) create(req model.CreateGitFile, extension string) error {
+func (s *LogRotate) create(hostID uint64, req model.CreateGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -912,7 +912,7 @@ func (s *LogRotate) create(req model.CreateGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -951,7 +951,7 @@ func (s *LogRotate) create(req model.CreateGitFile, extension string) error {
 	return nil
 }
 
-func (s *LogRotate) getContent(req model.GetGitFileDetail) (*model.GitFile, error) {
+func (s *LogRotate) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -966,7 +966,7 @@ func (s *LogRotate) getContent(req model.GetGitFileDetail) (*model.GitFile, erro
 		relativePath = req.Name + ".logrotate"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -1011,7 +1011,7 @@ func (s *LogRotate) getContent(req model.GetGitFileDetail) (*model.GitFile, erro
 	return &gitFile, nil
 }
 
-func (s *LogRotate) update(req model.UpdateGitFile) error {
+func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1026,7 +1026,7 @@ func (s *LogRotate) update(req model.UpdateGitFile) error {
 		relativePath = req.Name + ".logrotate"
 	}
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -1065,7 +1065,7 @@ func (s *LogRotate) update(req model.UpdateGitFile) error {
 	return nil
 }
 
-func (s *LogRotate) delete(req model.DeleteGitFile, extension string) error {
+func (s *LogRotate) delete(hostID uint64, req model.DeleteGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1080,7 +1080,7 @@ func (s *LogRotate) delete(req model.DeleteGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitDelete := model.GitDelete{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -1118,7 +1118,7 @@ func (s *LogRotate) delete(req model.DeleteGitFile, extension string) error {
 	return nil
 }
 
-func (s *LogRotate) restore(req model.RestoreGitFile) error {
+func (s *LogRotate) restore(hostID uint64, req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1133,7 +1133,7 @@ func (s *LogRotate) restore(req model.RestoreGitFile) error {
 		relativePath = req.Name + ".logrotate"
 	}
 	gitRestore := model.GitRestore{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -1172,7 +1172,7 @@ func (s *LogRotate) restore(req model.RestoreGitFile) error {
 	return nil
 }
 
-func (s *LogRotate) getConfLog(req model.GitFileLog) (*model.PageResult, error) {
+func (s *LogRotate) getConfLog(hostID uint64, req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -1189,7 +1189,7 @@ func (s *LogRotate) getConfLog(req model.GitFileLog) (*model.PageResult, error) 
 		relativePath = req.Name + ".logrotate"
 	}
 	gitLog := model.GitLog{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -1235,7 +1235,7 @@ func (s *LogRotate) getConfLog(req model.GitFileLog) (*model.PageResult, error) 
 	return &pageResult, nil
 }
 
-func (s *LogRotate) getConfDiff(req model.GitFileDiff) (string, error) {
+func (s *LogRotate) getConfDiff(hostID uint64, req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1250,7 +1250,7 @@ func (s *LogRotate) getConfDiff(req model.GitFileDiff) (string, error) {
 		relativePath = req.Name + ".logrotate"
 	}
 	gitDiff := model.GitDiff{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -1289,7 +1289,7 @@ func (s *LogRotate) getConfDiff(req model.GitFileDiff) (string, error) {
 	return actionResponse.Data.Action.Data, nil
 }
 
-func (s *LogRotate) confAction(req model.ServiceAction) error {
+func (s *LogRotate) confAction(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
 	switch req.Type {
@@ -1306,7 +1306,7 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 	}
 
 	// 检查repo
-	err := s.checkRepo(req.HostID, repoPath)
+	err := s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
@@ -1323,13 +1323,12 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 	case "activate":
 		// 创建服务链接 /etc/logrotate.d/source -> LinkPath
 		createFile := model.FileCreate{
-			HostID:    req.HostID,
 			Source:    confLinkPath,
 			IsLink:    true,
 			IsSymlink: true,
 			LinkPath:  confPath,
 		}
-		err := s.createFile(createFile)
+		err := s.createFile(hostID, createFile)
 		if err != nil {
 			LOG.Error("Failed to create symlink")
 			return err
@@ -1337,13 +1336,12 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 
 		// 添加.linked标记文件到仓库
 		createGitFile := model.CreateGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(createGitFile, ".linked")
+		err = s.create(hostID, createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1352,7 +1350,7 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 		// 进行-d测试
 		// TODO: 根据测试结果，做进一步的处理
 		command := fmt.Sprintf("logrotate -d %s", confLinkPath)
-		commandResult, err := s.sendCommand(req.HostID, command)
+		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
 			return err
@@ -1362,10 +1360,9 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 	case "deactivate":
 		// 删除务链接
 		deleteFile := model.FileDelete{
-			HostID: req.HostID,
-			Path:   confLinkPath,
+			Path: confLinkPath,
 		}
-		err := s.deleteFile(deleteFile)
+		err := s.deleteFile(hostID, deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete symlink")
 			return err
@@ -1373,12 +1370,11 @@ func (s *LogRotate) confAction(req model.ServiceAction) error {
 
 		// 从仓库中删除.linked标记文件
 		deleteGitFile := model.DeleteGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(deleteGitFile, ".linked")
+		err = s.delete(hostID, deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err

@@ -11,15 +11,12 @@ type Favorite struct {
 
 type FavoriteListReq struct {
 	PageInfo
-	HostID uint `form:"host_id"`
 }
 
 type FavoriteCreate struct {
-	HostID uint   `json:"host_id"`
 	Source string `json:"source" validate:"required"`
 }
 
 type FavoriteDelete struct {
-	HostID uint `json:"host_id"`
-	ID     uint `json:"id" validate:"required"`
+	ID uint `json:"id" validate:"required"`
 }

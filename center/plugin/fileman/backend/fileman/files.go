@@ -32,7 +32,7 @@ func (s *FileMan) sendAction(actionRequest model.HostAction) (*model.ActionRespo
 	return &actionResponse, nil
 }
 
-func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
+func (s *FileMan) getFileTree(hostID uint64, op model.FileOption) ([]model.FileTree, error) {
 	var fileTree []model.FileTree
 
 	data, err := utils.ToJSONString(op)
@@ -41,7 +41,7 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Tree,
 			Data:   data,
@@ -67,7 +67,7 @@ func (s *FileMan) getFileTree(op model.FileOption) ([]model.FileTree, error) {
 	return fileTree, nil
 }
 
-func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
+func (s *FileMan) getFileList(hostID uint64, op model.FileOption) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_List,
 			Data:   data,
@@ -101,14 +101,14 @@ func (s *FileMan) getFileList(op model.FileOption) (*model.FileInfo, error) {
 	return &fileInfo, nil
 }
 
-func (s *FileMan) create(op model.FileCreate) error {
+func (s *FileMan) create(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Create,
 			Data:   data,
@@ -127,14 +127,14 @@ func (s *FileMan) create(op model.FileCreate) error {
 
 	return nil
 }
-func (s *FileMan) delete(op model.FileDelete) error {
+func (s *FileMan) delete(hostID uint64, op model.FileDelete) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Delete,
 			Data:   data,
@@ -153,14 +153,14 @@ func (s *FileMan) delete(op model.FileDelete) error {
 
 	return nil
 }
-func (s *FileMan) batchDelete(op model.FileBatchDelete) error {
+func (s *FileMan) batchDelete(hostID uint64, op model.FileBatchDelete) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Batch_Delete,
 			Data:   data,
@@ -179,14 +179,14 @@ func (s *FileMan) batchDelete(op model.FileBatchDelete) error {
 
 	return nil
 }
-func (s *FileMan) compress(op model.FileCompress) error {
+func (s *FileMan) compress(hostID uint64, op model.FileCompress) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Compress,
 			Data:   data,
@@ -205,14 +205,14 @@ func (s *FileMan) compress(op model.FileCompress) error {
 
 	return nil
 }
-func (s *FileMan) decompress(op model.FileDeCompress) error {
+func (s *FileMan) decompress(hostID uint64, op model.FileDeCompress) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Decompress,
 			Data:   data,
@@ -231,7 +231,7 @@ func (s *FileMan) decompress(op model.FileDeCompress) error {
 
 	return nil
 }
-func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
+func (s *FileMan) getContent(hostID uint64, op model.FileContentReq) (*model.FileInfo, error) {
 	var fileInfo model.FileInfo
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -239,7 +239,7 @@ func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Content,
 			Data:   data,
@@ -264,14 +264,14 @@ func (s *FileMan) getContent(op model.FileContentReq) (*model.FileInfo, error) {
 
 	return &fileInfo, nil
 }
-func (s *FileMan) saveContent(op model.FileEdit) error {
+func (s *FileMan) saveContent(hostID uint64, op model.FileEdit) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Content_Modify,
 			Data:   data,
@@ -299,7 +299,7 @@ func (s *FileMan) downloadFile(c *gin.Context, hostID uint, path string) error {
 	return conn.CENTER.DownloadFile(c, hostID, path)
 }
 
-func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
+func (s *FileMan) dirSize(hostID uint64, op model.DirSizeReq) (*model.DirSizeRes, error) {
 	var dirSize model.DirSizeRes
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -307,7 +307,7 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Dir_Size,
 			Data:   data,
@@ -332,14 +332,14 @@ func (s *FileMan) dirSize(op model.DirSizeReq) (*model.DirSizeRes, error) {
 
 	return &dirSize, nil
 }
-func (s *FileMan) changeName(op model.FileRename) error {
+func (s *FileMan) changeName(hostID uint64, op model.FileRename) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Change_Name,
 			Data:   data,
@@ -358,14 +358,14 @@ func (s *FileMan) changeName(op model.FileRename) error {
 
 	return nil
 }
-func (s *FileMan) mvFile(op model.FileMove) error {
+func (s *FileMan) mvFile(hostID uint64, op model.FileMove) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Move,
 			Data:   data,
@@ -384,14 +384,14 @@ func (s *FileMan) mvFile(op model.FileMove) error {
 
 	return nil
 }
-func (s *FileMan) changeOwner(op model.FileRoleUpdate) error {
+func (s *FileMan) changeOwner(hostID uint64, op model.FileRoleUpdate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Change_Owner,
 			Data:   data,
@@ -410,14 +410,14 @@ func (s *FileMan) changeOwner(op model.FileRoleUpdate) error {
 
 	return nil
 }
-func (s *FileMan) changeMode(op model.FileCreate) error {
+func (s *FileMan) changeMode(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Change_Mode,
 			Data:   data,
@@ -436,14 +436,14 @@ func (s *FileMan) changeMode(op model.FileCreate) error {
 
 	return nil
 }
-func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
+func (s *FileMan) batchChangeModeAndOwner(hostID uint64, op model.FileRoleReq) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Batch_Change_Owner,
 			Data:   data,
@@ -463,7 +463,7 @@ func (s *FileMan) batchChangeModeAndOwner(op model.FileRoleReq) error {
 	return nil
 }
 
-func (s *FileMan) getFavoriteList(req model.FavoriteListReq) (*model.PageResult, error) {
+func (s *FileMan) getFavoriteList(hostID uint64, req model.FavoriteListReq) (*model.PageResult, error) {
 	var pageResult model.PageResult
 	data, err := utils.ToJSONString(req.PageInfo)
 	if err != nil {
@@ -471,7 +471,7 @@ func (s *FileMan) getFavoriteList(req model.FavoriteListReq) (*model.PageResult,
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Favorite_List,
 			Data:   data,
@@ -496,7 +496,7 @@ func (s *FileMan) getFavoriteList(req model.FavoriteListReq) (*model.PageResult,
 
 	return &pageResult, nil
 }
-func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, error) {
+func (s *FileMan) createFavorite(hostID uint64, req model.FavoriteCreate) (*model.Favorite, error) {
 	var favorite model.Favorite
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -504,7 +504,7 @@ func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Favorite_Create,
 			Data:   data,
@@ -530,14 +530,14 @@ func (s *FileMan) createFavorite(req model.FavoriteCreate) (*model.Favorite, err
 	return &favorite, nil
 }
 
-func (s *FileMan) deleteFavorite(req model.FavoriteDelete) error {
+func (s *FileMan) deleteFavorite(hostID uint64, req model.FavoriteDelete) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Favorite_Delete,
 			Data:   data,

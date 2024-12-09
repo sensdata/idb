@@ -28,18 +28,14 @@ func (s *SSHMan) sendAction(actionRequest model.HostAction) (*model.ActionRespon
 	return &actionResponse, nil
 }
 
-func (s *SSHMan) getSSHConfig(req model.SSHConfigReq) (*model.SSHInfo, error) {
+func (s *SSHMan) getSSHConfig(hostID uint64) (*model.SSHInfo, error) {
 	var sshInfo model.SSHInfo
-	data, err := utils.ToJSONString(req)
-	if err != nil {
-		return &sshInfo, err
-	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Config,
-			Data:   data,
+			Data:   "",
 		},
 	}
 
@@ -62,14 +58,14 @@ func (s *SSHMan) getSSHConfig(req model.SSHConfigReq) (*model.SSHInfo, error) {
 	return &sshInfo, nil
 }
 
-func (s *SSHMan) updateSSH(req model.SSHUpdate) error {
+func (s *SSHMan) updateSSH(hostID uint64, req model.SSHUpdate) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Config_Update,
 			Data:   data,
@@ -89,18 +85,14 @@ func (s *SSHMan) updateSSH(req model.SSHUpdate) error {
 	return nil
 }
 
-func (s *SSHMan) getSSHConfigContent(req model.SSHConfigReq) (*model.SSHConfigContent, error) {
+func (s *SSHMan) getSSHConfigContent(hostID uint64) (*model.SSHConfigContent, error) {
 	var sshContent model.SSHConfigContent
-	data, err := utils.ToJSONString(req)
-	if err != nil {
-		return &sshContent, err
-	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Config_Content,
-			Data:   data,
+			Data:   "",
 		},
 	}
 
@@ -123,14 +115,14 @@ func (s *SSHMan) getSSHConfigContent(req model.SSHConfigReq) (*model.SSHConfigCo
 	return &sshContent, nil
 }
 
-func (s *SSHMan) updateSSHContent(req model.ContentUpdate) error {
+func (s *SSHMan) updateSSHContent(hostID uint64, req model.ContentUpdate) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Config_Content_Update,
 			Data:   data,
@@ -150,14 +142,14 @@ func (s *SSHMan) updateSSHContent(req model.ContentUpdate) error {
 	return nil
 }
 
-func (s *SSHMan) operateSSH(req model.SSHOperate) error {
+func (s *SSHMan) operateSSH(hostID uint64, req model.SSHOperate) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Operate,
 			Data:   data,
@@ -177,14 +169,14 @@ func (s *SSHMan) operateSSH(req model.SSHOperate) error {
 	return nil
 }
 
-func (s *SSHMan) createKey(req model.GenerateKey) error {
+func (s *SSHMan) createKey(hostID uint64, req model.GenerateKey) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Secret_Create,
 			Data:   data,
@@ -204,7 +196,7 @@ func (s *SSHMan) createKey(req model.GenerateKey) error {
 	return nil
 }
 
-func (s *SSHMan) listKeys(req model.ListKey) (*model.PageResult, error) {
+func (s *SSHMan) listKeys(hostID uint64, req model.ListKey) (*model.PageResult, error) {
 	var pageResult model.PageResult
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -212,7 +204,7 @@ func (s *SSHMan) listKeys(req model.ListKey) (*model.PageResult, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Secret,
 			Data:   data,
@@ -238,7 +230,7 @@ func (s *SSHMan) listKeys(req model.ListKey) (*model.PageResult, error) {
 	return &pageResult, nil
 }
 
-func (s *SSHMan) loadLog(req model.SearchSSHLog) (*model.SSHLog, error) {
+func (s *SSHMan) loadLog(hostID uint64, req model.SearchSSHLog) (*model.SSHLog, error) {
 	var sshLog model.SSHLog
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -246,7 +238,7 @@ func (s *SSHMan) loadLog(req model.SearchSSHLog) (*model.SSHLog, error) {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Ssh_Log,
 			Data:   data,

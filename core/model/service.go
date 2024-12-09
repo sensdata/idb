@@ -18,7 +18,6 @@ type ServiceForm struct {
 }
 
 type CreateServiceForm struct {
-	HostID   uint       `json:"host_id" validate:"required"`
 	Type     string     `json:"type" validate:"required"`
 	Category string     `json:"category"`
 	Name     string     `json:"name" validate:"required"`
@@ -26,7 +25,6 @@ type CreateServiceForm struct {
 }
 
 type UpdateServiceForm struct {
-	HostID   uint       `json:"host_id" validate:"required"`
 	Type     string     `json:"type" validate:"required"`
 	Category string     `json:"category"`
 	Name     string     `json:"name" validate:"required"`
@@ -34,7 +32,6 @@ type UpdateServiceForm struct {
 }
 
 type ServiceAction struct {
-	HostID   uint   `json:"host_id" validate:"required"`
 	Type     string `json:"type" validate:"required"`
 	Category string `json:"category"`
 	Name     string `json:"name" validate:"required"`
@@ -42,7 +39,6 @@ type ServiceAction struct {
 }
 
 type ServiceActionInfo struct {
-	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
 	RelativePath string `json:"relative_path" validate:"required"`
 	Action       string `json:"action" validate:"required,oneof=activate deactivate"`

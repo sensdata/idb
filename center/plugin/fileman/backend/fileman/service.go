@@ -96,26 +96,26 @@ func (s *FileMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/trees", Handler: s.GetFileTree},
-			{Method: "GET", Path: "", Handler: s.GetFileList},
-			{Method: "POST", Path: "", Handler: s.CreateFile},
-			{Method: "DELETE", Path: "", Handler: s.DeleteFile},
-			{Method: "DELETE", Path: "/batch", Handler: s.BatchDeleteFile},
-			{Method: "POST", Path: "/compress", Handler: s.CompressFile},
-			{Method: "POST", Path: "/decompress", Handler: s.DeCompressFile},
-			{Method: "GET", Path: "/content", Handler: s.GetContent},
-			{Method: "PUT", Path: "/content", Handler: s.SaveContent},
-			{Method: "POST", Path: "/upload", Handler: s.Upload},
-			{Method: "GET", Path: "/download", Handler: s.Download},
-			{Method: "GET", Path: "/size", Handler: s.Size},
-			{Method: "PUT", Path: "/rename", Handler: s.ChangeFileName},
-			{Method: "PUT", Path: "/move", Handler: s.MoveFile},
-			{Method: "PUT", Path: "/owner", Handler: s.ChangeFileOwner},
-			{Method: "PUT", Path: "/mode", Handler: s.ChangeFileMode},
-			{Method: "PUT", Path: "/batch/role", Handler: s.BatchChangeModeAndOwner},
-			{Method: "GET", Path: "/favorites", Handler: s.GetFavoriteList},
-			{Method: "POST", Path: "/favorites", Handler: s.CreateFavorite},
-			{Method: "DELETE", Path: "/favorites/:id", Handler: s.DeleteFavorite},
+			{Method: "GET", Path: "/:host/trees", Handler: s.GetFileTree},
+			{Method: "GET", Path: "/:host", Handler: s.GetFileList},
+			{Method: "POST", Path: "/:host", Handler: s.CreateFile},
+			{Method: "DELETE", Path: "/:host", Handler: s.DeleteFile},
+			{Method: "DELETE", Path: "/:host/batch", Handler: s.BatchDeleteFile},
+			{Method: "POST", Path: "/:host/compress", Handler: s.CompressFile},
+			{Method: "POST", Path: "/:host/decompress", Handler: s.DeCompressFile},
+			{Method: "GET", Path: "/:host/content", Handler: s.GetContent},
+			{Method: "PUT", Path: "/:host/content", Handler: s.SaveContent},
+			{Method: "POST", Path: "/:host/upload", Handler: s.Upload},
+			{Method: "GET", Path: "/:host/download", Handler: s.Download},
+			{Method: "GET", Path: "/:host/size", Handler: s.Size},
+			{Method: "PUT", Path: "/:host/rename", Handler: s.ChangeFileName},
+			{Method: "PUT", Path: "/:host/move", Handler: s.MoveFile},
+			{Method: "PUT", Path: "/:host/owner", Handler: s.ChangeFileOwner},
+			{Method: "PUT", Path: "/:host/mode", Handler: s.ChangeFileMode},
+			{Method: "PUT", Path: "/:host/batch/role", Handler: s.BatchChangeModeAndOwner},
+			{Method: "GET", Path: "/:host/favorites", Handler: s.GetFavoriteList},
+			{Method: "POST", Path: "/:host/favorites", Handler: s.CreateFavorite},
+			{Method: "DELETE", Path: "/:host/favorites/:id", Handler: s.DeleteFavorite},
 		},
 	)
 
@@ -171,16 +171,16 @@ func (s *FileMan) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get file tree structure
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param path query string false "Directory path (default is root directory)"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {array} model.FileTree
-// @Router /files/trees [get]
+// @Router /files/{host}/trees [get]
 func (s *FileMan) GetFileTree(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -202,7 +202,6 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 	}
 
 	req := model.FileOption{
-		HostID: uint(hostID),
 		FileOption: files.FileOption{
 			Path:     path,
 			Expand:   true,
@@ -211,7 +210,7 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 		},
 	}
 
-	tree, err := s.getFileTree(req)
+	tree, err := s.getFileTree(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -225,16 +224,16 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 // @Description Get list of files in a directory
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param path query string false "Directory path (default is root directory)"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {array} model.FileInfo
-// @Router /files [get]
+// @Router /files/{host} [get]
 func (s *FileMan) GetFileList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -256,7 +255,6 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 	}
 
 	req := model.FileOption{
-		HostID: uint(hostID),
 		FileOption: files.FileOption{
 			Path:     path,
 			Expand:   true,
@@ -265,7 +263,7 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 		},
 	}
 
-	files, err := s.getFileList(req)
+	files, err := s.getFileList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -279,15 +277,22 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 // @Description Create a new file or directory
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileCreate true "File creation details"
 // @Success 200
-// @Router /files [post]
+// @Router /files/{host} [post]
 func (s *FileMan) CreateFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req)
+	err = s.create(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -300,16 +305,16 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Description Delete a file or directory
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param source query string true "Source file path"
 // @Param force_delete query bool false "Force delete flag"
 // @Param is_dir query bool false "Is directory flag"
 // @Success 200
-// @Router /files [delete]
+// @Router /files/{host} [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -323,13 +328,12 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
 
 	req := model.FileDelete{
-		HostID:      uint(hostID),
 		Path:        source,
 		ForceDelete: forceDelete,
 		IsDir:       isDir,
 	}
 
-	err = s.delete(req)
+	err = s.delete(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -343,15 +347,15 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 // @Description Delete multiple files or directories
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param sources query string true "Comma-separated list of file paths to delete"
 // @Param is_dir query bool false "Is directory flag"
 // @Success 200
-// @Router /files/batch [delete]
+// @Router /files/{host}/batch [delete]
 func (s *FileMan) BatchDeleteFile(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -364,12 +368,11 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
 
 	req := model.FileBatchDelete{
-		HostID: uint(hostID),
-		Paths:  strings.Split(sources, ","),
-		IsDir:  isDir,
+		Paths: strings.Split(sources, ","),
+		IsDir: isDir,
 	}
 
-	err = s.batchDelete(req)
+	err = s.batchDelete(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -383,15 +386,22 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 // @Description Compress multiple files or directories into an archive
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileCompress true "Compression details"
 // @Success 200
-// @Router /files/compress [post]
+// @Router /files/{host}/compress [post]
 func (s *FileMan) CompressFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileCompress
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.compress(req)
+	err = s.compress(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -403,15 +413,22 @@ func (s *FileMan) CompressFile(c *gin.Context) {
 // @Summary Decompress file
 // @Description Decompress file into an archive
 // @Accept json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileDeCompress true "request"
 // @Success 200
-// @Router /files/decompress [post]
+// @Router /files/{host}/decompress [post]
 func (s *FileMan) DeCompressFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileDeCompress
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.decompress(req)
+	err = s.decompress(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -424,14 +441,14 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 // @Description Get the content of a file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param path query string true "File path"
 // @Success 200 {object} model.FileInfo
-// @Router /files/content [get]
+// @Router /files/{host}/content [get]
 func (s *FileMan) GetContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -442,11 +459,10 @@ func (s *FileMan) GetContent(c *gin.Context) {
 	}
 
 	req := model.FileContentReq{
-		HostID: uint(hostID),
-		Path:   path,
+		Path: path,
 	}
 
-	info, err := s.getContent(req)
+	info, err := s.getContent(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -459,16 +475,23 @@ func (s *FileMan) GetContent(c *gin.Context) {
 // @Description Update the content of a file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileEdit true "File edit details"
 // @Success 200
-// @Router /files/content [put]
+// @Router /files/{host}/content [put]
 func (s *FileMan) SaveContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileEdit
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	if err := s.saveContent(req); err != nil {
+	if err := s.saveContent(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -480,37 +503,32 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 // @Description Upload a file to a specific host and path
 // @Accept multipart/form-data
 // @Produce json
-// @Param host_id formData int true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param dest formData string true "Destination directory path"
 // @Param file formData file true "File to upload"
 // @Success 200
-// @Router /files/upload [post]
+// @Router /files/{host}/upload [post]
 func (s *FileMan) Upload(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	form, err := c.MultipartForm()
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid form data", err)
 		return
 	}
 
-	hostIds := form.Value["host_id"]
 	paths := form.Value["dest"]
 	files := form.File["file"]
-	if len(hostIds) == 0 {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host_id", err)
-		return
-	}
 	if len(paths) == 0 {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams dest", err)
 		return
 	}
 	if len(files) == 0 {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams file", err)
-		return
-	}
-
-	hostID, err := strconv.Atoi(hostIds[0])
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "InvalidParams host id", err)
 		return
 	}
 	path := paths[0]
@@ -527,14 +545,14 @@ func (s *FileMan) Upload(c *gin.Context) {
 // @Summary Download file
 // @Description Download a file from a specific host and path
 // @Produce octet-stream
-// @Param host_id query int true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param source query string true "Source file path"
 // @Success 200 {file} binary
-// @Router /files/download [get]
+// @Router /files/{host}/download [get]
 func (s *FileMan) Download(c *gin.Context) {
-	hostID, err := strconv.Atoi(c.Query("host_id"))
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -555,14 +573,14 @@ func (s *FileMan) Download(c *gin.Context) {
 // @Description Get the size of a directory
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param source query string true "Source file path"
 // @Success 200 {object} model.DirSizeRes
-// @Router /files/size [get]
+// @Router /files/{host}/size [get]
 func (s *FileMan) Size(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -573,11 +591,10 @@ func (s *FileMan) Size(c *gin.Context) {
 	}
 
 	req := model.DirSizeReq{
-		HostID: uint(hostID),
-		Path:   source,
+		Path: source,
 	}
 
-	res, err := s.dirSize(req)
+	res, err := s.dirSize(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -590,16 +607,23 @@ func (s *FileMan) Size(c *gin.Context) {
 // @Description Rename a file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileRename true "File rename details"
 // @Success 200
-// @Router /files/rename [put]
+// @Router /files/{host}/rename [put]
 func (s *FileMan) ChangeFileName(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileRename
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	if err := s.changeName(req); err != nil {
+	if err := s.changeName(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -610,9 +634,10 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 // // @Summary Wget file
 // // @Description 下载远端文件
 // // @Accept json
+// // @Param host path uint true "Host ID"
 // // @Param request body model.FileWget true "request"
 // // @Success 200
-// // @Router /files/wget [post]
+// // @Router /files/{host}/wget [post]
 // func (s *FileMan) WgetFile(c *gin.Context) {
 // 	var req model.FileWget
 // 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
@@ -626,16 +651,23 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 // @Description Move one or more files to a new location
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileMove true "File move details"
 // @Success 200
-// @Router /files/move [put]
+// @Router /files/{host}/move [put]
 func (s *FileMan) MoveFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileMove
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	if err := s.mvFile(req); err != nil {
+	if err := s.mvFile(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -647,15 +679,22 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 // @Description Change file user or/and group
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileRoleUpdate true "File owner update details"
 // @Success 200
-// @Router /files/owner [put]
+// @Router /files/{host}/owner [put]
 func (s *FileMan) ChangeFileOwner(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileRoleUpdate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	if err := s.changeOwner(req); err != nil {
+	if err := s.changeOwner(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -667,15 +706,22 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 // @Description Change file mode
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileCreate true "File mode update details"
 // @Success 200
-// @Router /files/mode [put]
+// @Router /files/{host}/mode [put]
 func (s *FileMan) ChangeFileMode(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.changeMode(req)
+	err = s.changeMode(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -688,15 +734,22 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 // @Description Batch modify file permissions and user/group
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FileRoleReq true "Batch file mode and owner change request"
 // @Success 200
-// @Router /files/batch/role [put]
+// @Router /files/{host}/batch/role [put]
 func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FileRoleReq
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	if err := s.batchChangeModeAndOwner(req); err != nil {
+	if err := s.batchChangeModeAndOwner(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 	}
 	helper.SuccessWithOutData(c)
@@ -707,15 +760,15 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 // @Description Get favorite files
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /files/favorites [get]
+// @Router /files/{host}/favorites [get]
 func (s *FileMan) GetFavoriteList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -732,14 +785,13 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 	}
 
 	req := model.FavoriteListReq{
-		HostID: uint(hostID),
 		PageInfo: model.PageInfo{
 			Page:     int(page),
 			PageSize: int(pageSize),
 		},
 	}
 
-	result, err := s.getFavoriteList(req)
+	result, err := s.getFavoriteList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -752,15 +804,22 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 // @Description Collect a favorite file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.FavoriteCreate true "Favorite create request"
 // @Success 200 {object} model.Favorite
-// @Router /files/favorites [post]
+// @Router /files/{host}/favorites [post]
 func (s *FileMan) CreateFavorite(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.FavoriteCreate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	favorite, err := s.createFavorite(req)
+	favorite, err := s.createFavorite(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -773,14 +832,14 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 // @Description Delete a favorite
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param id path uint true "Favorite ID"
 // @Success 200
-// @Router /files/favorites/{id} [delete]
+// @Router /files/{host}/favorites/{id} [delete]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -791,11 +850,10 @@ func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	}
 
 	req := model.FavoriteDelete{
-		HostID: uint(hostID),
-		ID:     uint(id),
+		ID: uint(id),
 	}
 
-	if err := s.deleteFavorite(req); err != nil {
+	if err := s.deleteFavorite(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}

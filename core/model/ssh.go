@@ -2,10 +2,6 @@ package model
 
 import "time"
 
-type SSHConfigReq struct {
-	HostID uint `json:"host_id"`
-}
-
 type SSHInfo struct {
 	AutoStart              bool   `json:"auto_start"`
 	Status                 string `json:"status"`
@@ -19,7 +15,6 @@ type SSHInfo struct {
 }
 
 type SSHUpdate struct {
-	HostID uint                `json:"host_id"`
 	Values []KeyValueForUpdate `json:"values"`
 }
 
@@ -28,17 +23,14 @@ type SSHConfigContent struct {
 }
 
 type ContentUpdate struct {
-	HostID  uint   `json:"host_id"`
 	Content string `json:"content"`
 }
 
 type SSHOperate struct {
-	HostID    uint   `json:"host_id"`
 	Operation string `json:"operation"`
 }
 
 type GenerateKey struct {
-	HostID         uint   `json:"host_id"`
 	KeyBits        uint   `json:"key_bits" validate:"required,oneof=1024 2048"`
 	Enabled        bool   `json:"enabled"`
 	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
@@ -46,7 +38,6 @@ type GenerateKey struct {
 }
 
 type ListKey struct {
-	HostID  uint   `json:"host_id"`
 	Keyword string `json:"keyword"`
 }
 
@@ -59,13 +50,11 @@ type KeyInfo struct {
 }
 
 type GenerateLoad struct {
-	HostID         uint   `json:"host_id"`
 	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
 }
 
 type SearchSSHLog struct {
 	PageInfo
-	HostID uint   `form:"host_id"`
 	Info   string `form:"info"`
 	Status string `form:"status"`
 }

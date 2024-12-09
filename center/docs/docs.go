@@ -85,7 +85,56 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab": {
+        "/crontab/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/crontab/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/crontab/{host}": {
             "get": {
                 "description": "Get custom crontab conf file list in work dir",
                 "consumes": [
@@ -102,8 +151,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -159,8 +208,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -191,7 +240,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/action": {
+        "/crontab/{host}/action": {
             "post": {
                 "description": "Execute conf actions",
                 "consumes": [
@@ -205,6 +254,13 @@ const docTemplate = `{
                 ],
                 "summary": "Execute conf actions",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Conf action details",
                         "name": "request",
@@ -222,7 +278,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/diff": {
+        "/crontab/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
                 "consumes": [
@@ -239,8 +295,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -281,7 +337,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/form": {
+        "/crontab/{host}/form": {
             "get": {
                 "description": "Get details of a conf file in form mode.",
                 "consumes": [
@@ -298,8 +354,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -345,6 +401,13 @@ const docTemplate = `{
                 "summary": "Save conf file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file edit details",
                         "name": "request",
                         "in": "body",
@@ -374,6 +437,13 @@ const docTemplate = `{
                 "summary": "Create conf file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Form details",
                         "name": "request",
                         "in": "body",
@@ -390,30 +460,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Crontab"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/crontab/log": {
+        "/crontab/{host}/log": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -430,8 +477,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -479,33 +526,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Crontab"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/crontab/raw": {
+        "/crontab/{host}/raw": {
             "get": {
                 "description": "Get content of a conf file",
                 "consumes": [
@@ -522,8 +543,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -570,6 +591,13 @@ const docTemplate = `{
                 "summary": "Save conf file content",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file edit details",
                         "name": "request",
                         "in": "body",
@@ -599,6 +627,13 @@ const docTemplate = `{
                 "summary": "Create conf file",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file creation details",
                         "name": "request",
                         "in": "body",
@@ -615,7 +650,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/restore": {
+        "/crontab/{host}/restore": {
             "put": {
                 "description": "Restore conf file to specified version",
                 "consumes": [
@@ -629,6 +664,13 @@ const docTemplate = `{
                 ],
                 "summary": "Restore conf file",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Conf file restore details",
                         "name": "request",
@@ -646,7 +688,56 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/compose": {
+        "/docker/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/compose": {
             "get": {
                 "description": "Query compose",
                 "consumes": [
@@ -723,7 +814,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeCreate"
+                            "$ref": "#/definitions/model.CreateCompose"
                         }
                     }
                 ],
@@ -759,7 +850,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeCreate"
+                            "$ref": "#/definitions/model.CreateCompose"
                         }
                     }
                 ],
@@ -773,7 +864,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/compose/operation": {
+        "/docker/{host}/compose/operation": {
             "post": {
                 "description": "Operate compose",
                 "consumes": [
@@ -800,7 +891,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeOperation"
+                            "$ref": "#/definitions/model.OperateCompose"
                         }
                     }
                 ],
@@ -811,7 +902,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/compose/test": {
+        "/docker/{host}/compose/test": {
             "post": {
                 "description": "Test compose",
                 "consumes": [
@@ -838,7 +929,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeCreate"
+                            "$ref": "#/definitions/model.CreateCompose"
                         }
                     }
                 ],
@@ -852,7 +943,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/conf": {
+        "/docker/{host}/conf": {
             "get": {
                 "description": "Get docker configurations",
                 "consumes": [
@@ -920,7 +1011,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/containers": {
+        "/docker/{host}/containers": {
             "get": {
                 "description": "Query containers",
                 "consumes": [
@@ -1057,7 +1148,217 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/containers/:id": {
+        "/docker/{host}/containers/limit": {
+            "get": {
+                "description": "Get container resource usage list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container resource usage list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerResourceLimit"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/names": {
+            "get": {
+                "description": "Query container names",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Query container names",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/operatetion": {
+            "post": {
+                "description": "Execute operations to container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Execute operations to container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container operation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/rename": {
+            "post": {
+                "description": "Rename container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Rename container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container rename details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Rename"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/upgrade": {
+            "post": {
+                "description": "Upgrade container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Upgrade container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Container upgrade details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerUpgrade"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/usages": {
+            "get": {
+                "description": "Get container resource usage list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container resource usage list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/{id}": {
             "get": {
                 "description": "Get detail of the specified container",
                 "consumes": [
@@ -1096,7 +1397,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/containers/:id/log": {
+        "/docker/{host}/containers/{id}/log": {
             "get": {
                 "description": "Get container log",
                 "consumes": [
@@ -1167,7 +1468,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/containers/:id/stats": {
+        "/docker/{host}/containers/{id}/stats": {
             "get": {
                 "description": "Get stats of the specified container",
                 "consumes": [
@@ -1206,217 +1507,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/containers/limit": {
-            "get": {
-                "description": "Get container resource usage list",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get container resource usage list",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.ContainerResourceLimit"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/:host/containers/names": {
-            "get": {
-                "description": "Query container names",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Query container names",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.PageResult"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/:host/containers/operatetion": {
-            "post": {
-                "description": "Execute operations to container",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Execute operations to container",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Container operation details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.ContainerOperation"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/docker/:host/containers/rename": {
-            "post": {
-                "description": "Rename container",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Rename container",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Container rename details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.Rename"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/docker/:host/containers/upgrade": {
-            "post": {
-                "description": "Upgrade container",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Upgrade container",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Container upgrade details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.ContainerUpgrade"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/docker/:host/containers/usages": {
-            "get": {
-                "description": "Get container resource usage list",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get container resource usage list",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.PageResult"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/:host/images": {
+        "/docker/{host}/images": {
             "get": {
                 "description": "Get images",
                 "consumes": [
@@ -1509,7 +1600,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/build": {
+        "/docker/{host}/images/build": {
             "post": {
                 "description": "Build image",
                 "consumes": [
@@ -1547,7 +1638,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/export": {
+        "/docker/{host}/images/export": {
             "post": {
                 "description": "Export image",
                 "consumes": [
@@ -1585,7 +1676,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/import": {
+        "/docker/{host}/images/import": {
             "post": {
                 "description": "Import image",
                 "consumes": [
@@ -1623,7 +1714,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/names": {
+        "/docker/{host}/images/names": {
             "get": {
                 "description": "Query image names",
                 "consumes": [
@@ -1655,7 +1746,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/pull": {
+        "/docker/{host}/images/pull": {
             "post": {
                 "description": "Pull image",
                 "consumes": [
@@ -1693,7 +1784,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/push": {
+        "/docker/{host}/images/push": {
             "post": {
                 "description": "Push image",
                 "consumes": [
@@ -1738,7 +1829,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/images/tag": {
+        "/docker/{host}/images/tag": {
             "put": {
                 "description": "Set image tag",
                 "consumes": [
@@ -1776,7 +1867,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/inspect": {
+        "/docker/{host}/inspect": {
             "get": {
                 "description": "Get details of a container, image, volume or network",
                 "consumes": [
@@ -1819,7 +1910,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/ipv6": {
+        "/docker/{host}/ipv6": {
             "put": {
                 "description": "Update docker ipv6 option",
                 "consumes": [
@@ -1857,7 +1948,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/log": {
+        "/docker/{host}/log": {
             "put": {
                 "description": "Update docker log option",
                 "consumes": [
@@ -1895,7 +1986,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/networks": {
+        "/docker/{host}/networks": {
             "get": {
                 "description": "Get networks",
                 "consumes": [
@@ -2024,7 +2115,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/networks/names": {
+        "/docker/{host}/networks/names": {
             "get": {
                 "description": "Query network names",
                 "consumes": [
@@ -2056,7 +2147,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/operation": {
+        "/docker/{host}/operation": {
             "post": {
                 "description": "To start, stop, restart docker",
                 "consumes": [
@@ -2094,7 +2185,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/prune": {
+        "/docker/{host}/prune": {
             "post": {
                 "description": "Prune operation for container, image, volume, network or buildcache",
                 "consumes": [
@@ -2135,7 +2226,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/status": {
+        "/docker/{host}/status": {
             "get": {
                 "description": "Get docker status",
                 "consumes": [
@@ -2167,7 +2258,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/volumes": {
+        "/docker/{host}/volumes": {
             "get": {
                 "description": "Get volumes",
                 "consumes": [
@@ -2296,7 +2387,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/:host/volumes/names": {
+        "/docker/{host}/volumes/names": {
             "get": {
                 "description": "Query volume names",
                 "consumes": [
@@ -2324,535 +2415,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
                         }
-                    }
-                }
-            }
-        },
-        "/docker/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/files": {
-            "get": {
-                "description": "Get list of files in a directory",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "List files",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Directory path (default is root directory)",
-                        "name": "path",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.FileInfo"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new file or directory",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Create file or directory",
-                "parameters": [
-                    {
-                        "description": "File creation details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FileCreate"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a file or directory",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Delete file",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Source file path",
-                        "name": "source",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Force delete flag",
-                        "name": "force_delete",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Is directory flag",
-                        "name": "is_dir",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/batch": {
-            "delete": {
-                "description": "Delete multiple files or directories",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Batch delete files",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Comma-separated list of file paths to delete",
-                        "name": "sources",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Is directory flag",
-                        "name": "is_dir",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/batch/role": {
-            "put": {
-                "description": "Batch modify file permissions and user/group",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Batch change file mode and owner",
-                "parameters": [
-                    {
-                        "description": "Batch file mode and owner change request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FileRoleReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/compress": {
-            "post": {
-                "description": "Compress multiple files or directories into an archive",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Compress files",
-                "parameters": [
-                    {
-                        "description": "Compression details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FileCompress"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/content": {
-            "get": {
-                "description": "Get the content of a file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Get file content",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "File path",
-                        "name": "path",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.FileInfo"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update the content of a file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Update file content",
-                "parameters": [
-                    {
-                        "description": "File edit details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FileEdit"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/decompress": {
-            "post": {
-                "description": "Decompress file into an archive",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Decompress file",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FileDeCompress"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/files/download": {
-            "get": {
-                "description": "Download a file from a specific host and path",
-                "produces": [
-                    "application/octet-stream"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Download file",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Source file path",
-                        "name": "source",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "file"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/favorites": {
-            "get": {
-                "description": "Get favorite files",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Get favorites",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.PageResult"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Collect a favorite file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Collect a favorite file",
-                "parameters": [
-                    {
-                        "description": "Favorite create request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.FavoriteCreate"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.Favorite"
-                        }
-                    }
-                }
-            }
-        },
-        "/files/favorites/{id}": {
-            "delete": {
-                "description": "Delete a favorite",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Delete a favorite",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Favorite ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
                     }
                 }
             }
@@ -2906,7 +2468,529 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/mode": {
+        "/files/{host}": {
+            "get": {
+                "description": "Get list of files in a directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "List files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Directory path (default is root directory)",
+                        "name": "path",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.FileInfo"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new file or directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Create file or directory",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "File creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a file or directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Delete file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source file path",
+                        "name": "source",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Force delete flag",
+                        "name": "force_delete",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Is directory flag",
+                        "name": "is_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/batch": {
+            "delete": {
+                "description": "Delete multiple files or directories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Batch delete files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of file paths to delete",
+                        "name": "sources",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Is directory flag",
+                        "name": "is_dir",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/batch/role": {
+            "put": {
+                "description": "Batch modify file permissions and user/group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Batch change file mode and owner",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Batch file mode and owner change request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileRoleReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/compress": {
+            "post": {
+                "description": "Compress multiple files or directories into an archive",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Compress files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Compression details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileCompress"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/content": {
+            "get": {
+                "description": "Get the content of a file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileInfo"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update the content of a file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Update file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "File edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileEdit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/decompress": {
+            "post": {
+                "description": "Decompress file into an archive",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Decompress file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileDeCompress"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/download": {
+            "get": {
+                "description": "Download a file from a specific host and path",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Download file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source file path",
+                        "name": "source",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{host}/favorites": {
+            "get": {
+                "description": "Get favorite files",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get favorites",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Collect a favorite file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Collect a favorite file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Favorite create request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FavoriteCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Favorite"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{host}/favorites/{id}": {
+            "delete": {
+                "description": "Delete a favorite",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Delete a favorite",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Favorite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/mode": {
             "put": {
                 "description": "Change file mode",
                 "consumes": [
@@ -2920,6 +3004,13 @@ const docTemplate = `{
                 ],
                 "summary": "Change file mode",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "File mode update details",
                         "name": "request",
@@ -2937,7 +3028,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/move": {
+        "/files/{host}/move": {
             "put": {
                 "description": "Move one or more files to a new location",
                 "consumes": [
@@ -2951,6 +3042,13 @@ const docTemplate = `{
                 ],
                 "summary": "Move files",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "File move details",
                         "name": "request",
@@ -2968,7 +3066,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/owner": {
+        "/files/{host}/owner": {
             "put": {
                 "description": "Change file user or/and group",
                 "consumes": [
@@ -2982,6 +3080,13 @@ const docTemplate = `{
                 ],
                 "summary": "Change file owner",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "File owner update details",
                         "name": "request",
@@ -2999,7 +3104,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/rename": {
+        "/files/{host}/rename": {
             "put": {
                 "description": "Rename a file",
                 "consumes": [
@@ -3013,6 +3118,13 @@ const docTemplate = `{
                 ],
                 "summary": "Change file name",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "File rename details",
                         "name": "request",
@@ -3030,7 +3142,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/size": {
+        "/files/{host}/size": {
             "get": {
                 "description": "Get the size of a directory",
                 "consumes": [
@@ -3047,8 +3159,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3069,7 +3181,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/trees": {
+        "/files/{host}/trees": {
             "get": {
                 "description": "Get file tree structure",
                 "consumes": [
@@ -3086,8 +3198,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3124,7 +3236,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/upload": {
+        "/files/{host}/upload": {
             "post": {
                 "description": "Upload a file to a specific host and path",
                 "consumes": [
@@ -3141,8 +3253,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "formData",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3644,7 +3756,56 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate": {
+        "/logrotate/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/logrotate/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/logrotate/{host}": {
             "get": {
                 "description": "Get custom logrotate conf file list in work dir",
                 "consumes": [
@@ -3661,8 +3822,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3718,8 +3879,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3750,7 +3911,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/action": {
+        "/logrotate/{host}/action": {
             "post": {
                 "description": "Execute conf actions",
                 "consumes": [
@@ -3764,6 +3925,13 @@ const docTemplate = `{
                 ],
                 "summary": "Execute conf actions",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Conf action details",
                         "name": "request",
@@ -3781,7 +3949,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/diff": {
+        "/logrotate/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
                 "consumes": [
@@ -3798,8 +3966,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3840,7 +4008,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/form": {
+        "/logrotate/{host}/form": {
             "get": {
                 "description": "Get details of a conf file in form mode.",
                 "consumes": [
@@ -3857,8 +4025,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -3904,6 +4072,13 @@ const docTemplate = `{
                 "summary": "Save conf file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file edit details",
                         "name": "request",
                         "in": "body",
@@ -3933,6 +4108,13 @@ const docTemplate = `{
                 "summary": "Create conf file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Form details",
                         "name": "request",
                         "in": "body",
@@ -3949,30 +4131,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Logrotate"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/logrotate/log": {
+        "/logrotate/{host}/log": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -3989,8 +4148,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4038,33 +4197,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Logrotate"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/logrotate/raw": {
+        "/logrotate/{host}/raw": {
             "get": {
                 "description": "Get content of a conf file",
                 "consumes": [
@@ -4081,8 +4214,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4129,6 +4262,13 @@ const docTemplate = `{
                 "summary": "Save conf file content",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file edit details",
                         "name": "request",
                         "in": "body",
@@ -4158,6 +4298,13 @@ const docTemplate = `{
                 "summary": "Create conf file",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Conf file creation details",
                         "name": "request",
                         "in": "body",
@@ -4174,7 +4321,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/restore": {
+        "/logrotate/{host}/restore": {
             "put": {
                 "description": "Restore conf file to specified version",
                 "consumes": [
@@ -4188,6 +4335,13 @@ const docTemplate = `{
                 ],
                 "summary": "Restore conf file",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Conf file restore details",
                         "name": "request",
@@ -4206,6 +4360,176 @@ const docTemplate = `{
             }
         },
         "/scripts": {
+            "put": {
+                "description": "Update the content of a script file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Update script file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Script file edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new script file or category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Create script file or category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Script file creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete  a script file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Delete script file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/scripts/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/{host}": {
             "get": {
                 "description": "Get list of scripts in a directory",
                 "consumes": [
@@ -4222,8 +4546,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4262,114 +4586,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "description": "Update the content of a script file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Update script file content",
-                "parameters": [
-                    {
-                        "description": "Script file edit details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateGitFile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new script file or category",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Create script file or category",
-                "parameters": [
-                    {
-                        "description": "Script file creation details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.CreateGitFile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete  a script file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Delete script file",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Type (options: 'global', 'local')",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Category (directory under 'global' or 'local')",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "File name",
-                        "name": "name",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
             }
         },
-        "/scripts/detail": {
+        "/scripts/{host}/detail": {
             "get": {
                 "description": "Get detail of a script file",
                 "consumes": [
@@ -4386,8 +4605,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4421,7 +4640,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/diff": {
+        "/scripts/{host}/diff": {
             "get": {
                 "description": "Get script diff compare to specfied version",
                 "consumes": [
@@ -4438,8 +4657,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4480,30 +4699,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/scripts/log": {
+        "/scripts/{host}/log": {
             "get": {
                 "description": "Get histories of a script file",
                 "consumes": [
@@ -4520,8 +4716,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4569,33 +4765,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/scripts/restore": {
+        "/scripts/{host}/restore": {
             "put": {
                 "description": "Restore script file to specified version",
                 "consumes": [
@@ -4609,6 +4779,13 @@ const docTemplate = `{
                 ],
                 "summary": "Restore script file",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Script file restore details",
                         "name": "request",
@@ -4626,7 +4803,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/run": {
+        "/scripts/{host}/run": {
             "post": {
                 "description": "Execute script",
                 "consumes": [
@@ -4640,6 +4817,13 @@ const docTemplate = `{
                 ],
                 "summary": "Execute script",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Script file creation details",
                         "name": "request",
@@ -4660,7 +4844,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/run/log": {
+        "/scripts/{host}/run/log": {
             "get": {
                 "description": "Get content of run log",
                 "consumes": [
@@ -4677,8 +4861,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -4692,7 +4876,56 @@ const docTemplate = `{
                 }
             }
         },
-        "/services": {
+        "/services/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/services/{host}": {
             "get": {
                 "description": "Get custom service file list in work dir",
                 "consumes": [
@@ -4709,8 +4942,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4766,8 +4999,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4798,7 +5031,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/action": {
+        "/services/{host}/action": {
             "post": {
                 "description": "Execute service actions",
                 "consumes": [
@@ -4812,6 +5045,13 @@ const docTemplate = `{
                 ],
                 "summary": "Execute service actions",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "description": "Service action details",
                         "name": "request",
@@ -4829,7 +5069,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/diff": {
+        "/services/{host}/diff": {
             "get": {
                 "description": "Get service diff compare to specfied version",
                 "consumes": [
@@ -4846,8 +5086,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4888,7 +5128,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/form": {
+        "/services/{host}/form": {
             "get": {
                 "description": "Get details of a service file in form mode.",
                 "consumes": [
@@ -4905,8 +5145,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -4952,6 +5192,13 @@ const docTemplate = `{
                 "summary": "Save service file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Service file edit details",
                         "name": "request",
                         "in": "body",
@@ -4981,6 +5228,13 @@ const docTemplate = `{
                 "summary": "Create service file in form mode",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Form details",
                         "name": "request",
                         "in": "body",
@@ -4997,30 +5251,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Service"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/services/log": {
+        "/services/{host}/log": {
             "get": {
                 "description": "Get histories of a service file",
                 "consumes": [
@@ -5037,8 +5268,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -5086,33 +5317,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Service"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/services/raw": {
+        "/services/{host}/raw": {
             "get": {
                 "description": "Get content of a service file",
                 "consumes": [
@@ -5129,8 +5334,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -5177,6 +5382,13 @@ const docTemplate = `{
                 "summary": "Save service file content",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Service file edit details",
                         "name": "request",
                         "in": "body",
@@ -5206,6 +5418,13 @@ const docTemplate = `{
                 "summary": "Create service file",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Service file creation details",
                         "name": "request",
                         "in": "body",
@@ -5222,7 +5441,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/restore": {
+        "/services/{host}/restore": {
             "put": {
                 "description": "Restore service file to specified version",
                 "consumes": [
@@ -5237,145 +5456,19 @@ const docTemplate = `{
                 "summary": "Restore service file",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "description": "Service file restore details",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.RestoreGitFile"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/ssh/config/content/{host_id}": {
-            "get": {
-                "description": "Get SSH config file content on host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SSH"
-                ],
-                "summary": "Get SSH config file content on host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.SSHConfigContent"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update SSH configuration file content on host",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SSH"
-                ],
-                "summary": "Update SSH configuration file content on host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Content",
-                        "name": "content",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/ssh/config/{host_id}": {
-            "get": {
-                "description": "Get SSH configurations on host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SSH"
-                ],
-                "summary": "Get SSH configurations on host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.SSHInfo"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update SSH configurations on host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SSH"
-                ],
-                "summary": "Update SSH configurations on host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.SSHUpdate"
                         }
                     }
                 ],
@@ -5409,7 +5502,166 @@ const docTemplate = `{
                 }
             }
         },
-        "/ssh/keys/{host_id}": {
+        "/ssh/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/config": {
+            "get": {
+                "description": "Get SSH configurations on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Get SSH configurations on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHInfo"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update SSH configurations on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Update SSH configurations on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/config/content": {
+            "get": {
+                "description": "Get SSH config file content on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Get SSH config file content on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SSHConfigContent"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update SSH configuration file content on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Update SSH configuration file content on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Content",
+                        "name": "content",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys": {
             "get": {
                 "description": "Get SSH secrets on host",
                 "consumes": [
@@ -5426,7 +5678,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -5459,7 +5711,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -5480,7 +5732,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ssh/logs/{host_id}": {
+        "/ssh/{host}/logs": {
             "get": {
                 "description": "Get SSH logs on host",
                 "consumes": [
@@ -5497,7 +5749,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -5539,33 +5791,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ssh/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "SSH"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/ssh/operate/{host_id}": {
+        "/ssh/{host}/operate": {
             "post": {
                 "description": "modify SSH service status on host",
                 "consumes": [
@@ -5582,7 +5808,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -5603,13 +5829,156 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysctl/boot": {
-            "post": {
-                "description": "运行systemctl的服务启动相关命令",
+        "/store/apps": {
+            "get": {
+                "description": "Get app list",
                 "tags": [
-                    "Sysctl"
+                    "App"
                 ],
-                "summary": "run systemctl start/stop/restart service commands",
+                "summary": "Get app list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/apps/sync": {
+            "post": {
+                "description": "同步应用列表",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Sync app list",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/apps/{id}": {
+            "get": {
+                "description": "Get app detail",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Get app detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "App ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/{host}/apps/install": {
+            "post": {
+                "description": "Install app",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Install app",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/store/{host}/apps/installed": {
+            "get": {
+                "description": "Get installed app list",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Get installed app list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -5663,68 +6032,25 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysinfo/config": {
-            "get": {
-                "description": "(not implemented yet) Get system config",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+        "/sysctl/{host}/boot": {
+            "post": {
+                "description": "运行systemctl的服务启动相关命令",
                 "tags": [
-                    "Sysinfo"
+                    "Sysctl"
                 ],
-                "summary": "Get system config",
-                "deprecated": true,
+                "summary": "run systemctl start/stop/restart service commands",
                 "parameters": [
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.SystemConfig"
-                        }
-                    }
-                }
-            }
-        },
-        "/sysinfo/hardware": {
-            "get": {
-                "description": "(not implemented yet) Get hardware info",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Sysinfo"
-                ],
-                "summary": "Get hardware info",
-                "deprecated": true,
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.HardwareInfo"
-                        }
+                        "description": "OK"
                     }
                 }
             }
@@ -5778,7 +6104,73 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysinfo/network": {
+        "/sysinfo/{host}/config": {
+            "get": {
+                "description": "(not implemented yet) Get system config",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get system config",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SystemConfig"
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/hardware": {
+            "get": {
+                "description": "(not implemented yet) Get hardware info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get hardware info",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.HardwareInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/network": {
             "get": {
                 "description": "Get network info",
                 "consumes": [
@@ -5795,8 +6187,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -5810,7 +6202,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysinfo/overview": {
+        "/sysinfo/{host}/overview": {
             "get": {
                 "description": "Get system overview info",
                 "consumes": [
@@ -5827,8 +6219,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -5842,7 +6234,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysinfo/system": {
+        "/sysinfo/{host}/system": {
             "get": {
                 "description": "Get system info",
                 "consumes": [
@@ -5859,8 +6251,8 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "host_id",
-                        "in": "query",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -6254,6 +6646,12 @@ const docTemplate = `{
                 "compose_content": {
                     "type": "string"
                 },
+                "conf_content": {
+                    "type": "string"
+                },
+                "conf_path": {
+                    "type": "string"
+                },
                 "env_content": {
                     "type": "string"
                 },
@@ -6269,29 +6667,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "log": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.ComposeOperation": {
-            "type": "object",
-            "required": [
-                "name",
-                "operation"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "operation": {
-                    "type": "string",
-                    "enum": [
-                        "start",
-                        "stop",
-                        "down"
-                    ]
-                },
-                "work_dir": {
                     "type": "string"
                 }
             }
@@ -6485,10 +6860,23 @@ const docTemplate = `{
                 }
             }
         },
+        "model.CreateCompose": {
+            "type": "object",
+            "properties": {
+                "compose_content": {
+                    "type": "string"
+                },
+                "env_content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "model.CreateGitFile": {
             "type": "object",
             "required": [
-                "host_id",
                 "name",
                 "type"
             ],
@@ -6498,9 +6886,6 @@ const docTemplate = `{
                 },
                 "content": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -6565,7 +6950,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "form",
-                "host_id",
                 "name",
                 "type"
             ],
@@ -6578,9 +6962,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.KeyValue"
                     }
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -6772,9 +7153,6 @@ const docTemplate = `{
                 "source"
             ],
             "properties": {
-                "host_id": {
-                    "type": "integer"
-                },
                 "source": {
                     "type": "string"
                 }
@@ -6798,9 +7176,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "host_id": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -6815,15 +7190,11 @@ const docTemplate = `{
         "model.FileCreate": {
             "type": "object",
             "required": [
-                "host_id",
                 "source"
             ],
             "properties": {
                 "content": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "is_dir": {
                     "type": "boolean"
@@ -6859,9 +7230,6 @@ const docTemplate = `{
                 "dst": {
                     "type": "string"
                 },
-                "host_id": {
-                    "type": "integer"
-                },
                 "path": {
                     "type": "string"
                 },
@@ -6874,15 +7242,11 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "content",
-                "host_id",
                 "source"
             ],
             "properties": {
                 "content": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "source": {
                     "type": "string"
@@ -6964,7 +7328,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "dest",
-                "host_id",
                 "sources"
             ],
             "properties": {
@@ -6973,9 +7336,6 @@ const docTemplate = `{
                 },
                 "dest": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -6994,14 +7354,10 @@ const docTemplate = `{
         "model.FileRename": {
             "type": "object",
             "required": [
-                "host_id",
                 "name",
                 "source"
             ],
             "properties": {
-                "host_id": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -7014,7 +7370,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "group",
-                "host_id",
                 "mode",
                 "sources",
                 "user"
@@ -7022,9 +7377,6 @@ const docTemplate = `{
             "properties": {
                 "group": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "mode": {
                     "type": "integer"
@@ -7047,16 +7399,12 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "group",
-                "host_id",
                 "source",
                 "user"
             ],
             "properties": {
                 "group": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "source": {
                     "type": "string"
@@ -7107,9 +7455,6 @@ const docTemplate = `{
                         "ecdsa",
                         "dsa"
                     ]
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "key_bits": {
                     "type": "integer",
@@ -7604,6 +7949,26 @@ const docTemplate = `{
                 }
             }
         },
+        "model.OperateCompose": {
+            "type": "object",
+            "required": [
+                "name",
+                "operation"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "start",
+                        "stop",
+                        "down"
+                    ]
+                }
+            }
+        },
         "model.Overview": {
             "type": "object",
             "properties": {
@@ -7778,7 +8143,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "commit_hash",
-                "host_id",
                 "name",
                 "type"
             ],
@@ -7788,9 +8152,6 @@ const docTemplate = `{
                 },
                 "commit_hash": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -7909,9 +8270,6 @@ const docTemplate = `{
         "model.SSHUpdate": {
             "type": "object",
             "properties": {
-                "host_id": {
-                    "type": "integer"
-                },
                 "values": {
                     "type": "array",
                     "items": {
@@ -7941,7 +8299,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "action",
-                "host_id",
                 "name",
                 "type"
             ],
@@ -7955,9 +8312,6 @@ const docTemplate = `{
                 },
                 "category": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -8166,7 +8520,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "content",
-                "host_id",
                 "name",
                 "type"
             ],
@@ -8176,9 +8529,6 @@ const docTemplate = `{
                 },
                 "content": {
                     "type": "string"
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -8272,7 +8622,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "form",
-                "host_id",
                 "name",
                 "type"
             ],
@@ -8285,9 +8634,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.KeyValue"
                     }
-                },
-                "host_id": {
-                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -8353,7 +8699,13 @@ const docTemplate = `{
                 "maxLength": {
                     "type": "integer"
                 },
+                "maxValue": {
+                    "type": "integer"
+                },
                 "minLength": {
+                    "type": "integer"
+                },
+                "minValue": {
                     "type": "integer"
                 },
                 "pattern": {

@@ -115,18 +115,18 @@ func (s *ServiceMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetServiceList},
-			{Method: "GET", Path: "/raw", Handler: s.GetContent},     // 源文模式获取
-			{Method: "POST", Path: "/raw", Handler: s.CreateContent}, // 源文模式创建
-			{Method: "PUT", Path: "/raw", Handler: s.UpdateContent},  // 源文模式更新
-			{Method: "GET", Path: "/form", Handler: s.GetForm},       // 表单模式获取
-			{Method: "POST", Path: "/form", Handler: s.CreateForm},   // 表单模式创建
-			{Method: "PUT", Path: "/form", Handler: s.UpdateForm},    // 表单模式更新
-			{Method: "DELETE", Path: "", Handler: s.Delete},
-			{Method: "PUT", Path: "/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/log", Handler: s.GetServiceLog},
-			{Method: "GET", Path: "/diff", Handler: s.GetServiceDiff},
-			{Method: "POST", Path: "/action", Handler: s.ServiceAction},
+			{Method: "GET", Path: "/:host", Handler: s.GetServiceList},
+			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "GET", Path: "/:host/form", Handler: s.GetForm},       // 表单模式获取
+			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
+			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/log", Handler: s.GetServiceLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
+			{Method: "POST", Path: "/:host/action", Handler: s.ServiceAction},
 		},
 	)
 
@@ -182,17 +182,17 @@ func (s *ServiceMan) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get custom service file list in work dir
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /services [get]
+// @Router /services/{host} [get]
 func (s *ServiceMan) GetServiceList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -221,14 +221,13 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 	}
 
 	req := model.QueryGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Page:     int(page),
 		PageSize: int(pageSize),
 	}
 
-	services, err := s.getServiceList(req)
+	services, err := s.getServiceList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -242,15 +241,22 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 // @Description CreateContent a new service file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Service file creation details"
 // @Success 200
-// @Router /services/raw [post]
+// @Router /services/{host}/raw [post]
 func (s *ServiceMan) CreateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req, ".service")
+	err = s.create(hostID, req, ".service")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -263,16 +269,16 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 // @Description Get content of a service file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Service file name"
 // @Success 200 {string} string
-// @Router /services/raw [get]
+// @Router /services/{host}/raw [get]
 func (s *ServiceMan) GetContent(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -295,13 +301,12 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 	}
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getContent(req)
+	detail, err := s.getContent(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -315,15 +320,22 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 // @Description Save the content of a service file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Service file edit details"
 // @Success 200
-// @Router /services/raw [put]
+// @Router /services/{host}/raw [put]
 func (s *ServiceMan) UpdateContent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.update(req)
+	err = s.update(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -336,16 +348,16 @@ func (s *ServiceMan) UpdateContent(c *gin.Context) {
 // @Description Get details of a service file in form mode.
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string false "Service file name. If this parameter is left empty, return template data."
 // @Success 200 {object} model.ServiceForm
-// @Router /services/form [get]
+// @Router /services/{host}/form [get]
 func (s *ServiceMan) GetForm(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -363,13 +375,12 @@ func (s *ServiceMan) GetForm(c *gin.Context) {
 	name := c.Query("name")
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getForm(req)
+	detail, err := s.getForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -383,15 +394,22 @@ func (s *ServiceMan) GetForm(c *gin.Context) {
 // @Description Create a new service file in form mode
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateServiceForm true "Form details"
 // @Success 200
-// @Router /services/form [post]
+// @Router /services/{host}/form [post]
 func (s *ServiceMan) CreateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.createForm(req)
+	err = s.createForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -404,15 +422,22 @@ func (s *ServiceMan) CreateForm(c *gin.Context) {
 // @Description Save the details of a service file in form mode
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateServiceForm true "Service file edit details"
 // @Success 200
-// @Router /services/form [put]
+// @Router /services/{host}/form [put]
 func (s *ServiceMan) UpdateForm(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.updateForm(req)
+	err = s.updateForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -425,16 +450,16 @@ func (s *ServiceMan) UpdateForm(c *gin.Context) {
 // @Description Delete a service file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /services [delete]
+// @Router /services/{host} [delete]
 func (s *ServiceMan) Delete(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -457,13 +482,12 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 	}
 
 	req := model.DeleteGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	err = s.delete(req, ".service")
+	err = s.delete(hostID, req, ".service")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -477,15 +501,22 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 // @Description Restore service file to specified version
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.RestoreGitFile true "Service file restore details"
 // @Success 200
-// @Router /services/restore [put]
+// @Router /services/{host}/restore [put]
 func (s *ServiceMan) Restore(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.restore(req)
+	err = s.restore(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -498,18 +529,18 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 // @Description Get histories of a service file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Service file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /services/log [get]
+// @Router /services/{host}/log [get]
 func (s *ServiceMan) GetServiceLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -544,7 +575,6 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 	}
 
 	req := model.GitFileLog{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
@@ -552,7 +582,7 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	logs, err := s.getServiceLog(req)
+	logs, err := s.getServiceLog(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -566,17 +596,17 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 // @Description Get service diff compare to specfied version
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Service file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /services/diff [get]
+// @Router /services/{host}/diff [get]
 func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -605,14 +635,13 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 	}
 
 	req := model.GitFileDiff{
-		HostID:     uint(hostID),
 		Type:       scriptType,
 		Category:   category,
 		Name:       name,
 		CommitHash: commitHash,
 	}
 
-	diff, err := s.getServiceDiff(req)
+	diff, err := s.getServiceDiff(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -626,15 +655,22 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 // @Description Execute service actions
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Service action details"
 // @Success 200
-// @Router /services/action [post]
+// @Router /services/{host}/action [post]
 func (s *ServiceMan) ServiceAction(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.ServiceAction
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.serviceAction(req)
+	err = s.serviceAction(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

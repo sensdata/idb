@@ -132,8 +132,7 @@ func (c *CmdHelper) ReadFile(hostId uint, path string) (*model.FileInfo, error) 
 	var fileInfo model.FileInfo
 
 	req := model.FileContentReq{
-		HostID: hostId,
-		Path:   path,
+		Path: path,
 	}
 
 	var response model.Response
@@ -141,7 +140,7 @@ func (c *CmdHelper) ReadFile(hostId uint, path string) (*model.FileInfo, error) 
 	resp, err := c.RestyClient.R().
 		SetBody(req).
 		SetResult(&response).
-		Get("/idb/files/content")
+		Get(fmt.Sprintf("/idb/files/%d/content", hostId))
 
 	if err != nil {
 		fmt.Printf("failed to send request: %v", err)
@@ -171,7 +170,6 @@ func (c *CmdHelper) ReadFile(hostId uint, path string) (*model.FileInfo, error) 
 func (c *CmdHelper) WriteFile(hostId uint, path string, content string) error {
 
 	req := model.FileEdit{
-		HostID:  hostId,
 		Source:  path,
 		Content: content,
 	}
@@ -181,7 +179,7 @@ func (c *CmdHelper) WriteFile(hostId uint, path string, content string) error {
 	resp, err := c.RestyClient.R().
 		SetBody(req).
 		SetResult(&response).
-		Put("/idb/files/content/save")
+		Put(fmt.Sprintf("/idb/files/%d/content/save", hostId))
 
 	if err != nil {
 		fmt.Printf("failed to send request: %v", err)

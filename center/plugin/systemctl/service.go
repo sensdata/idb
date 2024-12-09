@@ -84,7 +84,7 @@ func (s *SystemCtl) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/boot", Handler: s.ServiceBoot},
+			{Method: "GET", Path: "/:host/boot", Handler: s.ServiceBoot},
 		},
 	)
 
@@ -134,15 +134,22 @@ func (s *SystemCtl) getMenus() ([]plugin.MenuItem, error) {
 // @Tags Sysctl
 // @Summary run systemctl start/stop/restart service commands
 // @Description 运行systemctl的服务启动相关命令
+// @Param host path uint true "Host ID"
 // @Success 200
-// @Router /sysctl/boot [post]
+// @Router /sysctl/{host}/boot [post]
 func (s *SystemCtl) ServiceBoot(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.ServiceBootReq
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	err := s.serviceBoot(req)
+	err = s.serviceBoot(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -150,8 +157,8 @@ func (s *SystemCtl) ServiceBoot(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-func (s *SystemCtl) serviceBoot(req model.ServiceBootReq) error {
-	_, err := s.cmdHelper.RunSystemCtl(req.HostID, req.ServiceName)
+func (s *SystemCtl) serviceBoot(hostID uint64, req model.ServiceBootReq) error {
+	_, err := s.cmdHelper.RunSystemCtl(uint(hostID), req.ServiceName, req.Command)
 	if err != nil {
 		LOG.Info("service boot err %v", err)
 		return err

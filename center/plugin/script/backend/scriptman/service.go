@@ -92,16 +92,16 @@ func (s *ScriptMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetScriptList},
-			{Method: "GET", Path: "/detail", Handler: s.GetScriptDetail},
-			{Method: "POST", Path: "", Handler: s.Create},
-			{Method: "PUT", Path: "", Handler: s.Update},
-			{Method: "DELETE", Path: "", Handler: s.Delete},
-			{Method: "PUT", Path: "/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/log", Handler: s.GetScriptLog},
-			{Method: "GET", Path: "/diff", Handler: s.GetScriptDiff},
-			{Method: "POST", Path: "/run", Handler: s.Execute},
-			{Method: "GET", Path: "/run/log", Handler: s.GetScriptRunLog},
+			{Method: "GET", Path: "/:host", Handler: s.GetScriptList},
+			{Method: "GET", Path: "/:host/detail", Handler: s.GetScriptDetail},
+			{Method: "POST", Path: "/:host", Handler: s.Create},
+			{Method: "PUT", Path: "/:host", Handler: s.Update},
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/log", Handler: s.GetScriptLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
+			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
+			{Method: "GET", Path: "/:host/run/log", Handler: s.GetScriptRunLog},
 		},
 	)
 
@@ -157,17 +157,17 @@ func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
 // @Description Get list of scripts in a directory
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /scripts [get]
+// @Router /scripts/{host} [get]
 func (s *ScriptMan) GetScriptList(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -196,14 +196,13 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 	}
 
 	req := model.QueryGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Page:     int(page),
 		PageSize: int(pageSize),
 	}
 
-	scripts, err := s.getScriptList(req)
+	scripts, err := s.getScriptList(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -217,16 +216,16 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 // @Description Get detail of a script file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Success 200 {object} model.GitFile
-// @Router /scripts/detail [get]
+// @Router /scripts/{host}/detail [get]
 func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -249,13 +248,12 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 	}
 
 	req := model.GetGitFileDetail{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	detail, err := s.getScriptDetail(req)
+	detail, err := s.getScriptDetail(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -269,15 +267,22 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 // @Description Create a new script file or category
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Script file creation details"
 // @Success 200
 // @Router /scripts [post]
 func (s *ScriptMan) Create(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.CreateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.create(req)
+	err = s.create(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -290,15 +295,22 @@ func (s *ScriptMan) Create(c *gin.Context) {
 // @Description Update the content of a script file
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Script file edit details"
 // @Success 200
 // @Router /scripts [put]
 func (s *ScriptMan) Update(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.update(req)
+	err = s.update(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -311,16 +323,16 @@ func (s *ScriptMan) Update(c *gin.Context) {
 // @Description Delete  a script file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
 // @Router /scripts [delete]
 func (s *ScriptMan) Delete(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -343,13 +355,12 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 	}
 
 	req := model.DeleteGitFile{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
 	}
 
-	err = s.delete(req)
+	err = s.delete(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -363,15 +374,22 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 // @Description Restore script file to specified version
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.RestoreGitFile true "Script file restore details"
 // @Success 200
-// @Router /scripts/restore [put]
+// @Router /scripts/{host}/restore [put]
 func (s *ScriptMan) Restore(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.RestoreGitFile
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err := s.restore(req)
+	err = s.restore(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -384,18 +402,18 @@ func (s *ScriptMan) Restore(c *gin.Context) {
 // @Description Get histories of a script file
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /scripts/log [get]
+// @Router /scripts/{host}/log [get]
 func (s *ScriptMan) GetScriptLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -430,7 +448,6 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 	}
 
 	req := model.GitFileLog{
-		HostID:   uint(hostID),
 		Type:     scriptType,
 		Category: category,
 		Name:     name,
@@ -438,7 +455,7 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 		PageSize: int(pageSize),
 	}
 
-	logs, err := s.getScriptLog(req)
+	logs, err := s.getScriptLog(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -452,17 +469,17 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 // @Description Get script diff compare to specfied version
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /scripts/diff [get]
+// @Router /scripts/{host}/diff [get]
 func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
@@ -491,14 +508,13 @@ func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 	}
 
 	req := model.GitFileDiff{
-		HostID:     uint(hostID),
 		Type:       scriptType,
 		Category:   category,
 		Name:       name,
 		CommitHash: commitHash,
 	}
 
-	diff, err := s.getScriptDiff(req)
+	diff, err := s.getScriptDiff(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -512,15 +528,22 @@ func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 // @Description Execute script
 // @Accept json
 // @Produce json
+// @Param host path uint true "Host ID"
 // @Param request body model.ExecuteScript true "Script file creation details"
 // @Success 200 {object} model.ScriptResult
-// @Router /scripts/run [post]
+// @Router /scripts/{host}/run [post]
 func (s *ScriptMan) Execute(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.ExecuteScript
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	result, err := s.execute(req)
+	result, err := s.execute(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -533,13 +556,13 @@ func (s *ScriptMan) Execute(c *gin.Context) {
 // @Description Get content of run log
 // @Accept json
 // @Produce json
-// @Param host_id query uint true "Host ID"
+// @Param host path uint true "Host ID"
 // @Success 200 {object} model.GitFile
-// @Router /scripts/run/log [get]
+// @Router /scripts/{host}/run/log [get]
 func (s *ScriptMan) GetScriptRunLog(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Query("host_id"), 10, 32)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host_id", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 

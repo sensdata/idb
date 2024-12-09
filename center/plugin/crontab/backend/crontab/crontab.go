@@ -145,14 +145,14 @@ func (s *CronTab) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
-func (s *CronTab) createFile(op model.FileCreate) error {
+func (s *CronTab) createFile(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Create,
 			Data:   data,
@@ -172,14 +172,14 @@ func (s *CronTab) createFile(op model.FileCreate) error {
 	return nil
 }
 
-func (s *CronTab) deleteFile(op model.FileDelete) error {
+func (s *CronTab) deleteFile(hostID uint64, op model.FileDelete) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Delete,
 			Data:   data,
@@ -199,7 +199,7 @@ func (s *CronTab) deleteFile(op model.FileDelete) error {
 	return nil
 }
 
-func (s *CronTab) getConfList(req model.QueryGitFile) (*model.PageResult, error) {
+func (s *CronTab) getConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -210,7 +210,7 @@ func (s *CronTab) getConfList(req model.QueryGitFile) (*model.PageResult, error)
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".crontab;.linked", //筛选.crontab.linked
@@ -257,7 +257,7 @@ func (s *CronTab) getConfList(req model.QueryGitFile) (*model.PageResult, error)
 	return &pageResult, nil
 }
 
-func (s *CronTab) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error) {
+func (s *CronTab) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateForm, nil
@@ -278,7 +278,7 @@ func (s *CronTab) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error
 		relativePath = req.Name + ".crontab"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -330,7 +330,7 @@ func (s *CronTab) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error
 	return &serviceForm, nil
 }
 
-func (s *CronTab) createForm(req model.CreateServiceForm) error {
+func (s *CronTab) createForm(hostID uint64, req model.CreateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -395,7 +395,7 @@ func (s *CronTab) createForm(req model.CreateServiceForm) error {
 		relativePath = req.Name + ".crontab"
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -434,7 +434,7 @@ func (s *CronTab) createForm(req model.CreateServiceForm) error {
 	return nil
 }
 
-func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
+func (s *CronTab) updateForm(hostID uint64, req model.UpdateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -493,7 +493,7 @@ func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
 		relativePath = req.Name + ".crontab"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -544,7 +544,7 @@ func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -575,7 +575,7 @@ func (s *CronTab) updateForm(req model.UpdateServiceForm) error {
 	return nil
 }
 
-func (s *CronTab) create(req model.CreateGitFile, extension string) error {
+func (s *CronTab) create(hostID uint64, req model.CreateGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -590,7 +590,7 @@ func (s *CronTab) create(req model.CreateGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -629,7 +629,7 @@ func (s *CronTab) create(req model.CreateGitFile, extension string) error {
 	return nil
 }
 
-func (s *CronTab) getContent(req model.GetGitFileDetail) (*model.GitFile, error) {
+func (s *CronTab) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -644,7 +644,7 @@ func (s *CronTab) getContent(req model.GetGitFileDetail) (*model.GitFile, error)
 		relativePath = req.Name + ".crontab"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -689,7 +689,7 @@ func (s *CronTab) getContent(req model.GetGitFileDetail) (*model.GitFile, error)
 	return &gitFile, nil
 }
 
-func (s *CronTab) update(req model.UpdateGitFile) error {
+func (s *CronTab) update(hostID uint64, req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -704,7 +704,7 @@ func (s *CronTab) update(req model.UpdateGitFile) error {
 		relativePath = req.Name + ".crontab"
 	}
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -743,7 +743,7 @@ func (s *CronTab) update(req model.UpdateGitFile) error {
 	return nil
 }
 
-func (s *CronTab) delete(req model.DeleteGitFile, extension string) error {
+func (s *CronTab) delete(hostID uint64, req model.DeleteGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -758,7 +758,7 @@ func (s *CronTab) delete(req model.DeleteGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitDelete := model.GitDelete{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -796,7 +796,7 @@ func (s *CronTab) delete(req model.DeleteGitFile, extension string) error {
 	return nil
 }
 
-func (s *CronTab) restore(req model.RestoreGitFile) error {
+func (s *CronTab) restore(hostID uint64, req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -811,7 +811,7 @@ func (s *CronTab) restore(req model.RestoreGitFile) error {
 		relativePath = req.Name + ".crontab"
 	}
 	gitRestore := model.GitRestore{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -850,7 +850,7 @@ func (s *CronTab) restore(req model.RestoreGitFile) error {
 	return nil
 }
 
-func (s *CronTab) getConfLog(req model.GitFileLog) (*model.PageResult, error) {
+func (s *CronTab) getConfLog(hostID uint64, req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -867,7 +867,7 @@ func (s *CronTab) getConfLog(req model.GitFileLog) (*model.PageResult, error) {
 		relativePath = req.Name + ".crontab"
 	}
 	gitLog := model.GitLog{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -913,7 +913,7 @@ func (s *CronTab) getConfLog(req model.GitFileLog) (*model.PageResult, error) {
 	return &pageResult, nil
 }
 
-func (s *CronTab) getConfDiff(req model.GitFileDiff) (string, error) {
+func (s *CronTab) getConfDiff(hostID uint64, req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -928,7 +928,7 @@ func (s *CronTab) getConfDiff(req model.GitFileDiff) (string, error) {
 		relativePath = req.Name + ".crontab"
 	}
 	gitDiff := model.GitDiff{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -967,7 +967,7 @@ func (s *CronTab) getConfDiff(req model.GitFileDiff) (string, error) {
 	return actionResponse.Data.Action.Data, nil
 }
 
-func (s *CronTab) confAction(req model.ServiceAction) error {
+func (s *CronTab) confAction(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
 	switch req.Type {
@@ -984,13 +984,13 @@ func (s *CronTab) confAction(req model.ServiceAction) error {
 	}
 
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(req.HostID, repoPath)
+	err := s.checkRepo(gitGetFile.HostID, repoPath)
 	if err != nil {
 		return err
 	}
@@ -1039,11 +1039,10 @@ func (s *CronTab) confAction(req model.ServiceAction) error {
 	case "activate":
 		// 创建文件
 		createFile := model.FileCreate{
-			HostID:  req.HostID,
 			Source:  confLinkPath,
 			Content: gitFile.Content,
 		}
-		err := s.createFile(createFile)
+		err := s.createFile(hostID, createFile)
 		if err != nil {
 			LOG.Error("Failed to create conf file")
 			return err
@@ -1051,13 +1050,12 @@ func (s *CronTab) confAction(req model.ServiceAction) error {
 
 		// 添加.linked标记文件到仓库
 		createGitFile := model.CreateGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(createGitFile, ".linked")
+		err = s.create(hostID, createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1066,10 +1064,9 @@ func (s *CronTab) confAction(req model.ServiceAction) error {
 	case "deactivate":
 		// 删除文件
 		deleteFile := model.FileDelete{
-			HostID: req.HostID,
-			Path:   confLinkPath,
+			Path: confLinkPath,
 		}
-		err := s.deleteFile(deleteFile)
+		err := s.deleteFile(hostID, deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete conf file")
 			return err
@@ -1077,12 +1074,11 @@ func (s *CronTab) confAction(req model.ServiceAction) error {
 
 		// 从仓库中删除.linked标记文件
 		deleteGitFile := model.DeleteGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(deleteGitFile, ".linked")
+		err = s.delete(hostID, deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err

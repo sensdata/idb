@@ -178,7 +178,7 @@ func (s *ServiceMan) checkRepo(hostID uint, repoPath string) error {
 	}
 
 	actionRequest := model.HostAction{
-		HostID: req.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Git_Init,
 			Data:   data,
@@ -198,14 +198,14 @@ func (s *ServiceMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
-func (s *ServiceMan) createFile(op model.FileCreate) error {
+func (s *ServiceMan) createFile(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Create,
 			Data:   data,
@@ -225,14 +225,14 @@ func (s *ServiceMan) createFile(op model.FileCreate) error {
 	return nil
 }
 
-func (s *ServiceMan) deleteFile(op model.FileDelete) error {
+func (s *ServiceMan) deleteFile(hostID uint64, op model.FileDelete) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: op.HostID,
+		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.File_Delete,
 			Data:   data,
@@ -252,7 +252,7 @@ func (s *ServiceMan) deleteFile(op model.FileDelete) error {
 	return nil
 }
 
-func (s *ServiceMan) getServiceList(req model.QueryGitFile) (*model.PageResult, error) {
+func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -263,7 +263,7 @@ func (s *ServiceMan) getServiceList(req model.QueryGitFile) (*model.PageResult, 
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 	gitQuery := model.GitQuery{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".service;.linked", //筛选.service和.linked
@@ -310,7 +310,7 @@ func (s *ServiceMan) getServiceList(req model.QueryGitFile) (*model.PageResult, 
 	return &pageResult, nil
 }
 
-func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, error) {
+func (s *ServiceMan) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateServiceForm, nil
@@ -331,7 +331,7 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 		relativePath = req.Name + ".service"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -383,7 +383,7 @@ func (s *ServiceMan) getForm(req model.GetGitFileDetail) (*model.ServiceForm, er
 	return &serviceForm, nil
 }
 
-func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
+func (s *ServiceMan) createForm(hostID uint64, req model.CreateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -446,7 +446,7 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 		relativePath = req.Name + ".service"
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -485,7 +485,7 @@ func (s *ServiceMan) createForm(req model.CreateServiceForm) error {
 	return nil
 }
 
-func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
+func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) error {
 	// 判断提交的form中，有没有不合法的字段
 	validKeys := make(map[string]model.FormField)
 	for _, field := range s.form.Fields {
@@ -540,7 +540,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 		relativePath = req.Name + ".service"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -593,7 +593,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -624,7 +624,7 @@ func (s *ServiceMan) updateForm(req model.UpdateServiceForm) error {
 	return nil
 }
 
-func (s *ServiceMan) create(req model.CreateGitFile, extension string) error {
+func (s *ServiceMan) create(hostID uint64, req model.CreateGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -639,7 +639,7 @@ func (s *ServiceMan) create(req model.CreateGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitCreate := model.GitCreate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -678,7 +678,7 @@ func (s *ServiceMan) create(req model.CreateGitFile, extension string) error {
 	return nil
 }
 
-func (s *ServiceMan) getContent(req model.GetGitFileDetail) (*model.GitFile, error) {
+func (s *ServiceMan) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -693,7 +693,7 @@ func (s *ServiceMan) getContent(req model.GetGitFileDetail) (*model.GitFile, err
 		relativePath = req.Name + ".service"
 	}
 	gitGetFile := model.GitGetFile{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -738,7 +738,7 @@ func (s *ServiceMan) getContent(req model.GetGitFileDetail) (*model.GitFile, err
 	return &gitFile, nil
 }
 
-func (s *ServiceMan) update(req model.UpdateGitFile) error {
+func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -753,7 +753,7 @@ func (s *ServiceMan) update(req model.UpdateGitFile) error {
 		relativePath = req.Name + ".service"
 	}
 	gitUpdate := model.GitUpdate{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
@@ -792,7 +792,7 @@ func (s *ServiceMan) update(req model.UpdateGitFile) error {
 	return nil
 }
 
-func (s *ServiceMan) delete(req model.DeleteGitFile, extension string) error {
+func (s *ServiceMan) delete(hostID uint64, req model.DeleteGitFile, extension string) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -807,7 +807,7 @@ func (s *ServiceMan) delete(req model.DeleteGitFile, extension string) error {
 		relativePath = req.Name + extension
 	}
 	gitDelete := model.GitDelete{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
@@ -845,7 +845,7 @@ func (s *ServiceMan) delete(req model.DeleteGitFile, extension string) error {
 	return nil
 }
 
-func (s *ServiceMan) restore(req model.RestoreGitFile) error {
+func (s *ServiceMan) restore(hostID uint64, req model.RestoreGitFile) error {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -860,7 +860,7 @@ func (s *ServiceMan) restore(req model.RestoreGitFile) error {
 		relativePath = req.Name + ".service"
 	}
 	gitRestore := model.GitRestore{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -899,7 +899,7 @@ func (s *ServiceMan) restore(req model.RestoreGitFile) error {
 	return nil
 }
 
-func (s *ServiceMan) getServiceLog(req model.GitFileLog) (*model.PageResult, error) {
+func (s *ServiceMan) getServiceLog(hostID uint64, req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
 	var repoPath string
@@ -916,7 +916,7 @@ func (s *ServiceMan) getServiceLog(req model.GitFileLog) (*model.PageResult, err
 		relativePath = req.Name + ".service"
 	}
 	gitLog := model.GitLog{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -962,7 +962,7 @@ func (s *ServiceMan) getServiceLog(req model.GitFileLog) (*model.PageResult, err
 	return &pageResult, nil
 }
 
-func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
+func (s *ServiceMan) getServiceDiff(hostID uint64, req model.GitFileDiff) (string, error) {
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -977,7 +977,7 @@ func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
 		relativePath = req.Name + ".service"
 	}
 	gitDiff := model.GitDiff{
-		HostID:       req.HostID,
+		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
@@ -1016,7 +1016,7 @@ func (s *ServiceMan) getServiceDiff(req model.GitFileDiff) (string, error) {
 	return actionResponse.Data.Action.Data, nil
 }
 
-func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
+func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
 	switch req.Type {
@@ -1033,7 +1033,7 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 	}
 
 	// 检查repo
-	err := s.checkRepo(req.HostID, repoPath)
+	err := s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
@@ -1049,13 +1049,12 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 	case "activate":
 		// 创建服务链接 /etc/systemd/system/source -> LinkPath
 		createFile := model.FileCreate{
-			HostID:    req.HostID,
 			Source:    serviceLinkPath,
 			IsLink:    true,
 			IsSymlink: true,
 			LinkPath:  servicePath,
 		}
-		err := s.createFile(createFile)
+		err := s.createFile(hostID, createFile)
 		if err != nil {
 			LOG.Error("Failed to create symlink")
 			return err
@@ -1063,13 +1062,12 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 
 		// 添加.linked标记文件到仓库
 		createGitFile := model.CreateGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(createGitFile, ".linked")
+		err = s.create(hostID, createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1077,7 +1075,7 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(req.HostID, command)
+		_, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err
@@ -1086,10 +1084,9 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 	case "deactivate":
 		// 删除务链接
 		deleteFile := model.FileDelete{
-			HostID: req.HostID,
-			Path:   serviceLinkPath,
+			Path: serviceLinkPath,
 		}
-		err := s.deleteFile(deleteFile)
+		err := s.deleteFile(hostID, deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete symlink")
 			return err
@@ -1097,12 +1094,11 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 
 		// 从仓库中删除.linked标记文件
 		deleteGitFile := model.DeleteGitFile{
-			HostID:   req.HostID,
 			Type:     req.Type,
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(deleteGitFile, ".linked")
+		err = s.delete(hostID, deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err
@@ -1110,7 +1106,7 @@ func (s *ServiceMan) serviceAction(req model.ServiceAction) error {
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(req.HostID, command)
+		_, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err

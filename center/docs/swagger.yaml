@@ -73,6 +73,10 @@ definitions:
     properties:
       compose_content:
         type: string
+      conf_content:
+        type: string
+      conf_path:
+        type: string
       env_content:
         type: string
       name:
@@ -84,22 +88,6 @@ definitions:
     properties:
       log:
         type: string
-    type: object
-  model.ComposeOperation:
-    properties:
-      name:
-        type: string
-      operation:
-        enum:
-        - start
-        - stop
-        - down
-        type: string
-      work_dir:
-        type: string
-    required:
-    - name
-    - operation
     type: object
   model.ComposeTestResult:
     properties:
@@ -228,20 +216,26 @@ definitions:
     - image
     - name
     type: object
+  model.CreateCompose:
+    properties:
+      compose_content:
+        type: string
+      env_content:
+        type: string
+      name:
+        type: string
+    type: object
   model.CreateGitFile:
     properties:
       category:
         type: string
       content:
         type: string
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
-    - host_id
     - name
     - type
     type: object
@@ -288,15 +282,12 @@ definitions:
         items:
           $ref: '#/definitions/model.KeyValue'
         type: array
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
     - form
-    - host_id
     - name
     - type
     type: object
@@ -418,8 +409,6 @@ definitions:
     type: object
   model.FavoriteCreate:
     properties:
-      host_id:
-        type: integer
       source:
         type: string
     required:
@@ -433,8 +422,6 @@ definitions:
         items:
           type: string
         type: array
-      host_id:
-        type: integer
       name:
         type: string
       replace:
@@ -451,8 +438,6 @@ definitions:
     properties:
       content:
         type: string
-      host_id:
-        type: integer
       is_dir:
         type: boolean
       is_link:
@@ -468,15 +453,12 @@ definitions:
       sub:
         type: boolean
     required:
-    - host_id
     - source
     type: object
   model.FileDeCompress:
     properties:
       dst:
         type: string
-      host_id:
-        type: integer
       path:
         type: string
       type:
@@ -490,13 +472,10 @@ definitions:
     properties:
       content:
         type: string
-      host_id:
-        type: integer
       source:
         type: string
     required:
     - content
-    - host_id
     - source
     type: object
   model.FileInfo:
@@ -552,8 +531,6 @@ definitions:
         type: boolean
       dest:
         type: string
-      host_id:
-        type: integer
       name:
         type: string
       sources:
@@ -564,19 +541,15 @@ definitions:
         type: string
     required:
     - dest
-    - host_id
     - sources
     type: object
   model.FileRename:
     properties:
-      host_id:
-        type: integer
       name:
         type: string
       source:
         type: string
     required:
-    - host_id
     - name
     - source
     type: object
@@ -584,8 +557,6 @@ definitions:
     properties:
       group:
         type: string
-      host_id:
-        type: integer
       mode:
         type: integer
       sources:
@@ -598,7 +569,6 @@ definitions:
         type: string
     required:
     - group
-    - host_id
     - mode
     - sources
     - user
@@ -607,8 +577,6 @@ definitions:
     properties:
       group:
         type: string
-      host_id:
-        type: integer
       source:
         type: string
       sub:
@@ -617,7 +585,6 @@ definitions:
         type: string
     required:
     - group
-    - host_id
     - source
     - user
     type: object
@@ -645,8 +612,6 @@ definitions:
         - ecdsa
         - dsa
         type: string
-      host_id:
-        type: integer
       key_bits:
         enum:
         - 1024
@@ -979,6 +944,20 @@ definitions:
         - $ref: '#/definitions/model.TrafficInfo'
         description: 流量信息
     type: object
+  model.OperateCompose:
+    properties:
+      name:
+        type: string
+      operation:
+        enum:
+        - start
+        - stop
+        - down
+        type: string
+    required:
+    - name
+    - operation
+    type: object
   model.Overview:
     properties:
       boot_time:
@@ -1098,15 +1077,12 @@ definitions:
         type: string
       commit_hash:
         type: string
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
     - commit_hash
-    - host_id
     - name
     - type
     type: object
@@ -1181,8 +1157,6 @@ definitions:
     type: object
   model.SSHUpdate:
     properties:
-      host_id:
-        type: integer
       values:
         items:
           $ref: '#/definitions/model.KeyValueForUpdate'
@@ -1208,15 +1182,12 @@ definitions:
         type: string
       category:
         type: string
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
     - action
-    - host_id
     - name
     - type
     type: object
@@ -1361,15 +1332,12 @@ definitions:
         type: string
       content:
         type: string
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
     - content
-    - host_id
     - name
     - type
     type: object
@@ -1435,15 +1403,12 @@ definitions:
         items:
           $ref: '#/definitions/model.KeyValue'
         type: array
-      host_id:
-        type: integer
       name:
         type: string
       type:
         type: string
     required:
     - form
-    - host_id
     - name
     - type
     type: object
@@ -1484,7 +1449,11 @@ definitions:
     properties:
       maxLength:
         type: integer
+      maxValue:
+        type: integer
       minLength:
+        type: integer
+      minValue:
         type: integer
       pattern:
         type: string
@@ -1590,15 +1559,15 @@ paths:
       summary: User login
       tags:
       - Auth
-  /crontab:
+  /crontab/{host}:
     delete:
       consumes:
       - application/json
       description: Delete a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1629,8 +1598,8 @@ paths:
       description: Get custom crontab conf file list in work dir
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1662,12 +1631,17 @@ paths:
       summary: List crontab conf files
       tags:
       - Crontab
-  /crontab/action:
+  /crontab/{host}/action:
     post:
       consumes:
       - application/json
       description: Execute conf actions
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf action details
         in: body
         name: request
@@ -1682,15 +1656,15 @@ paths:
       summary: Execute conf actions
       tags:
       - Crontab
-  /crontab/diff:
+  /crontab/{host}/diff:
     get:
       consumes:
       - application/json
       description: Get conf diff compare to specfied version
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1722,15 +1696,15 @@ paths:
       summary: Get conf diff
       tags:
       - Crontab
-  /crontab/form:
+  /crontab/{host}/form:
     get:
       consumes:
       - application/json
       description: Get details of a conf file in form mode.
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1762,6 +1736,11 @@ paths:
       - application/json
       description: Create a new conf file in form mode.
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Form details
         in: body
         name: request
@@ -1782,6 +1761,11 @@ paths:
       description: Save the details of a conf file in form mode. This will fully overwrite
         the original file content with the submitted data.
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file edit details
         in: body
         name: request
@@ -1796,30 +1780,15 @@ paths:
       summary: Save conf file in form mode
       tags:
       - Crontab
-  /crontab/info:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin information
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/plugin.PluginInfo'
-      summary: Get plugin info
-      tags:
-      - Crontab
-  /crontab/log:
+  /crontab/{host}/log:
     get:
       consumes:
       - application/json
       description: Get histories of a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1856,32 +1825,15 @@ paths:
       summary: Get conf histories
       tags:
       - Crontab
-  /crontab/menu:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin menu items
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/plugin.MenuItem'
-            type: array
-      summary: Get plugin menu
-      tags:
-      - Crontab
-  /crontab/raw:
+  /crontab/{host}/raw:
     get:
       consumes:
       - application/json
       description: Get content of a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -1913,6 +1865,11 @@ paths:
       - application/json
       description: Create a new conf file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file creation details
         in: body
         name: request
@@ -1932,6 +1889,11 @@ paths:
       - application/json
       description: Save the content of a conf file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file edit details
         in: body
         name: request
@@ -1946,12 +1908,17 @@ paths:
       summary: Save conf file content
       tags:
       - Crontab
-  /crontab/restore:
+  /crontab/{host}/restore:
     put:
       consumes:
       - application/json
       description: Restore conf file to specified version
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file restore details
         in: body
         name: request
@@ -1966,7 +1933,39 @@ paths:
       summary: Restore conf file
       tags:
       - Crontab
-  /docker/:host/compose:
+  /crontab/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Crontab
+  /crontab/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Crontab
+  /docker/{host}/compose:
     get:
       consumes:
       - application/json
@@ -2016,7 +2015,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ComposeCreate'
+          $ref: '#/definitions/model.CreateCompose'
       produces:
       - application/json
       responses:
@@ -2042,7 +2041,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ComposeCreate'
+          $ref: '#/definitions/model.CreateCompose'
       produces:
       - application/json
       responses:
@@ -2051,7 +2050,7 @@ paths:
       summary: Update compose
       tags:
       - Docker
-  /docker/:host/compose/operation:
+  /docker/{host}/compose/operation:
     post:
       consumes:
       - application/json
@@ -2067,7 +2066,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ComposeOperation'
+          $ref: '#/definitions/model.OperateCompose'
       produces:
       - application/json
       responses:
@@ -2076,7 +2075,7 @@ paths:
       summary: Operate compose
       tags:
       - Docker
-  /docker/:host/compose/test:
+  /docker/{host}/compose/test:
     post:
       consumes:
       - application/json
@@ -2092,7 +2091,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ComposeCreate'
+          $ref: '#/definitions/model.CreateCompose'
       produces:
       - application/json
       responses:
@@ -2103,7 +2102,7 @@ paths:
       summary: Test compose
       tags:
       - Docker
-  /docker/:host/conf:
+  /docker/{host}/conf:
     get:
       consumes:
       - application/json
@@ -2148,7 +2147,7 @@ paths:
       summary: Update Docker conf file
       tags:
       - Docker
-  /docker/:host/containers:
+  /docker/{host}/containers:
     get:
       consumes:
       - application/json
@@ -2241,7 +2240,7 @@ paths:
       summary: Update Container
       tags:
       - Docker
-  /docker/:host/containers/:id:
+  /docker/{host}/containers/{id}:
     get:
       consumes:
       - application/json
@@ -2267,7 +2266,7 @@ paths:
       summary: Get Container info
       tags:
       - Docker
-  /docker/:host/containers/:id/log:
+  /docker/{host}/containers/{id}/log:
     delete:
       consumes:
       - application/json
@@ -2315,7 +2314,7 @@ paths:
       summary: Get container log
       tags:
       - Docker
-  /docker/:host/containers/:id/stats:
+  /docker/{host}/containers/{id}/stats:
     get:
       consumes:
       - application/json
@@ -2341,7 +2340,7 @@ paths:
       summary: Get Container stats
       tags:
       - Docker
-  /docker/:host/containers/limit:
+  /docker/{host}/containers/limit:
     get:
       consumes:
       - application/json
@@ -2362,7 +2361,7 @@ paths:
       summary: Get container resource usage list
       tags:
       - Docker
-  /docker/:host/containers/names:
+  /docker/{host}/containers/names:
     get:
       consumes:
       - application/json
@@ -2383,7 +2382,7 @@ paths:
       summary: Query container names
       tags:
       - Docker
-  /docker/:host/containers/operatetion:
+  /docker/{host}/containers/operatetion:
     post:
       consumes:
       - application/json
@@ -2408,7 +2407,7 @@ paths:
       summary: Execute operations to container
       tags:
       - Docker
-  /docker/:host/containers/rename:
+  /docker/{host}/containers/rename:
     post:
       consumes:
       - application/json
@@ -2433,7 +2432,7 @@ paths:
       summary: Rename container
       tags:
       - Docker
-  /docker/:host/containers/upgrade:
+  /docker/{host}/containers/upgrade:
     post:
       consumes:
       - application/json
@@ -2458,7 +2457,7 @@ paths:
       summary: Upgrade container
       tags:
       - Docker
-  /docker/:host/containers/usages:
+  /docker/{host}/containers/usages:
     get:
       consumes:
       - application/json
@@ -2479,7 +2478,7 @@ paths:
       summary: Get container resource usage list
       tags:
       - Docker
-  /docker/:host/images:
+  /docker/{host}/images:
     delete:
       consumes:
       - application/json
@@ -2542,7 +2541,7 @@ paths:
       summary: Get images
       tags:
       - Docker
-  /docker/:host/images/build:
+  /docker/{host}/images/build:
     post:
       consumes:
       - application/json
@@ -2567,7 +2566,7 @@ paths:
       summary: Build image
       tags:
       - Docker
-  /docker/:host/images/export:
+  /docker/{host}/images/export:
     post:
       consumes:
       - application/json
@@ -2592,7 +2591,7 @@ paths:
       summary: Export image
       tags:
       - Docker
-  /docker/:host/images/import:
+  /docker/{host}/images/import:
     post:
       consumes:
       - application/json
@@ -2617,7 +2616,7 @@ paths:
       summary: Import image
       tags:
       - Docker
-  /docker/:host/images/names:
+  /docker/{host}/images/names:
     get:
       consumes:
       - application/json
@@ -2638,7 +2637,7 @@ paths:
       summary: Query image names
       tags:
       - Docker
-  /docker/:host/images/pull:
+  /docker/{host}/images/pull:
     post:
       consumes:
       - application/json
@@ -2663,7 +2662,7 @@ paths:
       summary: Pull image
       tags:
       - Docker
-  /docker/:host/images/push:
+  /docker/{host}/images/push:
     post:
       consumes:
       - application/json
@@ -2693,7 +2692,7 @@ paths:
       summary: Push image
       tags:
       - Docker
-  /docker/:host/images/tag:
+  /docker/{host}/images/tag:
     put:
       consumes:
       - application/json
@@ -2718,7 +2717,7 @@ paths:
       summary: Set image tag
       tags:
       - Docker
-  /docker/:host/inspect:
+  /docker/{host}/inspect:
     get:
       consumes:
       - application/json
@@ -2748,7 +2747,7 @@ paths:
       summary: Inspect
       tags:
       - Docker
-  /docker/:host/ipv6:
+  /docker/{host}/ipv6:
     put:
       consumes:
       - application/json
@@ -2773,7 +2772,7 @@ paths:
       summary: Update Docker ipv6 option
       tags:
       - Docker
-  /docker/:host/log:
+  /docker/{host}/log:
     put:
       consumes:
       - application/json
@@ -2798,7 +2797,7 @@ paths:
       summary: Update Docker log option
       tags:
       - Docker
-  /docker/:host/networks:
+  /docker/{host}/networks:
     delete:
       consumes:
       - application/json
@@ -2885,7 +2884,7 @@ paths:
       summary: Create network
       tags:
       - Docker
-  /docker/:host/networks/names:
+  /docker/{host}/networks/names:
     get:
       consumes:
       - application/json
@@ -2906,7 +2905,7 @@ paths:
       summary: Query network names
       tags:
       - Docker
-  /docker/:host/operation:
+  /docker/{host}/operation:
     post:
       consumes:
       - application/json
@@ -2931,7 +2930,7 @@ paths:
       summary: Docker operations
       tags:
       - Docker
-  /docker/:host/prune:
+  /docker/{host}/prune:
     post:
       consumes:
       - application/json
@@ -2958,7 +2957,7 @@ paths:
       summary: Prune
       tags:
       - Docker
-  /docker/:host/status:
+  /docker/{host}/status:
     get:
       consumes:
       - application/json
@@ -2979,7 +2978,7 @@ paths:
       summary: Docker status
       tags:
       - Docker
-  /docker/:host/volumes:
+  /docker/{host}/volumes:
     delete:
       consumes:
       - application/json
@@ -3066,7 +3065,7 @@ paths:
       summary: Create volume
       tags:
       - Docker
-  /docker/:host/volumes/names:
+  /docker/{host}/volumes/names:
     get:
       consumes:
       - application/json
@@ -3119,15 +3118,15 @@ paths:
       summary: Get plugin menu
       tags:
       - Docker
-  /files:
+  /files/{host}:
     delete:
       consumes:
       - application/json
       description: Delete a file or directory
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Source file path
@@ -3157,8 +3156,8 @@ paths:
       description: Get list of files in a directory
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Directory path (default is root directory)
@@ -3192,6 +3191,11 @@ paths:
       - application/json
       description: Create a new file or directory
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: File creation details
         in: body
         name: request
@@ -3206,15 +3210,15 @@ paths:
       summary: Create file or directory
       tags:
       - File
-  /files/batch:
+  /files/{host}/batch:
     delete:
       consumes:
       - application/json
       description: Delete multiple files or directories
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Comma-separated list of file paths to delete
@@ -3234,12 +3238,17 @@ paths:
       summary: Batch delete files
       tags:
       - File
-  /files/batch/role:
+  /files/{host}/batch/role:
     put:
       consumes:
       - application/json
       description: Batch modify file permissions and user/group
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Batch file mode and owner change request
         in: body
         name: request
@@ -3254,12 +3263,17 @@ paths:
       summary: Batch change file mode and owner
       tags:
       - File
-  /files/compress:
+  /files/{host}/compress:
     post:
       consumes:
       - application/json
       description: Compress multiple files or directories into an archive
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Compression details
         in: body
         name: request
@@ -3274,15 +3288,15 @@ paths:
       summary: Compress files
       tags:
       - File
-  /files/content:
+  /files/{host}/content:
     get:
       consumes:
       - application/json
       description: Get the content of a file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: File path
@@ -3305,6 +3319,11 @@ paths:
       - application/json
       description: Update the content of a file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: File edit details
         in: body
         name: request
@@ -3319,12 +3338,17 @@ paths:
       summary: Update file content
       tags:
       - File
-  /files/decompress:
+  /files/{host}/decompress:
     post:
       consumes:
       - application/json
       description: Decompress file into an archive
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: request
         in: body
         name: request
@@ -3337,13 +3361,13 @@ paths:
       summary: Decompress file
       tags:
       - File
-  /files/download:
+  /files/{host}/download:
     get:
       description: Download a file from a specific host and path
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Source file path
@@ -3361,15 +3385,15 @@ paths:
       summary: Download file
       tags:
       - File
-  /files/favorites:
+  /files/{host}/favorites:
     get:
       consumes:
       - application/json
       description: Get favorite files
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Page
@@ -3397,6 +3421,11 @@ paths:
       - application/json
       description: Collect a favorite file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Favorite create request
         in: body
         name: request
@@ -3413,15 +3442,15 @@ paths:
       summary: Collect a favorite file
       tags:
       - File
-  /files/favorites/{id}:
+  /files/{host}/favorites/{id}:
     delete:
       consumes:
       - application/json
       description: Delete a favorite
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: Favorite ID
@@ -3435,6 +3464,198 @@ paths:
         "200":
           description: OK
       summary: Delete a favorite
+      tags:
+      - File
+  /files/{host}/mode:
+    put:
+      consumes:
+      - application/json
+      description: Change file mode
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File mode update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Change file mode
+      tags:
+      - File
+  /files/{host}/move:
+    put:
+      consumes:
+      - application/json
+      description: Move one or more files to a new location
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File move details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileMove'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Move files
+      tags:
+      - File
+  /files/{host}/owner:
+    put:
+      consumes:
+      - application/json
+      description: Change file user or/and group
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File owner update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileRoleUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Change file owner
+      tags:
+      - File
+  /files/{host}/rename:
+    put:
+      consumes:
+      - application/json
+      description: Rename a file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File rename details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileRename'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Change file name
+      tags:
+      - File
+  /files/{host}/size:
+    get:
+      consumes:
+      - application/json
+      description: Get the size of a directory
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Source file path
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DirSizeRes'
+      summary: Get directory size
+      tags:
+      - File
+  /files/{host}/trees:
+    get:
+      consumes:
+      - application/json
+      description: Get file tree structure
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Directory path (default is root directory)
+        in: query
+        name: path
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.FileTree'
+            type: array
+      summary: Get file tree
+      tags:
+      - File
+  /files/{host}/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file to a specific host and path
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Destination directory path
+        in: formData
+        name: dest
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Upload file
       tags:
       - File
   /files/info:
@@ -3467,178 +3688,6 @@ paths:
               $ref: '#/definitions/plugin.MenuItem'
             type: array
       summary: Get plugin menu
-      tags:
-      - File
-  /files/mode:
-    put:
-      consumes:
-      - application/json
-      description: Change file mode
-      parameters:
-      - description: File mode update details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileCreate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Change file mode
-      tags:
-      - File
-  /files/move:
-    put:
-      consumes:
-      - application/json
-      description: Move one or more files to a new location
-      parameters:
-      - description: File move details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileMove'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Move files
-      tags:
-      - File
-  /files/owner:
-    put:
-      consumes:
-      - application/json
-      description: Change file user or/and group
-      parameters:
-      - description: File owner update details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileRoleUpdate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Change file owner
-      tags:
-      - File
-  /files/rename:
-    put:
-      consumes:
-      - application/json
-      description: Rename a file
-      parameters:
-      - description: File rename details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.FileRename'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Change file name
-      tags:
-      - File
-  /files/size:
-    get:
-      consumes:
-      - application/json
-      description: Get the size of a directory
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      - description: Source file path
-        in: query
-        name: source
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.DirSizeRes'
-      summary: Get directory size
-      tags:
-      - File
-  /files/trees:
-    get:
-      consumes:
-      - application/json
-      description: Get file tree structure
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      - description: Directory path (default is root directory)
-        in: query
-        name: path
-        type: string
-      - description: Page
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.FileTree'
-            type: array
-      summary: Get file tree
-      tags:
-      - File
-  /files/upload:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Upload a file to a specific host and path
-      parameters:
-      - description: Host ID
-        in: formData
-        name: host_id
-        required: true
-        type: integer
-      - description: Destination directory path
-        in: formData
-        name: dest
-        required: true
-        type: string
-      - description: File to upload
-        in: formData
-        name: file
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Upload file
       tags:
       - File
   /groups:
@@ -3956,15 +4005,15 @@ paths:
       summary: get host group list
       tags:
       - Host
-  /logrotate:
+  /logrotate/{host}:
     delete:
       consumes:
       - application/json
       description: Delete a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -3995,8 +4044,8 @@ paths:
       description: Get custom logrotate conf file list in work dir
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4028,12 +4077,17 @@ paths:
       summary: List logrotate conf files
       tags:
       - Logrotate
-  /logrotate/action:
+  /logrotate/{host}/action:
     post:
       consumes:
       - application/json
       description: Execute conf actions
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf action details
         in: body
         name: request
@@ -4048,15 +4102,15 @@ paths:
       summary: Execute conf actions
       tags:
       - Logrotate
-  /logrotate/diff:
+  /logrotate/{host}/diff:
     get:
       consumes:
       - application/json
       description: Get conf diff compare to specfied version
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4088,15 +4142,15 @@ paths:
       summary: Get conf diff
       tags:
       - Logrotate
-  /logrotate/form:
+  /logrotate/{host}/form:
     get:
       consumes:
       - application/json
       description: Get details of a conf file in form mode.
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4128,6 +4182,11 @@ paths:
       - application/json
       description: Create a new conf file in form mode
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Form details
         in: body
         name: request
@@ -4147,6 +4206,11 @@ paths:
       - application/json
       description: Save the details of a conf file in form mode
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file edit details
         in: body
         name: request
@@ -4161,30 +4225,15 @@ paths:
       summary: Save conf file in form mode
       tags:
       - Logrotate
-  /logrotate/info:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin information
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/plugin.PluginInfo'
-      summary: Get plugin info
-      tags:
-      - Logrotate
-  /logrotate/log:
+  /logrotate/{host}/log:
     get:
       consumes:
       - application/json
       description: Get histories of a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4221,32 +4270,15 @@ paths:
       summary: Get conf histories
       tags:
       - Logrotate
-  /logrotate/menu:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin menu items
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/plugin.MenuItem'
-            type: array
-      summary: Get plugin menu
-      tags:
-      - Logrotate
-  /logrotate/raw:
+  /logrotate/{host}/raw:
     get:
       consumes:
       - application/json
       description: Get content of a conf file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4278,6 +4310,11 @@ paths:
       - application/json
       description: Create a new conf file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file creation details
         in: body
         name: request
@@ -4297,6 +4334,11 @@ paths:
       - application/json
       description: Save the content of a conf file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file edit details
         in: body
         name: request
@@ -4311,12 +4353,17 @@ paths:
       summary: Save conf file content
       tags:
       - Logrotate
-  /logrotate/restore:
+  /logrotate/{host}/restore:
     put:
       consumes:
       - application/json
       description: Restore conf file to specified version
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Conf file restore details
         in: body
         name: request
@@ -4331,6 +4378,38 @@ paths:
       summary: Restore conf file
       tags:
       - Logrotate
+  /logrotate/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Logrotate
+  /logrotate/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Logrotate
   /scripts:
     delete:
       consumes:
@@ -4338,8 +4417,8 @@ paths:
       description: Delete  a script file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4364,14 +4443,63 @@ paths:
       summary: Delete script file
       tags:
       - Script
+    post:
+      consumes:
+      - application/json
+      description: Create a new script file or category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Script file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create script file or category
+      tags:
+      - Script
+    put:
+      consumes:
+      - application/json
+      description: Update the content of a script file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Script file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update script file content
+      tags:
+      - Script
+  /scripts/{host}:
     get:
       consumes:
       - application/json
       description: Get list of scripts in a directory
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4403,53 +4531,15 @@ paths:
       summary: List scripts
       tags:
       - Script
-    post:
-      consumes:
-      - application/json
-      description: Create a new script file or category
-      parameters:
-      - description: Script file creation details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.CreateGitFile'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Create script file or category
-      tags:
-      - Script
-    put:
-      consumes:
-      - application/json
-      description: Update the content of a script file
-      parameters:
-      - description: Script file edit details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.UpdateGitFile'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update script file content
-      tags:
-      - Script
-  /scripts/detail:
+  /scripts/{host}/detail:
     get:
       consumes:
       - application/json
       description: Get detail of a script file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4476,15 +4566,15 @@ paths:
       summary: Get script detail
       tags:
       - Script
-  /scripts/diff:
+  /scripts/{host}/diff:
     get:
       consumes:
       - application/json
       description: Get script diff compare to specfied version
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4516,30 +4606,15 @@ paths:
       summary: Get script diff
       tags:
       - Script
-  /scripts/info:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin information
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/plugin.PluginInfo'
-      summary: Get plugin info
-      tags:
-      - Script
-  /scripts/log:
+  /scripts/{host}/log:
     get:
       consumes:
       - application/json
       description: Get histories of a script file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4576,6 +4651,94 @@ paths:
       summary: Get script histories
       tags:
       - Script
+  /scripts/{host}/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore script file to specified version
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Script file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore script file
+      tags:
+      - Script
+  /scripts/{host}/run:
+    post:
+      consumes:
+      - application/json
+      description: Execute script
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Script file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ExecuteScript'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ScriptResult'
+      summary: Execute script
+      tags:
+      - Script
+  /scripts/{host}/run/log:
+    get:
+      consumes:
+      - application/json
+      description: Get content of run log
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GitFile'
+      summary: Get run log content
+      tags:
+      - Script
+  /scripts/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Script
   /scripts/menu:
     get:
       consumes:
@@ -4593,78 +4756,15 @@ paths:
       summary: Get plugin menu
       tags:
       - Script
-  /scripts/restore:
-    put:
-      consumes:
-      - application/json
-      description: Restore script file to specified version
-      parameters:
-      - description: Script file restore details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.RestoreGitFile'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Restore script file
-      tags:
-      - Script
-  /scripts/run:
-    post:
-      consumes:
-      - application/json
-      description: Execute script
-      parameters:
-      - description: Script file creation details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ExecuteScript'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ScriptResult'
-      summary: Execute script
-      tags:
-      - Script
-  /scripts/run/log:
-    get:
-      consumes:
-      - application/json
-      description: Get content of run log
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.GitFile'
-      summary: Get run log content
-      tags:
-      - Script
-  /services:
+  /services/{host}:
     delete:
       consumes:
       - application/json
       description: Delete a service file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4695,8 +4795,8 @@ paths:
       description: Get custom service file list in work dir
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4728,12 +4828,17 @@ paths:
       summary: List services
       tags:
       - Service
-  /services/action:
+  /services/{host}/action:
     post:
       consumes:
       - application/json
       description: Execute service actions
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Service action details
         in: body
         name: request
@@ -4748,15 +4853,15 @@ paths:
       summary: Execute service actions
       tags:
       - Service
-  /services/diff:
+  /services/{host}/diff:
     get:
       consumes:
       - application/json
       description: Get service diff compare to specfied version
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4788,15 +4893,15 @@ paths:
       summary: Get service diff
       tags:
       - Service
-  /services/form:
+  /services/{host}/form:
     get:
       consumes:
       - application/json
       description: Get details of a service file in form mode.
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4828,6 +4933,11 @@ paths:
       - application/json
       description: Create a new service file in form mode
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Form details
         in: body
         name: request
@@ -4847,6 +4957,11 @@ paths:
       - application/json
       description: Save the details of a service file in form mode
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Service file edit details
         in: body
         name: request
@@ -4861,30 +4976,15 @@ paths:
       summary: Save service file in form mode
       tags:
       - Service
-  /services/info:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin information
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/plugin.PluginInfo'
-      summary: Get plugin info
-      tags:
-      - Service
-  /services/log:
+  /services/{host}/log:
     get:
       consumes:
       - application/json
       description: Get histories of a service file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4921,32 +5021,15 @@ paths:
       summary: Get service histories
       tags:
       - Service
-  /services/menu:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin menu items
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/plugin.MenuItem'
-            type: array
-      summary: Get plugin menu
-      tags:
-      - Service
-  /services/raw:
+  /services/{host}/raw:
     get:
       consumes:
       - application/json
       description: Get content of a service file
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       - description: 'Type (options: ''global'', ''local'')'
@@ -4978,6 +5061,11 @@ paths:
       - application/json
       description: CreateContent a new service file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Service file creation details
         in: body
         name: request
@@ -4997,6 +5085,11 @@ paths:
       - application/json
       description: Save the content of a service file
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Service file edit details
         in: body
         name: request
@@ -5011,12 +5104,17 @@ paths:
       summary: Save service file content
       tags:
       - Service
-  /services/restore:
+  /services/{host}/restore:
     put:
       consumes:
       - application/json
       description: Restore service file to specified version
       parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       - description: Service file restore details
         in: body
         name: request
@@ -5031,7 +5129,39 @@ paths:
       summary: Restore service file
       tags:
       - Service
-  /ssh/config/{host_id}:
+  /services/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Service
+  /services/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Service
+  /ssh/{host}/config:
     get:
       consumes:
       - application/json
@@ -5039,7 +5169,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       produces:
@@ -5059,7 +5189,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       - description: request
@@ -5076,7 +5206,7 @@ paths:
       summary: Update SSH configurations on host
       tags:
       - SSH
-  /ssh/config/content/{host_id}:
+  /ssh/{host}/config/content:
     get:
       consumes:
       - application/json
@@ -5084,7 +5214,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       produces:
@@ -5104,7 +5234,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       - description: Content
@@ -5119,22 +5249,7 @@ paths:
       summary: Update SSH configuration file content on host
       tags:
       - SSH
-  /ssh/info:
-    get:
-      consumes:
-      - application/json
-      description: Get plugin information
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/plugin.PluginInfo'
-      summary: Get plugin info
-      tags:
-      - SSH
-  /ssh/keys/{host_id}:
+  /ssh/{host}/keys:
     get:
       consumes:
       - application/json
@@ -5142,7 +5257,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       - description: Keyword
@@ -5164,7 +5279,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       - description: request
@@ -5181,7 +5296,7 @@ paths:
       summary: Generate host SSH secret
       tags:
       - SSH
-  /ssh/logs/{host_id}:
+  /ssh/{host}/logs:
     get:
       consumes:
       - application/json
@@ -5189,7 +5304,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
       - description: Page number
@@ -5221,6 +5336,46 @@ paths:
       summary: Get SSH logs on host
       tags:
       - SSH
+  /ssh/{host}/operate:
+    post:
+      consumes:
+      - application/json
+      description: modify SSH service status on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Operation, can be 'enable' or 'disable'
+        in: body
+        name: operation
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No Content
+      summary: Operate SSH
+      tags:
+      - SSH
+  /ssh/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - SSH
   /ssh/menu:
     get:
       consumes:
@@ -5238,34 +5393,119 @@ paths:
       summary: Get plugin menu
       tags:
       - SSH
-  /ssh/operate/{host_id}:
+  /store/{host}/apps/install:
     post:
-      consumes:
-      - application/json
-      description: modify SSH service status on host
+      description: Install app
       parameters:
       - description: Host ID
         in: path
-        name: host_id
+        name: host
         required: true
         type: integer
-      - description: Operation, can be 'enable' or 'disable'
+      - description: request
         in: body
-        name: operation
+        name: request
         required: true
         schema:
-          type: string
-      produces:
-      - application/json
+          $ref: '#/definitions/model.ComposeCreate'
       responses:
         "200":
-          description: No Content
-      summary: Operate SSH
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeCreateResult'
+      summary: Install app
       tags:
-      - SSH
-  /sysctl/boot:
+      - App
+  /store/{host}/apps/installed:
+    get:
+      description: Get installed app list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Name
+        in: query
+        name: name
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Get installed app list
+      tags:
+      - App
+  /store/apps:
+    get:
+      description: Get app list
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Category
+        in: query
+        name: category
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Get app list
+      tags:
+      - App
+  /store/apps/{id}:
+    get:
+      description: Get app detail
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+      summary: Get app detail
+      tags:
+      - App
+  /store/apps/sync:
+    post:
+      description: 同步应用列表
+      responses:
+        "200":
+          description: OK
+      summary: Sync app list
+      tags:
+      - App
+  /sysctl/{host}/boot:
     post:
       description: 运行systemctl的服务启动相关命令
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
       responses:
         "200":
           description: OK
@@ -5302,7 +5542,7 @@ paths:
       summary: Plugin menu
       tags:
       - Sysctl
-  /sysinfo/config:
+  /sysinfo/{host}/config:
     get:
       consumes:
       - application/json
@@ -5310,8 +5550,8 @@ paths:
       description: (not implemented yet) Get system config
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       produces:
@@ -5324,7 +5564,7 @@ paths:
       summary: Get system config
       tags:
       - Sysinfo
-  /sysinfo/hardware:
+  /sysinfo/{host}/hardware:
     get:
       consumes:
       - application/json
@@ -5332,8 +5572,8 @@ paths:
       description: (not implemented yet) Get hardware info
       parameters:
       - description: Host ID
-        in: query
-        name: host_id
+        in: path
+        name: host
         required: true
         type: integer
       produces:
@@ -5344,6 +5584,69 @@ paths:
           schema:
             $ref: '#/definitions/model.HardwareInfo'
       summary: Get hardware info
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/network:
+    get:
+      consumes:
+      - application/json
+      description: Get network info
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.NetworkInfo'
+      summary: Get network info
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/overview:
+    get:
+      consumes:
+      - application/json
+      description: Get system overview info
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Overview'
+      summary: Get system overview info
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/system:
+    get:
+      consumes:
+      - application/json
+      description: Get system info
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SystemInfo'
+      summary: Get system info
       tags:
       - Sysinfo
   /sysinfo/info:
@@ -5376,69 +5679,6 @@ paths:
               $ref: '#/definitions/plugin.MenuItem'
             type: array
       summary: Get plugin menu
-      tags:
-      - Sysinfo
-  /sysinfo/network:
-    get:
-      consumes:
-      - application/json
-      description: Get network info
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.NetworkInfo'
-      summary: Get network info
-      tags:
-      - Sysinfo
-  /sysinfo/overview:
-    get:
-      consumes:
-      - application/json
-      description: Get system overview info
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Overview'
-      summary: Get system overview info
-      tags:
-      - Sysinfo
-  /sysinfo/system:
-    get:
-      consumes:
-      - application/json
-      description: Get system info
-      parameters:
-      - description: Host ID
-        in: query
-        name: host_id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.SystemInfo'
-      summary: Get system info
       tags:
       - Sysinfo
   /users:
