@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getFileInfoApi, getFileListApi, moveFileApi } from '@/api/file';
+import { getFileInfoApi, getFileListApi } from '@/api/file';
 import { FileItem } from '../types/file-item';
 
 const useFileStore = defineStore('file-manage', {
@@ -209,16 +209,6 @@ const useFileStore = defineStore('file-manage', {
     handleCut() {
       this.$state.copyActive = false;
       this.$state.cutActive = true;
-    },
-    async handlePaste() {
-      await moveFileApi({
-        sources: this.$state.selected.map((item) => item.path),
-        dest: this.pwd,
-        cover: false,
-        type: this.$state.cutActive ? 'move' : 'copy',
-      });
-      this.clearSelected();
-      return true;
     },
   },
 });

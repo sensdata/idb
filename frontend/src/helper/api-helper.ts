@@ -67,7 +67,7 @@ axios.interceptors.response.use(
     }
 
     // eslint-disable-next-line no-console
-    console.log(error); // for debug
+    console.log(error);
     Message.error(error.message);
     return Promise.reject(error);
   }
@@ -127,7 +127,7 @@ class ApiHelper {
     config?: AxiosRequestConfig<any>
   ) {
     return this.request({
-      method: 'post',
+      method: 'delete',
       url,
       data,
       ...config,
@@ -140,7 +140,7 @@ class ApiHelper {
     config?: AxiosRequestConfig<any>
   ) {
     return this.request({
-      method: 'post',
+      method: 'put',
       url,
       data,
       ...config,

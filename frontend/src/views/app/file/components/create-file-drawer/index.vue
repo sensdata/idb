@@ -47,7 +47,6 @@
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/hooks/loading';
-  import { FileInfoEntity } from '@/entity/FileInfo';
   import { createFileApi } from '@/api/file';
 
   const emit = defineEmits(['success']);

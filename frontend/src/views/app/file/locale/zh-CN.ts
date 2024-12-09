@@ -8,6 +8,7 @@ export default {
   'app.file.list.action.copy': '复制',
   'app.file.list.action.paste': '粘贴({count})',
   'app.file.list.action.cut': '剪切',
+  'app.file.list.action.delete': '删除',
   'app.file.list.action.terminal': '终端',
   'app.file.list.filter.showHidden': '显示隐藏文件和系统文件',
 
@@ -23,4 +24,7 @@ export default {
   'app.file.list.operation.copyPath': '复制路径',
   'app.file.list.operation.property': '属性',
   'app.file.list.operation.delete': '删除',
+
+  'app.file.list.message.copyPathSuccess': '复制成功',
+  'app.file.list.message.copyPathFailed': '复制失败',
 };
