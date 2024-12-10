@@ -85,7 +85,7 @@ type FileWget struct {
 }
 
 type FileMove struct {
-	Type    string   `json:"type" validate:"required`
+	Type    string   `json:"type" validate:"required"`
 	Sources []string `json:"sources" validate:"required"`
 	Dest    string   `json:"dest" validate:"required"`
 	Name    string   `json:"name"`
