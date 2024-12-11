@@ -34,20 +34,6 @@ install_nftables() {
     return 0  # 安装成功
 }
 
-# 启用并启动nftables服务
-enable_and_start_nftables() {
-    sudo systemctl enable nftables
-    sudo systemctl start nftables
-}
-
-# 禁用iptables并切换到nftables
-handle_iptables_conflict() {
-    if systemctl is-active --quiet iptables; then
-        sudo systemctl stop iptables
-        sudo systemctl disable iptables
-    fi
-}
-
 # 主逻辑
 main() {
     installed=-1  # 初始值设为 -1，表示默认未安装
@@ -60,14 +46,11 @@ main() {
         fi
     fi
 
-    enable_and_start_nftables
-    handle_iptables_conflict
-
     # 根据 installed 的值输出结果
     case $installed in
         -1) echo "Failed" ;;  # 安装失败
         0) echo "Installed" ;;  # 已安装，无需安装
-        1) echo "Installed" ;;  # 安装成功
+        1) echo "Success" ;;  # 安装成功
         *) echo "Failed" ;;  # 其他
     esac
 }

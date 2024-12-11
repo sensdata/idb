@@ -1,9 +1,11 @@
 package nftable
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sensdata/idb/core/model"
@@ -174,6 +176,219 @@ func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
 	return nil
 }
 
+const safeguardRule = "tcp dport { 9918, 9919 } accept"
+
+func (s *NFTable) checkConfContent(content string) (string, error) {
+	LOG.Info("check content: %s", content)
+	if strings.Contains(content, safeguardRule) {
+		LOG.Info("has safegard rule")
+		return content, nil
+	}
+
+	lines := strings.Split(content, "\n")
+	var buffer bytes.Buffer
+	for _, line := range lines {
+		buffer.WriteString(line + "\n")
+		// 在 input 链的定义中添加规则
+		if strings.Contains(line, "chain input") {
+			buffer.WriteString(fmt.Sprintf("        %s\n", safeguardRule))
+		}
+	}
+	safeContent := buffer.String()
+	LOG.Info("safe content: %s", safeContent)
+	return safeContent, nil
+}
+
+func (s *NFTable) install(hostID uint64) error {
+	// 将安装脚本内容保存到一个临时文件
+	logPath := filepath.Join("/tmp", "iDB_nftable_install.log")
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_%s.sh", time.Now().Format("20060102150405"))
+	createFile := model.FileCreate{
+		Source:  scriptPath,
+		Content: string(installShell),
+	}
+	err := s.createFile(hostID, createFile)
+	if err != nil {
+		LOG.Error("Failed to create install shell file")
+		return err
+	}
+
+	// 执行脚本，获得结果
+	result := model.ScriptResult{
+		Start: time.Now(),
+		End:   time.Now(),
+		Out:   "",
+		Err:   "",
+	}
+
+	scriptExec := model.ScriptExec{
+		ScriptPath: scriptPath,
+		LogPath:    logPath,
+	}
+
+	data, err := utils.ToJSONString(scriptExec)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Script_Exec,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to run install script")
+		return fmt.Errorf("failed to run install script")
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to get filetree")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to filetree: %v", err)
+		return fmt.Errorf("json err: %v", err)
+	}
+	LOG.Info("Install result: %v", result)
+	if result.Out == "Failed" {
+		return fmt.Errorf("Install failed")
+	}
+
+	// 使用默认内容覆盖 /etc/nftables.conf内容
+	editFile := model.FileEdit{
+		Source:  "/etc/nftables.conf",
+		Content: string(templateConf),
+	}
+	err = s.updateFile(hostID, editFile)
+	if err != nil {
+		LOG.Error("Failed to edit conf")
+		return err
+	}
+
+	// 启动服务
+	return s.switchTo(hostID, model.SwitchOptions{Option: "nftables"})
+}
+
+func (s *NFTable) toggle(hostID uint64, req model.ToggleOptions) error {
+	switch req.Option {
+	case "on":
+		command := "systemctl enable nftables"
+		_, err := s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to enable nftables")
+			return err
+		}
+		command = "systemctl start nftables"
+		_, err = s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to start nftables")
+			return err
+		}
+
+	case "off":
+		command := "systemctl stop nftables"
+		_, err := s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to stop nftables")
+			return err
+		}
+		command = "systemctl disable nftables"
+		_, err = s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to disable nftables")
+			return err
+		}
+
+	default:
+		return fmt.Errorf("invalid option")
+	}
+
+	return nil
+}
+
+func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
+
+	var content string
+	switch req.Option {
+	case "nftables":
+		content = string(switchToNftables)
+	case "iptables":
+		content = string(switchToIptables)
+	default:
+		return fmt.Errorf("invalid option")
+	}
+
+	// 将切换脚本内容保存到一个临时文件
+	logPath := filepath.Join("/tmp", "iDB_nftable_switch.log")
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_switch_%s.sh", time.Now().Format("20060102150405"))
+
+	createFile := model.FileCreate{
+		Source:  scriptPath,
+		Content: content,
+	}
+	err := s.createFile(hostID, createFile)
+	if err != nil {
+		LOG.Error("Failed to create switch shell file")
+		return err
+	}
+
+	// 执行脚本，获得结果
+	result := model.ScriptResult{
+		Start: time.Now(),
+		End:   time.Now(),
+		Out:   "",
+		Err:   "",
+	}
+
+	scriptExec := model.ScriptExec{
+		ScriptPath: scriptPath,
+		LogPath:    logPath,
+	}
+
+	data, err := utils.ToJSONString(scriptExec)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Script_Exec,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to run switch script")
+		return fmt.Errorf("failed to run switch script")
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to run switch script")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to filetree: %v", err)
+		return fmt.Errorf("json err: %v", err)
+	}
+	LOG.Info("Switch result: %v", result)
+	out := strings.TrimSpace(result.Out)
+	if !strings.HasSuffix(out, "Success") {
+		return fmt.Errorf("switch failed")
+	}
+
+	return nil
+}
+
 func (s *NFTable) getConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
@@ -230,18 +445,6 @@ func (s *NFTable) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 	}
 
 	return &pageResult, nil
-}
-
-func (s *NFTable) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
-	return &model.ServiceForm{}, nil
-}
-
-func (s *NFTable) createForm(hostID uint64, req model.CreateServiceForm) error {
-	return nil
-}
-
-func (s *NFTable) updateForm(hostID uint64, req model.UpdateServiceForm) error {
-	return nil
 }
 
 func (s *NFTable) create(hostID uint64, req model.CreateGitFile, extension string) error {
@@ -696,12 +899,18 @@ func (s *NFTable) confAction(hostID uint64, req model.ServiceAction) error {
 
 	switch req.Action {
 	case "activate":
+		// 应用时，需要检查content
+		content, err := s.checkConfContent(gitFile.Content)
+		if err != nil {
+			return err
+		}
+
 		// 覆盖 /etc/nftables.conf内容
 		editFile := model.FileEdit{
 			Source:  "/etc/nftables.conf",
-			Content: gitFile.Content,
+			Content: content,
 		}
-		err := s.updateFile(hostID, editFile)
+		err = s.updateFile(hostID, editFile)
 		if err != nil {
 			LOG.Error("Failed to edit conf")
 			return err
@@ -732,12 +941,21 @@ func (s *NFTable) confAction(hostID uint64, req model.ServiceAction) error {
 		}
 
 	case "deactivate":
-		// // 使用默认内容覆盖 /etc/nftables.conf内容
+		// 使用默认内容覆盖 /etc/nftables.conf内容
+		templateContent := string(templateConf)
+
+		// 应用时，需要检查content
+		content, err := s.checkConfContent(templateContent)
+		if err != nil {
+			return err
+		}
+
+		// 覆盖 /etc/nftables.conf内容
 		editFile := model.FileEdit{
 			Source:  "/etc/nftables.conf",
-			Content: string(templateConf),
+			Content: content,
 		}
-		err := s.updateFile(hostID, editFile)
+		err = s.updateFile(hostID, editFile)
 		if err != nil {
 			LOG.Error("Failed to edit conf")
 			return err
@@ -772,69 +990,4 @@ func (s *NFTable) confAction(hostID uint64, req model.ServiceAction) error {
 	}
 
 	return nil
-}
-
-func (s *NFTable) install(hostID uint64) error {
-	// 将安装脚本内容保存到一个临时文件
-	logPath := filepath.Join("/tmp", "iDB_nftable_install.log")
-	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_%s.sh", time.Now().Format("20060102150405"))
-	createFile := model.FileCreate{
-		Source:  scriptPath,
-		Content: string(installShell),
-	}
-	err := s.createFile(hostID, createFile)
-	if err != nil {
-		LOG.Error("Failed to create install shell file")
-		return err
-	}
-
-	// 执行脚本，获得结果
-	result := model.ScriptResult{
-		Start: time.Now(),
-		End:   time.Now(),
-		Out:   "",
-		Err:   "",
-	}
-
-	scriptExec := model.ScriptExec{
-		ScriptPath: scriptPath,
-		LogPath:    logPath,
-	}
-
-	data, err := utils.ToJSONString(scriptExec)
-	if err != nil {
-		return err
-	}
-
-	actionRequest := model.HostAction{
-		HostID: uint(hostID),
-		Action: model.Action{
-			Action: model.Script_Exec,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		LOG.Error("Failed to run install script")
-		return fmt.Errorf("failed to run install script")
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to get filetree")
-	}
-
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
-	if err != nil {
-		LOG.Error("Error unmarshaling data to filetree: %v", err)
-		return fmt.Errorf("json err: %v", err)
-	}
-	LOG.Info("Install result: %v", result)
-	switch result.Out {
-	case "Installed":
-		return nil
-	default:
-		return fmt.Errorf("Install failed")
-	}
 }

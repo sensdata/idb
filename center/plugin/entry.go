@@ -6,6 +6,7 @@ import (
 	"github.com/sensdata/idb/center/plugin/docker/backend/docker"
 	"github.com/sensdata/idb/center/plugin/fileman/backend/fileman"
 	"github.com/sensdata/idb/center/plugin/logrotate/backend/logrotate"
+	"github.com/sensdata/idb/center/plugin/nftable/backend/nftable"
 	"github.com/sensdata/idb/center/plugin/script/backend/scriptman"
 	"github.com/sensdata/idb/center/plugin/service/backend/serviceman"
 	"github.com/sensdata/idb/center/plugin/ssh/backend/sshman"
@@ -33,7 +34,8 @@ func RegisterPlugins() {
 	conn.RegisterIdbPlugin(&crontab.CronTab{})
 	// 注册docker, TODO: AppDir从安装传入
 	conn.RegisterIdbPlugin(&docker.DockerMan{AppDir: constant.AgentDockerDir})
-
+	// 注册nftable
+	conn.RegisterIdbPlugin(&nftable.NFTable{})
 	// 执行所有模块的初始化
 	conn.InitializePlugins()
 }
