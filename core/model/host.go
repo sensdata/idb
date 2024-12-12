@@ -42,6 +42,7 @@ type CreateHost struct {
 
 type UpdateHost struct {
 	GroupID uint   `json:"group_id" validate:"required"`
+	ID      uint   `json:"id"`
 	Name    string `json:"name" validate:"required"`
 }
 

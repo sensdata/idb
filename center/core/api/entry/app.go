@@ -48,11 +48,11 @@ func (b *BaseApi) AppPage(c *gin.Context) {
 // @Tags App
 // @Summary Get app detail
 // @Description Get app detail
-// @Param id path int true "App ID"
+// @Param id query int true "App ID"
 // @Success 200
-// @Router /store/apps/{id} [get]
+// @Router /store/apps/detail [get]
 func (b *BaseApi) AppDetail(c *gin.Context) {
-	appID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	appID, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid app ID", err)
 		return

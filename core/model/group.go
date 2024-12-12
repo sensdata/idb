@@ -13,5 +13,6 @@ type CreateGroup struct {
 }
 
 type UpdateGroup struct {
+	ID        uint   `json:"id"`
 	GroupName string `json:"group_name" validate:"required"`
 }

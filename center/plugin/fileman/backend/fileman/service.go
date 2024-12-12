@@ -115,7 +115,7 @@ func (s *FileMan) Initialize() {
 			{Method: "PUT", Path: "/:host/batch/role", Handler: s.BatchChangeModeAndOwner},
 			{Method: "GET", Path: "/:host/favorites", Handler: s.GetFavoriteList},
 			{Method: "POST", Path: "/:host/favorites", Handler: s.CreateFavorite},
-			{Method: "DELETE", Path: "/:host/favorites/:id", Handler: s.DeleteFavorite},
+			{Method: "DELETE", Path: "/:host/favorites", Handler: s.DeleteFavorite},
 		},
 	)
 
@@ -833,9 +833,9 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param id path uint true "Favorite ID"
+// @Param id query uint true "Favorite ID"
 // @Success 200
-// @Router /files/{host}/favorites/{id} [delete]
+// @Router /files/{host}/favorites [delete]
 func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -843,7 +843,7 @@ func (s *FileMan) DeleteFavorite(c *gin.Context) {
 		return
 	}
 
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid favorite id", err)
 		return

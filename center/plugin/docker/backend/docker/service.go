@@ -140,10 +140,10 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},         // 重命名容器
 			{Method: "POST", Path: "/:host/containers/operatetion", Handler: s.ContainerOperation}, // 操作容器
 
-			{Method: "GET", Path: "/:host/containers/:id", Handler: s.ContainerInfo},            // 获取容器详情
-			{Method: "GET", Path: "/:host/containers/:id/stats", Handler: s.ContainerStats},     // 获取容器监控数据
-			{Method: "DELETE", Path: "/:host/containers/:id/log", Handler: s.ContainerLogClean}, // 清理容器日志
-			{Method: "GET", Path: "/:host/containers/:id/log", Handler: s.ContainerLogs},        // 获取容器日志
+			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},     // 获取容器详情
+			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},     // 获取容器监控数据
+			{Method: "DELETE", Path: "/:host/containers/log", Handler: s.ContainerLogClean}, // 清理容器日志
+			{Method: "GET", Path: "/:host/containers/log", Handler: s.ContainerLogs},        // 获取容器日志
 
 			// images
 			{Method: "GET", Path: "/:host/images", Handler: s.ImagePage},         // 获取镜像列表
@@ -925,9 +925,9 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
+// @Param id quey int true "Container ID"
 // @Success 200 {object} model.ContainerOperate
-// @Router /docker/{host}/containers/{id} [get]
+// @Router /docker/{host}/containers/detail [get]
 func (s *DockerMan) ContainerInfo(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -935,7 +935,7 @@ func (s *DockerMan) ContainerInfo(c *gin.Context) {
 		return
 	}
 
-	containerID := c.Param("id")
+	containerID := c.Query("id")
 	if containerID == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
 		return
@@ -956,9 +956,9 @@ func (s *DockerMan) ContainerInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
+// @Param id query int true "Container ID"
 // @Success 200 {object} model.ContainerStats
-// @Router /docker/{host}/containers/{id}/stats [get]
+// @Router /docker/{host}/containers/stats [get]
 func (s *DockerMan) ContainerStats(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -966,7 +966,7 @@ func (s *DockerMan) ContainerStats(c *gin.Context) {
 		return
 	}
 
-	containerID := c.Param("id")
+	containerID := c.Query("id")
 	if containerID == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
 		return
@@ -987,9 +987,9 @@ func (s *DockerMan) ContainerStats(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
+// @Param id query int true "Container ID"
 // @Success 200
-// @Router /docker/{host}/containers/{id}/log [delete]
+// @Router /docker/{host}/containers/log [delete]
 func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -997,7 +997,7 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 		return
 	}
 
-	containerID := c.Param("id")
+	containerID := c.Query("id")
 	if containerID == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
 		return
@@ -1019,9 +1019,9 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id path int true "Container ID"
+// @Param id query int true "Container ID"
 // @Success 200
-// @Router /docker/{host}/containers/{id}/log [get]
+// @Router /docker/{host}/containers/log [get]
 func (s *DockerMan) ContainerLogs(c *gin.Context) {
 	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	// if err != nil {
@@ -1029,7 +1029,7 @@ func (s *DockerMan) ContainerLogs(c *gin.Context) {
 	// 	return
 	// }
 
-	// containerID := c.Param("id")
+	// containerID := c.Query("id")
 	// if containerID == "" {
 	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
 	// 	return

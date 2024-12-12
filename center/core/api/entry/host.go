@@ -84,23 +84,17 @@ func (b *BaseApi) CreateHost(c *gin.Context) {
 // @Param id path int true "Host ID"
 // @Param request body model.UpdateHost true "request"
 // @Success 200
-// @Router /hosts/{id} [put]
+// @Router /hosts [put]
 func (b *BaseApi) UpdateHost(c *gin.Context) {
 	var req model.UpdateHost
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	hostID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
-		return
-	}
-
 	upMap := make(map[string]interface{})
 	upMap["name"] = req.Name
 	upMap["group_id"] = req.GroupID
-	if err := hostService.Update(hostID, upMap); err != nil {
+	if err := hostService.Update(req.ID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -112,10 +106,10 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 // @Description 更新设备ssh配置
 // @Accept json
 // @Produce json
-// @Param id path int true "Host ID"
+// @Param host path int true "Host ID"
 // @Param request body model.UpdateHostSSH true "request"
 // @Success 200
-// @Router /hosts/{id}/ssh [put]
+// @Router /hosts/{host}/ssh [put]
 func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 	var req model.UpdateHostSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -140,10 +134,10 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 // @Description 更新设备agent配置
 // @Accept json
 // @Produce json
-// @Param id path int true "Host ID"
+// @Param host path int true "Host ID"
 // @Param request body model.UpdateHostAgent true "request"
 // @Success 200
-// @Router /hosts/{id}/agent [put]
+// @Router /hosts/{host}/agent [put]
 func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	var req model.UpdateHostAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -168,10 +162,10 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 // @Description 测试设备ssh
 // @Accept json
 // @Produce json
-// @Param id path int true "Host ID"
+// @Param host path int true "Host ID"
 // @Param request body model.TestSSH true "request"
 // @Success 200
-// @Router /hosts/{id}/test/ssh [post]
+// @Router /hosts/{host}/test/ssh [post]
 func (b *BaseApi) TestHostSSH(c *gin.Context) {
 	var req model.TestSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -196,10 +190,10 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 // @Description 测试设备 agent
 // @Accept json
 // @Produce json
-// @Param id path int true "Host ID"
+// @Param host path int true "Host ID"
 // @Param request body model.TestAgent true "request"
 // @Success 200
-// @Router /hosts/{id}/test/agent [post]
+// @Router /hosts/{host}/test/agent [post]
 func (b *BaseApi) TestHostAgent(c *gin.Context) {
 	var req model.TestAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
@@ -224,9 +218,9 @@ func (b *BaseApi) TestHostAgent(c *gin.Context) {
 // @Description 在设备上安装 agent
 // @Accept json
 // @Produce json
-// @Param id path int true "Host ID"
+// @Param host path int true "Host ID"
 // @Success 200
-// @Router /hosts/{id}/install/agent [post]
+// @Router /hosts/{host}/install/agent [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {
 	hostID, err := GetParamID(c)
 	if err != nil {

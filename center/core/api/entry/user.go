@@ -1,6 +1,8 @@
 package entry
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
@@ -56,19 +58,12 @@ func (b *BaseApi) CreateUser(c *gin.Context) {
 // @Description 更新用户
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
 // @Param request body model.UpdateUser true "request"
 // @Success 200
-// @Router /users/{id} [put]
+// @Router /users [put]
 func (b *BaseApi) UpdateUser(c *gin.Context) {
 	var req model.UpdateUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
-	userID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
 		return
 	}
 
@@ -76,7 +71,7 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 	upMap["name"] = req.Name
 	upMap["group_id"] = req.GroupID
 	upMap["valid"] = req.Valid
-	if err := userService.Update(userID, upMap); err != nil {
+	if err := userService.Update(req.ID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -88,17 +83,17 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 // @Description 删除用户
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
+// @Param id query int true "User ID"
 // @Success 200
-// @Router /users/{id} [delete]
+// @Router /users [delete]
 func (b *BaseApi) DeleteUser(c *gin.Context) {
-	userID, err := GetParamID(c)
+	userID, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
 		return
 	}
 
-	if err := userService.Delete([]uint{userID}); err != nil {
+	if err := userService.Delete([]uint{uint(userID)}); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -110,25 +105,18 @@ func (b *BaseApi) DeleteUser(c *gin.Context) {
 // @Description 禁用/启用用户
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
 // @Param request body model.ValidUser true "request"
 // @Success 200
-// @Router /users/{id}/valid [put]
+// @Router /users/valid [put]
 func (b *BaseApi) ValidUser(c *gin.Context) {
 	var req model.ValidUser
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	userID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
-		return
-	}
-
 	upMap := make(map[string]interface{})
 	upMap["valid"] = req.Valid
-	if err := userService.Update(userID, upMap); err != nil {
+	if err := userService.Update(req.ID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -140,23 +128,16 @@ func (b *BaseApi) ValidUser(c *gin.Context) {
 // @Description 更新密码
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
 // @Param request body model.ChangePassword true "request"
 // @Success 200
-// @Router /users/{id}/password [put]
+// @Router /users/password [put]
 func (b *BaseApi) ChangePassword(c *gin.Context) {
 	var req model.ChangePassword
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	userID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid user ID", err)
-		return
-	}
-
-	if err := userService.ChangePassword(userID, req); err != nil {
+	if err := userService.ChangePassword(req.ID, req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}

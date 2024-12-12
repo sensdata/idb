@@ -1,6 +1,8 @@
 package entry
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/sensdata/idb/core/constant"
@@ -57,25 +59,18 @@ func (b *BaseApi) CreateGroup(c *gin.Context) {
 // @Description 更新组
 // @Accept json
 // @Produce json
-// @Param id path int true "Group ID"
-// @Param request body model.UpdateGroup true "request"
+// @Param request body model.UpdateGroup true "group edit details"
 // @Success 200
-// @Router /groups/{id} [put]
+// @Router /groups [put]
 func (b *BaseApi) UpdateGroup(c *gin.Context) {
 	var req model.UpdateGroup
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	groupID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid group ID", err)
-		return
-	}
-
 	upMap := make(map[string]interface{})
 	upMap["group_name"] = req.GroupName
-	if err := groupService.Update(groupID, upMap); err != nil {
+	if err := groupService.Update(req.ID, upMap); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -87,17 +82,17 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 // @Description 删除组
 // @Accept json
 // @Produce json
-// @Param id path int true "Group ID"
+// @Param id query int true "Group ID"
 // @Success 200
-// @Router /groups/{id} [delete]
+// @Router /groups [delete]
 func (b *BaseApi) DeleteGroup(c *gin.Context) {
-	groupID, err := GetParamID(c)
+	groupID, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid group ID", err)
 		return
 	}
 
-	if err := groupService.Delete([]uint{groupID}); err != nil {
+	if err := groupService.Delete([]uint{uint(groupID)}); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
