@@ -114,7 +114,7 @@
             ref="gridRef"
             :params="params"
             :columns="columns"
-            :fetch="mockFetch"
+            :fetch="getFileListApi"
             has-batch
             row-key="path"
             @selected-change="store.handleSelected"
@@ -131,9 +131,10 @@
               >
                 <folder-icon v-if="record.is_dir" />
                 <file-icon v-else />
-                <span class="color-primary cursor-pointer">{{
-                  record.name
-                }}</span>
+                <span
+                  class="color-primary cursor-pointer min-w-0 flex-1 truncate"
+                  >{{ record.name }}</span
+                >
               </div>
             </template>
             <template #mode="{ record }: { record: FileItem }">
@@ -192,13 +193,13 @@
         </div>
       </div>
     </a-spin>
-    <mode-drawer ref="modeDrawerRef" />
-    <owner-drawer ref="ownerDrawerRef" />
-    <create-file-drawer ref="createFileDrawerRef" />
-    <create-folder-drawer ref="createFolderDrawerRef" />
-    <rename-drawer ref="renameDrawerRef" />
+    <mode-drawer ref="modeDrawerRef" @ok="reload" />
+    <owner-drawer ref="ownerDrawerRef" @ok="reload" />
+    <create-file-drawer ref="createFileDrawerRef" @ok="reload" />
+    <create-folder-drawer ref="createFolderDrawerRef" @ok="reload" />
+    <rename-drawer ref="renameDrawerRef" @ok="reload" />
     <property-drawer ref="propertyDrawerRef" />
-    <delete-file-modal ref="deleteFileModalRef" />
+    <delete-file-modal ref="deleteFileModalRef" @ok="reload" />
   </div>
 </template>
 
@@ -207,6 +208,7 @@
   import {
     computed,
     GlobalComponents,
+    h,
     onMounted,
     ref,
     unref,
@@ -214,9 +216,9 @@
   } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import { moveFileApi } from '@/api/file';
+  import { getFileListApi, moveFileApi } from '@/api/file';
   import { FileInfoEntity } from '@/entity/FileInfo';
-  import { formatFileSize } from '@/utils/format';
+  import { formatFileSize, formatTime } from '@/utils/format';
   import { useClipboard } from '@/hooks/use-clipboard';
   import useLoading from '@/hooks/loading';
   import FolderIcon from '@/assets/icons/color-folder.svg';
@@ -247,40 +249,11 @@
   const store = useFileStore();
   const { current, tree, pasteVisible, selected } = storeToRefs(store);
 
-  const mockFetch = (params: any) => {
-    return new Promise<any>((resolve) => {
-      window.setTimeout(() => {
-        const pwd = params.path || '/';
-        resolve({
-          page: 1,
-          page_size: 20,
-          total: 2,
-          items: [
-            {
-              name: pwd.split('/').pop() + '-1',
-              path: pwd + '/' + pwd.split('/').pop() + '-1',
-              is_dir: true,
-              mode: '0755',
-              user: 'root',
-              group: 'root',
-              size: 0,
-            },
-            {
-              name: pwd.split('/').pop() + '-2',
-              path: pwd + '/' + pwd.split('/').pop() + '-2',
-              is_dir: true,
-            },
-          ],
-        });
-      }, 1000);
-    });
-  };
-
   const columns = [
     {
       dataIndex: 'name',
       title: t('app.file.list.column.name'),
-      width: 150,
+      width: 200,
       ellipsis: true,
       slotName: 'name',
     },
@@ -289,9 +262,6 @@
       title: t('app.file.list.column.size'),
       width: 100,
       render: ({ record }: { record: FileInfoEntity }) => {
-        if (record.is_dir) {
-          return '-';
-        }
         return formatFileSize(record.size);
       },
     },
@@ -299,6 +269,9 @@
       dataIndex: 'mod_time',
       title: t('app.file.list.column.mod_time'),
       width: 180,
+      render: ({ record }: { record: FileInfoEntity }) => {
+        return formatTime(record.mod_time);
+      },
     },
     {
       dataIndex: 'mode',
@@ -309,13 +282,13 @@
     {
       dataIndex: 'user',
       title: t('app.file.list.column.user'),
-      width: 120,
+      width: 100,
       slotName: 'user',
     },
     {
       dataIndex: 'group',
       title: t('app.file.list.column.group'),
-      width: 120,
+      width: 100,
       slotName: 'group',
     },
     {
@@ -327,15 +300,21 @@
     },
   ];
 
-  const showHidden = ref(false);
+  const showHidden = computed({
+    get: () => store.showHidden,
+    set: (val) =>
+      store.$patch({
+        showHidden: val,
+      }),
+  });
   const params = computed(() => {
     return {
-      showHidden: showHidden.value,
+      show_hidden: showHidden.value,
       path: store.pwd,
     };
   });
   watch(params, () => {
-    gridRef.value?.reload();
+    gridRef.value?.load(params.value);
   });
 
   const handleClearSelected = () => {
@@ -417,7 +396,7 @@
   const handleCopyPath = async (record: FileItem) => {
     try {
       await copyText(record.path);
-      Message.error(t('app.file.list.message.copyPathSuccess'));
+      Message.success(t('app.file.list.message.copyPathSuccess'));
     } catch (err) {
       Message.error(t('app.file.list.message.copyPathFailed'));
     }
@@ -458,6 +437,10 @@
     }
   };
 
+  const reload = () => {
+    gridRef.value?.reload();
+  };
+
   onMounted(() => {
     store.initTree();
   });
@@ -465,15 +448,19 @@
 
 <style scoped>
   .file-layout {
-    display: flex;
-    align-items: stretch;
-    height: calc(100vh - 240px);
+    position: relative;
+    min-height: calc(100vh - 240px);
     margin-top: 20px;
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
+    padding-left: 240px;
   }
 
   .file-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
     width: 240px;
     height: 100%;
     padding: 4px 8px;
@@ -482,7 +469,6 @@
   }
 
   .file-main {
-    flex: 1;
     min-width: 0;
     height: 100%;
     padding: 20px;

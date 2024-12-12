@@ -5,16 +5,17 @@
     :title="$t('app.file.propertyDrawer.title')"
     unmountOnClose
     :footer="false"
+    @cancel="handleCancel"
   >
-    <a-descriptions :data="data" bordered />
+    <a-descriptions :data="data" :column="1" size="large" bordered />
   </a-drawer>
 </template>
 
 <script lang="ts" setup>
-  import { computed, h, ref } from 'vue';
+  import { computed, h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { FileInfoEntity } from '@/entity/FileInfo';
-  import { formatFileSize } from '@/utils/format';
+  import { formatFileSize, formatTime } from '@/utils/format';
   import useLoading from '@/hooks/loading';
   import { getFileSizeApi } from '@/api/file';
 
@@ -34,10 +35,10 @@
     if (fileInfoRef.value.is_dir) {
       setLoading(true);
       try {
-        const size = await getFileSizeApi({
+        const res = await getFileSizeApi({
           source: fileInfoRef.value.path,
         });
-        fileInfoRef.value.size = size;
+        fileInfoRef.value.size = res.size;
         sizeLockRef.value = true;
       } finally {
         setLoading(false);
@@ -62,10 +63,14 @@
       {
         label: t('app.file.propertyDrawer.size'),
         value: () => {
-          if (loading) {
-            return h('a-spin');
+          if (loading.value) {
+            return h(resolveComponent('a-spin'));
           }
-          if (fileInfo.is_dir && !sizeLockRef.value) {
+          if (
+            fileInfo.is_dir &&
+            !fileInfoRef.value?.size &&
+            !sizeLockRef.value
+          ) {
             return h(
               'span',
               {
@@ -91,8 +96,8 @@
         value: fileInfo.group,
       },
       {
-        label: t('app.file.propertyDrawer.mtime'),
-        value: fileInfo.mod_time,
+        label: t('app.file.propertyDrawer.mod_time'),
+        value: formatTime(fileInfo.mod_time),
       },
     ];
   });
@@ -108,6 +113,10 @@
   };
   const hide = () => {
     visible.value = false;
+  };
+
+  const handleCancel = () => {
+    hide();
   };
 
   defineExpose({

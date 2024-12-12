@@ -126,7 +126,8 @@
     //   return;
     // }
 
-    emit('goto', [props.path, value.value].join('/'));
+    value.value = '';
+    emit('goto', [props.path, v].join('/'));
   }
 
   function handleSelect(item: any) {

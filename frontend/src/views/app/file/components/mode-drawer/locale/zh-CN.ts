@@ -14,4 +14,6 @@ export default {
   'app.file.modeDrawer.mode_error': '权限错误',
   'app.file.modeDrawer.user_required': '请输入用户',
   'app.file.modeDrawer.group_required': '请输入用户组',
+
+  'app.file.modeDrawer.message.success': '修改成功',
 };

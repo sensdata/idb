@@ -4,10 +4,11 @@
     :visible="visible"
     :title="$t('app.file.ownerDrawer.title')"
     unmountOnClose
-    @ok="handleOk"
+    :ok-loading="loading"
+    @before-ok="handleBeforeOk"
     @cancel="handleCancel"
   >
-    <a-form :model="formState" :rules="rules">
+    <a-form ref="formRef" :model="formState" :rules="rules">
       <a-form-item field="path" :label="$t('app.file.ownerDrawer.path')">
         <span>{{ formState.path }}</span>
       </a-form-item>
@@ -29,11 +30,16 @@
 <script lang="ts" setup>
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
   import useLoading from '@/hooks/loading';
   import { FileInfoEntity } from '@/entity/FileInfo';
+  import { updateFileOwnerApi } from '@/api/file';
 
   const { t } = useI18n();
 
+  const emit = defineEmits(['ok']);
+
+  const formRef = ref();
   const formState = reactive({
     path: '',
     user: '',
@@ -55,7 +61,38 @@
     formState.group = data.group;
   };
 
-  const handleOk = () => {};
+  const getData = () => {
+    return {
+      source: formState.path,
+      user: formState.user,
+      group: formState.group,
+      sub: formState.sub,
+    };
+  };
+
+  const validate = async () => {
+    return formRef.value?.validate().then((errors: any) => {
+      return !errors;
+    });
+  };
+
+  const handleBeforeOk = async (done: any) => {
+    if (await validate()) {
+      try {
+        setLoading(true);
+        const data = getData();
+        await updateFileOwnerApi(data);
+        done();
+        Message.success(t('app.file.modeDrawer.message.success'));
+        emit('ok');
+        return true;
+      } finally {
+        setLoading(false);
+      }
+    }
+    return false;
+  };
+
   const handleCancel = () => {
     visible.value = false;
   };

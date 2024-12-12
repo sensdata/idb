@@ -10,6 +10,11 @@ export default {
 
   'common.request.timeout': 'Request timeout, please try again later',
 
+  'common.timeFormat.days': '{days} days ',
+  'common.timeFormat.hours': '{hours} hours ',
+  'common.timeFormat.minutes': '{minutes} minutes ',
+  'common.timeFormat.seconds': '{seconds} seconds ',
+
   'common.yes': 'Yes',
   'common.no': 'No',
   'common.all': 'All',

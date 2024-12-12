@@ -1,209 +1,400 @@
 <template>
-  <div class="box">
-    <div class="line">
-      <div class="col1">服务器时间</div>
-      <div class="col2">2024-01-02 14:12:15</div>
-      <div class="col3"></div>
-      <div class="col4">
-        <a-space>
-          <a-button type="primary" size="mini">修改</a-button>
-          <a-button type="primary" size="mini">同步时间</a-button>
-        </a-space>
-      </div>
-    </div>
-    <div class="line">
-      <div class="col1">当前时区</div>
-      <div class="col2">Asia/Shanghai</div>
-      <div class="col3"></div>
-      <div class="col4">
-        <a-button type="primary" size="mini">修改</a-button>
-      </div>
-    </div>
-    <div class="line">
-      <div class="col1">启动时间</div>
-      <div class="col2">2024-01-02 14:12:15</div>
-      <div class="col3"></div>
-      <div class="col4">
-        <a-tag color="blue">繁忙</a-tag>
-      </div>
-    </div>
-    <div class="line">
-      <div class="col1">运行时间</div>
-      <div class="col2">965天23小时11分12秒</div>
-      <div class="col3"></div>
-      <div class="col4"></div>
-    </div>
-    <div class="line">
-      <div class="col1">空闲时间</div>
-      <div class="col2">965天23小时11分12秒</div>
-      <div class="col3"></div>
-      <div class="col4">
-        <a-tag color="green">92.41空闲</a-tag>
-      </div>
-    </div>
-    <div class="line">
-      <div class="col1">CPU使用率</div>
-      <div class="col2">53.88%</div>
-      <div class="col3"></div>
-      <div class="col4"></div>
-    </div>
-    <div class="line">
-      <div class="col1">当前负载</div>
-      <div class="colspan">
-        <div class="subline">
-          <div class="col2">1分钟进程数目：</div>
-          <div class="col3">0.00</div>
-          <div class="col4">
-            <a-tag color="blue">繁忙</a-tag>
-          </div>
-        </div>
-        <div class="subline">
-          <div class="col2">5分钟进程数目：</div>
-          <div class="col3">0.23</div>
-          <div class="col4">
-            <a-tag color="cyan">正常</a-tag>
-          </div>
-        </div>
-        <div class="subline">
-          <div class="col2">15分钟进程数目：</div>
-          <div class="col3">0.45</div>
-          <div class="col4">
-            <a-tag color="cyan">正常</a-tag>
-          </div>
+  <a-spin :loading="loading">
+    <div class="box">
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.server_time') }}</div>
+        <div class="col2">{{ formatTime(data.server_time) }}</div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-space>
+            <a-button type="primary" size="mini">{{
+              $t('app.sysinfo.button.modify')
+            }}</a-button>
+            <a-button type="primary" size="mini">{{
+              $t('app.sysinfo.button.sync_time')
+            }}</a-button>
+          </a-space>
         </div>
       </div>
-    </div>
-    <div class="line">
-      <div class="col1">内存使用</div>
-      <div class="colspan">
-        <div class="subline">
-          <div class="col2">
-            总可用：
-            <a-tooltip content="todo">
-              <icon-question-circle-fill class="color-primary cursor-pointer" />
-            </a-tooltip>
-          </div>
-          <div class="col3">0.00</div>
-          <div class="col4"></div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.server_time_zone') }}</div>
+        <div class="col2">{{ data.server_time_zone }}</div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-button type="primary" size="mini">{{
+            $t('app.sysinfo.button.modify')
+          }}</a-button>
         </div>
-        <div class="subline">
-          <div class="col2">剩余可用：</div>
-          <div class="col3">0.00</div>
-          <div class="col4">
-            <a-tag color="gold">34.2%闲置</a-tag>
-          </div>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.boot_time') }}</div>
+        <div class="col2"> {{ formatTime(data.boot_time) }} </div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-tag color="blue">{{ $t('app.sysinfo.tag.busy') }}</a-tag>
         </div>
-        <div class="subline">
-          <div class="col2">
-            已使用：
-            <a-tooltip content="todo">
-              <icon-question-circle-fill class="color-primary cursor-pointer" />
-            </a-tooltip>
-          </div>
-          <div class="col3">0.00</div>
-          <div class="col4"></div>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.run_time') }}</div>
+        <div class="col2"> {{ formatSeconds(data.run_time) }} </div>
+        <div class="col3"></div>
+        <div class="col4"></div>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.idle_time') }}</div>
+        <div class="col2">{{ formatSeconds(data.idle_time) }}</div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-tag color="green">{{
+            // todo
+            $t('app.sysinfo.tag.label_free', { free: '92.41' })
+          }}</a-tag>
         </div>
-        <div class="subline">
-          <div class="col2">进程占用：</div>
-          <div class="col3">0.00</div>
-          <div class="col4">
-            <a-link class="text-sm">查看内存使用情况</a-link>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.cpu_usage') }}</div>
+        <div class="col2">{{ data.cpu_usage }}</div>
+        <div class="col3"></div>
+        <div class="col4"></div>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.current_load') }}</div>
+        <div class="colspan">
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.tag.count1') }}</div>
+            <div class="col3">{{ data.current_load?.process_count1 }}</div>
+            <div class="col4">
+              <template v-if="data.current_load?.process_count1">
+                <a-tag
+                  v-if="data.current_load.process_count1 > 50"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                >
+                <a-tag
+                  v-else-if="data.current_load.process_count1 > 30"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                >
+                <a-tag v-else color="green">{{
+                  $t('app.sysinfo.tag.free')
+                }}</a-tag>
+              </template>
+            </div>
           </div>
-        </div>
-        <div class="subline">
-          <div class="col2">
-            缓冲区：
-            <a-tooltip content="todo">
-              <icon-question-circle-fill class="color-primary cursor-pointer" />
-            </a-tooltip>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.process_count5') }}</div>
+            <div class="col3">{{ data.current_load?.process_count5 }}</div>
+            <div class="col4">
+              <template v-if="data.current_load?.process_count5">
+                <a-tag
+                  v-if="data.current_load.process_count5 > 50"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                >
+                <a-tag
+                  v-else-if="data.current_load.process_count5 > 30"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                >
+                <a-tag v-else color="green">{{
+                  $t('app.sysinfo.tag.free')
+                }}</a-tag>
+              </template>
+            </div>
           </div>
-          <div class="col3">0.00</div>
-          <div class="col4"></div>
-        </div>
-        <div class="subline">
-          <div class="col2">
-            缓存区：
-            <a-tooltip content="todo">
-              <icon-question-circle-fill class="color-primary cursor-pointer" />
-            </a-tooltip>
-          </div>
-          <div class="col3">0.00</div>
-          <div class="col4">
-            <a-space>
-              <a-button type="primary" size="mini">清理缓存</a-button>
-              <a-button type="primary" size="mini">自动清理设置</a-button>
-            </a-space>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.process_count15') }}</div>
+            <div class="col3">{{ data.current_load?.process_count15 }}</div>
+            <div class="col4">
+              <template v-if="data.current_load?.process_count15">
+                <a-tag
+                  v-if="data.current_load.process_count15 > 50"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                >
+                <a-tag
+                  v-else-if="data.current_load.process_count15 > 30"
+                  color="blue"
+                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                >
+                <a-tag v-else color="green">{{
+                  $t('app.sysinfo.tag.free')
+                }}</a-tag>
+              </template>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="line no-border">
-      <div class="col1">虚拟内存</div>
-      <div class="col2">未监测到虚拟内容</div>
-      <div class="col3">挂载点</div>
-      <div class="col4">
-        <a-button type="primary" size="mini">立即创建虚拟内容</a-button>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.memory_usage') }}</div>
+        <div class="colspan">
+          <div class="subline">
+            <div class="col2">
+              {{ $t('app.sysinfo.memory_total') }}
+              <a-tooltip :content="$t('app.sysinfo.memory_total_tips')">
+                <icon-question-circle-fill
+                  class="color-primary cursor-pointer"
+                />
+              </a-tooltip>
+            </div>
+            <div class="col3">{{ data.memory_usage?.total }}</div>
+            <div class="col4"></div>
+          </div>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.memory_free') }}</div>
+            <div class="col3">{{ data.memory_usage?.free }}</div>
+            <div class="col4">
+              <a-tag v-if="data.memory_usage?.free_rate" color="gold">{{
+                $t('app.sysinfo.tag.leave_unused', {
+                  used: data.memory_usage.free_rate + '%',
+                })
+              }}</a-tag>
+            </div>
+          </div>
+          <div class="subline">
+            <div class="col2">
+              {{ $t('app.sysinfo.memory_used') }}
+              <a-tooltip :content="$t('app.sysinfo.memory_used_tips')">
+                <icon-question-circle-fill
+                  class="color-primary cursor-pointer"
+                />
+              </a-tooltip>
+            </div>
+            <div class="col3">{{ data.memory_usage?.used }}</div>
+            <div class="col4"></div>
+          </div>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.memory_real_used') }}</div>
+            <div class="col3"> {{ data.memory_usage?.real_used }}</div>
+            <div class="col4">
+              <a-link class="text-sm">{{
+                $t('app.sysinfo.button.view_memory')
+              }}</a-link>
+            </div>
+          </div>
+          <div class="subline">
+            <div class="col2">
+              {{ $t('app.sysinfo.memory_buffered') }}
+              <!-- <a-tooltip :content="$t('app.sysinfo.memory_buffered_tips')">
+                <icon-question-circle-fill
+                  class="color-primary cursor-pointer"
+                />
+              </a-tooltip> -->
+            </div>
+            <div class="col3"> {{ data.memory_usage?.buffered }}</div>
+            <div class="col4"></div>
+          </div>
+          <div class="subline">
+            <div class="col2">
+              {{ $t('app.sysinfo.memory_cached') }}
+              <!-- <a-tooltip :content="$t('app.sysinfo.memory_cached_tips')">
+                <icon-question-circle-fill
+                  class="color-primary cursor-pointer"
+                />
+              </a-tooltip> -->
+            </div>
+            <div class="col3">{{ data.memory_usage?.cached }}</div>
+            <div class="col4">
+              <a-space>
+                <a-button type="primary" size="mini">{{
+                  $t('app.sysinfo.button.clear_cache')
+                }}</a-button>
+                <a-button type="primary" size="mini">{{
+                  $t('app.sysinfo.button.auto_clear_setting')
+                }}</a-button>
+              </a-space>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="line no-border">
+        <div class="col1">{{ $t('app.sysinfo.virtual_memory') }}</div>
+        <div class="col2">
+          <!-- todo -->
+          {{ $t('app.sysinfo.no_virtual_memory') }}
+        </div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-button type="primary" size="mini">{{
+            $t('app.sysinfo.button.create_virtual_memory')
+          }}</a-button>
+        </div>
+      </div>
+      <div class="line">
+        <div class="col1">({{ $t('app.sysinfo.swap_usage') }})</div>
+        <div class="col2">/</div>
+        <div class="col3">{{ data.swap_usage?.total }}</div>
+        <div class="col4"></div>
+      </div>
+      <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.storage') }}</div>
+        <div class="colspan mb-6">
+          <a-table
+            :columns="storageColumns"
+            :data="data.storage || []"
+            :pagination="false"
+          >
+            <template #rate="{ record }">
+              <a-tag
+                :color="getStorageUsedColor(record.used_rate)"
+                class="italic"
+              >
+                {{ record.used_rate }}%
+              </a-tag>
+            </template>
+          </a-table>
+        </div>
       </div>
     </div>
-    <div class="line">
-      <div class="col1">(交换空间)</div>
-      <div class="col2">/</div>
-      <div class="col3">40G</div>
-      <div class="col4"></div>
-    </div>
-    <div class="line">
-      <div class="col1">存储空间</div>
-      <div class="colspan mb-6">
-        <a-table :columns="mountColumns" :data="mountData" :pagination="false">
-          <template #rate="{ record }">
-            <a-tag :color="record.rate >= 80 ? 'orangered' : 'green'">
-              {{ record.rate }} %
-            </a-tag>
-          </template>
-        </a-table>
-      </div>
-    </div>
-  </div>
+  </a-spin>
 </template>
 
 <script lang="ts" setup>
-  const mountColumns = [
+  import { useI18n } from 'vue-i18n';
+  import { onMounted, reactive } from 'vue';
+  import { formatSeconds, formatTime } from '@/utils/format';
+  import useLoading from '@/hooks/loading';
+  import { getSysInfoOverviewtApi, SysInfoOverviewRes } from '@/api/sysinfo';
+
+  const { t } = useI18n();
+
+  const storageColumns = [
     {
-      title: '挂载点',
-      dataIndex: 'mount',
-      width: 120,
+      title: t('app.sysinfo.storage_mount_point'),
+      dataIndex: 'name',
+      width: 200,
     },
     {
-      title: '总大小',
+      title: t('app.sysinfo.storage_total'),
       dataIndex: 'total',
       width: 120,
     },
     {
-      title: '已使用',
+      title: t('app.sysinfo.storage_used'),
       dataIndex: 'used',
       width: 120,
     },
     {
-      title: '剩余可用',
+      title: t('app.sysinfo.storage_free'),
       dataIndex: 'free',
       width: 120,
     },
     {
-      title: '使用率',
-      dataIndex: 'rate',
+      title: t('app.sysinfo.storage_used_rate'),
+      dataIndex: 'used_rate',
       slotName: 'rate',
       width: 120,
     },
   ];
-  const mountData = [
-    {
-      mount: '/',
-      total: '40G',
-      used: '5.2G',
-      free: '33G',
-      rate: 13.12,
+  const data = reactive<Partial<SysInfoOverviewRes>>({
+    server_time: '2024-12-12 23:02:03',
+    server_time_zone: 'Asia/Shanghai',
+    boot_time: '2024-12-12 13:49:36',
+    run_time: 83211,
+    idle_time: 86548,
+    cpu_usage: '0.75%',
+    current_load: {
+      process_count1: 2,
+      process_count5: 5,
+      process_count15: 6,
     },
-  ];
+    memory_usage: {
+      physical: '1.63G',
+      kernel: '191.39M',
+      total: '1.46G',
+      free: '759.88M',
+      free_rate: 56.07,
+      used: '734.97M',
+      used_rate: 43.93,
+      buffered: '64.00M',
+      cached: '778.39M',
+      real_used: '734.97M',
+    },
+    swap_usage: {
+      total: '0B',
+      free: '0B',
+      free_rate: 100,
+      used: '0B',
+      used_rate: 0,
+    },
+    storage: [
+      {
+        name: '/',
+        total: '39.01G',
+        free: '30.38G',
+        used: '6.82G',
+        used_rate: 18.34,
+      },
+      {
+        name: '/snap/lxd/22923',
+        total: '80.00M',
+        free: '0B',
+        used: '80.00M',
+        used_rate: 100,
+      },
+      {
+        name: '/snap/core20/1405',
+        total: '62.00M',
+        free: '0B',
+        used: '62.00M',
+        used_rate: 100,
+      },
+      {
+        name: '/boot/efi',
+        total: '196.89M',
+        free: '190.84M',
+        used: '6.05M',
+        used_rate: 3.07,
+      },
+      {
+        name: '/snap/snapd/23258',
+        total: '44.38M',
+        free: '0B',
+        used: '44.38M',
+        used_rate: 100,
+      },
+      {
+        name: '/snap/core20/2434',
+        total: '63.75M',
+        free: '0B',
+        used: '63.75M',
+        used_rate: 100,
+      },
+      {
+        name: '/snap/lxd/31333',
+        total: '89.50M',
+        free: '0B',
+        used: '89.50M',
+        used_rate: 100,
+      },
+    ],
+  });
+
+  const getStorageUsedColor = (rate: number) => {
+    if (rate >= 80) {
+      return 'blue';
+    }
+    if (rate >= 60) {
+      return 'cyan';
+    }
+    return 'green';
+  };
+
+  const { loading, setLoading } = useLoading(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await getSysInfoOverviewtApi();
+      Object.assign(data, res);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  onMounted(() => {
+    load();
+  });
 </script>
 
 <style lang="less" scoped>

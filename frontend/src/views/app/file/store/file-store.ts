@@ -7,6 +7,7 @@ const useFileStore = defineStore('file-manage', {
     current: null as FileItem | null,
     tree: [] as FileItem[],
     addressItems: [] as FileItem[],
+    showHidden: false,
     selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
@@ -20,28 +21,13 @@ const useFileStore = defineStore('file-manage', {
   },
   actions: {
     initTree() {
-      // getFileListApi().then((res) => {
-      //   this.$state.tree = res.items;
-      // });
-      window.setTimeout(() => {
-        this.$state.tree = [
-          {
-            path: 'idb-prd/apps/my-sql/aaa',
-            name: 'aaa',
-            is_dir: true,
-            loading: false,
-          },
-          {
-            path: 'idb-prd/apps/my-sql/aab',
-            name: 'aab',
-            is_dir: true,
-          },
-          {
-            path: 'idb-prd/apps/my-sql/aac',
-            name: 'aac',
-          },
-        ] as FileItem[];
-      }, 1000);
+      getFileListApi({
+        page: 1,
+        page_size: 100,
+        show_hidden: this.$state.showHidden,
+      }).then((res) => {
+        this.$state.tree = res.items;
+      });
     },
     getItemByPath(path: string) {
       function findItemByPath(
@@ -95,31 +81,16 @@ const useFileStore = defineStore('file-manage', {
     },
     async loadTreeChildren(treeItem: FileItem) {
       treeItem.loading = true;
-      // const data = await getFileListApi();
-      // treeItem.items = data.items;
-      // Object.assign(treeItem, { open: true });
-      // Object.assign(treeItem, { loading: false });
-      // this.$state.tree = [...this.$state.tree];
-
-      window.setTimeout(() => {
-        Object.assign(treeItem, {
-          items: [
-            {
-              name: treeItem.name + '-1',
-              path: treeItem.path + '/' + treeItem.name + '-1',
-              is_dir: true,
-            },
-            {
-              name: treeItem.name + '-2',
-              path: treeItem.path + '/' + treeItem.name + '-2',
-              is_dir: true,
-            },
-          ],
-        });
-        Object.assign(treeItem, { open: true });
-        Object.assign(treeItem, { loading: false });
-        this.$state.tree = [...this.$state.tree];
-      }, 1000);
+      const data = await getFileListApi({
+        page: 1,
+        page_size: 100,
+        show_hidden: this.$state.showHidden,
+        path: treeItem.path,
+      });
+      treeItem.items = data.items;
+      Object.assign(treeItem, { open: true });
+      Object.assign(treeItem, { loading: false });
+      this.$state.tree = [...this.$state.tree];
     },
     handleTreeItemSelect(treeItem: FileItem) {
       if (this.$state.current?.path !== treeItem?.path) {
@@ -151,19 +122,21 @@ const useFileStore = defineStore('file-manage', {
         this.$state.addressItems = [];
         return;
       }
+
+      // todo
       window.setTimeout(() => {
-        this.$state.addressItems = [
-          {
-            name: payload.word + '-1',
-            path: payload.path + '/' + payload.word + '-1',
-            is_dir: true,
-          },
-          {
-            name: payload.word + '-2',
-            path: payload.path + '/' + payload.word + '-2',
-            is_dir: true,
-          },
-        ] as any[];
+        // this.$state.addressItems = [
+        //   {
+        //     name: payload.word + '-1',
+        //     path: payload.path + '/' + payload.word + '-1',
+        //     is_dir: true,
+        //   },
+        //   {
+        //     name: payload.word + '-2',
+        //     path: payload.path + '/' + payload.word + '-2',
+        //     is_dir: true,
+        //   },
+        // ] as any[];
       }, 1000);
     },
     handleOpen(item: FileItem) {
@@ -182,7 +155,9 @@ const useFileStore = defineStore('file-manage', {
       this.handleTreeItemSelect(treeItem || item);
     },
     async handleGoto(path: string) {
-      const item = await getFileInfoApi({ path });
+      const item = await getFileInfoApi({
+        path,
+      });
       if (item?.is_dir) {
         this.handleOpen(item);
         this.$state.current = item;

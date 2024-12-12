@@ -13,6 +13,11 @@ export interface ApiResponse<T = unknown> {
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
+let apiHostId: number | undefined;
+export function setApiHostId(hostId?: number) {
+  apiHostId = hostId;
+}
+
 axios.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     // let each request carry token
@@ -20,6 +25,9 @@ axios.interceptors.request.use(
     // Authorization is a custom headers key
     // please modify it according to the actual situation
     const token = getToken();
+    if (config.url && config.url.indexOf(':host') !== -1 && apiHostId) {
+      config.url = config.url.replace(':host', String(apiHostId));
+    }
     if (token) {
       if (!config.headers) {
         config.headers = {};

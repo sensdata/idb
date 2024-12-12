@@ -55,12 +55,21 @@
 </template>
 
 <script lang="ts" setup>
+  import { reactive } from 'vue';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
 
   defineProps<{
     collapsed: boolean;
   }>();
+
+  const state = reactive({
+    cpu_usage: '',
+    cpu_total: '',
+    memory_usage: '',
+    memory_total: '',
+  });
+
 </script>
 
 <style scoped lang="less">

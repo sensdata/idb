@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { getHostListApi } from '@/api/host';
 import { HostEntity } from '@/entity/Host';
+import { setApiHostId } from '@/helper/api-helper';
 import { HostState } from './types';
 
 const useHostStore = defineStore('host', {
@@ -30,9 +31,10 @@ const useHostStore = defineStore('host', {
         this.setCurrentId(items[0]?.id);
       }
     },
-    setCurrentId(hostId: number) {
+    setCurrentId(hostId?: number) {
       this.currentId = hostId;
       this.current = this.items.find((item) => item.id === hostId);
+      setApiHostId(hostId);
     },
   },
 });

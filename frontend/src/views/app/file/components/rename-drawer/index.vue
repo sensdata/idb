@@ -4,19 +4,18 @@
     :visible="visible"
     :title="$t('app.file.renameDrawer.title')"
     unmountOnClose
-    @ok="handleOk"
+    :ok-loading="loading"
+    @before-ok="handleBeforeOk"
     @cancel="handleCancel"
   >
-    <a-spin :loading="loading" style="width: 100%">
-      <a-form :model="formState" :rules="rules">
-        <a-form-item field="path" :label="$t('app.file.renameDrawer.path')">
-          <span>{{ pwd }}</span>
-        </a-form-item>
-        <a-form-item field="name" :label="$t('app.file.renameDrawer.name')">
-          <a-input v-model="formState.name" />
-        </a-form-item>
-      </a-form>
-    </a-spin>
+    <a-form ref="formRef" :model="formState" :rules="rules">
+      <a-form-item field="path" :label="$t('app.file.renameDrawer.path')">
+        <span>{{ pwd }}</span>
+      </a-form-item>
+      <a-form-item field="name" :label="$t('app.file.renameDrawer.name')">
+        <a-input v-model="formState.name" />
+      </a-form-item>
+    </a-form>
   </a-drawer>
 </template>
 
@@ -26,10 +25,11 @@
   import useLoading from '@/hooks/loading';
   import { renameFileApi } from '@/api/file';
 
-  const emit = defineEmits(['success']);
+  const emit = defineEmits(['ok']);
 
   const { t } = useI18n();
 
+  const formRef = ref();
   const formState = reactive({
     path: '',
     name: '',
@@ -49,9 +49,19 @@
 
   const setData = (data: { path: string }) => {
     formState.path = data.path;
+    formState.name = data.path.split('/').pop() || '';
   };
 
-  const handleOk = async () => {
+  const validate = async () => {
+    return formRef.value?.validate().then((errors: any) => {
+      return !errors;
+    });
+  };
+
+  const handleBeforeOk = async (done: any) => {
+    if (!(await validate())) {
+      return false;
+    }
     setLoading(true);
     try {
       await renameFileApi({
@@ -59,10 +69,13 @@
         name: formState.name,
       });
       visible.value = false;
-      emit('success');
+      done();
+      emit('ok');
     } finally {
       setLoading(false);
     }
+
+    return false;
   };
   const handleCancel = () => {
     visible.value = false;

@@ -10,6 +10,11 @@ export default {
 
   'common.request.timeout': '请求超时，请稍后重试',
 
+  'common.timeFormat.days': '{days}天',
+  'common.timeFormat.hours': '{hours}小时',
+  'common.timeFormat.minutes': '{minutes}分',
+  'common.timeFormat.seconds': '{seconds}秒',
+
   'common.yes': '是',
   'common.no': '否',
   'common.all': '全部',

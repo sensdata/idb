@@ -9,6 +9,9 @@ export default function usetCurrentHost() {
   const currentHostId = computed(() => {
     return +(route.query.id || hostStore.currentId || '') || undefined;
   });
+  if (currentHostId.value !== hostStore.currentId) {
+    hostStore.setCurrentId(currentHostId.value);
+  }
   return {
     currentHostId,
     switchHost: (id: number, redirect = false) => {
