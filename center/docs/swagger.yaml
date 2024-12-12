@@ -542,6 +542,7 @@ definitions:
     required:
     - dest
     - sources
+    - type
     type: object
   model.FileRename:
     properties:
@@ -1241,6 +1242,16 @@ definitions:
         description: 使用率
         type: number
     type: object
+  model.SwitchOptions:
+    properties:
+      option:
+        enum:
+        - nftables
+        - iptables
+        type: string
+    required:
+    - option
+    type: object
   model.SystemConfig:
     properties:
       max_opend_files:
@@ -1304,6 +1315,16 @@ definitions:
     - auth_mode
     - port
     - user
+    type: object
+  model.ToggleOptions:
+    properties:
+      option:
+        enum:
+        - "on"
+        - "off"
+        type: string
+    required:
+    - option
     type: object
   model.TrafficInfo:
     properties:
@@ -4410,6 +4431,397 @@ paths:
       summary: Get plugin menu
       tags:
       - Logrotate
+  /nftables/{host}/conf:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete conf file
+      tags:
+      - NFTable
+    get:
+      consumes:
+      - application/json
+      description: Get custom NFTable conf file list in work dir
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List NFTable conf files
+      tags:
+      - NFTable
+  /nftables/{host}/conf/action:
+    post:
+      consumes:
+      - application/json
+      description: Execute conf actions
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceAction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Execute conf actions
+      tags:
+      - NFTable
+  /nftables/{host}/conf/diff:
+    get:
+      consumes:
+      - application/json
+      description: Get conf diff compare to specfied version
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Commit hash
+        in: query
+        name: commit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf diff
+      tags:
+      - NFTable
+  /nftables/{host}/conf/log:
+    get:
+      consumes:
+      - application/json
+      description: Get histories of a conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get conf histories
+      tags:
+      - NFTable
+  /nftables/{host}/conf/raw:
+    get:
+      consumes:
+      - application/json
+      description: Get content of a conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Conf file name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get conf file content
+      tags:
+      - NFTable
+    post:
+      consumes:
+      - application/json
+      description: Create a new conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf file creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create conf file
+      tags:
+      - NFTable
+    put:
+      consumes:
+      - application/json
+      description: Save the content of a conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf file edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Save conf file content
+      tags:
+      - NFTable
+  /nftables/{host}/conf/restore:
+    put:
+      consumes:
+      - application/json
+      description: Restore conf file to specified version
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf file restore details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RestoreGitFile'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restore conf file
+      tags:
+      - NFTable
+  /nftables/{host}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install nftables
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Install nftables
+      tags:
+      - NFTable
+  /nftables/{host}/switch/to:
+    post:
+      consumes:
+      - application/json
+      description: Switch to nftables or iptables
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Switch details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SwitchOptions'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Switch to nftables or iptables
+      tags:
+      - NFTable
+  /nftables/{host}/toggle:
+    post:
+      consumes:
+      - application/json
+      description: toggle nftables
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Toggle details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ToggleOptions'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Toggle nftables
+      tags:
+      - NFTable
+  /nftables/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - NFTable
+  /nftables/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - NFTable
   /scripts:
     delete:
       consumes:

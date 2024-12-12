@@ -4359,6 +4359,591 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/nftables/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf": {
+            "get": {
+                "description": "Get custom NFTable conf file list in work dir",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "List NFTable conf files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Delete conf file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf/action": {
+            "post": {
+                "description": "Execute conf actions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Execute conf actions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf action details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceAction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf/diff": {
+            "get": {
+                "description": "Get conf diff compare to specfied version",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Get conf diff",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Conf file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Commit hash",
+                        "name": "commit",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf/log": {
+            "get": {
+                "description": "Get histories of a conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Get conf histories",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Conf file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf/raw": {
+            "get": {
+                "description": "Get content of a conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Get conf file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Conf file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Save the content of a conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Save conf file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf file edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Create conf file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf file creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/conf/restore": {
+            "put": {
+                "description": "Restore conf file to specified version",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Restore conf file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf file restore details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RestoreGitFile"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/install": {
+            "post": {
+                "description": "Install nftables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Install nftables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/switch/to": {
+            "post": {
+                "description": "Switch to nftables or iptables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Switch to nftables or iptables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Switch details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SwitchOptions"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/toggle": {
+            "post": {
+                "description": "toggle nftables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFTable"
+                ],
+                "summary": "Toggle nftables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Toggle details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ToggleOptions"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/scripts": {
             "put": {
                 "description": "Update the content of a script file",
@@ -7328,7 +7913,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "dest",
-                "sources"
+                "sources",
+                "type"
             ],
             "properties": {
                 "cover": {
@@ -8395,6 +8981,21 @@ const docTemplate = `{
                 }
             }
         },
+        "model.SwitchOptions": {
+            "type": "object",
+            "required": [
+                "option"
+            ],
+            "properties": {
+                "option": {
+                    "type": "string",
+                    "enum": [
+                        "nftables",
+                        "iptables"
+                    ]
+                }
+            }
+        },
         "model.SystemConfig": {
             "type": "object",
             "properties": {
@@ -8484,6 +9085,21 @@ const docTemplate = `{
                 },
                 "user": {
                     "type": "string"
+                }
+            }
+        },
+        "model.ToggleOptions": {
+            "type": "object",
+            "required": [
+                "option"
+            ],
+            "properties": {
+                "option": {
+                    "type": "string",
+                    "enum": [
+                        "on",
+                        "off"
+                    ]
                 }
             }
         },
