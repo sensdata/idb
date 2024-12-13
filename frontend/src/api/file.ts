@@ -45,10 +45,11 @@ export function createFileApi(data: CreateFileParams) {
 }
 
 // todo: api
-// 1. 确认force_delete是不是永久删除
+// 1. permanently_delete待实现
 export interface DeleteFileParams {
   source: string;
   force_delete: boolean;
+  permanently_delete?: boolean;
   is_dir: boolean;
 }
 export function deleteFileApi(data: DeleteFileParams) {
@@ -57,9 +58,10 @@ export function deleteFileApi(data: DeleteFileParams) {
 
 // todo: api
 // 1. is_dir需要和路径一起
-// 2. 确认force_delete是不是永久删除
+// 2. permanently_delete待实现
 export interface BatchDeleteFileParams {
   force_delete?: boolean;
+  permanently_delete?: boolean;
   sources: Array<{
     path: string;
     is_dir: boolean;

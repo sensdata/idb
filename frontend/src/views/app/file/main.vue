@@ -208,7 +208,6 @@
   import {
     computed,
     GlobalComponents,
-    h,
     onMounted,
     ref,
     unref,
@@ -451,9 +450,9 @@
     position: relative;
     min-height: calc(100vh - 240px);
     margin-top: 20px;
+    padding-left: 240px;
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
-    padding-left: 240px;
   }
 
   .file-sidebar {

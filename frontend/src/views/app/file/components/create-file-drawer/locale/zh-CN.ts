@@ -8,4 +8,5 @@ export default {
   'app.file.createFileDrawer.link_path': '链接路径',
   'app.file.createFileDrawer.name_required': '请输入文件名称',
   'app.file.createFileDrawer.link_path_required': '请输入链接路径',
+  'app.file.createFileDrawer.success': '创建成功',
 };

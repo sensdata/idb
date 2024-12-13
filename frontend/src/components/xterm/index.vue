@@ -43,29 +43,27 @@
       cursorBlink: true,
       scrollback: 100,
     });
-    // attachRef.value = new AttachAddon(wsRef.value!);
+    attachRef.value = new AttachAddon(wsRef.value!);
     fitRef.value = new FitAddon();
-    // termRef.value.loadAddon(attachRef.value);
+    termRef.value.loadAddon(attachRef.value);
     termRef.value.loadAddon(fitRef.value);
     termRef.value.open(domRef.value!);
     fitRef.value.fit();
-    termRef.value.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
     addResizeListener();
   }
 
   function initWs() {
-    initTerminal();
-    // wsRef.value = new WebSocket(
-    //   `ws://${window.location.host}/ws/terminnals?host_id=${props.hostId}`
-    // );
-    // wsRef.value.onopen = () => {
-    //   initTerminal();
-    // };
-    // wsRef.value.onerror = (e) => {
-    //   // eslint-disable-next-line no-console
-    //   console.warn('WebSocket error', e);
-    //   Message.error(t('components.xterm.connectError'));
-    // };
+    wsRef.value = new WebSocket(
+      `ws://8.138.47.21:9918/api/v1/ws/terminals?host_id=${props.hostId}`
+    );
+    wsRef.value.onopen = () => {
+      initTerminal();
+    };
+    wsRef.value.onerror = (e) => {
+      // eslint-disable-next-line no-console
+      console.warn('WebSocket error', e);
+      Message.error(t('components.xterm.connectError'));
+    };
   }
 
   function disconnectWs() {

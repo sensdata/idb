@@ -18,15 +18,6 @@ const routerLocales: LocaleModules = import.meta.glob('../router/**/zh-CN.ts', {
 });
 
 export default {
-  'menu.dashboard': '仪表盘',
-  'menu.profile': '个人中心',
-  'menu.faq': '常见问题',
-  'menu.manage.host': '节点管理',
-  'menu.manage.host.list': '节点列表',
-  'menu.app.sysinfo': '系统信息',
-  'menu.app.sysinfo.overview': '状态概览',
-  'menu.app.file': '文件管理',
-  'menu.app.test': '测试',
   'navbar.docs': '文档中心',
   'navbar.action.locale': '切换为中文',
   ...localeMessageBox,

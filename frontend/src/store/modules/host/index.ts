@@ -13,7 +13,7 @@ const useHostStore = defineStore('host', {
 
   getters: {
     default(): HostEntity {
-      return this.items.find((item) => item.is_default)!;
+      return this.items.find((item) => item.is_default) || this.items[0];
     },
   },
 

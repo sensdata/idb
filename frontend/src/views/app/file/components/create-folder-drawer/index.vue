@@ -62,11 +62,12 @@
 
 <script lang="ts" setup>
   import { reactive, ref, watch } from 'vue';
+  import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/hooks/loading';
   import { createFileApi } from '@/api/file';
 
-  const emit = defineEmits(['success']);
+  const emit = defineEmits(['ok']);
 
   const { t } = useI18n();
 
@@ -182,7 +183,8 @@
           : {}),
       });
       visible.value = false;
-      emit('success');
+      Message.success(t('app.file.createFolderDrawer.success'));
+      emit('ok');
     } finally {
       setLoading(false);
     }

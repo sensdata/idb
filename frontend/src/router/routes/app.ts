@@ -37,6 +37,16 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/app/terminal',
+    name: 'appTerminal',
+    component: () => import('@/views/app/terminal/main.vue'),
+    meta: {
+      locale: 'menu.app.terminal',
+      requiresAuth: true,
+      icon: 'icon-code-square',
+    },
+  },
+  {
     path: '/app/test',
     name: 'appTest',
     meta: {

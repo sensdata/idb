@@ -22,6 +22,7 @@
 <script lang="ts" setup>
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
   import useLoading from '@/hooks/loading';
   import { renameFileApi } from '@/api/file';
 
@@ -69,6 +70,7 @@
         name: formState.name,
       });
       visible.value = false;
+      Message.success(t('app.file.renameDrawer.success'));
       done();
       emit('ok');
     } finally {

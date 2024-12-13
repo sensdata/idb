@@ -7,9 +7,14 @@
     @cancel="handleCancel"
   >
     <a-alert type="warning">{{ $t('app.file.deleteFileModal.alert') }}</a-alert>
-    <div class="mt-4 mb-2">
+    <div class="mt-4">
       <a-checkbox v-model="formState.force_delete">
         {{ $t('app.file.deleteFileModal.force_delete') }}
+      </a-checkbox>
+    </div>
+    <div class="mt-4 mb-2">
+      <a-checkbox v-model="formState.permanently_delete">
+        {{ $t('app.file.deleteFileModal.permanently_delete') }}
       </a-checkbox>
     </div>
     <div class="list">
@@ -35,7 +40,7 @@
   import { batchDeleteFileApi } from '@/api/file';
   import { pick } from 'lodash';
 
-  const emit = defineEmits(['success']);
+  const emit = defineEmits(['ok']);
 
   const visible = ref(false);
   const formState = reactive({
@@ -45,12 +50,14 @@
       is_dir: boolean;
     }>,
     force_delete: false,
+    permanently_delete: false,
   });
 
   const { loading, setLoading } = useLoading(false);
 
   const setData = (files: FileInfoEntity[]) => {
     formState.sources = files.slice(0);
+    formState.permanently_delete = false;
     formState.force_delete = false;
   };
 
@@ -58,13 +65,14 @@
     setLoading(true);
     try {
       await batchDeleteFileApi({
+        permanently_delete: formState.permanently_delete,
         force_delete: formState.force_delete,
         sources: formState.sources.map((source) =>
           pick(source, ['path', 'is_dir'])
         ),
       });
       visible.value = false;
-      emit('success');
+      emit('ok');
     } finally {
       setLoading(false);
     }

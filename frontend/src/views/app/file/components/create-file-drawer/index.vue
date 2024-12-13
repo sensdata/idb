@@ -46,10 +46,11 @@
 <script lang="ts" setup>
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
   import useLoading from '@/hooks/loading';
   import { createFileApi } from '@/api/file';
 
-  const emit = defineEmits(['success']);
+  const emit = defineEmits(['ok']);
 
   const { t } = useI18n();
 
@@ -90,7 +91,8 @@
         link_path: formState.link_path,
       });
       visible.value = false;
-      emit('success');
+      Message.success(t('app.file.createFileDrawer.success'));
+      emit('ok');
     } finally {
       setLoading(false);
     }

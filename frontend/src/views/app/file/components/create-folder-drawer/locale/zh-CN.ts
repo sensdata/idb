@@ -11,4 +11,5 @@ export default {
   'app.file.createFolderDrawer.mode': '权限码',
   'app.file.createFolderDrawer.name_required': '请输入文件名称',
   'app.file.createFolderDrawer.mode_error': '权限错误',
+  'app.file.createFolderDrawer.success': '创建成功',
 };

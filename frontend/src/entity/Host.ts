@@ -19,6 +19,7 @@ export interface HostEntity extends BaseEntity {
   agent_mode: string;
   agent_key: string;
 
+  // todo: 需要新增
   is_default?: boolean;
   cpu_rate: number;
   memory_rate: number;
