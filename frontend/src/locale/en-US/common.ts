@@ -15,6 +15,9 @@ export default {
   'common.timeFormat.minutes': '{minutes} minutes ',
   'common.timeFormat.seconds': '{seconds} seconds ',
 
+  'common.edit': 'Edit',
+  'common.delete': 'Delete',
+
   'common.yes': 'Yes',
   'common.no': 'No',
   'common.all': 'All',

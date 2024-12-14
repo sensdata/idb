@@ -47,6 +47,16 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/app/script',
+    name: 'appScript',
+    component: () => import('@/views/app/script/main.vue'),
+    meta: {
+      locale: 'menu.app.script',
+      requiresAuth: true,
+      icon: '<icon-code />',
+    },
+  },
+  {
     path: '/app/test',
     name: 'appTest',
     meta: {

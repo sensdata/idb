@@ -15,6 +15,9 @@ export default {
   'common.timeFormat.minutes': '{minutes}分',
   'common.timeFormat.seconds': '{seconds}秒',
 
+  'common.edit': '编辑',
+  'common.delete': '删除',
+
   'common.yes': '是',
   'common.no': '否',
   'common.all': '全部',
