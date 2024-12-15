@@ -925,7 +925,7 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id quey int true "Container ID"
+// @Param id query int true "Container ID"
 // @Success 200 {object} model.ContainerOperate
 // @Router /docker/{host}/containers/detail [get]
 func (s *DockerMan) ContainerInfo(c *gin.Context) {

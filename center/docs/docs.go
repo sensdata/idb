@@ -1148,6 +1148,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/docker/{host}/containers/detail": {
+            "get": {
+                "description": "Get detail of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get Container info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerOperate"
+                        }
+                    }
+                }
+            }
+        },
         "/docker/{host}/containers/limit": {
             "get": {
                 "description": "Get container resource usage list",
@@ -1176,6 +1215,77 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.ContainerResourceLimit"
                         }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/log": {
+            "get": {
+                "description": "Get container log",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get container log",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Clean container log",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Clean Container log",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -1288,6 +1398,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/docker/{host}/containers/stats": {
+            "get": {
+                "description": "Get stats of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get Container stats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ContainerStats"
+                        }
+                    }
+                }
+            }
+        },
         "/docker/{host}/containers/upgrade": {
             "post": {
                 "description": "Upgrade container",
@@ -1353,155 +1502,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/{host}/containers/{id}": {
-            "get": {
-                "description": "Get detail of the specified container",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get Container info",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Container ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.ContainerOperate"
-                        }
-                    }
-                }
-            }
-        },
-        "/docker/{host}/containers/{id}/log": {
-            "get": {
-                "description": "Get container log",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get container log",
-                "deprecated": true,
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Container ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
-            "delete": {
-                "description": "Clean container log",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Clean Container log",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Container ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/docker/{host}/containers/{id}/stats": {
-            "get": {
-                "description": "Get stats of the specified container",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Docker"
-                ],
-                "summary": "Get Container stats",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Container ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.ContainerStats"
                         }
                     }
                 }
@@ -2496,6 +2496,12 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "boolean",
+                        "description": "Show hidden files",
+                        "name": "show_hidden",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Page",
                         "name": "page",
@@ -2590,12 +2596,6 @@ const docTemplate = `{
                         "description": "Force delete flag",
                         "name": "force_delete",
                         "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Is directory flag",
-                        "name": "is_dir",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2647,9 +2647,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/{host}/batch/role": {
+        "/files/{host}/batch/mode": {
             "put": {
-                "description": "Batch modify file permissions and user/group",
+                "description": "Batch modify file mode",
                 "consumes": [
                     "application/json"
                 ],
@@ -2659,7 +2659,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Batch change file mode and owner",
+                "summary": "Batch change file mode",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2669,7 +2669,45 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Batch file mode and owner change request",
+                        "description": "Batch file mode request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.FileModeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/files/{host}/batch/owner": {
+            "put": {
+                "description": "Batch modify file owner",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Batch change file owner",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Batch file owner change request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2833,6 +2871,48 @@ const docTemplate = `{
                 }
             }
         },
+        "/files/{host}/detail": {
+            "get": {
+                "description": "Get detail of a file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get file defail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Directory path (default is root directory)",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.FileInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/files/{host}/download": {
             "get": {
                 "description": "Download a file from a specific host and path",
@@ -2952,9 +3032,7 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/files/{host}/favorites/{id}": {
+            },
             "delete": {
                 "description": "Delete a favorite",
                 "consumes": [
@@ -2979,7 +3057,7 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Favorite ID",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -3317,6 +3395,35 @@ const docTemplate = `{
                     }
                 }
             },
+            "put": {
+                "description": "更新组",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Group"
+                ],
+                "summary": "update group",
+                "parameters": [
+                    {
+                        "description": "group edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
             "post": {
                 "description": "创建组",
                 "consumes": [
@@ -3348,44 +3455,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/groups/{id}": {
-            "put": {
-                "description": "更新组",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Group"
-                ],
-                "summary": "update group",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Group ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateGroup"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
             },
             "delete": {
                 "description": "删除组",
@@ -3404,7 +3473,7 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Group ID",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -3462,6 +3531,42 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
                         }
+                    }
+                }
+            },
+            "put": {
+                "description": "更新设备",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "update host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHost"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             },
@@ -3537,45 +3642,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{id}": {
-            "put": {
-                "description": "更新设备",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Host"
-                ],
-                "summary": "update host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateHost"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/hosts/{id}/agent": {
+        "/hosts/{host}/agent": {
             "put": {
                 "description": "更新设备agent配置",
                 "consumes": [
@@ -3592,7 +3659,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -3613,7 +3680,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{id}/install/agent": {
+        "/hosts/{host}/install/agent": {
             "post": {
                 "description": "在设备上安装 agent",
                 "consumes": [
@@ -3630,7 +3697,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     }
@@ -3642,7 +3709,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{id}/ssh": {
+        "/hosts/{host}/ssh": {
             "put": {
                 "description": "更新设备ssh配置",
                 "consumes": [
@@ -3659,7 +3726,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -3680,7 +3747,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{id}/test/agent": {
+        "/hosts/{host}/test/agent": {
             "post": {
                 "description": "测试设备 agent",
                 "consumes": [
@@ -3697,7 +3764,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -3718,7 +3785,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{id}/test/ssh": {
+        "/hosts/{host}/test/ssh": {
             "post": {
                 "description": "测试设备ssh",
                 "consumes": [
@@ -3735,7 +3802,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Host ID",
-                        "name": "id",
+                        "name": "host",
                         "in": "path",
                         "required": true
                     },
@@ -6456,21 +6523,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/store/apps/sync": {
-            "post": {
-                "description": "同步应用列表",
-                "tags": [
-                    "App"
-                ],
-                "summary": "Sync app list",
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/store/apps/{id}": {
+        "/store/apps/detail": {
             "get": {
                 "description": "Get app detail",
                 "tags": [
@@ -6482,10 +6535,24 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "App ID",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/apps/sync": {
+            "post": {
+                "description": "同步应用列表",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Sync app list",
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -6889,6 +6956,35 @@ const docTemplate = `{
                     }
                 }
             },
+            "put": {
+                "description": "更新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "update user",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
             "post": {
                 "description": "新增用户",
                 "consumes": [
@@ -6920,44 +7016,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/users/{id}": {
-            "put": {
-                "description": "更新用户",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "update user",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateUser"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
             },
             "delete": {
                 "description": "删除用户",
@@ -6976,7 +7034,7 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "User ID",
                         "name": "id",
-                        "in": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -6987,7 +7045,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}/password": {
+        "/users/password": {
             "put": {
                 "description": "更新密码",
                 "consumes": [
@@ -7001,13 +7059,6 @@ const docTemplate = `{
                 ],
                 "summary": "update password",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "request",
                         "name": "request",
@@ -7025,7 +7076,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}/valid": {
+        "/users/valid": {
             "put": {
                 "description": "禁用/启用用户",
                 "consumes": [
@@ -7039,13 +7090,6 @@ const docTemplate = `{
                 ],
                 "summary": "valid user",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "description": "request",
                         "name": "request",
@@ -7220,6 +7264,9 @@ const docTemplate = `{
                 "password"
             ],
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "password": {
                     "type": "string"
                 }
@@ -7909,6 +7956,27 @@ const docTemplate = `{
                 }
             }
         },
+        "model.FileModeReq": {
+            "type": "object",
+            "required": [
+                "mode",
+                "sources"
+            ],
+            "properties": {
+                "mode": {
+                    "type": "integer"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sub": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.FileMove": {
             "type": "object",
             "required": [
@@ -7956,16 +8024,12 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "group",
-                "mode",
                 "sources",
                 "user"
             ],
             "properties": {
                 "group": {
                     "type": "string"
-                },
-                "mode": {
-                    "type": "integer"
                 },
                 "sources": {
                     "type": "array",
@@ -9162,6 +9226,9 @@ const docTemplate = `{
             "properties": {
                 "group_name": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 }
             }
         },
@@ -9173,6 +9240,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "group_id": {
+                    "type": "integer"
+                },
+                "id": {
                     "type": "integer"
                 },
                 "name": {
@@ -9270,6 +9340,9 @@ const docTemplate = `{
                 "group_id": {
                     "type": "integer"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -9304,6 +9377,9 @@ const docTemplate = `{
         "model.ValidUser": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "valid": {
                     "type": "integer"
                 }

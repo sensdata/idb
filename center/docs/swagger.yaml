@@ -64,6 +64,8 @@ definitions:
     type: object
   model.ChangePassword:
     properties:
+      id:
+        type: integer
       password:
         type: string
     required:
@@ -525,6 +527,20 @@ definitions:
       user:
         type: string
     type: object
+  model.FileModeReq:
+    properties:
+      mode:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      sub:
+        type: boolean
+    required:
+    - mode
+    - sources
+    type: object
   model.FileMove:
     properties:
       cover:
@@ -558,8 +574,6 @@ definitions:
     properties:
       group:
         type: string
-      mode:
-        type: integer
       sources:
         items:
           type: string
@@ -570,7 +584,6 @@ definitions:
         type: string
     required:
     - group
-    - mode
     - sources
     - user
     type: object
@@ -1366,12 +1379,16 @@ definitions:
     properties:
       group_name:
         type: string
+      id:
+        type: integer
     required:
     - group_name
     type: object
   model.UpdateHost:
     properties:
       group_id:
+        type: integer
+      id:
         type: integer
       name:
         type: string
@@ -1437,6 +1454,8 @@ definitions:
     properties:
       group_id:
         type: integer
+      id:
+        type: integer
       name:
         type: string
       valid:
@@ -1463,6 +1482,8 @@ definitions:
     type: object
   model.ValidUser:
     properties:
+      id:
+        type: integer
       valid:
         type: integer
     type: object
@@ -2261,7 +2282,7 @@ paths:
       summary: Update Container
       tags:
       - Docker
-  /docker/{host}/containers/{id}:
+  /docker/{host}/containers/detail:
     get:
       consumes:
       - application/json
@@ -2273,7 +2294,7 @@ paths:
         required: true
         type: integer
       - description: Container ID
-        in: path
+        in: query
         name: id
         required: true
         type: integer
@@ -2287,7 +2308,28 @@ paths:
       summary: Get Container info
       tags:
       - Docker
-  /docker/{host}/containers/{id}/log:
+  /docker/{host}/containers/limit:
+    get:
+      consumes:
+      - application/json
+      description: Get container resource usage list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ContainerResourceLimit'
+      summary: Get container resource usage list
+      tags:
+      - Docker
+  /docker/{host}/containers/log:
     delete:
       consumes:
       - application/json
@@ -2299,7 +2341,7 @@ paths:
         required: true
         type: integer
       - description: Container ID
-        in: path
+        in: query
         name: id
         required: true
         type: integer
@@ -2323,7 +2365,7 @@ paths:
         required: true
         type: integer
       - description: Container ID
-        in: path
+        in: query
         name: id
         required: true
         type: integer
@@ -2333,53 +2375,6 @@ paths:
         "200":
           description: OK
       summary: Get container log
-      tags:
-      - Docker
-  /docker/{host}/containers/{id}/stats:
-    get:
-      consumes:
-      - application/json
-      description: Get stats of the specified container
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Container ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ContainerStats'
-      summary: Get Container stats
-      tags:
-      - Docker
-  /docker/{host}/containers/limit:
-    get:
-      consumes:
-      - application/json
-      description: Get container resource usage list
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ContainerResourceLimit'
-      summary: Get container resource usage list
       tags:
       - Docker
   /docker/{host}/containers/names:
@@ -2451,6 +2446,32 @@ paths:
         "200":
           description: OK
       summary: Rename container
+      tags:
+      - Docker
+  /docker/{host}/containers/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get stats of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ContainerStats'
+      summary: Get Container stats
       tags:
       - Docker
   /docker/{host}/containers/upgrade:
@@ -3159,10 +3180,6 @@ paths:
         in: query
         name: force_delete
         type: boolean
-      - description: Is directory flag
-        in: query
-        name: is_dir
-        type: boolean
       produces:
       - application/json
       responses:
@@ -3185,6 +3202,10 @@ paths:
         in: query
         name: path
         type: string
+      - description: Show hidden files
+        in: query
+        name: show_hidden
+        type: boolean
       - description: Page
         in: query
         name: page
@@ -3259,18 +3280,43 @@ paths:
       summary: Batch delete files
       tags:
       - File
-  /files/{host}/batch/role:
+  /files/{host}/batch/mode:
     put:
       consumes:
       - application/json
-      description: Batch modify file permissions and user/group
+      description: Batch modify file mode
       parameters:
       - description: Host ID
         in: path
         name: host
         required: true
         type: integer
-      - description: Batch file mode and owner change request
+      - description: Batch file mode request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.FileModeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Batch change file mode
+      tags:
+      - File
+  /files/{host}/batch/owner:
+    put:
+      consumes:
+      - application/json
+      description: Batch modify file owner
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Batch file owner change request
         in: body
         name: request
         required: true
@@ -3281,7 +3327,7 @@ paths:
       responses:
         "200":
           description: OK
-      summary: Batch change file mode and owner
+      summary: Batch change file owner
       tags:
       - File
   /files/{host}/compress:
@@ -3382,6 +3428,34 @@ paths:
       summary: Decompress file
       tags:
       - File
+  /files/{host}/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get detail of a file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Directory path (default is root directory)
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.FileInfo'
+            type: array
+      summary: Get file defail
+      tags:
+      - File
   /files/{host}/download:
     get:
       description: Download a file from a specific host and path
@@ -3407,6 +3481,29 @@ paths:
       tags:
       - File
   /files/{host}/favorites:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a favorite
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Favorite ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete a favorite
+      tags:
+      - File
     get:
       consumes:
       - application/json
@@ -3461,30 +3558,6 @@ paths:
           schema:
             $ref: '#/definitions/model.Favorite'
       summary: Collect a favorite file
-      tags:
-      - File
-  /files/{host}/favorites/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a favorite
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Favorite ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Delete a favorite
       tags:
       - File
   /files/{host}/mode:
@@ -3712,6 +3785,24 @@ paths:
       tags:
       - File
   /groups:
+    delete:
+      consumes:
+      - application/json
+      description: 删除组
+      parameters:
+      - description: Group ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete group
+      tags:
+      - Group
     get:
       consumes:
       - application/json
@@ -3758,36 +3849,12 @@ paths:
       summary: create group
       tags:
       - Group
-  /groups/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除组
-      parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: delete group
-      tags:
-      - Group
     put:
       consumes:
       - application/json
       description: 更新组
       parameters:
-      - description: Group ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: request
+      - description: group edit details
         in: body
         name: request
         required: true
@@ -3856,7 +3923,6 @@ paths:
       summary: create host
       tags:
       - Host
-  /hosts/{id}:
     put:
       consumes:
       - application/json
@@ -3881,7 +3947,7 @@ paths:
       summary: update host
       tags:
       - Host
-  /hosts/{id}/agent:
+  /hosts/{host}/agent:
     put:
       consumes:
       - application/json
@@ -3889,7 +3955,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: id
+        name: host
         required: true
         type: integer
       - description: request
@@ -3906,7 +3972,7 @@ paths:
       summary: update host agent config
       tags:
       - Host
-  /hosts/{id}/install/agent:
+  /hosts/{host}/install/agent:
     post:
       consumes:
       - application/json
@@ -3914,7 +3980,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: id
+        name: host
         required: true
         type: integer
       produces:
@@ -3925,7 +3991,7 @@ paths:
       summary: install agent on host
       tags:
       - Host
-  /hosts/{id}/ssh:
+  /hosts/{host}/ssh:
     put:
       consumes:
       - application/json
@@ -3933,7 +3999,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: id
+        name: host
         required: true
         type: integer
       - description: request
@@ -3950,7 +4016,7 @@ paths:
       summary: update host ssh config
       tags:
       - Host
-  /hosts/{id}/test/agent:
+  /hosts/{host}/test/agent:
     post:
       consumes:
       - application/json
@@ -3958,7 +4024,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: id
+        name: host
         required: true
         type: integer
       - description: request
@@ -3975,7 +4041,7 @@ paths:
       summary: test host agent
       tags:
       - Host
-  /hosts/{id}/test/ssh:
+  /hosts/{host}/test/ssh:
     post:
       consumes:
       - application/json
@@ -3983,7 +4049,7 @@ paths:
       parameters:
       - description: Host ID
         in: path
-        name: id
+        name: host
         required: true
         type: integer
       - description: request
@@ -5885,12 +5951,12 @@ paths:
       summary: Get app list
       tags:
       - App
-  /store/apps/{id}:
+  /store/apps/detail:
     get:
       description: Get app detail
       parameters:
       - description: App ID
-        in: path
+        in: query
         name: id
         required: true
         type: integer
@@ -6094,6 +6160,24 @@ paths:
       tags:
       - Sysinfo
   /users:
+    delete:
+      consumes:
+      - application/json
+      description: 删除用户
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: delete user
+      tags:
+      - User
     get:
       consumes:
       - application/json
@@ -6140,35 +6224,11 @@ paths:
       summary: create user
       tags:
       - User
-  /users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除用户
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: delete user
-      tags:
-      - User
     put:
       consumes:
       - application/json
       description: 更新用户
       parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
       - description: request
         in: body
         name: request
@@ -6183,17 +6243,12 @@ paths:
       summary: update user
       tags:
       - User
-  /users/{id}/password:
+  /users/password:
     put:
       consumes:
       - application/json
       description: 更新密码
       parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
       - description: request
         in: body
         name: request
@@ -6208,17 +6263,12 @@ paths:
       summary: update password
       tags:
       - User
-  /users/{id}/valid:
+  /users/valid:
     put:
       consumes:
       - application/json
       description: 禁用/启用用户
       parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
       - description: request
         in: body
         name: request
