@@ -41,12 +41,10 @@ type FileRoleReq struct {
 type FileDelete struct {
 	Path        string `json:"path" validate:"required"`
 	ForceDelete bool   `json:"force_delete"`
-	IsDir       bool   `json:"is_dir"`
 }
 
 type FileBatchDelete struct {
 	Paths []string `json:"paths" validate:"required"`
-	IsDir bool     `json:"is_dir"`
 }
 
 type FileCompress struct {

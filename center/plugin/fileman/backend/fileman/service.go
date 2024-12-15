@@ -308,7 +308,6 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param source query string true "Source file path"
 // @Param force_delete query bool false "Force delete flag"
-// @Param is_dir query bool false "Is directory flag"
 // @Success 200
 // @Router /files/{host} [delete]
 func (s *FileMan) DeleteFile(c *gin.Context) {
@@ -325,12 +324,10 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 	}
 
 	forceDelete, _ := strconv.ParseBool(c.Query("force_delete"))
-	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
 
 	req := model.FileDelete{
 		Path:        source,
 		ForceDelete: forceDelete,
-		IsDir:       isDir,
 	}
 
 	err = s.delete(hostID, req)
@@ -365,11 +362,8 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 		return
 	}
 
-	isDir, _ := strconv.ParseBool(c.Query("is_dir"))
-
 	req := model.FileBatchDelete{
 		Paths: strings.Split(sources, ","),
-		IsDir: isDir,
 	}
 
 	err = s.batchDelete(hostID, req)

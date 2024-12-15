@@ -156,8 +156,12 @@ func (f *FileService) Create(op model.FileCreate) error {
 
 func (f *FileService) Delete(op model.FileDelete) error {
 	fo := files.NewFileOp()
+	info, err := fo.Fs.Stat(op.Path)
+	if err != nil {
+		return err
+	}
 	if op.ForceDelete {
-		if op.IsDir {
+		if info.IsDir() {
 			return fo.DeleteDir(op.Path)
 		} else {
 			return fo.DeleteFile(op.Path)
@@ -171,15 +175,17 @@ func (f *FileService) Delete(op model.FileDelete) error {
 
 func (f *FileService) BatchDelete(op model.FileBatchDelete) error {
 	fo := files.NewFileOp()
-	if op.IsDir {
-		for _, file := range op.Paths {
-			if err := fo.DeleteDir(file); err != nil {
+	for _, path := range op.Paths {
+		info, err := fo.Fs.Stat(path)
+		if err != nil {
+			continue
+		}
+		if info.IsDir() {
+			if err := fo.DeleteDir(path); err != nil {
 				return err
 			}
-		}
-	} else {
-		for _, file := range op.Paths {
-			if err := fo.DeleteFile(file); err != nil {
+		} else {
+			if err := fo.DeleteFile(path); err != nil {
 				return err
 			}
 		}
