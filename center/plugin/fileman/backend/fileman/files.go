@@ -1,6 +1,7 @@
 package fileman
 
 import (
+	"errors"
 	"fmt"
 	"mime/multipart"
 
@@ -122,7 +123,7 @@ func (s *FileMan) create(hostID uint64, op model.FileCreate) error {
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to get file list")
+		return errors.New(actionResponse.Data.Action.Data)
 	}
 
 	return nil

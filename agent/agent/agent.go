@@ -380,7 +380,7 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 		result, err := a.processAction(msg.Data)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
-			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: ""})
+			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: err.Error()})
 		} else {
 			a.sendActionResult(conn, msg.MsgID, result)
 		}
