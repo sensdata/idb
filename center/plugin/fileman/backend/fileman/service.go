@@ -227,6 +227,7 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string false "Directory path (default is root directory)"
+// @Param show_hidden query bool false "Show hidden files"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {array} model.FileInfo
@@ -243,6 +244,8 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 		path = "/"
 	}
 
+	show_hidden, _ := strconv.ParseBool(c.Query("force"))
+
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
@@ -257,10 +260,11 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 
 	req := model.FileOption{
 		FileOption: files.FileOption{
-			Path:     path,
-			Expand:   true,
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Path:       path,
+			Expand:     true,
+			ShowHidden: show_hidden,
+			Page:       int(page),
+			PageSize:   int(pageSize),
 		},
 	}
 
