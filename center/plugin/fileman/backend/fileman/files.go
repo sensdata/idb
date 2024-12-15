@@ -436,7 +436,35 @@ func (s *FileMan) changeMode(hostID uint64, op model.FileCreate) error {
 
 	return nil
 }
-func (s *FileMan) batchChangeModeAndOwner(hostID uint64, op model.FileRoleReq) error {
+
+func (s *FileMan) batchChangeMode(hostID uint64, op model.FileModeReq) error {
+	data, err := utils.ToJSONString(op)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Batch_Change_Mode,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to batch change mode")
+	}
+
+	return nil
+}
+
+func (s *FileMan) batchChangeOwner(hostID uint64, op model.FileRoleReq) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
 		return err

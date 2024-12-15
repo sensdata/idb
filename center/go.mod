@@ -68,9 +68,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/urfave/cli/v2 v2.27.5 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
@@ -79,7 +77,6 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/tools v0.28.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
 require (

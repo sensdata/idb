@@ -30,9 +30,14 @@ type FileCreate struct {
 	Sub       bool   `json:"sub"`
 }
 
-type FileRoleReq struct {
+type FileModeReq struct {
 	Sources []string `json:"sources" validate:"required"`
 	Mode    int64    `json:"mode" validate:"required"`
+	Sub     bool     `json:"sub"`
+}
+
+type FileRoleReq struct {
+	Sources []string `json:"sources" validate:"required"`
 	User    string   `json:"user" validate:"required"`
 	Group   string   `json:"group" validate:"required"`
 	Sub     bool     `json:"sub"`

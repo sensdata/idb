@@ -569,7 +569,20 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 
-		err := FileService.BatchChangeModeAndOwner(req)
+		err := FileService.BatchChangeOwner(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	// 批量修改mode
+	case model.File_Batch_Change_Mode:
+		var req model.FileModeReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		err := FileService.BatchChangeMode(req)
 		if err != nil {
 			return nil, err
 		}

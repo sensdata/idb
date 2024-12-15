@@ -112,7 +112,8 @@ func (s *FileMan) Initialize() {
 			{Method: "PUT", Path: "/:host/move", Handler: s.MoveFile},
 			{Method: "PUT", Path: "/:host/owner", Handler: s.ChangeFileOwner},
 			{Method: "PUT", Path: "/:host/mode", Handler: s.ChangeFileMode},
-			{Method: "PUT", Path: "/:host/batch/role", Handler: s.BatchChangeModeAndOwner},
+			{Method: "PUT", Path: "/:host/batch/mode", Handler: s.BatchChangeMode},
+			{Method: "PUT", Path: "/:host/batch/owner", Handler: s.BatchChangeOwner},
 			{Method: "GET", Path: "/:host/favorites", Handler: s.GetFavoriteList},
 			{Method: "POST", Path: "/:host/favorites", Handler: s.CreateFavorite},
 			{Method: "DELETE", Path: "/:host/favorites", Handler: s.DeleteFavorite},
@@ -724,15 +725,41 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Batch change file mode and owner
-// @Description Batch modify file permissions and user/group
+// @Summary Batch change file mode
+// @Description Batch modify file mode
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.FileRoleReq true "Batch file mode and owner change request"
+// @Param request body model.FileModeReq true "Batch file mode request"
 // @Success 200
-// @Router /files/{host}/batch/role [put]
-func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
+// @Router /files/{host}/batch/mode [put]
+func (s *FileMan) BatchChangeMode(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.FileModeReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	if err := s.batchChangeMode(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+	}
+	helper.SuccessWithOutData(c)
+}
+
+// @Tags File
+// @Summary Batch change file owner
+// @Description Batch modify file owner
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.FileRoleReq true "Batch file owner change request"
+// @Success 200
+// @Router /files/{host}/batch/owner [put]
+func (s *FileMan) BatchChangeOwner(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -743,7 +770,7 @@ func (s *FileMan) BatchChangeModeAndOwner(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	if err := s.batchChangeModeAndOwner(hostID, req); err != nil {
+	if err := s.batchChangeOwner(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 	}
 	helper.SuccessWithOutData(c)

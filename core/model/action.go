@@ -11,6 +11,7 @@ const (
 	File_Delete             string = "file_delete"
 	File_Batch_Delete       string = "file_batch_delete"
 	File_Batch_Change_Owner string = "file_batch_change_owner"
+	File_Batch_Change_Mode  string = "file_batch_change_mode"
 	File_Change_Mode        string = "file_change_mode"
 	File_Change_Owner       string = "file_change_owner"
 	File_Change_Name        string = "file_change_name"

@@ -40,7 +40,8 @@ type IFileService interface {
 	MvFile(m model.FileMove) error
 	ChangeOwner(req model.FileRoleUpdate) error
 	ChangeMode(op model.FileCreate) error
-	BatchChangeModeAndOwner(op model.FileRoleReq) error
+	BatchChangeMode(op model.FileModeReq) error
+	BatchChangeOwner(op model.FileRoleReq) error
 
 	GetFavoriteList(req model.PageInfo) (*model.PageResult, error)
 	CreateFavorite(req model.FavoriteCreate) (*model.Favorite, error)
@@ -198,7 +199,20 @@ func (f *FileService) ChangeMode(op model.FileCreate) error {
 	return fo.ChmodR(op.Source, op.Mode, op.Sub)
 }
 
-func (f *FileService) BatchChangeModeAndOwner(op model.FileRoleReq) error {
+func (f *FileService) BatchChangeMode(op model.FileModeReq) error {
+	fo := files.NewFileOp()
+	for _, path := range op.Sources {
+		if !fo.Stat(path) {
+			return errors.New(constant.ErrPathNotFound)
+		}
+		if err := fo.ChmodR(path, op.Mode, op.Sub); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *FileService) BatchChangeOwner(op model.FileRoleReq) error {
 	fo := files.NewFileOp()
 	for _, path := range op.Sources {
 		if !fo.Stat(path) {
@@ -207,12 +221,8 @@ func (f *FileService) BatchChangeModeAndOwner(op model.FileRoleReq) error {
 		if err := fo.ChownR(path, op.User, op.Group, op.Sub); err != nil {
 			return err
 		}
-		if err := fo.ChmodR(path, op.Mode, op.Sub); err != nil {
-			return err
-		}
 	}
 	return nil
-
 }
 
 func (f *FileService) ChangeOwner(req model.FileRoleUpdate) error {
