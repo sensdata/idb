@@ -4,7 +4,7 @@
 
 <script lang="ts" setup></script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   .footer {
     display: flex;
     align-items: center;

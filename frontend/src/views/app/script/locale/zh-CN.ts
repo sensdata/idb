@@ -1,6 +1,6 @@
 export default {
-  'app.script.enum.local': '本机',
-  'app.script.enum.global': '全局',
+  'app.script.enum.type.local': '本机',
+  'app.script.enum.type.global': '全局',
 
   'app.script.category.all': '全部',
 

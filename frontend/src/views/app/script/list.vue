@@ -43,17 +43,19 @@
         </template>
       </idb-table>
     </div>
+    <create-drawer ref="createRef" @ok="reload" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { PropType, ref } from 'vue';
+  import { GlobalComponents, PropType, ref } from 'vue';
   import { ScriptType } from '@/config/enum';
   import { useI18n } from 'vue-i18n';
   import { formatTime } from '@/utils/format';
   import { ScriptEntity } from '@/entity/Script';
   import { getScriptListApi } from '@/api/script';
-  import CategoryTree from './components/category-tree.vue';
+  import CategoryTree from './components/category-tree/index.vue';
+  import CreateDrawer from './components/create-drawer/index.vue';
 
   const props = defineProps({
     type: {
@@ -64,6 +66,8 @@
 
   const { t } = useI18n();
 
+  const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
+  const createRef = ref<InstanceType<typeof CreateDrawer>>();
   const selectedCat = ref(null);
   const params = ref({
     type: props.type,
@@ -117,8 +121,12 @@
     },
   ];
 
+  const reload = () => {
+    gridRef.value?.reload();
+  };
+
   const handleCreate = () => {
-    console.log('handleCreate');
+    createRef.value?.show();
   };
   const handleHistoryVersion = (record: ScriptEntity) => {
     console.log('handleHistoryVersion', record);

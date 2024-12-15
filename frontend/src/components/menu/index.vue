@@ -162,12 +162,13 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   :deep(.arco-menu-inner) {
     .arco-menu-inline-header {
       display: flex;
       align-items: center;
     }
+
     .arco-icon {
       &:not(.arco-icon-down) {
         font-size: 18px;

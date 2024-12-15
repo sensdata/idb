@@ -129,7 +129,7 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   .login-form {
     &-wrapper {
       width: 320px;

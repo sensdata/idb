@@ -9,20 +9,9 @@ const manageRoutes: RouteRecordRaw[] = [
       locale: 'menu.manage.host',
       requiresAuth: true,
       icon: DeskTopIcon,
+      card: true,
     },
-    redirect: '/manage/host/list',
-    children: [
-      {
-        path: 'list',
-        name: 'manageHostList',
-        component: () => import('@/views/mange/host/list.vue'),
-        meta: {
-          locale: 'menu.manage.host.list',
-          requiresAuth: true,
-          card: true,
-        },
-      },
-    ],
+    component: () => import('@/views/mange/host/list.vue'),
   },
 ];
 

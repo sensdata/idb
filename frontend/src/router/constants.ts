@@ -8,7 +8,7 @@ export const NOT_FOUND = {
 };
 
 export const SELECT_HOST = {
-  name: 'manageHostList',
+  name: 'manageHost',
 };
 
 export const REDIRECT_ROUTE_NAME = 'Redirect';

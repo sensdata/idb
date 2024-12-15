@@ -23,7 +23,7 @@
           allow-clear
         >
           <template #footer>
-            <a-link class="group-add">
+            <a-link class="group-add" @click="handleAddGroup">
               <icon-plus class="icon-plus" />
               {{ $t('manage.host.form.group.add') }}
             </a-link>
@@ -98,8 +98,11 @@
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
   import { AuthModeEnum } from '@/config/enum';
-  import { createHostApi, CreateHostParams } from '@/api/host';
-  import { getGroupListApi } from '@/api/group';
+  import {
+    createHostApi,
+    CreateHostParams,
+    getHostGroupListApi,
+  } from '@/api/host';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
 
@@ -171,7 +174,7 @@
   const loadGroupOptions = async () => {
     setGroupLoading(true);
     try {
-      const ret = await getGroupListApi({
+      const ret = await getHostGroupListApi({
         page: 1,
         page_size: 1000,
       });
@@ -194,6 +197,10 @@
 
   const loadOptions = async () => {
     await loadGroupOptions();
+  };
+
+  const handleAddGroup = () => {
+    // todo
   };
 
   const validate = () => {
@@ -237,6 +244,7 @@
     align-items: center;
     justify-content: flex-start;
     padding: 8px 12px;
+
     .icon-plus {
       margin-right: 4px;
     }

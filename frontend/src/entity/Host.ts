@@ -1,10 +1,14 @@
 import { BaseEntity } from '@/types/global';
-import { GroupEntity } from './Group';
+
+export interface HostGroupEntity extends BaseEntity {
+  created_at: number;
+  group_name: string;
+}
 
 export interface HostEntity extends BaseEntity {
   created_at: number;
 
-  group: GroupEntity;
+  group: HostGroupEntity;
   name: string;
   addr: string;
   port: number;

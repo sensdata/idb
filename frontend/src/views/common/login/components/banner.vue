@@ -39,7 +39,7 @@
   ]);
 </script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   .banner {
     display: flex;
     align-items: center;

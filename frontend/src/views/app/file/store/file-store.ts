@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getFileInfoApi, getFileListApi } from '@/api/file';
+import { getFileDetailApi, getFileListApi } from '@/api/file';
 import { FileItem } from '../types/file-item';
 
 const useFileStore = defineStore('file-manage', {
@@ -155,7 +155,7 @@ const useFileStore = defineStore('file-manage', {
       this.handleTreeItemSelect(treeItem || item);
     },
     async handleGoto(path: string) {
-      const item = await getFileInfoApi({
+      const item = await getFileDetailApi({
         path,
       });
       if (item?.is_dir) {

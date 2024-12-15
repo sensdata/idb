@@ -20,7 +20,7 @@ export function getFileListApi(params?: FileListApiParams) {
     });
 }
 
-export function getFileInfoApi(data: { path: string }) {
+export function getFileDetailApi(data: { path: string }) {
   return request.get<FileInfoEntity>('files/:host', {
     ...data,
     page: 1,

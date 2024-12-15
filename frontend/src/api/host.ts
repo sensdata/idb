@@ -1,9 +1,13 @@
-import { HostEntity } from '@/entity/Host';
+import { HostEntity, HostGroupEntity } from '@/entity/Host';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export function getHostListApi(params?: ApiListParams) {
   return request.get<ApiListResult<HostEntity>>('hosts', params);
+}
+
+export function getHostGroupListApi(params: ApiListParams) {
+  return request.get<ApiListResult<HostGroupEntity>>('hosts/groups', params);
 }
 
 export type CreateHostParams = Partial<HostEntity>;

@@ -4,59 +4,55 @@
     :visible="visible"
     :title="$t('app.file.createFolderDrawer.title')"
     unmountOnClose
+    :ok-loading="loading"
     @ok="handleOk"
     @cancel="handleCancel"
   >
-    <a-spin :loading="loading" style="width: 100%">
-      <a-form :model="formState" :rules="rules">
+    <a-form :model="formState" :rules="rules">
+      <a-form-item field="name" :label="$t('app.file.createFolderDrawer.name')">
+        <a-input v-model="formState.name" />
+      </a-form-item>
+      <a-form-item field="set_mode" label=" ">
+        <a-checkbox v-model="formState.set_mode">
+          {{ $t('app.file.createFolderDrawer.set_mode') }}
+        </a-checkbox>
+      </a-form-item>
+      <template v-if="formState.set_mode">
         <a-form-item
-          field="name"
-          :label="$t('app.file.createFolderDrawer.name')"
+          field="owner_access"
+          :label="$t('app.file.createFolderDrawer.owner_access')"
         >
-          <a-input v-model="formState.name" />
+          <a-checkbox-group
+            v-model="formState.owner_access"
+            :options="accessOptions"
+          />
         </a-form-item>
-        <a-form-item field="set_mode" label=" ">
-          <a-checkbox v-model="formState.set_mode">
-            {{ $t('app.file.createFolderDrawer.set_mode') }}
-          </a-checkbox>
+        <a-form-item
+          field="group_access"
+          :label="$t('app.file.createFolderDrawer.group_access')"
+        >
+          <a-checkbox-group
+            v-model="formState.group_access"
+            :options="accessOptions"
+          />
         </a-form-item>
-        <template v-if="formState.set_mode">
-          <a-form-item
-            field="owner_access"
-            :label="$t('app.file.createFolderDrawer.owner_access')"
-          >
-            <a-checkbox-group
-              v-model="formState.owner_access"
-              :options="accessOptions"
-            />
-          </a-form-item>
-          <a-form-item
-            field="group_access"
-            :label="$t('app.file.createFolderDrawer.group_access')"
-          >
-            <a-checkbox-group
-              v-model="formState.group_access"
-              :options="accessOptions"
-            />
-          </a-form-item>
-          <a-form-item
-            field="other_access"
-            :label="$t('app.file.createFolderDrawer.other_access')"
-          >
-            <a-checkbox-group
-              v-model="formState.other_access"
-              :options="accessOptions"
-            />
-          </a-form-item>
-          <a-form-item
-            field="mode"
-            :label="$t('app.file.createFolderDrawer.mode')"
-          >
-            <a-input v-model="formState.mode" class="w-60" :max-length="4" />
-          </a-form-item>
-        </template>
-      </a-form>
-    </a-spin>
+        <a-form-item
+          field="other_access"
+          :label="$t('app.file.createFolderDrawer.other_access')"
+        >
+          <a-checkbox-group
+            v-model="formState.other_access"
+            :options="accessOptions"
+          />
+        </a-form-item>
+        <a-form-item
+          field="mode"
+          :label="$t('app.file.createFolderDrawer.mode')"
+        >
+          <a-input v-model="formState.mode" class="w-60" :max-length="4" />
+        </a-form-item>
+      </template>
+    </a-form>
   </a-drawer>
 </template>
 
@@ -171,6 +167,9 @@
   };
 
   const handleOk = async () => {
+    if (loading.value) {
+      return;
+    }
     setLoading(true);
     try {
       await createFileApi({

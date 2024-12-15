@@ -21,7 +21,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style scoped>
   .fixed-footer-bar {
     position: fixed;
     right: 0;

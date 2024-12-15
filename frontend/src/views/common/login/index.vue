@@ -25,7 +25,7 @@
   import LoginForm from './components/login-form.vue';
 </script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   .container {
     display: flex;
     height: 100vh;
@@ -69,7 +69,7 @@
   }
 </style>
 
-<style lang="less" scoped>
+<style scoped lang="less">
   // responsive
   @media (max-width: @screen-lg) {
     .container {

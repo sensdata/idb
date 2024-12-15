@@ -1,21 +1,74 @@
+import { ScriptType } from '@/config/enum';
 import { ScriptEntity } from '@/entity/Script';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export interface ScriptListApiParams extends ApiListParams {
-  path?: string;
-  // todo: 接口差参数
-  show_hidden?: boolean;
+  type?: ScriptType;
+  category?: string;
 }
-export function getScriptListApi(params?: ScriptListApiParams) {
-  return request
-    .get<ApiListResult<ScriptEntity>>('scripts/:host', params)
-    .then((res: any) => {
-      return {
-        total: res?.item_total,
-        items: res?.items,
-        page: params?.page || 1,
-        page_size: params?.page_size || 20,
-      };
-    });
+export function getScriptListApi(params: ScriptListApiParams) {
+  return request.get<ApiListResult<ScriptEntity>>('scripts/:host', params);
+}
+
+export function getScriptDetailApi(params: { id: number }) {
+  return request.get<ScriptEntity>('scripts/:host/detail', params);
+}
+
+export interface ScriptCategoryListApiParams extends ApiListParams {
+  type: ScriptType;
+}
+export function getScriptCategoryListApi(params: ScriptCategoryListApiParams) {
+  return request.get<ApiListResult<string>>('scripts/:host/category', params);
+}
+
+export interface CreateScriptApiParams {
+  name: string;
+  type: ScriptType;
+  category?: string | null;
+  content: string;
+  mark?: string;
+}
+export function createScriptApi(data: CreateScriptApiParams) {
+  return request.post('scripts/:host', data);
+}
+
+export interface UpdateScriptApiParams {
+  id: number;
+  name?: string;
+  category?: string | null;
+  content: string;
+}
+export function updateScriptApi(data: UpdateScriptApiParams) {
+  return request.put('scripts/:host', data);
+}
+
+export interface ScriptHistoryApiParams extends ApiListParams {
+  id: number;
+}
+export function getScriptHistoryApi(params: ScriptHistoryApiParams) {
+  return request.get('scripts/:host/log', params);
+}
+
+export function runScriptApi(params: { id: number }) {
+  return request.post('scripts/:host/run', params);
+}
+
+export interface ScriptRunLogApiParams extends ApiListParams {
+  id: number;
+}
+export function getScriptRunLogApi(params: ScriptRunLogApiParams) {
+  return request.get('scripts/:host/run/log', params);
+}
+
+export function deleteScriptApi(params: { id: number }) {
+  return request.delete('scripts/:host', params);
+}
+
+export interface RestoreScriptApiParams {
+  id: number;
+  commit_hash: string;
+}
+export function restoreScriptApi(params: RestoreScriptApiParams) {
+  return request.put('scripts/:host/restore', params);
 }
