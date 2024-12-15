@@ -155,10 +155,10 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 
 	overview, err := s.getOverview(uint(hostID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "overview", "payload": overview})
+	helper.SuccessWithData(c, overview)
 }
 
 // @Tags Sysinfo
@@ -178,10 +178,10 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 
 	network, err := s.getNetwork(uint(hostID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": network})
+	helper.SuccessWithData(c, network)
 }
 
 // @Tags Sysinfo
@@ -201,10 +201,10 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 
 	system, err := s.getSystemInfo(uint(hostID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": system})
+	helper.SuccessWithData(c, system)
 }
 
 // @Tags Sysinfo
@@ -225,10 +225,10 @@ func (s *SysInfo) GetConfig(c *gin.Context) {
 
 	config, err := s.getConfig(uint(hostID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": config})
+	helper.SuccessWithData(c, config)
 }
 
 // @Tags Sysinfo
@@ -249,10 +249,10 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 
 	hardware, err := s.getHardware(uint(hostID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"type": "network", "payload": hardware})
+	helper.SuccessWithData(c, hardware)
 }
 
 func (s *SysInfo) getPluginInfo() (plugin.PluginInfo, error) {
