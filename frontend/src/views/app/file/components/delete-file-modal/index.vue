@@ -12,7 +12,7 @@
         {{ $t('app.file.deleteFileModal.force_delete') }}
       </a-checkbox>
     </div>
-    <div class="mt-4 mb-2">
+    <div class="mt-4 mb-2 hidden">
       <a-checkbox v-model="formState.permanently_delete">
         {{ $t('app.file.deleteFileModal.permanently_delete') }}
       </a-checkbox>
@@ -38,7 +38,6 @@
   import { FileInfoEntity } from '@/entity/FileInfo';
   import useLoading from '@/hooks/loading';
   import { batchDeleteFileApi } from '@/api/file';
-  import { pick } from 'lodash';
 
   const emit = defineEmits(['ok']);
 
@@ -57,7 +56,7 @@
 
   const setData = (files: FileInfoEntity[]) => {
     formState.sources = files.slice(0);
-    formState.permanently_delete = false;
+    formState.permanently_delete = true;
     formState.force_delete = false;
   };
 
@@ -67,9 +66,7 @@
       await batchDeleteFileApi({
         permanently_delete: formState.permanently_delete,
         force_delete: formState.force_delete,
-        sources: formState.sources.map((source) =>
-          pick(source, ['path', 'is_dir'])
-        ),
+        sources: formState.sources.map((source) => source.path),
       });
       visible.value = false;
       emit('ok');

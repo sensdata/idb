@@ -158,7 +158,10 @@ const useFileStore = defineStore('file-manage', {
       const item = await getFileDetailApi({
         path,
       });
-      if (item?.is_dir) {
+      if (!item) {
+        return;
+      }
+      if (item.is_dir) {
         this.handleOpen(item);
         this.$state.current = item;
       }

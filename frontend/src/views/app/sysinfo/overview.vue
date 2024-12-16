@@ -146,7 +146,7 @@
             <div class="col4">
               <a-tag v-if="data.memory_usage?.free_rate" color="gold">{{
                 $t('app.sysinfo.tag.leave_unused', {
-                  used: data.memory_usage.free_rate + '%',
+                  used: data.memory_usage.free_rate.toFixed(2) + '%',
                 })
               }}</a-tag>
             </div>
@@ -286,89 +286,7 @@
       width: 120,
     },
   ];
-  const data = reactive<Partial<SysInfoOverviewRes>>({
-    server_time: '2024-12-12 23:02:03',
-    server_time_zone: 'Asia/Shanghai',
-    boot_time: '2024-12-12 13:49:36',
-    run_time: 83211,
-    idle_time: 86548,
-    cpu_usage: '0.75%',
-    current_load: {
-      process_count1: 2,
-      process_count5: 5,
-      process_count15: 6,
-    },
-    memory_usage: {
-      physical: '1.63G',
-      kernel: '191.39M',
-      total: '1.46G',
-      free: '759.88M',
-      free_rate: 56.07,
-      used: '734.97M',
-      used_rate: 43.93,
-      buffered: '64.00M',
-      cached: '778.39M',
-      real_used: '734.97M',
-    },
-    swap_usage: {
-      total: '0B',
-      free: '0B',
-      free_rate: 100,
-      used: '0B',
-      used_rate: 0,
-    },
-    storage: [
-      {
-        name: '/',
-        total: '39.01G',
-        free: '30.38G',
-        used: '6.82G',
-        used_rate: 18.34,
-      },
-      {
-        name: '/snap/lxd/22923',
-        total: '80.00M',
-        free: '0B',
-        used: '80.00M',
-        used_rate: 100,
-      },
-      {
-        name: '/snap/core20/1405',
-        total: '62.00M',
-        free: '0B',
-        used: '62.00M',
-        used_rate: 100,
-      },
-      {
-        name: '/boot/efi',
-        total: '196.89M',
-        free: '190.84M',
-        used: '6.05M',
-        used_rate: 3.07,
-      },
-      {
-        name: '/snap/snapd/23258',
-        total: '44.38M',
-        free: '0B',
-        used: '44.38M',
-        used_rate: 100,
-      },
-      {
-        name: '/snap/core20/2434',
-        total: '63.75M',
-        free: '0B',
-        used: '63.75M',
-        used_rate: 100,
-      },
-      {
-        name: '/snap/lxd/31333',
-        total: '89.50M',
-        free: '0B',
-        used: '89.50M',
-        used_rate: 100,
-      },
-    ],
-  });
+  const data = reactive<Partial<SysInfoOverviewRes>>({});
 
   const getStorageUsedColor = (rate: number) => {
     if (rate >= 80) {
@@ -399,57 +317,67 @@
 
 <style lang="less" scoped>
   .box {
-    border: 1px solid var(--color-border-2);
-    padding: 0 16px;
     width: 940px;
     margin: 0 auto;
+    padding: 0 16px;
+    border: 1px solid var(--color-border-2);
   }
+
   .line {
     display: flex;
-    justify-content: flex-start;
     align-items: flex-start;
+    justify-content: flex-start;
     padding: 12px 40px;
     line-height: 24px;
     border-bottom: 1px solid var(--color-border-2);
+
     &:last-child {
       border-bottom: none;
     }
   }
+
   .no-border {
     border-bottom: none;
   }
+
   .colspan {
     flex: 1;
   }
+
   .subline {
-    width: 100%;
     display: flex;
-    justify-content: flex-start;
     align-items: top;
+    justify-content: flex-start;
+    width: 100%;
     margin-bottom: 14px;
+
     &:last-child {
       margin-bottom: 0;
     }
   }
+
   .col1 {
     width: 160px;
-    text-align: right;
+    margin-right: 40px;
     color: var(--color-text-2);
     font-size: 14px;
-    margin-right: 40px;
+    text-align: right;
   }
+
   .col2 {
     width: 160px;
     margin-right: 40px;
     color: var(--color-text-1);
     font-size: 14px;
   }
+
   .col3 {
     width: 50px;
     margin-right: 30px;
     color: var(--color-text-1);
     font-size: 14px;
   }
+
   .col4 {
     min-width: 160px;
   }

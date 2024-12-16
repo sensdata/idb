@@ -197,7 +197,10 @@
       try {
         setLoading(true);
         const data = getData();
-        await batchUpdateFileRoleApi(data);
+        await batchUpdateFileRoleApi({
+          ...data,
+          mode: +data.mode,
+        });
         done();
         Message.success(t('app.file.modeDrawer.message.success'));
         emit('ok');

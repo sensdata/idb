@@ -177,7 +177,7 @@
         is_dir: true,
         ...(formState.set_mode
           ? {
-              mode: formState.mode,
+              mode: +formState.mode,
             }
           : {}),
       });

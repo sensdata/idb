@@ -4,7 +4,6 @@ import { ApiListParams, ApiListResult } from '@/types/global';
 
 export interface FileListApiParams extends ApiListParams {
   path?: string;
-  // todo: 接口差参数
   show_hidden?: boolean;
 }
 export function getFileListApi(params?: FileListApiParams) {
@@ -21,11 +20,7 @@ export function getFileListApi(params?: FileListApiParams) {
 }
 
 export function getFileDetailApi(data: { path: string }) {
-  return request.get<FileInfoEntity>('files/:host', {
-    ...data,
-    page: 1,
-    page_size: 1,
-  });
+  return request.get<FileInfoEntity>('files/:host/detail', data);
 }
 
 export function getFileSizeApi(data: { source: string }) {
@@ -38,7 +33,7 @@ export interface CreateFileParams {
   is_link?: boolean; // 是否是链接
   is_symlink?: boolean; // 是否是软链接
   link_path?: string; // 链接路径
-  mode?: string; // 文件权限
+  mode?: number; // 文件权限
 }
 export function createFileApi(data: CreateFileParams) {
   return request.post('files/:host', data);
@@ -57,26 +52,20 @@ export function deleteFileApi(data: DeleteFileParams) {
 }
 
 // todo: api
-// 1. is_dir需要和路径一起
-// 2. permanently_delete待实现
+// 1. permanently_delete待实现
 export interface BatchDeleteFileParams {
   force_delete?: boolean;
   permanently_delete?: boolean;
-  sources: Array<{
-    path: string;
-    is_dir: boolean;
-  }>;
+  sources: string[];
 }
 export function batchDeleteFileApi(data: BatchDeleteFileParams) {
   return request.delete('files/:host/batch', data);
 }
 
-// todo: api
-// 1. mode类型需要为string
 export interface BatchUpdateRoleParams {
   group: string;
   user: string;
-  mode: string;
+  mode: number;
   sources: string[];
   sub: boolean;
 }
@@ -84,8 +73,6 @@ export function batchUpdateFileRoleApi(data: BatchUpdateRoleParams) {
   return request.put('files/:host/batch/role', data);
 }
 
-// todo: api
-// 1. 缺少当前api， files/mode为多余
 export interface BatchUpdateModeParams {
   mode: string;
   sources: string[];
@@ -102,6 +89,16 @@ export interface UpdateOwnerParams {
 }
 export function updateFileOwnerApi(data: UpdateOwnerParams) {
   return request.put('files/:host/owner', data);
+}
+
+export interface BatchUpdateOwnerParams {
+  sources: string[];
+  group: string;
+  user: string;
+  sub: boolean;
+}
+export function batchUpdateFileOwnerApi(data: BatchUpdateOwnerParams) {
+  return request.put('files/:host/batch/owner', data);
 }
 
 export interface CompressionParams {
