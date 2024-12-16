@@ -4,34 +4,121 @@
 
 <script lang="ts" setup>
   import { ref, onMounted, onBeforeUnmount } from 'vue';
-  import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
-  import { AttachAddon } from '@xterm/addon-attach';
   import { debounce } from 'lodash';
   import '@xterm/xterm/css/xterm.css';
+
+  enum MsgType {
+    Heartbeat = 'heartbeat',
+    Cmd = 'cmd',
+  }
+
+  interface MsgDo {
+    msg_id: string;
+    type: MsgType;
+    sign: string;
+    data: string;
+    timestamp: number;
+    nonce: string;
+    version: string;
+    checksum: string;
+  }
 
   const props = defineProps<{
     hostId: number;
   }>();
 
-  const { t } = useI18n();
-
   const domRef = ref<HTMLDivElement>();
   const wsRef = ref<WebSocket>();
   const termRef = ref<Terminal>();
+  const latencyRef = ref<number>(0);
   const fitRef = ref<FitAddon>();
-  const attachRef = ref<AttachAddon>();
+  const timerRef = ref<number>();
 
-  const onResize = debounce(() => {
+  function isWsOpen() {
+    return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
+  }
+
+  function sendWsMsg(payload: {
+    type: MsgType;
+    data?: string;
+    cols?: number;
+    rows?: number;
+    timestamp?: number;
+  }) {
+    if (isWsOpen()) {
+      wsRef.value?.send(JSON.stringify(payload));
+    }
+  }
+
+  function autoSendHeartbeat() {
+    if (timerRef.value) {
+      clearInterval(timerRef.value);
+    }
+    timerRef.value = window.setInterval(() => {
+      if (isWsOpen()) {
+        sendWsMsg({ type: MsgType.Heartbeat, timestamp: Date.now() });
+      }
+    }, 5e3);
+  }
+
+  const onResize = () => {
     fitRef.value?.fit();
-  }, 800);
+    if (termRef.value) {
+      const { cols, rows } = termRef.value;
+      sendWsMsg({ type: MsgType.Cmd, cols, rows });
+    }
+  };
+  const onResizeDebounce = debounce(onResize, 500);
   function addResizeListener() {
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', onResizeDebounce);
   }
   function removeResizeListener() {
-    window.removeEventListener('resize', onResize);
+    window.removeEventListener('resize', onResizeDebounce);
+  }
+
+  function onWsMsgReceived(ev: MessageEvent) {
+    const msg: MsgDo = JSON.parse(ev.data);
+    switch (msg.type) {
+      case MsgType.Cmd:
+        termRef.value?.write(msg.data);
+        break;
+      case MsgType.Heartbeat:
+        latencyRef.value = Date.now() - msg.timestamp;
+        break;
+      default:
+        break;
+    }
+  }
+
+  function onWsClose(ev: CloseEvent) {
+    termRef.value?.write(`\x1b[31mConnection closed: ${ev.reason}\x1b[m\r\n`);
+  }
+
+  function onWsError(ev: any) {
+    const message = ev.message || 'Connection error';
+    if (termRef.value) {
+      termRef.value.write(`\x1b[31m${message}\x1b[m\r\n`);
+    }
+  }
+
+  function initWs() {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    wsRef.value = new WebSocket(
+      `${protocol}://${window.location.host}/ws/terminals?host_id=${props.hostId}`
+    );
+    wsRef.value.onerror = onWsError;
+    wsRef.value.onclose = onWsClose;
+    wsRef.value.onmessage = onWsMsgReceived;
+    autoSendHeartbeat();
+  }
+
+  function disconnectWs() {
+    if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+      wsRef.value.close();
+    }
   }
 
   function initTerminal() {
@@ -43,41 +130,31 @@
       cursorBlink: true,
       scrollback: 100,
     });
-    attachRef.value = new AttachAddon(wsRef.value!);
     fitRef.value = new FitAddon();
-    termRef.value.loadAddon(attachRef.value);
     termRef.value.loadAddon(fitRef.value);
     termRef.value.open(domRef.value!);
+    termRef.value.onData((data) => {
+      sendWsMsg({ type: MsgType.Cmd, data });
+    });
     fitRef.value.fit();
     addResizeListener();
+    initWs();
   }
 
-  function initWs() {
-    wsRef.value = new WebSocket(
-      `ws://8.138.47.21:9918/api/v1/ws/terminals?host_id=${props.hostId}`
-    );
-    wsRef.value.onopen = () => {
-      initTerminal();
-    };
-    wsRef.value.onerror = (e) => {
-      // eslint-disable-next-line no-console
-      console.warn('WebSocket error', e);
-      Message.error(t('components.xterm.connectError'));
-    };
-  }
-
-  function disconnectWs() {
-    if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
-      wsRef.value.close();
+  function dispose() {
+    removeResizeListener();
+    disconnectWs();
+    if (timerRef.value) {
+      clearInterval(timerRef.value);
     }
+    termRef.value?.dispose();
   }
 
   onMounted(() => {
-    initWs();
+    initTerminal();
   });
   onBeforeUnmount(() => {
-    removeResizeListener();
-    disconnectWs();
+    dispose();
   });
 </script>
 
