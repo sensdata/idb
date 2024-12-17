@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Message } from '@arco-design/web-vue';
-import { getToken } from '@/utils/auth';
+import { clearToken, getToken } from '@/utils/auth';
 import { t } from '@/utils/i18n';
 
 export interface ApiResponse<T = unknown> {
@@ -58,11 +58,13 @@ axios.interceptors.response.use(
     return Promise.reject(response.data.message);
   },
   (error) => {
-    if (
-      error.response?.status === 401 &&
-      !window.location.pathname.startsWith('/login')
-    ) {
-      window.location.href = '/login';
+    if (error.response?.status === 401) {
+      clearToken();
+      if (window.location.pathname.startsWith('/login')) {
+        window.location.reload();
+      } else {
+        window.location.href = '/login';
+      }
       return Promise.reject(error);
     }
     if (error?.response?.data?.message) {
