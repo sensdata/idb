@@ -1,5 +1,4 @@
 import type { Router } from 'vue-router';
-import NProgress from 'nprogress'; // progress bar
 
 import usePermission from '@/hooks/permission';
 import { useUserStore } from '@/store';
@@ -19,6 +18,5 @@ export default function setupPermissionGuard(router: Router) {
         NOT_FOUND;
       next(destination);
     }
-    NProgress.done();
   });
 }

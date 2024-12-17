@@ -9,6 +9,7 @@ const useHostStore = defineStore('host', {
     current: undefined,
     currentId: undefined,
     items: [],
+    isReady: false,
   }),
 
   getters: {
@@ -19,16 +20,28 @@ const useHostStore = defineStore('host', {
 
   actions: {
     async init() {
+      if (!this.isReady) {
+        await this.load();
+        this.isReady = true;
+      }
+    },
+    async load() {
       const data = await getHostListApi({
         page: 1,
         page_size: 1000,
       });
       this.setItems(data.items);
     },
+    async reload() {
+      return this.load();
+    },
     setItems(items: HostState['items']) {
       this.items = items;
       if (!this.current && items.length) {
         this.setCurrentId(items[0]?.id);
+      }
+      if (this.currentId && !this.current) {
+        this.setCurrentId(this.currentId);
       }
     },
     setCurrentId(hostId?: number) {

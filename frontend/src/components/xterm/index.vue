@@ -4,7 +4,6 @@
 
 <script lang="ts" setup>
   import { ref, onMounted, onBeforeUnmount } from 'vue';
-  import { useI18n } from 'vue-i18n';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';

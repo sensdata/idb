@@ -4,4 +4,5 @@ export interface HostState {
   currentId?: number;
   current?: HostEntity;
   items: HostEntity[];
+  isReady: boolean;
 }
