@@ -1,5 +1,4 @@
 import { RouteRecordRaw } from 'vue-router';
-import DeskTopIcon from '@/assets/icons/desktop.svg?raw';
 import HomeIcon from '@/assets/icons/home.svg?raw';
 import FileIcon from '@/assets/icons/folder.svg?raw';
 
@@ -55,17 +54,6 @@ const appRoutes: RouteRecordRaw[] = [
       requiresAuth: true,
       icon: '<icon-code />',
     },
-  },
-  {
-    path: '/app/test',
-    name: 'appTest',
-    meta: {
-      locale: 'menu.app.test',
-      requiresAuth: true,
-      card: true,
-      icon: DeskTopIcon,
-    },
-    component: () => import('@/views/app/test/test.vue'),
   },
 ];
 
