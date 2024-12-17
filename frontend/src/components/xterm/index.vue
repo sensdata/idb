@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, onMounted, onBeforeUnmount } from 'vue';
+  import { ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';
@@ -30,11 +30,11 @@
   }>();
 
   const domRef = ref<HTMLDivElement>();
-  const wsRef = ref<WebSocket>();
-  const termRef = ref<Terminal>();
+  const wsRef = shallowRef<WebSocket>();
+  const termRef = shallowRef<Terminal>();
   const latencyRef = ref<number>(0);
-  const fitRef = ref<FitAddon>();
-  const timerRef = ref<number>();
+  const fitRef = shallowRef<FitAddon>();
+  const timerRef = shallowRef<number>();
 
   function isWsOpen() {
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
