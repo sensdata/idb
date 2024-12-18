@@ -28,6 +28,7 @@
             v-for="bc of breadcrumbItems"
             :key="bc.path"
             :class="bc.class"
+            @click="emit('goto', bc.path)"
           >
             {{ bc.name }}
           </a-breadcrumb-item>
@@ -145,7 +146,6 @@
 
   .address-bar :deep(.arco-input-prefix) {
     padding-right: 4px;
-
     .address-bar :deep(.arco-input-suffix) {
       padding: 0;
     }

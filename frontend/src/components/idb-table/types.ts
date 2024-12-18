@@ -71,7 +71,9 @@ export interface Props extends /* @vue-ignore */ TableProps {
   // 下载
   download?: DownloadFn;
   // 接口
-  fetch?: (params: ApiListParams) => Promise<ApiListResult<any>>;
+  fetch?: (params: ApiListParams & any) => Promise<ApiListResult<any>>;
+  // 展开行事件
+  onExpand?: ((rowKey: any, record: any) => any) | undefined;
   // 每页条数
   pageSize?: number;
   // 请求参数

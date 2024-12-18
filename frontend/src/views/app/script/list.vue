@@ -6,6 +6,8 @@
     <div class="script-main">
       <idb-table
         ref="gridRef"
+        class="script-table"
+        :loading="loading"
         :params="params"
         :columns="columns"
         :fetch="getScriptListApi"
@@ -28,34 +30,50 @@
           </a-button>
         </template>
         <template #operation="{ record }: { record: ScriptEntity }">
-          <a-button type="text" size="small" @click="handleEdit(record)">
-            {{ $t('common.edit') }}
-          </a-button>
-          <a-button type="text" size="small" @click="handleRun(record)">
-            {{ $t('app.script.list.operation.run') }}
-          </a-button>
-          <a-button type="text" size="small" @click="handleLog(record)">
-            {{ $t('app.script.list.operation.log') }}
-          </a-button>
-          <a-button type="text" size="small" @click="handleDelete(record)">
-            {{ $t('common.delete') }}
-          </a-button>
+          <div class="operation">
+            <a-button type="text" size="small" @click="handleEdit(record)">
+              {{ $t('common.edit') }}
+            </a-button>
+            <a-button type="text" size="small" @click="handleRun(record)">
+              {{ $t('app.script.list.operation.run') }}
+            </a-button>
+            <a-button type="text" size="small" @click="handleLog(record)">
+              {{ $t('app.script.list.operation.log') }}
+            </a-button>
+            <a-button
+              type="text"
+              size="small"
+              status="danger"
+              @click="handleDelete(record)"
+            >
+              {{ $t('common.delete') }}
+            </a-button>
+          </div>
         </template>
       </idb-table>
     </div>
-    <create-drawer ref="createRef" @ok="reload" />
+    <form-drawer ref="formRef" @ok="reload" />
+    <logs-drawer ref="logsRef" />
   </div>
 </template>
 
 <script setup lang="ts">
   import { GlobalComponents, PropType, ref } from 'vue';
-  import { ScriptType } from '@/config/enum';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
+  import { ScriptType } from '@/config/enum';
   import { formatTime } from '@/utils/format';
   import { ScriptEntity } from '@/entity/Script';
-  import { getScriptListApi } from '@/api/script';
+  import {
+    deleteScriptApi,
+    getScriptListApi,
+    runScriptApi,
+  } from '@/api/script';
+  import useLoading from '@/hooks/loading';
+  import { useConfirm } from '@/hooks/confirm';
   import CategoryTree from './components/category-tree/index.vue';
-  import CreateDrawer from './components/create-drawer/index.vue';
+  import FormDrawer from './components/form-drawer/index.vue';
+  import LogsDrawer from './components/logs-drawer/index.vue';
 
   const props = defineProps({
     type: {
@@ -67,8 +85,11 @@
   const { t } = useI18n();
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
-  const createRef = ref<InstanceType<typeof CreateDrawer>>();
+  const formRef = ref<InstanceType<typeof FormDrawer>>();
+  const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const selectedCat = ref(null);
+  const { loading, setLoading } = useLoading();
+  const { confirm } = useConfirm();
   const params = ref({
     type: props.type,
     category: selectedCat.value,
@@ -86,7 +107,7 @@
     {
       dataIndex: 'mod_time',
       title: t('app.script.list.column.mod_time'),
-      width: 125,
+      width: 160,
       render: ({ record }: { record: ScriptEntity }) => {
         return formatTime(record.mod_time);
       },
@@ -116,7 +137,8 @@
     {
       dataIndex: 'operation',
       title: t('common.table.operation'),
-      width: 200,
+      width: 210,
+      align: 'center' as const,
       slotName: 'operation',
     },
   ];
@@ -126,22 +148,45 @@
   };
 
   const handleCreate = () => {
-    createRef.value?.show();
+    formRef.value?.show();
   };
   const handleHistoryVersion = (record: ScriptEntity) => {
     console.log('handleHistoryVersion', record);
   };
   const handleEdit = (record: ScriptEntity) => {
-    console.log('handleEdit', record);
+    formRef.value?.setParams({
+      id: record.id,
+    });
+    formRef.value?.load();
+    formRef.value?.show();
   };
-  const handleRun = (record: ScriptEntity) => {
-    console.log('handleRun', record);
+  const handleRun = async (record: ScriptEntity) => {
+    setLoading(true);
+    try {
+      await runScriptApi(record);
+      Message.success(t('app.script.list.message.run_success'));
+    } finally {
+      setLoading(false);
+    }
   };
   const handleLog = (record: ScriptEntity) => {
-    console.log('handleLog', record);
+    logsRef.value?.show(record.id);
   };
-  const handleDelete = (record: ScriptEntity) => {
-    console.log('handleDelete', record);
+  const handleDelete = async (record: ScriptEntity) => {
+    if (
+      await confirm({
+        content: t('app.script.list.delete.confirm', { name: record.name }),
+      })
+    ) {
+      setLoading(true);
+      try {
+        await deleteScriptApi(record);
+        Message.success(t('app.script.list.message.delete_success'));
+      } finally {
+        setLoading(false);
+        reload();
+      }
+    }
   };
 </script>
 
@@ -171,5 +216,10 @@
     min-width: 0;
     height: 100%;
     padding: 20px;
+  }
+
+  .operation :deep(.arco-btn-size-small) {
+    padding-right: 4px;
+    padding-left: 4px;
   }
 </style>

@@ -43,19 +43,27 @@ export function updateScriptApi(data: UpdateScriptApiParams) {
   return request.put('scripts/:host', data);
 }
 
-export interface ScriptHistoryApiParams extends ApiListParams {
+export interface ScriptVersionsApiParams extends ApiListParams {
   id: number;
 }
-export function getScriptHistoryApi(params: ScriptHistoryApiParams) {
-  return request.get('scripts/:host/log', params);
+export function getScriptVersionListApi(params: ScriptVersionsApiParams) {
+  return request.get('scripts/:host/versions', params);
 }
 
 export function runScriptApi(params: { id: number }) {
   return request.post('scripts/:host/run', params);
 }
 
+export interface ScriptRunRecordsApiParams extends ApiListParams {
+  id: number;
+}
+export function getScriptRecordsApi(params: ScriptRunRecordsApiParams) {
+  return request.get('scripts/:host/records', params);
+}
+
 export interface ScriptRunLogApiParams extends ApiListParams {
   id: number;
+  record_id: number;
 }
 export function getScriptRunLogApi(params: ScriptRunLogApiParams) {
   return request.get('scripts/:host/run/log', params);
