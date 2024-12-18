@@ -9,15 +9,17 @@ body {
   margin: 0;
   padding: 0;
   font-size: 14px;
+  font-family: PingFang, Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'noto sans', 'Microsoft YaHei', 'Helvetica Neue',
+    Helvetica, Arial, sans-serif;
   background-color: var(--color-bg-1);
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
-  font-family: PingFang, Inter, -apple-system, BlinkMacSystemFont, PingFang SC, Hiragino Sans GB, noto sans, Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif;
 }
 
 .general-card {
-  border-radius: 4px;
   border: none;
+  border-radius: 4px;
   & > .arco-card-header {
     height: auto;
     padding: 20px;
@@ -35,11 +37,11 @@ body {
 .arco-table-cell {
   .circle {
     display: inline-block;
-    margin-right: 4px;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    margin-right: 4px;
     background-color: rgb(var(--blue-6));
+    border-radius: 50%;
     &.pass {
       background-color: rgb(var(--green-6));
     }

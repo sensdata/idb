@@ -2,6 +2,7 @@ module.exports = {
   extends: [
     'stylelint-config-standard',
     'stylelint-config-rational-order',
+    'stylelint-config-recommended-less',
     'stylelint-config-recommended-vue',
   ],
   defaultSeverity: 'warning',
@@ -16,7 +17,7 @@ module.exports = {
     'rule-empty-line-before': [
       'always',
       {
-        except: ['after-single-line-comment', 'first-nested'],
+        except: ['after-single-line-comment', 'first-nested', 'inside-block'],
       },
     ],
     'selector-pseudo-class-no-unknown': [
@@ -25,5 +26,6 @@ module.exports = {
         ignorePseudoClasses: ['deep'],
       },
     ],
+    'shorthand-property-no-redundant-values': null,
   },
 };
