@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/agent/agent/action"
+	"github.com/sensdata/idb/agent/agent/ca"
 	"github.com/sensdata/idb/agent/agent/docker"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
@@ -34,6 +35,7 @@ var (
 	SshService    = ssh.NewISSHService()
 	GitService    = git.NewIGitService()
 	DockerService = docker.NewIDockerService()
+	CaService     = ca.NewICaService()
 )
 
 type Agent struct {

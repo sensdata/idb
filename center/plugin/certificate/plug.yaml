@@ -1,0 +1,4 @@
+plugin:
+  name: "Certificate Management"
+  description: "This module provides script certificates management operations on device."
+  version: "1.0.0"
