@@ -9,8 +9,10 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,12 +20,15 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sensdata/idb/core/utils/common"
 )
 
-type CaService struct{}
+type CaService struct {
+	rootCertMap map[string]*x509.Certificate
+}
 
 type ICaService interface {
 	GenerateCertificate(req model.GenerateCertificateRequest) error
@@ -44,7 +49,7 @@ func NewICaService() ICaService {
 func (s *CaService) GenerateCertificate(req model.GenerateCertificateRequest) error {
 
 	// 1. 生成存储目录路径
-	certificateDir := "/var/lib/idb/data/certificates/" + req.Alias
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
 	if err := utils.EnsurePaths([]string{certificateDir}); err != nil {
 		global.LOG.Error("Failed to create dir %s, %v", certificateDir, err)
 		return err
@@ -142,10 +147,10 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	}
 
 	// 根据 Alias 查找目录下的 .csr 和 .key 文件
-	certDirectory := fmt.Sprintf("/var/lib/idb/data/certificates/%s", req.Alias)
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
 
-	csrPath := fmt.Sprintf("%s/%s.csr", certDirectory, req.Alias)
-	keyPath := fmt.Sprintf("%s/%s.key", certDirectory, req.Alias)
+	csrPath := fmt.Sprintf("%s/%s.csr", certificateDir, req.Alias)
+	keyPath := fmt.Sprintf("%s/%s.key", certificateDir, req.Alias)
 
 	// 检查 .csr 和 .key 文件是否存在
 	if _, err := os.Stat(csrPath); os.IsNotExist(err) {
@@ -220,7 +225,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 
 	// 将生成的证书保存到文件
 	timestamp := time.Now().Unix()
-	certPath := fmt.Sprintf("%s/%d.crt", certDirectory, timestamp)
+	certPath := fmt.Sprintf("%s/%d.crt", certificateDir, timestamp)
 
 	certFile, err := os.Create(certPath)
 	if err != nil {
@@ -241,8 +246,8 @@ func (s *CaService) GetPrivateKeyInfo(req model.PrivateKeyInfoRequest) (*model.P
 	var privateKeyInfo model.PrivateKeyInfo
 
 	// 根据 alias 构建文件路径
-	certDirectory := fmt.Sprintf("/var/lib/idb/data/certificates/%s", req.Alias)
-	keyPath := fmt.Sprintf("%s/%s.key", certDirectory, req.Alias)
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
+	keyPath := fmt.Sprintf("%s/%s.key", certificateDir, req.Alias)
 
 	// 检查 .key 文件是否存在
 	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
@@ -306,8 +311,8 @@ func (s *CaService) GetCSRInfo(req model.PrivateKeyInfoRequest) (*model.CSRInfo,
 	var csrInfo model.CSRInfo
 
 	// 根据 alias 构建文件路径
-	certDirectory := fmt.Sprintf("/var/lib/idb/data/certificates/%s", req.Alias)
-	csrPath := fmt.Sprintf("%s/%s.csr", certDirectory, req.Alias)
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
+	csrPath := fmt.Sprintf("%s/%s.csr", certificateDir, req.Alias)
 
 	// 检查 .csr 文件是否存在
 	if _, err := os.Stat(csrPath); os.IsNotExist(err) {
@@ -395,20 +400,19 @@ func (s *CaService) GetCertificateInfo(req model.CertificateInfoRequest) (*model
 }
 
 func (s *CaService) CompleteCertificateChain(req model.CertificateInfoRequest) error {
-	// 检查 .crt 文件是否存在
-	if _, err := os.Stat(req.Source); os.IsNotExist(err) {
-		return fmt.Errorf("Certificate file not found: %s", req.Source)
+
+	// 检查 Mozilla CA 是否已准备好
+	ok, err := s.loadMozillaCAStore()
+	if err != nil || !ok {
+		return fmt.Errorf("failed to load Mozilla CA store: %v", err)
 	}
 
-	// 读取证书文件
-	certBytes, err := os.ReadFile(req.Source)
+	// 补齐链
+	fullChain, err := s.completeCertificateChain(req.Source)
 	if err != nil {
-		return fmt.Errorf("failed to read certificate file: %v", err)
+		return fmt.Errorf("error to complete chain: %v", err)
 	}
-
-	// TODO: MozillaCA方案，可能需要增加内置和存储官方数据，并定时更新，在此处再直接使用
-	fullChain, err := completeCertificateChain(string(certBytes), "")
-	if err != nil {
+	if fullChain == "" {
 		return fmt.Errorf("failed to complete chain: %v", err)
 	}
 
@@ -424,7 +428,7 @@ func (s *CaService) GetCertificateGroups() (*model.PageResult, error) {
 	var result model.PageResult
 
 	// 扫描根目录下所有子目录
-	baseDir := "/var/lib/idb/data/certificates"
+	baseDir := filepath.Join(constant.CenterDataDir, "certificates")
 	dirs, err := os.ReadDir(baseDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read base directory: %v", err)
@@ -476,17 +480,17 @@ func (s *CaService) GetCertificateGroups() (*model.PageResult, error) {
 }
 
 func (s *CaService) RemoveCertificateGroup(req model.RemoveCertificateGroupRequest) error {
-	certDirectory := fmt.Sprintf("/var/lib/idb/data/certificates/%s", req.Alias)
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
 
 	// 检查目录是否存在
-	if _, err := os.Stat(certDirectory); os.IsNotExist(err) {
-		return fmt.Errorf("directory not found: %s", certDirectory)
+	if _, err := os.Stat(certificateDir); os.IsNotExist(err) {
+		return fmt.Errorf("directory not found: %s", certificateDir)
 	}
 
 	// 删除该目录及其下所有文件
-	err := os.RemoveAll(certDirectory)
+	err := os.RemoveAll(certificateDir)
 	if err != nil {
-		return fmt.Errorf("failed to remove directory %s: %v", certDirectory, err)
+		return fmt.Errorf("failed to remove directory %s: %v", certificateDir, err)
 	}
 
 	return nil
@@ -685,82 +689,212 @@ func saveCSR(path string, csr []byte) error {
 }
 
 // 自动补齐证书链
-func completeCertificateChain(serverCertPEM string, caRepositoryURL string) (string, error) {
-	// 解析终端证书
-	block, _ := pem.Decode([]byte(serverCertPEM))
-	if block == nil {
-		return "", errors.New("failed to decode server certificate")
+func (s *CaService) completeCertificateChain(source string) (string, error) {
+	// 检查 .crt 文件是否存在
+	if _, err := os.Stat(source); os.IsNotExist(err) {
+		return "", fmt.Errorf("Certificate file not found: %s", source)
 	}
-	serverCert, err := x509.ParseCertificate(block.Bytes)
+
+	// 读取证书文件
+	certBytes, err := os.ReadFile(source)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse server certificate: %v", err)
+		return "", fmt.Errorf("failed to read certificate file: %v", err)
 	}
 
-	// 初始化证书链
-	certChain := []string{serverCertPEM}
-	certCache := make(map[string]string) // 缓存已获取的证书
-
-	// 循环补齐中间 CA
-	currentIssuer := serverCert.Issuer
+	// 解析证书链
+	var certPEMs []string
 	for {
-		if _, ok := certCache[currentIssuer.String()]; !ok {
-			intermediateCertPEM, err := fetchCACertificate(currentIssuer, caRepositoryURL)
-			if err != nil {
-				fmt.Printf("warning: failed to fetch intermediate CA for issuer %s: %v\n", currentIssuer.String(), err)
-				break
-			}
-			certCache[currentIssuer.String()] = intermediateCertPEM
-		}
-
-		intermediateCertPEM := certCache[currentIssuer.String()]
-		block, _ := pem.Decode([]byte(intermediateCertPEM))
+		// 解码 PEM 格式证书
+		block, rest := pem.Decode(certBytes)
 		if block == nil {
-			return "", errors.New("failed to decode intermediate CA certificate")
+			break // 没有更多证书
 		}
-		intermediateCert, err := x509.ParseCertificate(block.Bytes)
+
+		// 将证书添加到证书链中
+		certPEMs = append(certPEMs, string(pem.EncodeToMemory(block)))
+		certBytes = rest
+	}
+	if len(certPEMs) == 0 {
+		return "", fmt.Errorf("failed to parse pems: %v", err)
+	}
+
+	// 解析现有的证书链
+	var certs []*x509.Certificate
+	for _, certPEM := range certPEMs {
+		block, _ := pem.Decode([]byte(certPEM))
+		if block == nil {
+			return "", fmt.Errorf("failed to decode certificate: %s", certPEM)
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse intermediate CA: %v", err)
+			return "", fmt.Errorf("failed to parse certificate: %v", err)
 		}
+		certs = append(certs, cert)
+	}
 
-		// 添加到证书链
-		certChain = append(certChain, intermediateCertPEM)
-
-		// 检查是否已经到根 CA
-		if strings.EqualFold(intermediateCert.Subject.String(), intermediateCert.Issuer.String()) &&
-			(intermediateCert.IsCA && intermediateCert.KeyUsage&x509.KeyUsageCertSign != 0) {
-			break
-		}
-
-		// 更新 Issuer 为下一个
-		currentIssuer = intermediateCert.Issuer
+	// 验证当前链是否完整，如果不完整，补齐缺失部分
+	fullCerts, err := fillCertificateChain(certs, s.rootCertMap)
+	if err != nil {
+		return "", fmt.Errorf("failed to complete certificate chain: %v", err)
 	}
 
 	// 构建完整的 PEM 格式证书链
-	fullCertChain := strings.Join(certChain, "\n\n")
-	return fullCertChain, nil
+	var fullCertPEMs []string
+	for _, cert := range fullCerts {
+		fullCertPEMs = append(fullCertPEMs, string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+	}
+
+	if len(fullCertPEMs) == 0 {
+		return "", fmt.Errorf("failed to complete certificate chain pems: %v", err)
+	}
+
+	return strings.Join(fullCertPEMs, "\n"), nil
 }
 
-// 从可信源获取 CA 证书
-func fetchCACertificate(issuer pkix.Name, caRepositoryURL string) (string, error) {
-	return "", nil
-	// // 根据 Issuer 的信息构造查询 URL
-	// query := fmt.Sprintf("%s?issuer=%s", caRepositoryURL, issuer.String())
+// 补齐证书链
+func fillCertificateChain(certs []*x509.Certificate, rootCertMap map[string]*x509.Certificate) ([]*x509.Certificate, error) {
+	certChain := certs
+	seen := make(map[string]struct{}) // 用于防止重复添加证书
 
-	// // HTTP 请求获取证书
-	// resp, err := http.Get(query)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to fetch CA certificate: %v", err)
-	// }
-	// defer resp.Body.Close()
+	// 标记初始链上的证书
+	for _, cert := range certs {
+		seen[string(cert.Raw)] = struct{}{}
+	}
 
-	// if resp.StatusCode != http.StatusOK {
-	// 	return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	// }
+	// 从最后一个证书开始补齐
+	currentCert := certs[len(certs)-1]
+	for {
+		// 检查是否为根证书
+		if isRootCertificate(currentCert, rootCertMap) {
+			break
+		}
 
-	// // 返回 PEM 格式证书
-	// body, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to read response body: %v", err)
-	// }
-	// return string(body), nil
+		// 在 CA 映射中查找颁发者证书
+		nextCert, err := findIssuerCertificate(currentCert, rootCertMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find issuer for %s: %v", currentCert.Subject, err)
+		}
+
+		// 防止重复添加
+		if nextCert == nil || containsCertificate(seen, nextCert) {
+			break
+		}
+
+		// 添加到链中
+		certChain = append(certChain, nextCert)
+		seen[string(nextCert.Raw)] = struct{}{}
+		currentCert = nextCert
+	}
+
+	return certChain, nil
+}
+
+// 检查是否为根证书
+func isRootCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) bool {
+	// 检查是否自签名
+	if cert.Subject.String() != cert.Issuer.String() || cert.CheckSignatureFrom(cert) != nil {
+		return false
+	}
+
+	// 检查是否在 rootCAs 映射中
+	_, exists := rootCertMap[string(cert.Raw)]
+	return exists
+}
+
+// 在 CA 映射中查找颁发者证书
+func findIssuerCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) (*x509.Certificate, error) {
+	for _, rootCert := range rootCertMap {
+		if cert.CheckSignatureFrom(rootCert) == nil {
+			return rootCert, nil
+		}
+	}
+	return nil, fmt.Errorf("issuer not found for %s", cert.Subject)
+}
+
+// 检查证书是否已经存在于链中
+func containsCertificate(seen map[string]struct{}, cert *x509.Certificate) bool {
+	_, exists := seen[string(cert.Raw)]
+	return exists
+}
+
+// 加载 Mozilla CA 存储
+func (s *CaService) loadMozillaCAStore() (bool, error) {
+	// 放在data目录下
+	mozillaCaPath := filepath.Join(constant.CenterDataDir, "cacert.pem")
+
+	// 如果文件不存在，下载并缓存
+	if _, err := os.Stat(mozillaCaPath); os.IsNotExist(err) {
+		if err := downloadMozillaCAStore(mozillaCaPath); err != nil {
+			return false, fmt.Errorf("failed to download Mozilla CA store: %v", err)
+		}
+	}
+
+	// 加载 PEM 文件
+	data, err := os.ReadFile(mozillaCaPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to read CA store file: %v", err)
+	}
+
+	// 创建 CertPool
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(data) {
+		return false, errors.New("failed to parse Mozilla CA certificates")
+	}
+
+	s.rootCertMap = preprocessRootCAs(certPool)
+
+	return len(s.rootCertMap) > 0, nil
+}
+
+// 预处理 CA 池：将证书解析为映射表
+func preprocessRootCAs(rootCAs *x509.CertPool) map[string]*x509.Certificate {
+	rootCertMap := make(map[string]*x509.Certificate)
+	for _, certPEM := range rootCAs.Subjects() {
+		block, _ := pem.Decode(certPEM)
+		if block == nil {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			continue
+		}
+		// 使用证书的 SubjectKeyId 或其他唯一标识作为键
+		rootCertMap[string(cert.Raw)] = cert
+	}
+	return rootCertMap
+}
+
+// 下载 Mozilla CA 存储
+func downloadMozillaCAStore(filePath string) error {
+	url := "https://curl.se/ca/cacert.pem"
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to download CA store: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// 保存到文件
+	out, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create CA store file: %v", err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+// 检查证书是否由 Mozilla CA 存储信任
+func isTrustedByMozilla(rootCAs *x509.CertPool, cert *x509.Certificate) bool {
+	// 设置验证选项
+	opts := x509.VerifyOptions{
+		Roots: rootCAs, // 使用 Mozilla CA 的根证书
+	}
+
+	// 验证证书
+	if _, err := cert.Verify(opts); err != nil {
+		return false // 验证失败，非受信任证书
+	}
+
+	return true // 受信任
 }
