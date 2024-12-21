@@ -61,7 +61,7 @@
   import { GlobalComponents, PropType, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { ScriptType } from '@/config/enum';
+  import { SCRIPT_TYPE } from '@/config/enum';
   import { formatTime } from '@/utils/format';
   import { ScriptEntity } from '@/entity/Script';
   import {
@@ -77,7 +77,7 @@
 
   const props = defineProps({
     type: {
-      type: String as PropType<ScriptType>,
+      type: String as PropType<SCRIPT_TYPE>,
       required: true,
     },
   });

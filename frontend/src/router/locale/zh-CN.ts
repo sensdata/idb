@@ -5,6 +5,7 @@ export default {
   'menu.manage.host': '节点管理',
   'menu.app.sysinfo': '系统信息',
   'menu.app.sysinfo.overview': '状态概览',
+  'menu.app.crontab': '计划任务',
   'menu.app.file': '文件管理',
   'menu.app.terminal': '命令终端',
   'menu.app.script': '脚本管理',

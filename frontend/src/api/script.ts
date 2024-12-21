@@ -1,10 +1,10 @@
-import { ScriptType } from '@/config/enum';
+import { SCRIPT_TYPE } from '@/config/enum';
 import { ScriptEntity } from '@/entity/Script';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export interface ScriptListApiParams extends ApiListParams {
-  type?: ScriptType;
+  type?: SCRIPT_TYPE;
   category?: string;
 }
 export function getScriptListApi(params: ScriptListApiParams) {
@@ -16,7 +16,7 @@ export function getScriptDetailApi(params: { id: number }) {
 }
 
 export interface ScriptCategoryListApiParams extends ApiListParams {
-  type: ScriptType;
+  type: SCRIPT_TYPE;
 }
 export function getScriptCategoryListApi(params: ScriptCategoryListApiParams) {
   return request.get<ApiListResult<string>>('scripts/:host/category', params);
@@ -24,7 +24,7 @@ export function getScriptCategoryListApi(params: ScriptCategoryListApiParams) {
 
 export interface CreateScriptApiParams {
   name: string;
-  type: ScriptType;
+  type: SCRIPT_TYPE;
   category?: string | null;
   content: string;
   mark?: string;

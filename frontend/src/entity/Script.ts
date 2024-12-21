@@ -1,9 +1,9 @@
-import { ScriptType } from '@/config/enum';
+import { SCRIPT_TYPE } from '@/config/enum';
 import { BaseEntity } from '@/types/global';
 
 export interface ScriptEntity extends BaseEntity {
   id: number;
-  type: ScriptType;
+  type: SCRIPT_TYPE;
   name: string;
   category?: string;
   content: string;

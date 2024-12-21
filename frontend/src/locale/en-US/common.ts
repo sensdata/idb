@@ -16,6 +16,7 @@ export default {
   'common.timeFormat.seconds': '{seconds} seconds ',
 
   'common.edit': 'Edit',
+  'common.add': 'Add',
   'common.delete': 'Delete',
 
   'common.yes': 'Yes',

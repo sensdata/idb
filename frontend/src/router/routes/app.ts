@@ -26,6 +26,16 @@ const appRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/app/crontab',
+    name: 'appCrontab',
+    component: () => import('@/views/app/crontab/main.vue'),
+    meta: {
+      locale: 'menu.app.crontab',
+      requiresAuth: true,
+      icon: 'icon-clock-circle',
+    },
+  },
+  {
     path: '/app/file',
     name: 'appFile',
     component: () => import('@/views/app/file/main.vue'),
@@ -52,7 +62,7 @@ const appRoutes: RouteRecordRaw[] = [
     meta: {
       locale: 'menu.app.script',
       requiresAuth: true,
-      icon: '<icon-code />',
+      icon: 'icon-code',
     },
   },
 ];

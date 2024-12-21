@@ -2,7 +2,7 @@
   <div class="category-tree">
     <div
       v-for="cat of items"
-      :key="cat"
+      :key="cat || 'all'"
       class="item"
       :class="{ selected: selected === cat }"
       @click="handleClick(cat)"

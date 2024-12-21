@@ -15,7 +15,13 @@ export default {
   'common.timeFormat.minutes': '{minutes}分',
   'common.timeFormat.seconds': '{seconds}秒',
 
+  'common.timeUnit.day': '日',
+  'common.timeUnit.hour': '小时',
+  'common.timeUnit.minute': '分钟',
+  'common.timeUnit.second': '秒',
+
   'common.edit': '编辑',
+  'common.add': '添加',
   'common.delete': '删除',
 
   'common.yes': '是',

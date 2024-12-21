@@ -8,7 +8,7 @@
     @ok="handleOk"
     @cancel="handleCancel"
   >
-    <a-form :model="formState" :rules="rules">
+    <a-form ref="formRef" :model="formState" :rules="rules">
       <a-form-item field="name" :label="$t('app.file.createFileDrawer.name')">
         <a-input v-model="formState.name" />
       </a-form-item>
@@ -53,6 +53,7 @@
 
   const { t } = useI18n();
 
+  const formRef = ref();
   const formState = reactive({
     name: '',
     pwd: '',
@@ -79,7 +80,17 @@
     formState.pwd = data.pwd;
   };
 
+  const validate = async () => {
+    return formRef.value?.validate().then((errors: any) => {
+      return !errors;
+    });
+  };
+
   const handleOk = async () => {
+    if (!(await validate())) {
+      return;
+    }
+
     if (loading.value) {
       return;
     }

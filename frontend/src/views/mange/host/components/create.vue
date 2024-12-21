@@ -56,7 +56,7 @@
         <a-radio-group v-model="model.auth_mode" :options="authModeOptions" />
       </a-form-item>
       <a-form-item
-        v-if="model.auth_mode === AuthModeEnum.Password"
+        v-if="model.auth_mode === AUTH_MODE.Password"
         field="password"
         :label="$t('manage.host.form.password.label')"
       >
@@ -97,7 +97,7 @@
   import { toRaw, reactive, ref, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
-  import { AuthModeEnum } from '@/config/enum';
+  import { AUTH_MODE } from '@/config/enum';
   import {
     createHostApi,
     CreateHostParams,
@@ -120,7 +120,7 @@
     port: 22,
     user: '',
     group_id: 0,
-    auth_mode: AuthModeEnum.Password,
+    auth_mode: AUTH_MODE.Password,
     password: '',
     private_key: '',
     pass_phrase: '',
@@ -136,13 +136,13 @@
     ],
     password: [
       {
-        required: model.auth_mode === AuthModeEnum.Password,
+        required: model.auth_mode === AUTH_MODE.Password,
         message: t('manage.host.form.password.required'),
       },
     ],
     private_key: [
       {
-        required: model.auth_mode !== AuthModeEnum.Password,
+        required: model.auth_mode !== AUTH_MODE.Password,
         message: t('manage.host.form.private_key.required'),
       },
     ],
@@ -151,11 +151,11 @@
   const groupOptions = ref<SelectOption[]>([]);
   const authModeOptions = ref([
     {
-      value: AuthModeEnum.Password,
+      value: AUTH_MODE.Password,
       label: t('manage.host.enum.auth_mode.password') as string,
     },
     {
-      value: AuthModeEnum.PrivateKey,
+      value: AUTH_MODE.PrivateKey,
       label: t('manage.host.enum.auth_mode.private_key') as string,
     },
   ]);
