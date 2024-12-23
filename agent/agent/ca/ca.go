@@ -31,22 +31,23 @@ type CaService struct {
 }
 
 type ICaService interface {
-	GenerateCertificate(req model.GenerateCertificateRequest) error
+	GetCertificateGroups() (*model.PageResult, error)
+	GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateKeyInfo, error)
+	GetCSRInfo(req model.GroupPkRequest) (*model.CSRInfo, error)
+	GenerateCertificate(req model.CreateGroupRequest) error
+	RemoveCertificateGroup(req model.DeleteGroupRequest) error
 	GenerateSelfSignedCertificate(req model.SelfSignedRequest) error
-	GetPrivateKeyInfo(req model.PrivateKeyInfoRequest) (*model.PrivateKeyInfo, error)
-	GetCSRInfo(req model.PrivateKeyInfoRequest) (*model.CSRInfo, error)
 	GetCertificateInfo(req model.CertificateInfoRequest) (*model.CertificateInfo, error)
 	CompleteCertificateChain(req model.CertificateInfoRequest) error
-	GetCertificateGroups() (*model.PageResult, error)
-	RemoveCertificateGroup(req model.RemoveCertificateGroupRequest) error
-	RemoveCertificate(req model.RemoveCertificateRequest) error
+	RemoveCertificate(req model.DeleteCertificateRequest) error
+	ImportCertificate(req model.ImportCertificateRequest) error
 }
 
 func NewICaService() ICaService {
 	return &CaService{}
 }
 
-func (s *CaService) GenerateCertificate(req model.GenerateCertificateRequest) error {
+func (s *CaService) GenerateCertificate(req model.CreateGroupRequest) error {
 
 	// 1. 生成存储目录路径
 	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
@@ -242,7 +243,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	return nil
 }
 
-func (s *CaService) GetPrivateKeyInfo(req model.PrivateKeyInfoRequest) (*model.PrivateKeyInfo, error) {
+func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateKeyInfo, error) {
 	var privateKeyInfo model.PrivateKeyInfo
 
 	// 根据 alias 构建文件路径
@@ -307,7 +308,7 @@ func (s *CaService) GetPrivateKeyInfo(req model.PrivateKeyInfoRequest) (*model.P
 	return &privateKeyInfo, nil
 }
 
-func (s *CaService) GetCSRInfo(req model.PrivateKeyInfoRequest) (*model.CSRInfo, error) {
+func (s *CaService) GetCSRInfo(req model.GroupPkRequest) (*model.CSRInfo, error) {
 	var csrInfo model.CSRInfo
 
 	// 根据 alias 构建文件路径
@@ -479,7 +480,7 @@ func (s *CaService) GetCertificateGroups() (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *CaService) RemoveCertificateGroup(req model.RemoveCertificateGroupRequest) error {
+func (s *CaService) RemoveCertificateGroup(req model.DeleteGroupRequest) error {
 	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
 
 	// 检查目录是否存在
@@ -496,7 +497,7 @@ func (s *CaService) RemoveCertificateGroup(req model.RemoveCertificateGroupReque
 	return nil
 }
 
-func (s *CaService) RemoveCertificate(req model.RemoveCertificateRequest) error {
+func (s *CaService) RemoveCertificate(req model.DeleteCertificateRequest) error {
 	// 检查 .crt 文件是否存在
 	if _, err := os.Stat(req.Source); os.IsNotExist(err) {
 		return fmt.Errorf("certificate file not found: %s", req.Source)
@@ -506,6 +507,130 @@ func (s *CaService) RemoveCertificate(req model.RemoveCertificateRequest) error 
 	err := os.Remove(req.Source)
 	if err != nil {
 		return fmt.Errorf("failed to remove certificate file %s: %v", req.Source, err)
+	}
+
+	return nil
+}
+
+func (s *CaService) ImportCertificate(req model.ImportCertificateRequest) error {
+	// 检查目录是否已存在
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
+	if _, err := os.Stat(certificateDir); os.IsExist(err) {
+		return fmt.Errorf("Alias already exist: %v", err)
+	}
+
+	// 生成存储目录路径
+	if err := utils.EnsurePaths([]string{certificateDir}); err != nil {
+		global.LOG.Error("Failed to create dir %s, %v", certificateDir, err)
+		return err
+	}
+
+	// 根据keyType，将内容保存至alias.key
+	privateKeyPath := certificateDir + "/" + req.Alias + ".key"
+	switch req.KeyType {
+	case 0:
+		// keyContent 写入文件 privateKeyPath
+		if err := os.WriteFile(privateKeyPath, []byte(req.KeyContent), 0600); err != nil {
+			global.LOG.Error("Failed to write key content to file %s, %v", privateKeyPath, err)
+			return err
+		}
+
+	case 1:
+		// keyContent 写入文件 privateKeyPath
+		if err := os.WriteFile(privateKeyPath, []byte(req.KeyContent), 0600); err != nil {
+			global.LOG.Error("Failed to write key content to file %s, %v", privateKeyPath, err)
+			return err
+		}
+
+	case 2:
+		// 从 keyPath 文件读取内容后，写入文件 privateKeyPath
+		keyData, err := os.ReadFile(req.KeyPath)
+		if err != nil {
+			global.LOG.Error("Failed to read key file from path %s, %v", req.KeyPath, err)
+			return err
+		}
+		if err := os.WriteFile(privateKeyPath, keyData, 0600); err != nil {
+			global.LOG.Error("Failed to write key data to file %s, %v", privateKeyPath, err)
+			return err
+		}
+
+	default:
+		global.LOG.Error("Invalid key type")
+		return fmt.Errorf("Invalid KeyType: %d", req.KeyType)
+	}
+
+	// 根据caType，保存证书内容
+	timestamp := time.Now().Unix()
+	caPath := fmt.Sprintf("%s/%d.crt", certificateDir, timestamp)
+	switch req.CaType {
+	case 0:
+		// caContent 写入文件 caPath
+		if err := os.WriteFile(caPath, []byte(req.CaContent), 0600); err != nil {
+			global.LOG.Error("Failed to write ca content to file %s, %v", caPath, err)
+			return err
+		}
+
+	case 1:
+		// caContent 写入文件 caPath
+		if err := os.WriteFile(caPath, []byte(req.CaContent), 0600); err != nil {
+			global.LOG.Error("Failed to write ca content to file %s, %v", caPath, err)
+			return err
+		}
+
+	case 2:
+		// 从 CaPath 文件读取内容后，写入文件 caPath
+		caData, err := os.ReadFile(req.CaPath)
+		if err != nil {
+			global.LOG.Error("Failed to read ca file from path %s, %v", req.CaPath, err)
+			return err
+		}
+		if err := os.WriteFile(caPath, caData, 0600); err != nil {
+			global.LOG.Error("Failed to write ca data to file %s, %v", caPath, err)
+			return err
+		}
+
+	default:
+		global.LOG.Error("Invalid ca type")
+		return fmt.Errorf("Invalid CaType: %d", req.CaType)
+	}
+
+	// 根据csrType，将内容保存至alias.csr
+	csrPath := certificateDir + "/" + req.Alias + ".csr"
+	switch req.CsrType {
+	case 0:
+		// csrContent 写入文件 csrPath
+		if req.CsrContent != "" {
+			if err := os.WriteFile(csrPath, []byte(req.CsrContent), 0600); err != nil {
+				global.LOG.Error("Failed to write csr content to file %s, %v", csrPath, err)
+				return err
+			}
+		}
+
+	case 1:
+		// csrContent 写入文件 csrPath
+		if req.CsrContent != "" {
+			if err := os.WriteFile(csrPath, []byte(req.CsrContent), 0600); err != nil {
+				global.LOG.Error("Failed to write csr content to file %s, %v", csrPath, err)
+				return err
+			}
+		}
+
+	case 2:
+		// 从 CsrPath 文件读取内容后，写入文件 csrPath
+		if req.CsrPath != "" {
+			csrData, err := os.ReadFile(req.CsrPath)
+			if err != nil {
+				global.LOG.Error("Failed to read csr file from path %s, %v", req.CsrPath, err)
+				return err
+			}
+			if err := os.WriteFile(csrPath, csrData, 0600); err != nil {
+				global.LOG.Error("Failed to write csr data to file %s, %v", privateKeyPath, err)
+				return err
+			}
+		}
+
+	default:
+		global.LOG.Error("Invalid csr type")
 	}
 
 	return nil
@@ -641,7 +766,7 @@ func savePrivateKey(path string, key []byte) error {
 }
 
 // 生成CSR
-func generateCSR(req model.GenerateCertificateRequest, privateKey []byte) ([]byte, error) {
+func generateCSR(req model.CreateGroupRequest, privateKey []byte) ([]byte, error) {
 	// Generate a template for the certificate request
 	template := x509.CertificateRequest{
 		Subject: pkix.Name{

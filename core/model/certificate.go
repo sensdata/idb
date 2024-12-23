@@ -56,7 +56,7 @@ type CertificateInfo struct {
 	Source string `json:"source"`
 }
 
-type GenerateCertificateRequest struct {
+type CreateGroupRequest struct {
 	Alias              string `json:"alias"`             // 主体别名
 	DomainName         string `json:"domain_name"`       // 域名/名称
 	Email              string `json:"email"`             // 邮箱
@@ -77,7 +77,7 @@ type SelfSignedRequest struct {
 	IsCA        bool   `json:"is_ca"`        // 是否允许使用该证书签发下级证书
 }
 
-type PrivateKeyInfoRequest struct {
+type GroupPkRequest struct {
 	Alias string `json:"alias"`
 }
 
@@ -85,10 +85,23 @@ type CertificateInfoRequest struct {
 	Source string `json:"source"`
 }
 
-type RemoveCertificateGroupRequest struct {
+type DeleteGroupRequest struct {
 	Alias string `json:"alias"`
 }
 
-type RemoveCertificateRequest struct {
+type DeleteCertificateRequest struct {
 	Source string `json:"source"`
+}
+
+type ImportCertificateRequest struct {
+	Alias      string `json:"alias"`
+	KeyType    int    `json:"key_type"`
+	KeyContent string `json:"key_content"`
+	KeyPath    string `json:"key_path"`
+	CaType     int    `json:"ca_type"`
+	CaContent  string `json:"ca_content"`
+	CaPath     string `json:"ca_path"`
+	CsrType    int    `json:"csr_type"`
+	CsrContent string `json:"csr_content"`
+	CsrPath    string `json:"csr_path"`
 }

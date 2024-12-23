@@ -1556,6 +1556,128 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.CA_Groups:
+		page, err := CaService.GetCertificateGroups()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(page)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.CA_Group_Pk:
+		var req model.GroupPkRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := CaService.GetPrivateKeyInfo(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.CA_Group_Csr:
+		var req model.GroupPkRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := CaService.GetCSRInfo(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.CA_Group_Create:
+		var req model.CreateGroupRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.GenerateCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.CA_Group_Remove:
+		var req model.DeleteGroupRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.RemoveCertificateGroup(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.CA_Self_Sign:
+		var req model.SelfSignedRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.GenerateSelfSignedCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.CA_Info:
+		var req model.CertificateInfoRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := CaService.GetCertificateInfo(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.CA_Complete:
+		var req model.CertificateInfoRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.CompleteCertificateChain(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.CA_Remove:
+		var req model.DeleteCertificateRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.RemoveCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.CA_Import:
+		var req model.ImportCertificateRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.ImportCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	default:
 		return nil, nil
 	}

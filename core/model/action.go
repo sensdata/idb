@@ -92,6 +92,17 @@ const (
 	Docker_Compose_Operation        string = "docker_compose_operation"
 	Docker_Compose_Test             string = "docker_compose_test"
 	Docker_Compose_Update           string = "docker_compose_update"
+
+	CA_Groups       string = "ca_groups"
+	CA_Group_Pk     string = "ca_group_pk"
+	CA_Group_Csr    string = "ca_group_csr"
+	CA_Group_Create string = "ca_group_create"
+	CA_Group_Remove string = "ca_group_remove"
+	CA_Self_Sign    string = "ca_self_sign"
+	CA_Info         string = "ca_info"
+	CA_Complete     string = "ca_complete"
+	CA_Remove       string = "ca_remove"
+	CA_Import       string = "ca_import"
 )
 
 // Action消息结构

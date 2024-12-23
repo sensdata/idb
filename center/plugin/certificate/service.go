@@ -3,6 +3,7 @@ package certificate
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -90,10 +91,18 @@ func (s *CertificateMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "", Handler: s.GetCertificates},
-			{Method: "GET", Path: "/detail", Handler: s.GetScriptDetail},
-			{Method: "POST", Path: "", Handler: s.Create},
-			{Method: "DELETE", Path: "", Handler: s.Delete},
+			{Method: "GET", Path: "/:host/group", Handler: s.Groups},
+			{Method: "POST", Path: "/:host/group", Handler: s.CreateGroup},
+			{Method: "DELETE", Path: "/:host/group", Handler: s.DeleteGroup},
+			{Method: "GET", Path: "/:host/group/key", Handler: s.GroupPk},
+			{Method: "GET", Path: "/:host/group/csr", Handler: s.GroupCsr},
+
+			{Method: "GET", Path: "/:host", Handler: s.GetCertificate},
+			{Method: "DELETE", Path: "/:host", Handler: s.DeleteCertificate},
+			{Method: "POST", Path: "/:host/sign/self", Handler: s.SelfSignCertificate},
+			{Method: "POST", Path: "/:host/complete", Handler: s.CompleteCertificate},
+
+			{Method: "POST", Path: "/:host/import", Handler: s.Import},
 		},
 	)
 
@@ -104,13 +113,13 @@ func (s *CertificateMan) Release() {
 
 }
 
-// @Tags Script
+// @Tags Certificates
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
 // @Produce json
 // @Success 200 {object} plugin.PluginInfo
-// @Router /scripts/info [get]
+// @Router /certificates/info [get]
 func (s *CertificateMan) GetPluginInfo(c *gin.Context) {
 	pluginInfo, err := s.getPluginInfo()
 	if err != nil {
@@ -120,13 +129,13 @@ func (s *CertificateMan) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags Script
+// @Tags Certificates
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json
 // @Produce json
 // @Success 200 {array} plugin.MenuItem
-// @Router /scripts/menu [get]
+// @Router /certificates/menu [get]
 func (s *CertificateMan) GetMenu(c *gin.Context) {
 	menuItems, err := s.getMenus()
 	if err != nil {
@@ -144,425 +153,486 @@ func (s *CertificateMan) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
 }
 
-// @Tags Script
-// @Summary List scripts
-// @Description Get list of scripts in a directory
+// @Tags Certificates
+// @Summary Get certificate groups
+// @Description Get list of certificate groups
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param page query uint true "Page"
-// @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /scripts/{host} [get]
-func (s *CertificateMan) GetCertificates(c *gin.Context) {
+// @Router /certificates/{host}/group [get]
+func (s *CertificateMan) Groups(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	scriptType := c.Query("type")
-	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-
-	category := c.Query("category")
-
-	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	groups, err := s.groups(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
 
-	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
-		return
-	}
-
-	req := model.QueryGitFile{
-		Type:     scriptType,
-		Category: category,
-		Page:     int(page),
-		PageSize: int(pageSize),
-	}
-
-	scripts, err := s.getScriptList(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, scripts)
+	helper.SuccessWithData(c, groups)
 }
 
-// @Tags Script
-// @Summary Get certificate detail
-// @Description Get detail of a certificate file
+// @Tags Certificates
+// @Summary Create certificate group
+// @Description Create certificate group
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Script file name"
-// @Success 200 {object} model.GitFile
-// @Router /scripts/{host}/detail [get]
-func (s *CertificateMan) GetScriptDetail(c *gin.Context) {
+// @Param request body model.CreateGroupRequest true "Certificate group creation details"
+// @Success 200
+// @Router /certificates/{host}/group [post]
+func (s *CertificateMan) CreateGroup(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	scriptType := c.Query("type")
-	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+	var req model.CreateGroupRequest
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	category := c.Query("category")
-
-	name := c.Query("name")
-	if name == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
-		return
-	}
-
-	req := model.GetGitFileDetail{
-		Type:     scriptType,
-		Category: category,
-		Name:     name,
-	}
-
-	detail, err := s.getScriptDetail(hostID, req)
+	err = s.createGroup(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Certificates
+// @Summary Delete certificate group
+// @Description Delete certificate group
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param alias query string true "Group Alias"
+// @Success 200
+// @Router /certificates/{host}/group [delete]
+func (s *CertificateMan) DeleteGroup(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	alias := c.Query("alias")
+	if alias == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid alias", err)
+		return
+	}
+
+	req := model.DeleteGroupRequest{Alias: alias}
+	err = s.deleteGroup(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Certificates
+// @Summary Get certificate group private key
+// @Description Get certificate group private key
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param alias query string true "Group Alias"
+// @Success 200 {object} model.PrivateKeyInfo
+// @Router /certificates/{host}/group/key [get]
+func (s *CertificateMan) GroupPk(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	alias := c.Query("alias")
+	if alias == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid alias", err)
+		return
+	}
+
+	req := model.GroupPkRequest{Alias: alias}
+	key, err := s.groupPk(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, key)
+}
+
+// @Tags Certificates
+// @Summary Get certificate group csr
+// @Description Get certificate group csr
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param alias query string true "Group Alias"
+// @Success 200 {object} model.CSRInfo
+// @Router /certificates/{host}/group/csr [get]
+func (s *CertificateMan) GroupCsr(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	alias := c.Query("alias")
+	if alias == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid alias", err)
+		return
+	}
+
+	req := model.GroupPkRequest{Alias: alias}
+	csr, err := s.groupCsr(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, csr)
+}
+
+// @Tags Certificates
+// @Summary Get certificate detail
+// @Description Get certificate detail
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param source query string true "source"
+// @Success 200 {object} model.CertificateInfo
+// @Router /certificates/{host} [get]
+func (s *CertificateMan) GetCertificate(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid source", err)
+		return
+	}
+
+	req := model.CertificateInfoRequest{Source: source}
+	detail, err := s.getCertificate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
 
 	helper.SuccessWithData(c, detail)
 }
 
-// @Tags Script
-// @Summary Create certificate file or category
-// @Description Create a new certificate file or category
+// @Tags Certificates
+// @Summary Delete certificate
+// @Description Delete certificate
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.CreateGitFile true "Script file creation details"
+// @Param source query string true "source"
 // @Success 200
-// @Router /scripts [post]
-func (s *CertificateMan) Create(c *gin.Context) {
+// @Router /certificates/{host} [delete]
+func (s *CertificateMan) DeleteCertificate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	var req model.CreateGitFile
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid source", err)
 		return
 	}
-	err = s.create(hostID, req)
+
+	req := model.DeleteCertificateRequest{Source: source}
+	err = s.deleteCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Script
-// @Summary Update certificate file content
-// @Description Update the content of a certificate file
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Param request body model.UpdateGitFile true "Script file edit details"
-// @Success 200
-// @Router /scripts [put]
-func (s *CertificateMan) Update(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	var req model.UpdateGitFile
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-	err = s.update(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-	helper.SuccessWithData(c, nil)
-}
-
-// @Tags Script
-// @Summary Delete certificate file
-// @Description Delete  a certificate file
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "File name"
-// @Success 200
-// @Router /scripts [delete]
-func (s *CertificateMan) Delete(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	scriptType := c.Query("type")
-	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-
-	category := c.Query("category")
-
-	name := c.Query("name")
-	if name == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
-		return
-	}
-
-	req := model.DeleteGitFile{
-		Type:     scriptType,
-		Category: category,
-		Name:     name,
-	}
-
-	err = s.delete(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
 
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Script
-// @Summary Restore certificate file
-// @Description Restore certificate file to specified version
+// @Tags Certificates
+// @Summary Self sign certificate
+// @Description Self sign certificate
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.RestoreGitFile true "Script file restore details"
+// @Param request body model.SelfSignedRequest true "Certificate self sign details"
 // @Success 200
-// @Router /scripts/{host}/restore [put]
-func (s *CertificateMan) Restore(c *gin.Context) {
+// @Router /certificates/{host}/sign/self [post]
+func (s *CertificateMan) SelfSignCertificate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	var req model.RestoreGitFile
+	var req model.SelfSignedRequest
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.restore(hostID, req)
+
+	err = s.selfSignCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
+
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Script
-// @Summary Get certificate histories
-// @Description Get histories of a certificate file
+// @Tags Certificates
+// @Summary Complete certificate
+// @Description Complete certificate
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Script file name"
-// @Param page query uint true "Page"
-// @Param page_size query uint true "Page size"
-// @Success 200 {object} model.PageResult
-// @Router /scripts/{host}/log [get]
-func (s *CertificateMan) GetScriptLog(c *gin.Context) {
+// @Param request body model.CertificateInfoRequest true "Certificate complete details"
+// @Success 200
+// @Router /certificates/{host}/complete [post]
+func (s *CertificateMan) CompleteCertificate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	scriptType := c.Query("type")
-	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-
-	category := c.Query("category")
-
-	name := c.Query("name")
-	if name == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
-		return
-	}
-
-	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
-		return
-	}
-
-	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
-		return
-	}
-
-	req := model.GitFileLog{
-		Type:     scriptType,
-		Category: category,
-		Name:     name,
-		Page:     int(page),
-		PageSize: int(pageSize),
-	}
-
-	logs, err := s.getScriptLog(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, logs)
-}
-
-// @Tags Script
-// @Summary Get certificate diff
-// @Description Get certificate diff compare to specfied version
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
-// @Param name query string true "Script file name"
-// @Param commit query string true "Commit hash"
-// @Success 200 {string} string
-// @Router /scripts/{host}/diff [get]
-func (s *CertificateMan) GetScriptDiff(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	scriptType := c.Query("type")
-	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
-		return
-	}
-
-	category := c.Query("category")
-
-	name := c.Query("name")
-	if name == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
-		return
-	}
-
-	commitHash := c.Query("commit")
-	if commitHash == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid commit hash", err)
-		return
-	}
-
-	req := model.GitFileDiff{
-		Type:       scriptType,
-		Category:   category,
-		Name:       name,
-		CommitHash: commitHash,
-	}
-
-	diff, err := s.getScriptDiff(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, diff)
-}
-
-// @Tags Script
-// @Summary Execute certificate
-// @Description Execute certificate
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Param request body model.ExecuteScript true "Script file creation details"
-// @Success 200 {object} model.ScriptResult
-// @Router /scripts/{host}/run [post]
-func (s *CertificateMan) Execute(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	var req model.ExecuteScript
+	var req model.CertificateInfoRequest
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	result, err := s.execute(hostID, req)
+
+	err = s.completeCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
-	helper.SuccessWithData(c, result)
+
+	helper.SuccessWithData(c, nil)
 }
 
-// @Tags Script
-// @Summary Get run log content
-// @Description Get content of run log
+// @Tags Certificates
+// @Summary Import certificate
+// @Description Import certificate
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Success 200 {object} model.GitFile
-// @Router /scripts/{host}/run/log [get]
-func (s *CertificateMan) GetScriptRunLog(c *gin.Context) {
+// @Param alias formData string true "Alias"
+// @Param key_type formData int true "Key import type"
+// @Param key_file formData file false "Key file to import"
+// @Param key_content formData string false "Key file content to import"
+// @Param key_path formData string false "Local key file path"
+// @Param ca_type formData int true "Certificate import type"
+// @Param ca_file formData file false "Certificate file to import"
+// @Param ca_content formData string false "Certificate file content to import"
+// @Param ca_path formData string false "Local ca file path"
+// @Param csr_type formData int true "Csr import type"
+// @Param csr_file formData file false "Csr file to import"
+// @Param csr_content formData string false "Csr file content to import"
+// @Param csr_path formData string false "Local csr file path"
+// @Success 200
+// @Router /certificates/{host}/import [post]
+func (s *CertificateMan) Import(c *gin.Context) {
+	// 获取路径参数中的 Host ID
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	content, err := s.getScriptRunLog(hostID)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+	// 获取表单字段
+	alias := c.PostForm("alias") // 获取 alias 字段
+	if alias == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Alias is required", nil)
 		return
 	}
 
-	helper.SuccessWithData(c, content)
+	keyType, err := strconv.ParseUint(c.PostForm("key_type"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid key_type value", err)
+		return
+	}
+	caType, err := strconv.ParseUint(c.PostForm("ca_type"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid ca_type value", err)
+		return
+	}
+	csrType, err := strconv.ParseUint(c.PostForm("csr_type"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid csr_type value", err)
+		return
+	}
+
+	// 获取表单中的文件内容
+	var (
+		keyContent string
+		keyPath    string
+		caContent  string
+		caPath     string
+		csrContent string
+		csrPath    string
+	)
+
+	// 秘钥
+	switch keyType {
+	// 上传文件
+	case 0:
+		file, err := c.FormFile("key_file")
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Failed to read key_file", err)
+			return
+		}
+		// 打开文件
+		srcFile, err := file.Open()
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to open key_file", err)
+			return
+		}
+		defer srcFile.Close()
+		// 读取文件内容
+		buf, err := io.ReadAll(srcFile)
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to read key_file content", err)
+			return
+		}
+		keyContent = string(buf)
+
+	// 粘贴文件内容
+	case 1:
+		keyContent = c.PostForm("key_content")
+		if keyContent == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "key_content required", nil)
+			return
+		}
+
+	// 从本地文件导入
+	case 2:
+		keyPath = c.PostForm("key_path")
+		if keyPath == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "key_path required", nil)
+			return
+		}
+
+	default:
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid key_type value", nil)
+		return
+	}
+
+	// 证书
+	switch caType {
+	// 上传文件
+	case 0:
+		file, err := c.FormFile("ca_file")
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Failed to read ca_file", err)
+			return
+		}
+		// 打开文件
+		srcFile, err := file.Open()
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to open ca_file", err)
+			return
+		}
+		defer srcFile.Close()
+		// 读取文件内容
+		buf, err := io.ReadAll(srcFile)
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to read ca_file content", err)
+			return
+		}
+		caContent = string(buf)
+
+	// 粘贴文件内容
+	case 1:
+		caContent = c.PostForm("ca_content")
+		if caContent == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "ca_content required", nil)
+			return
+		}
+
+	// 从本地文件导入
+	case 2:
+		caPath = c.PostForm("ca_path")
+		if caPath == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "ca_path required", nil)
+			return
+		}
+
+	default:
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid ca_type value", nil)
+		return
+	}
+
+	// csr，可以不传
+	switch csrType {
+	// 上传文件
+	case 0:
+		file, err := c.FormFile("csr_file")
+		if err != nil {
+			LOG.Error("Failed to read csr_file")
+		} else {
+			// 打开文件
+			srcFile, err := file.Open()
+			if err != nil {
+				LOG.Error("Failed to open csr_file")
+			} else {
+				defer srcFile.Close()
+				// 读取文件内容
+				buf, err := io.ReadAll(srcFile)
+				if err != nil {
+					LOG.Error("Failed to read csr_file content")
+				} else {
+					csrContent = string(buf)
+				}
+			}
+		}
+
+	// 粘贴文件内容
+	case 1:
+		csrContent = c.PostForm("csr_content")
+
+	// 从本地文件导入
+	case 2:
+		csrPath = c.PostForm("csr_path")
+
+	default:
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid csr_type value", nil)
+		return
+	}
+
+	req := model.ImportCertificateRequest{
+		Alias:      alias,
+		KeyType:    int(keyType),
+		KeyContent: keyContent,
+		KeyPath:    keyPath,
+		CaType:     int(caType),
+		CaContent:  caContent,
+		CaPath:     caPath,
+		CsrType:    int(csrType),
+		CsrContent: csrContent,
+		CsrPath:    csrPath,
+	}
+	err = s.importCertificate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
