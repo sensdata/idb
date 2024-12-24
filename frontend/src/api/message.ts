@@ -14,7 +14,9 @@ export interface MessageRecord {
 export type MessageListType = MessageRecord[];
 
 export function queryMessageList() {
-  return request.post<MessageListType>('message/list');
+  return request.post<{
+    data: MessageListType;
+  }>('message/list');
 }
 
 interface MessageStatus {

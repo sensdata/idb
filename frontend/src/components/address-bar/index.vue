@@ -146,9 +146,10 @@
 
   .address-bar :deep(.arco-input-prefix) {
     padding-right: 4px;
-    .address-bar :deep(.arco-input-suffix) {
-      padding: 0;
-    }
+  }
+
+  .address-bar :deep(.arco-input-suffix) {
+    padding: 0;
   }
 
   .before {
