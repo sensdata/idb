@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/plugin/certificate"
 	"github.com/sensdata/idb/center/plugin/crontab/backend/crontab"
 	"github.com/sensdata/idb/center/plugin/docker/backend/docker"
 	"github.com/sensdata/idb/center/plugin/fileman/backend/fileman"
@@ -36,6 +37,8 @@ func RegisterPlugins() {
 	conn.RegisterIdbPlugin(&docker.DockerMan{AppDir: constant.AgentDockerDir})
 	// 注册nftable
 	conn.RegisterIdbPlugin(&nftable.NFTable{})
+	// 注册certificates
+	conn.RegisterIdbPlugin(&certificate.CertificateMan{})
 	// 执行所有模块的初始化
 	conn.InitializePlugins()
 }

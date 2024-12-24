@@ -57,37 +57,25 @@ func (s *CaService) GenerateCertificate(req model.CreateGroupRequest) error {
 	}
 
 	// 2. 根据密钥算法生成私钥并保存
-	privateKeyPath := certificateDir + "/" + req.Alias + ".key"
+	privateKeyPath := filepath.Join(certificateDir, req.Alias+".key")
 	var privateKey []byte
 	var err error
 	switch req.KeyAlgorithm {
 	case "RSA 2048":
 		privateKey, err = generateRSAKey(2048)
-		if err != nil {
-			return err
-		}
 	case "RSA 3072":
 		privateKey, err = generateRSAKey(3072)
-		if err != nil {
-			return err
-		}
 	case "RSA 4096":
 		privateKey, err = generateRSAKey(4096)
-		if err != nil {
-			return err
-		}
 	case "EC 256":
 		privateKey, err = generateECDSAKey("P-256")
-		if err != nil {
-			return err
-		}
 	case "EC 384":
 		privateKey, err = generateECDSAKey("P-384")
-		if err != nil {
-			return err
-		}
 	default:
 		return fmt.Errorf("unsupported key algorithm: %s", req.KeyAlgorithm)
+	}
+	if err != nil {
+		return err
 	}
 
 	// 保存私钥到文件
@@ -97,7 +85,7 @@ func (s *CaService) GenerateCertificate(req model.CreateGroupRequest) error {
 	}
 
 	// 3. 生成CSR文件
-	csrPath := certificateDir + "/" + req.Alias + ".csr"
+	csrPath := filepath.Join(certificateDir, req.Alias+".csr")
 	csrBytes, err := generateCSR(req, privateKey)
 	if err != nil {
 		return err
@@ -122,6 +110,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	} else {
 		return fmt.Errorf("invalid expire unit: %s", req.ExpireUnit)
 	}
+
 	// 校验域名
 	var domains []string
 	if req.AltDomains != "" {
@@ -134,6 +123,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 			}
 		}
 	}
+
 	// 校验ip
 	var ips []net.IP
 	if req.AltIPs != "" {
@@ -150,8 +140,8 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	// 根据 Alias 查找目录下的 .csr 和 .key 文件
 	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
 
-	csrPath := fmt.Sprintf("%s/%s.csr", certificateDir, req.Alias)
-	keyPath := fmt.Sprintf("%s/%s.key", certificateDir, req.Alias)
+	csrPath := filepath.Join(certificateDir, req.Alias+".csr")
+	keyPath := filepath.Join(certificateDir, req.Alias+".key")
 
 	// 检查 .csr 和 .key 文件是否存在
 	if _, err := os.Stat(csrPath); os.IsNotExist(err) {
@@ -166,18 +156,29 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	if err != nil {
 		return fmt.Errorf("failed to read private key: %v", err)
 	}
+	// 解码 PEM 格式
+	privateBlock, _ := pem.Decode(privateKeyBytes)
+	if privateBlock == nil {
+		return fmt.Errorf("failed to decode private key PEM block")
+	}
 
 	csrBytes, err := os.ReadFile(csrPath)
 	if err != nil {
 		return fmt.Errorf("failed to read CSR file: %v", err)
 	}
 
+	// 解码 PEM 格式
+	csrBlock, _ := pem.Decode(csrBytes)
+	if csrBlock == nil || csrBlock.Type != "CERTIFICATE REQUEST" {
+		return fmt.Errorf("failed to decode CSR PEM block")
+	}
+
 	// 解析私钥：根据私钥格式判断是 RSA 还是 ECDSA
 	var privateKey interface{}
-	if isRSAKey(privateKeyBytes) {
-		privateKey, err = x509.ParsePKCS1PrivateKey(privateKeyBytes)
-	} else if isECDSAKey(privateKeyBytes) {
-		privateKey, err = x509.ParseECPrivateKey(privateKeyBytes)
+	if isRSAKey(privateBlock.Bytes) {
+		privateKey, err = x509.ParsePKCS1PrivateKey(privateBlock.Bytes)
+	} else if isECDSAKey(privateBlock.Bytes) {
+		privateKey, err = x509.ParseECPrivateKey(privateBlock.Bytes)
 	} else {
 		return fmt.Errorf("unsupported key algorithm or invalid private key")
 	}
@@ -197,7 +198,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 	}
 
 	// 解析 CSR
-	csr, err := x509.ParseCertificateRequest(csrBytes)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
 		return fmt.Errorf("failed to parse CSR: %v", err)
 	}
@@ -226,7 +227,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 
 	// 将生成的证书保存到文件
 	timestamp := time.Now().Unix()
-	certPath := fmt.Sprintf("%s/%d.crt", certificateDir, timestamp)
+	certPath := filepath.Join(certificateDir, fmt.Sprintf("%d.crt", timestamp))
 
 	certFile, err := os.Create(certPath)
 	if err != nil {
@@ -261,23 +262,29 @@ func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateK
 		return &privateKeyInfo, fmt.Errorf("failed to read private key: %v", err)
 	}
 
+	// 解码 PEM 格式
+	block, _ := pem.Decode(privKeyBytes)
+	if block == nil {
+		return &privateKeyInfo, fmt.Errorf("failed to decode PEM block")
+	}
+
 	// 解析私钥：根据私钥格式判断是 RSA 还是 ECDSA
 	var parsedPrivKey interface{}
 	var keyAlgorithm string
 	var keySize int
 
-	if isRSAKey(privKeyBytes) {
+	if isRSAKey(block.Bytes) {
 		// 解析 RSA 私钥
-		parsedPrivKey, err = x509.ParsePKCS1PrivateKey(privKeyBytes)
+		parsedPrivKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
 			return &privateKeyInfo, fmt.Errorf("failed to parse RSA private key: %v", err)
 		}
 		keyAlgorithm = "RSA"
 		// 获取 RSA 私钥的位数
 		keySize = parsedPrivKey.(*rsa.PrivateKey).N.BitLen() // RSA 使用 N.BitLen() 来获取密钥长度
-	} else if isECDSAKey(privKeyBytes) {
+	} else if isECDSAKey(block.Bytes) {
 		// 解析 ECDSA 私钥
-		parsedPrivKey, err = x509.ParseECPrivateKey(privKeyBytes)
+		parsedPrivKey, err = x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
 			return &privateKeyInfo, fmt.Errorf("failed to parse ECDSA private key: %v", err)
 		}
@@ -288,21 +295,12 @@ func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateK
 		return &privateKeyInfo, fmt.Errorf("unsupported key algorithm or invalid private key")
 	}
 
-	// 将私钥编码为 PEM 格式
-	privKeyBlock := &pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: privKeyBytes,
-	}
-
-	// 生成 PEM 格式私钥
-	pemKey := pem.EncodeToMemory(privKeyBlock)
-
 	// 填充返回结构体
 	privateKeyInfo = model.PrivateKeyInfo{
 		Alias:        req.Alias,
 		KeyAlgorithm: keyAlgorithm,
 		KeySize:      keySize,
-		Pem:          string(pemKey),
+		Pem:          string(privKeyBytes), // 直接使用原始私钥字节
 	}
 
 	return &privateKeyInfo, nil
@@ -326,8 +324,14 @@ func (s *CaService) GetCSRInfo(req model.GroupPkRequest) (*model.CSRInfo, error)
 		return &csrInfo, fmt.Errorf("failed to read CSR file: %v", err)
 	}
 
+	// 解码 PEM 格式
+	csrBlock, _ := pem.Decode(csrBytes)
+	if csrBlock == nil || csrBlock.Type != "CERTIFICATE REQUEST" {
+		return &csrInfo, fmt.Errorf("failed to decode CSR PEM block")
+	}
+
 	// 解析 CSR
-	csr, err := x509.ParseCertificateRequest(csrBytes)
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
 		return &csrInfo, fmt.Errorf("failed to parse CSR: %v", err)
 	}
@@ -338,7 +342,7 @@ func (s *CaService) GetCSRInfo(req model.GroupPkRequest) (*model.CSRInfo, error)
 		Country:        strings.Join(csr.Subject.Country, ", "),
 		Organization:   strings.Join(csr.Subject.Organization, ", "),
 		EmailAddresses: csr.EmailAddresses,
-		Pem:            string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})),
+		Pem:            string(csrBytes), // 直接使用原始 CSR 字节
 	}
 
 	return &csrInfo, nil
@@ -395,7 +399,7 @@ func (s *CaService) GetCertificateInfo(req model.CertificateInfoRequest) (*model
 	certInfo.IssuerOrganization = strings.Join(cert.Issuer.Organization, ", ")
 
 	// 获取证书的 PEM 格式
-	certInfo.Pem = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}))
+	certInfo.Pem = string(certBytes)
 
 	return &certInfo, nil
 }
@@ -430,6 +434,11 @@ func (s *CaService) GetCertificateGroups() (*model.PageResult, error) {
 
 	// 扫描根目录下所有子目录
 	baseDir := filepath.Join(constant.CenterDataDir, "certificates")
+	if err := utils.EnsurePaths([]string{baseDir}); err != nil {
+		global.LOG.Error("Failed to create dir %s, %v", baseDir, err)
+		return nil, err
+	}
+
 	dirs, err := os.ReadDir(baseDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read base directory: %v", err)
