@@ -85,6 +85,495 @@ const docTemplate = `{
                 }
             }
         },
+        "/certificates/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/certificates/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/certificates/{host}": {
+            "get": {
+                "description": "Get certificate detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get certificate detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "source",
+                        "name": "source",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CertificateInfo"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete certificate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Delete certificate",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "source",
+                        "name": "source",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/complete": {
+            "post": {
+                "description": "Complete certificate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Complete certificate",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Certificate complete details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CertificateInfoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/group": {
+            "get": {
+                "description": "Get list of certificate groups",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get certificate groups",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create certificate group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Create certificate group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Certificate group creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete certificate group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Delete certificate group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Alias",
+                        "name": "alias",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/group/csr": {
+            "get": {
+                "description": "Get certificate group csr",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get certificate group csr",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Alias",
+                        "name": "alias",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.CSRInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/group/key": {
+            "get": {
+                "description": "Get certificate group private key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Get certificate group private key",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group Alias",
+                        "name": "alias",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PrivateKeyInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/import": {
+            "post": {
+                "description": "Import certificate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Import certificate",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alias",
+                        "name": "alias",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Key import type",
+                        "name": "key_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Key file to import",
+                        "name": "key_file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key file content to import",
+                        "name": "key_content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Local key file path",
+                        "name": "key_path",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Certificate import type",
+                        "name": "ca_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Certificate file to import",
+                        "name": "ca_file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Certificate file content to import",
+                        "name": "ca_content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Local ca file path",
+                        "name": "ca_path",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Csr import type",
+                        "name": "csr_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Csr file to import",
+                        "name": "csr_file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Csr file content to import",
+                        "name": "csr_content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Local csr file path",
+                        "name": "csr_path",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/sign/self": {
+            "post": {
+                "description": "Self sign certificate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Self sign certificate",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Certificate self sign details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SelfSignedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/crontab/info": {
             "get": {
                 "description": "Get plugin information",
@@ -7258,6 +7747,90 @@ const docTemplate = `{
                 }
             }
         },
+        "model.CSRInfo": {
+            "type": "object",
+            "properties": {
+                "common_name": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "email_addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "organization": {
+                    "type": "string"
+                },
+                "pem": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CertificateInfo": {
+            "type": "object",
+            "properties": {
+                "alt_names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "country": {
+                    "type": "string"
+                },
+                "domain": {
+                    "description": "证书信息",
+                    "type": "string"
+                },
+                "is_ca": {
+                    "type": "boolean"
+                },
+                "issuer_cn": {
+                    "description": "签发机构信息",
+                    "type": "string"
+                },
+                "issuer_country": {
+                    "type": "string"
+                },
+                "issuer_organization": {
+                    "type": "string"
+                },
+                "key_algorithm": {
+                    "type": "string"
+                },
+                "key_size": {
+                    "type": "integer"
+                },
+                "not_after": {
+                    "type": "string"
+                },
+                "not_before": {
+                    "type": "string"
+                },
+                "organization": {
+                    "type": "string"
+                },
+                "pem": {
+                    "description": "证书代码（PEM格式）",
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CertificateInfoRequest": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ChangePassword": {
             "type": "object",
             "required": [
@@ -7534,6 +8107,47 @@ const docTemplate = `{
             ],
             "properties": {
                 "group_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateGroupRequest": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "description": "主体别名",
+                    "type": "string"
+                },
+                "city": {
+                    "description": "城市",
+                    "type": "string"
+                },
+                "country": {
+                    "description": "国家",
+                    "type": "string"
+                },
+                "domain_name": {
+                    "description": "域名/名称",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "邮箱",
+                    "type": "string"
+                },
+                "key_algorithm": {
+                    "description": "秘钥算法",
+                    "type": "string"
+                },
+                "organization": {
+                    "description": "公司/组织",
+                    "type": "string"
+                },
+                "organization_unit": {
+                    "description": "部门",
+                    "type": "string"
+                },
+                "province": {
+                    "description": "省份",
                     "type": "string"
                 }
             }
@@ -8730,6 +9344,23 @@ const docTemplate = `{
                 }
             }
         },
+        "model.PrivateKeyInfo": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "key_algorithm": {
+                    "type": "string"
+                },
+                "key_size": {
+                    "type": "integer"
+                },
+                "pem": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Prune": {
             "type": "object",
             "required": [
@@ -8942,6 +9573,35 @@ const docTemplate = `{
                 },
                 "start": {
                     "type": "string"
+                }
+            }
+        },
+        "model.SelfSignedRequest": {
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "description": "用于查找目录和证书项目的主体别名",
+                    "type": "string"
+                },
+                "alt_domains": {
+                    "description": "备用域名，以换行符分隔",
+                    "type": "string"
+                },
+                "alt_ips": {
+                    "description": "备用IP地址，以换行符分隔",
+                    "type": "string"
+                },
+                "expire_unit": {
+                    "description": "有效期单位：day 或 year",
+                    "type": "string"
+                },
+                "expire_value": {
+                    "description": "有效期值",
+                    "type": "integer"
+                },
+                "is_ca": {
+                    "description": "是否允许使用该证书签发下级证书",
+                    "type": "boolean"
                 }
             }
         },

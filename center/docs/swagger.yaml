@@ -62,6 +62,62 @@ definitions:
         description: 类型
         type: string
     type: object
+  model.CSRInfo:
+    properties:
+      common_name:
+        type: string
+      country:
+        type: string
+      email_addresses:
+        items:
+          type: string
+        type: array
+      organization:
+        type: string
+      pem:
+        type: string
+    type: object
+  model.CertificateInfo:
+    properties:
+      alt_names:
+        items:
+          type: string
+        type: array
+      country:
+        type: string
+      domain:
+        description: 证书信息
+        type: string
+      is_ca:
+        type: boolean
+      issuer_cn:
+        description: 签发机构信息
+        type: string
+      issuer_country:
+        type: string
+      issuer_organization:
+        type: string
+      key_algorithm:
+        type: string
+      key_size:
+        type: integer
+      not_after:
+        type: string
+      not_before:
+        type: string
+      organization:
+        type: string
+      pem:
+        description: 证书代码（PEM格式）
+        type: string
+      source:
+        type: string
+    type: object
+  model.CertificateInfoRequest:
+    properties:
+      source:
+        type: string
+    type: object
   model.ChangePassword:
     properties:
       id:
@@ -247,6 +303,36 @@ definitions:
         type: string
     required:
     - group_name
+    type: object
+  model.CreateGroupRequest:
+    properties:
+      alias:
+        description: 主体别名
+        type: string
+      city:
+        description: 城市
+        type: string
+      country:
+        description: 国家
+        type: string
+      domain_name:
+        description: 域名/名称
+        type: string
+      email:
+        description: 邮箱
+        type: string
+      key_algorithm:
+        description: 秘钥算法
+        type: string
+      organization:
+        description: 公司/组织
+        type: string
+      organization_unit:
+        description: 部门
+        type: string
+      province:
+        description: 省份
+        type: string
     type: object
   model.CreateHost:
     properties:
@@ -1045,6 +1131,17 @@ definitions:
       protocol:
         type: string
     type: object
+  model.PrivateKeyInfo:
+    properties:
+      alias:
+        type: string
+      key_algorithm:
+        type: string
+      key_size:
+        type: integer
+      pem:
+        type: string
+    type: object
   model.Prune:
     properties:
       type:
@@ -1186,6 +1283,27 @@ definitions:
         type: string
       start:
         type: string
+    type: object
+  model.SelfSignedRequest:
+    properties:
+      alias:
+        description: 用于查找目录和证书项目的主体别名
+        type: string
+      alt_domains:
+        description: 备用域名，以换行符分隔
+        type: string
+      alt_ips:
+        description: 备用IP地址，以换行符分隔
+        type: string
+      expire_unit:
+        description: 有效期单位：day 或 year
+        type: string
+      expire_value:
+        description: 有效期值
+        type: integer
+      is_ca:
+        description: 是否允许使用该证书签发下级证书
+        type: boolean
     type: object
   model.ServiceAction:
     properties:
@@ -1601,6 +1719,332 @@ paths:
       summary: User login
       tags:
       - Auth
+  /certificates/{host}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete certificate
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: source
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete certificate
+      tags:
+      - Certificates
+    get:
+      consumes:
+      - application/json
+      description: Get certificate detail
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: source
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CertificateInfo'
+      summary: Get certificate detail
+      tags:
+      - Certificates
+  /certificates/{host}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Complete certificate
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Certificate complete details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CertificateInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Complete certificate
+      tags:
+      - Certificates
+  /certificates/{host}/group:
+    delete:
+      consumes:
+      - application/json
+      description: Delete certificate group
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Group Alias
+        in: query
+        name: alias
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete certificate group
+      tags:
+      - Certificates
+    get:
+      consumes:
+      - application/json
+      description: Get list of certificate groups
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get certificate groups
+      tags:
+      - Certificates
+    post:
+      consumes:
+      - application/json
+      description: Create certificate group
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Certificate group creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create certificate group
+      tags:
+      - Certificates
+  /certificates/{host}/group/csr:
+    get:
+      consumes:
+      - application/json
+      description: Get certificate group csr
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Group Alias
+        in: query
+        name: alias
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.CSRInfo'
+      summary: Get certificate group csr
+      tags:
+      - Certificates
+  /certificates/{host}/group/key:
+    get:
+      consumes:
+      - application/json
+      description: Get certificate group private key
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Group Alias
+        in: query
+        name: alias
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PrivateKeyInfo'
+      summary: Get certificate group private key
+      tags:
+      - Certificates
+  /certificates/{host}/import:
+    post:
+      consumes:
+      - application/json
+      description: Import certificate
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Alias
+        in: formData
+        name: alias
+        required: true
+        type: string
+      - description: Key import type
+        in: formData
+        name: key_type
+        required: true
+        type: integer
+      - description: Key file to import
+        in: formData
+        name: key_file
+        type: file
+      - description: Key file content to import
+        in: formData
+        name: key_content
+        type: string
+      - description: Local key file path
+        in: formData
+        name: key_path
+        type: string
+      - description: Certificate import type
+        in: formData
+        name: ca_type
+        required: true
+        type: integer
+      - description: Certificate file to import
+        in: formData
+        name: ca_file
+        type: file
+      - description: Certificate file content to import
+        in: formData
+        name: ca_content
+        type: string
+      - description: Local ca file path
+        in: formData
+        name: ca_path
+        type: string
+      - description: Csr import type
+        in: formData
+        name: csr_type
+        required: true
+        type: integer
+      - description: Csr file to import
+        in: formData
+        name: csr_file
+        type: file
+      - description: Csr file content to import
+        in: formData
+        name: csr_content
+        type: string
+      - description: Local csr file path
+        in: formData
+        name: csr_path
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Import certificate
+      tags:
+      - Certificates
+  /certificates/{host}/sign/self:
+    post:
+      consumes:
+      - application/json
+      description: Self sign certificate
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Certificate self sign details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SelfSignedRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Self sign certificate
+      tags:
+      - Certificates
+  /certificates/info:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/plugin.PluginInfo'
+      summary: Get plugin info
+      tags:
+      - Certificates
+  /certificates/menu:
+    get:
+      consumes:
+      - application/json
+      description: Get plugin menu items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/plugin.MenuItem'
+            type: array
+      summary: Get plugin menu
+      tags:
+      - Certificates
   /crontab/{host}:
     delete:
       consumes:
