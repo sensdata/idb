@@ -1,0 +1,15 @@
+export default {
+  'app.file.createFolderDrawer.title': '创建文件',
+  'app.file.createFolderDrawer.name': '文件名称',
+  'app.file.createFolderDrawer.set_mode': '设置权限',
+  'app.file.createFolderDrawer.owner_access': '所有者权限',
+  'app.file.createFolderDrawer.group_access': '用户组权限',
+  'app.file.createFolderDrawer.other_access': '公共权限',
+  'app.file.createFolderDrawer.read': '读取',
+  'app.file.createFolderDrawer.write': '写入',
+  'app.file.createFolderDrawer.execute': '可执行',
+  'app.file.createFolderDrawer.mode': '权限码',
+  'app.file.createFolderDrawer.name_required': '请输入文件名称',
+  'app.file.createFolderDrawer.mode_error': '权限错误',
+  'app.file.createFolderDrawer.success': '创建成功',
+};

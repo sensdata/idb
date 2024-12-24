@@ -1,0 +1,21 @@
+{
+	"i18n-ally.localesPaths": [
+		"src/locale"
+	],
+	"i18n-ally.pathMatcher": "{locale}/*.{ext}",
+	"i18n-ally.enabledParsers": ["ts", "json"],
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"[vue]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"i18n-ally.keystyle": "nested",
+	"json.schemaDownload.enable": false,
+	"editor.tabSize": 2,
+	"editor.insertSpaces": true,
+	"typescript.format.indentSwitchCase": true,
+	"vue.format.style.initialIndent": false,
+	"prettier.useTabs": false,
+	"prettier.singleQuote": true,
+	"typescript.preferences.quoteStyle": "single",
+	"javascript.preferences.quoteStyle": "single"
+}

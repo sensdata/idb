@@ -1,0 +1,144 @@
+:root {
+  // 碧海蓝
+  --idblue-6: #3491fa;
+  --idblue-5: #57a9fb;
+  --idblue-4: #206ccf;
+  --idblue-3: #9fd4fd;
+  --idblue-2: #c3e7fe;
+  --idblue-1: #e8f7ff;
+
+  // 新生绿
+  --idbgreen-6: #9fdb1d;
+  --idbgreen-5: #b5e241;
+  --idbgreen-4: #7eb712;
+  --idbgreen-3: #dcf190;
+  --idbgreen-2: #edf8bb;
+  --idbgreen-1: #fcffe8;
+
+  // 碧海青
+  --idbcyan-6: #00b42a;
+  --idbcyan-5: #23c343;
+  --idbcyan-4: #009a29;
+  --idbcyan-3: #7be188;
+  --idbcyan-2: #aff0b5;
+  --idbcyan-1: #e8fffb;
+
+  // 晚秋红
+  --idbautumn-6: #f77234;
+  --idbautumn-5: #f99057;
+  --idbautumn-4: #cc5120;
+  --idbautumn-3: #fcc59f;
+  --idbautumn-2: #fdddc3;
+  --idbautumn-1: #fff3e8;
+
+  // 黄昏
+  --idbdusk-6: #f7ba1e;
+  --idbdusk-5: #f9cc45;
+  --idbdusk-4: #cc9213;
+  --idbdusk-3: #fce996;
+  --idbdusk-2: #edf4bf;
+  --idbdusk-1: #fffce8;
+}
+
+each(range(6), {
+  .blue-@{value} {
+    color: var(--idblue-@value);
+  }
+  .bg-blue-@{value} {
+    background-color: var(--idblue-@value);
+  }
+  .green-@{value} {
+    color: var(--idbgreen@value);
+  }
+  .bg-green-@{value} {
+    background-color: var(--idbgreen@value);
+  }
+  .cyan-@{value} {
+    color: var(--idbcyan@value);
+  }
+  .bg-cyan-@{value} {
+    background-color: var(--idbcyan@value);
+  }
+  .autumn-@{value} {
+    color: var(--idbautumn@value);
+  }
+  .bg-autumn-@{value} {
+    background-color: var(--idbautumn@value);
+  }
+  .dusk-@{value} {
+    color: var(--idbdusk@value);
+  }
+  .bg-dusk-@{value} {
+    background-color: var(--idbdusk@value);
+  }
+});
+
+.color-primary {
+  color: rgb(var(--primary-6));
+  &:hover {
+    color: rgb(var(--primary-5));
+  }
+}
+
+.bg-primary {
+  background-color: rgb(var(--primary-6));
+  &:hover {
+    background-color: rgb(var(--primary-5));
+  }
+}
+
+.color-secondary {
+  color: rgb(var(--secondary-6));
+  &:hover {
+    color: rgb(var(--secondary-5));
+  }
+}
+
+.bg-secondary {
+  background-color: rgb(var(--secondary-6));
+  &:hover {
+    background-color: rgb(var(--secondary-5));
+  }
+}
+
+.color-success {
+  color: rgb(var(--success-6));
+  &:hover {
+    color: rgb(var(--success-5));
+  }
+}
+
+.bg-success {
+  background-color: rgb(var(--success-6));
+  &:hover {
+    background-color: rgb(var(--success-5));
+  }
+}
+
+.color-warning {
+  color: rgb(var(--warning-6));
+  &:hover {
+    color: rgb(var(--warning-5));
+  }
+}
+
+.bg-warning {
+  background-color: rgb(var(--warning-6));
+  &:hover {
+    background-color: rgb(var(--warning-5));
+  }
+}
+
+.color-danger {
+  color: rgb(var(--danger-6));
+  &:hover {
+    color: rgb(var(--danger-5));
+  }
+}
+
+.bg-danger {
+  background-color: rgb(var(--danger-6));
+  &:hover {
+    background-color: rgb(var(--danger-5));
+  }
+}
