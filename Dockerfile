@@ -1,4 +1,19 @@
 # 构建阶段
+
+# 编译 frontend 项目
+FROM node:16 AS frontend-builder
+
+# 设置工作目录
+WORKDIR /app/frontend
+
+# 复制 frontend 项目目录
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+
+COPY frontend/ ./
+RUN npm run build
+
+# 编译 go 项目
 FROM golang:1.22 AS builder
 
 # 设置工作目录
@@ -63,6 +78,7 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/lib/idb/agent
 
 # 从构建阶段复制编译好的 center 应用和必要文件
+COPY --from=frontend-builder /app/frontend/dist/. /var/lib/idb/home
 COPY --from=builder /app/center/idb /var/lib/idb/idb
 COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar.gz
 COPY center/idb.conf /etc/idb/idb.conf

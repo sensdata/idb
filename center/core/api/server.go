@@ -43,15 +43,26 @@ func (s *ApiServer) Start() error {
 
 // SetupRouter sets up the API routes
 func (s *ApiServer) setUpDefaultRouters() {
-	global.LOG.Info("register router - swagger")
-	swaggerGroup := s.router.Group("idb/swagger")
-	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
-
 	global.LOG.Info("register router - api")
 	apiGroup := s.router.Group("api/v1")
+
 	for _, router := range router.RouterGroups {
 		router.InitRouter(apiGroup)
 	}
+
+	// 添加 Swagger 路由到 apiGroup
+	global.LOG.Info("register router - swagger")
+	swaggerGroup := apiGroup.Group("swagger")
+	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
+	// 处理未匹配的请求，重定向到 /var/lib/idb/home
+	s.router.NoRoute(func(c *gin.Context) {
+		// 这里可以使用 c.FileServer 来处理目录下的所有请求
+		c.File("/var/lib/idb/home/index.html") // 默认返回 index.html
+	})
+
+	// 设置静态文件路由，确保可以访问 assets 目录
+	s.router.Static("/assets", "/var/lib/idb/home/assets") // 处理 assets 目录
 }
 
 // SetUpPluginRouters sets up routers from plugins
