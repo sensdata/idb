@@ -1,6 +1,8 @@
 package entry
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
@@ -111,18 +113,18 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 // @Success 200
 // @Router /hosts/{host}/ssh [put]
 func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateHostSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	hostID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
-		return
-	}
-
-	if err := hostService.UpdateSSH(hostID, req); err != nil {
+	if err := hostService.UpdateSSH(uint(hostID), req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -139,18 +141,18 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 // @Success 200
 // @Router /hosts/{host}/agent [put]
 func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.UpdateHostAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	hostID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
-		return
-	}
-
-	if err := hostService.UpdateAgent(hostID, req); err != nil {
+	if err := hostService.UpdateAgent(uint(hostID), req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
@@ -167,18 +169,18 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 // @Success 200
 // @Router /hosts/{host}/test/ssh [post]
 func (b *BaseApi) TestHostSSH(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.TestSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	hostID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
-		return
-	}
-
-	if err := hostService.TestSSH(hostID, req); err != nil {
+	if err := hostService.TestSSH(uint(hostID), req); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
@@ -195,18 +197,19 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 // @Success 200
 // @Router /hosts/{host}/test/agent [post]
 func (b *BaseApi) TestHostAgent(c *gin.Context) {
+
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
 	var req model.TestAgent
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	hostID, err := GetParamID(c)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
-		return
-	}
-
-	if err := hostService.TestAgent(hostID, req); err != nil {
+	if err := hostService.TestAgent(uint(hostID), req); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
@@ -222,13 +225,13 @@ func (b *BaseApi) TestHostAgent(c *gin.Context) {
 // @Success 200
 // @Router /hosts/{host}/install/agent [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {
-	hostID, err := GetParamID(c)
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host ID", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	if err := hostService.InstallAgent(hostID); err != nil {
+	if err := hostService.InstallAgent(uint(hostID)); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
