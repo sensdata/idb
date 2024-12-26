@@ -4,6 +4,7 @@
 
 <script lang="ts" setup>
   import { ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';
+  import { API_BASE_URL } from '@/helper/api-helper';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';
@@ -106,7 +107,7 @@
   function initWs() {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     wsRef.value = new WebSocket(
-      `${protocol}://${window.location.host}/ws/terminals?host_id=${props.hostId}`
+      `${protocol}://${window.location.host}${API_BASE_URL}ws/terminals?host_id=${props.hostId}`
     );
     wsRef.value.onerror = onWsError;
     wsRef.value.onclose = onWsClose;

@@ -11,16 +11,16 @@ export default mergeConfig(
         strict: true,
       },
       proxy: {
-        '/api': {
-          target: 'http://8.138.47.21:9918',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
-        },
-        '/ws': {
-          target: 'ws://8.138.47.21:9918',
+        '/api/ws': {
+          target: 'ws://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/ws/, '/api/v1/ws'),
+          rewrite: (path) => path.replace(/^\/api\/ws/, '/api/v1/ws'),
+        },
+        '/api': {
+          target: 'http://39.99.155.139:9918',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
         },
       },
       port: 5300,
