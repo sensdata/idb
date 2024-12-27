@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -226,10 +227,31 @@ func (a *Agent) listenToTcp() error {
 
 	config := CONFMAN.GetConfig()
 	global.LOG.Info("Try listen on port %d", config.Port)
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port))
+
+	// lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port))
+	// if err != nil {
+	// 	global.LOG.Error("Failed to listen on port %d: %v", config.Port, err)
+	// 	fmt.Printf("Failed to listen on port %d, quit \n", config.Port)
+	// 	return err
+	// }
+
+	// 创建 TLS 配置
+	cert, err := tls.X509KeyPair(global.CertPem, global.KeyPem)
+	if err != nil {
+		return err
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert}, // 设置服务器证书
+		MinVersion:         tls.VersionTLS13,        // 设置最小 TLS 版本
+		InsecureSkipVerify: true,
+	}
+
+	// 使用 tls.Listen 替代 net.Listen
+	lis, err := tls.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to listen on port %d: %v", config.Port, err)
-		fmt.Printf("Failed to listen on port %d, quit \n", config.Port)
+		fmt.Printf("Failed to listen on port %d: quit \n", config.Port)
 		return err
 	}
 

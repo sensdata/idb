@@ -22,6 +22,16 @@ WORKDIR /app
 # 复制整个项目目录
 COPY . .
 
+# 生成证书
+RUN openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout cert.pem -out cert.pem -config ssl.cnf
+
+# 拷贝证书到 center 和 agent 目录
+RUN mkdir -p center/global/certs agent/global/certs && \
+    cp cert.pem center/global/certs/ && \
+    cp cert.pem agent/global/certs/ && \
+    cp key.pem center/global/certs/ && \
+    cp key.pem agent/global/certs/
+    
 # 设置构建参数
 ARG GOOS=linux
 ARG GOARCH=amd64

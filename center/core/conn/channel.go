@@ -1,6 +1,8 @@
 package conn
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -261,7 +263,21 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	defer c.mu.Unlock()
 
 	global.LOG.Info("try connect to agent %s:%d", host.AgentAddr, host.AgentPort)
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort))
+	// conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort))
+
+	// 创建证书池并添加自签名证书
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(global.CertPem)
+
+	// 创建 TLS 配置
+	tlsConfig := &tls.Config{
+		RootCAs:            caCertPool,       // 使用自定义的证书池
+		MinVersion:         tls.VersionTLS13, // 设置最小 TLS 版本
+		InsecureSkipVerify: true,
+	}
+
+	// // 建立 TLS 连接
+	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to connect to Agent: %v", err)
 		resultCh <- err
