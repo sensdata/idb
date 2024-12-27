@@ -23,7 +23,7 @@ WORKDIR /app
 COPY . .
 
 # 生成证书
-RUN openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout cert.pem -out cert.pem -config ssl.cnf
+RUN openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout key.pem -out cert.pem -config ssl.cnf
 
 # 拷贝证书到 center 和 agent 目录
 RUN mkdir -p center/global/certs agent/global/certs && \
