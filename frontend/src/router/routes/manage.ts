@@ -4,7 +4,7 @@ import DeskTopIcon from '@/assets/icons/desktop.svg?raw';
 const manageRoutes: RouteRecordRaw[] = [
   {
     path: '/manage/host',
-    name: 'manageHost',
+    name: 'host',
     meta: {
       locale: 'menu.manage.host',
       requiresAuth: true,

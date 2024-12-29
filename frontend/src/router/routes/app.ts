@@ -5,7 +5,7 @@ import FileIcon from '@/assets/icons/folder.svg?raw';
 const appRoutes: RouteRecordRaw[] = [
   {
     path: '/app/sysinfo',
-    name: 'appSysinfo',
+    name: 'sysinfo',
     meta: {
       locale: 'menu.app.sysinfo',
       requiresAuth: true,
@@ -15,7 +15,7 @@ const appRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: 'overview',
-        name: 'appSysinfoOverview',
+        name: 'sysinfoOverview',
         component: () => import('@/views/app/sysinfo/overview.vue'),
         meta: {
           locale: 'menu.app.sysinfo.overview',
@@ -27,7 +27,7 @@ const appRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/app/crontab',
-    name: 'appCrontab',
+    name: 'crontab',
     component: () => import('@/views/app/crontab/main.vue'),
     meta: {
       locale: 'menu.app.crontab',
@@ -37,7 +37,7 @@ const appRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/app/file',
-    name: 'appFile',
+    name: 'file',
     component: () => import('@/views/app/file/main.vue'),
     meta: {
       locale: 'menu.app.file',
@@ -47,7 +47,7 @@ const appRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/app/terminal',
-    name: 'appTerminal',
+    name: 'terminal',
     component: () => import('@/views/app/terminal/main.vue'),
     meta: {
       locale: 'menu.app.terminal',
@@ -57,12 +57,22 @@ const appRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/app/script',
-    name: 'appScript',
+    name: 'script',
     component: () => import('@/views/app/script/main.vue'),
     meta: {
       locale: 'menu.app.script',
       requiresAuth: true,
       icon: 'icon-code',
+    },
+  },
+  {
+    path: '/app/process',
+    name: 'process',
+    component: () => import('@/views/app/process/main.vue'),
+    meta: {
+      locale: 'menu.app.process',
+      requiresAuth: true,
+      icon: 'icon-branch',
     },
   },
 ];
