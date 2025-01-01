@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/core/encrypt"
+	"github.com/sensdata/idb/core/utils"
 )
 
 // 消息起始字节
 const (
 	MagicBytes    = "\xAB\xCD\xEF\x01"
 	MagicBytes1   = "\xAB\xCD\xEF\x02"
+	MagicBytes2   = "\xAB\xCD\xEF\x03"
 	MagicBytesLen = 4
 	MsgLenBytes   = 4
 )
@@ -26,6 +28,7 @@ const (
 // 消息类型
 type MessageType string
 type FileMessageType string
+type SessionMessageType string
 
 const (
 	Heartbeat     MessageType = "hb"
@@ -42,6 +45,15 @@ const (
 	FileErr  int = -1
 	FileOk   int = 0
 	FileDone int = 1
+)
+
+const (
+	Start    SessionMessageType = "start"
+	Detach   SessionMessageType = "detach"
+	Attach   SessionMessageType = "attach"
+	Finish   SessionMessageType = "finish"
+	Rename   SessionMessageType = "rename"
+	Transfer SessionMessageType = "transfer"
 )
 
 // 消息数据分隔符
@@ -82,6 +94,27 @@ type FileMessage struct {
 
 func (f *FileMessage) GetType() string {
 	return "FileMessage"
+}
+
+// Session 消息
+type SessionMessage struct {
+	MsgID     string             `json:"msg_id"`
+	Type      SessionMessageType `json:"type"`
+	Sign      string             `json:"sign"`
+	Data      SessionData        `json:"data"`
+	Timestamp int64              `json:"timestamp"`
+	Nonce     string             `json:"nonce"`
+	Version   string             `json:"version"`
+	Checksum  string             `json:"checksum"`
+}
+
+type SessionData struct {
+	SessionID string `json:"session_id"`
+	Data      string `json:"data"`
+}
+
+func (m *SessionMessage) GetType() string {
+	return "SessionMessage"
 }
 
 // ErrIncompleteMessage 表示接收到的消息数据不完整
@@ -168,7 +201,7 @@ func CreateMessage(msgID string, data string, key string, nonce string, msgType 
 	}
 
 	// 生成签名
-	msg.Sign = generateHMAC(msg, key)
+	msg.Sign = generateHMAC(msg.MsgID, msg.Data, msg.Nonce, msg.Version, msg.Checksum, key)
 
 	return msg, nil
 }
@@ -192,6 +225,61 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	// fmt.Printf("Send:\n")
 	// fmt.Println(hex.EncodeToString(encodedMsg))
 	// fmt.Println()
+
+	// 发送魔术字节、消息头和消息体
+	_, err = conn.Write(encodedMsg)
+	if err != nil {
+		return fmt.Errorf("failed to send data: %v", err)
+	}
+
+	return nil
+}
+
+func CreateSessionMessage(msgID string, msgType SessionMessageType, data SessionData, key string, nonce string) (*SessionMessage, error) {
+	// 时间戳
+	timestamp := time.Now().Unix()
+
+	// 结构
+	dataJson, err := utils.ToJSONString(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal session data")
+	}
+
+	// 校验和
+	checksum := calculateChecksum(dataJson)
+
+	// 创建消息
+	msg := &SessionMessage{
+		MsgID:     msgID,
+		Type:      msgType,
+		Data:      data,
+		Timestamp: timestamp,
+		Nonce:     nonce,
+		Version:   "1.0",
+		Checksum:  checksum,
+	}
+
+	// 生成签名
+	msg.Sign = generateHMAC(msg.MsgID, dataJson, msg.Nonce, msg.Version, msg.Checksum, key)
+
+	return msg, nil
+}
+
+// 发送消息
+func SendSessionMessage(conn net.Conn, msg *SessionMessage) error {
+	// 序列化消息
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %v", err)
+	}
+
+	// 将消息长度编码到前 4 个字节
+	msgLen := make([]byte, MsgLenBytes)
+	binary.BigEndian.PutUint32(msgLen, uint32(len(data)))
+
+	// 拼接消息
+	encodedMsg := append([]byte(MagicBytes2), msgLen...)
+	encodedMsg = append(encodedMsg, data...)
 
 	// 发送魔术字节、消息头和消息体
 	_, err = conn.Write(encodedMsg)
@@ -230,6 +318,8 @@ func ExtractCompleteMessagePacket(buffer []byte) (int, []byte, []byte, error) {
 		msgType = 0 // 普通消息
 	} else if bytes.Equal(magicBytes, []byte(MagicBytes1)) {
 		msgType = 1 // 文件消息
+	} else if bytes.Equal(magicBytes, []byte(MagicBytes2)) {
+		msgType = 2 // 会话消息
 	} else {
 		return msgType, nil, buffer, errors.New("invalid magic bytes")
 	}
@@ -265,7 +355,7 @@ func DecodeMessage(msgType int, data []byte, key string) (MessageInterface, erro
 			return nil, err
 		}
 
-		if err := verifyMessage(&msg, key); err != nil {
+		if err := verifyMessage(msg.Sign, msg.MsgID, msg.Data, msg.Timestamp, msg.Nonce, msg.Version, msg.Checksum, key); err != nil {
 			return nil, err
 		}
 		decryptedData, err := encrypt.Decrypt(msg.Data, key)
@@ -281,27 +371,40 @@ func DecodeMessage(msgType int, data []byte, key string) (MessageInterface, erro
 			return nil, err
 		}
 		return &msg, nil
+	// 会话消息
+	case 2:
+		var msg SessionMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			return nil, err
+		}
+		dataJson, err := utils.ToJSONString(msg.Data)
+		if err != nil {
+			return nil, err
+		}
+		if err := verifyMessage(msg.Sign, msg.MsgID, dataJson, msg.Timestamp, msg.Nonce, msg.Version, msg.Checksum, key); err != nil {
+			return nil, err
+		}
+		return &msg, nil
 	default:
 		return nil, errors.New("unsupported msg type")
 	}
 }
 
 // 校验消息
-func verifyMessage(msg *Message, key string) error {
+func verifyMessage(sign string, msgID string, data string, timestamp int64, nonce string, version string, checksum string, key string) error {
 	// 验证时间戳是否过期
-	if time.Since(time.Unix(msg.Timestamp, 0)) > time.Minute*5 {
+	if time.Since(time.Unix(timestamp, 0)) > time.Minute*5 {
 		return errors.New("message is too old")
 	}
 
 	// 计算校验和并比较
-	expectedChecksum := calculateChecksum(msg.Data)
-	if msg.Checksum != expectedChecksum {
+	expectedChecksum := calculateChecksum(data)
+	if checksum != expectedChecksum {
 		return errors.New("checksum mismatch")
 	}
 
 	// 重新计算签名并比较
-	sign := msg.Sign
-	expectedSign := generateHMAC(msg, key)
+	expectedSign := generateHMAC(msgID, data, nonce, version, checksum, key)
 	if sign != expectedSign {
 		return errors.New("signature mismatch")
 	}
@@ -309,10 +412,12 @@ func verifyMessage(msg *Message, key string) error {
 	return nil
 }
 
+//
+
 // 生成 HMAC 签名
-func generateHMAC(msg *Message, key string) string {
+func generateHMAC(msgID string, data string, nonce string, version string, checksum string, key string) string {
 	h := hmac.New(sha256.New, []byte(key))
-	h.Write([]byte(msg.MsgID + msg.Data + msg.Nonce + msg.Version + msg.Checksum))
+	h.Write([]byte(msgID + data + nonce + version + checksum))
 	return hex.EncodeToString(h.Sum(nil))
 }
 

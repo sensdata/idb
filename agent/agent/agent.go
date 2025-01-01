@@ -18,6 +18,7 @@ import (
 	"github.com/sensdata/idb/agent/agent/docker"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
+	"github.com/sensdata/idb/agent/agent/session"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
@@ -30,13 +31,14 @@ import (
 )
 
 var (
-	CONFMAN       *config.Manager
-	AGENT         IAgent
-	FileService   = file.NewIFileService()
-	SshService    = ssh.NewISSHService()
-	GitService    = git.NewIGitService()
-	DockerService = docker.NewIDockerService()
-	CaService     = ca.NewICaService()
+	CONFMAN        *config.Manager
+	AGENT          IAgent
+	FileService    = file.NewIFileService()
+	SshService     = ssh.NewISSHService()
+	GitService     = git.NewIGitService()
+	DockerService  = docker.NewIDockerService()
+	CaService      = ca.NewICaService()
+	SessionService = session.NewISessionService()
 )
 
 type Agent struct {
@@ -351,6 +353,8 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				a.processMessage(conn, m)
 			case *message.FileMessage:
 				a.processFileMessage(conn, m)
+			case *message.SessionMessage:
+				a.processSessionMessage(conn, m)
 			default:
 				fmt.Println("Unknown message type")
 			}
@@ -457,6 +461,70 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 			}
 		}
 		a.sendDownloadResult(conn, msg)
+	}
+}
+
+func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
+	global.LOG.Info("SessionMessage: %v", msg)
+
+	switch msg.Type {
+	case message.Start: // 创建会话
+		session, err := SessionService.Start(msg.Data, func(output string) {
+			// 这里处理输出并发送到远端
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, output)
+		})
+		if err != nil {
+			global.LOG.Error("Failed to start session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			global.LOG.Info("session %s start", session.ID)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
+
+	case message.Detach: // 分离会话
+		if err := SessionService.Detach(msg.Data.SessionID); err != nil {
+			global.LOG.Error("Failed to detach session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
+
+	case message.Attach: // 连接会话
+		session, err := SessionService.Attach(msg.Data.SessionID, func(output string) {
+			// 这里处理输出并发送到远端
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, output)
+		})
+		if err != nil {
+			global.LOG.Error("Failed to attach session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			global.LOG.Info("session %s attached", session.ID)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
+
+	case message.Finish: // 结束会话
+		if err := SessionService.Finish(msg.Data.SessionID); err != nil {
+			global.LOG.Error("Failed to finish session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
+
+	case message.Rename: // 重命名会话
+		if err := SessionService.Rename(msg.Data.SessionID, msg.Data.Data); err != nil {
+			global.LOG.Error("Failed to rename session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
+
+	case message.Transfer: // 传输数据，在agent侧，就是会话的输入
+		if err := SessionService.Input(msg.Data); err != nil {
+			global.LOG.Error("Failed to input to session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+		} else {
+			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+		}
 	}
 }
 
@@ -1858,4 +1926,30 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 		return
 	}
 	global.LOG.Info("File rsp send to %s", centerID)
+}
+
+func (a *Agent) sendSessionResult(conn net.Conn, msgID string, sessionID string, data string) {
+	config := CONFMAN.GetConfig()
+	centerID := conn.RemoteAddr().String()
+
+	rspMsg, err := message.CreateSessionMessage(
+		msgID,
+		message.Start,
+		message.SessionData{SessionID: sessionID, Data: data},
+		config.SecretKey,
+		utils.GenerateNonce(16),
+	)
+	if err != nil {
+		global.LOG.Error("Error creating session rsp message: %v", err)
+		return
+	}
+
+	global.LOG.Info("send msg data: %s", rspMsg.Data)
+
+	err = message.SendSessionMessage(conn, rspMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send session rsp : %v", err)
+		return
+	}
+	global.LOG.Info("Session rsp sent to %s", centerID)
 }
