@@ -48,12 +48,13 @@ const (
 )
 
 const (
-	Start    SessionMessageType = "start"
-	Detach   SessionMessageType = "detach"
-	Attach   SessionMessageType = "attach"
-	Finish   SessionMessageType = "finish"
-	Rename   SessionMessageType = "rename"
-	Transfer SessionMessageType = "transfer"
+	TerminalList    SessionMessageType = "terminal_list"
+	TerminalStart   SessionMessageType = "terminal_start"
+	TerminalDetach  SessionMessageType = "terminal_detach"
+	TerminalAttach  SessionMessageType = "terminal_attach"
+	TerminalFinish  SessionMessageType = "terminal_finish"
+	TerminalRename  SessionMessageType = "terminal_rename"
+	TerminalCommand SessionMessageType = "terminal_command"
 )
 
 // 消息数据分隔符

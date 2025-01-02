@@ -12,6 +12,6 @@ func (s *TerminalRouter) InitRouter(Router *gin.RouterGroup) {
 	// terminalRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		terminalRouter.GET("/terminals", baseApi.HandleTerminal) // WebSocket终端会话
+		terminalRouter.GET("/terminals/ssh", baseApi.HandleSshTerminal) // WebSocket终端会话
 	}
 }

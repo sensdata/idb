@@ -21,7 +21,8 @@ import (
 type WebSocketService struct{}
 
 type IWebSocketService interface {
-	HandleTerminal(c *gin.Context) error
+	HandleSshTerminal(c *gin.Context) error
+	HandleAgentTerminal(c *gin.Context) error
 }
 
 type SshConn struct {
@@ -42,8 +43,8 @@ func NewIWebSocketService() IWebSocketService {
 	return &WebSocketService{}
 }
 
-func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
-	global.LOG.Info("handle terminal begin")
+func (s *WebSocketService) HandleSshTerminal(c *gin.Context) error {
+	global.LOG.Info("handle ssh terminal begin")
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024 * 1024 * 10,
@@ -119,7 +120,7 @@ func (s *WebSocketService) HandleTerminal(c *gin.Context) error {
 
 	<-quitChan
 
-	global.LOG.Info("handle terminal end")
+	global.LOG.Info("handle ssh terminal end")
 	return nil
 }
 
@@ -185,4 +186,37 @@ func wsHandleError(ws *websocket.Conn, err error) bool {
 		return true
 	}
 	return false
+}
+
+func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
+	global.LOG.Info("handle agent terminal begin")
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024 * 1024 * 10,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		global.LOG.Error("Failed to upgrade to WebSocket: %v\n", err)
+		return errors.Wrap(err, "failed to upgrade to WebSocket")
+	}
+	defer wsConn.Close()
+
+	global.LOG.Info("upgrade successful")
+
+	hostID, err := strconv.Atoi(c.Query("host_id"))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param id in request")
+	}
+
+	quitChan := make(chan bool, 3)
+	CENTER.StartTerminal(uint(hostID), wsConn, quitChan)
+	<-quitChan
+
+	global.LOG.Info("handle agent terminal end")
+	return nil
 }

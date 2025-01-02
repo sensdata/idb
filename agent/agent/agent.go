@@ -468,62 +468,62 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	global.LOG.Info("SessionMessage: %v", msg)
 
 	switch msg.Type {
-	case message.Start: // 创建会话
+	case message.TerminalStart: // 创建会话
 		session, err := SessionService.Start(msg.Data, func(output string) {
 			// 这里处理输出并发送到远端
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, output)
+			a.sendSessionResult(conn, msg.MsgID, message.TerminalCommand, msg.Data.SessionID, output)
 		})
 		if err != nil {
 			global.LOG.Error("Failed to start session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
 			global.LOG.Info("session %s start", session.ID)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
-	case message.Detach: // 分离会话
+	case message.TerminalDetach: // 分离会话
 		if err := SessionService.Detach(msg.Data.SessionID); err != nil {
 			global.LOG.Error("Failed to detach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
-	case message.Attach: // 连接会话
+	case message.TerminalAttach: // 连接会话
 		session, err := SessionService.Attach(msg.Data.SessionID, func(output string) {
 			// 这里处理输出并发送到远端
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, output)
+			a.sendSessionResult(conn, msg.MsgID, message.TerminalCommand, msg.Data.SessionID, output)
 		})
 		if err != nil {
 			global.LOG.Error("Failed to attach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
 			global.LOG.Info("session %s attached", session.ID)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
-	case message.Finish: // 结束会话
+	case message.TerminalFinish: // 结束会话
 		if err := SessionService.Finish(msg.Data.SessionID); err != nil {
 			global.LOG.Error("Failed to finish session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
-	case message.Rename: // 重命名会话
+	case message.TerminalRename: // 重命名会话
 		if err := SessionService.Rename(msg.Data.SessionID, msg.Data.Data); err != nil {
 			global.LOG.Error("Failed to rename session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
-	case message.Transfer: // 传输数据，在agent侧，就是会话的输入
+	case message.TerminalCommand: // 会话输入
 		if err := SessionService.Input(msg.Data); err != nil {
 			global.LOG.Error("Failed to input to session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, err.Error())
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Data.SessionID, "OK")
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 	}
 }
@@ -1928,13 +1928,13 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 	global.LOG.Info("File rsp send to %s", centerID)
 }
 
-func (a *Agent) sendSessionResult(conn net.Conn, msgID string, sessionID string, data string) {
+func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.SessionMessageType, sessionID string, data string) {
 	config := CONFMAN.GetConfig()
 	centerID := conn.RemoteAddr().String()
 
 	rspMsg, err := message.CreateSessionMessage(
 		msgID,
-		message.Start,
+		msgType,
 		message.SessionData{SessionID: sessionID, Data: data},
 		config.SecretKey,
 		utils.GenerateNonce(16),
