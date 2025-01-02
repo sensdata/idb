@@ -62,11 +62,12 @@ func (s *WebSocketService) HandleSshTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
-	hostID, err := strconv.Atoi(c.Query("host_id"))
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		wsHandleError(wsConn, err)
-		return errors.Wrap(err, "invalid param id in request")
+		return errors.Wrap(err, "invalid param host in request")
 	}
+
 	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
 	if err != nil {
 		wsHandleError(wsConn, err)

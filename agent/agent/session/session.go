@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/model"
 )
 
 type Session struct {
@@ -24,21 +27,69 @@ type SessionService struct {
 }
 
 type ISessionServie interface {
+	Page() (*model.PageResult, error)
+
 	Start(sessionData message.SessionData, outputCallback func(string)) (*Session, error)
+	Input(sessionData message.SessionData) error
+
 	Finish(sessionID string) error
 	Detach(sessionID string) error
 	Attach(sessionID string, outputCallback func(string)) (*Session, error)
 	Rename(sessionID string, newSessionID string) error
-	Input(sessionData message.SessionData) error
 }
 
 func NewISessionService() ISessionServie {
 	return &SessionService{}
 }
 
+func (s *SessionService) Page() (*model.PageResult, error) {
+	var result model.PageResult
+
+	// 执行命令以列出所有的 screen 会话
+	cmd := exec.Command("screen", "-ls")
+	output, err := cmd.Output()
+	if err != nil {
+		return &result, fmt.Errorf("failed to list sessions: %v", err)
+	}
+
+	// 处理返回的结果字符串
+	var sessions []model.SessionInfo
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// 解析每一行以提取会话信息
+		// 假设会话信息格式为 " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
+		if strings.Contains(line, ".") {
+			parts := strings.Fields(line)
+			if len(parts) >= 3 {
+				sessionID := strings.TrimSuffix(parts[1], ".test") // 提取会话名
+				timeStr := strings.Trim(parts[2], "()")            // 提取时间字符串
+				status := strings.Trim(parts[3], "()")             // 提取状态
+
+				parsedTime, err := time.Parse("01/02/2006 03:04:05 PM", timeStr) // 根据实际格式解析时间
+				if err != nil {
+					global.LOG.Error("Error parsing time: %v", err)
+					continue
+				}
+				// 创建 SessionInfo 结构体并填充
+				sessionInfo := model.SessionInfo{
+					Session: sessionID,
+					Time:    parsedTime,
+					Status:  status,
+				}
+				sessions = append(sessions, sessionInfo)
+			}
+		}
+	}
+
+	result.Total = int64(len(sessions))
+	result.Items = sessions
+
+	return &result, nil
+}
+
 func (s *SessionService) Start(sessionData message.SessionData, outputCallback func(string)) (*Session, error) {
 	if s.SessionMap[sessionData.SessionID] != nil {
-		return nil, fmt.Errorf("session already exist")
+		return s.Attach(sessionData.SessionID, outputCallback)
 	}
 
 	// 启动 screen 会话

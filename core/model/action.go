@@ -103,6 +103,11 @@ const (
 	CA_Complete     string = "ca_complete"
 	CA_Remove       string = "ca_remove"
 	CA_Import       string = "ca_import"
+
+	Terminal_List   string = "terminal_list"
+	Terminal_Detach string = "terminal_detach"
+	Terminal_Finish string = "terminal_finish"
+	Terminal_Rename string = "terminal_rename"
 )
 
 // Action消息结构

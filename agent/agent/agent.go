@@ -468,7 +468,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	global.LOG.Info("SessionMessage: %v", msg)
 
 	switch msg.Type {
-	case message.TerminalStart: // 创建会话
+	case message.TerminalStart: // 创建会话或重连会话
 		session, err := SessionService.Start(msg.Data, func(output string) {
 			// 这里处理输出并发送到远端
 			a.sendSessionResult(conn, msg.MsgID, message.TerminalCommand, msg.Data.SessionID, output)
@@ -478,43 +478,6 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
 			global.LOG.Info("session %s start", session.ID)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
-		}
-
-	case message.TerminalDetach: // 分离会话
-		if err := SessionService.Detach(msg.Data.SessionID); err != nil {
-			global.LOG.Error("Failed to detach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
-		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
-		}
-
-	case message.TerminalAttach: // 连接会话
-		session, err := SessionService.Attach(msg.Data.SessionID, func(output string) {
-			// 这里处理输出并发送到远端
-			a.sendSessionResult(conn, msg.MsgID, message.TerminalCommand, msg.Data.SessionID, output)
-		})
-		if err != nil {
-			global.LOG.Error("Failed to attach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
-		} else {
-			global.LOG.Info("session %s attached", session.ID)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
-		}
-
-	case message.TerminalFinish: // 结束会话
-		if err := SessionService.Finish(msg.Data.SessionID); err != nil {
-			global.LOG.Error("Failed to finish session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
-		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
-		}
-
-	case message.TerminalRename: // 重命名会话
-		if err := SessionService.Rename(msg.Data.SessionID, msg.Data.Data); err != nil {
-			global.LOG.Error("Failed to rename session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
-		} else {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
 
@@ -1763,6 +1726,50 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 		err := CaService.ImportCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Terminal_List:
+		list, err := SessionService.Page()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(list)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Terminal_Detach:
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SessionService.Detach(req.Session)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Terminal_Finish:
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SessionService.Finish(req.Session)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Terminal_Rename:
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SessionService.Rename(req.Session, req.Data)
 		if err != nil {
 			return nil, err
 		}

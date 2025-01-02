@@ -48,12 +48,7 @@ const (
 )
 
 const (
-	TerminalList    SessionMessageType = "terminal_list"
 	TerminalStart   SessionMessageType = "terminal_start"
-	TerminalDetach  SessionMessageType = "terminal_detach"
-	TerminalAttach  SessionMessageType = "terminal_attach"
-	TerminalFinish  SessionMessageType = "terminal_finish"
-	TerminalRename  SessionMessageType = "terminal_rename"
 	TerminalCommand SessionMessageType = "terminal_command"
 )
 
