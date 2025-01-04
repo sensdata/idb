@@ -1,7 +1,9 @@
 <template>
   <div class="login-form-wrapper">
+    <div class="login-form-logo">
+      <img alt="logo" src="@/assets/logo-wide.png" />
+    </div>
     <div class="login-form-title">{{ $t('login.form.title') }}</div>
-    <div class="login-form-sub-title">{{ $t('login.form.title') }}</div>
     <div class="login-form-error-msg">{{ errorMessage }}</div>
     <a-form
       ref="loginForm"
@@ -19,6 +21,7 @@
         <a-input
           v-model="userInfo.name"
           :placeholder="$t('login.form.userName.placeholder')"
+          size="large"
         >
           <template #prefix>
             <icon-user />
@@ -34,6 +37,7 @@
         <a-input-password
           v-model="userInfo.password"
           :placeholder="$t('login.form.password.placeholder')"
+          size="large"
           allow-clear
         >
           <template #prefix>
@@ -52,12 +56,18 @@
           </a-checkbox>
           <a-link>{{ $t('login.form.forgetPassword') }}</a-link>
         </div>
-        <a-button type="primary" html-type="submit" long :loading="loading">
+        <a-button
+          type="primary"
+          html-type="submit"
+          long
+          :loading="loading"
+          size="large"
+        >
           {{ $t('login.form.login') }}
         </a-button>
-        <a-button type="text" long class="login-form-register-btn">
+        <!-- <a-button type="text" long class="login-form-register-btn">
           {{ $t('login.form.register') }}
-        </a-button>
+        </a-button> -->
       </a-space>
     </a-form>
   </div>
@@ -134,31 +144,31 @@
     &-wrapper {
       width: 320px;
     }
-
+    &-logo {
+      width: 128px;
+      margin: 0 auto;
+      img {
+        width: 100%;
+      }
+    }
     &-title {
-      color: var(--color-text-1);
+      margin-top: 32px;
+      margin-bottom: 8px;
+      color: var(--color-text-3);
       font-weight: 500;
       font-size: 24px;
       line-height: 32px;
+      text-align: center;
     }
-
-    &-sub-title {
-      color: var(--color-text-3);
-      font-size: 16px;
-      line-height: 24px;
-    }
-
     &-error-msg {
       height: 32px;
       color: rgb(var(--red-6));
       line-height: 32px;
     }
-
     &-password-actions {
       display: flex;
       justify-content: space-between;
     }
-
     &-register-btn {
       color: var(--color-text-3) !important;
     }

@@ -1,40 +1,137 @@
 <template>
-  <div class="container">
-    <div class="logo">
-      <img
-        alt="logo"
-        src="//p3-armor.byteimg.com/tos-cn-i-49unhts6dw/dfdba5317c0c20ce20e64fac803d52bc.svg~tplv-49unhts6dw-image.image"
-      />
-      <div class="logo-text">Arco Design Pro</div>
-    </div>
-    <LoginBanner />
-    <div class="content">
-      <div class="content-inner">
+  <div class="login-page">
+    <div class="main">
+      <div class="intro">
+        <img class="logo" alt="logo" src="@/assets/logo.png" />
+        <h1 class="title">{{ $t('login.intro.title') }}</h1>
+        <p class="slogan">{{ $t('login.intro.slogan') }}</p>
+        <div class="features">
+          <div
+            v-for="feature in features"
+            :key="feature.title"
+            class="feature-item"
+          >
+            <component :is="feature.icon" class="icon" />
+            <div class="info">
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.desc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
         <LoginForm />
       </div>
-      <div class="footer">
-        <Footer />
-      </div>
     </div>
+    <Footer />
   </div>
 </template>
 
 <script lang="ts" setup>
+  import { useI18n } from 'vue-i18n';
+  import Feature1Icon from '@/assets/icons/feature1.svg';
+  import Feature2Icon from '@/assets/icons/feature2.svg';
+  import Feature3Icon from '@/assets/icons/feature3.svg';
+  import Feature4Icon from '@/assets/icons/feature4.svg';
   import Footer from '@/components/footer/index.vue';
-  import LoginBanner from './components/banner.vue';
   import LoginForm from './components/login-form.vue';
+
+  const { t } = useI18n();
+
+  const features = [
+    {
+      icon: Feature1Icon,
+      title: t('login.feature1.title'),
+      desc: t('login.feature1.desc'),
+    },
+    {
+      icon: Feature2Icon,
+      title: t('login.feature2.title'),
+      desc: t('login.feature2.desc'),
+    },
+    {
+      icon: Feature3Icon,
+      title: t('login.feature3.title'),
+      desc: t('login.feature3.desc'),
+    },
+    {
+      icon: Feature4Icon,
+      title: t('login.feature4.title'),
+      desc: t('login.feature4.desc'),
+    },
+  ];
 </script>
 
 <style scoped lang="less">
-  .container {
+  .login-page {
     display: flex;
+    flex-direction: column;
     height: 100vh;
+  }
 
-    .banner {
-      width: 550px;
-      background: linear-gradient(163.85deg, #1d2129 0%, #00308f 100%);
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 100px;
+    .intro {
+      width: 720px;
+      margin: 30px 0 10px 30px;
+      padding: 72px 100px;
+      color: #fff;
+      background: #060c3c;
+      border-radius: 30px;
+      .logo {
+        display: block;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+      }
+      .title {
+        margin: 12px 0 0;
+        font-weight: 500;
+        font-size: 24px;
+        line-height: 36px;
+        text-align: center;
+      }
+      .slogan {
+        margin-top: 8px;
+        margin-bottom: 0;
+        font-weight: 400;
+        font-size: 20px;
+        line-height: 32px;
+        text-align: center;
+      }
+      .features {
+        margin-top: 40px;
+        .feature-item {
+          display: flex;
+          flex-direction: row;
+          margin-bottom: 32px;
+          :last-child {
+            margin-bottom: 0;
+          }
+          .icon {
+            margin-right: 40px;
+          }
+          .info {
+            flex: 1;
+            min-width: 0;
+          }
+          h3 {
+            margin: 0;
+            font-weight: 500;
+            font-size: 18px;
+            line-height: 20px;
+          }
+          p {
+            margin: 8px 0 0;
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 24px;
+          }
+        }
+      }
     }
-
     .content {
       position: relative;
       display: flex;
@@ -42,40 +139,6 @@
       align-items: center;
       justify-content: center;
       padding-bottom: 40px;
-    }
-
-    .footer {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-    }
-  }
-
-  .logo {
-    position: fixed;
-    top: 24px;
-    left: 22px;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-
-    &-text {
-      margin-right: 4px;
-      margin-left: 4px;
-      color: var(--color-fill-1);
-      font-size: 20px;
-    }
-  }
-</style>
-
-<style scoped lang="less">
-  // responsive
-  @media (max-width: @screen-lg) {
-    .container {
-      .banner {
-        width: 25%;
-      }
     }
   }
 </style>

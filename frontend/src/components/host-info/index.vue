@@ -69,60 +69,60 @@
     memory_usage: '',
     memory_total: '',
   });
-
 </script>
 
 <style scoped lang="less">
   .ctrl {
-    height: 56px;
-    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 56px;
     padding: 0 8px;
+    border-bottom: 1px solid var(--color-border);
     .host-name {
-      margin-left: 8px;
       flex: 1;
       min-width: 100px;
-      font-size: 16px;
-      font-weight: 500;
+      margin-left: 8px;
       color: var(--color-text-1);
+      font-weight: 500;
+      font-size: 16px;
     }
   }
+
   .info {
     padding: 16px 8px;
     .info-content {
-      background-color: var(--color-fill-2);
-      padding: 10px 5px 10px 10px;
-      border-radius: 4px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      padding: 10px 5px 10px 10px;
+      background-color: var(--color-fill-2);
+      border-radius: 4px;
       .info-content-left {
         flex: 1;
         min-width: 0;
         .info-item {
-          font-size: 14px;
-          line-height: 22px;
-          margin-bottom: 10px;
           display: flex;
           align-items: center;
           justify-content: flex-start;
+          margin-bottom: 10px;
+          font-size: 14px;
+          line-height: 22px;
           &:last-child {
             margin-bottom: 0;
           }
           .info-item-label {
+            margin-right: 5px;
             color: var(--color-text-1);
             font-weight: 500;
-            margin-right: 5px;
           }
           .info-item-content {
-            flex: 1;
-            min-width: 0;
-            color: var(--color-text-3);
             display: flex;
+            flex: 1;
             align-items: center;
             justify-content: flex-start;
+            min-width: 0;
+            color: var(--color-text-3);
           }
           .info-item-content-icon {
             width: 12px;
@@ -136,19 +136,20 @@
       }
     }
   }
+
   .app-list {
-    border-top: 1px solid var(--color-border-2);
-    height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 56px;
     padding: 0 8px;
+    border-top: 1px solid var(--color-border-2);
     .app-list-title {
-      font-size: 16px;
+      color: var(--color-text-1);
       font-weight: 500;
+      font-size: 16px;
       line-height: 24px;
       text-indent: 10px;
-      color: var(--color-text-1);
     }
     .actions {
       display: flex;
@@ -156,18 +157,19 @@
       justify-content: center;
     }
     .actions > span {
-      width: 32px;
-      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
+      width: 32px;
+      height: 32px;
       border-radius: 2px;
+      cursor: pointer;
       &:hover {
         background-color: var(--color-fill-2);
       }
     }
   }
+
   .collapsed {
     .host-name,
     .cmd,

@@ -1,4 +1,19 @@
 export default {
+  'login.intro.title': 'iDB - Instant Database Manager ',
+  'login.intro.slogan': 'A self-service Git service that is easy to build',
+  'login.feature1.title': 'Easy to install',
+  'login.feature1.desc':
+    'Run in binary; Or run it through docker; Or run it through an installation package',
+  'login.feature2.title': 'cross-platform',
+  'login.feature2.desc':
+    'IDB can be run on any Go supported platform, including Windows, Mac, Linux, and ARM. Just pick one you like!',
+  'login.feature3.title': 'Light weight',
+  'login.feature3.desc':
+    'The configuration of an inexpensive Raspberry PI is sufficient to meet the minimum system hardware requirements of IDB. Maximize your server resource savings!',
+  'login.feature4.title': 'Open source',
+  'login.feature4.desc':
+    'All the code is open source on IDB, so join us to develop this great project! What are you waiting for? Become a contributor!',
+
   'login.form.title': 'Sign in iDB',
   'login.form.userName.errMsg': 'Username cannot be empty',
   'login.form.password.errMsg': 'Password cannot be empty',
@@ -10,12 +25,4 @@ export default {
   'login.form.forgetPassword': 'Forgot password',
   'login.form.login': 'login',
   'login.form.register': 'register account',
-  'login.banner.slogan1': 'Out-of-the-box high-quality template',
-  'login.banner.subSlogan1':
-    'Rich page templates, covering most typical business scenarios',
-  'login.banner.slogan2': 'Built-in solutions to common problems',
-  'login.banner.subSlogan2':
-    'Internationalization, routing configuration, state management everything',
-  'login.banner.slogan3': 'Access visualization enhancement tool AUX',
-  'login.banner.subSlogan3': 'Realize flexible block development',
 };

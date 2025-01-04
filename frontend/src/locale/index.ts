@@ -6,7 +6,12 @@ export const LOCALE_OPTIONS = [
   { label: '中文', value: 'zh-CN' },
   { label: 'English', value: 'en-US' },
 ];
-const defaultLocale = localStorage.getItem('arco-locale') || 'zh-CN';
+const defaultLocale = localStorage.getItem('idb-lang') || 'zh-CN';
+
+export function getLocaleLabel(value: string) {
+  const locale = LOCALE_OPTIONS.find((item) => item.value === value);
+  return locale ? locale.label : '';
+}
 
 const i18n = createI18n({
   locale: defaultLocale,
