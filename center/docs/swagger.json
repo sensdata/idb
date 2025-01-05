@@ -9945,6 +9945,7 @@
                     "type": "string",
                     "enum": [
                         "start",
+                        "attach",
                         "command"
                     ]
                 }

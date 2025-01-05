@@ -9948,6 +9948,7 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "start",
+                        "attach",
                         "command"
                     ]
                 }

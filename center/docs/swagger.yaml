@@ -1419,6 +1419,7 @@ definitions:
       type:
         enum:
         - start
+        - attach
         - command
         type: string
     required:
