@@ -48,8 +48,9 @@ const (
 )
 
 const (
-	TerminalStart   SessionMessageType = "terminal_start"
-	TerminalCommand SessionMessageType = "terminal_command"
+	TerminalStart   SessionMessageType = "start"
+	TerminalAttach  SessionMessageType = "attach"
+	TerminalCommand SessionMessageType = "command"
 )
 
 // 消息数据分隔符

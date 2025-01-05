@@ -101,6 +101,7 @@ require (
 )
 
 require (
+	github.com/creack/pty v1.1.24
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-git/go-git/v5 v5.12.0

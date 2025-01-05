@@ -293,6 +293,8 @@ func (a *Agent) acceptConnections() {
 			a.centerID = centerID
 			a.centerConn = conn
 			a.mu.Unlock()
+			// 传递给 SessionService
+			SessionService.Config(&conn, CONFMAN.GetConfig().SecretKey)
 
 			// 处理连接
 			go a.handleConnection(conn)
@@ -358,6 +360,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			default:
 				fmt.Println("Unknown message type")
 			}
+			global.LOG.Info("handle conn")
 
 			// 更新缓存，移除已处理的部分
 			dataBuffer = remainingBuffer
@@ -465,20 +468,43 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 }
 
 func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
-	global.LOG.Info("SessionMessage: %v", msg)
+	global.LOG.Info("processSessionMessage: %v", msg)
 
 	switch msg.Type {
-	case message.TerminalStart: // 创建会话或重连会话
-		session, err := SessionService.Start(msg.Data, func(output string) {
-			// 这里处理输出并发送到远端
-			a.sendSessionResult(conn, msg.MsgID, message.TerminalCommand, msg.Data.SessionID, output)
-		})
+	case message.TerminalStart: // 创建会话
+		session, err := SessionService.Start(msg.Data)
 		if err != nil {
 			global.LOG.Error("Failed to start session: %v", err)
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
 		} else {
-			global.LOG.Info("session %s start", session.ID)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
+			global.LOG.Info("session %s started", session.ID)
+
+			go func() {
+				global.LOG.Info("session begin")
+				quitChan := make(chan bool, 3)
+				session.Start(quitChan)
+				go session.Wait(quitChan)
+				<-quitChan
+				global.LOG.Info("session end")
+			}()
+		}
+
+	case message.TerminalAttach: // 恢复会话
+		session, err := SessionService.Attach(msg.Data)
+		if err != nil {
+			global.LOG.Error("Failed to attach session: %v", err)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+		} else {
+			global.LOG.Info("session %s attached", session.ID)
+
+			go func() {
+				global.LOG.Info("session begin")
+				quitChan := make(chan bool, 3)
+				session.Start(quitChan)
+				go session.Wait(quitChan)
+				<-quitChan
+				global.LOG.Info("session end")
+			}()
 		}
 
 	case message.TerminalCommand: // 会话输入
@@ -488,7 +514,12 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		} else {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
 		}
+
+	default:
+		global.LOG.Error("not supported session mesage")
 	}
+
+	global.LOG.Info("processSessionMessage end")
 }
 
 func (a *Agent) processAction(data string) (*model.Action, error) {

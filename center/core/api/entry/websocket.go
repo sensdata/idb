@@ -11,7 +11,7 @@ import (
 	"github.com/sensdata/idb/core/model"
 )
 
-// @Tags Terminal
+// @Tags Terminal(ssh)
 // @Summary Connect to ssh terminal
 // @Description Connect to ssh terminal
 // @Accept json
@@ -36,13 +36,11 @@ func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 		}
 		return
 	}
-
-	// 如果没有错误，WebSocket连接已经建立，不需要做任何事情
 }
 
 // @Tags Terminal
-// @Summary Create or reconnect to a terminal session
-// @Description Create or reconnect to a terminal session
+// @Summary Create or reconnect to a terminal session through websocket
+// @Description Create or reconnect to a terminal session through websocket
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"

@@ -331,3 +331,7 @@ func StringsToMap(list []string) map[string]string {
 	}
 	return labelMap
 }
+
+func SetQuit(ch chan bool) {
+	ch <- true
+}

@@ -171,7 +171,7 @@ func (c *SshConn) Close() {
 
 func wsHandleError(ws *websocket.Conn, err error) bool {
 	if err != nil {
-		global.LOG.Error("handler ws faled:, err: %v", err)
+		global.LOG.Error("handler ws failed:, err: %v", err)
 		dt := time.Now().Add(time.Second)
 		if ctlerr := ws.WriteControl(websocket.CloseMessage, []byte(err.Error()), dt); ctlerr != nil {
 			wsData, err := json.Marshal(message.WsMessage{
@@ -208,10 +208,10 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
-	hostID, err := strconv.Atoi(c.Query("host_id"))
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		wsHandleError(wsConn, err)
-		return errors.Wrap(err, "invalid param id in request")
+		return errors.Wrap(err, "invalid param host in request")
 	}
 
 	quitChan := make(chan bool, 3)

@@ -702,6 +702,12 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 			messageType, wsData, err := wsConn.ReadMessage()
 			if err != nil {
 				global.LOG.Error("read message error: %v", err)
+				// 检查是否为websocket的EOF错误
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					global.LOG.Info("websocket connection closed: %v", err)
+					setQuit(quitChan)
+					return
+				}
 				continue
 			}
 			global.LOG.Info("messageType: %d, %s", messageType, string(wsData))
@@ -720,6 +726,29 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				msg, err := message.CreateSessionMessage(
 					utils.GenerateMsgId(),
 					message.TerminalStart,
+					message.SessionData{SessionID: msgObj.Session, Data: msgObj.Data},
+					config.SecretKey,
+					utils.GenerateNonce(16),
+				)
+				if err != nil {
+					global.LOG.Error("Error creating session message: %v", err)
+					continue
+				}
+
+				err = message.SendSessionMessage(agentConn, msg)
+				if err != nil {
+					global.LOG.Error("Failed to send session message: %v", err)
+					setQuit(quitChan)
+					return
+				}
+			case message.TerminalAttach:
+				// 启动监听
+				go c.waitForTerminalResponse(msgObj.Session, wsConn, quitChan)
+
+				// 构造发送的消息
+				msg, err := message.CreateSessionMessage(
+					utils.GenerateMsgId(),
+					message.TerminalAttach,
 					message.SessionData{SessionID: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
