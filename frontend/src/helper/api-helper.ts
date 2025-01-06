@@ -25,8 +25,9 @@ axios.interceptors.request.use(
     // Authorization is a custom headers key
     // please modify it according to the actual situation
     const token = getToken();
-    if (config.url && config.url.indexOf(':host') !== -1 && apiHostId) {
-      config.url = config.url.replace(':host', String(apiHostId));
+    const hostId = config.params?.host || config.data?.host || apiHostId;
+    if (config.url && config.url.indexOf('{host}') !== -1 && hostId) {
+      config.url = config.url.replace('{host}', String(hostId));
     }
     if (token) {
       if (!config.headers) {

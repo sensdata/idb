@@ -8,7 +8,7 @@ export interface FileListApiParams extends ApiListParams {
 }
 export function getFileListApi(params?: FileListApiParams) {
   return request
-    .get<ApiListResult<FileInfoEntity>>('files/:host', params)
+    .get<ApiListResult<FileInfoEntity>>('files/{host}', params)
     .then((res: any) => {
       return {
         total: res?.item_total,
@@ -20,11 +20,11 @@ export function getFileListApi(params?: FileListApiParams) {
 }
 
 export function getFileDetailApi(data: { path: string }) {
-  return request.get<FileInfoEntity>('files/:host/detail', data);
+  return request.get<FileInfoEntity>('files/{host}/detail', data);
 }
 
 export function getFileSizeApi(data: { source: string }) {
-  return request.get('files/:host/size', data);
+  return request.get('files/{host}/size', data);
 }
 
 export interface CreateFileParams {
@@ -36,7 +36,7 @@ export interface CreateFileParams {
   mode?: number; // 文件权限
 }
 export function createFileApi(data: CreateFileParams) {
-  return request.post('files/:host', data);
+  return request.post('files/{host}', data);
 }
 
 // todo: api
@@ -48,7 +48,7 @@ export interface DeleteFileParams {
   is_dir: boolean;
 }
 export function deleteFileApi(data: DeleteFileParams) {
-  return request.delete('files/:host', data);
+  return request.delete('files/{host}', data);
 }
 
 // todo: api
@@ -59,7 +59,7 @@ export interface BatchDeleteFileParams {
   sources: string[];
 }
 export function batchDeleteFileApi(data: BatchDeleteFileParams) {
-  return request.delete('files/:host/batch', data);
+  return request.delete('files/{host}/batch', data);
 }
 
 export interface BatchUpdateRoleParams {
@@ -70,7 +70,7 @@ export interface BatchUpdateRoleParams {
   sub: boolean;
 }
 export function batchUpdateFileRoleApi(data: BatchUpdateRoleParams) {
-  return request.put('files/:host/batch/role', data);
+  return request.put('files/{host}/batch/role', data);
 }
 
 export interface BatchUpdateModeParams {
@@ -79,7 +79,7 @@ export interface BatchUpdateModeParams {
   sub: boolean;
 }
 export function batchUpdateFileModeApi(data: BatchUpdateModeParams) {
-  return request.put('files/:host/batch/mode', data);
+  return request.put('files/{host}/batch/mode', data);
 }
 export interface UpdateOwnerParams {
   group: string;
@@ -88,7 +88,7 @@ export interface UpdateOwnerParams {
   sub: boolean;
 }
 export function updateFileOwnerApi(data: UpdateOwnerParams) {
-  return request.put('files/:host/owner', data);
+  return request.put('files/{host}/owner', data);
 }
 
 export interface BatchUpdateOwnerParams {
@@ -98,7 +98,7 @@ export interface BatchUpdateOwnerParams {
   sub: boolean;
 }
 export function batchUpdateFileOwnerApi(data: BatchUpdateOwnerParams) {
-  return request.put('files/:host/batch/owner', data);
+  return request.put('files/{host}/batch/owner', data);
 }
 
 export interface CompressionParams {
@@ -109,7 +109,7 @@ export interface CompressionParams {
   type: string; // 压缩类型
 }
 export function compressFilesApi(data: CompressionParams) {
-  return request.post('files/:host/compress', data);
+  return request.post('files/{host}/compress', data);
 }
 
 export interface DecompressionParams {
@@ -118,22 +118,22 @@ export interface DecompressionParams {
   type: string; // 压缩类型
 }
 export function decompressFilesApi(data: DecompressionParams) {
-  return request.post('files/:host/decompress', data);
+  return request.post('files/{host}/decompress', data);
 }
 
 export function getFileContentApi(data: { path: string }) {
-  return request.get('files/:host/content', data);
+  return request.get('files/{host}/content', data);
 }
 
 export function updateFileContentApi(data: {
   source: string;
   content: string;
 }) {
-  return request.put('files/:host/content', data);
+  return request.put('files/{host}/content', data);
 }
 
 export function downloadFileApi(data: { source: string }) {
-  return request.get('files/:host/download', data);
+  return request.get('files/{host}/download', data);
 }
 
 export function uploadFileApi(data: { dest: string; file: File }) {
@@ -141,22 +141,22 @@ export function uploadFileApi(data: { dest: string; file: File }) {
   formData.append('dest', data.dest);
   formData.append('file', data.file);
 
-  return request.post('files/:host/upload', formData);
+  return request.post('files/{host}/upload', formData);
 }
 
 export function getFavoriteFilesApi(data: ApiListParams) {
   return request.get<ApiListResult<FileInfoEntity>>(
-    'files/:host/favorites',
+    'files/{host}/favorites',
     data
   );
 }
 
 export function favoriteFileApi(data: { source: string }) {
-  return request.post('files/:host/favorites', data);
+  return request.post('files/{host}/favorites', data);
 }
 
 export function unFavoriteFileApi(data: { id: number }) {
-  return request.delete('files/:host/favorites', data);
+  return request.delete('files/{host}/favorites', data);
 }
 
 // todo: 移动之前需要先检查目标文件是否存在
@@ -168,7 +168,7 @@ export interface MoveFileParams {
   type: 'copy' | 'move';
 }
 export function moveFileApi(data: MoveFileParams) {
-  return request.put('files/:host/move', data);
+  return request.put('files/{host}/move', data);
 }
 
 export interface RenameFileParams {
@@ -176,5 +176,5 @@ export interface RenameFileParams {
   source: string;
 }
 export function renameFileApi(data: RenameFileParams) {
-  return request.put('files/:host/rename', data);
+  return request.put('files/{host}/rename', data);
 }

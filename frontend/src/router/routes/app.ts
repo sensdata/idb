@@ -53,6 +53,7 @@ const appRoutes: RouteRecordRaw[] = [
       locale: 'menu.app.terminal',
       requiresAuth: true,
       icon: 'icon-code-square',
+      command: 'openTerminal',
     },
   },
   {

@@ -1,13 +1,13 @@
 <template>
   <div class="host-info" :class="{ collapsed: collapsed }">
     <div class="ctrl">
-      <a-button class="back">
+      <a-button class="back" @click="gotoManage">
         <template #icon>
           <icon-arrow-left />
         </template>
       </a-button>
       <div class="host-name truncate">Hostname</div>
-      <a-button class="cmd">
+      <a-button class="cmd" @click="openTerminal?.()">
         <template #icon>
           <icon-code-square />
         </template>
@@ -55,9 +55,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { reactive } from 'vue';
+  import { inject, reactive } from 'vue';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
+  import router from '@/router';
+  import { SELECT_HOST } from '@/router/constants';
 
   defineProps<{
     collapsed: boolean;
@@ -69,6 +71,12 @@
     memory_usage: '',
     memory_total: '',
   });
+
+  const gotoManage = () => {
+    router.push(SELECT_HOST);
+  };
+
+  const openTerminal = inject<() => void>('openTerminal');
 </script>
 
 <style scoped lang="less">

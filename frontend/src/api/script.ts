@@ -8,18 +8,18 @@ export interface ScriptListApiParams extends ApiListParams {
   category?: string;
 }
 export function getScriptListApi(params: ScriptListApiParams) {
-  return request.get<ApiListResult<ScriptEntity>>('scripts/:host', params);
+  return request.get<ApiListResult<ScriptEntity>>('scripts/{host}', params);
 }
 
 export function getScriptDetailApi(params: { id: number }) {
-  return request.get<ScriptEntity>('scripts/:host/detail', params);
+  return request.get<ScriptEntity>('scripts/{host}/detail', params);
 }
 
 export interface ScriptCategoryListApiParams extends ApiListParams {
   type: SCRIPT_TYPE;
 }
 export function getScriptCategoryListApi(params: ScriptCategoryListApiParams) {
-  return request.get<ApiListResult<string>>('scripts/:host/category', params);
+  return request.get<ApiListResult<string>>('scripts/{host}/category', params);
 }
 
 export interface CreateScriptApiParams {
@@ -30,7 +30,7 @@ export interface CreateScriptApiParams {
   mark?: string;
 }
 export function createScriptApi(data: CreateScriptApiParams) {
-  return request.post('scripts/:host', data);
+  return request.post('scripts/{host}', data);
 }
 
 export interface UpdateScriptApiParams {
@@ -40,25 +40,25 @@ export interface UpdateScriptApiParams {
   content: string;
 }
 export function updateScriptApi(data: UpdateScriptApiParams) {
-  return request.put('scripts/:host', data);
+  return request.put('scripts/{host}', data);
 }
 
 export interface ScriptVersionsApiParams extends ApiListParams {
   id: number;
 }
 export function getScriptVersionListApi(params: ScriptVersionsApiParams) {
-  return request.get('scripts/:host/versions', params);
+  return request.get('scripts/{host}/versions', params);
 }
 
 export function runScriptApi(params: { id: number }) {
-  return request.post('scripts/:host/run', params);
+  return request.post('scripts/{host}/run', params);
 }
 
 export interface ScriptRunRecordsApiParams extends ApiListParams {
   id: number;
 }
 export function getScriptRecordsApi(params: ScriptRunRecordsApiParams) {
-  return request.get('scripts/:host/records', params);
+  return request.get('scripts/{host}/records', params);
 }
 
 export interface ScriptRunLogApiParams extends ApiListParams {
@@ -66,11 +66,11 @@ export interface ScriptRunLogApiParams extends ApiListParams {
   record_id: number;
 }
 export function getScriptRunLogApi(params: ScriptRunLogApiParams) {
-  return request.get('scripts/:host/run/log', params);
+  return request.get('scripts/{host}/run/log', params);
 }
 
 export function deleteScriptApi(params: { id: number }) {
-  return request.delete('scripts/:host', params);
+  return request.delete('scripts/{host}', params);
 }
 
 export interface RestoreScriptApiParams {
@@ -78,5 +78,5 @@ export interface RestoreScriptApiParams {
   commit_hash: string;
 }
 export function restoreScriptApi(params: RestoreScriptApiParams) {
-  return request.put('scripts/:host/restore', params);
+  return request.put('scripts/{host}/restore', params);
 }

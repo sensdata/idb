@@ -17,6 +17,7 @@ export default {
   'manage.host.list.group_default': '默认分组',
   'manage.host.list.operation.goto': '进入桌面',
   'manage.host.list.operation.setting': '节点设置',
+  'manage.host.list.operation.sshTerminal': 'SSH终端',
 
   'manage.host.form.title.create': '添加节点',
   'manage.host.form.name.label': '节点名称',
@@ -46,4 +47,6 @@ export default {
   'manage.host.form.pass_phrase.label': '私钥密码',
   'manage.host.form.pass_phrase.placeholder': '请输入私钥密码',
   'manage.host.form.save.success': '保存成功',
+
+  'manage.host.terminal.title': 'SSH终端',
 };

@@ -57,7 +57,7 @@
   import Footer from '@/components/footer/index.vue';
   import TabBar from '@/components/tab-bar/index.vue';
   import SwitchHost from '@/components/switch-host/index.vue';
-  import TerminalDrawer from '@/components/terminal-drawer/index.vue';
+  import TerminalDrawer from '@/components/terminal/terminal-drawer.vue';
   import PageLayout from './page-layout.vue';
 
   const isInit = ref(false);
@@ -67,7 +67,6 @@
   const route = useRoute();
   const permission = usePermission();
   useResponsive(true);
-  const terminalVisible = ref(false);
   const navbarHeight = `60px`;
   const isAppRoute = computed(() => route.fullPath.startsWith('/app'));
   const navbar = computed(() => appStore.navbar);
@@ -106,6 +105,15 @@
   provide('toggleDrawerMenu', () => {
     drawerVisible.value = !drawerVisible.value;
   });
+
+  const terminalVisible = ref(false);
+  provide('openTerminal', () => {
+    terminalVisible.value = true;
+  });
+  provide('closeTerminal', () => {
+    terminalVisible.value = false;
+  });
+
   onMounted(() => {
     isInit.value = true;
   });
@@ -146,16 +154,15 @@
       background-color: var(--color-border);
       content: '';
     }
-
     > :deep(.arco-layout-sider-children) {
       overflow-y: hidden;
     }
   }
 
   .menu-wrapper {
-    height: 100%;
     display: flex;
     flex-direction: column;
+    height: 100%;
     overflow: auto;
     overflow-x: hidden;
     :deep(.arco-menu) {
@@ -163,14 +170,12 @@
         width: 12px;
         height: 4px;
       }
-
       ::-webkit-scrollbar-thumb {
-        border: 4px solid transparent;
-        background-clip: padding-box;
-        border-radius: 7px;
         background-color: var(--color-text-4);
+        background-clip: padding-box;
+        border: 4px solid transparent;
+        border-radius: 7px;
       }
-
       ::-webkit-scrollbar-thumb:hover {
         background-color: var(--color-text-3);
       }

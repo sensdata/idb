@@ -44,6 +44,7 @@
     </template>
   </idb-table>
   <host-create ref="formRef" @ok="reload"></host-create>
+  <ssh-terminal ref="termRef" />
 </template>
 
 <script lang="ts" setup>
@@ -54,9 +55,11 @@
   import { HostEntity } from '@/entity/Host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import HostCreate from './components/create.vue';
+  import SshTerminal from './components/ssh-terminal.vue';
 
   const { t } = useI18n();
   const router = useRouter();
+  const termRef = ref<InstanceType<typeof SshTerminal>>();
 
   const columns = [
     {
@@ -135,6 +138,12 @@
         text: t('manage.host.list.operation.setting'),
         click: () => {
           console.log('setting', record);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.sshTerminal'),
+        click: () => {
+          termRef.value?.show(record.id);
         },
       },
     ];

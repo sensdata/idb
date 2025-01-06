@@ -11,11 +11,12 @@ export default mergeConfig(
         strict: true,
       },
       proxy: {
-        '/api/ws': {
+        '^/api/terminals/.*?(?:/ssh)/start': {
           target: 'ws://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/ws/, '/api/v1/ws'),
+          rewrite: (path) =>
+            path.replace(/^\/api\/terminals/, '/api/v1/terminals'),
         },
         '/api': {
           target: 'http://39.99.155.139:9918',

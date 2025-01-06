@@ -46,7 +46,7 @@ export interface SysInfoOverviewRes {
   };
 }
 export function getSysInfoOverviewtApi() {
-  return request.get<SysInfoOverviewRes>('sysinfo/:host/overview');
+  return request.get<SysInfoOverviewRes>('sysinfo/{host}/overview');
 }
 
 export interface SysInfoNetworkRes {
@@ -79,7 +79,7 @@ export interface SysInfoNetworkRes {
   ];
 }
 export function getSysInfoNetworkApi() {
-  return request.get<SysInfoNetworkRes>('sysinfo/:host/network');
+  return request.get<SysInfoNetworkRes>('sysinfo/{host}/network');
 }
 
 export interface SysInfoSystemRes {
@@ -90,5 +90,5 @@ export interface SysInfoSystemRes {
   vertual: string;
 }
 export function getSysInfoSystemApi() {
-  return request.get('sysinfo/:host/system');
+  return request.get('sysinfo/{host}/system');
 }

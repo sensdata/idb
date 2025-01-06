@@ -1,5 +1,5 @@
 <script lang="tsx">
-  import { defineComponent, ref, h, compile, computed } from 'vue';
+  import { defineComponent, ref, h, compile, computed, inject } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter, RouteRecordRaw } from 'vue-router';
   import type { RouteMeta } from 'vue-router';
@@ -38,7 +38,13 @@
       const openKeys = ref<string[]>([]);
       const selectedKey = ref<string[]>([]);
 
+      const openTerminal = inject<() => void>('openTerminal');
+
       const goto = (item: RouteRecordRaw) => {
+        if (item.meta?.command === 'openTerminal') {
+          openTerminal?.();
+          return;
+        }
         // Open external link
         if (regexUrl.test(item.path)) {
           openWindow(item.path);
@@ -168,7 +174,6 @@
       display: flex;
       align-items: center;
     }
-
     .arco-icon {
       &:not(.arco-icon-down) {
         font-size: 18px;

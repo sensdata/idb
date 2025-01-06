@@ -1,16 +1,13 @@
-<template>
-  <terminal-tabs ref="tabsRef" />
-</template>
-
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue';
-  import { useHostStore } from '@/store';
-  import TerminalTabs from '@/components/terminal-tabs/index.vue';
+  import { inject, onMounted, onUnmounted } from 'vue';
 
-  const hostStore = useHostStore();
-  const tabsRef = ref<InstanceType<typeof TerminalTabs> | null>(null);
+  const openTerminal = inject<() => void>('openTerminal');
+  const closeTerminal = inject<() => void>('closeTerminal');
 
   onMounted(() => {
-    tabsRef?.value?.addTerm(hostStore.current!);
+    openTerminal?.();
+  });
+  onUnmounted(() => {
+    closeTerminal?.();
   });
 </script>

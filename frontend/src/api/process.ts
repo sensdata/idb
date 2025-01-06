@@ -2,7 +2,7 @@ import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export function getProcessListApi(params: ApiListParams) {
-  // return request.get('process/:host', params);
+  // return request.get('process/{host}', params);
   return new Promise<ApiListResult<any>>((resolve) => {
     setTimeout(() => {
       resolve({
@@ -39,7 +39,7 @@ export function getProcessListApi(params: ApiListParams) {
 }
 
 export function getProcessDetailApi(params: { pid: string }) {
-  // return request.get('process/:host/detail', params);
+  // return request.get('process/{host}/detail', params);
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
@@ -89,5 +89,5 @@ export function getProcessDetailApi(params: { pid: string }) {
 }
 
 export function killProcessApi(params: { pid: string }) {
-  return request.delete('process/:host/kill', params);
+  return request.delete('process/{host}/kill', params);
 }

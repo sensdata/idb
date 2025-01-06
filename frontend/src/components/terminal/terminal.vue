@@ -27,6 +27,7 @@
   }
 
   const props = defineProps<{
+    path?: string;
     hostId: number;
   }>();
 
@@ -106,8 +107,12 @@
 
   function initWs() {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const path = (props.path || 'terminals/{host}/ssh/start').replace(
+      '{host}',
+      String(props.hostId)
+    );
     wsRef.value = new WebSocket(
-      `${protocol}://${window.location.host}${API_BASE_URL}ws/terminals?host_id=${props.hostId}`
+      `${protocol}://${window.location.host}${API_BASE_URL}${path}`
     );
     wsRef.value.onerror = onWsError;
     wsRef.value.onclose = onWsClose;

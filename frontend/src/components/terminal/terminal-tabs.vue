@@ -26,7 +26,7 @@
         <template #content>
           <div class="popover-head">
             <div class="arco-popover-title">
-              {{ $t('components.terminalTabs.add.title') }}
+              {{ $t('components.terminal.selectHost') }}
             </div>
             <span class="arco-icon-hover popover-close" @click="handlePopClose">
               <icon-close />
@@ -35,9 +35,7 @@
           <div class="popover-body">
             <a-input-search
               v-model="searchValue"
-              :placeholder="
-                $t('components.terminalTabs.add.search.placeholder')
-              "
+              :placeholder="$t('components.terminal.searchHostPlaceholder')"
               allow-clear
               @clear="handleSearch('')"
               @search="handleSearch"
@@ -59,37 +57,37 @@
       </a-popover>
     </template>
     <a-tab-pane v-for="item of terms" :key="item.key" :title="item.title">
-      <x-term ref="item.xtermRef" :hostId="item.hostId" />
+      <terminal ref="item.termRef" :hostId="item.hostId" />
     </a-tab-pane>
   </a-tabs>
 </template>
 
 <script setup lang="ts">
   import { ref, Ref } from 'vue';
-  import XTerm from '@/components/xterm/index.vue';
   import { useHostStore } from '@/store';
   import { HostEntity } from '@/entity/Host';
+  import Terminal from './terminal.vue';
 
-  type XTermInstance = InstanceType<typeof XTerm> | undefined;
+  type TerminalInstance = InstanceType<typeof Terminal> | undefined;
 
-  interface TermItem {
+  interface TermSessionItem {
     key: string;
     hostId: number;
     title: string;
-    xtermRef: Ref<XTermInstance>;
+    termRef: Ref<TerminalInstance>;
   }
 
   const activeKey = ref<string>();
   const hostStore = useHostStore();
-  const terms = ref<TermItem[]>([]);
-  function addTerm(host: HostEntity) {
-    const xtermRef: any = ref<XTermInstance>();
+  const terms = ref<TermSessionItem[]>([]);
+  function addSession(host: HostEntity) {
+    const termRef: any = ref<TerminalInstance>();
     const key = Math.random().toString(36).slice(2);
     terms.value.push({
       key,
       hostId: host.id,
       title: host.name,
-      xtermRef,
+      termRef,
     });
     activeKey.value = key;
   }
@@ -113,7 +111,7 @@
   }
 
   function handleSelectHost(host: HostEntity) {
-    addTerm(host);
+    addSession(host);
     popoverVisible.value = false;
   }
 
@@ -129,7 +127,7 @@
   }
 
   defineExpose({
-    addTerm,
+    addSession,
   });
 </script>
 
