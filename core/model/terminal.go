@@ -3,7 +3,7 @@ package model
 import "time"
 
 type TerminalMessage struct {
-	Type    string `json:"type" validate:"required,oneof=start command"`
+	Type    string `json:"type" validate:"required,oneof=start attach command"`
 	Session string `json:"session"`
 	Data    string `json:"data,omitempty"`
 }

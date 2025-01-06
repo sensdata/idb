@@ -2,11 +2,14 @@ package agent
 
 import (
 	"crypto/tls"
+	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -49,6 +52,9 @@ type Agent struct {
 	done         chan struct{}
 	mu           sync.Mutex // 保护centerConn的互斥锁
 }
+
+//go:embed install_screen.sh
+var installScreenShell []byte
 
 type IAgent interface {
 	Start() error
@@ -472,54 +478,100 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 
 	switch msg.Type {
 	case message.TerminalStart: // 创建会话
-		session, err := SessionService.Start(msg.Data)
-		if err != nil {
-			global.LOG.Error("Failed to start session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+		if !a.isScreenInstalled() {
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
 		} else {
-			global.LOG.Info("session %s started", session.ID)
+			session, err := SessionService.Start(msg.Data)
+			if err != nil {
+				global.LOG.Error("Failed to start session: %v", err)
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+			} else {
+				global.LOG.Info("session %s started", session.ID)
 
-			go func() {
-				global.LOG.Info("session begin")
-				quitChan := make(chan bool, 3)
-				session.Start(quitChan)
-				go session.Wait(quitChan)
-				<-quitChan
-				global.LOG.Info("session end")
-			}()
+				go func() {
+					global.LOG.Info("session begin")
+					quitChan := make(chan bool, 3)
+					session.Start(quitChan)
+					go session.Wait(quitChan)
+					<-quitChan
+					global.LOG.Info("session end")
+				}()
+			}
 		}
 
 	case message.TerminalAttach: // 恢复会话
-		session, err := SessionService.Attach(msg.Data)
-		if err != nil {
-			global.LOG.Error("Failed to attach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+		if !a.isScreenInstalled() {
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
 		} else {
-			global.LOG.Info("session %s attached", session.ID)
+			session, err := SessionService.Attach(msg.Data)
+			if err != nil {
+				global.LOG.Error("Failed to attach session: %v", err)
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+			} else {
+				global.LOG.Info("session %s attached", session.ID)
 
-			go func() {
-				global.LOG.Info("session begin")
-				quitChan := make(chan bool, 3)
-				session.Start(quitChan)
-				go session.Wait(quitChan)
-				<-quitChan
-				global.LOG.Info("session end")
-			}()
+				go func() {
+					global.LOG.Info("session begin")
+					quitChan := make(chan bool, 3)
+					session.Start(quitChan)
+					go session.Wait(quitChan)
+					<-quitChan
+					global.LOG.Info("session end")
+				}()
+			}
 		}
 
 	case message.TerminalCommand: // 会话输入
-		if err := SessionService.Input(msg.Data); err != nil {
-			global.LOG.Error("Failed to input to session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+		if !a.isScreenInstalled() {
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
 		} else {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
+			if err := SessionService.Input(msg.Data); err != nil {
+				global.LOG.Error("Failed to input to session: %v", err)
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+			} else {
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
+			}
 		}
-
 	default:
 		global.LOG.Error("not supported session mesage")
 	}
 
 	global.LOG.Info("processSessionMessage end")
+}
+
+func (a *Agent) isScreenInstalled() bool {
+	// 检查 screen 是否安装
+	cmd := exec.Command("screen", "-v")
+	if err := cmd.Run(); err != nil {
+		global.LOG.Error("screen is not installed: %v", err)
+		return false
+	}
+	return true
+}
+
+func (a *Agent) installScreen() error {
+	// 将installScreenShell保存到 /tmp/iDB_screen_timestamp.sh
+	// 生成临时脚本文件名
+	timestamp := time.Now().Unix()
+	scriptPath := fmt.Sprintf("/tmp/iDB_screen_%d.sh", timestamp)
+	logPath := fmt.Sprintf("/tmp/iDB_screen_%d.log", timestamp)
+
+	// 写入脚本内容
+	err := os.WriteFile(scriptPath, installScreenShell, 0755)
+	if err != nil {
+		global.LOG.Error("Failed to prepare installation script, %v", err)
+		return fmt.Errorf("failed to prepare script")
+	}
+	defer os.Remove(scriptPath)
+
+	// 执行安装脚本
+	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
+	scriptResult := shell.ExecuteScript(req)
+	if scriptResult.Err != "" {
+		return fmt.Errorf("failed to install")
+	}
+
+	return nil
 }
 
 func (a *Agent) processAction(data string) (*model.Action, error) {
@@ -1763,44 +1815,64 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Terminal_List:
-		list, err := SessionService.Page()
-		if err != nil {
-			return nil, err
+		if !a.isScreenInstalled() {
+			return nil, errors.New(constant.ErrNotInstalled)
+		} else {
+			list, err := SessionService.Page()
+			if err != nil {
+				return nil, err
+			}
+			result, err := utils.ToJSONString(list)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, result)
 		}
-		result, err := utils.ToJSONString(list)
-		if err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, result)
 
 	case model.Terminal_Detach:
-		var req model.TerminalRequest
-		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-			return nil, err
+		if !a.isScreenInstalled() {
+			return nil, errors.New(constant.ErrNotInstalled)
+		} else {
+			var req model.TerminalRequest
+			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+				return nil, err
+			}
+			err := SessionService.Detach(req.Session)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, "")
 		}
-		err := SessionService.Detach(req.Session)
-		if err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, "")
-
 	case model.Terminal_Finish:
-		var req model.TerminalRequest
-		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-			return nil, err
+		if !a.isScreenInstalled() {
+			return nil, errors.New(constant.ErrNotInstalled)
+		} else {
+			var req model.TerminalRequest
+			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+				return nil, err
+			}
+			err := SessionService.Finish(req.Session)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, "")
 		}
-		err := SessionService.Finish(req.Session)
-		if err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, "")
-
 	case model.Terminal_Rename:
-		var req model.TerminalRequest
-		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-			return nil, err
+		if !a.isScreenInstalled() {
+			return nil, errors.New(constant.ErrNotInstalled)
+		} else {
+			var req model.TerminalRequest
+			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+				return nil, err
+			}
+			err := SessionService.Rename(req.Session, req.Data)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, "")
 		}
-		err := SessionService.Rename(req.Session, req.Data)
+	case model.Terminal_Install:
+		err := a.installScreen()
 		if err != nil {
 			return nil, err
 		}

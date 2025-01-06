@@ -52,6 +52,7 @@ var (
 	ErrObjectInUsed = "ErrObjectInUsed"
 	ErrPortInUsed   = "ErrPortInUsed"
 	ErrPortRules    = "ErrPortRules"
+	ErrNotInstalled = "ErrNotInstalled"
 )
 
 // file

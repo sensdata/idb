@@ -1701,158 +1701,6 @@ info:
   title: IDB API Documentation
   version: "1.0"
 paths:
-  /{host}/terminals/session/detach:
-    post:
-      consumes:
-      - application/json
-      description: Detach terminal session
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Request details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TerminalRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Detach terminal session
-      tags:
-      - Terminal
-  /{host}/terminals/session/quit:
-    post:
-      consumes:
-      - application/json
-      description: Quit terminal session
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Request details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TerminalRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Quit terminal session
-      tags:
-      - Terminal
-  /{host}/terminals/session/rename:
-    post:
-      consumes:
-      - application/json
-      description: Rename terminal session
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Request details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TerminalRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Rename terminal session
-      tags:
-      - Terminal
-  /{host}/terminals/sessions:
-    get:
-      consumes:
-      - application/json
-      description: Get agent terminal sessions
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Get agent terminal sessions
-      tags:
-      - Terminal
-  /{host}/terminals/ssh/start:
-    get:
-      consumes:
-      - application/json
-      description: Connect to ssh terminal
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Window cols, default 80
-        in: query
-        name: cols
-        type: integer
-      - description: Window rows, default 40
-        in: query
-        name: rows
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "101":
-          description: Switching Protocols to websocket
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/model.Response'
-      summary: Connect to ssh terminal
-      tags:
-      - Terminal(ssh)
-  /{host}/terminals/start:
-    get:
-      consumes:
-      - application/json
-      description: Create or reconnect to a terminal session through websocket
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: request data send to websocket
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TerminalMessage'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Create or reconnect to a terminal session through websocket
-      tags:
-      - Terminal
   /auth/sessions:
     delete:
       consumes:
@@ -6777,6 +6625,177 @@ paths:
       summary: Get plugin menu
       tags:
       - Sysinfo
+  /terminals/{host}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install terminal
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Install terminal
+      tags:
+      - Terminal
+  /terminals/{host}/session/detach:
+    post:
+      consumes:
+      - application/json
+      description: Detach terminal session
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Detach terminal session
+      tags:
+      - Terminal
+  /terminals/{host}/session/quit:
+    post:
+      consumes:
+      - application/json
+      description: Quit terminal session
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Quit terminal session
+      tags:
+      - Terminal
+  /terminals/{host}/session/rename:
+    post:
+      consumes:
+      - application/json
+      description: Rename terminal session
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Rename terminal session
+      tags:
+      - Terminal
+  /terminals/{host}/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get agent terminal sessions
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Get agent terminal sessions
+      tags:
+      - Terminal
+  /terminals/{host}/ssh/start:
+    get:
+      consumes:
+      - application/json
+      description: Connect to ssh terminal
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Window cols, default 80
+        in: query
+        name: cols
+        type: integer
+      - description: Window rows, default 40
+        in: query
+        name: rows
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols to websocket
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to ssh terminal
+      tags:
+      - Terminal(ssh)
+  /terminals/{host}/start:
+    get:
+      consumes:
+      - application/json
+      description: Create or reconnect to a terminal session through websocket
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request data send to websocket
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalMessage'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create or reconnect to a terminal session through websocket
+      tags:
+      - Terminal
   /users:
     delete:
       consumes:

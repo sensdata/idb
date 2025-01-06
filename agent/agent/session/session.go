@@ -85,8 +85,35 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 }
 
 func (s *SessionService) Attach(sessionData message.SessionData) (*Session, error) {
-	// 启动命令以恢复 Screen 会话
-	screenCmd := exec.Command("screen", "-r", sessionData.SessionID)
+	var screenCmd *exec.Cmd
+
+	// sessionData.SessionID是否为空
+	if sessionData.SessionID == "" {
+		// 获取当前存在的会话
+		sessions, _ := s.page()
+		// 如果不存在任何会话
+		if len(sessions) == 0 {
+			// 创建一个随机名的会话
+			sessionID := utils.GenerateNonce(6)
+			screenCmd = exec.Command("screen", "-S", sessionID)
+			global.LOG.Info("No exist sessions, create one: %s", sessionID)
+		} else {
+			// 查找时间最近的会话进行恢复
+			latestSession := sessions[0]
+			for _, session := range sessions {
+				if session.Time.After(latestSession.Time) {
+					latestSession = session
+				}
+			}
+			// 恢复最近的会话
+			screenCmd = exec.Command("screen", "-r", latestSession.Session)
+			global.LOG.Info("Attaching to latest session: %s", latestSession.Session)
+		}
+	} else {
+		// 恢复会话
+		screenCmd = exec.Command("screen", "-r", sessionData.SessionID)
+		global.LOG.Info("Attaching to session: %s", sessionData.SessionID)
+	}
 
 	// 设置环境变量 TERM
 	screenCmd.Env = append(os.Environ(), "TERM=xterm")
@@ -182,17 +209,27 @@ func (s *Session) sendSessionResult(data string) {
 func (s *SessionService) Page() (*model.PageResult, error) {
 	var result model.PageResult
 
+	sessions, _ := s.page()
+
+	result.Total = int64(len(sessions))
+	result.Items = sessions
+
+	return &result, nil
+}
+
+func (s *SessionService) page() ([]model.SessionInfo, error) {
+	var sessions []model.SessionInfo
+
 	// 执行命令以列出所有的 screen 会话
 	cmd := exec.Command("screen", "-ls")
 	output, err := cmd.Output()
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
-		return &result, fmt.Errorf("failed to list sessions: %v", err)
+		return sessions, nil
 	}
 	global.LOG.Info("output: %s", output)
 
 	// 处理返回的结果字符串
-	var sessions []model.SessionInfo
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		// 解析每一行以提取会话信息
@@ -229,10 +266,7 @@ func (s *SessionService) Page() (*model.PageResult, error) {
 		}
 	}
 
-	result.Total = int64(len(sessions))
-	result.Items = sessions
-
-	return &result, nil
+	return sessions, nil
 }
 
 func (s *SessionService) Finish(sessionID string) error {

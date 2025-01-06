@@ -16,6 +16,7 @@ type ITerminalService interface {
 	Detach(hostID uint, req model.TerminalRequest) error
 	Quit(hostID uint, req model.TerminalRequest) error
 	Rename(hostID uint, req model.TerminalRequest) error
+	Install(hostID uint) error
 }
 
 func NewITerminalService() ITerminalService {
@@ -124,6 +125,27 @@ func (s *TerminalService) Rename(hostID uint, req model.TerminalRequest) error {
 	if !actionResponse.Result {
 		global.LOG.Error("action failed")
 		return fmt.Errorf("failed to rename session")
+	}
+
+	return nil
+}
+
+func (s *TerminalService) Install(hostID uint) error {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Terminal_Install,
+			Data:   "",
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to install terminal")
 	}
 
 	return nil

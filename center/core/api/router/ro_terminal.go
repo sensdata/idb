@@ -22,5 +22,6 @@ func (s *TerminalRouter) InitRouter(Router *gin.RouterGroup) {
 		terminalRouter.POST("/:host/session/detach", baseApi.DetachSession) // 分离终端会话
 		terminalRouter.POST("/:host/session/quit", baseApi.QuitSession)     //终止终端会话
 		terminalRouter.POST("/:host/session/rename", baseApi.RenameSession) // 重命名终端会话
+		terminalRouter.POST("/:host/install", baseApi.InstallTerminal)      // 安装Agent侧的终端环境
 	}
 }

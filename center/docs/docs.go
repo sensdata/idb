@@ -7407,6 +7407,266 @@ const docTemplate = `{
                 }
             }
         },
+        "/terminals/{host}/install": {
+            "post": {
+                "description": "Install terminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Install terminal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/session/detach": {
+            "post": {
+                "description": "Detach terminal session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Detach terminal session",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/session/quit": {
+            "post": {
+                "description": "Quit terminal session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Quit terminal session",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/session/rename": {
+            "post": {
+                "description": "Rename terminal session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Rename terminal session",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/sessions": {
+            "get": {
+                "description": "Get agent terminal sessions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Get agent terminal sessions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/ssh/start": {
+            "get": {
+                "description": "Connect to ssh terminal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal(ssh)"
+                ],
+                "summary": "Connect to ssh terminal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window cols, default 80",
+                        "name": "cols",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window rows, default 40",
+                        "name": "rows",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols to websocket",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/start": {
+            "get": {
+                "description": "Create or reconnect to a terminal session through websocket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Create or reconnect to a terminal session through websocket",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request data send to websocket",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalMessage"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "获取用户列表",
@@ -7586,237 +7846,6 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.ValidUser"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/session/detach": {
-            "post": {
-                "description": "Detach terminal session",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Detach terminal session",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Request details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TerminalRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/session/quit": {
-            "post": {
-                "description": "Quit terminal session",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Quit terminal session",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Request details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TerminalRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/session/rename": {
-            "post": {
-                "description": "Rename terminal session",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Rename terminal session",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Request details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TerminalRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/sessions": {
-            "get": {
-                "description": "Get agent terminal sessions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Get agent terminal sessions",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/ssh/start": {
-            "get": {
-                "description": "Connect to ssh terminal",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal(ssh)"
-                ],
-                "summary": "Connect to ssh terminal",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Window cols, default 80",
-                        "name": "cols",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Window rows, default 40",
-                        "name": "rows",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "101": {
-                        "description": "Switching Protocols to websocket",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/model.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/{host}/terminals/start": {
-            "get": {
-                "description": "Create or reconnect to a terminal session through websocket",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Create or reconnect to a terminal session through websocket",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request data send to websocket",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TerminalMessage"
                         }
                     }
                 ],

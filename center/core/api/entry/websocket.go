@@ -21,7 +21,7 @@ import (
 // @Param rows query uint false "Window rows, default 40"
 // @Success 101 {string} string "Switching Protocols to websocket"
 // @Failure 400 {object} model.Response "Bad Request"
-// @Router /{host}/terminals/ssh/start [get]
+// @Router /terminals/{host}/ssh/start [get]
 func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 	err := conn.WEBSOCKET.HandleSshTerminal(c)
 	if err != nil {
@@ -46,7 +46,7 @@ func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalMessage true "request data send to websocket"
 // @Success 200
-// @Router /{host}/terminals/start [get]
+// @Router /terminals/{host}/start [get]
 func (b *BaseApi) HandleTerminal(c *gin.Context) {
 	err := conn.WEBSOCKET.HandleAgentTerminal(c)
 	if err != nil {
@@ -70,7 +70,7 @@ func (b *BaseApi) HandleTerminal(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Success 200
-// @Router /{host}/terminals/sessions [get]
+// @Router /terminals/{host}/sessions [get]
 func (b *BaseApi) TerminalSessions(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -94,7 +94,7 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /{host}/terminals/session/detach [post]
+// @Router /terminals/{host}/session/detach [post]
 func (b *BaseApi) DetachSession(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -123,7 +123,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /{host}/terminals/session/quit [post]
+// @Router /terminals/{host}/session/quit [post]
 func (b *BaseApi) QuitSession(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -152,7 +152,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /{host}/terminals/session/rename [post]
+// @Router /terminals/{host}/session/rename [post]
 func (b *BaseApi) RenameSession(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -166,6 +166,29 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 	}
 
 	err = terminalService.Rename(uint(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, "")
+}
+
+// @Tags Terminal
+// @Summary Install terminal
+// @Description Install terminal
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /terminals/{host}/install [post]
+func (b *BaseApi) InstallTerminal(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	err = terminalService.Install(uint(hostID))
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
