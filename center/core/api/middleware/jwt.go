@@ -41,4 +41,26 @@ func (j *JWT) JWTAuth() gin.HandlerFunc {
 	}
 }
 
+// JWTCookieAuth 从cookie中获取并验证JWT token
+func (j *JWT) JWTCookieAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token, err := c.Cookie("token")
+		if err != nil || token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
+			c.Abort()
+			return
+		}
+
+		claims, err := utils.ValidateJWT(token, j.SigningKey)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		c.Set("user", claims)
+		c.Next()
+	}
+}
+
 // Additional middlewares such as logging, error handling can be defined here
