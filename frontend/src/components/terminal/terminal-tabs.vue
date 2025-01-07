@@ -26,32 +26,76 @@
         <template #content>
           <div class="popover-head">
             <div class="arco-popover-title">
-              {{ $t('components.terminal.selectHost') }}
+              {{ $t('components.terminal.addSession.title') }}
             </div>
             <span class="arco-icon-hover popover-close" @click="handlePopClose">
               <icon-close />
             </span>
           </div>
           <div class="popover-body">
-            <a-input-search
-              v-model="searchValue"
-              :placeholder="$t('components.terminal.searchHostPlaceholder')"
-              allow-clear
-              @clear="handleSearch('')"
-              @search="handleSearch"
-              @press-enter="handleSearchEnter"
-            />
-            <div class="host-list">
-              <div
-                v-for="item of hostItems"
-                :key="item.id"
-                class="host-item"
-                @click="handleSelectHost(item)"
+            <a-form :model="formState">
+              <a-form-item
+                field="host_id"
+                :label="$t('components.terminal.addSession.host')"
               >
-                <span class="host-addr">{{ item.addr }}</span>
-                <span class="host-name"> {{ item.name }}</span>
-              </div>
-            </div>
+                <a-select
+                  v-model="formState.host_id"
+                  :placeholder="
+                    $t('components.terminal.addSession.hostPlaceHolder')
+                  "
+                  :options="hostOptions"
+                  allow-clear
+                  allow-create
+                  allow-search
+                />
+              </a-form-item>
+              <a-form-item
+                field="type"
+                :label="$t('components.terminal.addSession.type')"
+              >
+                <a-radio-group v-model="formState.type" type="button">
+                  <a-radio value="start">{{
+                    $t('components.terminal.addSession.start')
+                  }}</a-radio>
+                  <a-radio value="attach">{{
+                    $t('components.terminal.addSession.attach')
+                  }}</a-radio>
+                </a-radio-group>
+              </a-form-item>
+              <a-form-item
+                field="session"
+                :label="$t('components.terminal.addSession.session')"
+              >
+                <a-select
+                  v-if="formState.type === 'attach'"
+                  v-model="formState.session"
+                  :placeholder="
+                    $t(
+                      'components.terminal.addSession.attachSession.placeholder'
+                    )
+                  "
+                  :loading="sessionLoading"
+                  :options="sessionOptions"
+                  allow-clear
+                  allow-create
+                  allow-search
+                />
+                <a-input
+                  v-else
+                  v-model="formState.session_name"
+                  :placeholder="
+                    $t(
+                      'components.terminal.addSession.startSession.placeholder'
+                    )
+                  "
+                />
+              </a-form-item>
+              <a-form-item>
+                <a-button type="primary" @click="handleAddSession">
+                  {{ $t('components.terminal.addSession.add') }}
+                </a-button>
+              </a-form-item>
+            </a-form>
           </div>
         </template>
       </a-popover>
@@ -63,31 +107,41 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, Ref } from 'vue';
+  import { reactive, ref, Ref, watch } from 'vue';
   import { useHostStore } from '@/store';
   import { HostEntity } from '@/entity/Host';
+  import { getTerminalSessionsApi } from '@/api/terminal';
   import Terminal from './terminal.vue';
 
   type TerminalInstance = InstanceType<typeof Terminal> | undefined;
 
   interface TermSessionItem {
     key: string;
+    type: 'attach' | 'start';
     hostId: number;
     title: string;
     termRef: Ref<TerminalInstance>;
+    session: string;
   }
 
   const activeKey = ref<string>();
   const hostStore = useHostStore();
   const terms = ref<TermSessionItem[]>([]);
-  function addSession(host: HostEntity) {
+
+  function addSession(options: {
+    type: 'attach' | 'start';
+    host: HostEntity;
+    session?: string;
+  }) {
     const termRef: any = ref<TerminalInstance>();
     const key = Math.random().toString(36).slice(2);
     terms.value.push({
       key,
-      hostId: host.id,
-      title: host.name,
+      type: options.type,
+      hostId: options.host.id,
+      title: options.host.name,
       termRef,
+      session: options.session || '',
     });
     activeKey.value = key;
   }
@@ -110,21 +164,67 @@
     popoverVisible.value = false;
   }
 
-  function handleSelectHost(host: HostEntity) {
-    addSession(host);
+  const formState = reactive({
+    host_id: hostStore.current?.id || undefined,
+    type: 'start' as 'attach' | 'start',
+    session: '',
+    session_name: '',
+  });
+  const hostOptions = ref(
+    hostStore.items.map((item) => ({
+      label: item.addr + '　　' + item.name,
+      value: item.id,
+    }))
+  );
+  const sessionOptions = ref<{ label: string; value: string }[]>([]);
+  const sessionLoading = ref(false);
+  async function loadSessionOptions(hostId: number) {
+    sessionLoading.value = true;
+    try {
+      const res = await getTerminalSessionsApi(hostId);
+      sessionOptions.value = (res.items || []).map((item: string) => ({
+        label: item,
+        value: item,
+      }));
+    } finally {
+      sessionLoading.value = false;
+    }
+  }
+  function handleAddSession() {
+    if (!formState.host_id) {
+      return;
+    }
+    if (formState.type === 'attach' && !formState.session) {
+      return;
+    }
+    addSession({
+      type: formState.type,
+      host: hostStore.items.find((item) => item.id === formState.host_id)!,
+      session:
+        formState.type === 'attach'
+          ? formState.session
+          : formState.session_name,
+    });
     popoverVisible.value = false;
   }
 
-  const searchValue = ref('');
-  const hostItems = ref<HostEntity[]>(hostStore.items.slice(0));
-  function handleSearch(value: string) {
-    hostItems.value = hostStore.items.filter((item) => {
-      return item.addr.includes(value) || item.name.includes(value);
-    });
-  }
-  function handleSearchEnter() {
-    handleSearch(searchValue.value);
-  }
+  watch(popoverVisible, (val) => {
+    if (val) {
+      formState.host_id = hostStore.current?.id || undefined;
+      formState.type = 'start';
+      formState.session = '';
+      formState.session_name = '';
+    }
+  });
+
+  watch(
+    () => [formState.host_id, formState.type],
+    () => {
+      if (formState.type === 'attach' && formState.host_id) {
+        loadSessionOptions(formState.host_id);
+      }
+    }
+  );
 
   defineExpose({
     addSession,

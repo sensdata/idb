@@ -1,19 +1,21 @@
+import cookie from './cookie';
+
 const TOKEN_KEY = 'token';
 
 const isLogin = () => {
-  return !!localStorage.getItem(TOKEN_KEY);
+  return !!cookie.get(TOKEN_KEY);
 };
 
 const getToken = () => {
-  return localStorage.getItem(TOKEN_KEY);
+  return cookie.get(TOKEN_KEY);
 };
 
 const setToken = (token: string) => {
-  localStorage.setItem(TOKEN_KEY, token);
+  cookie.set(TOKEN_KEY, token, { expires: 3 });
 };
 
 const clearToken = () => {
-  localStorage.removeItem(TOKEN_KEY);
+  cookie.remove(TOKEN_KEY);
 };
 
 export { isLogin, getToken, setToken, clearToken };

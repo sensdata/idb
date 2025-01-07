@@ -5,7 +5,7 @@ import {
   getUserInfo,
   LoginData,
 } from '@/api/user';
-import { setToken, clearToken } from '@/utils/auth';
+import { setToken, clearToken } from '@/helper/auth';
 import { removeRouteListener } from '@/utils/route-listener';
 import { UserState } from './types';
 
@@ -42,8 +42,11 @@ const useUserStore = defineStore('user', {
     // Get user's information
     async info() {
       const info = await getUserInfo();
-
-      this.setInfo(info);
+      if (info) {
+        this.setInfo(info);
+      } else {
+        this.logoutCallBack();
+      }
     },
 
     // Login

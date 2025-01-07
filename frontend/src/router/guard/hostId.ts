@@ -3,7 +3,7 @@ import NProgress from 'nprogress'; // progress bar
 import usetCurrentHost from '@/hooks/current-host';
 import { Message } from '@arco-design/web-vue';
 import i18n from '@/locale';
-import { isLogin } from '@/utils/auth';
+import { isLogin } from '@/helper/auth';
 import { useHostStore } from '@/store';
 import { SELECT_HOST } from '../constants';
 

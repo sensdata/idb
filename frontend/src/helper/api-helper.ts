@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Message } from '@arco-design/web-vue';
-import { clearToken, getToken } from '@/utils/auth';
+import { clearToken, getToken } from '@/helper/auth';
 import { t } from '@/utils/i18n';
 
 export interface ApiResponse<T = unknown> {

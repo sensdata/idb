@@ -85,6 +85,20 @@
   import type { LoginData } from '@/api/user';
   import { DEFAULT_ROUTE_NAME } from '@/router/constants';
 
+  function serialize(str: string): string {
+    const encoded = btoa(str);
+    return encoded.split('').reverse().join('');
+  }
+
+  function unserialize(str: string): string {
+    try {
+      const reversed = str.split('').reverse().join('');
+      return atob(reversed);
+    } catch (err) {
+      return '';
+    }
+  }
+
   const router = useRouter();
   const { t } = useI18n();
   const errorMessage = ref('');
@@ -93,12 +107,12 @@
 
   const loginConfig = useStorage('login-config', {
     name: 'admin',
-    password: 'admin123',
+    password: serialize('admin123'),
     rememberPassword: true,
   });
   const userInfo = reactive({
     name: loginConfig.value.name,
-    password: loginConfig.value.password,
+    password: unserialize(loginConfig.value.password),
   });
 
   const handleSubmit = async ({
@@ -123,10 +137,10 @@
         Message.success(t('login.form.login.success'));
         const { rememberPassword } = loginConfig.value;
         const { name, password } = values;
-        // 实际生产环境需要进行加密存储。
-        // The actual production environment requires encrypted storage.
         loginConfig.value.name = rememberPassword ? name : '';
-        loginConfig.value.password = rememberPassword ? password : '';
+        loginConfig.value.password = rememberPassword
+          ? serialize(password)
+          : '';
       } catch (err) {
         errorMessage.value = (err as Error).message;
       } finally {
