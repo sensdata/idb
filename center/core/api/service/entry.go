@@ -14,4 +14,5 @@ var (
 	HostGroupRepo  = repo.NewHostGroupRepo()
 	AppRepo        = repo.NewAppRepo()
 	AppVersionRepo = repo.NewAppVersionRepo()
+	SettingsRepo   = repo.NewSettingsRepo()
 )

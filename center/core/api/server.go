@@ -1,13 +1,21 @@
 package api
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api/middleware"
 	"github.com/sensdata/idb/center/core/api/router"
-	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
 	"github.com/sensdata/idb/core/utils"
 	swaggerfiles "github.com/swaggo/files"
@@ -32,20 +40,117 @@ func (s *ApiServer) Start() error {
 	global.LOG.Info("Init validator")
 	global.VALID = utils.InitValidator()
 
-	addr := fmt.Sprintf("%s:%d", "0.0.0.0", conn.CONFMAN.GetConfig().Port)
-	err := s.router.Run(addr)
+	// 获取 MonitorIP 和 Port
+	settings, err := s.getServerSettings()
 	if err != nil {
-		global.LOG.Error("Failed to start HTTP server: %v\n", err)
+		global.LOG.Error("Failed to get server settings: %v", err)
+		return err
+	}
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", settings.MonitorIP, settings.ServerPort),
+		Handler: s.router,
+	}
+	tcpItem := "tcp4"
+	ln, err := net.Listen(tcpItem, server.Addr)
+	if err != nil {
+		return err
+	}
+	type tcpKeepAliveListener struct {
+		*net.TCPListener
+	}
+	if settings.Https == "yes" {
+		var cert tls.Certificate
+		var certPath string
+		var keyPath string
+		var err error
+		if settings.HttpsCertType == "default" {
+			certPath = filepath.Join(constant.CenterBinDir, "cert.pem")
+			keyPath = filepath.Join(constant.CenterBinDir, "key.pem")
+
+		} else {
+			certPath = settings.HttpsCertPath
+			keyPath = settings.HttpsKeyPath
+		}
+		certificate, err := os.ReadFile(certPath)
+		if err != nil {
+			global.LOG.Error("Failed to read cert file %s : %v", settings.HttpsCertPath, err)
+			return err
+		}
+		key, err := os.ReadFile(keyPath)
+		if err != nil {
+			global.LOG.Error("Failed to read key file %s : %v", settings.HttpsKeyPath, err)
+			return err
+		}
+		cert, err = tls.X509KeyPair(certificate, key)
+		if err != nil {
+			global.LOG.Error("Failed to create tls cert pair")
+			return err
+		}
+		server.TLSConfig = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			MinVersion:         tls.VersionTLS13, // 设置最小 TLS 版本
+			InsecureSkipVerify: true,
+		}
+		if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
+			global.LOG.Info("Listen at https://%s:%s [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+			return err
+		}
+		global.LOG.Info("listen at https://%s:%s [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+	} else {
+		if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
+			global.LOG.Info("Listen at http://%s:%s [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+			return err
+		}
+		global.LOG.Info("listen at http://%s:%s [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
 	}
 
 	return nil
+}
+
+func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
+	settingRepo := repo.NewSettingsRepo()
+	monitorIP, err := settingRepo.Get(settingRepo.WithByKey("MonitorIP"))
+	if err != nil {
+		return nil, err
+	}
+	serverPort, err := settingRepo.Get(settingRepo.WithByKey("ServerPort"))
+	if err != nil {
+		return nil, err
+	}
+	serverPortValue, err := strconv.Atoi(serverPort.Value)
+	if err != nil {
+		return nil, err
+	}
+	https, err := settingRepo.Get(settingRepo.WithByKey("Https"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertType, err := settingRepo.Get(settingRepo.WithByKey("HttpsCertType"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertPath, err := settingRepo.Get(settingRepo.WithByKey("HttpsCertPath"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.SettingInfo{
+		MonitorIP:     monitorIP.Value,
+		ServerPort:    serverPortValue,
+		Https:         https.Value,
+		HttpsCertType: httpsCertType.Value,
+		HttpsCertPath: httpsCertPath.Value,
+	}, nil
 }
 
 // SetupRouter sets up the API routes
 func (s *ApiServer) setUpDefaultRouters() {
 	global.LOG.Info("register router - api")
 	apiGroup := s.router.Group("api/v1")
-
+	// 绑定域名过滤
+	apiGroup.Use(middleware.BindDomain())
+	// 初始化路由
 	for _, router := range router.RouterGroups {
 		router.InitRouter(apiGroup)
 	}
@@ -67,7 +172,7 @@ func (s *ApiServer) setUpDefaultRouters() {
 
 // SetUpPluginRouters sets up routers from plugins
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
-	global.LOG.Info("register router - " + group)
+	global.LOG.Info("register router - %s", group)
 	pluginGroup := s.router.Group("api/v1/" + group)
 	pluginGroup.Use(middleware.NewJWT().JWTAuth())
 	for _, route := range routes {

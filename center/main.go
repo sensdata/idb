@@ -124,6 +124,8 @@ func StartServices() error {
 	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
+	// 初始化设置
+	db.InitSettings(conn.CONFMAN.GetConfig())
 
 	// 启动SSH服务
 	global.LOG.Info("Init ssh")

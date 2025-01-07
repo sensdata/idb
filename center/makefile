@@ -32,6 +32,10 @@ SERVICE_FILE=idb.service
 # 日志文件路径
 LOG_FILE=/var/log/idb/idb.log
 
+# 证书文件路径
+CERT_FILE=./global/certs/cert.pem
+KEY_FILE=./global/certs/key.pem
+
 # 构建命令
 build:
 	GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)'" -o $(BINARY_NAME) $(SRC_DIR)
@@ -48,6 +52,10 @@ install: build
 
 	# 拷贝前端编译结果
 	sudo cp -r $(FRONTEND_DIR)/dist/* $(HOME_DIR); \
+
+	# 拷贝证书文件
+	sudo cp ${CERT_FILE} $(BIN_DIR); \
+	sudo cp ${KEY_FILE} $(BIN_DIR); \
 
 	# 拷贝其他必要的文件
 	sudo cp $(BINARY_NAME) $(BIN_DIR); \

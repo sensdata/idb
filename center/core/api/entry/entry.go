@@ -15,4 +15,5 @@ var (
 	actionService   = service.NewIActionService()
 	appService      = service.NewIAppService()
 	terminalService = service.NewITerminalService()
+	settingsService = service.NewISettingsService()
 )

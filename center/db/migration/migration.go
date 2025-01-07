@@ -16,6 +16,7 @@ func Init() {
 		AddTableGroup,
 		AddFieldGroupIDToUser,
 		AddTableHost,
+		AddTableSettings,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -189,6 +190,21 @@ var AddTableHost = &gormigrate.Migration{
 			return err
 		}
 		global.LOG.Info("Table Host added successfully")
+		return nil
+	},
+}
+
+var AddTableSettings = &gormigrate.Migration{
+	ID: "20250107-add-table-settings",
+	Migrate: func(db *gorm.DB) error {
+
+		global.LOG.Info("Adding table Settings")
+
+		if err := db.AutoMigrate(&model.Setting{}); err != nil {
+			return err
+		}
+
+		global.LOG.Info("Table Settings added successfully")
 		return nil
 	},
 }
