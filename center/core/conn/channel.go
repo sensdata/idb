@@ -675,6 +675,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[xpack] A panic occurred during terminal life, error message: %v", r)
+			setQuit(quitChan)
 		}
 	}()
 	defer setQuit(quitChan)
@@ -701,13 +702,13 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 		default:
 			messageType, wsData, err := wsConn.ReadMessage()
 			if err != nil {
-				global.LOG.Error("read message error: %v", err)
 				// 检查是否为websocket的EOF错误
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					global.LOG.Info("websocket connection closed: %v", err)
 					setQuit(quitChan)
 					return
 				}
+				global.LOG.Error("read message error: %v", err)
 				continue
 			}
 			global.LOG.Info("messageType: %d, %s", messageType, string(wsData))

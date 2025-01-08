@@ -91,6 +91,7 @@ func (sws *SshWebSocketSession) receiveWsMsg(exitCh chan bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[xpack] A panic occurred during receive ws message, error message: %v", r)
+			setQuit(exitCh)
 		}
 	}()
 	wsConn := sws.wsConn
@@ -103,6 +104,12 @@ func (sws *SshWebSocketSession) receiveWsMsg(exitCh chan bool) {
 			messageType, wsData, err := wsConn.ReadMessage()
 
 			if err != nil {
+				// 判断是否为正常的websocket关闭错误
+				if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+					global.LOG.Info("websocket connection closed: %v", err)
+					setQuit(exitCh)
+					return
+				}
 				global.LOG.Error("read message error: %v", err)
 				continue
 			}
