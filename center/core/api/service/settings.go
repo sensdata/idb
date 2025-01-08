@@ -136,28 +136,51 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 
 func (s *SettingsService) updateMonitorIP(newIP string) error {
 	if len(newIP) == 0 {
+		return errors.New("invalid monitor ip")
+	}
+
+	oldIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("MonitorIP"))
+	if err != nil {
+		return err
+	}
+	if newIP == oldIP.Value {
 		return nil
 	}
+
 	return SettingsRepo.Update("MonitorIP", newIP)
 }
 
 func (s *SettingsService) updateServerPort(newPort int) error {
+	if newPort <= 0 || newPort > 65535 {
+		return errors.New("server port must between 1 - 65535")
+	}
+	oldPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("ServerPort"))
+	if err != nil {
+		return err
+	}
+	newPortStr := strconv.Itoa(newPort)
+	if newPortStr == oldPort.Value {
+		return nil
+	}
+
 	if common.ScanPort(newPort) {
 		return errors.New(constant.ErrPortInUsed)
 	}
 
-	_, err := SettingsRepo.Get(SettingsRepo.WithByKey("ServerPort"))
-	if err != nil {
-		return err
-	}
-
 	// TODO: 处理port的更换（调用nftables）
 
-	return SettingsRepo.Update("ServerPort", strconv.Itoa(int(newPort)))
+	return SettingsRepo.Update("ServerPort", newPortStr)
 }
 
 func (s *SettingsService) updateBindDomain(newDomain string) error {
 	if len(newDomain) == 0 {
+		return nil
+	}
+	oldDomain, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return err
+	}
+	if newDomain == oldDomain.Value {
 		return nil
 	}
 	return SettingsRepo.Update("BindDomain", newDomain)
