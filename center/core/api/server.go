@@ -36,11 +36,11 @@ func (s *ApiServer) InitRouter() {
 }
 
 func (s *ApiServer) Start() error {
-	//初始化validator
+	// 初始化validator
 	global.LOG.Info("Init validator")
 	global.VALID = utils.InitValidator()
 
-	// 获取 MonitorIP 和 Port
+	// 获取连接配置
 	settings, err := s.getServerSettings()
 	if err != nil {
 		global.LOG.Error("Failed to get server settings: %v", err)
@@ -93,16 +93,16 @@ func (s *ApiServer) Start() error {
 			InsecureSkipVerify: true,
 		}
 		if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
-			global.LOG.Info("Listen at https://%s:%s [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+			global.LOG.Info("Listen at https://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
 			return err
 		}
-		global.LOG.Info("listen at https://%s:%s [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+		global.LOG.Info("listen at https://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
 	} else {
 		if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
-			global.LOG.Info("Listen at http://%s:%s [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+			global.LOG.Info("Listen at http://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
 			return err
 		}
-		global.LOG.Info("listen at http://%s:%s [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+		global.LOG.Info("listen at http://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
 	}
 
 	return nil
@@ -134,6 +134,10 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	httpsKeyPath, err := settingRepo.Get(settingRepo.WithByKey("HttpsKeyPath"))
+	if err != nil {
+		return nil, err
+	}
 
 	return &model.SettingInfo{
 		MonitorIP:     monitorIP.Value,
@@ -141,6 +145,7 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
+		HttpsKeyPath:  httpsKeyPath.Value,
 	}, nil
 }
 
