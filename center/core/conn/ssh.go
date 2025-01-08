@@ -95,11 +95,10 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 	global.LOG.Info("Install agent to host %s begin", host.Addr)
 
 	// 1. 检查 agent 安装包路径
-	agentPackagePath := filepath.Join(constant.CenterAgentDir, constant.CenterAgentDir)
+	agentPackagePath := filepath.Join(constant.CenterAgentDir, constant.CenterAgentPkg)
 	if _, err := os.Stat(agentPackagePath); os.IsNotExist(err) {
-		errMsg := fmt.Sprintf("Agent package not found at %s", agentPackagePath)
-		global.LOG.Error(errMsg)
-		return errors.New(errMsg)
+		global.LOG.Error("Agent package not found at %s", agentPackagePath)
+		return fmt.Errorf("agent package not found at %s", agentPackagePath)
 	}
 
 	// 2. 检查并确保 SSH 连接存在
