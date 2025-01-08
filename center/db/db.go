@@ -68,7 +68,11 @@ func InitSettings(cfg *config.CenterConfig) error {
 	settingsRepo := repo.NewSettingsRepo()
 
 	settings, err := settingsRepo.GetList()
-	if err == nil || len(settings) > 0 {
+	if err != nil {
+		global.LOG.Error("Failed to check settings")
+		return err
+	}
+	if len(settings) > 0 {
 		global.LOG.Info("settings already init")
 		return nil
 	}
