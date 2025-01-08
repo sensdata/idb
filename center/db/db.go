@@ -83,6 +83,7 @@ func InitSettings(cfg *config.CenterConfig) error {
 		global.LOG.Error("Failed to init MonitorIP: %v", err)
 		return err
 	}
+	global.LOG.Info("Init MonitorIP: %s", "0.0.0.0")
 
 	// 初始化 port
 	err = settingsRepo.Create("ServerPort", strconv.Itoa(cfg.Port))
@@ -90,6 +91,7 @@ func InitSettings(cfg *config.CenterConfig) error {
 		global.LOG.Error("Failed to init ServerPort: %v", err)
 		return err
 	}
+	global.LOG.Info("Init ServerPort: %d", cfg.Port)
 
 	// 初始化 绑定域名
 	err = settingsRepo.Create("BindDomain", "")

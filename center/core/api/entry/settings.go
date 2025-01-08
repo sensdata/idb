@@ -30,11 +30,6 @@ func (b *BaseApi) About(c *gin.Context) {
 // @Success 200 {object} model.SettingInfo
 // @Router /settings [get]
 func (b *BaseApi) Settings(c *gin.Context) {
-	var req model.UpdateSettingRequest
-	if err := CheckBindAndValidate(&req, c); err != nil {
-		return
-	}
-
 	result, err := settingsService.Settings()
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)

@@ -30,6 +30,10 @@ type ApiServer struct {
 	router *gin.Engine
 }
 
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
 func (s *ApiServer) InitRouter() {
 	// 注册 API 路由
 	s.setUpDefaultRouters()
@@ -47,6 +51,8 @@ func (s *ApiServer) Start() error {
 		return err
 	}
 
+	global.LOG.Info("Server Settings: %v", settings)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", settings.MonitorIP, settings.ServerPort),
 		Handler: s.router,
@@ -54,11 +60,10 @@ func (s *ApiServer) Start() error {
 	tcpItem := "tcp4"
 	ln, err := net.Listen(tcpItem, server.Addr)
 	if err != nil {
+		global.LOG.Error("Failed to listen to %s", server.Addr)
 		return err
 	}
-	type tcpKeepAliveListener struct {
-		*net.TCPListener
-	}
+
 	if settings.Https == "yes" {
 		var cert tls.Certificate
 		var certPath string
@@ -92,19 +97,22 @@ func (s *ApiServer) Start() error {
 			MinVersion:         tls.VersionTLS13, // 设置最小 TLS 版本
 			InsecureSkipVerify: true,
 		}
-		if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
-			global.LOG.Info("Listen at https://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
-			return err
-		}
-		global.LOG.Info("listen at https://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+		go func() {
+			global.LOG.Info("listen at https://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+			if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
+				global.LOG.Error("Listen at https://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+				return
+			}
+		}()
 	} else {
-		if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
-			global.LOG.Info("Listen at http://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
-			return err
-		}
-		global.LOG.Info("listen at http://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+		go func() {
+			global.LOG.Info("listen at http://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+			if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
+				global.LOG.Error("Listen at http://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+				return
+			}
+		}()
 	}
-
 	return nil
 }
 

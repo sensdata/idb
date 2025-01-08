@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"strconv"
 
@@ -33,23 +32,43 @@ func (s *SettingsService) About() (*model.About, error) {
 }
 
 func (s *SettingsService) Settings() (*model.SettingInfo, error) {
-	setting, err := SettingsRepo.GetList()
-	if err != nil {
-		return nil, constant.ErrRecordNotFound
-	}
-	settingMap := make(map[string]string)
-	for _, set := range setting {
-		settingMap[set.Key] = set.Value
-	}
-	var info model.SettingInfo
-	arr, err := json.Marshal(settingMap)
+	monitorIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("MonitorIP"))
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(arr, &info); err != nil {
+	serverPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("ServerPort"))
+	if err != nil {
 		return nil, err
 	}
-	return &info, nil
+	serverPortValue, err := strconv.Atoi(serverPort.Value)
+	if err != nil {
+		return nil, err
+	}
+	https, err := SettingsRepo.Get(SettingsRepo.WithByKey("Https"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertType, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsCertType"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertPath, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsCertPath"))
+	if err != nil {
+		return nil, err
+	}
+	httpsKeyPath, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsKeyPath"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.SettingInfo{
+		MonitorIP:     monitorIP.Value,
+		ServerPort:    serverPortValue,
+		Https:         https.Value,
+		HttpsCertType: httpsCertType.Value,
+		HttpsCertPath: httpsCertPath.Value,
+		HttpsKeyPath:  httpsKeyPath.Value,
+	}, nil
 }
 
 func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
