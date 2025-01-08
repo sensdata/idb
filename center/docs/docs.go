@@ -9972,6 +9972,12 @@ const docTemplate = `{
                 "bind_domain": {
                     "type": "string"
                 },
+                "bind_ip": {
+                    "type": "string"
+                },
+                "bind_port": {
+                    "type": "integer"
+                },
                 "https": {
                     "type": "string"
                 },
@@ -9983,12 +9989,6 @@ const docTemplate = `{
                 },
                 "https_key_path": {
                     "type": "string"
-                },
-                "monitor_ip": {
-                    "type": "string"
-                },
-                "server_port": {
-                    "type": "integer"
                 }
             }
         },
@@ -10337,13 +10337,19 @@ const docTemplate = `{
         "model.UpdateSettingRequest": {
             "type": "object",
             "required": [
-                "https",
-                "monitor_ip",
-                "server_port"
+                "bind_ip",
+                "bind_port",
+                "https"
             ],
             "properties": {
                 "bind_domain": {
                     "type": "string"
+                },
+                "bind_ip": {
+                    "type": "string"
+                },
+                "bind_port": {
+                    "type": "integer"
                 },
                 "https": {
                     "type": "string",
@@ -10360,12 +10366,6 @@ const docTemplate = `{
                 },
                 "https_key_path": {
                     "type": "string"
-                },
-                "monitor_ip": {
-                    "type": "string"
-                },
-                "server_port": {
-                    "type": "integer"
                 }
             }
         },

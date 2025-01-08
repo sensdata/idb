@@ -1364,6 +1364,10 @@ definitions:
     properties:
       bind_domain:
         type: string
+      bind_ip:
+        type: string
+      bind_port:
+        type: integer
       https:
         type: string
       https_cert_path:
@@ -1372,10 +1376,6 @@ definitions:
         type: string
       https_key_path:
         type: string
-      monitor_ip:
-        type: string
-      server_port:
-        type: integer
     type: object
   model.SwapState:
     properties:
@@ -1616,6 +1616,10 @@ definitions:
     properties:
       bind_domain:
         type: string
+      bind_ip:
+        type: string
+      bind_port:
+        type: integer
       https:
         enum:
         - "no"
@@ -1627,14 +1631,10 @@ definitions:
         type: string
       https_key_path:
         type: string
-      monitor_ip:
-        type: string
-      server_port:
-        type: integer
     required:
+    - bind_ip
+    - bind_port
     - https
-    - monitor_ip
-    - server_port
     type: object
   model.UpdateUser:
     properties:
