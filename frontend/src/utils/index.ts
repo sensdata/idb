@@ -1,5 +1,30 @@
 type TargetContext = '_self' | '_parent' | '_blank' | '_top';
 
+export function isArray(obj: any) {
+  return Array.isArray
+    ? Array.isArray(obj)
+    : Object.prototype.toString.call(obj) === '[object Array]';
+}
+
+export function serializeQueryParams(params: Record<string, any>) {
+  const res: string[] = [];
+  for (const name in params) {
+    if (
+      Object.prototype.hasOwnProperty.call(params, name) &&
+      params[name] != null
+    ) {
+      let value = params[name];
+      if (isArray(value)) {
+        value = value.join(',');
+      }
+      res.push(
+        encodeURIComponent(name) + '=' + encodeURIComponent(String(value))
+      );
+    }
+  }
+  return res.join('&');
+}
+
 export const openWindow = (
   url: string,
   opts?: { target?: TargetContext; [key: string]: any }

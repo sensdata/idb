@@ -13,22 +13,25 @@
   enum MsgType {
     Heartbeat = 'heartbeat',
     Cmd = 'cmd',
+    Attach = 'attach',
+    Start = 'start',
   }
 
   interface MsgDo {
-    msg_id: string;
     type: MsgType;
-    sign: string;
     data: string;
+    session: string;
     timestamp: number;
-    nonce: string;
-    version: string;
-    checksum: string;
   }
 
   const props = defineProps<{
     path?: string;
     hostId: number;
+    sendHeartbeat?: boolean;
+  }>();
+
+  const emit = defineEmits<{
+    (e: 'session', session: string): void;
   }>();
 
   const domRef = ref<HTMLDivElement>();
@@ -89,6 +92,11 @@
       case MsgType.Heartbeat:
         latencyRef.value = Date.now() - msg.timestamp;
         break;
+      // server notify client current session name
+      case MsgType.Attach:
+      case MsgType.Start:
+        emit('session', msg.session);
+        break;
       default:
         break;
     }
@@ -116,8 +124,14 @@
     );
     wsRef.value.onerror = onWsError;
     wsRef.value.onclose = onWsClose;
+    wsRef.value.onopen = () => {
+      // eslint-disable-next-line no-console
+      console.log(`terminal connected, host: ${props.hostId}`);
+      if (props.sendHeartbeat) {
+        autoSendHeartbeat();
+      }
+    };
     wsRef.value.onmessage = onWsMsgReceived;
-    autoSendHeartbeat();
   }
 
   function disconnectWs() {

@@ -11,7 +11,7 @@ export default mergeConfig(
         strict: true,
       },
       proxy: {
-        '^/api/terminals/.*?(?:/ssh)/start': {
+        '^/api/terminals/.*?/start': {
           target: 'ws://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
