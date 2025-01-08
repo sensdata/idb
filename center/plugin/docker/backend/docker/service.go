@@ -109,7 +109,7 @@ func (s *DockerMan) Initialize() {
 	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
 		host = settingInfo.BindDomain
 	}
-	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.ServerPort)
+	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.BindPort)
 
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).

@@ -78,20 +78,20 @@ func InitSettings(cfg *config.CenterConfig) error {
 	}
 
 	// 初始化 监听ip
-	err = settingsRepo.Create("MonitorIP", "0.0.0.0")
+	err = settingsRepo.Create("BindIP", "0.0.0.0")
 	if err != nil {
-		global.LOG.Error("Failed to init MonitorIP: %v", err)
+		global.LOG.Error("Failed to init BindIP: %v", err)
 		return err
 	}
-	global.LOG.Info("Init MonitorIP: %s", "0.0.0.0")
+	global.LOG.Info("Init BindIP: %s", "0.0.0.0")
 
 	// 初始化 port
-	err = settingsRepo.Create("ServerPort", strconv.Itoa(cfg.Port))
+	err = settingsRepo.Create("BindPort", strconv.Itoa(cfg.Port))
 	if err != nil {
-		global.LOG.Error("Failed to init ServerPort: %v", err)
+		global.LOG.Error("Failed to init BindPort: %v", err)
 		return err
 	}
-	global.LOG.Info("Init ServerPort: %d", cfg.Port)
+	global.LOG.Info("Init BindPort: %d", cfg.Port)
 
 	// 初始化 绑定域名
 	err = settingsRepo.Create("BindDomain", "")

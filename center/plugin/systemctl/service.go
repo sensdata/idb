@@ -88,7 +88,7 @@ func (s *SystemCtl) Initialize() {
 		host = settingInfo.BindDomain
 	}
 
-	s.cmdHelper = helper.NewCmdHelper(scheme, host, strconv.Itoa(settingInfo.ServerPort), nil)
+	s.cmdHelper = helper.NewCmdHelper(scheme, host, strconv.Itoa(settingInfo.BindPort), nil)
 
 	api.API.SetUpPluginRouters(
 		"sysctl",

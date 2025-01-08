@@ -5,8 +5,8 @@ type About struct {
 }
 
 type SettingInfo struct {
-	MonitorIP     string `json:"monitor_ip"`
-	ServerPort    int    `json:"server_port"`
+	BindIP        string `json:"bind_ip"`
+	BindPort      int    `json:"bind_port"`
 	BindDomain    string `json:"bind_domain"`
 	Https         string `json:"https"`
 	HttpsCertType string `json:"https_cert_type"`
@@ -15,8 +15,8 @@ type SettingInfo struct {
 }
 
 type UpdateSettingRequest struct {
-	MonitorIP     string `json:"monitor_ip" validate:"required"`
-	ServerPort    int    `json:"server_port" validate:"required"`
+	BindIP        string `json:"bind_ip" validate:"required"`
+	BindPort      int    `json:"bind_port" validate:"required"`
 	BindDomain    string `json:"bind_domain,omitempty"`
 	Https         string `json:"https" validate:"required,oneof=no yes"`
 	HttpsCertType string `json:"https_cert_type,omitempty"`

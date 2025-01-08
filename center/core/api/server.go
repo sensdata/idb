@@ -54,7 +54,7 @@ func (s *ApiServer) Start() error {
 	global.LOG.Info("Server Settings: %v", settings)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", settings.MonitorIP, settings.ServerPort),
+		Addr:    fmt.Sprintf("%s:%d", settings.BindIP, settings.BindPort),
 		Handler: s.router,
 	}
 	tcpItem := "tcp4"
@@ -98,17 +98,17 @@ func (s *ApiServer) Start() error {
 			InsecureSkipVerify: true,
 		}
 		go func() {
-			global.LOG.Info("listen at https://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+			global.LOG.Info("listen at https://%s:%d [%s]", settings.BindIP, settings.BindPort, tcpItem)
 			if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
-				global.LOG.Error("Listen at https://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+				global.LOG.Error("Listen at https://%s:%d [%s] Failed: %v", settings.BindIP, settings.BindPort, tcpItem, err)
 				return
 			}
 		}()
 	} else {
 		go func() {
-			global.LOG.Info("listen at http://%s:%d [%s]", settings.MonitorIP, settings.ServerPort, tcpItem)
+			global.LOG.Info("listen at http://%s:%d [%s]", settings.BindIP, settings.BindPort, tcpItem)
 			if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
-				global.LOG.Error("Listen at http://%s:%d [%s] Failed: %v", settings.MonitorIP, settings.ServerPort, tcpItem, err)
+				global.LOG.Error("Listen at http://%s:%d [%s] Failed: %v", settings.BindIP, settings.BindPort, tcpItem, err)
 				return
 			}
 		}()
@@ -118,15 +118,15 @@ func (s *ApiServer) Start() error {
 
 func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	settingRepo := repo.NewSettingsRepo()
-	monitorIP, err := settingRepo.Get(settingRepo.WithByKey("MonitorIP"))
+	bindIP, err := settingRepo.Get(settingRepo.WithByKey("BindIP"))
 	if err != nil {
 		return nil, err
 	}
-	serverPort, err := settingRepo.Get(settingRepo.WithByKey("ServerPort"))
+	bindPort, err := settingRepo.Get(settingRepo.WithByKey("BindPort"))
 	if err != nil {
 		return nil, err
 	}
-	serverPortValue, err := strconv.Atoi(serverPort.Value)
+	bindPortValue, err := strconv.Atoi(bindPort.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	}
 
 	return &model.SettingInfo{
-		MonitorIP:     monitorIP.Value,
-		ServerPort:    serverPortValue,
+		BindIP:        bindIP.Value,
+		BindPort:      bindPortValue,
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,

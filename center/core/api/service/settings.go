@@ -32,15 +32,15 @@ func (s *SettingsService) About() (*model.About, error) {
 }
 
 func (s *SettingsService) Settings() (*model.SettingInfo, error) {
-	monitorIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("MonitorIP"))
+	bindIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindIP"))
 	if err != nil {
 		return nil, err
 	}
-	serverPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("ServerPort"))
+	bindPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindPort"))
 	if err != nil {
 		return nil, err
 	}
-	serverPortValue, err := strconv.Atoi(serverPort.Value)
+	bindPortValue, err := strconv.Atoi(bindPort.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func (s *SettingsService) Settings() (*model.SettingInfo, error) {
 	}
 
 	return &model.SettingInfo{
-		MonitorIP:     monitorIP.Value,
-		ServerPort:    serverPortValue,
+		BindIP:        bindIP.Value,
+		BindPort:      bindPortValue,
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
@@ -103,13 +103,13 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 		}
 	}()
 
-	if err = s.updateMonitorIP(req.MonitorIP); err != nil {
-		global.LOG.Error("Failed to save MonitorIP to %s: %v", req.MonitorIP, err)
+	if err = s.updateBindIP(req.BindIP); err != nil {
+		global.LOG.Error("Failed to save BindIP to %s: %v", req.BindIP, err)
 		return err
 	}
 
-	if err = s.updateServerPort(req.ServerPort); err != nil {
-		global.LOG.Error("Failed to save ServerPort to %d: %v", req.ServerPort, err)
+	if err = s.updateBindPort(req.BindPort); err != nil {
+		global.LOG.Error("Failed to save BindPort to %d: %v", req.BindPort, err)
 		return err
 	}
 
@@ -134,12 +134,12 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 	return nil
 }
 
-func (s *SettingsService) updateMonitorIP(newIP string) error {
+func (s *SettingsService) updateBindIP(newIP string) error {
 	if len(newIP) == 0 {
-		return errors.New("invalid monitor ip")
+		return errors.New("invalid bind ip")
 	}
 
-	oldIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("MonitorIP"))
+	oldIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindIP"))
 	if err != nil {
 		return err
 	}
@@ -147,14 +147,14 @@ func (s *SettingsService) updateMonitorIP(newIP string) error {
 		return nil
 	}
 
-	return SettingsRepo.Update("MonitorIP", newIP)
+	return SettingsRepo.Update("BindIP", newIP)
 }
 
-func (s *SettingsService) updateServerPort(newPort int) error {
+func (s *SettingsService) updateBindPort(newPort int) error {
 	if newPort <= 0 || newPort > 65535 {
 		return errors.New("server port must between 1 - 65535")
 	}
-	oldPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("ServerPort"))
+	oldPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindPort"))
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (s *SettingsService) updateServerPort(newPort int) error {
 
 	// TODO: 处理port的更换（调用nftables）
 
-	return SettingsRepo.Update("ServerPort", newPortStr)
+	return SettingsRepo.Update("BindPort", newPortStr)
 }
 
 func (s *SettingsService) updateBindDomain(newDomain string) error {
