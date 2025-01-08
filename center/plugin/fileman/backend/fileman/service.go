@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
-	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
 	"gopkg.in/yaml.v2"
 
@@ -85,7 +85,17 @@ func (s *FileMan) Initialize() {
 		LOG = logger
 	}
 
-	baseUrl := fmt.Sprintf("http://%s:%d/api/v1", "127.0.0.1", conn.CONFMAN.GetConfig().Port)
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+	}
+	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.ServerPort)
 
 	s.restyClient = resty.New().
 		SetBaseURL(baseUrl).

@@ -10,7 +10,7 @@
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host http://8.138.47.21:9918
+// @host http://39.99.155.139:9918
 // @BasePath /api/v1
 // @schemes http
 

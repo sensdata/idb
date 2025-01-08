@@ -15,13 +15,13 @@ type CmdHelper struct {
 	RestyClient *resty.Client
 }
 
-func NewCmdHelper(addr string, port string, client *resty.Client) *CmdHelper {
+func NewCmdHelper(scheme string, addr string, port string, client *resty.Client) *CmdHelper {
 	var restyClient *resty.Client
 	if client != nil {
 		restyClient = client
 	} else {
 		restyClient = resty.New().
-			SetBaseURL(fmt.Sprintf("http://%s:%s", addr, port)).
+			SetBaseURL(fmt.Sprintf("%s://%s:%s", scheme, addr, port)).
 			SetHeader("Content-Type", "application/json")
 	}
 

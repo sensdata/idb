@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/api"
-	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -77,7 +77,18 @@ func (s *SystemCtl) Initialize() {
 		LOG = logger
 	}
 
-	s.cmdHelper = helper.NewCmdHelper("127.0.0.1", strconv.Itoa(conn.CONFMAN.GetConfig().Port), nil)
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+	}
+
+	s.cmdHelper = helper.NewCmdHelper(scheme, host, strconv.Itoa(settingInfo.ServerPort), nil)
 
 	api.API.SetUpPluginRouters(
 		"sysctl",
