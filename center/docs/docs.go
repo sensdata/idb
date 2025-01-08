@@ -6620,6 +6620,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings": {
+            "get": {
+                "description": "Get server settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get server settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SettingInfo"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Update server settings",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update server settings",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/settings/about": {
+            "get": {
+                "description": "Get server descriptions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get server descriptions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.About"
+                        }
+                    }
+                }
+            }
+        },
         "/ssh/info": {
             "get": {
                 "description": "Get plugin information",
@@ -7925,6 +8000,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.About": {
+            "type": "object",
+            "properties": {
+                "version": {
                     "type": "string"
                 }
             }
@@ -9883,6 +9966,32 @@ const docTemplate = `{
                 }
             }
         },
+        "model.SettingInfo": {
+            "type": "object",
+            "properties": {
+                "bind_domain": {
+                    "type": "string"
+                },
+                "https": {
+                    "type": "string"
+                },
+                "https_cert_path": {
+                    "type": "string"
+                },
+                "https_cert_type": {
+                    "type": "string"
+                },
+                "https_key_path": {
+                    "type": "string"
+                },
+                "monitor_ip": {
+                    "type": "string"
+                },
+                "server_port": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.SwapState": {
             "type": "object",
             "properties": {
@@ -10225,6 +10334,41 @@ const docTemplate = `{
                 }
             }
         },
+        "model.UpdateSettingRequest": {
+            "type": "object",
+            "required": [
+                "https",
+                "monitor_ip",
+                "server_port"
+            ],
+            "properties": {
+                "bind_domain": {
+                    "type": "string"
+                },
+                "https": {
+                    "type": "string",
+                    "enum": [
+                        "no",
+                        "yes"
+                    ]
+                },
+                "https_cert_path": {
+                    "type": "string"
+                },
+                "https_cert_type": {
+                    "type": "string"
+                },
+                "https_key_path": {
+                    "type": "string"
+                },
+                "monitor_ip": {
+                    "type": "string"
+                },
+                "server_port": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.UpdateUser": {
             "type": "object",
             "required": [
@@ -10379,7 +10523,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "http://8.138.47.21:9918",
+	Host:             "http://39.99.155.139:9918",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http"},
 	Title:            "IDB API Documentation",

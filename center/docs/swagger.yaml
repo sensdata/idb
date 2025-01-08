@@ -47,6 +47,11 @@ definitions:
       user:
         type: string
     type: object
+  model.About:
+    properties:
+      version:
+        type: string
+    type: object
   model.AddressInfo:
     properties:
       gate:
@@ -1355,6 +1360,23 @@ definitions:
       value:
         type: string
     type: object
+  model.SettingInfo:
+    properties:
+      bind_domain:
+        type: string
+      https:
+        type: string
+      https_cert_path:
+        type: string
+      https_cert_type:
+        type: string
+      https_key_path:
+        type: string
+      monitor_ip:
+        type: string
+      server_port:
+        type: integer
+    type: object
   model.SwapState:
     properties:
       free:
@@ -1590,6 +1612,30 @@ definitions:
     - name
     - type
     type: object
+  model.UpdateSettingRequest:
+    properties:
+      bind_domain:
+        type: string
+      https:
+        enum:
+        - "no"
+        - "yes"
+        type: string
+      https_cert_path:
+        type: string
+      https_cert_type:
+        type: string
+      https_key_path:
+        type: string
+      monitor_ip:
+        type: string
+      server_port:
+        type: integer
+    required:
+    - https
+    - monitor_ip
+    - server_port
+    type: object
   model.UpdateUser:
     properties:
       group_id:
@@ -1687,7 +1733,7 @@ definitions:
       version:
         type: string
     type: object
-host: http://8.138.47.21:9918
+host: http://39.99.155.139:9918
 info:
   contact:
     email: support@sensdata.com
@@ -6105,6 +6151,55 @@ paths:
       summary: Get plugin menu
       tags:
       - Service
+  /settings:
+    get:
+      consumes:
+      - application/json
+      description: Get server settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SettingInfo'
+      summary: Get server settings
+      tags:
+      - Settings
+    post:
+      consumes:
+      - application/json
+      description: Update server settings
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateSettingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update server settings
+      tags:
+      - Settings
+  /settings/about:
+    get:
+      consumes:
+      - application/json
+      description: Get server descriptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.About'
+      summary: Get server descriptions
+      tags:
+      - Settings
   /ssh/{host}/config:
     get:
       consumes:
