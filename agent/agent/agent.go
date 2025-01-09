@@ -479,15 +479,17 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	switch msg.Type {
 	case message.TerminalStart: // 创建会话
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, "", constant.ErrNotInstalled)
 		} else {
 			session, err := SessionService.Start(msg.Data)
 			if err != nil {
 				global.LOG.Error("Failed to start session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, "", err.Error())
 			} else {
-				global.LOG.Info("session %s started", session.ID)
-
+				global.LOG.Info("session %s.%s started", session.ID, session.Name)
+				// 先返回本会话信息
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+				// 开始监听该会话
 				go func() {
 					global.LOG.Info("session begin")
 					quitChan := make(chan bool, 3)
@@ -501,15 +503,17 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 
 	case message.TerminalAttach: // 恢复会话
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
 		} else {
 			session, err := SessionService.Attach(msg.Data)
 			if err != nil {
 				global.LOG.Error("Failed to attach session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
 			} else {
-				global.LOG.Info("session %s attached", session.ID)
-
+				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
+				// 先返回本会话信息
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+				// 开始监听该会话
 				go func() {
 					global.LOG.Info("session begin")
 					quitChan := make(chan bool, 3)
@@ -523,13 +527,13 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 
 	case message.TerminalCommand: // 会话输入
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
 		} else {
 			if err := SessionService.Input(msg.Data); err != nil {
 				global.LOG.Error("Failed to input to session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, err.Error())
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
 			} else {
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.SessionID, "OK")
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, "OK")
 			}
 		}
 	default:
@@ -2045,7 +2049,7 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.S
 	rspMsg, err := message.CreateSessionMessage(
 		msgID,
 		msgType,
-		message.SessionData{SessionID: sessionID, Data: data},
+		message.SessionData{Session: sessionID, Data: data},
 		config.SecretKey,
 		utils.GenerateNonce(16),
 	)

@@ -40,7 +40,7 @@ func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 
 // @Tags Terminal
 // @Summary Create or reconnect to a terminal session through websocket
-// @Description Create or reconnect to a terminal session through websocket
+// @Description Create or reconnect to a terminal session through websocket. When starting a session, session name can be specified via model.TerminalMessage.Data, or system will generate one automatically. When attaching to a session, session ID can be specified via model.TerminalMessage.Session, or system will create a new session or attach to a recent one automatically.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"

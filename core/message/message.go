@@ -48,9 +48,10 @@ const (
 )
 
 const (
-	TerminalStart   SessionMessageType = "start"
-	TerminalAttach  SessionMessageType = "attach"
-	TerminalCommand SessionMessageType = "command"
+	TerminalStart     SessionMessageType = "start"
+	TerminalAttach    SessionMessageType = "attach"
+	TerminalCommand   SessionMessageType = "command"
+	TerminalHeartbeat SessionMessageType = "heartbeat"
 )
 
 // 消息数据分隔符
@@ -106,8 +107,8 @@ type SessionMessage struct {
 }
 
 type SessionData struct {
-	SessionID string `json:"session_id"`
-	Data      string `json:"data"`
+	Session string `json:"session"`
+	Data    string `json:"data"`
 }
 
 func (m *SessionMessage) GetType() string {

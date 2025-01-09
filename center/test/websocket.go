@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// 连接到 WebSocket 服务器
-	url := "ws://127.0.0.1:9918/api/v1/terminals/1/start"
+	url := "ws://127.0.0.1:9918/api/v1/terminals/1/ssh/start"
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		log.Fatalf("Failed to connect to WebSocket: %v", err)
@@ -20,9 +20,10 @@ func main() {
 
 	// 构造 TerminalStart 消息
 	msgObj := model.TerminalMessage{
-		Type:    "start",
-		Session: "test",
-		Data:    "",
+		Type:      "start",
+		Session:   "",
+		Data:      "",
+		Timestamp: time.Now().Unix(),
 	}
 
 	// 将消息编码为 JSON

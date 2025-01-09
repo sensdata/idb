@@ -436,7 +436,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	responseCh, exists := c.terminalResponseChMap[msg.Data.SessionID]
+	responseCh, exists := c.terminalResponseChMap[msg.Data.Session]
 	if exists {
 		responseCh <- msg
 	}
@@ -727,7 +727,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				msg, err := message.CreateSessionMessage(
 					utils.GenerateMsgId(),
 					message.TerminalStart,
-					message.SessionData{SessionID: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
 				)
@@ -750,7 +750,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				msg, err := message.CreateSessionMessage(
 					utils.GenerateMsgId(),
 					message.TerminalAttach,
-					message.SessionData{SessionID: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
 				)
@@ -765,12 +765,31 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 					setQuit(quitChan)
 					return
 				}
+
+				// 心跳，回复心跳
+			case message.TerminalHeartbeat:
+				message := core.TerminalMessage{
+					Type:      msgObj.Type,
+					Timestamp: msgObj.Timestamp,
+					Session:   "",
+					Data:      "",
+				}
+				wsData, err := json.Marshal(message)
+				if err != nil {
+					global.LOG.Error("encoding terminal heartbeat message to json failed, err: %v", err)
+					continue
+				}
+				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
+				if err != nil {
+					global.LOG.Error("sending terminal heartbeat message to webSocket failed, err: %v", err)
+				}
+
 			default:
 				// 构造发送的消息
 				msg, err := message.CreateSessionMessage(
 					utils.GenerateMsgId(),
 					message.SessionMessageType(msgObj.Type),
-					message.SessionData{SessionID: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
 				)
@@ -817,9 +836,10 @@ func (c *Center) waitForTerminalResponse(sessionID string, wsConn *websocket.Con
 					return
 				}
 				message := core.TerminalMessage{
-					Type:    string(message.TerminalCommand),
-					Session: response.Data.SessionID,
-					Data:    response.Data.Data,
+					Type:      string(response.Type),
+					Timestamp: response.Timestamp,
+					Session:   response.Data.Session,
+					Data:      response.Data.Data,
 				}
 				wsData, err := json.Marshal(message)
 				if err != nil {
