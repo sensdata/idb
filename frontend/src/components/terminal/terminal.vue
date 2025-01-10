@@ -8,30 +8,19 @@
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';
+  import { MsgDo, MsgType } from './type';
   import '@xterm/xterm/css/xterm.css';
-
-  enum MsgType {
-    Heartbeat = 'heartbeat',
-    Cmd = 'cmd',
-    Attach = 'attach',
-    Start = 'start',
-  }
-
-  interface MsgDo {
-    type: MsgType;
-    data: string;
-    session: string;
-    timestamp: number;
-  }
 
   const props = defineProps<{
     path?: string;
     hostId: number;
     sendHeartbeat?: boolean;
+    type?: 'session' | 'ssh';
   }>();
 
   const emit = defineEmits<{
-    (e: 'session', session: string): void;
+    (e: 'session', data: { sessionId: string; sessionName: string }): void;
+    (e: 'wsopen'): void;
   }>();
 
   const domRef = ref<HTMLDivElement>();
@@ -40,20 +29,20 @@
   const latencyRef = ref<number>(0);
   const fitRef = shallowRef<FitAddon>();
   const timerRef = shallowRef<number>();
+  const sessionIdRef = ref<string>();
 
   function isWsOpen() {
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
   }
 
-  function sendWsMsg(payload: {
-    type: MsgType;
-    data?: string;
-    cols?: number;
-    rows?: number;
-    timestamp?: number;
-  }) {
+  function sendWsMsg(payload: MsgDo) {
     if (isWsOpen()) {
-      wsRef.value?.send(JSON.stringify(payload));
+      wsRef.value?.send(
+        JSON.stringify({
+          ...(props.type === 'session' ? { session: sessionIdRef.value } : {}),
+          ...payload,
+        })
+      );
     }
   }
 
@@ -72,7 +61,7 @@
     fitRef.value?.fit();
     if (termRef.value) {
       const { cols, rows } = termRef.value;
-      sendWsMsg({ type: MsgType.Cmd, cols, rows });
+      sendWsMsg({ type: MsgType.Command, cols, rows });
     }
   };
   const onResizeDebounce = debounce(onResize, 500);
@@ -86,16 +75,20 @@
   function onWsMsgReceived(ev: MessageEvent) {
     const msg: MsgDo = JSON.parse(ev.data);
     switch (msg.type) {
-      case MsgType.Cmd:
-        termRef.value?.write(msg.data);
+      case MsgType.Command:
+        termRef.value?.write(msg.data!);
         break;
       case MsgType.Heartbeat:
-        latencyRef.value = Date.now() - msg.timestamp;
+        latencyRef.value = Date.now() - msg.timestamp!;
         break;
       // server notify client current session name
       case MsgType.Attach:
       case MsgType.Start:
-        emit('session', msg.session);
+        emit('session', {
+          sessionId: msg.session!,
+          sessionName: msg.data!,
+        });
+        sessionIdRef.value = msg.session;
         break;
       default:
         break;
@@ -127,6 +120,7 @@
     wsRef.value.onopen = () => {
       // eslint-disable-next-line no-console
       console.log(`terminal connected, host: ${props.hostId}`);
+      emit('wsopen');
       if (props.sendHeartbeat) {
         autoSendHeartbeat();
       }
@@ -153,7 +147,10 @@
     termRef.value.loadAddon(fitRef.value);
     termRef.value.open(domRef.value!);
     termRef.value.onData((data) => {
-      sendWsMsg({ type: MsgType.Cmd, data });
+      sendWsMsg({
+        type: MsgType.Command,
+        data,
+      });
     });
     fitRef.value.fit();
     addResizeListener();
@@ -174,6 +171,11 @@
   });
   onBeforeUnmount(() => {
     dispose();
+  });
+
+  defineExpose({
+    sendWsMsg,
+    dispose,
   });
 </script>
 

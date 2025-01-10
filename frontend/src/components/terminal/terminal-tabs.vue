@@ -33,11 +33,11 @@
           <div class="popover-body">
             <a-form :model="formState">
               <a-form-item
-                field="host_id"
+                field="hostId"
                 :label="$t('components.terminal.session.host')"
               >
                 <a-select
-                  v-model="formState.host_id"
+                  v-model="formState.hostId"
                   :placeholder="
                     $t('components.terminal.session.hostPlaceHolder')
                   "
@@ -66,7 +66,7 @@
               >
                 <a-select
                   v-if="formState.type === 'attach'"
-                  v-model="formState.session"
+                  v-model="formState.sessionId"
                   :placeholder="
                     $t('components.terminal.session.attachSession.placeholder')
                   "
@@ -78,7 +78,7 @@
                 />
                 <a-input
                   v-else
-                  v-model="formState.session_name"
+                  v-model="formState.sessionName"
                   :placeholder="
                     $t('components.terminal.session.startSession.placeholder')
                   "
@@ -96,10 +96,19 @@
     </template>
     <a-tab-pane v-for="item of terms" :key="item.key" :title="item.title">
       <terminal
-        ref="item.termRef"
+        :ref="
+          (el: any) => {
+            console.log('ref', el, item.termRef);
+            if (el) {
+              item.termRef = el;
+            }
+          }
+        "
         :hostId="item.hostId"
-        :path="item.path"
-        @session="handleServerName(item as any, $event)"
+        type="session"
+        path="terminals/{host}/start"
+        @wsopen="handleWsOpen(item as any)"
+        @session="handleSessionName(item as any, $event)"
       />
       <template #title>
         {{ item.title }}
@@ -125,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref, Ref, watch } from 'vue';
+  import { reactive, ref, watch } from 'vue';
   import { useHostStore } from '@/store';
   import { HostEntity } from '@/entity/Host';
   import {
@@ -133,19 +142,20 @@
     getTerminalSessionsApi,
     quitTerminalSessionApi,
   } from '@/api/terminal';
-  import { serializeQueryParams } from '@/utils';
+  import { MsgType } from './type';
   import Terminal from './terminal.vue';
 
-  type TerminalInstance = InstanceType<typeof Terminal> | undefined;
+  type TerminalInstance = InstanceType<typeof Terminal>;
 
   interface TermSessionItem {
     key: string;
     type: 'attach' | 'start';
     hostId: number;
+    hostName: string;
     title: string;
-    termRef: Ref<TerminalInstance>;
-    session: string;
-    path: string;
+    sessionId?: string;
+    sessionName?: string;
+    termRef?: TerminalInstance;
   }
 
   const activeKey = ref<string>();
@@ -155,24 +165,21 @@
   function addSession(options: {
     type: 'attach' | 'start';
     host: HostEntity;
-    session?: string;
+    sessionId?: string;
+    sessionName?: string;
   }) {
-    const termRef: any = ref<TerminalInstance>();
     const key = Math.random().toString(36).slice(2);
     terms.value.push({
       key,
       type: options.type,
       hostId: options.host.id,
-      title: options.host.name + (options.session ? '-' + options.session : ''),
-      path:
-        `terminals/{host}/start?` +
-        serializeQueryParams({
-          type: options.type,
-          host: options.host.id,
-          session: options.session || '',
-        }),
-      termRef,
-      session: options.session || '',
+      hostName: options.host.name,
+      title:
+        options.host.name +
+        (options.sessionName ? '-' + options.sessionName : ''),
+      termRef: undefined,
+      sessionId: options.sessionId || '',
+      sessionName: options.sessionName || '',
     });
     activeKey.value = key;
   }
@@ -193,14 +200,18 @@
   function handleClose(item: TermSessionItem, action: 'quit' | 'detach') {
     if (action === 'quit') {
       removeSession(item.key);
-      quitTerminalSessionApi(item.hostId, {
-        session: item.session,
-      });
+      if (item.sessionId) {
+        quitTerminalSessionApi(item.hostId, {
+          session: item.sessionId,
+        });
+      }
     } else if (action === 'detach') {
       removeSession(item.key);
-      detachTerminalSessionApi(item.hostId, {
-        session: item.session,
-      });
+      if (item.sessionId) {
+        detachTerminalSessionApi(item.hostId, {
+          session: item.sessionId,
+        });
+      }
     }
   }
 
@@ -210,10 +221,10 @@
   }
 
   const formState = reactive({
-    host_id: hostStore.current?.id || undefined,
+    hostId: hostStore.current?.id || undefined,
     type: 'start' as 'attach' | 'start',
-    session: '',
-    session_name: '',
+    sessionId: '',
+    sessionName: '',
   });
   const hostOptions = ref(
     hostStore.items.map((item) => ({
@@ -236,43 +247,70 @@
     }
   }
   function handleAddSession() {
-    if (!formState.host_id) {
+    if (!formState.hostId) {
       return;
     }
-    if (formState.type === 'attach' && !formState.session) {
+    if (formState.type === 'attach' && !formState.sessionId) {
       return;
     }
     addSession({
       type: formState.type,
-      host: hostStore.items.find((item) => item.id === formState.host_id)!,
-      session:
-        formState.type === 'attach'
-          ? formState.session
-          : formState.session_name,
+      host: hostStore.items.find((item) => item.id === formState.hostId)!,
+      ...(formState.type === 'attach'
+        ? {
+            sessionId: formState.sessionId,
+            sessionName: sessionOptions.value.find(
+              (item) => item.value === formState.sessionId
+            )?.label,
+          }
+        : {
+            sessionName: formState.sessionName,
+          }),
     });
     popoverVisible.value = false;
   }
 
+  function handleWsOpen(item: TermSessionItem) {
+    if (item.type === 'start') {
+      item.termRef?.sendWsMsg({
+        type: MsgType.Start,
+        session: item.sessionId,
+      });
+    } else {
+      item.termRef?.sendWsMsg({
+        type: MsgType.Attach,
+        session: item.sessionId,
+      });
+    }
+  }
+
   // receive server name from terminal component
-  function handleServerName(item: TermSessionItem, session: string) {
-    item.title = item.hostId + '-' + session;
-    item.session = session;
+  function handleSessionName(
+    item: TermSessionItem,
+    data: {
+      sessionId: string;
+      sessionName: string;
+    }
+  ) {
+    item.title = item.hostName + '-' + data.sessionName;
+    item.sessionId = data.sessionId;
+    item.sessionName = data.sessionName;
   }
 
   watch(popoverVisible, (val) => {
     if (val) {
-      formState.host_id = hostStore.current?.id || undefined;
+      formState.hostId = hostStore.current?.id || undefined;
       formState.type = 'start';
-      formState.session = '';
-      formState.session_name = '';
+      formState.sessionId = '';
+      formState.sessionName = '';
     }
   });
 
   watch(
-    () => [formState.host_id, formState.type],
+    () => [formState.hostId, formState.type],
     () => {
-      if (formState.type === 'attach' && formState.host_id) {
-        loadSessionOptions(formState.host_id);
+      if (formState.type === 'attach' && formState.hostId) {
+        loadSessionOptions(formState.hostId);
       }
     }
   );
