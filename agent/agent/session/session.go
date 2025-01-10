@@ -1,7 +1,9 @@
 package session
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -68,6 +70,7 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		// 枚举会话，并创建一个 idb-n
 		name, err := s.genSessionName()
 		if err != nil {
+			global.LOG.Error("failed to gen session name: %v", err)
 			return nil, fmt.Errorf("failed to gen session name: %v", err)
 		}
 		sessionName = name
@@ -90,6 +93,7 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 	// 找到会话
 	sessionID, err := s.getSessionID(sessionName)
 	if err != nil {
+		global.LOG.Error("failed to get session ID: %v", err)
 		return nil, fmt.Errorf("failed to find session: %v", err)
 	}
 	session := &Session{
@@ -122,22 +126,29 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 			global.LOG.Info("No exist sessions, create one")
 			return s.Start(message.SessionData{Session: "", Data: ""})
 		} else {
-			// 查找时间最近的会话
-			latestSession := sessions[0]
+			// 查找时间最近，且已经Detached的会话
+			var latestSession *model.SessionInfo
+			compareSession := sessions[0]
 			for _, session := range sessions {
-				if session.Time.After(latestSession.Time) {
-					latestSession = session
+				if session.Time.After(compareSession.Time) && session.Status == "Detached" {
+					latestSession = &session
 				}
 			}
-			// sessionID
-			sessionID = latestSession.Session
-			sessionName = latestSession.Name
-			global.LOG.Info("Find latest session: %s.%s", sessionID, sessionName)
+			if latestSession == nil {
+				global.LOG.Info("No detached sessions, create one")
+				return s.Start(message.SessionData{Session: "", Data: ""})
+			} else {
+				// sessionID
+				sessionID = latestSession.Session
+				sessionName = latestSession.Name
+				global.LOG.Info("Find latest detached session: %s.%s", sessionID, sessionName)
+			}
 		}
 	} else {
 		// 请求传入了session，找一下会话名
 		name, err := s.getSessionName(sessionData.Session)
 		if err != nil {
+			global.LOG.Error("failed to get session name: %v", err)
 			return nil, fmt.Errorf("failed to find session: %v", err)
 		}
 		sessionID = sessionData.Session
@@ -145,7 +156,7 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	}
 
 	// 恢复会话
-	screenCmd = exec.Command("screen", "-r", sessionID)
+	screenCmd = exec.Command("screen", "-d", "-r", sessionID)
 	global.LOG.Info("Attaching to session: %s", sessionID)
 
 	// 设置环境变量 TERM
@@ -188,7 +199,8 @@ func (s *Session) Wait(quitChan chan bool) {
 func (s *Session) trackOutput(quitChan chan bool) {
 	defer common.SetQuit(quitChan)
 
-	tick := time.NewTicker(time.Millisecond * time.Duration(60))
+	reader := bufio.NewReader(s.Pty)
+	tick := time.NewTicker(time.Millisecond * 60)
 	defer tick.Stop()
 	for {
 		select {
@@ -196,22 +208,21 @@ func (s *Session) trackOutput(quitChan chan bool) {
 
 			return
 		case <-tick.C:
-			if s.Pty == nil {
-				global.LOG.Error("no pty")
-				return
-			}
 			// 读取 PTY 的输出
-			bs := make([]byte, 1024)
-			n, err := s.Pty.Read(bs)
-			if err != nil && err.Error() != "EOF" {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					global.LOG.Info("PTY closed")
+					return
+				}
 				global.LOG.Error("failed to read from PTY: %v", err)
 				return
 			}
 
-			if n > 0 {
+			if len(line) > 0 {
 				// 输出数据
-				global.LOG.Info("output: %s", string(bs[:n]))
-				go s.sendSessionResult(string(bs[:n]))
+				global.LOG.Info("output: %s", line)
+				go s.sendSessionResult(line)
 			}
 		}
 	}
@@ -257,6 +268,10 @@ func (s *SessionService) page() ([]model.SessionInfo, error) {
 	// 执行命令以列出所有的 screen 会话
 	cmd := exec.Command("screen", "-ls")
 	output, err := cmd.Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		global.LOG.Info("no session found")
+		return sessions, nil
+	}
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return sessions, nil
@@ -313,6 +328,12 @@ func (s *SessionService) genSessionName() (string, error) {
 	// 执行命令以列出所有的 screen 会话
 	cmd := exec.Command("screen", "-ls")
 	output, err := cmd.Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		global.LOG.Info("no session found")
+		sessionName = fmt.Sprintf("idb-%d", 1)
+		global.LOG.Info("generated session name: %s", sessionName)
+		return sessionName, nil
+	}
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", err
@@ -359,6 +380,10 @@ func (s *SessionService) genSessionName() (string, error) {
 func (s *SessionService) getSessionID(sessionName string) (string, error) {
 	// 执行 screen -ls 命令获取所有会话列表
 	output, err := exec.Command("screen", "-ls").Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		global.LOG.Info("no session found")
+		return "", fmt.Errorf("no session found")
+	}
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", fmt.Errorf("failed to list sessions: %v", err)
@@ -372,8 +397,9 @@ func (s *SessionService) getSessionID(sessionName string) (string, error) {
 		if !strings.Contains(line, "."+sessionName) {
 			continue
 		}
-		// 使用正则表达式提取会话ID,同时验证sessionName
-		re := regexp.MustCompile(fmt.Sprintf(`^(\d+)\.%s`, sessionName))
+
+		// 使用正则表达式提取会话ID
+		re := regexp.MustCompile(fmt.Sprintf(`(\d+)\.%s\s+`, sessionName))
 		matches := re.FindStringSubmatch(line)
 		if len(matches) >= 2 {
 			return matches[1], nil
@@ -386,6 +412,10 @@ func (s *SessionService) getSessionID(sessionName string) (string, error) {
 func (s *SessionService) getSessionName(sessionID string) (string, error) {
 	// 执行 screen -ls 命令获取所有会话列表
 	output, err := exec.Command("screen", "-ls").Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		global.LOG.Info("no session found")
+		return "", fmt.Errorf("no session found")
+	}
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", fmt.Errorf("failed to list sessions: %v", err)

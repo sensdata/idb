@@ -436,9 +436,48 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	responseCh, exists := c.terminalResponseChMap[msg.Data.Session]
-	if exists {
-		responseCh <- msg
+	switch msg.Type {
+	case message.TerminalStart:
+		// start的时候，通过msgID找通道
+		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
+		if exists {
+			global.LOG.Info("notify response channel")
+			responseCh <- msg
+
+			// 替换成session作为key
+			c.terminalResponseChMap[msg.Data.Session] = responseCh
+			// 删除原来的msgID对应的记录
+			delete(c.terminalResponseChMap, msg.MsgID)
+			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
+		} else {
+			global.LOG.Info("no response channel")
+		}
+	case message.TerminalAttach:
+		// attach的时候，通过msgID找通道
+		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
+		if exists {
+			global.LOG.Info("notify response channel")
+			responseCh <- msg
+
+			// 替换成session作为key
+			c.terminalResponseChMap[msg.Data.Session] = responseCh
+			// 删除原来的msgID对应的记录
+			delete(c.terminalResponseChMap, msg.MsgID)
+			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
+		} else {
+			global.LOG.Info("no response channel")
+		}
+	case message.TerminalCommand:
+		// command的时候，通过session找通道
+		responseCh, exists := c.terminalResponseChMap[msg.Data.Session]
+		if exists {
+			global.LOG.Info("notify response channel")
+			responseCh <- msg
+		} else {
+			global.LOG.Info("no response channel")
+		}
+	default: // 不支持的消息
+		global.LOG.Error("Unknown sesssion message type: %s", msg.Type)
 	}
 }
 
@@ -721,11 +760,12 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 			switch message.SessionMessageType(msgObj.Type) {
 			case message.TerminalStart:
 				// 启动监听
-				go c.waitForTerminalResponse(msgObj.Session, wsConn, quitChan)
+				msgID := utils.GenerateMsgId()
+				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
 
 				// 构造发送的消息
 				msg, err := message.CreateSessionMessage(
-					utils.GenerateMsgId(),
+					msgID,
 					message.TerminalStart,
 					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
@@ -744,11 +784,12 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				}
 			case message.TerminalAttach:
 				// 启动监听
-				go c.waitForTerminalResponse(msgObj.Session, wsConn, quitChan)
+				msgID := utils.GenerateMsgId()
+				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
 
 				// 构造发送的消息
 				msg, err := message.CreateSessionMessage(
-					utils.GenerateMsgId(),
+					msgID,
 					message.TerminalAttach,
 					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
@@ -809,7 +850,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 	}
 }
 
-func (c *Center) waitForTerminalResponse(sessionID string, wsConn *websocket.Conn, quitChan chan bool) {
+func (c *Center) waitForTerminalResponse(msgID string, wsConn *websocket.Conn, quitChan chan bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[xpack] A panic occurred during receive ws message, error message: %v", r)
@@ -819,7 +860,7 @@ func (c *Center) waitForTerminalResponse(sessionID string, wsConn *websocket.Con
 
 	responseCh := make(chan *message.SessionMessage)
 	c.mu.Lock()
-	c.terminalResponseChMap[sessionID] = responseCh
+	c.terminalResponseChMap[msgID] = responseCh
 	c.mu.Unlock()
 
 	for {
@@ -835,6 +876,7 @@ func (c *Center) waitForTerminalResponse(sessionID string, wsConn *websocket.Con
 					global.LOG.Info("Response channel closed, exiting waitForTerminalResponse")
 					return
 				}
+				global.LOG.Info("Send to ws begin")
 				message := core.TerminalMessage{
 					Type:      string(response.Type),
 					Timestamp: response.Timestamp,
@@ -850,6 +892,7 @@ func (c *Center) waitForTerminalResponse(sessionID string, wsConn *websocket.Con
 				if err != nil {
 					global.LOG.Error("sending terminal message to webSocket failed, err: %v", err)
 				}
+				global.LOG.Info("Send to ws end")
 			}
 		}
 	}

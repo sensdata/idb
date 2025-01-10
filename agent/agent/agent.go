@@ -487,15 +487,26 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				a.sendSessionResult(conn, msg.MsgID, msg.Type, "", err.Error())
 			} else {
 				global.LOG.Info("session %s.%s started", session.ID, session.Name)
-				// 先返回本会话信息
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
 				// 开始监听该会话
 				go func() {
+					// 先返回本会话信息
+					a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+
+					// 延迟500毫秒
+					time.Sleep(500 * time.Millisecond)
+
 					global.LOG.Info("session begin")
 					quitChan := make(chan bool, 3)
 					session.Start(quitChan)
 					go session.Wait(quitChan)
 					<-quitChan
+					// 释放PTY资源
+					if session.Pty != nil {
+						if err := session.Pty.Close(); err != nil {
+							global.LOG.Error("关闭PTY失败: %v", err)
+						}
+						session.Pty = nil
+					}
 					global.LOG.Info("session end")
 				}()
 			}
@@ -511,10 +522,15 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
 			} else {
 				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
-				// 先返回本会话信息
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+
 				// 开始监听该会话
 				go func() {
+					// 先返回本会话信息
+					a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+
+					// 延迟500毫秒
+					time.Sleep(500 * time.Millisecond)
+
 					global.LOG.Info("session begin")
 					quitChan := make(chan bool, 3)
 					session.Start(quitChan)
@@ -531,9 +547,6 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		} else {
 			if err := SessionService.Input(msg.Data); err != nil {
 				global.LOG.Error("Failed to input to session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
-			} else {
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, "OK")
 			}
 		}
 	default:
