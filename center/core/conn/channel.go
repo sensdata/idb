@@ -437,7 +437,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	defer c.mu.Unlock()
 
 	switch msg.Type {
-	case message.TerminalStart:
+	case message.WsMessageStart:
 		// start的时候，通过msgID找通道
 		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
 		if exists {
@@ -452,7 +452,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no response channel")
 		}
-	case message.TerminalAttach:
+	case message.WsMessageAttach:
 		// attach的时候，通过msgID找通道
 		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
 		if exists {
@@ -467,7 +467,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no response channel")
 		}
-	case message.TerminalCommand:
+	case message.WsMessageCmd:
 		// command的时候，通过session找通道
 		responseCh, exists := c.terminalResponseChMap[msg.Data.Session]
 		if exists {
@@ -751,14 +751,14 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				continue
 			}
 			global.LOG.Info("messageType: %d, %s", messageType, string(wsData))
-			msgObj := core.TerminalMessage{}
+			msgObj := message.WsMessage{}
 			err = json.Unmarshal(wsData, &msgObj)
 			if err != nil {
 				global.LOG.Error("unmarshal message error: %v", err)
 				continue
 			}
-			switch message.SessionMessageType(msgObj.Type) {
-			case message.TerminalStart:
+			switch msgObj.Type {
+			case message.WsMessageStart:
 				// 启动监听
 				msgID := utils.GenerateMsgId()
 				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
@@ -766,7 +766,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				// 构造发送的消息
 				msg, err := message.CreateSessionMessage(
 					msgID,
-					message.TerminalStart,
+					message.WsMessageStart,
 					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
@@ -782,7 +782,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 					setQuit(quitChan)
 					return
 				}
-			case message.TerminalAttach:
+			case message.WsMessageAttach:
 				// 启动监听
 				msgID := utils.GenerateMsgId()
 				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
@@ -790,7 +790,7 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 				// 构造发送的消息
 				msg, err := message.CreateSessionMessage(
 					msgID,
-					message.TerminalAttach,
+					message.WsMessageAttach,
 					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
 					config.SecretKey,
 					utils.GenerateNonce(16),
@@ -806,46 +806,39 @@ func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan cha
 					setQuit(quitChan)
 					return
 				}
+
+			case message.WsMessageCmd:
+				// 构造发送的消息
+				msg, err := message.CreateSessionMessage(
+					utils.GenerateMsgId(),
+					message.WsMessageCmd,
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
+					config.SecretKey,
+					utils.GenerateNonce(16),
+				)
+				if err != nil {
+					global.LOG.Error("Error creating session message: %v", err)
+					continue
+				}
+
+				err = message.SendSessionMessage(agentConn, msg)
+				if err != nil {
+					global.LOG.Error("Failed to send session message: %v", err)
+					setQuit(quitChan)
+					return
+				}
+
+			case message.WsMessageResize:
+				// TODO
 
 				// 心跳，回复心跳
-			case message.TerminalHeartbeat:
-				message := core.TerminalMessage{
-					Type:      msgObj.Type,
-					Timestamp: msgObj.Timestamp,
-					Session:   "",
-					Data:      "",
-				}
-				wsData, err := json.Marshal(message)
-				if err != nil {
-					global.LOG.Error("encoding terminal heartbeat message to json failed, err: %v", err)
-					continue
-				}
+			case message.WsMessageHeartbeat:
 				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
 				if err != nil {
 					global.LOG.Error("sending terminal heartbeat message to webSocket failed, err: %v", err)
 				}
-
-			default:
-				// 构造发送的消息
-				msg, err := message.CreateSessionMessage(
-					utils.GenerateMsgId(),
-					message.SessionMessageType(msgObj.Type),
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
-					config.SecretKey,
-					utils.GenerateNonce(16),
-				)
-				if err != nil {
-					global.LOG.Error("Error creating session message: %v", err)
-					continue
-				}
-
-				err = message.SendSessionMessage(agentConn, msg)
-				if err != nil {
-					global.LOG.Error("Failed to send session message: %v", err)
-					setQuit(quitChan)
-					return
-				}
 			}
+
 		}
 	}
 }
@@ -877,11 +870,11 @@ func (c *Center) waitForTerminalResponse(msgID string, wsConn *websocket.Conn, q
 					return
 				}
 				global.LOG.Info("Send to ws begin")
-				message := core.TerminalMessage{
+				message := message.WsMessage{
 					Type:      string(response.Type),
-					Timestamp: response.Timestamp,
 					Session:   response.Data.Session,
 					Data:      response.Data.Data,
+					Timestamp: int(response.Timestamp),
 				}
 				wsData, err := json.Marshal(message)
 				if err != nil {

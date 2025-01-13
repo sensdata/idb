@@ -44,7 +44,6 @@ func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.TerminalMessage true "request data send to websocket"
 // @Success 200
 // @Router /terminals/{host}/start [get]
 func (b *BaseApi) HandleTerminal(c *gin.Context) {

@@ -28,7 +28,6 @@ const (
 // 消息类型
 type MessageType string
 type FileMessageType string
-type SessionMessageType string
 
 const (
 	Heartbeat     MessageType = "hb"
@@ -45,13 +44,6 @@ const (
 	FileErr  int = -1
 	FileOk   int = 0
 	FileDone int = 1
-)
-
-const (
-	TerminalStart     SessionMessageType = "start"
-	TerminalAttach    SessionMessageType = "attach"
-	TerminalCommand   SessionMessageType = "command"
-	TerminalHeartbeat SessionMessageType = "heartbeat"
 )
 
 // 消息数据分隔符
@@ -96,14 +88,14 @@ func (f *FileMessage) GetType() string {
 
 // Session 消息
 type SessionMessage struct {
-	MsgID     string             `json:"msg_id"`
-	Type      SessionMessageType `json:"type"`
-	Sign      string             `json:"sign"`
-	Data      SessionData        `json:"data"`
-	Timestamp int64              `json:"timestamp"`
-	Nonce     string             `json:"nonce"`
-	Version   string             `json:"version"`
-	Checksum  string             `json:"checksum"`
+	MsgID     string      `json:"msg_id"`
+	Type      MessageType `json:"type"`
+	Sign      string      `json:"sign"`
+	Data      SessionData `json:"data"`
+	Timestamp int64       `json:"timestamp"`
+	Nonce     string      `json:"nonce"`
+	Version   string      `json:"version"`
+	Checksum  string      `json:"checksum"`
 }
 
 type SessionData struct {
@@ -233,7 +225,7 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	return nil
 }
 
-func CreateSessionMessage(msgID string, msgType SessionMessageType, data SessionData, key string, nonce string) (*SessionMessage, error) {
+func CreateSessionMessage(msgID string, msgType MessageType, data SessionData, key string, nonce string) (*SessionMessage, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
 

@@ -51,6 +51,7 @@ type Agent struct {
 	centerConn   net.Conn // 存储center端连接的映射
 	done         chan struct{}
 	mu           sync.Mutex // 保护centerConn的互斥锁
+	sessionMap   map[string]*session.Session
 }
 
 //go:embed install_screen.sh
@@ -65,6 +66,7 @@ func NewAgent() IAgent {
 	return &Agent{
 		centerConn: nil,
 		done:       make(chan struct{}),
+		sessionMap: make(map[string]*session.Session),
 	}
 }
 
@@ -477,7 +479,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	global.LOG.Info("processSessionMessage: %v", msg)
 
 	switch msg.Type {
-	case message.TerminalStart: // 创建会话
+	case message.WsMessageStart: // 创建会话
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, "", constant.ErrNotInstalled)
 		} else {
@@ -487,6 +489,8 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				a.sendSessionResult(conn, msg.MsgID, msg.Type, "", err.Error())
 			} else {
 				global.LOG.Info("session %s.%s started", session.ID, session.Name)
+				a.sessionMap[session.ID] = session
+
 				// 开始监听该会话
 				go func() {
 					// 先返回本会话信息
@@ -500,6 +504,8 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 					session.Start(quitChan)
 					go session.Wait(quitChan)
 					<-quitChan
+					// 清理map
+					delete(a.sessionMap, session.ID)
 					// 释放PTY资源
 					if session.Pty != nil {
 						if err := session.Pty.Close(); err != nil {
@@ -512,7 +518,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 			}
 		}
 
-	case message.TerminalAttach: // 恢复会话
+	case message.WsMessageAttach: // 恢复会话
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
 		} else {
@@ -522,6 +528,8 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
 			} else {
 				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
+
+				a.sessionMap[session.ID] = session
 
 				// 开始监听该会话
 				go func() {
@@ -536,18 +544,37 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 					session.Start(quitChan)
 					go session.Wait(quitChan)
 					<-quitChan
+					// 清理map
+					delete(a.sessionMap, session.ID)
+					// 释放PTY资源
+					if session.Pty != nil {
+						if err := session.Pty.Close(); err != nil {
+							global.LOG.Error("关闭PTY失败: %v", err)
+						}
+						session.Pty = nil
+					}
 					global.LOG.Info("session end")
 				}()
 			}
 		}
 
-	case message.TerminalCommand: // 会话输入
+	case message.WsMessageCmd: // 会话输入
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
 		} else {
-			if err := SessionService.Input(msg.Data); err != nil {
-				global.LOG.Error("Failed to input to session: %v", err)
-			}
+			// 检查会话是否存在
+			go func() {
+				if session, ok := a.sessionMap[msg.Data.Session]; ok {
+					global.LOG.Info("try input")
+					if err := session.Input(msg.Data.Data); err != nil {
+						global.LOG.Error("Failed to input to session %s: %v", msg.Data.Session, err)
+					}
+				}
+			}()
+
+			// if err := SessionService.Input(msg.Data); err != nil {
+			// 	global.LOG.Error("Failed to input to session: %v", err)
+			// }
 		}
 	default:
 		global.LOG.Error("not supported session mesage")
@@ -2055,7 +2082,7 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 	global.LOG.Info("File rsp send to %s", centerID)
 }
 
-func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.SessionMessageType, sessionID string, data string) {
+func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.MessageType, sessionID string, data string) {
 	config := CONFMAN.GetConfig()
 	centerID := conn.RemoteAddr().String()
 

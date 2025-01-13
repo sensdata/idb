@@ -1,7 +1,6 @@
 package session
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net"
@@ -34,6 +33,7 @@ type Session struct {
 type SessionService struct {
 	centerConn *net.Conn
 	secretKey  string
+	sessions   map[string]*Session // 缓存活动会话
 }
 
 type ISessionServie interface {
@@ -50,7 +50,9 @@ type ISessionServie interface {
 }
 
 func NewISessionService() ISessionServie {
-	return &SessionService{}
+	return &SessionService{
+		sessions: make(map[string]*Session), // 初始化会话缓存
+	}
 }
 
 func (s *SessionService) Config(conn *net.Conn, secretKey string) {
@@ -76,13 +78,22 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		sessionName = name
 	}
 
-	screenCmd := exec.Command("screen", "-S", sessionName)
+	screenCmd := exec.Command("screen", "-S", sessionName, "-s", "bash", "-i")
 
-	// 设置环境变量 TERM
-	screenCmd.Env = append(os.Environ(), "TERM=xterm")
+	// 设置环境变量
+	homeDir, _ := os.UserHomeDir()
+	global.LOG.Info("homedir: %s", homeDir)
+	screenCmd.Env = append(os.Environ(),
+		"TERM=xterm",              // 设置为xterm以兼容xterm.js
+		"SHELL=/bin/bash",         // 设置默认shell
+		"HOME="+homeDir,           // 设置用户主目录
+		"PATH="+os.Getenv("PATH"), // 确保PATH包含必要的命令
+	)
 
 	// 创建伪终端
-	pty, err := pty.Start(screenCmd)
+	// ptyFile, err := pty.Start(screenCmd)
+	ws := &pty.Winsize{Rows: 24, Cols: 80}
+	ptyFile, err := pty.StartWithSize(screenCmd, ws)
 	if err != nil {
 		global.LOG.Error("failed to start pty: %v", err)
 		return nil, fmt.Errorf("failed to start pty: %v", err)
@@ -100,18 +111,17 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		ID:        sessionID,
 		Name:      sessionName,
 		Cmd:       screenCmd,
-		Pty:       pty,
+		Pty:       ptyFile,
 		Conn:      s.centerConn,
 		SecretKey: s.secretKey,
 	}
 
+	s.sessions[session.ID] = session // 缓存会话
 	global.LOG.Info("Session %s started", session.ID)
 	return session, nil
 }
 
 func (s *SessionService) Attach(sessionData message.SessionData) (*Session, error) {
-	var screenCmd *exec.Cmd
-
 	var (
 		sessionID   string
 		sessionName string
@@ -120,6 +130,7 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	if sessionData.Session == "" {
 		// 获取当前存在的会话
 		sessions, _ := s.page()
+		global.LOG.Info("found sessions: \n %v", sessions)
 		// 不存在任何会话
 		if len(sessions) == 0 {
 			// 创建新会话
@@ -127,14 +138,13 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 			return s.Start(message.SessionData{Session: "", Data: ""})
 		} else {
 			// 查找时间最近，且已经Detached的会话
-			var latestSession *model.SessionInfo
-			compareSession := sessions[0]
+			latestSession := sessions[0]
 			for _, session := range sessions {
-				if session.Time.After(compareSession.Time) && session.Status == "Detached" {
-					latestSession = &session
+				if session.Time.After(latestSession.Time) && session.Status == "Detached" {
+					latestSession = session
 				}
 			}
-			if latestSession == nil {
+			if latestSession.Status != "Detached" {
 				global.LOG.Info("No detached sessions, create one")
 				return s.Start(message.SessionData{Session: "", Data: ""})
 			} else {
@@ -156,14 +166,22 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	}
 
 	// 恢复会话
-	screenCmd = exec.Command("screen", "-d", "-r", sessionID)
+	screenCmd := exec.Command("screen", "-d", "-r", sessionID)
 	global.LOG.Info("Attaching to session: %s", sessionID)
 
-	// 设置环境变量 TERM
-	screenCmd.Env = append(os.Environ(), "TERM=xterm")
+	// 设置环境变量
+	homeDir, _ := os.UserHomeDir()
+	global.LOG.Info("homedir: %s", homeDir)
+	screenCmd.Env = append(os.Environ(),
+		"TERM=xterm",              // 设置为xterm以兼容xterm.js
+		"SHELL=/bin/bash",         // 设置默认shell
+		"HOME="+homeDir,           // 设置用户主目录
+		"PATH="+os.Getenv("PATH"), // 确保PATH包含必要的命令
+	)
 
 	// 创建伪终端
-	pty, err := pty.Start(screenCmd)
+	ws := &pty.Winsize{Rows: 24, Cols: 80}
+	ptyFile, err := pty.StartWithSize(screenCmd, ws)
 	if err != nil {
 		global.LOG.Error("failed to start pty: %v", err)
 		return nil, fmt.Errorf("failed to start pty: %v", err)
@@ -176,11 +194,12 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 		ID:        sessionID,
 		Name:      sessionName,
 		Cmd:       screenCmd,
-		Pty:       pty,
+		Pty:       ptyFile,
 		Conn:      s.centerConn,
 		SecretKey: s.secretKey,
 	}
 
+	s.sessions[session.ID] = session // 缓存会话
 	global.LOG.Info("Session %s attached", session.ID)
 	return session, nil
 }
@@ -195,11 +214,22 @@ func (s *Session) Wait(quitChan chan bool) {
 	}
 }
 
+func (s *Session) Input(data string) error {
+	_, err := s.Pty.Write([]byte(data))
+	if err != nil {
+		global.LOG.Error("Error writing to PTY for session %s: %v", s.ID, err)
+		return err
+	}
+	global.LOG.Info("Input sent to session %s", s.ID)
+	return nil
+}
+
 // 跟踪输出
 func (s *Session) trackOutput(quitChan chan bool) {
 	defer common.SetQuit(quitChan)
 
-	reader := bufio.NewReader(s.Pty)
+	// reader := bufio.NewReader(s.Pty)
+	buf := make([]byte, 1024)
 	tick := time.NewTicker(time.Millisecond * 60)
 	defer tick.Stop()
 	for {
@@ -208,8 +238,7 @@ func (s *Session) trackOutput(quitChan chan bool) {
 
 			return
 		case <-tick.C:
-			// 读取 PTY 的输出
-			line, err := reader.ReadString('\n')
+			n, err := s.Pty.Read(buf)
 			if err != nil {
 				if err == io.EOF {
 					global.LOG.Info("PTY closed")
@@ -219,21 +248,37 @@ func (s *Session) trackOutput(quitChan chan bool) {
 				return
 			}
 
-			if len(line) > 0 {
+			if n > 0 {
 				// 输出数据
-				global.LOG.Info("output: %s", line)
-				go s.sendSessionResult(line)
+				global.LOG.Info("output: %s", string(buf[:n]))
+				go s.sendSessionResult(string(buf[:n]))
 			}
+
+			// 读取 PTY 的输出
+			// line, err := reader.ReadString('\n')
+			// if err != nil {
+			// 	if err == io.EOF {
+			// 		global.LOG.Info("PTY closed")
+			// 		return
+			// 	}
+			// 	global.LOG.Error("failed to read from PTY: %v", err)
+			// 	return
+			// }
+
+			// if len(line) > 0 {
+			// 	// 输出数据
+			// 	global.LOG.Info("output: %s", line)
+			// 	go s.sendSessionResult(line)
+			// }
 		}
 	}
 
 }
 
 func (s *Session) sendSessionResult(data string) {
-	// 处理输出，可能是发送给其他组件
 	rspMsg, err := message.CreateSessionMessage(
 		utils.GenerateMsgId(),
-		message.TerminalCommand,
+		message.WsMessageCmd,
 		message.SessionData{Session: s.ID, Data: data},
 		s.SecretKey,
 		utils.GenerateNonce(16),
@@ -476,10 +521,24 @@ func (s *SessionService) Rename(sessionID string, newSessionID string) error {
 }
 
 func (s *SessionService) Input(sessionData message.SessionData) error {
-	// 执行 screen 输入
-	if err := exec.Command("screen", "-S", sessionData.Session, "-X", "stuff", sessionData.Data).Run(); err != nil {
-		global.LOG.Error("Error input screen session %s: %v", sessionData.Session, err)
+	session, exists := s.sessions[sessionData.Session] // 从缓存中查找会话
+	if !exists {
+		global.LOG.Error("Session %s not found", sessionData.Session)
+		return fmt.Errorf("session %s not found", sessionData.Session)
+	}
+	// 通过PTY写入输入数据
+	//_, err := fmt.Fprintf(session.Pty, "%s\n", sessionData.Data)
+	_, err := session.Pty.Write([]byte(sessionData.Data))
+	if err != nil {
+		global.LOG.Error("Error writing to PTY for session %s: %v", sessionData.Session, err)
 		return err
 	}
+	global.LOG.Info("Input sent to session %s", sessionData.Session)
+
+	// // 执行 screen 输入
+	// if err := exec.Command("screen", "-S", sessionData.Session, "-X", "stuff", sessionData.Data).Run(); err != nil {
+	// 	global.LOG.Error("Error input screen session %s: %v", sessionData.Session, err)
+	// 	return err
+	// }
 	return nil
 }

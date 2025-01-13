@@ -4,12 +4,15 @@ const (
 	WsMessageCmd       = "cmd"
 	WsMessageResize    = "resize"
 	WsMessageHeartbeat = "heartbeat"
+	WsMessageStart     = "start"
+	WsMessageAttach    = "attach"
 )
 
 type WsMessage struct {
 	Type      string `json:"type"`
-	Data      string `json:"data,omitempty"`      // WsMessageCmd
-	Cols      int    `json:"cols,omitempty"`      // WsMessageResize
-	Rows      int    `json:"rows,omitempty"`      // WsMessageResize
-	Timestamp int    `json:"timestamp,omitempty"` // WsMessageHeartbeat
+	Session   string `json:"session,omitempty"`
+	Data      string `json:"data,omitempty"`
+	Cols      int    `json:"cols,omitempty"`
+	Rows      int    `json:"rows,omitempty"`
+	Timestamp int    `json:"timestamp,omitempty"`
 }
