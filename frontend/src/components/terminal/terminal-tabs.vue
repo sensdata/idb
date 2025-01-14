@@ -238,9 +238,9 @@
     sessionLoading.value = true;
     try {
       const res = await getTerminalSessionsApi(hostId);
-      sessionOptions.value = (res.items || []).map((item: string) => ({
-        label: item,
-        value: item,
+      sessionOptions.value = (res.items || []).map((item) => ({
+        label: item.name,
+        value: item.session,
       }));
     } finally {
       sessionLoading.value = false;
