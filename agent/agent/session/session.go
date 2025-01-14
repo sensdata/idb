@@ -33,7 +33,6 @@ type Session struct {
 type SessionService struct {
 	centerConn *net.Conn
 	secretKey  string
-	sessions   map[string]*Session // 缓存活动会话
 }
 
 type ISessionServie interface {
@@ -41,7 +40,6 @@ type ISessionServie interface {
 
 	Start(sessionData message.SessionData) (*Session, error)
 	Attach(sessionData message.SessionData) (*Session, error)
-	Input(sessionData message.SessionData) error
 
 	Page() (*model.PageResult, error)
 	Finish(sessionID string) error
@@ -50,9 +48,7 @@ type ISessionServie interface {
 }
 
 func NewISessionService() ISessionServie {
-	return &SessionService{
-		sessions: make(map[string]*Session), // 初始化会话缓存
-	}
+	return &SessionService{}
 }
 
 func (s *SessionService) Config(conn *net.Conn, secretKey string) {
@@ -116,7 +112,6 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		SecretKey: s.secretKey,
 	}
 
-	s.sessions[session.ID] = session // 缓存会话
 	global.LOG.Info("Session %s started", session.ID)
 	return session, nil
 }
@@ -199,7 +194,6 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 		SecretKey: s.secretKey,
 	}
 
-	s.sessions[session.ID] = session // 缓存会话
 	global.LOG.Info("Session %s attached", session.ID)
 	return session, nil
 }
@@ -496,28 +490,5 @@ func (s *SessionService) Rename(sessionID string, newSessionID string) error {
 		global.LOG.Error("Error renaming screen session %s to %s: %v", sessionID, newSessionID, err)
 		return err
 	}
-	return nil
-}
-
-func (s *SessionService) Input(sessionData message.SessionData) error {
-	session, exists := s.sessions[sessionData.Session] // 从缓存中查找会话
-	if !exists {
-		global.LOG.Error("Session %s not found", sessionData.Session)
-		return fmt.Errorf("session %s not found", sessionData.Session)
-	}
-	// 通过PTY写入输入数据
-	//_, err := fmt.Fprintf(session.Pty, "%s\n", sessionData.Data)
-	_, err := session.Pty.Write([]byte(sessionData.Data))
-	if err != nil {
-		global.LOG.Error("Error writing to PTY for session %s: %v", sessionData.Session, err)
-		return err
-	}
-	global.LOG.Info("Input sent to session %s", sessionData.Session)
-
-	// // 执行 screen 输入
-	// if err := exec.Command("screen", "-S", sessionData.Session, "-X", "stuff", sessionData.Data).Run(); err != nil {
-	// 	global.LOG.Error("Error input screen session %s: %v", sessionData.Session, err)
-	// 	return err
-	// }
 	return nil
 }
