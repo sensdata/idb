@@ -23,7 +23,7 @@ const (
 
 // api
 var (
-	ErrInternalServer           = errors.New("InternalServer")
+	ErrInternalServer           = errors.New("InternalServerError")
 	ErrInvalidParams            = errors.New("InvalidParams")
 	ErrNotLogin                 = errors.New("NotLogin")
 	ErrPasswordExpired          = errors.New("PasswordExpired")
