@@ -6695,6 +6695,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings/profile": {
+            "get": {
+                "description": "Get profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Profile"
+                        }
+                    }
+                }
+            }
+        },
         "/ssh/info": {
             "get": {
                 "description": "Get plugin information",
@@ -7706,7 +7729,7 @@ const docTemplate = `{
         },
         "/terminals/{host}/start": {
             "get": {
-                "description": "Create or reconnect to a terminal session through websocket",
+                "description": "Create or reconnect to a terminal session through websocket.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7724,15 +7747,6 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "request data send to websocket",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TerminalMessage"
-                        }
                     }
                 ],
                 "responses": {
@@ -9647,6 +9661,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Profile": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "model.Prune": {
             "type": "object",
             "required": [
@@ -10067,28 +10092,6 @@ const docTemplate = `{
                 "vertual": {
                     "description": "虚拟化平台",
                     "type": "string"
-                }
-            }
-        },
-        "model.TerminalMessage": {
-            "type": "object",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "data": {
-                    "type": "string"
-                },
-                "session": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "start",
-                        "attach",
-                        "command"
-                    ]
                 }
             }
         },

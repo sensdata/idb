@@ -1147,6 +1147,13 @@ definitions:
       pem:
         type: string
     type: object
+  model.Profile:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   model.Prune:
     properties:
       type:
@@ -1431,21 +1438,6 @@ definitions:
       vertual:
         description: 虚拟化平台
         type: string
-    type: object
-  model.TerminalMessage:
-    properties:
-      data:
-        type: string
-      session:
-        type: string
-      type:
-        enum:
-        - start
-        - attach
-        - command
-        type: string
-    required:
-    - type
     type: object
   model.TerminalRequest:
     properties:
@@ -6200,6 +6192,21 @@ paths:
       summary: Get server descriptions
       tags:
       - Settings
+  /settings/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Profile'
+      summary: Get profile
+      tags:
+      - Settings
   /ssh/{host}/config:
     get:
       consumes:
@@ -6870,19 +6877,13 @@ paths:
     get:
       consumes:
       - application/json
-      description: Create or reconnect to a terminal session through websocket
+      description: Create or reconnect to a terminal session through websocket.
       parameters:
       - description: Host ID
         in: path
         name: host
         required: true
         type: integer
-      - description: request data send to websocket
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TerminalMessage'
       produces:
       - application/json
       responses:
