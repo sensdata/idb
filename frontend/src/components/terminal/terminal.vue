@@ -61,7 +61,7 @@
     fitRef.value?.fit();
     if (termRef.value) {
       const { cols, rows } = termRef.value;
-      sendWsMsg({ type: MsgType.Command, cols, rows });
+      sendWsMsg({ type: MsgType.Cmd, cols, rows });
     }
   };
   const onResizeDebounce = debounce(onResize, 500);
@@ -75,7 +75,7 @@
   function onWsMsgReceived(ev: MessageEvent) {
     const msg: MsgDo = JSON.parse(ev.data);
     switch (msg.type) {
-      case MsgType.Command:
+      case MsgType.Cmd:
         termRef.value?.write(msg.data!);
         break;
       case MsgType.Heartbeat:
@@ -148,7 +148,7 @@
     termRef.value.open(domRef.value!);
     termRef.value.onData((data) => {
       sendWsMsg({
-        type: MsgType.Command,
+        type: MsgType.Cmd,
         data,
       });
     });

@@ -1,6 +1,6 @@
 export enum MsgType {
   Heartbeat = 'heartbeat',
-  Command = 'command',
+  Cmd = 'cmd',
   Attach = 'attach',
   Start = 'start',
 }
