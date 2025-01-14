@@ -98,7 +98,6 @@
       <terminal
         :ref="
           (el: any) => {
-            console.log('ref', el, item.termRef);
             if (el) {
               item.termRef = el;
             }
