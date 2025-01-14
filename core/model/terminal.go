@@ -4,7 +4,7 @@ import "time"
 
 type TerminalRequest struct {
 	Session string `json:"session"`
-	Data    string `json:"data,omitempty"`
+	Data    string `json:"data"`
 }
 
 type SessionInfo struct {

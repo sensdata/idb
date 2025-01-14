@@ -57,7 +57,6 @@ func (s *TerminalService) Detach(hostID uint, req model.TerminalRequest) error {
 	if err != nil {
 		return err
 	}
-
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{

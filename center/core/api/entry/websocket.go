@@ -102,7 +102,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -131,7 +131,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -160,7 +160,7 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 

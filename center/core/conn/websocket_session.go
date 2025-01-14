@@ -104,10 +104,9 @@ func (sws *SshWebSocketSession) receiveWsMsg(exitCh chan bool) {
 			messageType, wsData, err := wsConn.ReadMessage()
 
 			if err != nil {
-				// 判断是否为正常的websocket关闭错误
-				if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+				// 检查是否为 CloseError
+				if websocket.IsUnexpectedCloseError(err) {
 					global.LOG.Info("websocket connection closed: %v", err)
-					setQuit(exitCh)
 					return
 				}
 				global.LOG.Error("read message error: %v", err)

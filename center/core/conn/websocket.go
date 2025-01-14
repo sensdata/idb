@@ -214,9 +214,27 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "invalid param host in request")
 	}
 
+	agentConn, err := CENTER.GetAgentConn(uint(hostID))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "agent disconected")
+	}
+
+	aws, err := NewAgentWebSocketSession(agentConn, wsConn, CONFMAN.GetConfig().SecretKey)
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "failed to create Agent WebSocket session")
+	}
+	defer aws.Close()
+
 	quitChan := make(chan bool, 3)
-	CENTER.StartTerminal(uint(hostID), wsConn, quitChan)
+	// 将 aws 记录到center中
+	CENTER.RegisterAgentSession(aws)
+	aws.Start(quitChan)
+	// 等待quitChan
 	<-quitChan
+	// 将 aws 从center中清除
+	CENTER.UnregisterAgentSession(aws.Session)
 
 	global.LOG.Info("handle agent terminal end")
 	return nil

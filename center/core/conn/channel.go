@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 
 	"github.com/sensdata/idb/center/db/model"
@@ -29,13 +28,13 @@ import (
 )
 
 type Center struct {
-	unixListener          net.Listener
-	agentConns            map[string]net.Conn // 存储Agent端连接的映射
-	done                  chan struct{}
-	mu                    sync.Mutex             // 保护agentConns的互斥锁
-	responseChMap         map[string]chan string // 用于接收命令执行结果的动态通道
-	fileResponseChMap     map[string]chan *message.FileMessage
-	terminalResponseChMap map[string]chan *message.SessionMessage
+	unixListener      net.Listener
+	agentConns        map[string]net.Conn // 存储Agent端连接的映射
+	done              chan struct{}
+	mu                sync.Mutex             // 保护agentConns的互斥锁
+	responseChMap     map[string]chan string // 用于接收命令执行结果的动态通道
+	fileResponseChMap map[string]chan *message.FileMessage
+	awsMap            map[string]*AgentWebSocketSession
 }
 
 type ICenter interface {
@@ -46,17 +45,19 @@ type ICenter interface {
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
-	StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan chan bool)
+	GetAgentConn(hostID uint) (*net.Conn, error)
+	RegisterAgentSession(aws *AgentWebSocketSession)
+	UnregisterAgentSession(session string)
 	TestAgent(id uint, req core.TestAgent) error
 }
 
 func NewCenter() ICenter {
 	return &Center{
-		agentConns:            make(map[string]net.Conn),
-		done:                  make(chan struct{}),
-		responseChMap:         make(map[string]chan string),
-		fileResponseChMap:     make(map[string]chan *message.FileMessage),
-		terminalResponseChMap: make(map[string]chan *message.SessionMessage),
+		agentConns:        make(map[string]net.Conn),
+		done:              make(chan struct{}),
+		responseChMap:     make(map[string]chan string),
+		fileResponseChMap: make(map[string]chan *message.FileMessage),
+		awsMap:            make(map[string]*AgentWebSocketSession),
 	}
 }
 
@@ -432,49 +433,48 @@ func (c *Center) processFileMessage(msg *message.FileMessage) {
 }
 
 func (c *Center) processSessionMessage(msg *message.SessionMessage) {
-	global.LOG.Info("Process session message: %v", msg.Data)
+	global.LOG.Info("Process session message: %v", msg)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	switch msg.Type {
 	case message.WsMessageStart:
-		// start的时候，通过msgID找通道
-		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
+		// start的时候，通过msgID找aws
+		aws, exists := c.awsMap[msg.MsgID]
 		if exists {
-			global.LOG.Info("notify response channel")
-			responseCh <- msg
-
 			// 替换成session作为key
-			c.terminalResponseChMap[msg.Data.Session] = responseCh
+			aws.Session = msg.Data.Session
+			c.awsMap[msg.Data.Session] = aws
 			// 删除原来的msgID对应的记录
-			delete(c.terminalResponseChMap, msg.MsgID)
+			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
+
+			aws.SessionMessageChan <- msg
 		} else {
-			global.LOG.Info("no response channel")
+			global.LOG.Info("no response session")
 		}
 	case message.WsMessageAttach:
-		// attach的时候，通过msgID找通道
-		responseCh, exists := c.terminalResponseChMap[msg.MsgID]
+		// attach的时候，通过msgID找aws
+		aws, exists := c.awsMap[msg.MsgID]
 		if exists {
-			global.LOG.Info("notify response channel")
-			responseCh <- msg
-
 			// 替换成session作为key
-			c.terminalResponseChMap[msg.Data.Session] = responseCh
+			aws.Session = msg.Data.Session
+			c.awsMap[msg.Data.Session] = aws
 			// 删除原来的msgID对应的记录
-			delete(c.terminalResponseChMap, msg.MsgID)
+			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
+
+			aws.SessionMessageChan <- msg
 		} else {
-			global.LOG.Info("no response channel")
+			global.LOG.Info("no response session")
 		}
 	case message.WsMessageCmd:
-		// command的时候，通过session找通道
-		responseCh, exists := c.terminalResponseChMap[msg.Data.Session]
+		// command的时候，通过session找aws
+		aws, exists := c.awsMap[msg.Data.Session]
 		if exists {
-			global.LOG.Info("notify response channel")
-			responseCh <- msg
+			aws.SessionMessageChan <- msg
 		} else {
-			global.LOG.Info("no response channel")
+			global.LOG.Info("no response session")
 		}
 	default: // 不支持的消息
 		global.LOG.Error("Unknown sesssion message type: %s", msg.Type)
@@ -578,7 +578,7 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 
 		// 并发发送消息
 		go func() {
-			err := message.SendFileMessage(conn, msg)
+			err := message.SendFileMessage(*conn, msg)
 			if err != nil {
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
@@ -675,7 +675,7 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 				return
 			}
 
-			err = message.SendFileMessage(conn, msg)
+			err = message.SendFileMessage(*conn, msg)
 			if err != nil {
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
@@ -710,185 +710,31 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	return nil
 }
 
-func (c *Center) StartTerminal(hostID uint, wsConn *websocket.Conn, quitChan chan bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			global.LOG.Error("[xpack] A panic occurred during terminal life, error message: %v", r)
-			setQuit(quitChan)
-		}
-	}()
-	defer setQuit(quitChan)
-
+func (c *Center) GetAgentConn(hostID uint) (*net.Conn, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(hostID))
 	if err != nil || host.ID == 0 {
 		global.LOG.Error("host %d not found", hostID)
-		return
+		return nil, constant.ErrHost
 	}
 
-	// 查找agent conn
-	agentConn, err := c.getAgentConn(host)
-	if err != nil {
-		global.LOG.Error("host %d agent not connected", hostID)
-		return
-	}
-
-	config := CONFMAN.GetConfig()
-	for {
-		select {
-		case <-quitChan:
-			return
-		default:
-			messageType, wsData, err := wsConn.ReadMessage()
-			if err != nil {
-				// 检查是否为websocket的EOF错误
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					global.LOG.Info("websocket connection closed: %v", err)
-					setQuit(quitChan)
-					return
-				}
-				global.LOG.Error("read message error: %v", err)
-				continue
-			}
-			global.LOG.Info("messageType: %d, %s", messageType, string(wsData))
-			msgObj := message.WsMessage{}
-			err = json.Unmarshal(wsData, &msgObj)
-			if err != nil {
-				global.LOG.Error("unmarshal message error: %v", err)
-				continue
-			}
-			switch msgObj.Type {
-			case message.WsMessageStart:
-				// 启动监听
-				msgID := utils.GenerateMsgId()
-				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
-
-				// 构造发送的消息
-				msg, err := message.CreateSessionMessage(
-					msgID,
-					message.WsMessageStart,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
-					config.SecretKey,
-					utils.GenerateNonce(16),
-				)
-				if err != nil {
-					global.LOG.Error("Error creating session message: %v", err)
-					continue
-				}
-
-				err = message.SendSessionMessage(agentConn, msg)
-				if err != nil {
-					global.LOG.Error("Failed to send session message: %v", err)
-					setQuit(quitChan)
-					return
-				}
-			case message.WsMessageAttach:
-				// 启动监听
-				msgID := utils.GenerateMsgId()
-				go c.waitForTerminalResponse(msgID, wsConn, quitChan)
-
-				// 构造发送的消息
-				msg, err := message.CreateSessionMessage(
-					msgID,
-					message.WsMessageAttach,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
-					config.SecretKey,
-					utils.GenerateNonce(16),
-				)
-				if err != nil {
-					global.LOG.Error("Error creating session message: %v", err)
-					continue
-				}
-
-				err = message.SendSessionMessage(agentConn, msg)
-				if err != nil {
-					global.LOG.Error("Failed to send session message: %v", err)
-					setQuit(quitChan)
-					return
-				}
-
-			case message.WsMessageCmd:
-				// 构造发送的消息
-				msg, err := message.CreateSessionMessage(
-					utils.GenerateMsgId(),
-					message.WsMessageCmd,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
-					config.SecretKey,
-					utils.GenerateNonce(16),
-				)
-				if err != nil {
-					global.LOG.Error("Error creating session message: %v", err)
-					continue
-				}
-
-				err = message.SendSessionMessage(agentConn, msg)
-				if err != nil {
-					global.LOG.Error("Failed to send session message: %v", err)
-					setQuit(quitChan)
-					return
-				}
-
-			case message.WsMessageResize:
-				// TODO
-
-				// 心跳，回复心跳
-			case message.WsMessageHeartbeat:
-				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
-				if err != nil {
-					global.LOG.Error("sending terminal heartbeat message to webSocket failed, err: %v", err)
-				}
-			}
-
-		}
-	}
+	return c.getAgentConn(host)
 }
 
-func (c *Center) waitForTerminalResponse(msgID string, wsConn *websocket.Conn, quitChan chan bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			global.LOG.Error("[xpack] A panic occurred during receive ws message, error message: %v", r)
-		}
-	}()
-	defer setQuit(quitChan)
-
-	responseCh := make(chan *message.SessionMessage)
+func (c *Center) RegisterAgentSession(aws *AgentWebSocketSession) {
 	c.mu.Lock()
-	c.terminalResponseChMap[msgID] = responseCh
-	c.mu.Unlock()
+	defer c.mu.Unlock()
 
-	for {
-		select {
-		case <-quitChan:
-			return
-		default:
-			select {
-			case <-quitChan:
-				return
-			case response, ok := <-responseCh:
-				if !ok {
-					global.LOG.Info("Response channel closed, exiting waitForTerminalResponse")
-					return
-				}
-				global.LOG.Info("Send to ws begin")
-				message := message.WsMessage{
-					Type:      string(response.Type),
-					Session:   response.Data.Session,
-					Data:      response.Data.Data,
-					Timestamp: int(response.Timestamp),
-				}
-				wsData, err := json.Marshal(message)
-				if err != nil {
-					global.LOG.Error("encoding terminal message to json failed, err: %v", err)
-					continue
-				}
-				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
-				if err != nil {
-					global.LOG.Error("sending terminal message to webSocket failed, err: %v", err)
-				}
-				global.LOG.Info("Send to ws end")
-			}
-		}
-	}
+	global.LOG.Info("Session %s registered", aws.Session)
+	c.awsMap[aws.Session] = aws
+}
+
+func (c *Center) UnregisterAgentSession(session string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	global.LOG.Info("Session %s unregistered", session)
+	delete(c.awsMap, session)
 }
 
 func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
@@ -933,7 +779,7 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 	c.mu.Unlock()
 
 	go func() {
-		err = message.SendMessage(conn, msg)
+		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send action message: %v", err)
 			responseCh <- ""
@@ -994,7 +840,7 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 	c.mu.Unlock()
 
 	go func() {
-		err = message.SendMessage(conn, msg)
+		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
 			responseCh <- ""
@@ -1013,7 +859,7 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 	}
 }
 
-func (c *Center) getAgentConn(host model.Host) (net.Conn, error) {
+func (c *Center) getAgentConn(host model.Host) (*net.Conn, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -1022,7 +868,7 @@ func (c *Center) getAgentConn(host model.Host) (net.Conn, error) {
 	if !exists || conn == nil {
 		return nil, errors.WithMessage(constant.ErrAgent, "not connected")
 	}
-	return conn, nil
+	return &conn, nil
 }
 
 func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
@@ -1073,7 +919,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 
 	go func() {
 		global.LOG.Info("send msg data: %s", msg.Data)
-		err = message.SendMessage(conn, msg)
+		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
 			responseCh <- ""

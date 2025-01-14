@@ -253,23 +253,6 @@ func (s *Session) trackOutput(quitChan chan bool) {
 				global.LOG.Info("output: %s", string(buf[:n]))
 				go s.sendSessionResult(string(buf[:n]))
 			}
-
-			// 读取 PTY 的输出
-			// line, err := reader.ReadString('\n')
-			// if err != nil {
-			// 	if err == io.EOF {
-			// 		global.LOG.Info("PTY closed")
-			// 		return
-			// 	}
-			// 	global.LOG.Error("failed to read from PTY: %v", err)
-			// 	return
-			// }
-
-			// if len(line) > 0 {
-			// 	// 输出数据
-			// 	global.LOG.Info("output: %s", line)
-			// 	go s.sendSessionResult(line)
-			// }
 		}
 	}
 
@@ -321,7 +304,6 @@ func (s *SessionService) page() ([]model.SessionInfo, error) {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return sessions, nil
 	}
-	global.LOG.Info("output: %s", output)
 
 	// 处理返回的结果字符串
 	lines := strings.Split(string(output), "\n")
@@ -383,7 +365,6 @@ func (s *SessionService) genSessionName() (string, error) {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", err
 	}
-	global.LOG.Info("output: %s", output)
 
 	// 处理返回的结果字符串
 	var numbers []int
@@ -433,7 +414,6 @@ func (s *SessionService) getSessionID(sessionName string) (string, error) {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", fmt.Errorf("failed to list sessions: %v", err)
 	}
-	global.LOG.Info("output: %s", output)
 
 	// 处理返回的结果字符串
 	lines := strings.Split(string(output), "\n")
@@ -465,7 +445,6 @@ func (s *SessionService) getSessionName(sessionID string) (string, error) {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return "", fmt.Errorf("failed to list sessions: %v", err)
 	}
-	global.LOG.Info("output: %s", output)
 
 	// 处理返回的结果字符串
 	lines := strings.Split(string(output), "\n")
