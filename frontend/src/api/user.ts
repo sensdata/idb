@@ -19,6 +19,5 @@ export function logout() {
 }
 
 export function getUserInfo() {
-  return null;
-  // return request.post<UserState>('user/info');
+  return request.get<UserState>('users/profile');
 }

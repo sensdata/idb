@@ -31,7 +31,7 @@ const useUserStore = defineStore('user', {
     },
     // Set user's information
     setInfo(partial: Partial<UserState>) {
-      this.$patch(partial);
+      this.$patch({ role: 'user', ...partial });
     },
 
     // Reset user's information
@@ -55,7 +55,6 @@ const useUserStore = defineStore('user', {
         const data = await userLogin(loginForm);
         this.setInfo({
           name: data.name,
-          role: 'admin', // todo
         });
         setToken(data.token);
       } catch (err) {
