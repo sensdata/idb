@@ -18,6 +18,7 @@ type IUserService interface {
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
 	ChangePassword(id uint, req core.ChangePassword) error
+	Profile(userId uint) (*core.Profile, error)
 }
 
 func NewIUserService() IUserService {
@@ -97,4 +98,15 @@ func (s *UserService) ChangePassword(id uint, req core.ChangePassword) error {
 	upMap["password"] = passwordHash
 
 	return UserRepo.Update(user.ID, upMap)
+}
+
+func (s *UserService) Profile(userId uint) (*core.Profile, error) {
+	user, err := UserRepo.Get(UserRepo.WithByID(userId))
+	if err != nil {
+		return nil, err
+	}
+	return &core.Profile{
+		ID:   user.ID,
+		Name: user.Name,
+	}, nil
 }

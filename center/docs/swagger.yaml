@@ -6192,21 +6192,6 @@ paths:
       summary: Get server descriptions
       tags:
       - Settings
-  /settings/profile:
-    get:
-      consumes:
-      - application/json
-      description: Get profile
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Profile'
-      summary: Get profile
-      tags:
-      - Settings
   /ssh/{host}/config:
     get:
       consumes:
@@ -6994,6 +6979,21 @@ paths:
         "200":
           description: OK
       summary: update password
+      tags:
+      - User
+  /users/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Profile'
+      summary: Get profile
       tags:
       - User
   /users/valid:

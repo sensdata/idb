@@ -13,7 +13,6 @@ func (s *SettingsRouter) InitRouter(Router *gin.RouterGroup) {
 	settingsRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
-		settingsRouter.GET("/profile", baseApi.Profile)
 		settingsRouter.GET("/about", baseApi.About)
 		settingsRouter.GET("", baseApi.Settings)
 		settingsRouter.POST("", baseApi.UpdateSettings)

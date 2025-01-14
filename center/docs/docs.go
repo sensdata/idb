@@ -6695,29 +6695,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/settings/profile": {
-            "get": {
-                "description": "Get profile",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Settings"
-                ],
-                "summary": "Get profile",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.Profile"
-                        }
-                    }
-                }
-            }
-        },
         "/ssh/info": {
             "get": {
                 "description": "Get plugin information",
@@ -7910,6 +7887,29 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/users/profile": {
+            "get": {
+                "description": "Get profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Profile"
+                        }
                     }
                 }
             }

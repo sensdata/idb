@@ -19,5 +19,6 @@ func (s *UserRouter) InitRouter(Router *gin.RouterGroup) {
 		userRouter.DELETE("", baseApi.DeleteUser)           // 删除用户
 		userRouter.PUT("/valid", baseApi.ValidUser)         // 禁用/启用用户
 		userRouter.PUT("/password", baseApi.ChangePassword) // 更新密码
+		userRouter.GET("/profile", baseApi.Profile)
 	}
 }
