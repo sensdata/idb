@@ -4,7 +4,34 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
 )
+
+// @Tags Settings
+// @Summary Get profile
+// @Description Get profile
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.Profile
+// @Router /settings/profile [get]
+func (b *BaseApi) Profile(c *gin.Context) {
+	claimsInterface, exists := c.Get("user")
+	if !exists {
+		ErrorWithDetail(c, constant.CodeAuth, constant.ErrAuth.Error(), constant.ErrAuth)
+		return
+	}
+	claims, ok := claimsInterface.(utils.Claims)
+	if !ok {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), constant.ErrInternalServer)
+		return
+	}
+	result, err := settingsService.Profile(claims.ID)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}
 
 // @Tags Settings
 // @Summary Get server descriptions

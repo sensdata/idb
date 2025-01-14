@@ -14,6 +14,7 @@ import (
 type SettingsService struct{}
 
 type ISettingsService interface {
+	Profile(userId uint) (*model.Profile, error)
 	About() (*model.About, error)
 	Settings() (*model.SettingInfo, error)
 	Update(req model.UpdateSettingRequest) error
@@ -21,6 +22,17 @@ type ISettingsService interface {
 
 func NewISettingsService() ISettingsService {
 	return &SettingsService{}
+}
+
+func (s *SettingsService) Profile(userId uint) (*model.Profile, error) {
+	user, err := UserRepo.Get(UserRepo.WithByID(userId))
+	if err != nil {
+		return nil, err
+	}
+	return &model.Profile{
+		ID:   user.ID,
+		Name: user.Name,
+	}, nil
 }
 
 func (s *SettingsService) About() (*model.About, error) {

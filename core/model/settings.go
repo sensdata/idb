@@ -1,5 +1,10 @@
 package model
 
+type Profile struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
 type About struct {
 	Version string `json:"version"`
 }
