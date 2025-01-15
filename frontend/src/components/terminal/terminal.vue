@@ -8,7 +8,7 @@
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';
-  import { MsgDo, MsgType } from './type';
+  import { MsgType, ReceiveMsgDo, SendMsgDo } from './type';
   import '@xterm/xterm/css/xterm.css';
 
   const props = defineProps<{
@@ -35,7 +35,7 @@
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
   }
 
-  function sendWsMsg(payload: MsgDo) {
+  function sendWsMsg(payload: Partial<SendMsgDo>) {
     if (isWsOpen()) {
       wsRef.value?.send(
         JSON.stringify({
@@ -73,7 +73,12 @@
   }
 
   function onWsMsgReceived(ev: MessageEvent) {
-    const msg: MsgDo = JSON.parse(ev.data);
+    const msg: ReceiveMsgDo = JSON.parse(ev.data);
+    if (msg.code !== 0) {
+      termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
+      return;
+    }
+
     switch (msg.type) {
       case MsgType.Cmd:
         termRef.value?.write(msg.data!);
