@@ -74,7 +74,7 @@
 
   function onWsMsgReceived(ev: MessageEvent) {
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
-    if (msg.code !== 0) {
+    if (msg.code != null && msg.code !== 200) {
       termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
       return;
     }
