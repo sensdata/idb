@@ -15,6 +15,7 @@ import (
 	"github.com/creack/pty"
 
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -256,7 +257,7 @@ func (s *Session) sendSessionResult(data string) {
 	rspMsg, err := message.CreateSessionMessage(
 		utils.GenerateMsgId(),
 		message.WsMessageCmd,
-		message.SessionData{Session: s.ID, Data: data},
+		message.SessionData{Code: constant.CodeSuccess, Msg: "", Session: s.ID, Data: data},
 		s.SecretKey,
 		utils.GenerateNonce(16),
 	)

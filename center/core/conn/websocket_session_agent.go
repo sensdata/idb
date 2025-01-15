@@ -148,6 +148,8 @@ func (aws *AgentWebSocketSession) sendComboOutput(exitCh chan bool) {
 				return
 			}
 			message := message.WsMessage{
+				Code:      response.Data.Code,
+				Msg:       response.Data.Msg,
 				Type:      string(response.Type),
 				Session:   response.Data.Session,
 				Data:      response.Data.Data,

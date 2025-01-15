@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
 	"golang.org/x/crypto/ssh"
@@ -166,6 +167,8 @@ func (sws *SshWebSocketSession) sendComboOutput(exitCh chan bool) {
 			if len(bs) > 0 {
 				global.LOG.Info("output: %s", string(bs))
 				wsData, err := json.Marshal(message.WsMessage{
+					Code: constant.CodeSuccess,
+					Msg:  "",
 					Type: message.WsMessageCmd,
 					Data: string(bs), //base64.StdEncoding.EncodeToString(bs),
 				})

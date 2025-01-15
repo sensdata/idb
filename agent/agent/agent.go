@@ -497,12 +497,12 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	switch msg.Type {
 	case message.WsMessageStart: // 创建会话
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, "", constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, "", "")
 		} else {
 			session, err := SessionService.Start(msg.Data)
 			if err != nil {
 				global.LOG.Error("Failed to start session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, "", err.Error())
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), "", "")
 			} else {
 				global.LOG.Info("session %s.%s started", session.ID, session.Name)
 				a.registerSession(session)
@@ -510,7 +510,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				// 开始监听该会话
 				go func() {
 					// 先返回本会话信息
-					a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+					a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
 
 					// 延迟500毫秒
 					time.Sleep(500 * time.Millisecond)
@@ -536,12 +536,12 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 
 	case message.WsMessageAttach: // 恢复会话
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
 		} else {
 			session, err := SessionService.Attach(msg.Data)
 			if err != nil {
 				global.LOG.Error("Failed to attach session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, err.Error())
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Session, "")
 			} else {
 				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
 				a.registerSession(session)
@@ -549,7 +549,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 				// 开始监听该会话
 				go func() {
 					// 先返回本会话信息
-					a.sendSessionResult(conn, msg.MsgID, msg.Type, session.ID, session.Name)
+					a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
 
 					// 延迟500毫秒
 					time.Sleep(500 * time.Millisecond)
@@ -575,7 +575,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 
 	case message.WsMessageCmd: // 会话输入
 		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, msg.Data.Session, constant.ErrNotInstalled)
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
 		} else {
 			go a.sessionInput(msg.Data.Session, msg.Data.Data)
 		}
@@ -587,6 +587,9 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 }
 
 func (a *Agent) sessionInput(sessionID string, data string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	if session, ok := a.sessionMap[sessionID]; ok {
 		global.LOG.Info("sessionInput")
 		if err := session.Input(data); err != nil {
@@ -2096,14 +2099,14 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 	global.LOG.Info("File rsp send to %s", centerID)
 }
 
-func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.MessageType, sessionID string, data string) {
+func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.MessageType, code int, msg string, sessionID string, data string) {
 	config := CONFMAN.GetConfig()
 	centerID := conn.RemoteAddr().String()
 
 	rspMsg, err := message.CreateSessionMessage(
 		msgID,
 		msgType,
-		message.SessionData{Session: sessionID, Data: data},
+		message.SessionData{Code: code, Msg: msg, Session: sessionID, Data: data},
 		config.SecretKey,
 		utils.GenerateNonce(16),
 	)
@@ -2112,7 +2115,7 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.M
 		return
 	}
 
-	global.LOG.Info("send msg data: %s", rspMsg.Data)
+	global.LOG.Info("send msg data: %v", rspMsg.Data)
 
 	err = message.SendSessionMessage(conn, rspMsg)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -175,8 +176,9 @@ func wsHandleError(ws *websocket.Conn, err error) bool {
 		dt := time.Now().Add(time.Second)
 		if ctlerr := ws.WriteControl(websocket.CloseMessage, []byte(err.Error()), dt); ctlerr != nil {
 			wsData, err := json.Marshal(message.WsMessage{
+				Code: constant.CodeFailed,
+				Msg:  base64.StdEncoding.EncodeToString([]byte(err.Error())),
 				Type: message.WsMessageCmd,
-				Data: base64.StdEncoding.EncodeToString([]byte(err.Error())),
 			})
 			if err != nil {
 				_ = ws.WriteMessage(websocket.TextMessage, []byte("{\"type\":\"cmd\",\"data\":\"failed to encoding to json\"}"))

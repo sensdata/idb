@@ -9,6 +9,8 @@ const (
 )
 
 type WsMessage struct {
+	Code      int    `json:"code"`
+	Msg       string `json:"msg"`
 	Type      string `json:"type"`
 	Session   string `json:"session,omitempty"`
 	Data      string `json:"data,omitempty"`

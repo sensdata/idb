@@ -99,6 +99,8 @@ type SessionMessage struct {
 }
 
 type SessionData struct {
+	Code    int    `json:"code"`
+	Msg     string `json:"msg"`
 	Session string `json:"session"`
 	Data    string `json:"data"`
 }
