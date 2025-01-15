@@ -133,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-  import { reactive, ref, watch } from 'vue';
+  import { nextTick, reactive, ref, watch } from 'vue';
   import { useHostStore } from '@/store';
   import { HostEntity } from '@/entity/Host';
   import {
@@ -313,6 +313,14 @@
       }
     }
   );
+
+  watch(activeKey, (val) => {
+    if (val) {
+      nextTick(() => {
+        terms.value.find((item) => item.key === val)?.termRef?.focus();
+      });
+    }
+  });
 
   defineExpose({
     addSession,

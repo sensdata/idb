@@ -158,6 +158,7 @@
         data,
       });
     });
+    termRef.value.focus();
     fitRef.value.fit();
     addResizeListener();
     initWs();
@@ -172,6 +173,10 @@
     termRef.value?.dispose();
   }
 
+  function focus() {
+    termRef.value?.focus();
+  }
+
   onMounted(() => {
     initTerminal();
   });
@@ -182,6 +187,7 @@
   defineExpose({
     sendWsMsg,
     dispose,
+    focus,
   });
 </script>
 
