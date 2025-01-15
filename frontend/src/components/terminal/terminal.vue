@@ -136,9 +136,10 @@
 
   function initTerminal() {
     termRef.value = new Terminal({
-      lineHeight: 1.375,
-      fontSize: 16,
-      fontFamily: "Roboto, Monaco, Menlo, Consolas, 'Courier New', monospace",
+      lineHeight: 1.2,
+      fontSize: 14,
+      fontFamily:
+        "'Lucida Console', 'DejaVu Sans Mono', 'Everson Mono', FreeMono, Menlo, Terminal, monospace",
       cursorStyle: 'underline',
       cursorBlink: true,
       scrollback: 100,
