@@ -3,6 +3,7 @@ export enum MsgType {
   Cmd = 'cmd',
   Attach = 'attach',
   Start = 'start',
+  Resize = 'resize',
 }
 
 export interface SendMsgDo {

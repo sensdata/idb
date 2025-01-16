@@ -8,6 +8,7 @@
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { debounce } from 'lodash';
+  import { serializeQueryParams } from '@/utils';
   import { MsgType, ReceiveMsgDo, SendMsgDo } from './type';
   import '@xterm/xterm/css/xterm.css';
 
@@ -61,7 +62,7 @@
     fitRef.value?.fit();
     if (termRef.value) {
       const { cols, rows } = termRef.value;
-      sendWsMsg({ type: MsgType.Cmd, cols, rows });
+      sendWsMsg({ type: MsgType.Resize, cols, rows });
     }
   };
   const onResizeDebounce = debounce(onResize, 500);
@@ -111,12 +112,17 @@
     }
   }
 
-  function initWs() {
+  function initWs(term: Terminal) {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const path = (props.path || 'terminals/{host}/ssh/start').replace(
+    let path = (props.path || 'terminals/{host}/ssh/start').replace(
       '{host}',
       String(props.hostId)
     );
+    path += path.indexOf('?') > -1 ? '&' : '?';
+    path += serializeQueryParams({
+      cols: term.cols,
+      rows: term.rows,
+    });
     wsRef.value = new WebSocket(
       `${protocol}://${window.location.host}${API_BASE_URL}${path}`
     );
@@ -129,6 +135,7 @@
       if (props.sendHeartbeat) {
         autoSendHeartbeat();
       }
+      onResize();
     };
     wsRef.value.onmessage = onWsMsgReceived;
   }
@@ -158,10 +165,10 @@
         data,
       });
     });
-    termRef.value.focus();
     fitRef.value.fit();
+    termRef.value.focus();
     addResizeListener();
-    initWs();
+    initWs(termRef.value);
   }
 
   function dispose() {
