@@ -86,6 +86,29 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 }
 
 // @Tags Terminal
+// @Summary Prune terminal sessions
+// @Description Prune terminal sessions
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /terminals/{host}/sessions/prune [post]
+func (b *BaseApi) PruneSessions(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	err = terminalService.Prune(uint(hostID))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, "")
+}
+
+// @Tags Terminal
 // @Summary Detach terminal session
 // @Description Detach terminal session
 // @Accept json

@@ -109,6 +109,7 @@ const (
 	Terminal_Finish  string = "terminal_finish"
 	Terminal_Rename  string = "terminal_rename"
 	Terminal_Install string = "terminal_install"
+	Terminal_Prune   string = "terminal_prune"
 )
 
 // Action消息结构

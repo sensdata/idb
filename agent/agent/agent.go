@@ -53,8 +53,11 @@ type Agent struct {
 	sessionMap   map[string]*session.Session
 }
 
-//go:embed install_screen.sh
+//go:embed screen_install.sh
 var installScreenShell []byte
+
+//go:embed screen_clean.sh
+var cleanScreenShell []byte
 
 type IAgent interface {
 	Start() error
@@ -613,6 +616,31 @@ func (a *Agent) installScreen() error {
 	err := os.WriteFile(scriptPath, installScreenShell, 0755)
 	if err != nil {
 		global.LOG.Error("Failed to prepare installation script, %v", err)
+		return fmt.Errorf("failed to prepare script")
+	}
+	defer os.Remove(scriptPath)
+
+	// 执行安装脚本
+	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
+	scriptResult := shell.ExecuteScript(req)
+	if scriptResult.Err != "" {
+		return fmt.Errorf("failed to install")
+	}
+
+	return nil
+}
+
+func (a *Agent) cleanScreen() error {
+	// 将cleanScreenShell保存到 /tmp/iDB_screen_clean_timestamp.sh
+	// 生成临时脚本文件名
+	timestamp := time.Now().Unix()
+	scriptPath := fmt.Sprintf("/tmp/iDB_screen_clean_%d.sh", timestamp)
+	logPath := fmt.Sprintf("/tmp/iDB_screen_clean_%d.log", timestamp)
+
+	// 写入脚本内容
+	err := os.WriteFile(scriptPath, cleanScreenShell, 0755)
+	if err != nil {
+		global.LOG.Error("Failed to prepare clean script, %v", err)
 		return fmt.Errorf("failed to prepare script")
 	}
 	defer os.Remove(scriptPath)
@@ -1695,6 +1723,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, result)
+
 	case model.Docker_Compose_Test:
 		var req model.ComposeCreate
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
@@ -1709,6 +1738,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, result)
+
 	case model.Docker_Compose_Create:
 		var req model.ComposeCreate
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
@@ -1723,6 +1753,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, result)
+
 	case model.Docker_Compose_Operation:
 		var req model.ComposeOperation
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
@@ -1896,6 +1927,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			}
 			return actionSuccessResult(actionData.Action, "")
 		}
+
 	case model.Terminal_Finish:
 		if !a.isScreenInstalled() {
 			return nil, errors.New(constant.ErrNotInstalled)
@@ -1910,6 +1942,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			}
 			return actionSuccessResult(actionData.Action, "")
 		}
+
 	case model.Terminal_Rename:
 		if !a.isScreenInstalled() {
 			return nil, errors.New(constant.ErrNotInstalled)
@@ -1924,8 +1957,16 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 			}
 			return actionSuccessResult(actionData.Action, "")
 		}
+
 	case model.Terminal_Install:
 		err := a.installScreen()
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Terminal_Prune:
+		err := a.cleanScreen()
 		if err != nil {
 			return nil, err
 		}

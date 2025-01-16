@@ -13,6 +13,7 @@ type TerminalService struct{}
 
 type ITerminalService interface {
 	Sessions(hostID uint) (*model.PageResult, error)
+	Prune(hostID uint) error
 	Detach(hostID uint, req model.TerminalRequest) error
 	Quit(hostID uint, req model.TerminalRequest) error
 	Rename(hostID uint, req model.TerminalRequest) error
@@ -49,6 +50,27 @@ func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
 		return &result, fmt.Errorf("json err: %v", err)
 	}
 	return &result, nil
+}
+
+func (s *TerminalService) Prune(hostID uint) error {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Terminal_Prune,
+			Data:   "",
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to prune sessions")
+	}
+
+	return nil
 }
 
 func (s *TerminalService) Detach(hostID uint, req model.TerminalRequest) error {
