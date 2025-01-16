@@ -47,7 +47,6 @@ var (
 type Agent struct {
 	unixListener net.Listener
 	tcpListener  net.Listener
-	centerID     string   // 存储center地址
 	centerConn   net.Conn // 存储center端连接的映射
 	done         chan struct{}
 	mu           sync.Mutex // 保护centerConn的互斥锁
@@ -294,13 +293,14 @@ func (a *Agent) acceptConnections() {
 
 			// 成功接受连接后记录日志
 			now := time.Now().Format(time.RFC3339)
-			centerID := conn.RemoteAddr().String()
-			global.LOG.Info("Accepted new connection from %s at %s", centerID, now)
+			connAddr := conn.RemoteAddr().String()
+			global.LOG.Info("Accepted new connection from %s at %s", connAddr, now)
+
 			// 记录连接
 			a.mu.Lock()
-			a.centerID = centerID
 			a.centerConn = conn
 			a.mu.Unlock()
+
 			// 传递给 SessionService
 			SessionService.Config(&conn, CONFMAN.GetConfig().SecretKey)
 
@@ -313,7 +313,6 @@ func (a *Agent) acceptConnections() {
 func (a *Agent) handleConnection(conn net.Conn) {
 	defer func() {
 		a.mu.Lock()
-		a.centerID = ""
 		a.centerConn = nil
 		a.mu.Unlock()
 
@@ -368,7 +367,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			default:
 				fmt.Println("Unknown message type")
 			}
-			global.LOG.Info("handle conn")
 
 			// 更新缓存，移除已处理的部分
 			dataBuffer = remainingBuffer
@@ -381,16 +379,10 @@ func (a *Agent) handleConnection(conn net.Conn) {
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	global.LOG.Info("Message: %v", msg)
 
-	centerID := conn.RemoteAddr().String()
-
 	switch msg.Type {
 	case message.Heartbeat: // 回复心跳
-		global.LOG.Info("Heartbeat from %s", centerID)
-		if a.centerID != "" && centerID == a.centerID {
-			a.sendHeartbeat(conn)
-		} else {
-			global.LOG.Error("%s is a unknown center", centerID)
-		}
+		global.LOG.Info("Heartbeat from %s", conn.RemoteAddr().String())
+		a.sendHeartbeat(conn)
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
@@ -1955,8 +1947,6 @@ func actionSuccessResult(action string, data string) (*model.Action, error) {
 func (a *Agent) sendHeartbeat(conn net.Conn) {
 	config := CONFMAN.GetConfig()
 
-	centerID := conn.RemoteAddr().String()
-
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
 		"Heartbeat",
@@ -1974,21 +1964,16 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		global.LOG.Error("Failed to send heartbeat message: %v", err)
 		a.mu.Lock()
 		conn.Close()
-		global.LOG.Info("close conn %s for heartbeat", a.centerID)
+		global.LOG.Info("close conn")
 		a.centerConn = nil
-		a.centerID = ""
 		a.mu.Unlock()
-		//关闭后，尝试重新连接
-		// go a.connectToCenter()
 	} else {
-		global.LOG.Info("Heartbeat sent to %s", centerID)
+		global.LOG.Info("Heartbeat sent to %s", conn.RemoteAddr().String())
 	}
 }
 
 func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 	config := CONFMAN.GetConfig()
-
-	centerID := conn.RemoteAddr().String()
 
 	cmdRspMsg, err := message.CreateMessage(
 		msgID, // 使用相同的msgID回复
@@ -2002,28 +1987,21 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		return
 	}
 
-	global.LOG.Info("send msg data: %s", cmdRspMsg.Data)
+	global.LOG.Info("send cmd data: %s", cmdRspMsg.Data)
 
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send cmd rsp message: %v", err)
 		a.mu.Lock()
 		conn.Close()
-		global.LOG.Info("close conn %s for cmd rsp", a.centerID)
+		global.LOG.Info("close conn")
 		a.centerConn = nil
-		a.centerID = ""
 		a.mu.Unlock()
-		//关闭后，尝试重新连接
-		// go a.connectToCenter()
-	} else {
-		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
 }
 
 func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Action) {
 	config := CONFMAN.GetConfig()
-
-	centerID := conn.RemoteAddr().String()
 
 	data, err := json.Marshal(action)
 	if err != nil {
@@ -2043,27 +2021,20 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 		return
 	}
 
-	global.LOG.Info("send msg data: %s", cmdRspMsg.Data)
+	global.LOG.Info("send action data: %s", cmdRspMsg.Data)
 
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send cmd rsp message: %v", err)
 		a.mu.Lock()
 		conn.Close()
-		global.LOG.Info("close conn %s for cmd rsp", a.centerID)
+		global.LOG.Info("close conn")
 		a.centerConn = nil
-		a.centerID = ""
 		a.mu.Unlock()
-		//关闭后，尝试重新连接
-		// go a.connectToCenter()
-	} else {
-		global.LOG.Info("Cmd rsp sent to %s", centerID)
 	}
 }
 
 func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status int) {
-	centerID := conn.RemoteAddr().String()
-
 	rspMsg, err := message.CreateFileMessage(
 		msg.MsgID,
 		msg.Type,
@@ -2085,23 +2056,18 @@ func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status
 		global.LOG.Error("Failed to send file rsp : %v", err)
 		return
 	}
-	global.LOG.Info("File rsp send to %s", centerID)
 }
 
 func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
-	centerID := conn.RemoteAddr().String()
-
 	err := message.SendFileMessage(conn, msg)
 	if err != nil {
 		global.LOG.Error("Failed to send file rsp : %v", err)
 		return
 	}
-	global.LOG.Info("File rsp send to %s", centerID)
 }
 
 func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.MessageType, code int, msg string, sessionID string, data string) {
 	config := CONFMAN.GetConfig()
-	centerID := conn.RemoteAddr().String()
 
 	rspMsg, err := message.CreateSessionMessage(
 		msgID,
@@ -2115,12 +2081,11 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.M
 		return
 	}
 
-	global.LOG.Info("send msg data: %v", rspMsg.Data)
+	global.LOG.Info("send session data: %v", rspMsg.Data)
 
 	err = message.SendSessionMessage(conn, rspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send session rsp : %v", err)
 		return
 	}
-	global.LOG.Info("Session rsp sent to %s", centerID)
 }
