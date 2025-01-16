@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="visible"
     :footer="false"
-    height="90vh"
+    height="95vh"
     placement="bottom"
   >
     <template #title>{{ $t('components.terminal.title') }}</template>

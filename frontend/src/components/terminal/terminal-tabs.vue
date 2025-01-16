@@ -338,7 +338,7 @@
   }
 
   .terminal-tabs :deep(.arco-tabs-pane) {
-    height: calc(100vh - 104px);
+    height: calc(95vh - 104px);
   }
 
   .terminal-tabs :deep(.arco-tabs-nav-extra .arco-tabs-nav-add-btn) {
