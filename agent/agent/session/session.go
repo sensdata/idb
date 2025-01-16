@@ -122,47 +122,60 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 		sessionID   string
 		sessionName string
 	)
-	// 请求没有传入session时，看是否需要创建会话
-	if sessionData.Session == "" {
-		// 获取当前存在的会话
-		sessions, _ := s.page()
-		global.LOG.Info("found sessions: \n %v", sessions)
-		// 不存在任何会话
-		if len(sessions) == 0 {
-			// 创建新会话
-			global.LOG.Info("No exist sessions, create one")
-			return s.Start(message.SessionData{Session: "", Data: ""})
-		} else {
-			// 查找时间最近，且已经Detached的会话
-			latestSession := sessions[0]
-			for _, session := range sessions {
-				if session.Time.After(latestSession.Time) && session.Status == "Detached" {
-					latestSession = session
-				}
-			}
-			if latestSession.Status != "Detached" {
-				global.LOG.Info("No detached sessions, create one")
-				return s.Start(message.SessionData{Session: "", Data: ""})
-			} else {
-				// sessionID
-				sessionID = latestSession.Session
-				sessionName = latestSession.Name
-				global.LOG.Info("Find latest detached session: %s.%s", sessionID, sessionName)
-			}
-		}
-	} else {
-		// 请求传入了session，找一下会话名
-		name, err := s.getSessionName(sessionData.Session)
-		if err != nil {
-			global.LOG.Error("failed to get session name: %v", err)
-			return nil, fmt.Errorf("failed to find session: %v", err)
-		}
-		sessionID = sessionData.Session
-		sessionName = name
+
+	// 获取当前存在的会话
+	sessions, _ := s.page()
+	global.LOG.Info("found sessions: \n %v", sessions)
+	// 不存在任何会话
+	if len(sessions) == 0 {
+		// 创建新会话
+		global.LOG.Info("No exist sessions, create one")
+		return s.Start(message.SessionData{Session: "", Data: ""})
 	}
 
+	// 请求没有传入session时，看是否需要创建会话
+	if sessionData.Session == "" {
+		// 查找时间最近，且已经Detached的会话
+		latestSession := sessions[0]
+		for _, session := range sessions {
+			if session.Time.After(latestSession.Time) && session.Status == "Detached" {
+				latestSession = session
+			}
+		}
+		if latestSession.Status != "Detached" {
+			global.LOG.Info("No detached sessions, create one")
+			return s.Start(message.SessionData{Session: "", Data: ""})
+		} else {
+			// sessionID
+			sessionID = latestSession.Session
+			sessionName = latestSession.Name
+		}
+	} else {
+		// 请求传入了session，找到该会话
+		var toAttach *model.SessionInfo
+		for _, session := range sessions {
+			if session.Session == sessionData.Session {
+				toAttach = &session
+			}
+		}
+		// 没找到
+		if toAttach == nil {
+			global.LOG.Error("session %s not found", sessionData.Session)
+			return nil, fmt.Errorf("session %s not found", sessionData.Session)
+		}
+		// 已经 attached
+		if toAttach.Status == "Attached" {
+			global.LOG.Error("session %s already attached", toAttach.Session)
+			return nil, fmt.Errorf("session %s already attached", toAttach.Name)
+		}
+
+		sessionID = toAttach.Session
+		sessionName = toAttach.Name
+	}
+	global.LOG.Info("Find session: %s.%s", sessionID, sessionName)
+
 	// 恢复会话
-	screenCmd := exec.Command("screen", "-d", "-r", sessionID)
+	screenCmd := exec.Command("screen", "-r", sessionID)
 	global.LOG.Info("Attaching to session: %s", sessionID)
 
 	// 设置环境变量
