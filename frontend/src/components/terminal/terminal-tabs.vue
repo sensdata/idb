@@ -161,7 +161,7 @@
   const hostStore = useHostStore();
   const terms = ref<TermSessionItem[]>([]);
 
-  function addSession(options: {
+  function addItem(options: {
     type: 'attach' | 'start';
     host: HostEntity;
     sessionId?: string;
@@ -183,9 +183,10 @@
     activeKey.value = key;
   }
 
-  function removeSession(key: string | number) {
+  function removeItem(key: string | number) {
     const index = terms.value.findIndex((item) => item.key === key);
     if (index !== -1) {
+      terms.value[index].termRef?.dispose();
       terms.value.splice(index, 1);
     }
     if (key === activeKey.value) {
@@ -198,14 +199,14 @@
 
   function handleClose(item: TermSessionItem, action: 'quit' | 'detach') {
     if (action === 'quit') {
-      removeSession(item.key);
+      removeItem(item.key);
       if (item.sessionId) {
         quitTerminalSessionApi(item.hostId, {
           session: item.sessionId,
         });
       }
     } else if (action === 'detach') {
-      removeSession(item.key);
+      removeItem(item.key);
       if (item.sessionId) {
         detachTerminalSessionApi(item.hostId, {
           session: item.sessionId,
@@ -252,7 +253,7 @@
     if (formState.type === 'attach' && !formState.sessionId) {
       return;
     }
-    addSession({
+    addItem({
       type: formState.type,
       host: hostStore.items.find((item) => item.id === formState.hostId)!,
       ...(formState.type === 'attach'
@@ -323,7 +324,7 @@
   });
 
   defineExpose({
-    addSession,
+    addItem,
   });
 </script>
 

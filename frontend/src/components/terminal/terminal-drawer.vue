@@ -26,7 +26,7 @@
   watch(visible, (val) => {
     if (val && firstShow.value) {
       firstShow.value = false;
-      tabsRef?.value?.addSession({
+      tabsRef?.value?.addItem({
         type: 'attach',
         host: hostStore.current!,
       });

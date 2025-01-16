@@ -4,6 +4,7 @@
     :footer="false"
     height="90vh"
     placement="bottom"
+    unmount-on-close
   >
     <template #title>{{ $t('manage.host.terminal.title') }}</template>
     <terminal v-if="termVisible" :host-id="hostId!" />
