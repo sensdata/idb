@@ -103,6 +103,8 @@ type SessionData struct {
 	Msg     string `json:"msg"`
 	Session string `json:"session"`
 	Data    string `json:"data"`
+	Cols    int    `json:"cols"`
+	Rows    int    `json:"rows"`
 }
 
 func (m *SessionMessage) GetType() string {

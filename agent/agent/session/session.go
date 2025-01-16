@@ -88,8 +88,15 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 	)
 
 	// 创建伪终端
-	// ptyFile, err := pty.Start(screenCmd)
-	ws := &pty.Winsize{Rows: 24, Cols: 80}
+	rows := 24
+	if sessionData.Rows > 0 {
+		rows = sessionData.Rows
+	}
+	cols := 80
+	if sessionData.Cols > 0 {
+		cols = sessionData.Cols
+	}
+	ws := &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)}
 	ptyFile, err := pty.StartWithSize(screenCmd, ws)
 	if err != nil {
 		global.LOG.Error("failed to start pty: %v", err)
@@ -130,7 +137,7 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	if len(sessions) == 0 {
 		// 创建新会话
 		global.LOG.Info("No exist sessions, create one")
-		return s.Start(message.SessionData{Session: "", Data: ""})
+		return s.Start(sessionData)
 	}
 
 	// 请求没有传入session时，看是否需要创建会话
@@ -144,7 +151,7 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 		}
 		if latestSession.Status != "Detached" {
 			global.LOG.Info("No detached sessions, create one")
-			return s.Start(message.SessionData{Session: "", Data: ""})
+			return s.Start(sessionData)
 		} else {
 			// sessionID
 			sessionID = latestSession.Session
@@ -189,7 +196,15 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	)
 
 	// 创建伪终端
-	ws := &pty.Winsize{Rows: 24, Cols: 80}
+	rows := 24
+	if sessionData.Rows > 0 {
+		rows = sessionData.Rows
+	}
+	cols := 80
+	if sessionData.Cols > 0 {
+		cols = sessionData.Cols
+	}
+	ws := &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)}
 	ptyFile, err := pty.StartWithSize(screenCmd, ws)
 	if err != nil {
 		global.LOG.Error("failed to start pty: %v", err)
@@ -229,6 +244,17 @@ func (s *Session) Input(data string) error {
 		return err
 	}
 	global.LOG.Info("Input sent to session %s", s.ID)
+	return nil
+}
+
+func (s *Session) Resize(cols, rows int) error {
+	ws := &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)}
+	err := pty.Setsize(s.Pty, ws)
+	if err != nil {
+		global.LOG.Error("Error resize session %s: %v", s.ID, err)
+		return err
+	}
+	global.LOG.Info("Resize session %s", s.ID)
 	return nil
 }
 
@@ -440,40 +466,6 @@ func (s *SessionService) getSessionID(sessionName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("session %s not found", sessionName)
-}
-
-func (s *SessionService) getSessionName(sessionID string) (string, error) {
-	// 执行 screen -ls 命令获取所有会话列表
-	output, err := exec.Command("screen", "-ls").Output()
-	if strings.Contains(string(output), "No Sockets found") {
-		global.LOG.Info("no session found")
-		return "", fmt.Errorf("no session found")
-	}
-	if err != nil {
-		global.LOG.Error("failed to list sessions: %v", err)
-		return "", fmt.Errorf("failed to list sessions: %v", err)
-	}
-
-	// 处理返回的结果字符串
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		// 查找包含 sessionID. 的行
-		if !strings.Contains(line, sessionID+".") {
-			continue
-		}
-
-		// 使用正则表达式提取会话信息，匹配 id.name 格式
-		re := regexp.MustCompile(`\d+\.(\S+)\s+`)
-		matches := re.FindStringSubmatch(line)
-		if len(matches) >= 2 {
-			return matches[1], nil
-		}
-
-		global.LOG.Error("invalid session format: %s", line)
-		return "", fmt.Errorf("invalid session format")
-	}
-
-	return "", fmt.Errorf("session %s not found", sessionID)
 }
 
 func (s *SessionService) Finish(sessionID string) error {

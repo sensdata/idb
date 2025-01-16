@@ -212,6 +212,16 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 
 	token := c.GetHeader("Authorization")
 
+	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param cols in request")
+	}
+	rows, err := strconv.Atoi(c.DefaultQuery("rows", "40"))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param rows in request")
+	}
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		wsHandleError(wsConn, err)
@@ -224,7 +234,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "agent disconected")
 	}
 
-	aws, err := NewAgentWebSocketSession(agentConn, wsConn, CONFMAN.GetConfig().SecretKey)
+	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey)
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create Agent WebSocket session")

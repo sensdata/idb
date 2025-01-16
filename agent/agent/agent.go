@@ -574,6 +574,14 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		} else {
 			go a.sessionInput(msg.Data.Session, msg.Data.Data)
 		}
+
+	case message.WsMessageResize: // 调整尺寸
+		if !a.isScreenInstalled() {
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
+		} else {
+			go a.sessionResize(msg.Data.Session, msg.Data.Cols, msg.Data.Rows)
+		}
+
 	default:
 		global.LOG.Error("not supported session mesage")
 	}
@@ -586,12 +594,24 @@ func (a *Agent) sessionInput(sessionID string, data string) {
 	defer a.mu.Unlock()
 
 	if session, ok := a.sessionMap[sessionID]; ok {
-		global.LOG.Info("sessionInput")
 		if err := session.Input(data); err != nil {
 			global.LOG.Error("Failed to input to session %s: %v", sessionID, err)
 		}
 	} else {
 		global.LOG.Error("no session to input")
+	}
+}
+
+func (a *Agent) sessionResize(sessionID string, cols, rows int) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if session, ok := a.sessionMap[sessionID]; ok {
+		if err := session.Resize(cols, rows); err != nil {
+			global.LOG.Error("Failed to resize session %s: %v", sessionID, err)
+		}
+	} else {
+		global.LOG.Error("no session to resize")
 	}
 }
 

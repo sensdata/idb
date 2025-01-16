@@ -2,7 +2,6 @@ package conn
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 
 	"github.com/gorilla/websocket"
@@ -17,15 +16,19 @@ type AgentWebSocketSession struct {
 	agentConn          *net.Conn
 	agentSecret        string
 	wsConn             *websocket.Conn
+	cols               int
+	rows               int
 }
 
-func NewAgentWebSocketSession(agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string) (*AgentWebSocketSession, error) {
+func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string) (*AgentWebSocketSession, error) {
 	return &AgentWebSocketSession{
 		Session:            utils.GenerateMsgId(),
 		SessionMessageChan: make(chan *message.SessionMessage),
 		agentConn:          agentConn,
 		wsConn:             wsConn,
 		agentSecret:        agentSecret,
+		cols:               cols,
+		rows:               rows,
 	}, nil
 }
 
@@ -76,14 +79,14 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 					message.WsMessageStart,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 				)
 
 			case message.WsMessageAttach:
 				aws.sendToAgent(
 					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 					message.WsMessageAttach,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 				)
 
 			case message.WsMessageCmd:
@@ -97,7 +100,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageResize,
-					message.SessionData{Session: msgObj.Session, Data: fmt.Sprintf("%d,%d", msgObj.Cols, msgObj.Rows)},
+					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
 				)
 
 			case message.WsMessageHeartbeat:
