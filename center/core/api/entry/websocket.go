@@ -86,8 +86,8 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 }
 
 // @Tags Terminal
-// @Summary Prune terminal sessions
-// @Description Prune terminal sessions
+// @Summary Prune detached sessions
+// @Description Prune detached sessions
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
@@ -118,6 +118,8 @@ func (b *BaseApi) PruneSessions(c *gin.Context) {
 // @Success 200
 // @Router /terminals/{host}/session/detach [post]
 func (b *BaseApi) DetachSession(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -129,7 +131,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 		return
 	}
 
-	err = terminalService.Detach(uint(hostID), req)
+	err = terminalService.Detach(token, uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -147,6 +149,8 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 // @Success 200
 // @Router /terminals/{host}/session/quit [post]
 func (b *BaseApi) QuitSession(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -158,7 +162,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 		return
 	}
 
-	err = terminalService.Quit(uint(hostID), req)
+	err = terminalService.Quit(token, uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -176,6 +180,8 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 // @Success 200
 // @Router /terminals/{host}/session/rename [post]
 func (b *BaseApi) RenameSession(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
@@ -187,7 +193,7 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 		return
 	}
 
-	err = terminalService.Rename(uint(hostID), req)
+	err = terminalService.Rename(token, uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return

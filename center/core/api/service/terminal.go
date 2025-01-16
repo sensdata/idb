@@ -14,9 +14,9 @@ type TerminalService struct{}
 type ITerminalService interface {
 	Sessions(hostID uint) (*model.PageResult, error)
 	Prune(hostID uint) error
-	Detach(hostID uint, req model.TerminalRequest) error
-	Quit(hostID uint, req model.TerminalRequest) error
-	Rename(hostID uint, req model.TerminalRequest) error
+	Detach(token string, hostID uint, req model.TerminalRequest) error
+	Quit(token string, hostID uint, req model.TerminalRequest) error
+	Rename(token string, hostID uint, req model.TerminalRequest) error
 	Install(hostID uint) error
 }
 
@@ -73,7 +73,13 @@ func (s *TerminalService) Prune(hostID uint) error {
 	return nil
 }
 
-func (s *TerminalService) Detach(hostID uint, req model.TerminalRequest) error {
+func (s *TerminalService) Detach(token string, hostID uint, req model.TerminalRequest) error {
+	// 如果会话已经登记了token，说明正在被使用
+	sessionToken, exist := conn.CENTER.GetSessionToken(req.Session)
+	if exist && token != sessionToken {
+		global.LOG.Error("session %s is being used by another user", req.Session)
+		return fmt.Errorf("session %s is being used by another user", req.Session)
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -89,17 +95,24 @@ func (s *TerminalService) Detach(hostID uint, req model.TerminalRequest) error {
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action %v", err)
-		return err
+		return fmt.Errorf("operation failed")
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to detach session")
+		global.LOG.Error("failed to detach session, might already been detached")
 	}
 
 	return nil
 }
 
-func (s *TerminalService) Quit(hostID uint, req model.TerminalRequest) error {
+func (s *TerminalService) Quit(token string, hostID uint, req model.TerminalRequest) error {
+	// 如果会话已经登记了token，说明正在被使用
+	sessionToken, exist := conn.CENTER.GetSessionToken(req.Session)
+	if exist && token != sessionToken {
+		global.LOG.Error("session %s is being used by another user", req.Session)
+		return fmt.Errorf("session %s is being used by another user", req.Session)
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -115,17 +128,23 @@ func (s *TerminalService) Quit(hostID uint, req model.TerminalRequest) error {
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action %v", err)
-		return err
+		return fmt.Errorf("operation failed")
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to quit session")
+		global.LOG.Error("failed to quit session, might already been quit")
 	}
 
 	return nil
 }
 
-func (s *TerminalService) Rename(hostID uint, req model.TerminalRequest) error {
+func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRequest) error {
+	// 如果会话已经登记了token，说明正在被使用
+	sessionToken, exist := conn.CENTER.GetSessionToken(req.Session)
+	if exist && token != sessionToken {
+		global.LOG.Error("session %s is being used by another user", req.Session)
+		return fmt.Errorf("session %s is being used by another user", req.Session)
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err

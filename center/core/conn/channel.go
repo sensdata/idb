@@ -35,6 +35,7 @@ type Center struct {
 	responseChMap     map[string]chan string // 用于接收命令执行结果的动态通道
 	fileResponseChMap map[string]chan *message.FileMessage
 	awsMap            map[string]*AgentWebSocketSession
+	sessionTokenMap   map[string]string // 缓存session是否被占用
 }
 
 type ICenter interface {
@@ -48,6 +49,9 @@ type ICenter interface {
 	GetAgentConn(hostID uint) (*net.Conn, error)
 	RegisterAgentSession(aws *AgentWebSocketSession)
 	UnregisterAgentSession(session string)
+	RegisterSessionToken(session string, token string)
+	UnregisterSessionToken(session string)
+	GetSessionToken(session string) (string, bool)
 	TestAgent(id uint, req core.TestAgent) error
 }
 
@@ -58,6 +62,7 @@ func NewCenter() ICenter {
 		responseChMap:     make(map[string]chan string),
 		fileResponseChMap: make(map[string]chan *message.FileMessage),
 		awsMap:            make(map[string]*AgentWebSocketSession),
+		sessionTokenMap:   make(map[string]string),
 	}
 }
 
@@ -447,11 +452,22 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			c.awsMap[msg.Data.Session] = aws
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
-			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
+			global.LOG.Info("replace aws msgID %s with session %s", msg.MsgID, msg.Data.Session)
 
 			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
+		}
+		// 找 session - token
+		token, exists := c.sessionTokenMap[msg.MsgID]
+		if exists {
+			// 替换成session作为key
+			c.sessionTokenMap[msg.Data.Session] = token
+			// 删除原 msgID 对应记录
+			delete(c.sessionTokenMap, msg.MsgID)
+			global.LOG.Info("replace token msgID %s with session %s", msg.MsgID, msg.Data.Session)
+		} else {
+			global.LOG.Info("no token - session")
 		}
 	case message.WsMessageAttach:
 		// attach的时候，通过msgID找aws
@@ -467,6 +483,17 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
+		}
+		// 找 session - token
+		token, exists := c.sessionTokenMap[msg.MsgID]
+		if exists {
+			// 替换成session作为key
+			c.sessionTokenMap[msg.Data.Session] = token
+			// 删除原 msgID 对应记录
+			delete(c.sessionTokenMap, msg.MsgID)
+			global.LOG.Info("replace token msgID %s with session %s", msg.MsgID, msg.Data.Session)
+		} else {
+			global.LOG.Info("no token - session")
 		}
 	case message.WsMessageCmd:
 		// command的时候，通过session找aws
@@ -735,6 +762,30 @@ func (c *Center) UnregisterAgentSession(session string) {
 
 	global.LOG.Info("Session %s unregistered", session)
 	delete(c.awsMap, session)
+}
+
+func (c *Center) RegisterSessionToken(session string, token string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	global.LOG.Info("Session %s token registered", session)
+	c.sessionTokenMap[session] = token
+}
+
+func (c *Center) UnregisterSessionToken(session string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	global.LOG.Info("Session %s token unregistered", session)
+	delete(c.sessionTokenMap, session)
+}
+
+func (c *Center) GetSessionToken(session string) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	token, exists := c.sessionTokenMap[session]
+	return token, exists
 }
 
 func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {

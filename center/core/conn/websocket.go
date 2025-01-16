@@ -210,6 +210,8 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
+	token := c.GetHeader("Authorization")
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		wsHandleError(wsConn, err)
@@ -232,10 +234,12 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 	quitChan := make(chan bool, 3)
 	// 将 aws 记录到center中
 	CENTER.RegisterAgentSession(aws)
+	CENTER.RegisterSessionToken(aws.Session, token)
 	aws.Start(quitChan)
 	// 等待quitChan
 	<-quitChan
 	// 将 aws 从center中清除
+	CENTER.UnregisterSessionToken(aws.Session)
 	CENTER.UnregisterAgentSession(aws.Session)
 
 	global.LOG.Info("handle agent terminal end")
