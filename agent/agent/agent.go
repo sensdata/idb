@@ -486,6 +486,14 @@ func (a *Agent) unregisterSession(sessionID string) {
 	global.LOG.Info("Session %s unregistered", sessionID)
 }
 
+func (a *Agent) getSession(sessionID string) (*session.Session, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	session, exists := a.sessionMap[sessionID]
+	return session, exists
+}
+
 func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
 	global.LOG.Info("processSessionMessage: %v", msg)
 
@@ -533,23 +541,35 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
 		} else {
+			// 判断是否已经存在
+			_, exist := a.getSession(msg.Data.Session)
+			if exist {
+				// detach旧会话
+				err := SessionService.Detach(msg.Data.Session)
+				if err != nil {
+					global.LOG.Error("failed to detach session %s for re-attaching", msg.Data.Session)
+				}
+
+				// 延迟500毫秒
+				time.Sleep(250 * time.Millisecond)
+			}
+
 			session, err := SessionService.Attach(msg.Data)
 			if err != nil {
 				global.LOG.Error("Failed to attach session: %v", err)
 				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Session, "")
 			} else {
 				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
-				a.registerSession(session)
 
 				// 开始监听该会话
 				go func() {
-					// 先返回本会话信息
 					a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
 
 					// 延迟500毫秒
-					time.Sleep(500 * time.Millisecond)
+					time.Sleep(250 * time.Millisecond)
 
 					global.LOG.Info("session begin")
+					a.registerSession(session)
 					quitChan := make(chan bool, 3)
 					session.Start(quitChan)
 					go session.Wait(quitChan)
@@ -572,14 +592,14 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
 		} else {
-			go a.sessionInput(msg.Data.Session, msg.Data.Data)
+			go a.sessionInput(msg.Data)
 		}
 
 	case message.WsMessageResize: // 调整尺寸
 		if !a.isScreenInstalled() {
 			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
 		} else {
-			go a.sessionResize(msg.Data.Session, msg.Data.Cols, msg.Data.Rows)
+			go a.sessionResize(msg.Data)
 		}
 
 	default:
@@ -589,26 +609,26 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	global.LOG.Info("processSessionMessage end")
 }
 
-func (a *Agent) sessionInput(sessionID string, data string) {
+func (a *Agent) sessionInput(sessionData message.SessionData) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if session, ok := a.sessionMap[sessionID]; ok {
-		if err := session.Input(data); err != nil {
-			global.LOG.Error("Failed to input to session %s: %v", sessionID, err)
+	if session, ok := a.sessionMap[sessionData.Session]; ok {
+		if err := session.Input(sessionData.Data); err != nil {
+			global.LOG.Error("Failed to input to session %s: %v", sessionData.Session, err)
 		}
 	} else {
 		global.LOG.Error("no session to input")
 	}
 }
 
-func (a *Agent) sessionResize(sessionID string, cols, rows int) {
+func (a *Agent) sessionResize(sessionData message.SessionData) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if session, ok := a.sessionMap[sessionID]; ok {
-		if err := session.Resize(cols, rows); err != nil {
-			global.LOG.Error("Failed to resize session %s: %v", sessionID, err)
+	if session, ok := a.sessionMap[sessionData.Session]; ok {
+		if err := session.Resize(sessionData.Cols, sessionData.Rows); err != nil {
+			global.LOG.Error("Failed to resize session %s: %v", sessionData.Session, err)
 		}
 	} else {
 		global.LOG.Error("no session to resize")

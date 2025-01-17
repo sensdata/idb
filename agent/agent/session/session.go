@@ -171,10 +171,10 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 			return nil, fmt.Errorf("session %s not found", sessionData.Session)
 		}
 		// 已经 attached
-		if toAttach.Status == "Attached" {
-			global.LOG.Error("session %s already attached", toAttach.Session)
-			return nil, fmt.Errorf("session %s already attached", toAttach.Name)
-		}
+		// if toAttach.Status == "Attached" {
+		// 	global.LOG.Error("session %s already attached", toAttach.Session)
+		// 	return nil, fmt.Errorf("session %s already attached", toAttach.Name)
+		// }
 
 		sessionID = toAttach.Session
 		sessionName = toAttach.Name
@@ -182,7 +182,7 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 	global.LOG.Info("Find session: %s.%s", sessionID, sessionName)
 
 	// 恢复会话
-	screenCmd := exec.Command("screen", "-r", sessionID)
+	screenCmd := exec.Command("screen", "-d", "-r", sessionID)
 	global.LOG.Info("Attaching to session: %s", sessionID)
 
 	// 设置环境变量

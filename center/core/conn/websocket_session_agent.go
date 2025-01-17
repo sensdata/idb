@@ -2,25 +2,29 @@ package conn
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"github.com/gorilla/websocket"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
 )
 
 type AgentWebSocketSession struct {
 	Session            string
+	Name               string
 	SessionMessageChan chan *message.SessionMessage
 	agentConn          *net.Conn
 	agentSecret        string
 	wsConn             *websocket.Conn
 	cols               int
 	rows               int
+	token              string
 }
 
-func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string) (*AgentWebSocketSession, error) {
+func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string) (*AgentWebSocketSession, error) {
 	return &AgentWebSocketSession{
 		Session:            utils.GenerateMsgId(),
 		SessionMessageChan: make(chan *message.SessionMessage),
@@ -29,6 +33,7 @@ func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *webso
 		agentSecret:        agentSecret,
 		cols:               cols,
 		rows:               rows,
+		token:              token,
 	}, nil
 }
 
@@ -83,11 +88,33 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				)
 
 			case message.WsMessageAttach:
-				aws.sendToAgent(
-					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
-					message.WsMessageAttach,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
-				)
+				// 如果会话已经登记了token，说明正在被使用
+				sessionToken, exist := CENTER.GetSessionToken(msgObj.Session)
+				global.LOG.Info("aws token: %s \n session token: %s", aws.token, sessionToken)
+				if exist && aws.token != sessionToken {
+					// 别人已经在使用的提示
+					errMsg := fmt.Sprintf("session %s is being used by another user", msgObj.Session)
+					global.LOG.Error("%s", errMsg)
+					go func() {
+						msg := message.SessionMessage{
+							MsgID: aws.Session,
+							Type:  message.MessageType(msgObj.Type),
+							Data: message.SessionData{
+								Code:    constant.CodeFailed,
+								Msg:     errMsg,
+								Session: msgObj.Session,
+								Data:    "",
+							},
+						}
+						aws.SessionMessageChan <- &msg
+					}()
+				} else {
+					aws.sendToAgent(
+						aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
+						message.WsMessageAttach,
+						message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
+					)
+				}
 
 			case message.WsMessageCmd:
 				aws.sendToAgent(

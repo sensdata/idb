@@ -449,6 +449,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
+			aws.Name = msg.Data.Data
 			c.awsMap[msg.Data.Session] = aws
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
@@ -475,6 +476,7 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
+			aws.Name = msg.Data.Data
 			c.awsMap[msg.Data.Session] = aws
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)

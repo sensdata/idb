@@ -210,7 +210,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
-	token := c.GetHeader("Authorization")
+	token, _ := c.Cookie("token")
 
 	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
 	if err != nil {
@@ -234,7 +234,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "agent disconected")
 	}
 
-	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey)
+	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey, token)
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create Agent WebSocket session")
