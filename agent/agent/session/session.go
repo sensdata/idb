@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -69,6 +70,10 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		// 枚举会话，并创建一个 idb-n
 		name, err := s.genSessionName()
 		if err != nil {
+			// 达到限制
+			if err.Error() == constant.ErrSessionLimit {
+				return nil, fmt.Errorf("%s", "iDB terminal session limit reached. Please clear inactive sessions.")
+			}
 			global.LOG.Error("failed to gen session name: %v", err)
 			return nil, fmt.Errorf("failed to gen session name: %v", err)
 		}
@@ -418,6 +423,12 @@ func (s *SessionService) genSessionName() (string, error) {
 			}
 		}
 	}
+
+	// 如果已经有20个了，不允许再创建新的
+	if len(numbers) >= 20 {
+		return "", errors.New(constant.ErrSessionLimit)
+	}
+
 	// 得到了当前的所有numbers，按从低到高排序
 	sort.Ints(numbers)
 

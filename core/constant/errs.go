@@ -80,3 +80,8 @@ var (
 var (
 	ErrContainerName = "ErrContainerName"
 )
+
+// session
+var (
+	ErrSessionLimit = "ErrSessionLimit"
+)
