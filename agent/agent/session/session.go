@@ -135,8 +135,8 @@ func (s *SessionService) Attach(sessionData message.SessionData) (*Session, erro
 		sessionName string
 	)
 
-	// 获取当前存在的会话
-	sessions, _ := s.page()
+	// 获取当前存在的 Detached 会话
+	sessions, _ := s.page(true)
 	global.LOG.Info("found sessions: \n %v", sessions)
 	// 不存在任何会话
 	if len(sessions) == 0 {
@@ -321,7 +321,7 @@ func (s *Session) sendSessionResult(data string) {
 func (s *SessionService) Page() (*model.PageResult, error) {
 	var result model.PageResult
 
-	sessions, _ := s.page()
+	sessions, _ := s.page(false)
 
 	result.Total = int64(len(sessions))
 	result.Items = sessions
@@ -329,7 +329,7 @@ func (s *SessionService) Page() (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *SessionService) page() ([]model.SessionInfo, error) {
+func (s *SessionService) page(filterDetached bool) ([]model.SessionInfo, error) {
 	var sessions []model.SessionInfo
 
 	// 执行命令以列出所有的 screen 会话
@@ -368,6 +368,11 @@ func (s *SessionService) page() ([]model.SessionInfo, error) {
 			sessionName := sessionParts[1]
 			timeStr := matches[2]
 			status := matches[3]
+
+			// 如果只筛选 Detached 会话
+			if filterDetached && status != "Detached" {
+				continue
+			}
 
 			parsedTime, err := time.Parse("01/02/2006 03:04:05 PM", timeStr)
 			if err != nil {
