@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -31,6 +30,7 @@ import (
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
+	"github.com/sensdata/idb/core/utils/systemctl"
 )
 
 var (
@@ -46,9 +46,8 @@ var (
 
 type Agent struct {
 	unixListener net.Listener
-	tcpListener  net.Listener
-	centerConn   net.Conn // 存储center端连接的映射
 	done         chan struct{}
+	resetConn    chan struct{}
 	mu           sync.Mutex // 保护centerConn的互斥锁
 	sessionMap   map[string]*session.Session
 }
@@ -66,8 +65,8 @@ type IAgent interface {
 
 func NewAgent() IAgent {
 	return &Agent{
-		centerConn: nil,
 		done:       make(chan struct{}),
+		resetConn:  make(chan struct{}),
 		sessionMap: make(map[string]*session.Session),
 	}
 }
@@ -83,10 +82,7 @@ func (a *Agent) Start() error {
 	}
 
 	// 监听端口
-	err = a.listenToTcp()
-	if err != nil {
-		return err
-	}
+	go a.listenToTcp()
 
 	return nil
 }
@@ -94,19 +90,9 @@ func (a *Agent) Start() error {
 func (a *Agent) Stop() error {
 	close(a.done)
 
-	// 关闭center连接
-	a.mu.Lock()
-	if a.centerConn != nil {
-		a.centerConn.Close()
-	}
-	a.mu.Unlock()
-
 	// 关闭监听
 	if a.unixListener != nil {
 		a.unixListener.Close()
-	}
-	if a.tcpListener != nil {
-		a.tcpListener.Close()
 	}
 
 	//删除sock文件
@@ -215,7 +201,7 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 			} else {
 				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
-				a.listenToTcp()
+				go systemctl.Restart(constant.AgentService)
 			}
 		default:
 			conn.Write([]byte("Unknown config command format"))
@@ -225,32 +211,14 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 	}
 }
 
-func (a *Agent) listenToTcp() error {
-	//先关闭
-	a.mu.Lock()
-	if a.centerConn != nil {
-		a.centerConn.Close()
-	}
-	a.mu.Unlock()
-
-	if a.tcpListener != nil {
-		a.tcpListener.Close()
-	}
-
+func (a *Agent) listenToTcp() {
 	config := CONFMAN.GetConfig()
-	global.LOG.Info("Try listen on port %d", config.Port)
-
-	// lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port))
-	// if err != nil {
-	// 	global.LOG.Error("Failed to listen on port %d: %v", config.Port, err)
-	// 	fmt.Printf("Failed to listen on port %d, quit \n", config.Port)
-	// 	return err
-	// }
 
 	// 创建 TLS 配置
 	cert, err := tls.X509KeyPair(global.CertPem, global.KeyPem)
 	if err != nil {
-		return err
+		global.LOG.Error("Failed to create cert: %v", err)
+		return
 	}
 
 	tlsConfig := &tls.Config{
@@ -260,37 +228,24 @@ func (a *Agent) listenToTcp() error {
 	}
 
 	// 使用 tls.Listen 替代 net.Listen
-	lis, err := tls.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port), tlsConfig)
+	listener, err := tls.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", config.Port), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to listen on port %d: %v", config.Port, err)
-		fmt.Printf("Failed to listen on port %d: quit \n", config.Port)
-		return err
+		return
 	}
-
-	a.tcpListener = lis
-	go a.acceptConnections()
 
 	global.LOG.Info("Starting TCP server on port %d", config.Port)
 
-	return nil
-}
-
-func (a *Agent) acceptConnections() {
 	for {
 		select {
 		case <-a.done:
 			global.LOG.Info("Agent is stopping, stop accepting new connections.")
 			return
 		default:
-			conn, err := a.tcpListener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
-				select {
-				case <-a.done:
-					global.LOG.Info("Agent is stopping, stop accepting new connections.")
-					return
-				default:
-					global.LOG.Error("Failed to accept connection: %v", err)
-				}
+				global.LOG.Error("Failed to accept connection: %v", err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
 
@@ -299,59 +254,65 @@ func (a *Agent) acceptConnections() {
 			connAddr := conn.RemoteAddr().String()
 			global.LOG.Info("Accepted new connection from %s at %s", connAddr, now)
 
-			// 记录连接
-			a.mu.Lock()
-			a.centerConn = conn
-			a.mu.Unlock()
-
-			// 传递给 SessionService
-			SessionService.Config(&conn, CONFMAN.GetConfig().SecretKey)
-
 			// 处理连接
 			go a.handleConnection(conn)
+
+			// 结束循环
+			break
 		}
 	}
 }
 
 func (a *Agent) handleConnection(conn net.Conn) {
-	defer func() {
-		a.mu.Lock()
-		a.centerConn = nil
-		a.mu.Unlock()
-
-		conn.Close()
-	}()
+	// 传递给 SessionService
+	SessionService.Config(&conn, CONFMAN.GetConfig().SecretKey)
 
 	config := CONFMAN.GetConfig()
 
 	// 缓存区：用来缓存从 conn.Read 读取的数据
 	dataBuffer := make([]byte, 0)
-
+	tmpBuffer := make([]byte, 1024)
 	for {
-		// 读取数据
-		tmpBuffer := make([]byte, 1024)
-		n, err := conn.Read(tmpBuffer)
-		if err != nil {
-			if err != io.EOF {
-				global.LOG.Error("Error read from conn: %v", err)
-			}
-			break
-		}
-		// 将数据拼接到缓存区
-		dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
+		select {
+		// 断连并退出
+		case <-a.done:
+			global.LOG.Info("Agent is stopping, stop handleConnection")
+			conn.Close()
+			return
 
-		// 尝试解析消息
-		for {
-			// 提取完整消息
+		// 重置连接
+		case <-a.resetConn:
+			global.LOG.Info("Close and Accept")
+			conn.Close()
+			go a.listenToTcp()
+			return
+
+		// 读取数据
+		default:
+			n, err := conn.Read(tmpBuffer)
+			if err != nil {
+				global.LOG.Error("Error read from conn: %v", err)
+				// if err != io.EOF {
+				// 	global.LOG.Error("Error read from conn: %v", err)
+				// }
+				a.resetConnection()
+				continue
+			}
+			// 将数据拼接到缓存区
+			dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
+
+			// 尝试提取完整消息
 			msgType, packet, remainingBuffer, err := message.ExtractCompleteMessagePacket(dataBuffer)
 			if err != nil {
 				if err == message.ErrIncompleteMessage {
 					// 数据不完整，继续读取
-					break
-				} else {
-					global.LOG.Error("Error extract complete message: %v", err)
-					break
+					continue
 				}
+
+				// 错误，重试重连
+				global.LOG.Error("Error extract complete message: %v", err)
+				a.resetConnection()
+				continue
 			}
 
 			// 处理解析后的消息
@@ -362,11 +323,11 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			}
 			switch m := msg.(type) {
 			case *message.Message:
-				a.processMessage(conn, m)
+				go a.processMessage(conn, m)
 			case *message.FileMessage:
-				a.processFileMessage(conn, m)
+				go a.processFileMessage(conn, m)
 			case *message.SessionMessage:
-				a.processSessionMessage(conn, m)
+				go a.processSessionMessage(conn, m)
 			default:
 				fmt.Println("Unknown message type")
 			}
@@ -375,8 +336,10 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			dataBuffer = remainingBuffer
 		}
 	}
+}
 
-	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
+func (a *Agent) resetConnection() {
+	a.resetConn <- struct{}{}
 }
 
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
@@ -2043,11 +2006,7 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 	err = message.SendMessage(conn, heartbeatMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send heartbeat message: %v", err)
-		a.mu.Lock()
-		conn.Close()
-		global.LOG.Info("close conn")
-		a.centerConn = nil
-		a.mu.Unlock()
+		a.resetConnection()
 	} else {
 		global.LOG.Info("Heartbeat sent to %s", conn.RemoteAddr().String())
 	}
@@ -2073,11 +2032,7 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send cmd rsp message: %v", err)
-		a.mu.Lock()
-		conn.Close()
-		global.LOG.Info("close conn")
-		a.centerConn = nil
-		a.mu.Unlock()
+		a.resetConnection()
 	}
 }
 
@@ -2107,11 +2062,7 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send cmd rsp message: %v", err)
-		a.mu.Lock()
-		conn.Close()
-		global.LOG.Info("close conn")
-		a.centerConn = nil
-		a.mu.Unlock()
+		a.resetConnection()
 	}
 }
 
@@ -2135,7 +2086,7 @@ func (a *Agent) sendUploadResult(conn net.Conn, msg *message.FileMessage, status
 	err = message.SendFileMessage(conn, rspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send file rsp : %v", err)
-		return
+		a.resetConnection()
 	}
 }
 
@@ -2143,7 +2094,7 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 	err := message.SendFileMessage(conn, msg)
 	if err != nil {
 		global.LOG.Error("Failed to send file rsp : %v", err)
-		return
+		a.resetConnection()
 	}
 }
 
@@ -2167,6 +2118,6 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.M
 	err = message.SendSessionMessage(conn, rspMsg)
 	if err != nil {
 		global.LOG.Error("Failed to send session rsp : %v", err)
-		return
+		a.resetConnection()
 	}
 }

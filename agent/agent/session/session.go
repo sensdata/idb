@@ -80,16 +80,17 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 		sessionName = name
 	}
 
-	screenCmd := exec.Command("screen", "-S", sessionName, "-s", "bash", "-i")
+	screenCmd := exec.Command("screen", "-S", sessionName, "-s", "bash")
 
 	// 设置环境变量
-	homeDir, _ := os.UserHomeDir()
-	global.LOG.Info("homedir: %s", homeDir)
+	// homeDir := os.Getenv("HOME")
+	// path := os.Getenv("PATH")
+	// global.LOG.Info("HOME: %s \n PATH: %s", homeDir, path)
 	screenCmd.Env = append(os.Environ(),
-		"TERM=xterm",              // 设置为xterm以兼容xterm.js
-		"SHELL=/bin/bash",         // 设置默认shell
-		"HOME="+homeDir,           // 设置用户主目录
-		"PATH="+os.Getenv("PATH"), // 确保PATH包含必要的命令
+		"TERM=screen-256color", // 设置为xterm以兼容xterm.js
+		"SHELL=/bin/bash",      // 设置默认shell
+		// "HOME=/root",           // 设置用户主目录
+		// "PATH="+path,           // 确保PATH包含必要的命令
 	)
 
 	// 创建伪终端
@@ -109,6 +110,9 @@ func (s *SessionService) Start(sessionData message.SessionData) (*Session, error
 	}
 
 	global.LOG.Info("session started")
+
+	// 延迟一点点
+	time.Sleep(100 * time.Millisecond)
 
 	// 找到会话
 	sessionID, err := s.getSessionID(sessionName)
@@ -306,16 +310,16 @@ func (s *Session) sendSessionResult(data string) {
 		utils.GenerateNonce(16),
 	)
 	if err != nil {
-		global.LOG.Error("Error creating session rsp message: %v", err)
+		global.LOG.Error("[Session] Error creating session rsp message: %v", err)
 		return
 	}
 
 	err = message.SendSessionMessage(*s.Conn, rspMsg)
 	if err != nil {
-		global.LOG.Error("Failed to send session rsp : %v", err)
+		global.LOG.Error("[Session] Failed to send session rsp : %v", err)
 		return
 	}
-	global.LOG.Info("Session rsp sent")
+	global.LOG.Info("[Session] Session rsp sent")
 }
 
 func (s *SessionService) Page() (*model.PageResult, error) {
