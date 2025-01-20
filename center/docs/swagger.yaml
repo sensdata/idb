@@ -6825,6 +6825,25 @@ paths:
       summary: Get agent terminal sessions
       tags:
       - Terminal
+  /terminals/{host}/sessions/prune:
+    post:
+      consumes:
+      - application/json
+      description: Prune detached sessions
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Prune detached sessions
+      tags:
+      - Terminal
   /terminals/{host}/ssh/start:
     get:
       consumes:

@@ -7654,6 +7654,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/terminals/{host}/sessions/prune": {
+            "post": {
+                "description": "Prune detached sessions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Prune detached sessions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/terminals/{host}/ssh/start": {
             "get": {
                 "description": "Connect to ssh terminal",
