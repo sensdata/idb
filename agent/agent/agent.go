@@ -236,6 +236,7 @@ func (a *Agent) listenToTcp() {
 
 	global.LOG.Info("Starting TCP server on port %d", config.Port)
 
+	defer listener.Close()
 	for {
 		select {
 		case <-a.done:
@@ -256,9 +257,7 @@ func (a *Agent) listenToTcp() {
 
 			// 处理连接
 			go a.handleConnection(conn)
-
-			// 结束循环
-			break
+			return
 		}
 	}
 }
