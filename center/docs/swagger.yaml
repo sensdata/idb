@@ -6731,7 +6731,26 @@ paths:
       summary: Install terminal
       tags:
       - Terminal
-  /terminals/{host}/session/detach:
+  /terminals/{host}/sessions:
+    get:
+      consumes:
+      - application/json
+      description: Get agent terminal sessions
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Get agent terminal sessions
+      tags:
+      - Terminal
+  /terminals/{host}/sessions/detach:
     post:
       consumes:
       - application/json
@@ -6756,7 +6775,26 @@ paths:
       summary: Detach terminal session
       tags:
       - Terminal
-  /terminals/{host}/session/quit:
+  /terminals/{host}/sessions/prune:
+    post:
+      consumes:
+      - application/json
+      description: Prune detached sessions
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Prune detached sessions
+      tags:
+      - Terminal
+  /terminals/{host}/sessions/quit:
     post:
       consumes:
       - application/json
@@ -6781,7 +6819,7 @@ paths:
       summary: Quit terminal session
       tags:
       - Terminal
-  /terminals/{host}/session/rename:
+  /terminals/{host}/sessions/rename:
     post:
       consumes:
       - application/json
@@ -6804,44 +6842,6 @@ paths:
         "200":
           description: OK
       summary: Rename terminal session
-      tags:
-      - Terminal
-  /terminals/{host}/sessions:
-    get:
-      consumes:
-      - application/json
-      description: Get agent terminal sessions
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Get agent terminal sessions
-      tags:
-      - Terminal
-  /terminals/{host}/sessions/prune:
-    post:
-      consumes:
-      - application/json
-      description: Prune detached sessions
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Prune detached sessions
       tags:
       - Terminal
   /terminals/{host}/ssh/start:

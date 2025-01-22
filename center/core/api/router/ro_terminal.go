@@ -18,11 +18,11 @@ func (s *TerminalRouter) InitRouter(Router *gin.RouterGroup) {
 		terminalRouter.GET("/:host/start", middleware.NewJWT().JWTCookieAuth(), baseApi.HandleTerminal) // 创建或连接到终端会话
 
 		// http接口
-		terminalRouter.GET("/:host/sessions", middleware.NewJWT().JWTAuth(), baseApi.TerminalSessions)     // 枚举终端会话
-		terminalRouter.POST("/:host/sessions/prune", middleware.NewJWT().JWTAuth(), baseApi.PruneSessions) // 清理非活跃的终端会话
-		terminalRouter.POST("/:host/session/detach", middleware.NewJWT().JWTAuth(), baseApi.DetachSession) // 分离终端会话
-		terminalRouter.POST("/:host/session/quit", middleware.NewJWT().JWTAuth(), baseApi.QuitSession)     // 终止终端会话
-		terminalRouter.POST("/:host/session/rename", middleware.NewJWT().JWTAuth(), baseApi.RenameSession) // 重命名终端会话
-		terminalRouter.POST("/:host/install", middleware.NewJWT().JWTAuth(), baseApi.InstallTerminal)      // 安装Agent侧的终端环境
+		terminalRouter.GET("/:host/sessions", middleware.NewJWT().JWTAuth(), baseApi.TerminalSessions)      // 枚举终端会话
+		terminalRouter.POST("/:host/sessions/prune", middleware.NewJWT().JWTAuth(), baseApi.PruneSessions)  // 清理非活跃的终端会话
+		terminalRouter.POST("/:host/sessions/detach", middleware.NewJWT().JWTAuth(), baseApi.DetachSession) // 分离终端会话
+		terminalRouter.POST("/:host/sessions/quit", middleware.NewJWT().JWTAuth(), baseApi.QuitSession)     // 终止终端会话
+		terminalRouter.POST("/:host/sessions/rename", middleware.NewJWT().JWTAuth(), baseApi.RenameSession) // 重命名终端会话
+		terminalRouter.POST("/:host/install", middleware.NewJWT().JWTAuth(), baseApi.InstallTerminal)       // 安装Agent侧的终端环境
 	}
 }

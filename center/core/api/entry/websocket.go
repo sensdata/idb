@@ -116,7 +116,7 @@ func (b *BaseApi) PruneSessions(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /terminals/{host}/session/detach [post]
+// @Router /terminals/{host}/sessions/detach [post]
 func (b *BaseApi) DetachSession(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 
@@ -147,7 +147,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /terminals/{host}/session/quit [post]
+// @Router /terminals/{host}/sessions/quit [post]
 func (b *BaseApi) QuitSession(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 
@@ -178,7 +178,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.TerminalRequest true "Request details"
 // @Success 200
-// @Router /terminals/{host}/session/rename [post]
+// @Router /terminals/{host}/sessions/rename [post]
 func (b *BaseApi) RenameSession(c *gin.Context) {
 	token := c.GetHeader("Authorization")
 

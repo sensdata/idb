@@ -7511,7 +7511,36 @@ const docTemplate = `{
                 }
             }
         },
-        "/terminals/{host}/session/detach": {
+        "/terminals/{host}/sessions": {
+            "get": {
+                "description": "Get agent terminal sessions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Get agent terminal sessions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/sessions/detach": {
             "post": {
                 "description": "Detach terminal session",
                 "consumes": [
@@ -7549,7 +7578,36 @@ const docTemplate = `{
                 }
             }
         },
-        "/terminals/{host}/session/quit": {
+        "/terminals/{host}/sessions/prune": {
+            "post": {
+                "description": "Prune detached sessions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Terminal"
+                ],
+                "summary": "Prune detached sessions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/terminals/{host}/sessions/quit": {
             "post": {
                 "description": "Quit terminal session",
                 "consumes": [
@@ -7587,7 +7645,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/terminals/{host}/session/rename": {
+        "/terminals/{host}/sessions/rename": {
             "post": {
                 "description": "Rename terminal session",
                 "consumes": [
@@ -7616,64 +7674,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.TerminalRequest"
                         }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/terminals/{host}/sessions": {
-            "get": {
-                "description": "Get agent terminal sessions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Get agent terminal sessions",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/terminals/{host}/sessions/prune": {
-            "post": {
-                "description": "Prune detached sessions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Terminal"
-                ],
-                "summary": "Prune detached sessions",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
