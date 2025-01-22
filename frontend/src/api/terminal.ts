@@ -19,7 +19,7 @@ export function renameTerminalSessionApi(
     data: string;
   }
 ) {
-  return request.post(`/terminals/${host}/session/rename`, params);
+  return request.post(`/terminals/${host}/sessions/rename`, params);
 }
 
 export function detachTerminalSessionApi(
@@ -28,7 +28,7 @@ export function detachTerminalSessionApi(
     session: string;
   }
 ) {
-  return request.post(`/terminals/${host}/session/detach`, params);
+  return request.post(`/terminals/${host}/sessions/detach`, params);
 }
 
 export function quitTerminalSessionApi(
@@ -37,9 +37,9 @@ export function quitTerminalSessionApi(
     session: string;
   }
 ) {
-  return request.post(`/terminals/${host}/session/quit`, params);
+  return request.post(`/terminals/${host}/sessions/quit`, params);
 }
 
 export function pruneTerminalSessionApi(host: number) {
-  return request.post(`/terminals/${host}/session/prune`);
+  return request.post(`/terminals/${host}/sessions/prune`);
 }
