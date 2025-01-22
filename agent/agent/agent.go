@@ -66,7 +66,7 @@ type IAgent interface {
 func NewAgent() IAgent {
 	return &Agent{
 		done:       make(chan struct{}),
-		resetConn:  make(chan struct{}),
+		resetConn:  make(chan struct{}, 3),
 		sessionMap: make(map[string]*session.Session),
 	}
 }
@@ -236,7 +236,10 @@ func (a *Agent) listenToTcp() {
 
 	global.LOG.Info("Starting TCP server on port %d", config.Port)
 
-	defer listener.Close()
+	defer func() {
+		global.LOG.Info("Tcp listener closing")
+		listener.Close()
+	}()
 	for {
 		select {
 		case <-a.done:
@@ -294,7 +297,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				// if err != io.EOF {
 				// 	global.LOG.Error("Error read from conn: %v", err)
 				// }
-				a.resetConnection()
+				go a.resetConnection()
 				continue
 			}
 			// 将数据拼接到缓存区
@@ -310,7 +313,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 
 				// 错误，重试重连
 				global.LOG.Error("Error extract complete message: %v", err)
-				a.resetConnection()
+				go a.resetConnection()
 				continue
 			}
 

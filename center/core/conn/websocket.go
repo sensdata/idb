@@ -210,7 +210,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 
 	global.LOG.Info("upgrade successful")
 
-	token, _ := c.Cookie("token")
+	token, _ := c.Cookie("idb-token")
 
 	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
 	if err != nil {

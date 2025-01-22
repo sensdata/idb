@@ -44,7 +44,7 @@ func (j *JWT) JWTAuth() gin.HandlerFunc {
 // JWTCookieAuth 从cookie中获取并验证JWT token
 func (j *JWT) JWTCookieAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("token")
+		token, err := c.Cookie("idb-token")
 		if err != nil || token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
 			c.Abort()
