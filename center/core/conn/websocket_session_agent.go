@@ -66,6 +66,12 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				// 检查是否为 CloseError
 				if websocket.IsUnexpectedCloseError(err) {
 					global.LOG.Info("websocket connection closed: %v", err)
+					// ws断了，需要detached会话
+					aws.sendToAgent(
+						utils.GenerateMsgId(),
+						message.WsMessageCmd,
+						message.SessionData{Session: aws.Session, Data: fmt.Sprintf("screen -S %s -d\r", aws.Session)},
+					)
 					return
 				}
 				global.LOG.Error("read message error: %v", err)
