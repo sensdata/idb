@@ -11,7 +11,7 @@ const getToken = () => {
 };
 
 const setToken = (token: string) => {
-  cookie.set(TOKEN_KEY, token, { expires: 3 });
+  cookie.set(TOKEN_KEY, token, { expires: 3, path: '/' });
 };
 
 const clearToken = () => {
