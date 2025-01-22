@@ -1,6 +1,6 @@
 import cookie from './cookie';
 
-const TOKEN_KEY = 'token';
+const TOKEN_KEY = 'idb-token';
 
 const isLogin = () => {
   return !!cookie.get(TOKEN_KEY);
