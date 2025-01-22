@@ -17,7 +17,7 @@ export const DEFAULT_ROUTE_NAME = 'host';
 export const DEFAULT_APP_ROUTE_NAME = 'sysinfo';
 
 export const DEFAULT_ROUTE = {
-  title: 'menu.dashboard.workplace',
+  title: 'menu.manage.host',
   name: DEFAULT_ROUTE_NAME,
-  fullPath: '/dashboard/workplace',
+  fullPath: '/manage/host',
 };
