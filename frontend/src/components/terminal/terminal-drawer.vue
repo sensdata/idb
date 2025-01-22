@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
+  import { ref, watch, nextTick } from 'vue';
   import { useHostStore } from '@/store';
   import TerminalTabs from './terminal-tabs.vue';
 
@@ -29,6 +29,10 @@
       tabsRef?.value?.addItem({
         type: 'attach',
         host: hostStore.current!,
+      });
+    } else if (val) {
+      nextTick(() => {
+        tabsRef?.value?.focus();
       });
     }
   });

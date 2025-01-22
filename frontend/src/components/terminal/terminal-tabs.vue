@@ -197,6 +197,10 @@
     }
   }
 
+  function focus() {
+    terms.value.find((item) => item.key === activeKey.value)?.termRef?.focus();
+  }
+
   function handleClose(item: TermSessionItem, action: 'quit' | 'detach') {
     if (action === 'quit') {
       removeItem(item.key);
@@ -325,6 +329,7 @@
 
   defineExpose({
     addItem,
+    focus,
   });
 </script>
 
