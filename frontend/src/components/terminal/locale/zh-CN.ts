@@ -1,5 +1,7 @@
 export default {
   'components.terminal.title': '命令终端',
+  'components.terminal.session.prune': '清理会话',
+  'components.terminal.session.pruneSuccess': '清理会话成功',
   'components.terminal.session.addTitle': '添加会话',
   'components.terminal.session.host': '节点',
   'components.terminal.session.hostPlaceHolder': '请选择节点',
