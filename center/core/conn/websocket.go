@@ -234,7 +234,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "agent disconected")
 	}
 
-	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey, token)
+	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey, token, uint(hostID))
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create Agent WebSocket session")

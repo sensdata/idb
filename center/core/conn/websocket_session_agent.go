@@ -9,6 +9,7 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
 
@@ -22,9 +23,10 @@ type AgentWebSocketSession struct {
 	cols               int
 	rows               int
 	token              string
+	hostID             uint
 }
 
-func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string) (*AgentWebSocketSession, error) {
+func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string, hostID uint) (*AgentWebSocketSession, error) {
 	return &AgentWebSocketSession{
 		Session:            utils.GenerateMsgId(),
 		SessionMessageChan: make(chan *message.SessionMessage),
@@ -34,6 +36,7 @@ func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *webso
 		cols:               cols,
 		rows:               rows,
 		token:              token,
+		hostID:             hostID,
 	}, nil
 }
 
@@ -67,11 +70,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				if websocket.IsUnexpectedCloseError(err) {
 					global.LOG.Info("websocket connection closed: %v", err)
 					// ws断了，需要detached会话
-					aws.sendToAgent(
-						utils.GenerateMsgId(),
-						message.WsMessageCmd,
-						message.SessionData{Session: aws.Session, Data: fmt.Sprintf("screen -S %s -d\r", aws.Session)},
-					)
+					go aws.notifyDetach()
 					return
 				}
 				global.LOG.Error("read message error: %v", err)
@@ -144,6 +143,33 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 			}
 
 		}
+	}
+}
+
+func (aws *AgentWebSocketSession) notifyDetach() {
+	req := model.TerminalRequest{
+		Session: aws.Session,
+		Data:    "",
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		global.LOG.Error("failed to notify detach: %v", err)
+		return
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(aws.hostID),
+		Action: model.Action{
+			Action: model.Terminal_Detach,
+			Data:   data,
+		},
+	}
+	actionResponse, err := CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("failed to detach session, might already been detached")
 	}
 }
 
