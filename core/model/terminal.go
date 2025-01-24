@@ -1,8 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type TerminalRequest struct {
+	Type    string `json:"type"`
 	Session string `json:"session"`
 	Data    string `json:"data"`
 }

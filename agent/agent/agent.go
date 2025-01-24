@@ -4,14 +4,12 @@ import (
 	"crypto/tls"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -22,6 +20,7 @@ import (
 	"github.com/sensdata/idb/agent/agent/git"
 	"github.com/sensdata/idb/agent/agent/session"
 	"github.com/sensdata/idb/agent/agent/ssh"
+	"github.com/sensdata/idb/agent/agent/terminal"
 	"github.com/sensdata/idb/agent/config"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
@@ -48,8 +47,9 @@ type Agent struct {
 	unixListener net.Listener
 	done         chan struct{}
 	resetConn    chan struct{}
-	mu           sync.Mutex // 保护centerConn的互斥锁
-	sessionMap   map[string]*session.Session
+	// mu             sync.Mutex // 保护centerConn的互斥锁
+	// sessionMap     map[string]*session.Session
+	sessionManager terminal.Manager
 }
 
 //go:embed screen_install.sh
@@ -65,9 +65,10 @@ type IAgent interface {
 
 func NewAgent() IAgent {
 	return &Agent{
-		done:       make(chan struct{}),
-		resetConn:  make(chan struct{}, 3),
-		sessionMap: make(map[string]*session.Session),
+		done:      make(chan struct{}),
+		resetConn: make(chan struct{}, 3),
+		// sessionMap:     make(map[string]*session.Session),
+		sessionManager: terminal.NewManager(),
 	}
 }
 
@@ -435,137 +436,217 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 	}
 }
 
-func (a *Agent) registerSession(session *session.Session) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+// func (a *Agent) registerSession(session *session.Session) {
+// 	a.mu.Lock()
+// 	defer a.mu.Unlock()
 
-	a.sessionMap[session.ID] = session
-	global.LOG.Info("Session %s registered", session.ID)
-}
+// 	a.sessionMap[session.ID] = session
+// 	global.LOG.Info("Session %s registered", session.ID)
+// }
 
-func (a *Agent) unregisterSession(sessionID string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+// func (a *Agent) unregisterSession(sessionID string) {
+// 	a.mu.Lock()
+// 	defer a.mu.Unlock()
 
-	delete(a.sessionMap, sessionID)
-	global.LOG.Info("Session %s unregistered", sessionID)
-}
+// 	delete(a.sessionMap, sessionID)
+// 	global.LOG.Info("Session %s unregistered", sessionID)
+// }
 
-func (a *Agent) getSession(sessionID string) (*session.Session, bool) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+// func (a *Agent) getSession(sessionID string) (*session.Session, bool) {
+// 	a.mu.Lock()
+// 	defer a.mu.Unlock()
 
-	session, exists := a.sessionMap[sessionID]
-	return session, exists
-}
+// 	session, exists := a.sessionMap[sessionID]
+// 	return session, exists
+// }
 
 func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
 	global.LOG.Info("processSessionMessage: %v", msg)
 
 	switch msg.Type {
 	case message.WsMessageStart: // 创建会话
-		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, "", "")
-		} else {
-			session, err := SessionService.Start(msg.Data)
+		go func() {
+			global.LOG.Info("session begin")
+			quitChan := make(chan bool, 3)
+			outputChan := make(chan string, 3)
+			session, err := a.sessionManager.StartSession(
+				msg.Data.Type,
+				msg.Data.Data,
+				msg.Data.Cols,
+				msg.Data.Rows,
+				quitChan,
+				outputChan,
+			)
 			if err != nil {
 				global.LOG.Error("Failed to start session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), "", "")
-			} else {
-				global.LOG.Info("session %s.%s started", session.ID, session.Name)
-				a.registerSession(session)
-
-				// 开始监听该会话
-				go func() {
-					// 先返回本会话信息
-					a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
-
-					// 延迟500毫秒
-					time.Sleep(500 * time.Millisecond)
-
-					global.LOG.Info("session begin")
-					quitChan := make(chan bool, 3)
-					session.Start(quitChan)
-					go session.Wait(quitChan)
-					<-quitChan
-					// 清理map
-					a.unregisterSession(session.ID)
-					// 释放PTY资源
-					if session.Pty != nil {
-						if err := session.Pty.Close(); err != nil {
-							global.LOG.Error("关闭PTY失败: %v", err)
-						}
-						session.Pty = nil
-					}
-					global.LOG.Info("session end")
-				}()
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Type, "", "")
+				return
 			}
-		}
+
+			// 先返回本会话信息
+			id := session.(*terminal.BaseSession).Session
+			name := session.(*terminal.BaseSession).Name
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", msg.Data.Type, id, name)
+
+			for {
+				select {
+				case <-quitChan:
+					// 清理
+					a.sessionManager.RemoveSession(id)
+					session.Release()
+					global.LOG.Info("session end")
+					return
+
+				case data := <-outputChan:
+					a.sendSessionResult(conn, utils.GenerateMsgId(), message.WsMessageCmd, constant.CodeSuccess, "", msg.Data.Type, id, data)
+				}
+			}
+		}()
+
+		// if !a.isScreenInstalled() {
+		// 	a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, "", "")
+		// } else {
+		// 	session, err := SessionService.Start(msg.Data)
+		// 	if err != nil {
+		// 		global.LOG.Error("Failed to start session: %v", err)
+		// 		a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), "", "")
+		// 	} else {
+		// 		global.LOG.Info("session %s.%s started", session.ID, session.Name)
+		// 		a.registerSession(session)
+
+		// 		// 开始监听该会话
+		// 		go func() {
+		// 			// 先返回本会话信息
+		// 			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
+
+		// 			// 延迟500毫秒
+		// 			time.Sleep(500 * time.Millisecond)
+
+		// 			global.LOG.Info("session begin")
+		// 			quitChan := make(chan bool, 3)
+		// 			session.Start(quitChan)
+		// 			go session.Wait(quitChan)
+		// 			<-quitChan
+		// 			// 清理map
+		// 			a.unregisterSession(session.ID)
+		// 			// 释放PTY资源
+		// 			if session.Pty != nil {
+		// 				if err := session.Pty.Close(); err != nil {
+		// 					global.LOG.Error("关闭PTY失败: %v", err)
+		// 				}
+		// 				session.Pty = nil
+		// 			}
+		// 			global.LOG.Info("session end")
+		// 		}()
+		// 	}
+		// }
 
 	case message.WsMessageAttach: // 恢复会话
-		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
-		} else {
-			// 判断是否已经存在
-			_, exist := a.getSession(msg.Data.Session)
-			if exist {
-				// detach旧会话
-				err := SessionService.Detach(msg.Data.Session)
-				if err != nil {
-					global.LOG.Error("failed to detach session %s for re-attaching", msg.Data.Session)
-				}
-
-				// 延迟500毫秒
-				time.Sleep(250 * time.Millisecond)
-			}
-
-			session, err := SessionService.Attach(msg.Data)
+		go func() {
+			global.LOG.Info("session begin")
+			quitChan := make(chan bool, 3)
+			outputChan := make(chan string, 3)
+			session, err := a.sessionManager.AttachSession(
+				msg.Data.Type,
+				msg.Data.Session,
+				msg.Data.Cols,
+				msg.Data.Rows,
+				quitChan,
+				outputChan,
+			)
 			if err != nil {
 				global.LOG.Error("Failed to attach session: %v", err)
-				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Session, "")
-			} else {
-				global.LOG.Info("session %s.%s attached", session.ID, session.Name)
-
-				// 开始监听该会话
-				go func() {
-					a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
-
-					// 延迟500毫秒
-					time.Sleep(250 * time.Millisecond)
-
-					global.LOG.Info("session begin")
-					a.registerSession(session)
-					quitChan := make(chan bool, 3)
-					session.Start(quitChan)
-					go session.Wait(quitChan)
-					<-quitChan
-					// 清理map
-					a.unregisterSession(session.ID)
-					// 释放PTY资源
-					if session.Pty != nil {
-						if err := session.Pty.Close(); err != nil {
-							global.LOG.Error("关闭PTY失败: %v", err)
-						}
-						session.Pty = nil
-					}
-					global.LOG.Info("session end")
-				}()
+				a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Type, "", "")
+				return
 			}
-		}
+
+			// 先返回本会话信息
+			id := session.(*terminal.BaseSession).Session
+			name := session.(*terminal.BaseSession).Name
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", msg.Data.Type, id, name)
+
+			for {
+				select {
+				case <-quitChan:
+					// 清理
+					a.sessionManager.RemoveSession(id)
+					session.Release()
+					global.LOG.Info("session end")
+					return
+
+				case data := <-outputChan:
+					a.sendSessionResult(conn, utils.GenerateMsgId(), message.WsMessageCmd, constant.CodeSuccess, "", msg.Data.Type, id, data)
+				}
+			}
+		}()
+
+		// if !a.isScreenInstalled() {
+		// 	a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
+		// } else {
+		// 	// 判断是否已经存在
+		// 	_, exist := a.getSession(msg.Data.Session)
+		// 	if exist {
+		// 		// detach旧会话
+		// 		err := SessionService.Detach(msg.Data.Session)
+		// 		if err != nil {
+		// 			global.LOG.Error("failed to detach session %s for re-attaching", msg.Data.Session)
+		// 		}
+
+		// 		// 延迟500毫秒
+		// 		time.Sleep(250 * time.Millisecond)
+		// 	}
+
+		// 	session, err := SessionService.Attach(msg.Data)
+		// 	if err != nil {
+		// 		global.LOG.Error("Failed to attach session: %v", err)
+		// 		a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Session, "")
+		// 	} else {
+		// 		global.LOG.Info("session %s.%s attached", session.ID, session.Name)
+
+		// 		// 开始监听该会话
+		// 		go func() {
+		// 			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeSuccess, "", session.ID, session.Name)
+
+		// 			// 延迟500毫秒
+		// 			time.Sleep(250 * time.Millisecond)
+
+		// 			global.LOG.Info("session begin")
+		// 			a.registerSession(session)
+		// 			quitChan := make(chan bool, 3)
+		// 			session.Start(quitChan)
+		// 			go session.Wait(quitChan)
+		// 			<-quitChan
+		// 			// 清理map
+		// 			a.unregisterSession(session.ID)
+		// 			// 释放PTY资源
+		// 			if session.Pty != nil {
+		// 				if err := session.Pty.Close(); err != nil {
+		// 					global.LOG.Error("关闭PTY失败: %v", err)
+		// 				}
+		// 				session.Pty = nil
+		// 			}
+		// 			global.LOG.Info("session end")
+		// 		}()
+		// 	}
+		// }
 
 	case message.WsMessageCmd: // 会话输入
-		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
-		} else {
-			go a.sessionInput(msg.Data)
-		}
+		go a.sessionInput(msg.Data)
+
+		// if !a.isScreenInstalled() {
+		// 	a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
+		// } else {
+		// 	go a.sessionInput(msg.Data)
+		// }
 
 	case message.WsMessageResize: // 调整尺寸
-		if !a.isScreenInstalled() {
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
-		} else {
-			go a.sessionResize(msg.Data)
-		}
+		go a.sessionResize(msg.Data)
+
+		// if !a.isScreenInstalled() {
+		// 	a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, constant.ErrNotInstalled, msg.Data.Session, "")
+		// } else {
+		// 	go a.sessionResize(msg.Data)
+		// }
 
 	default:
 		global.LOG.Error("not supported session mesage")
@@ -575,29 +656,37 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 }
 
 func (a *Agent) sessionInput(sessionData message.SessionData) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if session, ok := a.sessionMap[sessionData.Session]; ok {
-		if err := session.Input(sessionData.Data); err != nil {
-			global.LOG.Error("Failed to input to session %s: %v", sessionData.Session, err)
-		}
-	} else {
-		global.LOG.Error("no session to input")
+	if err := a.sessionManager.InputSession(sessionData.Type, sessionData.Session, sessionData.Data); err != nil {
+		global.LOG.Error("Failed to input to session %s: %v", sessionData.Session, err)
 	}
+
+	// a.mu.Lock()
+	// defer a.mu.Unlock()
+
+	// if session, ok := a.sessionMap[sessionData.Session]; ok {
+	// 	if err := session.Input(sessionData.Data); err != nil {
+	// 		global.LOG.Error("Failed to input to session %s: %v", sessionData.Session, err)
+	// 	}
+	// } else {
+	// 	global.LOG.Error("no session to input")
+	// }
 }
 
 func (a *Agent) sessionResize(sessionData message.SessionData) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if session, ok := a.sessionMap[sessionData.Session]; ok {
-		if err := session.Resize(sessionData.Cols, sessionData.Rows); err != nil {
-			global.LOG.Error("Failed to resize session %s: %v", sessionData.Session, err)
-		}
-	} else {
-		global.LOG.Error("no session to resize")
+	if err := a.sessionManager.ResizeSession(sessionData.Type, sessionData.Session, sessionData.Cols, sessionData.Rows); err != nil {
+		global.LOG.Error("Failed to resize session %s: %v", sessionData.Session, err)
 	}
+
+	// a.mu.Lock()
+	// defer a.mu.Unlock()
+
+	// if session, ok := a.sessionMap[sessionData.Session]; ok {
+	// 	if err := session.Resize(sessionData.Cols, sessionData.Rows); err != nil {
+	// 		global.LOG.Error("Failed to resize session %s: %v", sessionData.Session, err)
+	// 	}
+	// } else {
+	// 	global.LOG.Error("no session to resize")
+	// }
 }
 
 func (a *Agent) isScreenInstalled() bool {
@@ -1904,64 +1993,108 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Terminal_List:
-		if !a.isScreenInstalled() {
-			return nil, errors.New(constant.ErrNotInstalled)
-		} else {
-			list, err := SessionService.Page()
-			if err != nil {
-				return nil, err
-			}
-			result, err := utils.ToJSONString(list)
-			if err != nil {
-				return nil, err
-			}
-			return actionSuccessResult(actionData.Action, result)
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
 		}
+		list, err := a.sessionManager.ListSessions(message.SessionType(req.Type))
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(list)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// if !a.isScreenInstalled() {
+		// 	return nil, errors.New(constant.ErrNotInstalled)
+		// } else {
+		// 	list, err := SessionService.Page()
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	result, err := utils.ToJSONString(list)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	return actionSuccessResult(actionData.Action, result)
+		// }
 
 	case model.Terminal_Detach:
-		if !a.isScreenInstalled() {
-			return nil, errors.New(constant.ErrNotInstalled)
-		} else {
-			var req model.TerminalRequest
-			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-				return nil, err
-			}
-			err := SessionService.Detach(req.Session)
-			if err != nil {
-				return nil, err
-			}
-			return actionSuccessResult(actionData.Action, "")
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
 		}
+		err := a.sessionManager.DetachSession(message.SessionType(req.Type), req.Session)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// if !a.isScreenInstalled() {
+		// 	return nil, errors.New(constant.ErrNotInstalled)
+		// } else {
+		// 	var req model.TerminalRequest
+		// 	if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+		// 		return nil, err
+		// 	}
+		// 	err := SessionService.Detach(req.Session)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	return actionSuccessResult(actionData.Action, "")
+		// }
 
 	case model.Terminal_Finish:
-		if !a.isScreenInstalled() {
-			return nil, errors.New(constant.ErrNotInstalled)
-		} else {
-			var req model.TerminalRequest
-			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-				return nil, err
-			}
-			err := SessionService.Finish(req.Session)
-			if err != nil {
-				return nil, err
-			}
-			return actionSuccessResult(actionData.Action, "")
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
 		}
+		err := a.sessionManager.QuitSession(message.SessionType(req.Type), req.Session)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// if !a.isScreenInstalled() {
+		// 	return nil, errors.New(constant.ErrNotInstalled)
+		// } else {
+		// 	var req model.TerminalRequest
+		// 	if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+		// 		return nil, err
+		// 	}
+		// 	err := SessionService.Finish(req.Session)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	return actionSuccessResult(actionData.Action, "")
+		// }
 
 	case model.Terminal_Rename:
-		if !a.isScreenInstalled() {
-			return nil, errors.New(constant.ErrNotInstalled)
-		} else {
-			var req model.TerminalRequest
-			if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-				return nil, err
-			}
-			err := SessionService.Rename(req.Session, req.Data)
-			if err != nil {
-				return nil, err
-			}
-			return actionSuccessResult(actionData.Action, "")
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
 		}
+		err := a.sessionManager.RenameSession(message.SessionType(req.Type), req.Session, req.Data)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// if !a.isScreenInstalled() {
+		// 	return nil, errors.New(constant.ErrNotInstalled)
+		// } else {
+		// 	var req model.TerminalRequest
+		// 	if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+		// 		return nil, err
+		// 	}
+		// 	err := SessionService.Rename(req.Session, req.Data)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	return actionSuccessResult(actionData.Action, "")
+		// }
 
 	case model.Terminal_Install:
 		err := a.installScreen()
@@ -2100,13 +2233,13 @@ func (a *Agent) sendDownloadResult(conn net.Conn, msg *message.FileMessage) {
 	}
 }
 
-func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType message.MessageType, code int, msg string, sessionID string, data string) {
+func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType string, code int, msg string, sessionType message.SessionType, sessionID string, data string) {
 	config := CONFMAN.GetConfig()
 
 	rspMsg, err := message.CreateSessionMessage(
 		msgID,
 		msgType,
-		message.SessionData{Code: code, Msg: msg, Session: sessionID, Data: data},
+		message.SessionData{Code: code, Msg: msg, Type: sessionType, Session: sessionID, Data: data},
 		config.SecretKey,
 		utils.GenerateNonce(16),
 	)

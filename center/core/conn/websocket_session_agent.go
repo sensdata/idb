@@ -89,7 +89,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 					message.WsMessageStart,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
+					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 				)
 
 			case message.WsMessageAttach:
@@ -103,10 +103,11 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 					go func() {
 						msg := message.SessionMessage{
 							MsgID: aws.Session,
-							Type:  message.MessageType(msgObj.Type),
+							Type:  msgObj.Type,
 							Data: message.SessionData{
 								Code:    constant.CodeFailed,
 								Msg:     errMsg,
+								Type:    message.SessionTypeScreen,
 								Session: msgObj.Session,
 								Data:    "",
 							},
@@ -117,7 +118,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 					aws.sendToAgent(
 						aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 						message.WsMessageAttach,
-						message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
+						message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 					)
 				}
 
@@ -125,14 +126,14 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageCmd,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data},
 				)
 
 			case message.WsMessageResize:
 				aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageResize,
-					message.SessionData{Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
+					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
 				)
 
 			case message.WsMessageHeartbeat:
@@ -173,7 +174,7 @@ func (aws *AgentWebSocketSession) notifyDetach() {
 	}
 }
 
-func (aws *AgentWebSocketSession) sendToAgent(msgId string, msgType message.MessageType, data message.SessionData) error {
+func (aws *AgentWebSocketSession) sendToAgent(msgId string, msgType string, data message.SessionData) error {
 	// 启动监听
 	msg, err := message.CreateSessionMessage(
 		msgId,

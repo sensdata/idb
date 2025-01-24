@@ -1,0 +1,419 @@
+package terminal
+
+import (
+	"fmt"
+	"os/exec"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/model"
+)
+
+// DefaultManager
+type DefaultManager struct {
+	// sessionMap map[string]Session
+	sessions sync.Map
+}
+
+func NewManager() Manager {
+	return &DefaultManager{}
+}
+
+// Store session
+func (m *DefaultManager) StoreSession(session Session) {
+	m.sessions.Store(session.(*BaseSession).Session, session)
+}
+
+// Remove session
+func (m *DefaultManager) RemoveSession(session string) {
+	m.sessions.Delete(session)
+}
+
+// Start session
+func (m *DefaultManager) StartSession(sessionType message.SessionType, name string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error) {
+
+	var session Session
+	switch sessionType {
+	case message.SessionTypeScreen:
+		session = NewScreenSession(
+			"",
+			name,
+			cols,
+			rows,
+			quitChan,
+			outputChan,
+		)
+	case message.SessionTypeTmux:
+	default:
+		session = NewBaseSession(
+			"",
+			name,
+			cols,
+			rows,
+			quitChan,
+			outputChan,
+		)
+	}
+
+	// start session
+	if err := session.Start(); err != nil {
+		global.LOG.Error("failed to start session, %v", err)
+		return nil, err
+	}
+
+	// stroe session
+	m.StoreSession(session)
+	global.LOG.Info("session %s.%s started", session.(*BaseSession).Session, session.(*BaseSession).Name)
+
+	return session, nil
+}
+
+// Attach session
+func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionID string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error) {
+	var session Session
+	switch sessionType {
+	case message.SessionTypeScreen:
+		session = NewScreenSession(
+			sessionID,
+			"",
+			cols,
+			rows,
+			quitChan,
+			outputChan,
+		)
+	case message.SessionTypeTmux:
+	default:
+		session = NewBaseSession(
+			sessionID,
+			"",
+			cols,
+			rows,
+			quitChan,
+			outputChan,
+		)
+	}
+	global.LOG.Info("attaching session")
+
+	// attach session
+	err := session.Attach()
+	if err != nil {
+		global.LOG.Error("failed to attach session, %v", err)
+		err = session.Start()
+		if err != nil {
+			global.LOG.Error("failed to start session, %v", err)
+			return nil, err
+		}
+	}
+
+	// stroe session
+	m.StoreSession(session)
+	global.LOG.Info("session %s.%s attached", session.(*BaseSession).Session, session.(*BaseSession).Name)
+
+	return session, nil
+}
+
+func (m *DefaultManager) ListSessions(sessionType message.SessionType) (*model.PageResult, error) {
+	var result model.PageResult
+
+	switch sessionType {
+	case message.SessionTypeScreen:
+		// get all sessions
+		sessions, _ := listScreenSessions(false)
+		result.Total = int64(len(sessions))
+		result.Items = sessions
+
+	case message.SessionTypeTmux:
+		// get all sessions
+		sessions, _ := listTmuxSession(false)
+		result.Total = int64(len(sessions))
+		result.Items = sessions
+
+	default:
+		// get all sessions
+		sessions, _ := m.listBaseSessions(false)
+		result.Total = int64(len(sessions))
+		result.Items = sessions
+	}
+	return &result, nil
+}
+
+func (m *DefaultManager) DetachSession(sessionType message.SessionType, session string) error {
+	switch sessionType {
+	case message.SessionTypeScreen:
+		return detachScreenSession(session)
+	case message.SessionTypeTmux:
+		return detachTmuxSession(session)
+	default:
+		return nil
+	}
+}
+
+func (m *DefaultManager) QuitSession(sessionType message.SessionType, session string) error {
+	switch sessionType {
+	case message.SessionTypeScreen:
+		return quitScreenSession(session)
+	case message.SessionTypeTmux:
+		return quitTmuxSession(session)
+	default:
+		return nil
+	}
+}
+
+func (m *DefaultManager) InputSession(sessionType message.SessionType, session string, data string) error {
+	// find session
+	sessionInterface, ok := m.sessions.Load(session)
+	if !ok {
+		global.LOG.Error("session %s not found", session)
+		return fmt.Errorf("session %s not found", session)
+	}
+	sessionInstance := sessionInterface.(Session)
+	// input
+	if err := sessionInstance.Input(data); err != nil {
+		global.LOG.Error("failed to input session: %v", err)
+		return fmt.Errorf("failed to input session: %v", err)
+	}
+
+	return nil
+}
+
+func (m *DefaultManager) ResizeSession(sessionType message.SessionType, session string, cols int, rows int) error {
+	// find session
+	sessionInterface, ok := m.sessions.Load(session)
+	if !ok {
+		global.LOG.Error("session %s not found", session)
+		return fmt.Errorf("session %s not found", session)
+	}
+	sessionInstance := sessionInterface.(Session)
+	// input
+	if err := sessionInstance.Resize(cols, rows); err != nil {
+		global.LOG.Error("failed to resize session: %v", err)
+		return fmt.Errorf("failed to resize session: %v", err)
+	}
+
+	return nil
+}
+
+func (m *DefaultManager) RenameSession(sessionType message.SessionType, session string, data string) error {
+	switch sessionType {
+	case message.SessionTypeScreen:
+		return renameScreenSession(session, data)
+	case message.SessionTypeTmux:
+		return renameTmuxSession(session, data)
+	default:
+		return m.renameBaseSession(session, data)
+	}
+}
+
+func (m *DefaultManager) listBaseSessions(filterDetached bool) ([]model.SessionInfo, error) {
+	var sessions []model.SessionInfo
+
+	m.sessions.Range(func(key, value interface{}) bool {
+		if baseSession, ok := value.(*BaseSession); ok {
+
+			// 如果只筛选 Detached 会话
+			if filterDetached && baseSession.Status != "Detached" {
+				return true
+			}
+
+			sessionInfo := model.SessionInfo{
+				Session: baseSession.Session,
+				Name:    baseSession.Name,
+				Time:    baseSession.CreateAt,
+				Status:  baseSession.Status,
+			}
+			sessions = append(sessions, sessionInfo)
+		}
+		return true
+	})
+
+	return sessions, nil
+}
+
+func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
+	var sessions []model.SessionInfo
+
+	// 执行命令以列出所有的 screen 会话
+	cmd := exec.Command("screen", "-ls")
+	output, err := cmd.Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		global.LOG.Info("no session found")
+		return sessions, nil
+	}
+	if err != nil {
+		global.LOG.Error("failed to list sessions: %v", err)
+		return sessions, nil
+	}
+
+	// 处理返回的结果字符串
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// 解析每一行以提取会话信息
+		// 假设会话信息格式为 " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
+		if strings.Contains(line, ".") {
+			// 使用正则表达式提取会话信息
+			re := regexp.MustCompile(`(\d+\.[^\s]+)\s+\((\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+[AP]M)\)\s+\((Attached|Detached)\)`)
+			matches := re.FindStringSubmatch(line)
+
+			if len(matches) != 4 {
+				continue
+			}
+
+			// matches[0]是完整匹配的字符串
+			// matches[1]是第一个捕获组,即(\d+\.[^\s]+)匹配的内容
+			sessionParts := strings.Split(matches[1], ".")
+			if len(sessionParts) != 2 {
+				continue
+			}
+			sessionID := sessionParts[0]
+			sessionName := sessionParts[1]
+			timeStr := matches[2]
+			status := matches[3]
+
+			// 如果只筛选 Detached 会话
+			if filterDetached && status != "Detached" {
+				continue
+			}
+
+			parsedTime, err := time.Parse("01/02/2006 03:04:05 PM", timeStr)
+			if err != nil {
+				global.LOG.Error("Error parsing time: %v", err)
+				continue
+			}
+
+			sessionInfo := model.SessionInfo{
+				Session: sessionID,
+				Name:    sessionName,
+				Time:    parsedTime,
+				Status:  status,
+			}
+			sessions = append(sessions, sessionInfo)
+		}
+	}
+
+	return sessions, nil
+}
+
+func listTmuxSession(filterDetached bool) ([]model.SessionInfo, error) {
+	var sessions []model.SessionInfo
+
+	// 执行命令以列出所有的 tmux 会话
+	cmd := exec.Command("tmux", "ls")
+	output, err := cmd.Output()
+	if err != nil {
+		if strings.Contains(string(output), "no server running") || strings.Contains(err.Error(), "no server running") {
+			global.LOG.Info("no session found")
+			return sessions, nil
+		}
+		global.LOG.Error("failed to list sessions: %v", err)
+		return sessions, nil
+	}
+
+	// 处理返回的结果字符串
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// 解析每一行以提取会话信息
+		// 假设会话信息格式为 "session_name: windows (created time) [attached]"
+		if strings.Contains(line, ":") {
+			// 使用正则表达式提取会话信息
+			re := regexp.MustCompile(`([^:]+):\s+\d+\s+windows\s+\(created\s+(.+?)\)(?:\s+\[(attached|detached)\])?`)
+			matches := re.FindStringSubmatch(line)
+
+			if len(matches) < 3 {
+				continue
+			}
+
+			// matches[1]是会话名称
+			// matches[2]是创建时间
+			// matches[3]是状态（如果存在）
+			sessionName := strings.TrimSpace(matches[1])
+			timeStr := matches[2]
+
+			// 解析状态
+			status := "Detached"
+			if len(matches) > 3 && matches[3] == "attached" {
+				status = "Attached"
+			}
+
+			// 如果只筛选 Detached 会话
+			if filterDetached && status != "Detached" {
+				continue
+			}
+
+			// 解析时间
+			var parsedTime time.Time
+			t, _ := parseTmuxTime(timeStr)
+			parsedTime = t
+
+			sessionInfo := model.SessionInfo{
+				Session: "", // tmux没有数字ID
+				Name:    sessionName,
+				Time:    parsedTime,
+				Status:  status,
+			}
+			sessions = append(sessions, sessionInfo)
+		}
+	}
+
+	return sessions, nil
+}
+
+func detachScreenSession(session string) error {
+	if err := exec.Command("screen", "-S", session, "-X", "detach").Run(); err != nil {
+		global.LOG.Error("Error detaching screen session %s: %v", session, err)
+		return err
+	}
+	global.LOG.Info("Session %s detached", session)
+	return nil
+}
+
+func detachTmuxSession(session string) error {
+	if err := exec.Command("tmux", "detach-session", "-t", session).Run(); err != nil {
+		global.LOG.Error("Error detaching tmux session %s: %v", session, err)
+		return err
+	}
+	global.LOG.Info("Tmux session %s detached", session)
+	return nil
+}
+
+func quitScreenSession(session string) error {
+	if err := exec.Command("screen", "-S", session, "-X", "quit").Run(); err != nil {
+		global.LOG.Error("Error quit screen session %s: %v", session, err)
+		return err
+	}
+	global.LOG.Info("Session %s quit", session)
+
+	return nil
+}
+
+func quitTmuxSession(session string) error {
+	if err := exec.Command("tmux", "kill-session", "-t", session).Run(); err != nil {
+		global.LOG.Error("Error quitting tmux session %s: %v", session, err)
+		return err
+	}
+	global.LOG.Info("Tmux session %s quit", session)
+	return nil
+}
+
+func (m *DefaultManager) renameBaseSession(_ string, _ string) error {
+	return nil
+}
+
+func renameScreenSession(session string, name string) error {
+	if err := exec.Command("screen", "-S", session, "-X", "sessionname", name).Run(); err != nil {
+		global.LOG.Error("Error renaming screen session %s to %s: %v", session, name, err)
+		return err
+	}
+	return nil
+}
+
+func renameTmuxSession(session string, name string) error {
+	if err := exec.Command("tmux", "rename-session", "-t", session, name).Run(); err != nil {
+		global.LOG.Error("Error renaming tmux session %s to %s: %v", session, name, err)
+		return err
+	}
+	return nil
+}
