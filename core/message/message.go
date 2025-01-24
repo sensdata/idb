@@ -89,7 +89,7 @@ func (f *FileMessage) GetType() string {
 // Session 消息
 type SessionMessage struct {
 	MsgID     string      `json:"msg_id"`
-	Type      MessageType `json:"type"`
+	Type      string      `json:"type"`
 	Sign      string      `json:"sign"`
 	Data      SessionData `json:"data"`
 	Timestamp int64       `json:"timestamp"`
@@ -98,13 +98,22 @@ type SessionMessage struct {
 	Checksum  string      `json:"checksum"`
 }
 
+type SessionType string
+
+const (
+	SessionTypeBash   SessionType = "bash"
+	SessionTypeScreen SessionType = "screen"
+	SessionTypeTmux   SessionType = "tmux"
+)
+
 type SessionData struct {
-	Code    int    `json:"code"`
-	Msg     string `json:"msg"`
-	Session string `json:"session"`
-	Data    string `json:"data"`
-	Cols    int    `json:"cols"`
-	Rows    int    `json:"rows"`
+	Code    int         `json:"code"`
+	Msg     string      `json:"msg"`
+	Type    SessionType `json:"type"`
+	Session string      `json:"session"`
+	Data    string      `json:"data"`
+	Cols    int         `json:"cols"`
+	Rows    int         `json:"rows"`
 }
 
 func (m *SessionMessage) GetType() string {
@@ -229,7 +238,7 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	return nil
 }
 
-func CreateSessionMessage(msgID string, msgType MessageType, data SessionData, key string, nonce string) (*SessionMessage, error) {
+func CreateSessionMessage(msgID string, msgType string, data SessionData, key string, nonce string) (*SessionMessage, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
 
