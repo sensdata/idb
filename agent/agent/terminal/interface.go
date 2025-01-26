@@ -8,7 +8,15 @@ import (
 // Session
 type Session interface {
 	// Get session type
-	Type() message.SessionType
+	GetType() message.SessionType
+	// Get session id
+	GetSession() string
+	// Get session name
+	GetName() string
+	// Get outputChan
+	GetOutputChan() <-chan []byte
+	// Get doneChan
+	GetDoneChan() <-chan struct{}
 	// Release
 	Release()
 	// Start session
@@ -28,9 +36,9 @@ type Manager interface {
 	// Remove session
 	RemoveSession(session string)
 	// Start session
-	StartSession(sessionType message.SessionType, name string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error)
+	StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error)
 	// Attach session
-	AttachSession(sessionType message.SessionType, session string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error)
+	AttachSession(sessionType message.SessionType, session string, cols, rows int) (Session, error)
 	// List sessions
 	ListSessions(sessionType message.SessionType) (*model.PageResult, error)
 	// Detach session

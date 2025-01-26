@@ -5,6 +5,7 @@ import (
 
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -27,11 +28,17 @@ func NewITerminalService() ITerminalService {
 func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
 	var result model.PageResult
 
+	req := model.TerminalRequest{Type: string(message.SessionTypeScreen)}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
+
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Terminal_List,
-			Data:   "",
+			Data:   data,
 		},
 	}
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)

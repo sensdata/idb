@@ -5,13 +5,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sync"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/message"
-	"github.com/sensdata/idb/core/utils/common"
 )
 
 // BaseSession
@@ -35,34 +33,50 @@ type BaseSession struct {
 	// Command
 	cmd *exec.Cmd
 	// Mutex
-	mutex sync.Mutex
-	// Chan for quiting
-	quitChan chan bool
+	// mutex sync.Mutex
 	// Chan for output
-	outputChan chan string
+	outputChan chan []byte
+	// Chan for quiting
+	doneChan chan struct{}
 }
 
 // New instance
-func NewBaseSession(session string, name string, cols, rows int, quitChan chan bool, outputChan chan string) *BaseSession {
+func NewBaseSession(session string, name string, cols, rows int) *BaseSession {
 	return &BaseSession{
 		Session:     session,
 		Name:        name,
 		sessionType: message.SessionTypeBash,
 		cols:        cols,
 		rows:        rows,
-		quitChan:    quitChan,
-		outputChan:  outputChan,
+		outputChan:  make(chan []byte, 1024),
+		doneChan:    make(chan struct{}),
 	}
 }
 
-func (s *BaseSession) Type() message.SessionType {
+func (s *BaseSession) GetType() message.SessionType {
 	return s.sessionType
+}
+
+func (s *BaseSession) GetSession() string {
+	return s.Session
+}
+
+func (s *BaseSession) GetName() string {
+	return s.Name
+}
+
+func (s *BaseSession) GetOutputChan() <-chan []byte {
+	return s.outputChan
+}
+
+func (s *BaseSession) GetDoneChan() <-chan struct{} {
+	return s.doneChan
 }
 
 // Start Session
 func (s *BaseSession) Start() error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
 
 	if s.cmd != nil {
 		return fmt.Errorf("session already started")
@@ -107,8 +121,8 @@ func (s *BaseSession) Attach() error {
 
 // Write to session
 func (s *BaseSession) Input(data string) error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
 
 	if s.pty == nil {
 		return fmt.Errorf("session not started")
@@ -123,6 +137,9 @@ func (s *BaseSession) Input(data string) error {
 
 // Resize
 func (s *BaseSession) Resize(cols int, rows int) error {
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
+
 	ws := &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)}
 	err := pty.Setsize(s.pty, ws)
 	if err != nil {
@@ -133,8 +150,8 @@ func (s *BaseSession) Resize(cols int, rows int) error {
 
 // release
 func (s *BaseSession) Release() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
 
 	// 关闭PTY
 	if s.pty != nil {
@@ -150,16 +167,20 @@ func (s *BaseSession) Release() {
 
 // Track output
 func (s *BaseSession) trackOutput() {
-	defer common.SetQuit(s.quitChan)
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("[Panic] in trackOutput: %v", r)
+		}
+	}()
 
-	buf := make([]byte, 1024)
-	tick := time.NewTicker(time.Millisecond * 60)
-	defer tick.Stop()
+	defer close(s.doneChan)
+
+	buf := make([]byte, 32*1024)
 	for {
 		select {
-		case <-s.quitChan:
+		case <-s.doneChan:
 			return
-		case <-tick.C:
+		default:
 			n, err := s.pty.Read(buf)
 			if err != nil {
 				if err == io.EOF {
@@ -172,7 +193,10 @@ func (s *BaseSession) trackOutput() {
 
 			if n > 0 {
 				global.LOG.Info("output: %s", string(buf[:n]))
-				s.outputChan <- string(buf[:n])
+				// 复制一份数据，避免buf被覆盖
+				data := make([]byte, n)
+				copy(data, buf[:n])
+				s.outputChan <- data
 			}
 		}
 	}
@@ -180,7 +204,13 @@ func (s *BaseSession) trackOutput() {
 
 // Wait
 func (s *BaseSession) wait() {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("[Panic] in wait: %v", r)
+		}
+	}()
+
 	if err := s.cmd.Wait(); err != nil {
-		common.SetQuit(s.quitChan)
+		close(s.doneChan)
 	}
 }
