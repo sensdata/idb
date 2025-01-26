@@ -1,13 +1,19 @@
 package terminal
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 )
 
@@ -17,16 +23,35 @@ type ScreenSession struct {
 }
 
 // New instance
-func NewScreenSession(session string, name string, cols, rows int, quitChan chan bool, outputChan chan string) Session {
+func NewScreenSession(session string, name string, cols, rows int) Session {
 	return &ScreenSession{
-		BaseSession: NewBaseSession(session, name, cols, rows, quitChan, outputChan),
+		BaseSession: NewBaseSession(session, name, cols, rows),
 	}
 }
 
 // Start session
 func (s *ScreenSession) Start() error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
+
+	// 是否传了名字
+	var sessionName string
+	if s.Name != "" {
+		sessionName = s.Name
+	} else {
+		// 枚举会话，并创建一个 idb-n
+		name, err := s.genSessionName()
+		if err != nil {
+			// 达到限制
+			if err.Error() == constant.ErrSessionLimit {
+				return fmt.Errorf("%s", "iDB terminal session limit reached. Please clear inactive sessions.")
+			}
+			return fmt.Errorf("failed to gen session name: %v", err)
+		}
+		sessionName = name
+		global.LOG.Info("gen session name: %s", sessionName)
+	}
+	s.Name = sessionName
 
 	// check screen command
 	if _, err := exec.LookPath("screen"); err != nil {
@@ -62,7 +87,7 @@ func (s *ScreenSession) Start() error {
 	time.Sleep(200 * time.Millisecond)
 
 	// find session id
-	sessionID, err := s.findSessionId(s.Name)
+	sessionID, err := s.getSessionID(s.Name)
 	if err != nil {
 		return fmt.Errorf("failed to find session: %v", err)
 	}
@@ -77,8 +102,8 @@ func (s *ScreenSession) Start() error {
 
 // Attach session
 func (s *ScreenSession) Attach() error {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	// s.mutex.Lock()
+	// defer s.mutex.Unlock()
 
 	// check screen command
 	if _, err := exec.LookPath("screen"); err != nil {
@@ -164,12 +189,98 @@ func (s *ScreenSession) Attach() error {
 	return nil
 }
 
-func (s *ScreenSession) findSessionId(name string) (string, error) {
-	command := fmt.Sprintf("screen -ls | grep -oP '\\d+\\.\\S+' | grep '%s' | awk -F. '{print $1}'", name)
-	output, err := exec.Command(command).Output()
-	if err != nil {
-		global.LOG.Error("failed to find session id: %v", err)
-		return "", fmt.Errorf("failed to find session id: %v", err)
+func (s *ScreenSession) genSessionName() (string, error) {
+	var sessionName string
+
+	// 执行命令以列出所有的 screen 会话
+	cmd := exec.Command("screen", "-ls")
+	output, err := cmd.Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		sessionName = fmt.Sprintf("idb-%d", 1)
+		return sessionName, nil
 	}
-	return string(output), nil
+	if err != nil {
+		global.LOG.Error("failed to list sessions: %v", err)
+		return "", err
+	}
+
+	// 处理返回的结果字符串
+	var numbers []int
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// 跳过空行或不包含会话信息的行
+		if !strings.Contains(line, ".idb-") {
+			continue
+		}
+
+		// 使用正则表达式提取会话编号,使用\s+匹配空格
+		re := regexp.MustCompile(`idb-(\d+)\s+`)
+		matches := re.FindStringSubmatch(line)
+		if len(matches) == 2 {
+			if num, err := strconv.Atoi(matches[1]); err == nil {
+				numbers = append(numbers, num)
+			}
+		}
+	}
+
+	// 如果已经有20个了，不允许再创建新的
+	if len(numbers) >= 20 {
+		return "", errors.New(constant.ErrSessionLimit)
+	}
+
+	// 得到了当前的所有numbers，按从低到高排序
+	sort.Ints(numbers)
+
+	// 找到第一个缺失的数字，如果没有缺失就用最大值+1
+	nextNum := 1
+	for _, num := range numbers {
+		if num != nextNum {
+			break
+		}
+		nextNum++
+	}
+
+	// 生成新的会话名称
+	sessionName = fmt.Sprintf("idb-%d", nextNum)
+	return sessionName, nil
 }
+
+func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
+	// 执行 screen -ls 命令获取所有会话列表
+	output, err := exec.Command("screen", "-ls").Output()
+	if strings.Contains(string(output), "No Sockets found") {
+		return "", fmt.Errorf("no session found")
+	}
+	if err != nil {
+		global.LOG.Error("failed to list sessions: %v", err)
+		return "", fmt.Errorf("failed to list sessions: %v", err)
+	}
+
+	// 处理返回的结果字符串
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		// 查找包含 .sessionName 的行
+		if !strings.Contains(line, "."+sessionName) {
+			continue
+		}
+
+		// 使用正则表达式提取会话ID
+		re := regexp.MustCompile(fmt.Sprintf(`(\d+)\.%s\s+`, sessionName))
+		matches := re.FindStringSubmatch(line)
+		if len(matches) >= 2 {
+			return matches[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("session %s not found", sessionName)
+}
+
+// func (s *ScreenSession) findSessionId(name string) (string, error) {
+// 	command := fmt.Sprintf("screen -ls | grep -oP '\\d+\\.\\S+' | grep '%s' | awk -F. '{print $1}'", name)
+// 	output, err := exec.Command(command).Output()
+// 	if err != nil {
+// 		global.LOG.Error("failed to find id of session  %s", name)
+// 		return "", fmt.Errorf("failed to find id of session %s", name)
+// 	}
+// 	return string(output), nil
+// }

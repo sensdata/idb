@@ -25,7 +25,7 @@ func NewManager() Manager {
 
 // Store session
 func (m *DefaultManager) StoreSession(session Session) {
-	m.sessions.Store(session.(*BaseSession).Session, session)
+	m.sessions.Store(session.GetSession(), session)
 }
 
 // Remove session
@@ -34,7 +34,7 @@ func (m *DefaultManager) RemoveSession(session string) {
 }
 
 // Start session
-func (m *DefaultManager) StartSession(sessionType message.SessionType, name string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error) {
+func (m *DefaultManager) StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error) {
 
 	var session Session
 	switch sessionType {
@@ -44,8 +44,6 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, name stri
 			name,
 			cols,
 			rows,
-			quitChan,
-			outputChan,
 		)
 	case message.SessionTypeTmux:
 	default:
@@ -54,8 +52,6 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, name stri
 			name,
 			cols,
 			rows,
-			quitChan,
-			outputChan,
 		)
 	}
 
@@ -67,13 +63,13 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, name stri
 
 	// stroe session
 	m.StoreSession(session)
-	global.LOG.Info("session %s.%s started", session.(*BaseSession).Session, session.(*BaseSession).Name)
+	global.LOG.Info("session %s.%s started", session.GetSession(), session.GetName())
 
 	return session, nil
 }
 
 // Attach session
-func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionID string, cols, rows int, quitChan chan bool, outputChan chan string) (Session, error) {
+func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionID string, cols, rows int) (Session, error) {
 	var session Session
 	switch sessionType {
 	case message.SessionTypeScreen:
@@ -82,8 +78,6 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionI
 			"",
 			cols,
 			rows,
-			quitChan,
-			outputChan,
 		)
 	case message.SessionTypeTmux:
 	default:
@@ -92,8 +86,6 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionI
 			"",
 			cols,
 			rows,
-			quitChan,
-			outputChan,
 		)
 	}
 	global.LOG.Info("attaching session")
@@ -111,7 +103,7 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionI
 
 	// stroe session
 	m.StoreSession(session)
-	global.LOG.Info("session %s.%s attached", session.(*BaseSession).Session, session.(*BaseSession).Name)
+	global.LOG.Info("session %s.%s attached", session.GetSession(), session.GetName())
 
 	return session, nil
 }
@@ -240,13 +232,13 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	cmd := exec.Command("screen", "-ls")
 	output, err := cmd.Output()
 	if strings.Contains(string(output), "No Sockets found") {
-		global.LOG.Info("no session found")
 		return sessions, nil
 	}
 	if err != nil {
 		global.LOG.Error("failed to list sessions: %v", err)
 		return sessions, nil
 	}
+	global.LOG.Info("listScreenSessions: %s", string(output))
 
 	// 处理返回的结果字符串
 	lines := strings.Split(string(output), "\n")
@@ -303,11 +295,10 @@ func listTmuxSession(filterDetached bool) ([]model.SessionInfo, error) {
 	// 执行命令以列出所有的 tmux 会话
 	cmd := exec.Command("tmux", "ls")
 	output, err := cmd.Output()
+	if strings.Contains(string(output), "no server running") {
+		return sessions, nil
+	}
 	if err != nil {
-		if strings.Contains(string(output), "no server running") || strings.Contains(err.Error(), "no server running") {
-			global.LOG.Info("no session found")
-			return sessions, nil
-		}
 		global.LOG.Error("failed to list sessions: %v", err)
 		return sessions, nil
 	}
