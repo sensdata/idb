@@ -88,6 +88,7 @@ func (s *TerminalService) Detach(token string, hostID uint, req model.TerminalRe
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
+	req.Type = string(message.SessionTypeScreen)
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -120,6 +121,7 @@ func (s *TerminalService) Quit(token string, hostID uint, req model.TerminalRequ
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
+	req.Type = string(message.SessionTypeScreen)
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -152,6 +154,7 @@ func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRe
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
+	req.Type = string(message.SessionTypeScreen)
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err

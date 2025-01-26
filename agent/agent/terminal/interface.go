@@ -35,6 +35,8 @@ type Manager interface {
 	StoreSession(session Session)
 	// Remove session
 	RemoveSession(session string)
+	// Get session
+	GetSession(id string) (Session, error)
 	// Start session
 	StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error)
 	// Attach session

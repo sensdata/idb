@@ -149,6 +149,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 
 func (aws *AgentWebSocketSession) notifyDetach() {
 	req := model.TerminalRequest{
+		Type:    string(message.SessionTypeScreen),
 		Session: aws.Session,
 		Data:    "",
 	}

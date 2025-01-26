@@ -33,6 +33,16 @@ func (m *DefaultManager) RemoveSession(session string) {
 	m.sessions.Delete(session)
 }
 
+// Get session
+func (m *DefaultManager) GetSession(id string) (Session, error) {
+	// 查找会话
+	if session, ok := m.sessions.Load(id); ok {
+		return session.(Session), nil
+	}
+
+	return nil, fmt.Errorf("session not found: %s", id)
+}
+
 // Start session
 func (m *DefaultManager) StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error) {
 

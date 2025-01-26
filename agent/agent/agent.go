@@ -505,6 +505,19 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		go a.waitForSessionOutput(conn, session)
 
 	case message.WsMessageAttach: // 恢复会话
+		// find old session
+		oldSession, _ := a.sessionManager.GetSession(msg.Data.Session)
+		if oldSession != nil {
+			// detach old session
+			err := a.sessionManager.DetachSession(oldSession.GetType(), oldSession.GetSession())
+			if err != nil {
+				global.LOG.Error("Failed to detach session %s for re-attaching", oldSession.GetSession())
+			}
+
+			// delay
+			time.Sleep(300 * time.Millisecond)
+		}
+
 		global.LOG.Info("session begin")
 		session, err := a.sessionManager.AttachSession(
 			msg.Data.Type,
