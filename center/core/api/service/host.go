@@ -62,16 +62,25 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 }
 
 func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
-	var host model.Host
-	if err := copier.Copy(&host, &req); err != nil {
-		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
-	}
-
 	//找组
 	group, err := HostGroupRepo.Get(HostGroupRepo.WithByID(req.GroupID))
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
+
+	var host model.Host
+	if err := copier.Copy(&host, &req); err != nil {
+		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
+	}
+
+	// 私钥用 base64 编码一下
+	var encodedPrivateKey string
+	if req.AuthMode == "password" {
+		encodedPrivateKey = ""
+	} else {
+		encodedPrivateKey = base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
+	}
+	host.PrivateKey = encodedPrivateKey
 
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
@@ -93,7 +102,7 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 		User:       host.User,
 		AuthMode:   host.AuthMode,
 		Password:   host.Password,
-		PrivateKey: host.PrivateKey,
+		PrivateKey: encodedPrivateKey,
 		PassPhrase: host.PassPhrase,
 		AgentAddr:  host.AgentAddr,
 		AgentPort:  host.AgentPort,
@@ -128,13 +137,8 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	if req.AuthMode == "password" {
 		upMap["password"] = req.Password
 	} else {
-		// 获取private_key文件内容
-		privateKey, err := os.ReadFile(req.PrivateKey)
-		if err != nil {
-			return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
-		}
 		// Encode private key
-		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
+		encodedPrivateKey := base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
 		global.LOG.Info("private key content: \n %s", encodedPrivateKey)
 
 		upMap["private_key"] = encodedPrivateKey
