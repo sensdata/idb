@@ -22,5 +22,6 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.POST("/:host/test/ssh", baseApi.TestHostSSH)       // 测试设备ssh
 		hostRouter.POST("/:host/test/agent", baseApi.TestHostAgent)   // 测试设备agent
 		hostRouter.POST("/:host/install/agent", baseApi.InstallAgent) // 安装agent
+		hostRouter.GET("/:host/status/agent", baseApi.AgentStatus)    // 获取agent状态
 	}
 }

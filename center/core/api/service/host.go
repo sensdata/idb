@@ -29,6 +29,7 @@ type IHostService interface {
 	TestSSH(id uint, req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
 	InstallAgent(id uint) error
+	AgentStatus(id uint) (*core.AgentStatus, error)
 }
 
 func NewIHostService() IHostService {
@@ -212,4 +213,15 @@ func (s *HostService) InstallAgent(id uint) error {
 		return err
 	}
 	return nil
+}
+
+func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 查询
+	return conn.SSH.AgentStatus(host)
 }

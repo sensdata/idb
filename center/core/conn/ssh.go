@@ -14,6 +14,7 @@ import (
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	core "github.com/sensdata/idb/core/model"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -29,6 +30,7 @@ type ISSHService interface {
 	ExecuteCommand(addr string, command string) (string, error)
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host) error
+	AgentStatus(host model.Host) (*core.AgentStatus, error)
 }
 
 func NewSSHService() ISSHService {
@@ -159,6 +161,41 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
 
 	return nil
+}
+
+func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
+	// 1. 检查并确保 SSH 连接存在
+	client, exists := s.sshClients[host.Addr]
+	if !exists {
+		// 如果连接不存在，尝试建立连接
+		resultCh := make(chan error, 1)
+		go s.connectToHost(&host, resultCh)
+		err := <-resultCh
+		if err != nil {
+			global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
+			return nil, fmt.Errorf("failed to connect to host %s: %v", host.Addr, err)
+		}
+		client = s.sshClients[host.Addr]
+	}
+
+	// 2. 检查目标机器是否已安装 agent
+	checkCmd := `
+        if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
+            echo "installed"
+        else
+            echo "not installed"
+        fi
+    `
+	output, err := executeCommand(client, checkCmd)
+	if err != nil {
+		global.LOG.Error("Failed to check agent installation status on host %s: %v", host.Addr, err)
+		return nil, fmt.Errorf("failed to check agent installation status: %v", err)
+	}
+
+	status := strings.TrimSpace(output)
+	global.LOG.Info("Agent %s in host %s", status, host.Addr)
+
+	return &core.AgentStatus{Status: status}, nil
 }
 
 func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath string) error {

@@ -10,7 +10,7 @@ import (
 
 // @Tags Host
 // @Summary get host group list
-// @Description 获取设备组列表
+// @Description get host group list
 // @Accept json
 // @Produce json
 // @Param page query int true "Page number"
@@ -33,7 +33,7 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 
 // @Tags Host
 // @Summary get host list
-// @Description 获取设备组列表
+// @Description get host list
 // @Accept json
 // @Produce json
 // @Param page query int true "Page number"
@@ -57,8 +57,8 @@ func (b *BaseApi) ListHost(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary create host
-// @Description 新增设备
+// @Summary Add host
+// @Description Add host
 // @Accept json
 // @Produce json
 // @Param request body model.CreateHost true "request"
@@ -79,8 +79,8 @@ func (b *BaseApi) CreateHost(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary update host
-// @Description 更新设备
+// @Summary Update host
+// @Description Update host
 // @Accept json
 // @Produce json
 // @Param id path int true "Host ID"
@@ -104,8 +104,8 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary update host ssh config
-// @Description 更新设备ssh配置
+// @Summary Update ssh config in host
+// @Description Update ssh config in host
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
@@ -132,8 +132,8 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary update host agent config
-// @Description 更新设备agent配置
+// @Summary Update agent config of host
+// @Description Update agent config of host
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
@@ -160,8 +160,8 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary test host ssh
-// @Description 测试设备ssh
+// @Summary Test ssh connection to host
+// @Description Test ssh connection to host
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
@@ -188,8 +188,8 @@ func (b *BaseApi) TestHostSSH(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary test host agent
-// @Description 测试设备 agent
+// @Summary Test agent connection to host
+// @Description Test agent connection to host
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
@@ -217,8 +217,31 @@ func (b *BaseApi) TestHostAgent(c *gin.Context) {
 }
 
 // @Tags Host
-// @Summary install agent on host
-// @Description 在设备上安装 agent
+// @Summary Get agent status in host
+// @Description Get agent status in host
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200
+// @Router /hosts/{host}/status/agent [get]
+func (b *BaseApi) AgentStatus(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	status, err := hostService.AgentStatus(uint(hostID))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, status)
+}
+
+// @Tags Host
+// @Summary Install agent in host
+// @Description Install agent in host
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"

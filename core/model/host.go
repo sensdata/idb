@@ -79,3 +79,7 @@ type TestAgent struct {
 	AgentMode string `json:"agent_mode" validate:"required"`
 	AgentKey  string `json:"agent_key"`
 }
+
+type AgentStatus struct {
+	Status string `json:"status"`
+}
