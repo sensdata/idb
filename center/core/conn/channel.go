@@ -47,6 +47,7 @@ type ICenter interface {
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
 	GetAgentConn(hostID uint) (*net.Conn, error)
+	IsAgentConnected(host model.Host) bool
 	RegisterAgentSession(aws *AgentWebSocketSession)
 	UnregisterAgentSession(session string)
 	RegisterSessionToken(session string, token string)
@@ -910,6 +911,15 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		c.mu.Unlock()
 		return "", fmt.Errorf("timeout waiting for response from agent")
 	}
+}
+
+func (c *Center) IsAgentConnected(host model.Host) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	conn, exists := c.agentConns[agentID]
+	return exists && conn != nil
 }
 
 func (c *Center) getAgentConn(host model.Host) (*net.Conn, error) {

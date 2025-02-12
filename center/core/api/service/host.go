@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 
 	"github.com/jinzhu/copier"
@@ -24,6 +25,7 @@ type IHostService interface {
 	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
+	Status(id uint) (*core.HostStatus, error)
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(id uint, req core.TestSSH) error
@@ -118,6 +120,41 @@ func (s *HostService) Update(id uint, upMap map[string]interface{}) error {
 
 func (s *HostService) Delete(ids []uint) error {
 	return HostRepo.Delete(CommonRepo.WithIdsIn(ids))
+}
+
+func (s *HostService) Status(id uint) (*core.HostStatus, error) {
+	var status core.HostStatus
+
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	actionRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_Status,
+			Data:   "",
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return &status, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return &status, fmt.Errorf("failed to query sessions")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &status)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to session list: %v", err)
+		return &status, fmt.Errorf("json err: %v", err)
+	}
+
+	return &status, nil
 }
 
 func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
@@ -222,6 +259,18 @@ func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
 		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
-	// 查询
-	return conn.SSH.AgentStatus(host)
+	// 查询安装状态
+	status, err := conn.SSH.AgentStatus(host)
+	if err != nil {
+		return nil, errors.WithMessage(constant.ErrSsh, err.Error())
+	}
+
+	// 查询连接状态
+	if conn.CENTER.IsAgentConnected(host) {
+		status.Connected = "online"
+	} else {
+		status.Connected = "offline"
+	}
+
+	return status, nil
 }

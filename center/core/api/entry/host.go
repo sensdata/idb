@@ -104,6 +104,29 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Get host status
+// @Description Get host status
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.HostStatus
+// @Router /hosts/{host}/status [get]
+func (b *BaseApi) HostStatus(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	status, err := hostService.Status(uint(hostID))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, status)
+}
+
+// @Tags Host
 // @Summary Update ssh config in host
 // @Description Update ssh config in host
 // @Accept json
@@ -222,8 +245,8 @@ func (b *BaseApi) TestHostAgent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200
-// @Router /hosts/{host}/status/agent [get]
+// @Success 200 {object} model.AgentStatus
+// @Router /hosts/{host}/agent/status [get]
 func (b *BaseApi) AgentStatus(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -246,7 +269,7 @@ func (b *BaseApi) AgentStatus(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200
-// @Router /hosts/{host}/install/agent [post]
+// @Router /hosts/{host}/agent/install [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

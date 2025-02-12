@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
 	"github.com/sensdata/idb/core/utils"
@@ -14,6 +15,39 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 )
+
+func GetStatus() (*model.HostStatus, error) {
+	var status model.HostStatus
+
+	// cpu
+	percents, err := cpu.Percent(0, false)
+	if err != nil {
+		global.LOG.Error("failed to get cpu: %v", err)
+	}
+	if len(percents) > 0 {
+		status.Cpu = math.Round(percents[0]*100) / 100
+	}
+
+	// mem
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		global.LOG.Error("failed to get mem: %v", err)
+	}
+	if v != nil {
+		status.Memory = math.Round(v.UsedPercent*100) / 100
+	}
+
+	// disk
+	diskUsage, err := disk.Usage("/")
+	if err != nil {
+		global.LOG.Error("failed to get disk: %v", err)
+	}
+	if diskUsage != nil {
+		status.Storage = math.Round(diskUsage.UsedPercent*100) / 100
+	}
+
+	return &status, nil
+}
 
 func GetOverview() (*model.Overview, error) {
 	var overview model.Overview

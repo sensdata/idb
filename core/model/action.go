@@ -1,6 +1,8 @@
 package model
 
 const (
+	Host_Status string = "host_status"
+
 	SysInfo_OverView string = "sysinfo_overview"
 	SysInfo_Network  string = "sysinfo_network"
 	SysInfo_System   string = "sysinfo_system"

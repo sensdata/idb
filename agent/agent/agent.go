@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	gonet "github.com/shirou/gopsutil/v4/net"
 
 	"github.com/sensdata/idb/agent/agent/action"
 	"github.com/sensdata/idb/agent/agent/ca"
@@ -50,6 +53,9 @@ type Agent struct {
 	// mu             sync.Mutex // 保护centerConn的互斥锁
 	// sessionMap     map[string]*session.Session
 	sessionManager terminal.Manager
+
+	rx float64
+	tx float64
 }
 
 //go:embed screen_install.sh
@@ -84,6 +90,9 @@ func (a *Agent) Start() error {
 
 	// 监听端口
 	go a.listenToTcp()
+
+	// 监听流量
+	go a.monitorTraffic()
 
 	return nil
 }
@@ -209,6 +218,56 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 		}
 	default:
 		conn.Write([]byte("Unknown command"))
+	}
+}
+
+func (a *Agent) monitorTraffic() {
+	tick := time.NewTicker(time.Second * 1) // 每秒触发一次
+	defer tick.Stop()
+
+	var lastRxBytes, lastTxBytes uint64
+	var lastTime time.Time // 用于计算时间差
+
+	for {
+		select {
+		case <-a.done:
+			global.LOG.Info("Agent is stopping, stop monitorTraffic")
+			return
+		case <-tick.C:
+			// 获取网络流量统计数据
+			ioCounters, err := gonet.IOCounters(true)
+			if err != nil {
+				log.Println("Error getting network stats:", err)
+				continue
+			}
+
+			for _, counter := range ioCounters {
+				// 如果接收或发送字节数大于零，表示接口有流量
+				if counter.BytesRecv > lastRxBytes || counter.BytesSent > lastTxBytes {
+					// 计算时间差，得到时间间隔（秒）
+					timeDiff := time.Since(lastTime).Seconds()
+
+					// 防止时间差为0，避免除零错误
+					if timeDiff > 0 {
+						// 计算每秒的流量速率
+						rxRate := float64(counter.BytesRecv-lastRxBytes) / timeDiff
+						txRate := float64(counter.BytesSent-lastTxBytes) / timeDiff
+
+						// 更新全局的Rx和Tx速率
+						a.rx = rxRate
+						a.tx = txRate
+
+						// 打印当前的网络速率（单位：字节/秒）
+						// global.LOG.Info("Interface: %s - RX: %.2f B/s, TX: %.2f B/s", counter.Name, a.rx, a.tx)
+					}
+
+					// 更新上次的字节数和时间
+					lastRxBytes = counter.BytesRecv
+					lastTxBytes = counter.BytesSent
+					lastTime = time.Now() // 更新最后的时间戳
+				}
+			}
+		}
 	}
 }
 
@@ -667,6 +726,21 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 	}
 
 	switch actionData.Action {
+	// 获取host status
+	case model.Host_Status:
+		status, err := action.GetStatus()
+		if err != nil {
+			return nil, err
+		}
+		status.Rx = a.rx
+		status.Tx = a.tx
+
+		result, err := utils.ToJSONString(status)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 	// 获取overview
 	case model.SysInfo_OverView:
 		overview, err := action.GetOverview()
