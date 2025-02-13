@@ -86,9 +86,9 @@ type AgentStatus struct {
 }
 
 type HostStatus struct {
-	Cpu     float64 `json:"status"`
-	Memory  float64 `json:"connected"`
-	Storage float64 `json:"storage"`
-	Rx      float64 `json:"rx"` //接收实时速率
-	Tx      float64 `json:"tx"` //发送实时速率
+	Cpu    float64 `json:"cpu"`
+	Memory float64 `json:"mem"`
+	Disk   float64 `json:"disk"`
+	Rx     float64 `json:"rx"` //接收实时速率
+	Tx     float64 `json:"tx"` //发送实时速率
 }

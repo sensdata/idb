@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"os"
 	"os/exec"
@@ -732,8 +733,8 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		status.Rx = a.rx
-		status.Tx = a.tx
+		status.Rx = math.Round(a.rx*100) / 100
+		status.Tx = math.Round(a.tx*100) / 100
 
 		result, err := utils.ToJSONString(status)
 		if err != nil {
