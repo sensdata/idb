@@ -4190,44 +4190,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/agent": {
-            "put": {
-                "description": "Update agent config of host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Host"
-                ],
-                "summary": "Update agent config of host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateHostAgent"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
         "/hosts/{host}/agent/install": {
             "post": {
                 "description": "Install agent in host",
@@ -4258,7 +4220,7 @@ const docTemplate = `{
             }
         },
         "/hosts/{host}/agent/restart": {
-            "get": {
+            "post": {
                 "description": "Restart agent",
                 "consumes": [
                     "application/json"
@@ -4318,7 +4280,45 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/ssh": {
+        "/hosts/{host}/conf/agent": {
+            "put": {
+                "description": "Update agent config of host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Update agent config of host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHostAgent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/hosts/{host}/conf/ssh": {
             "put": {
                 "description": "Update ssh config in host",
                 "consumes": [

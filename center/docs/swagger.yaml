@@ -4514,31 +4514,6 @@ paths:
       summary: Get host info
       tags:
       - Host
-  /hosts/{host}/agent:
-    put:
-      consumes:
-      - application/json
-      description: Update agent config of host
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.UpdateHostAgent'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Update agent config of host
-      tags:
-      - Host
   /hosts/{host}/agent/install:
     post:
       consumes:
@@ -4559,7 +4534,7 @@ paths:
       tags:
       - Host
   /hosts/{host}/agent/restart:
-    get:
+    post:
       consumes:
       - application/json
       description: Restart agent
@@ -4598,7 +4573,32 @@ paths:
       summary: Get agent status in host
       tags:
       - Host
-  /hosts/{host}/ssh:
+  /hosts/{host}/conf/agent:
+    put:
+      consumes:
+      - application/json
+      description: Update agent config of host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateHostAgent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update agent config of host
+      tags:
+      - Host
+  /hosts/{host}/conf/ssh:
     put:
       consumes:
       - application/json

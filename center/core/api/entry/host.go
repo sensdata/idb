@@ -179,7 +179,7 @@ func (b *BaseApi) HostStatus(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.UpdateHostSSH true "request"
 // @Success 200
-// @Router /hosts/{host}/ssh [put]
+// @Router /hosts/{host}/conf/ssh [put]
 func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -207,7 +207,7 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.UpdateHostAgent true "request"
 // @Success 200
-// @Router /hosts/{host}/agent [put]
+// @Router /hosts/{host}/conf/agent [put]
 func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -336,7 +336,7 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Success 200
-// @Router /hosts/{host}/agent/restart [get]
+// @Router /hosts/{host}/agent/restart [post]
 func (b *BaseApi) RestartAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
