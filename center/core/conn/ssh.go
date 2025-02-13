@@ -2,15 +2,14 @@ package conn
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/pkg/sftp"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
@@ -27,7 +26,6 @@ type SSHService struct {
 type ISSHService interface {
 	Start() error
 	Stop()
-	ExecuteCommand(addr string, command string) (string, error)
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host) error
 	AgentStatus(host model.Host) (*core.AgentStatus, error)
@@ -59,41 +57,51 @@ func (s *SSHService) Stop() {
 	}
 }
 
-func (s *SSHService) ExecuteCommand(addr string, command string) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	_, exists := s.sshClients[addr]
-	if !exists {
-		return "", errors.New("host disconnected")
-	}
-
-	return executeCommand(s.sshClients[addr], command)
-}
-
 func (s *SSHService) TestConnection(host model.Host) error {
-	// 已存在
-	_, exists := s.sshClients[host.Addr]
-	if exists {
-		return nil
-	}
-
-	resultCh := make(chan error, 1)
-	go s.connectToHost(&host, resultCh)
-
-	err := <-resultCh
+	_, err := s.checkClient(host)
 	if err != nil {
-		global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
 		return err
 	}
 
 	return nil
 }
 
-func (s *SSHService) InstallAgent(host model.Host) error {
+func (s *SSHService) checkClient(host model.Host) (*ssh.Client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	client, exists := s.sshClients[host.Addr]
+	if !exists || client == nil || !isValidSSHClient(client) {
+		delete(s.sshClients, host.Addr)
+
+		// 如果连接不存在，或者连接无效，尝试建立连接
+		resultCh := make(chan error, 1)
+		go s.connectToHost(&host, resultCh)
+		err := <-resultCh
+		if err != nil {
+			global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
+			return nil, fmt.Errorf("failed to connect to host %s: %v", host.Addr, err)
+		}
+		client = s.sshClients[host.Addr]
+	}
+
+	return client, nil
+}
+
+func isValidSSHClient(client *ssh.Client) bool {
+	// 尝试发送一个简单的命令来验证连接
+	session, err := client.NewSession()
+	if err != nil {
+		return false
+	}
+	defer session.Close()
+
+	// 使用轻量级的命令，如 "echo"
+	err = session.Run("echo") // 只执行一个无害的命令
+	return err == nil
+}
+
+func (s *SSHService) InstallAgent(host model.Host) error {
 	global.LOG.Info("Install agent to host %s begin", host.Addr)
 
 	// 1. 检查 agent 安装包路径
@@ -104,17 +112,9 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 	}
 
 	// 2. 检查并确保 SSH 连接存在
-	client, exists := s.sshClients[host.Addr]
-	if !exists {
-		// 如果连接不存在，尝试建立连接
-		resultCh := make(chan error, 1)
-		go s.connectToHost(&host, resultCh)
-		err := <-resultCh
-		if err != nil {
-			global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
-			return fmt.Errorf("failed to connect to host %s: %v", host.Addr, err)
-		}
-		client = s.sshClients[host.Addr]
+	client, err := s.checkClient(host)
+	if err != nil {
+		return err
 	}
 
 	// 3. 检查目标机器是否已安装 agent
@@ -148,7 +148,7 @@ func (s *SSHService) InstallAgent(host model.Host) error {
         mkdir -p /tmp/idb-agent && 
         tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
         cd /tmp/idb-agent && 
-        sudo ./install-agent.sh && 
+        sh install-agent.sh && 
         rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
     `
 	output, err = executeCommand(client, installCmd)
@@ -165,17 +165,9 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 
 func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
 	// 1. 检查并确保 SSH 连接存在
-	client, exists := s.sshClients[host.Addr]
-	if !exists {
-		// 如果连接不存在，尝试建立连接
-		resultCh := make(chan error, 1)
-		go s.connectToHost(&host, resultCh)
-		err := <-resultCh
-		if err != nil {
-			global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
-			return nil, fmt.Errorf("failed to connect to host %s: %v", host.Addr, err)
-		}
-		client = s.sshClients[host.Addr]
+	client, err := s.checkClient(host)
+	if err != nil {
+		return nil, err
 	}
 
 	// 2. 检查目标机器是否已安装 agent
@@ -199,53 +191,38 @@ func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
 }
 
 func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath string) error {
-	session, err := client.NewSession()
+	// 打开 SFTP 会话
+	sftpClient, err := sftp.NewClient(client)
 	if err != nil {
+		global.LOG.Error("failed to start SFTP session: %v", err)
 		return err
 	}
-	defer session.Close()
+	defer sftpClient.Close()
 
-	file, err := os.Open(localPath)
+	// 打开本地文件
+	localFile, err := os.Open(localPath)
 	if err != nil {
+		global.LOG.Error("failed to open local file: %v", err)
 		return err
 	}
-	defer file.Close()
+	defer localFile.Close()
 
-	stat, err := file.Stat()
+	// 创建远程文件
+	remoteFile, err := sftpClient.Create(remotePath)
 	if err != nil {
+		global.LOG.Error("failed to create remote file: %v", err)
+		return err
+	}
+	defer remoteFile.Close()
+
+	// 复制文件内容
+	_, err = localFile.WriteTo(remoteFile)
+	if err != nil {
+		global.LOG.Error("failed to write file to remote server: %v", err)
 		return err
 	}
 
-	w, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		defer w.Close()
-		fmt.Fprintf(w, "C0644 %d %s\n", stat.Size(), remotePath)
-
-		buf := make([]byte, 32*1024) // 32KB buffer
-		for {
-			n, err := file.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					global.LOG.Error("Error reading file: %v", err)
-				}
-				break
-			}
-			if _, err := w.Write(buf[:n]); err != nil {
-				global.LOG.Error("Error writing to SSH session: %v", err)
-				break
-			}
-		}
-		fmt.Fprint(w, "\x00") // Transfer end with null byte
-	}()
-
-	if err := session.Run("/usr/bin/scp -t " + remotePath); err != nil {
-		return fmt.Errorf("failed to run scp: %v", err)
-	}
-
+	global.LOG.Info("File transferred successfully to %s", remotePath)
 	return nil
 }
 
@@ -260,29 +237,16 @@ func (s *SSHService) ensureConnections() {
 
 	// 挨个确认是否已经建立连接
 	for _, host := range hosts {
-		addr := host.Addr
-		// 判断sshClients中是否包含addr的数据
-		_, exists := s.sshClients[addr]
-		if exists {
+		_, err := s.checkClient(host)
+		if err != nil {
 			continue
 		} else {
-			resultCh := make(chan error, 1)
-			go s.connectToHost(&host, resultCh)
-			// handle the result if needed
-			err := <-resultCh
-			if err != nil {
-				global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
-			} else {
-				go s.InstallAgent(host)
-			}
+			go s.InstallAgent(host)
 		}
 	}
 }
 
 func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	proto := "tcp"
 	addr := host.Addr
 	if strings.Contains(host.Addr, ":") {
@@ -343,12 +307,14 @@ func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, err
 func executeCommand(client *ssh.Client, command string) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
+		global.LOG.Error("failed to new sessioin: %v", err)
 		return "", err
 	}
 	defer session.Close()
 
 	output, err := session.CombinedOutput(command)
 	if err != nil {
+		global.LOG.Error("failed to send command: %v", err)
 		return "", err
 	}
 	return string(output), nil

@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -212,18 +211,14 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 	}
 	host.ID = id
 
-	// 校验模式
-	if req.AuthMode != "password" {
-		//获取private_key文件内容
-		privateKey, err := os.ReadFile(req.PrivateKey)
-		if err != nil {
-			return errors.WithMessage(errors.New(constant.ErrFileRead), err.Error())
-		}
-		// Encode private key
-		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
-		global.LOG.Info("private key content: \n %s", encodedPrivateKey)
-		host.PrivateKey = encodedPrivateKey
+	// 私钥用 base64 编码一下
+	var encodedPrivateKey string
+	if req.AuthMode == "password" {
+		encodedPrivateKey = ""
+	} else {
+		encodedPrivateKey = base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
 	}
+	host.PrivateKey = encodedPrivateKey
 
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err
