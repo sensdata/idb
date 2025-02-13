@@ -67,6 +67,13 @@ definitions:
         description: 类型
         type: string
     type: object
+  model.AgentStatus:
+    properties:
+      connected:
+        type: string
+      status:
+        type: string
+    type: object
   model.CSRInfo:
     properties:
       common_name:
@@ -805,6 +812,21 @@ definitions:
       user:
         type: string
     type: object
+  model.HostStatus:
+    properties:
+      cpu:
+        type: number
+      disk:
+        type: number
+      mem:
+        type: number
+      rx:
+        description: 接收实时速率
+        type: number
+      tx:
+        description: 发送实时速率
+        type: number
+    type: object
   model.ImageBuild:
     properties:
       docker_file:
@@ -1444,6 +1466,8 @@ definitions:
       data:
         type: string
       session:
+        type: string
+      type:
         type: string
     type: object
   model.TestAgent:
@@ -4376,7 +4400,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取设备组列表
+      description: get host list
       parameters:
       - description: Page number
         in: query
@@ -4409,7 +4433,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 新增设备
+      description: Add host
       parameters:
       - description: request
         in: body
@@ -4424,13 +4448,13 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/model.HostInfo'
-      summary: create host
+      summary: Add host
       tags:
       - Host
     put:
       consumes:
       - application/json
-      description: 更新设备
+      description: Update host
       parameters:
       - description: Host ID
         in: path
@@ -4448,14 +4472,14 @@ paths:
       responses:
         "200":
           description: OK
-      summary: update host
+      summary: Update host
       tags:
       - Host
   /hosts/{host}/agent:
     put:
       consumes:
       - application/json
-      description: 更新设备agent配置
+      description: Update agent config of host
       parameters:
       - description: Host ID
         in: path
@@ -4473,14 +4497,14 @@ paths:
       responses:
         "200":
           description: OK
-      summary: update host agent config
+      summary: Update agent config of host
       tags:
       - Host
-  /hosts/{host}/install/agent:
+  /hosts/{host}/agent/install:
     post:
       consumes:
       - application/json
-      description: 在设备上安装 agent
+      description: Install agent in host
       parameters:
       - description: Host ID
         in: path
@@ -4492,14 +4516,35 @@ paths:
       responses:
         "200":
           description: OK
-      summary: install agent on host
+      summary: Install agent in host
+      tags:
+      - Host
+  /hosts/{host}/agent/status:
+    get:
+      consumes:
+      - application/json
+      description: Get agent status in host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AgentStatus'
+      summary: Get agent status in host
       tags:
       - Host
   /hosts/{host}/ssh:
     put:
       consumes:
       - application/json
-      description: 更新设备ssh配置
+      description: Update ssh config in host
       parameters:
       - description: Host ID
         in: path
@@ -4517,14 +4562,35 @@ paths:
       responses:
         "200":
           description: OK
-      summary: update host ssh config
+      summary: Update ssh config in host
+      tags:
+      - Host
+  /hosts/{host}/status:
+    get:
+      consumes:
+      - application/json
+      description: Get host status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.HostStatus'
+      summary: Get host status
       tags:
       - Host
   /hosts/{host}/test/agent:
     post:
       consumes:
       - application/json
-      description: 测试设备 agent
+      description: Test agent connection to host
       parameters:
       - description: Host ID
         in: path
@@ -4542,14 +4608,14 @@ paths:
       responses:
         "200":
           description: OK
-      summary: test host agent
+      summary: Test agent connection to host
       tags:
       - Host
   /hosts/{host}/test/ssh:
     post:
       consumes:
       - application/json
-      description: 测试设备ssh
+      description: Test ssh connection to host
       parameters:
       - description: Host ID
         in: path
@@ -4567,14 +4633,14 @@ paths:
       responses:
         "200":
           description: OK
-      summary: test host ssh
+      summary: Test ssh connection to host
       tags:
       - Host
   /hosts/groups:
     get:
       consumes:
       - application/json
-      description: 获取设备组列表
+      description: get host group list
       parameters:
       - description: Page number
         in: query

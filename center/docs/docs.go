@@ -3975,7 +3975,7 @@ const docTemplate = `{
         },
         "/hosts": {
             "get": {
-                "description": "获取设备组列表",
+                "description": "get host list",
                 "consumes": [
                     "application/json"
                 ],
@@ -4024,7 +4024,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "更新设备",
+                "description": "Update host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4034,7 +4034,7 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "update host",
+                "summary": "Update host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4060,7 +4060,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "新增设备",
+                "description": "Add host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4070,7 +4070,7 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "create host",
+                "summary": "Add host",
                 "parameters": [
                     {
                         "description": "request",
@@ -4094,7 +4094,7 @@ const docTemplate = `{
         },
         "/hosts/groups": {
             "get": {
-                "description": "获取设备组列表",
+                "description": "get host group list",
                 "consumes": [
                     "application/json"
                 ],
@@ -4133,7 +4133,7 @@ const docTemplate = `{
         },
         "/hosts/{host}/agent": {
             "put": {
-                "description": "更新设备agent配置",
+                "description": "Update agent config of host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4143,7 +4143,7 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "update host agent config",
+                "summary": "Update agent config of host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4169,9 +4169,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/install/agent": {
+        "/hosts/{host}/agent/install": {
             "post": {
-                "description": "在设备上安装 agent",
+                "description": "Install agent in host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4181,7 +4181,7 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "install agent on host",
+                "summary": "Install agent in host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4198,9 +4198,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/ssh": {
-            "put": {
-                "description": "更新设备ssh配置",
+        "/hosts/{host}/agent/status": {
+            "get": {
+                "description": "Get agent status in host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4210,7 +4210,39 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "update host ssh config",
+                "summary": "Get agent status in host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AgentStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/hosts/{host}/ssh": {
+            "put": {
+                "description": "Update ssh config in host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Update ssh config in host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4236,9 +4268,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/test/agent": {
-            "post": {
-                "description": "测试设备 agent",
+        "/hosts/{host}/status": {
+            "get": {
+                "description": "Get host status",
                 "consumes": [
                     "application/json"
                 ],
@@ -4248,7 +4280,39 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "test host agent",
+                "summary": "Get host status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.HostStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/hosts/{host}/test/agent": {
+            "post": {
+                "description": "Test agent connection to host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Test agent connection to host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4276,7 +4340,7 @@ const docTemplate = `{
         },
         "/hosts/{host}/test/ssh": {
             "post": {
-                "description": "测试设备ssh",
+                "description": "Test ssh connection to host",
                 "consumes": [
                     "application/json"
                 ],
@@ -4286,7 +4350,7 @@ const docTemplate = `{
                 "tags": [
                     "Host"
                 ],
-                "summary": "test host ssh",
+                "summary": "Test ssh connection to host",
                 "parameters": [
                     {
                         "type": "integer",
@@ -8076,6 +8140,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.AgentStatus": {
+            "type": "object",
+            "properties": {
+                "connected": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "model.CSRInfo": {
             "type": "object",
             "properties": {
@@ -9176,6 +9251,28 @@ const docTemplate = `{
                 }
             }
         },
+        "model.HostStatus": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "number"
+                },
+                "disk": {
+                    "type": "number"
+                },
+                "mem": {
+                    "type": "number"
+                },
+                "rx": {
+                    "description": "接收实时速率",
+                    "type": "number"
+                },
+                "tx": {
+                    "description": "发送实时速率",
+                    "type": "number"
+                }
+            }
+        },
         "model.ImageBuild": {
             "type": "object",
             "required": [
@@ -10131,6 +10228,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "session": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
