@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -23,7 +24,8 @@ type IHostService interface {
 	List(req core.ListHost) (*core.PageResult, error)
 	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
-	Delete(ids []uint) error
+	Delete(id uint) error
+	Info(id uint) (*core.HostInfo, error)
 	Status(id uint) (*core.HostStatus, error)
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
@@ -31,6 +33,7 @@ type IHostService interface {
 	TestAgent(id uint, req core.TestAgent) error
 	InstallAgent(id uint) error
 	AgentStatus(id uint) (*core.AgentStatus, error)
+	RestartAgent(id uint) error
 }
 
 func NewIHostService() IHostService {
@@ -75,20 +78,11 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
 	}
 
-	// 私钥用 base64 编码一下
-	var encodedPrivateKey string
-	if req.AuthMode == "password" {
-		encodedPrivateKey = ""
-	} else {
-		encodedPrivateKey = base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
-	}
-	host.PrivateKey = encodedPrivateKey
-
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
-	host.AgentPort = 9919                   //TODO 从设置中获取
-	host.AgentKey = utils.GenerateNonce(32) //TODO 添加以后，如何给到Agent端？
-	host.AgentMode = "http"                 //TODO https连接，需要调整实现
+	host.AgentPort = 9919                      //TODO 从设置中获取
+	host.AgentKey = "idbidbidbidbidbidbidbidb" //TODO 添加以后，如何给到Agent端？
+	host.AgentMode = "https"                   //TODO https连接，需要调整实现
 
 	if err := HostRepo.Create(&host); err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
@@ -104,7 +98,7 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 		User:       host.User,
 		AuthMode:   host.AuthMode,
 		Password:   host.Password,
-		PrivateKey: encodedPrivateKey,
+		PrivateKey: host.PrivateKey,
 		PassPhrase: host.PassPhrase,
 		AgentAddr:  host.AgentAddr,
 		AgentPort:  host.AgentPort,
@@ -117,8 +111,54 @@ func (s *HostService) Update(id uint, upMap map[string]interface{}) error {
 	return HostRepo.Update(id, upMap)
 }
 
-func (s *HostService) Delete(ids []uint) error {
-	return HostRepo.Delete(CommonRepo.WithIdsIn(ids))
+func (s *HostService) Delete(id uint) error {
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 断开agent conn
+	err = conn.CENTER.ReleaseAgentConn(host)
+	if err != nil {
+		global.LOG.Error("failed to release agent conn: %v", err)
+	}
+
+	return HostRepo.Delete(CommonRepo.WithIdsIn([]uint{host.ID}))
+}
+
+func (s *HostService) Info(id uint) (*core.HostInfo, error) {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		global.LOG.Error("host %d not found: %v", id, err)
+		return nil, constant.ErrInternalServer
+	}
+
+	//找组
+	group, err := HostGroupRepo.Get(HostGroupRepo.WithByID(host.GroupID))
+	if err != nil {
+		global.LOG.Error("group %d not found: %v", host.GroupID, err)
+		return nil, constant.ErrInternalServer
+	}
+
+	return &core.HostInfo{
+		ID:         host.ID,
+		CreatedAt:  host.CreatedAt,
+		GroupInfo:  core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		Name:       host.Name,
+		Addr:       host.Addr,
+		Port:       host.Port,
+		User:       host.User,
+		AuthMode:   host.AuthMode,
+		Password:   host.Password,
+		PrivateKey: host.PrivateKey,
+		PassPhrase: host.PassPhrase,
+		AgentAddr:  host.AgentAddr,
+		AgentPort:  host.AgentPort,
+		AgentKey:   host.AgentKey,
+		AgentMode:  host.AgentMode,
+	}, nil
 }
 
 func (s *HostService) Status(id uint) (*core.HostStatus, error) {
@@ -174,9 +214,13 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	if req.AuthMode == "password" {
 		upMap["password"] = req.Password
 	} else {
-		// Encode private key
-		encodedPrivateKey := base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
-		global.LOG.Info("private key content: \n %s", encodedPrivateKey)
+		// 读取文件
+		privateKey, err := os.ReadFile(req.PrivateKey)
+		if err != nil {
+			global.LOG.Error("failed to read private key file: %v", err)
+			return errors.New(constant.ErrFileRead)
+		}
+		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
 
 		upMap["private_key"] = encodedPrivateKey
 		upMap["pass_phrase"] = req.PassPhrase
@@ -211,15 +255,6 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 	}
 	host.ID = id
 
-	// 私钥用 base64 编码一下
-	var encodedPrivateKey string
-	if req.AuthMode == "password" {
-		encodedPrivateKey = ""
-	} else {
-		encodedPrivateKey = base64.StdEncoding.EncodeToString([]byte(req.PrivateKey))
-	}
-	host.PrivateKey = encodedPrivateKey
-
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err
 	}
@@ -227,7 +262,13 @@ func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
 }
 
 func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
-	if err := conn.CENTER.TestAgent(id, req); err != nil {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	if err := conn.CENTER.TestAgent(host, req); err != nil {
 		return err
 	}
 	return nil
@@ -268,4 +309,20 @@ func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
 	}
 
 	return status, nil
+}
+
+func (s *HostService) RestartAgent(id uint) error {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return constant.ErrRecordNotFound
+	}
+
+	// restart
+	err = conn.SSH.RestartAgent(host)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

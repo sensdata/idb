@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -85,19 +86,17 @@ func (s *WebSocketService) HandleSshTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "load host info by id failed")
 	}
 
-	global.LOG.Info("private key content: \n %s", host.PrivateKey)
-
 	// 建立新的ssh连接
 	var connInfo SshConn
 	_ = copier.Copy(&connInfo, &host)
 
-	// Decode private key after retrieving
-	decodedPrivateKey, err := base64.StdEncoding.DecodeString(host.PrivateKey)
+	// 读取文件
+	privateKey, err := os.ReadFile(host.PrivateKey)
 	if err != nil {
 		wsHandleError(wsConn, err)
-		return errors.Wrap(err, "failed to decode private key")
+		return errors.Wrap(err, "failed to get private key")
 	}
-	connInfo.PrivateKey = decodedPrivateKey
+	connInfo.PrivateKey = privateKey
 	if len(host.PassPhrase) != 0 {
 		connInfo.PassPhrase = []byte(host.PassPhrase)
 	}
@@ -228,7 +227,13 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "invalid param host in request")
 	}
 
-	agentConn, err := CENTER.GetAgentConn(uint(hostID))
+	//找host
+	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "no host found")
+	}
+	agentConn, err := CENTER.GetAgentConn(host)
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "agent disconected")

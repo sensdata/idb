@@ -4397,6 +4397,24 @@ paths:
       tags:
       - Group
   /hosts:
+    delete:
+      consumes:
+      - application/json
+      description: Delete host
+      parameters:
+      - description: Host ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete host
+      tags:
+      - Host
     get:
       consumes:
       - application/json
@@ -4475,6 +4493,27 @@ paths:
       summary: Update host
       tags:
       - Host
+  /hosts/{host}:
+    get:
+      consumes:
+      - application/json
+      description: Get host info
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get host info
+      tags:
+      - Host
   /hosts/{host}/agent:
     put:
       consumes:
@@ -4517,6 +4556,25 @@ paths:
         "200":
           description: OK
       summary: Install agent in host
+      tags:
+      - Host
+  /hosts/{host}/agent/restart:
+    get:
+      consumes:
+      - application/json
+      description: Restart agent
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Restart agent
       tags:
       - Host
   /hosts/{host}/agent/status:

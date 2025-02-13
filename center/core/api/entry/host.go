@@ -104,6 +104,51 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Delete host
+// @Description Delete host
+// @Accept json
+// @Produce json
+// @Param id query int true "Host ID"
+// @Success 200
+// @Router /hosts [delete]
+func (b *BaseApi) DeleteHost(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Query("id"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	if err := hostService.Delete(uint(hostID)); err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
+// @Summary Get host info
+// @Description Get host info
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /hosts/{host} [get]
+func (b *BaseApi) HostInfo(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	info, err := hostService.Info(uint(hostID))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)
+		return
+	}
+	SuccessWithData(c, info)
+}
+
+// @Tags Host
 // @Summary Get host status
 // @Description Get host status
 // @Accept json
@@ -278,6 +323,29 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 	}
 
 	if err := hostService.InstallAgent(uint(hostID)); err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
+// @Summary Restart agent
+// @Description Restart agent
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200
+// @Router /hosts/{host}/agent/restart [get]
+func (b *BaseApi) RestartAgent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = hostService.RestartAgent(uint(hostID))
+	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}

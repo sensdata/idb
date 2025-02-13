@@ -17,6 +17,8 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.GET("", baseApi.ListHost)                          // 获取设备列表
 		hostRouter.POST("", baseApi.CreateHost)                       // 新增设备
 		hostRouter.PUT("", baseApi.UpdateHost)                        // 更新设备
+		hostRouter.DELETE("", baseApi.DeleteHost)                     //删除设备
+		hostRouter.GET("/:host", baseApi.HostInfo)                    //设备信息
 		hostRouter.GET("/:host/status", baseApi.HostStatus)           // 设备状态
 		hostRouter.PUT("/:host/ssh", baseApi.UpdateHostSSH)           // 更新设备ssh配置
 		hostRouter.PUT("/:host/agent", baseApi.UpdateHostAgent)       // 更新设备agent配置
@@ -24,5 +26,6 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.POST("/:host/test/agent", baseApi.TestHostAgent)   // 测试设备agent
 		hostRouter.POST("/:host/agent/install", baseApi.InstallAgent) // 安装agent
 		hostRouter.GET("/:host/agent/status", baseApi.AgentStatus)    // 获取agent状态
+		hostRouter.POST("/:host/agent/restart", baseApi.RestartAgent) //重启agent
 	}
 }

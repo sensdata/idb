@@ -4090,6 +4090,33 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Delete host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Delete host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
             }
         },
         "/hosts/groups": {
@@ -4118,6 +4145,38 @@ const docTemplate = `{
                         "description": "Page size",
                         "name": "page_size",
                         "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/hosts/{host}": {
+            "get": {
+                "description": "Get host info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Get host info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -4182,6 +4241,35 @@ const docTemplate = `{
                     "Host"
                 ],
                 "summary": "Install agent in host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/hosts/{host}/agent/restart": {
+            "get": {
+                "description": "Restart agent",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Restart agent",
                 "parameters": [
                     {
                         "type": "integer",

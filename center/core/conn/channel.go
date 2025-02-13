@@ -46,14 +46,15 @@ type ICenter interface {
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
-	GetAgentConn(hostID uint) (*net.Conn, error)
+	GetAgentConn(host model.Host) (*net.Conn, error)
 	IsAgentConnected(host model.Host) bool
 	RegisterAgentSession(aws *AgentWebSocketSession)
 	UnregisterAgentSession(session string)
 	RegisterSessionToken(session string, token string)
 	UnregisterSessionToken(session string)
 	GetSessionToken(session string) (string, bool)
-	TestAgent(id uint, req core.TestAgent) error
+	TestAgent(host model.Host, req core.TestAgent) error
+	ReleaseAgentConn(host model.Host) error
 }
 
 func NewCenter() ICenter {
@@ -740,14 +741,7 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	return nil
 }
 
-func (c *Center) GetAgentConn(hostID uint) (*net.Conn, error) {
-	// 找host
-	host, err := HostRepo.Get(HostRepo.WithByID(hostID))
-	if err != nil || host.ID == 0 {
-		global.LOG.Error("host %d not found", hostID)
-		return nil, constant.ErrHost
-	}
-
+func (c *Center) GetAgentConn(host model.Host) (*net.Conn, error) {
 	return c.getAgentConn(host)
 }
 
@@ -1008,13 +1002,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	}
 }
 
-func (c *Center) TestAgent(id uint, req core.TestAgent) error {
-	//找host
-	host, err := HostRepo.Get(HostRepo.WithByID(id))
-	if err != nil {
-		return errors.WithMessage(constant.ErrHost, err.Error())
-	}
-
+func (c *Center) TestAgent(host model.Host, req core.TestAgent) error {
 	// 查找agent conn
 	conn, _ := c.getAgentConn(host)
 	if conn != nil {
@@ -1028,6 +1016,16 @@ func (c *Center) TestAgent(id uint, req core.TestAgent) error {
 			global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (c *Center) ReleaseAgentConn(host model.Host) error {
+	// 查找agent conn
+	conn, _ := c.getAgentConn(host)
+	if conn != nil {
+		(*conn).Close()
 	}
 
 	return nil

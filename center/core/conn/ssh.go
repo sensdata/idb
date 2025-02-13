@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
@@ -29,6 +29,7 @@ type ISSHService interface {
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host) error
 	AgentStatus(host model.Host) (*core.AgentStatus, error)
+	RestartAgent(host model.Host) error
 }
 
 func NewSSHService() ISSHService {
@@ -58,10 +59,50 @@ func (s *SSHService) Stop() {
 }
 
 func (s *SSHService) TestConnection(host model.Host) error {
-	_, err := s.checkClient(host)
-	if err != nil {
-		return err
+	proto := "tcp"
+	addr := host.Addr
+	if strings.Contains(host.Addr, ":") {
+		addr = fmt.Sprintf("[%s]", host.Addr)
+		proto = "tcp6"
 	}
+	dialAddr := fmt.Sprintf("%s:%d", addr, host.Port)
+
+	global.LOG.Info("try connect to host ssh: %s", dialAddr)
+
+	//connection config
+	config := &ssh.ClientConfig{}
+	config.SetDefaults()
+	config.User = host.User
+	global.LOG.Info("authmode: %s, %s", host.AuthMode, host.Password)
+	if host.AuthMode == "password" {
+		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
+	} else {
+		// 读取文件
+		privateKey, err := os.ReadFile(host.PrivateKey)
+		if err != nil {
+			global.LOG.Error("failed to read private key file: %v", err)
+			return errors.New(constant.ErrFileRead)
+		}
+		passPhrase := []byte(host.PassPhrase)
+
+		signer, err := makePrivateKeySigner(privateKey, passPhrase)
+		if err != nil {
+			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
+			return fmt.Errorf("failed to config private key to host %s, %v", host.Addr, err)
+		}
+		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
+	}
+	config.Timeout = 5 * time.Second
+	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	client, err := ssh.Dial(proto, dialAddr, config)
+	if err != nil {
+		global.LOG.Error("Failed to create ssh connection to host %s, %v", host.Addr, err)
+		return fmt.Errorf("failed to create ssh connection to host %s, %v", host.Addr, err)
+	}
+	client.Close()
+
+	global.LOG.Info("SSH test to %s passed", host.Addr)
 
 	return nil
 }
@@ -190,6 +231,25 @@ func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
 	return &core.AgentStatus{Status: status}, nil
 }
 
+func (s *SSHService) RestartAgent(host model.Host) error {
+	// 检查并确保 SSH 连接存在
+	client, err := s.checkClient(host)
+	if err != nil {
+		return err
+	}
+
+	restartCmd := `systemctl restart idb-agent.service`
+	output, err := executeCommand(client, restartCmd)
+	if err != nil {
+		global.LOG.Error("Failed to restart agent in host %s: %v", host.Addr, err)
+		return fmt.Errorf("failed to restart agent in host %s: %v", host.Addr, err)
+	}
+
+	global.LOG.Info("Agent restart output: %s", output)
+
+	return nil
+}
+
 func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath string) error {
 	// 打开 SFTP 会话
 	sftpClient, err := sftp.NewClient(client)
@@ -265,16 +325,17 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	if host.AuthMode == "password" {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
-		// Decode private key after retrieving
-		decodedPrivateKey, err := base64.StdEncoding.DecodeString(host.PrivateKey)
+		// 读取文件
+		privateKey, err := os.ReadFile(host.PrivateKey)
 		if err != nil {
-			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
+			global.LOG.Error("failed to read private key file: %v", err)
 			resultCh <- err
 			return
 		}
+
 		passPhrase := []byte(host.PassPhrase)
 
-		signer, err := makePrivateKeySigner(decodedPrivateKey, passPhrase)
+		signer, err := makePrivateKeySigner(privateKey, passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
 			resultCh <- err
