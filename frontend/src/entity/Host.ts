@@ -1,6 +1,7 @@
 import { BaseEntity } from '@/types/global';
 
 export interface HostGroupEntity extends BaseEntity {
+  id: number;
   created_at: number;
   group_name: string;
 }

@@ -185,7 +185,7 @@
         },
         ...ret.items.map((item: any) => ({
           label: item.group_name,
-          value: item.group_name,
+          value: item.id,
         })),
       ];
     } catch (err: any) {
@@ -244,7 +244,6 @@
     align-items: center;
     justify-content: flex-start;
     padding: 8px 12px;
-
     .icon-plus {
       margin-right: 4px;
     }
