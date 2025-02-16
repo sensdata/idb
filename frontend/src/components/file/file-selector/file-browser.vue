@@ -33,6 +33,21 @@
       </div>
     </div>
 
+    <div class="operations mb-4 flex items-center gap-2">
+      <a-button type="primary" size="small" @click="handleCreateFolder">
+        <template #icon>
+          <icon-folder-add />
+        </template>
+        {{ t('components.file.fileSelector.createFolder') }}
+      </a-button>
+      <a-button type="primary" size="small" @click="handleUploadFiles">
+        <template #icon>
+          <icon-upload />
+        </template>
+        {{ t('components.file.fileSelector.upload') }}
+      </a-button>
+    </div>
+
     <div class="search-box mb-4">
       <a-input-search
         v-model="searchQuery"
@@ -41,7 +56,7 @@
       />
     </div>
 
-    <div class="file-list h-[450px] overflow-y-auto">
+    <div class="file-list h-[400px] overflow-y-auto">
       <a-spin
         :loading="isLoading"
         :tip="t('components.file.fileSelector.loading')"
@@ -87,6 +102,14 @@
       </a-spin>
     </div>
   </div>
+  <create-folder-drawer
+    ref="createFolderDrawerRef"
+    @ok="handleOperationSuccess"
+  />
+  <upload-files-drawer
+    ref="uploadFilesDrawerRef"
+    @ok="handleOperationSuccess"
+  />
 </template>
 
 <script setup lang="ts">
@@ -94,6 +117,8 @@
   import { useI18n } from 'vue-i18n';
   import { getFileListApi } from '@/api/file';
   import { useHostStore } from '@/store';
+  import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
+  import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
   import { FileItem, FileSelectType } from './types';
 
   interface Props {
@@ -210,6 +235,27 @@
     await loadFileList(path);
   };
 
+  const createFolderDrawerRef = ref();
+  const uploadFilesDrawerRef = ref();
+
+  const handleCreateFolder = () => {
+    createFolderDrawerRef.value?.show();
+    createFolderDrawerRef.value?.setData({
+      pwd: currentPath.value,
+    });
+  };
+
+  const handleUploadFiles = () => {
+    uploadFilesDrawerRef.value?.show();
+    uploadFilesDrawerRef.value?.setData({
+      directory: currentPath.value,
+    });
+  };
+
+  const handleOperationSuccess = async () => {
+    await loadFileList(currentPath.value);
+  };
+
   onMounted(() => {
     loadFileList(currentPath.value);
   });
@@ -217,7 +263,7 @@
 
 <style lang="less" scoped>
   .file-browser {
-    width: 400px;
+    width: 360px;
   }
 
   .file-list {
@@ -253,6 +299,14 @@
     }
     :deep(.arco-breadcrumb-item-separator) {
       margin: 0;
+    }
+  }
+
+  .operations {
+    :deep(.arco-btn) {
+      .arco-icon {
+        margin-right: 4px;
+      }
     }
   }
 </style>

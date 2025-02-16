@@ -73,6 +73,7 @@
           :label="$t('manage.host.form.private_key.label')"
         >
           <file-selector
+            ref="fileSelectorRef"
             v-model="model.private_key"
             type="file"
             :placeholder="$t('manage.host.form.private_key.placeholder')"
@@ -116,7 +117,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { toRaw, reactive, ref, computed } from 'vue';
+  import { toRaw, reactive, ref, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
   import { AUTH_MODE } from '@/config/enum';
@@ -148,6 +149,7 @@
   const { loading: testLoading, setLoading: setTestLoading } = useLoading();
 
   const formRef = ref();
+  const fileSelectorRef = ref<InstanceType<typeof FileSelector>>();
   const testResult = ref<TestResult | null>(null);
   const model = reactive({
     name: '',
@@ -159,6 +161,12 @@
     password: '',
     private_key: '',
     pass_phrase: '',
+  });
+
+  watch(visible, (newVal) => {
+    if (!newVal) {
+      fileSelectorRef.value?.closePopover();
+    }
   });
 
   const rules = computed(() => ({

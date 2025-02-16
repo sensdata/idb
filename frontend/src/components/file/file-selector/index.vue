@@ -3,7 +3,9 @@
     <a-input-group compact class="w-full">
       <a-input
         v-model="inputValue"
-        :placeholder="placeholder || t('components.file.fileSelector.placeholder')"
+        :placeholder="
+          placeholder || t('components.file.fileSelector.placeholder')
+        "
         :disabled="disabled"
         :readonly="readonly"
         :error="error"
@@ -15,6 +17,7 @@
         v-model:popup-visible="isPopoverVisible"
         :trigger="['click']"
         :unmount-on-close="false"
+        :click-outside-to-close="false"
         position="right"
         class="file-selector-popover"
       >
@@ -89,6 +92,12 @@
     emit('change', file.path);
     closePopover();
   };
+
+  defineExpose({
+    closePopover: () => {
+      isPopoverVisible.value = false;
+    },
+  });
 </script>
 
 <style lang="less" scoped>
