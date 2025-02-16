@@ -29,6 +29,7 @@ export function getFileSizeApi(data: { source: string }) {
 }
 
 export interface CreateFileParams {
+  host?: number;
   source: string; // 文件路径
   is_dir: boolean; // 是否是目录
   is_link?: boolean; // 是否是链接

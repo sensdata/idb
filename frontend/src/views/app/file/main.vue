@@ -222,15 +222,15 @@
   import useLoading from '@/hooks/loading';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
-  import AddressBar from '@/components/address-bar/index.vue';
+  import AddressBar from '@/components/file/address-bar/index.vue';
+  import CreateFileDrawer from '@/components/file/create-file-drawer/index.vue';
+  import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
+  import DeleteFileModal from '@/components/file/delete-file-modal/index.vue';
+  import ModeDrawer from '@/components/file/mode-drawer/index.vue';
+  import OwnerDrawer from '@/components/file/owner-drawer/index.vue';
+  import RenameDrawer from '@/components/file/rename-drawer/index.vue';
+  import PropertyDrawer from '@/components/file/property-drawer/index.vue';
   import FileTree from './components/file-tree/index.vue';
-  import ModeDrawer from './components/mode-drawer/index.vue';
-  import OwnerDrawer from './components/owner-drawer/index.vue';
-  import CreateFileDrawer from './components/create-file-drawer/index.vue';
-  import CreateFolderDrawer from './components/create-folder-drawer/index.vue';
-  import RenameDrawer from './components/rename-drawer/index.vue';
-  import PropertyDrawer from './components/property-drawer/index.vue';
-  import DeleteFileModal from './components/delete-file-modal/index.vue';
   import useFileStore from './store/file-store';
   import { FileItem } from './types/file-item';
 

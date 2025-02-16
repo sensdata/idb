@@ -1,0 +1,15 @@
+export default {
+  'components.file.createFolderDrawer.title': '创建文件夹',
+  'components.file.createFolderDrawer.name': '文件夹名称',
+  'components.file.createFolderDrawer.set_mode': '设置权限',
+  'components.file.createFolderDrawer.owner_access': '所有者权限',
+  'components.file.createFolderDrawer.group_access': '用户组权限',
+  'components.file.createFolderDrawer.other_access': '公共权限',
+  'components.file.createFolderDrawer.read': '读取',
+  'components.file.createFolderDrawer.write': '写入',
+  'components.file.createFolderDrawer.execute': '可执行',
+  'components.file.createFolderDrawer.mode': '权限码',
+  'components.file.createFolderDrawer.name_required': '请输入文件名称',
+  'components.file.createFolderDrawer.mode_error': '权限错误',
+  'components.file.createFolderDrawer.success': '创建成功',
+};

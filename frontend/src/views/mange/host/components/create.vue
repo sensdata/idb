@@ -131,7 +131,7 @@
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
-  import FileSelector from '@/components/file-selector/index.vue';
+  import FileSelector from '@/components/file/file-selector/index.vue';
 
   interface TestResult {
     success: boolean;
