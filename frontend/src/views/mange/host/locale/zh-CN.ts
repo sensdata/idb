@@ -42,11 +42,22 @@ export default {
   'manage.host.form.password.placeholder': '请输入密码',
   'manage.host.form.password.required': '请输入密码',
   'manage.host.form.private_key.label': '私钥',
-  'manage.host.form.private_key.placeholder': '请输入私钥',
-  'manage.host.form.private_key.required': '请输入私钥',
+  'manage.host.form.private_key.placeholder': '请选择私钥文件',
+  'manage.host.form.private_key.required': '请选择私钥文件',
   'manage.host.form.pass_phrase.label': '私钥密码',
   'manage.host.form.pass_phrase.placeholder': '请输入私钥密码',
   'manage.host.form.save.success': '保存成功',
 
   'manage.host.terminal.title': 'SSH终端',
+
+  'manage.host.form.test.label': 'SSH连接检测',
+  'manage.host.form.test.button': '检测连接',
+  'manage.host.form.test.success': '连接成功',
+  'manage.host.form.test.failed': '连接失败：{message}',
+  'manage.host.form.test.error': '检测出错：{message}',
+
+  'manage.host.agent.installing': '正在安装受控端...',
+  'manage.host.agent.installSuccess': '受控端安装成功',
+  'manage.host.agent.installFailed': '受控端安装失败',
+  'manage.host.agent.notInstalled': '未检测到受控端，是否立即安装？',
 };

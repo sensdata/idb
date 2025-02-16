@@ -12,7 +12,12 @@ export interface ConfirmOptions {
 export function useConfirm() {
   const { t } = useI18n();
 
-  function confirm(options: ConfirmOptions) {
+  function confirm(options: ConfirmOptions | string) {
+    if (typeof options === 'string') {
+      options = {
+        content: options,
+      };
+    }
     return new Promise((resolve) => {
       Modal.confirm({
         title: options.title || t('common.confirm.title'),

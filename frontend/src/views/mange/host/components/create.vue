@@ -2,7 +2,7 @@
   <a-modal
     v-model:visible="visible"
     :title="$t('manage.host.form.title.create')"
-    width="600px"
+    width="540px"
     :ok-loading="loading"
     @cancel="handleCancel"
     @before-ok="handleBeforeOk"
@@ -72,8 +72,9 @@
           field="private_key"
           :label="$t('manage.host.form.private_key.label')"
         >
-          <a-textarea
+          <file-selector
             v-model="model.private_key"
+            type="file"
             :placeholder="$t('manage.host.form.private_key.placeholder')"
           />
         </a-form-item>
@@ -89,6 +90,27 @@
           />
         </a-form-item>
       </template>
+      <a-form-item :label="$t('manage.host.form.test.label')">
+        <div class="flex items-center">
+          <a-button
+            type="text"
+            size="mini"
+            :loading="testLoading"
+            @click="handleTestConnection"
+          >
+            {{ $t('manage.host.form.test.button') }}
+          </a-button>
+          <span
+            v-if="testResult"
+            :class="[
+              'ml-2',
+              testResult.success ? 'text-green-600' : 'text-red-600',
+            ]"
+          >
+            {{ testResult.message }}
+          </span>
+        </div>
+      </a-form-item>
     </a-form>
   </a-modal>
 </template>
@@ -99,21 +121,34 @@
   import { Message, SelectOption } from '@arco-design/web-vue';
   import { AUTH_MODE } from '@/config/enum';
   import {
-    createHostApi,
     CreateHostParams,
+    createHostApi,
     getHostGroupListApi,
+    testHostSSHApi,
+    testHostAgentApi,
+    installHostAgentApi,
   } from '@/api/host';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
+  import { useConfirm } from '@/hooks/confirm';
+  import FileSelector from '@/components/file-selector/index.vue';
 
-  const emit = defineEmits(['ok']);
+  interface TestResult {
+    success: boolean;
+    message: string;
+  }
+
+  const emit = defineEmits(['ok', 'success']);
 
   const { t } = useI18n();
 
+  const { confirm } = useConfirm();
   const { visible, show, hide } = useVisible();
   const { loading, showLoading, hideLoading } = useLoading();
+  const { loading: testLoading, setLoading: setTestLoading } = useLoading();
 
   const formRef = ref();
+  const testResult = ref<TestResult | null>(null);
   const model = reactive({
     name: '',
     addr: '',
@@ -168,6 +203,7 @@
   const reset = () => {
     formRef.value.resetFields();
     formRef.value.clearValidate();
+    testResult.value = null;
   };
 
   const { loading: groupLoading, setLoading: setGroupLoading } = useLoading();
@@ -209,12 +245,81 @@
     });
   };
 
+  const handleTestConnection = async () => {
+    try {
+      if (!(await validate())) {
+        return;
+      }
+
+      setTestLoading(true);
+      testResult.value = null;
+
+      const data = getData();
+      const result = await testHostSSHApi(data as CreateHostParams);
+
+      testResult.value = {
+        success: result.success,
+        message: result.success
+          ? t('manage.host.form.test.success')
+          : t('manage.host.form.test.failed', { message: result.message }),
+      };
+    } catch (err: any) {
+      testResult.value = {
+        success: false,
+        message: t('manage.host.form.test.error', { message: err.message }),
+      };
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const installAgent = async (hostId: number) => {
+    let loadingInstance: any = null;
+    try {
+      loadingInstance = Message.loading({
+        content: t('manage.host.agent.installing'),
+        duration: 0,
+      });
+      const result = await installHostAgentApi(hostId);
+      loadingInstance.close();
+      if (result.success) {
+        Message.success(t('manage.host.agent.installSuccess'));
+      } else {
+        Message.error(t('manage.host.agent.installFailed'));
+      }
+    } catch (error) {
+      if (loadingInstance) {
+        loadingInstance.close();
+      }
+      Message.error(t('manage.host.agent.installFailed'));
+      console.error('Failed to install agent:', error);
+    }
+  };
+
+  const checkAgentInstall = async (hostId: number) => {
+    try {
+      const result = await testHostAgentApi(hostId);
+      if (!result.installed) {
+        const confirmResult = await confirm(
+          t('manage.host.agent.notInstalled')
+        );
+        if (confirmResult) {
+          await installAgent(hostId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check agent:', error);
+    }
+    emit('success');
+  };
+
   const handleBeforeOk = async (done: any) => {
     if (await validate()) {
       try {
         showLoading();
         const data = getData();
-        await createHostApi(data as CreateHostParams);
+        const res = await createHostApi(data as CreateHostParams);
+        await checkAgentInstall(res.id);
         done();
         Message.success(t('manage.host.form.save.success'));
         emit('ok');
