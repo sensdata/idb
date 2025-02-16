@@ -64,6 +64,7 @@ module.exports = {
     ],
     'vue/attribute-hyphenation': [0],
     'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-param-reassign': 0,
     'import/prefer-default-export': 0,
     'prefer-regex-literals': 0,

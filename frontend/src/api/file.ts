@@ -3,6 +3,7 @@ import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export interface FileListApiParams extends ApiListParams {
+  host?: number;
   path?: string;
   show_hidden?: boolean;
 }
@@ -12,7 +13,7 @@ export function getFileListApi(params?: FileListApiParams) {
     .then((res: any) => {
       return {
         total: res?.item_total,
-        items: res?.items,
+        items: res?.items || [],
         page: params?.page || 1,
         page_size: params?.page_size || 20,
       };

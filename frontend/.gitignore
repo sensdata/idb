@@ -4,7 +4,8 @@ dist
 dist-ssr
 *.local
 node_modules
-.DS_Store
+.cursorrules
+prompts
 dist
 dist-ssr
 *.local
