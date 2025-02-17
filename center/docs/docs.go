@@ -3709,6 +3709,79 @@ const docTemplate = `{
                 }
             }
         },
+        "/files/{host}/search": {
+            "get": {
+                "description": "Search files",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Search files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Directory path (default is root directory)",
+                        "name": "path",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search keyword",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show hidden files (default is false)",
+                        "name": "show_hidden",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Show directories only (default is false)",
+                        "name": "dir",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.PageResult"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/files/{host}/size": {
             "get": {
                 "description": "Get the size of a directory",
@@ -4158,6 +4231,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/hosts/test/ssh": {
+            "post": {
+                "description": "Test ssh connection to host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Test ssh connection to host",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TestSSH"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/hosts/{host}": {
             "get": {
                 "description": "Get host info",
@@ -4416,44 +4520,6 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.TestAgent"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/hosts/{host}/test/ssh": {
-            "post": {
-                "description": "Test ssh connection to host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Host"
-                ],
-                "summary": "Test ssh connection to host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.TestSSH"
                         }
                     }
                 ],
@@ -8921,7 +8987,15 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "tar.gz",
+                        "tar",
+                        "zip",
+                        "gz",
+                        "bz2",
+                        "xz"
+                    ]
                 }
             }
         },
@@ -9107,7 +9181,11 @@ const docTemplate = `{
                     }
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "cut",
+                        "copy"
+                    ]
                 }
             }
         },

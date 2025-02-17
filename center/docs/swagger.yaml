@@ -527,6 +527,13 @@ definitions:
       replace:
         type: boolean
       type:
+        enum:
+        - tar.gz
+        - tar
+        - zip
+        - gz
+        - bz2
+        - xz
         type: string
     required:
     - dst
@@ -652,6 +659,9 @@ definitions:
           type: string
         type: array
       type:
+        enum:
+        - cut
+        - copy
         type: string
     required:
     - dest
@@ -4188,6 +4198,55 @@ paths:
       summary: Change file name
       tags:
       - File
+  /files/{host}/search:
+    get:
+      consumes:
+      - application/json
+      description: Search files
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Directory path (default is root directory)
+        in: query
+        name: path
+        type: string
+      - description: Search keyword
+        in: query
+        name: search
+        type: string
+      - description: Show hidden files (default is false)
+        in: query
+        name: show_hidden
+        type: boolean
+      - description: Show directories only (default is false)
+        in: query
+        name: dir
+        type: boolean
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PageResult'
+            type: array
+      summary: Search files
+      tags:
+      - File
   /files/{host}/size:
     get:
       consumes:
@@ -4669,31 +4728,6 @@ paths:
       summary: Test agent connection to host
       tags:
       - Host
-  /hosts/{host}/test/ssh:
-    post:
-      consumes:
-      - application/json
-      description: Test ssh connection to host
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.TestSSH'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Test ssh connection to host
-      tags:
-      - Host
   /hosts/groups:
     get:
       consumes:
@@ -4718,6 +4752,26 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: get host group list
+      tags:
+      - Host
+  /hosts/test/ssh:
+    post:
+      consumes:
+      - application/json
+      description: Test ssh connection to host
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TestSSH'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Test ssh connection to host
       tags:
       - Host
   /logrotate/{host}:
