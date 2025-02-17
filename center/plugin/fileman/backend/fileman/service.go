@@ -108,6 +108,7 @@ func (s *FileMan) Initialize() {
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 			{Method: "GET", Path: "/:host/trees", Handler: s.GetFileTree},
 			{Method: "GET", Path: "/:host", Handler: s.GetFileList},
+			{Method: "GET", Path: "/:host/search", Handler: s.SearchFile},
 			{Method: "POST", Path: "/:host", Handler: s.CreateFile},
 			{Method: "DELETE", Path: "/:host", Handler: s.DeleteFile},
 			{Method: "DELETE", Path: "/:host/batch", Handler: s.BatchDeleteFile},
@@ -279,6 +280,71 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 	}
 
 	files, err := s.getFileList(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, files)
+}
+
+// @Tags File
+// @Summary Search files
+// @Description Search files
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string false "Directory path (default is root directory)"
+// @Param search query string false "Search keyword"
+// @Param show_hidden query bool false "Show hidden files (default is false)"
+// @Param dir query bool false "Show directories only (default is false)"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {array} model.PageResult
+// @Router /files/{host}/search [get]
+func (s *FileMan) SearchFile(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		path = "/"
+	}
+
+	search := c.Query("search")
+
+	show_hidden, _ := strconv.ParseBool(c.Query("force"))
+
+	dir, _ := strconv.ParseBool(c.Query("dir"))
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.FileOption{
+		FileOption: files.FileOption{
+			Path:       path,
+			Search:     search,
+			Expand:     true,
+			ShowHidden: show_hidden,
+			Dir:        dir,
+			Page:       int(page),
+			PageSize:   int(pageSize),
+		},
+	}
+
+	files, err := s.searchFile(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return

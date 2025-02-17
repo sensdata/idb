@@ -102,6 +102,40 @@ func (s *FileMan) getFileList(hostID uint64, op model.FileOption) (*model.FileIn
 	return &fileInfo, nil
 }
 
+func (s *FileMan) searchFile(hostID uint64, op model.FileOption) (*model.PageResult, error) {
+	var result model.PageResult
+	data, err := utils.ToJSONString(op)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Search,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to search file")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file list: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
+}
+
 func (s *FileMan) create(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {

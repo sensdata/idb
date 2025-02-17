@@ -14,11 +14,6 @@ type FileContentReq struct {
 	Path string `json:"path" validate:"required"`
 }
 
-type SearchUploadWithPage struct {
-	PageInfo
-	Path string `form:"path" validate:"required"`
-}
-
 type FileCreate struct {
 	Source    string `json:"source" validate:"required"`
 	Content   string `json:"content"`
@@ -55,7 +50,7 @@ type FileBatchDelete struct {
 type FileCompress struct {
 	Files   []string `json:"files" validate:"required"`
 	Dst     string   `json:"dst" validate:"required"`
-	Type    string   `json:"type" validate:"required"`
+	Type    string   `json:"type" validate:"required,oneof=tar.gz tar zip gz bz2 xz"`
 	Name    string   `json:"name" validate:"required"`
 	Replace bool     `json:"replace"`
 }
@@ -88,7 +83,7 @@ type FileWget struct {
 }
 
 type FileMove struct {
-	Type    string   `json:"type" validate:"required"`
+	Type    string   `json:"type" validate:"required,oneof=cut copy"`
 	Sources []string `json:"sources" validate:"required"`
 	Dest    string   `json:"dest" validate:"required"`
 	Name    string   `json:"name"`
@@ -143,14 +138,17 @@ type FileExistReq struct {
 	Dir  string `json:"dir" validate:"required"`
 }
 
-type FileInfo struct {
-	files.FileInfo
+type FileBrief struct {
+	Path      string `json:"path"`
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+	Size      int    `json:"size"`
+	IsDir     bool   `json:"is_dir"`
+	CreatedAt string `json:"created_at"`
 }
 
-type UploadInfo struct {
-	Name      string `json:"name"`
-	Size      int    `json:"size"`
-	CreatedAt string `json:"created_at"`
+type FileInfo struct {
+	files.FileInfo
 }
 
 type FileTree struct {

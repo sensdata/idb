@@ -24,7 +24,7 @@ type FileService struct {
 
 type IFileService interface {
 	GetFileList(op model.FileOption) (*model.FileInfo, error)
-	SearchUploadWithPage(req model.SearchUploadWithPage) (int64, interface{}, error)
+	SearchFiles(op model.FileOption) (*model.PageResult, error)
 	GetFileTree(op model.FileOption) ([]model.FileTree, error)
 	Create(op model.FileCreate) error
 	Delete(op model.FileDelete) error
@@ -67,34 +67,33 @@ func (f *FileService) GetFileList(op model.FileOption) (*model.FileInfo, error) 
 	return &fileInfo, nil
 }
 
-func (f *FileService) SearchUploadWithPage(req model.SearchUploadWithPage) (int64, interface{}, error) {
+func (f *FileService) SearchFiles(op model.FileOption) (*model.PageResult, error) {
 	var (
-		files    []model.UploadInfo
-		backData []model.UploadInfo
+		result model.PageResult
+		items  []model.FileBrief
 	)
-	_ = filepath.Walk(req.Path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !info.IsDir() {
-			files = append(files, model.UploadInfo{
-				CreatedAt: info.ModTime().Format("2006-01-02 15:04:05"),
-				Size:      int(info.Size()),
-				Name:      info.Name(),
-			})
-		}
-		return nil
-	})
-	total, start, end := len(files), (req.Page-1)*req.PageSize, req.Page*req.PageSize
-	if start > total {
-		backData = make([]model.UploadInfo, 0)
-	} else {
-		if end >= total {
-			end = total
-		}
-		backData = files[start:end]
+	if _, err := os.Stat(op.Path); err != nil && os.IsNotExist(err) {
+		global.LOG.Error("File path not exist. %v", err)
+		return &result, nil
 	}
-	return int64(total), backData, nil
+	info, err := files.NewFileInfo(op.FileOption)
+	if err != nil {
+		return &result, err
+	}
+	for _, item := range info.Items {
+		items = append(items, model.FileBrief{
+			Path:      item.Path,
+			Name:      item.Name,
+			Extension: item.Extension,
+			Size:      int(item.Size),
+			IsDir:     item.IsDir,
+			CreatedAt: item.ModTime.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	result.Total = int64(info.ItemTotal)
+	result.Items = items
+	return &result, nil
 }
 
 func (f *FileService) GetFileTree(op model.FileOption) ([]model.FileTree, error) {

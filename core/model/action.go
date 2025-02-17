@@ -9,6 +9,7 @@ const (
 
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"
+	File_Search             string = "file_search"
 	File_Create             string = "file_create"
 	File_Delete             string = "file_delete"
 	File_Batch_Delete       string = "file_batch_delete"

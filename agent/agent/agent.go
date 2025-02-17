@@ -814,6 +814,24 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+	// 搜索文件
+	case model.File_Search:
+		var fileOption model.FileOption
+		if err := json.Unmarshal([]byte(actionData.Data), &fileOption); err != nil {
+			return nil, err
+		}
+
+		files, err := FileService.SearchFiles(fileOption)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(files)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 		// TODO: 上传文件
 	case model.File_Upload:
 		return actionSuccessResult(actionData.Action, "")
