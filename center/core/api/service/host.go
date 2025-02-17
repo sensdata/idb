@@ -29,7 +29,7 @@ type IHostService interface {
 	Status(id uint) (*core.HostStatus, error)
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
-	TestSSH(id uint, req core.TestSSH) error
+	TestSSH(req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
 	InstallAgent(id uint) error
 	AgentStatus(id uint) (*core.AgentStatus, error)
@@ -248,12 +248,11 @@ func (s *HostService) UpdateAgent(id uint, req core.UpdateHostAgent) error {
 	return HostRepo.Update(host.ID, upMap)
 }
 
-func (s *HostService) TestSSH(id uint, req core.TestSSH) error {
+func (s *HostService) TestSSH(req core.TestSSH) error {
 	var host model.Host
 	if err := copier.Copy(&host, &req); err != nil {
 		return err
 	}
-	host.ID = id
 
 	if err := conn.SSH.TestConnection(host); err != nil {
 		return err

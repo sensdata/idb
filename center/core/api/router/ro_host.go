@@ -22,7 +22,7 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.GET("/:host", baseApi.HostInfo)                    // 设备配置信息
 		hostRouter.PUT("/:host/conf/ssh", baseApi.UpdateHostSSH)      // 更新设备ssh配置
 		hostRouter.PUT("/:host/conf/agent", baseApi.UpdateHostAgent)  // 更新设备agent配置
-		hostRouter.POST("/:host/test/ssh", baseApi.TestHostSSH)       // 测试设备ssh
+		hostRouter.POST("/test/ssh", baseApi.TestHostSSH)             // 测试设备ssh
 		hostRouter.POST("/:host/test/agent", baseApi.TestHostAgent)   // 测试设备agent
 		hostRouter.POST("/:host/agent/install", baseApi.InstallAgent) // 安装agent
 		hostRouter.GET("/:host/agent/status", baseApi.AgentStatus)    // 获取agent状态

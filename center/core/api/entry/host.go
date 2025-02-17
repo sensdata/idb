@@ -232,23 +232,16 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 // @Description Test ssh connection to host
 // @Accept json
 // @Produce json
-// @Param host path int true "Host ID"
 // @Param request body model.TestSSH true "request"
 // @Success 200
-// @Router /hosts/{host}/test/ssh [post]
+// @Router /hosts/test/ssh [post]
 func (b *BaseApi) TestHostSSH(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
 	var req model.TestSSH
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
-	if err := hostService.TestSSH(uint(hostID), req); err != nil {
+	if err := hostService.TestSSH(req); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
