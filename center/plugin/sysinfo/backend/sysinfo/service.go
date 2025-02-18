@@ -110,6 +110,8 @@ func (s *SysInfo) Initialize() {
 			{Method: "POST", Path: "/:host/action/set/time", Handler: s.SetTime},
 			{Method: "POST", Path: "/:host/action/set/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
+			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
+			{Method: "POST", Path: "/:host/action/memcache/auto", Handler: s.SetAutoClearInterval},
 		},
 	)
 
@@ -384,6 +386,59 @@ func (s *SysInfo) SyncTime(c *gin.Context) {
 	err = s.syncTime(uint(hostID))
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to sync time", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Clear memory cache
+// @Description Clear memory cache for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /sysinfo/{host}/action/memcache/clear [post]
+func (s *SysInfo) ClearMemCache(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.clearMemCache(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to clear cache", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Set auto clear interval
+// @Description Set auto clear interval for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.AutoClearMemCacheReq true "Auto clear interval settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/memcache/auto [post]
+func (s *SysInfo) SetAutoClearInterval(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.AutoClearMemCacheReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+
+	err = s.setAutoClearInterval(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set auto clear interval", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

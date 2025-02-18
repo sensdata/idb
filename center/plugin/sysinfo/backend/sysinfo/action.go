@@ -75,3 +75,44 @@ func (s *SysInfo) syncTime(hostID uint) error {
 	}
 	return nil
 }
+
+func (s *SysInfo) clearMemCache(hostID uint) error {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Clear_Mem_Cache,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to clear mem cache")
+		return fmt.Errorf("failed to clear mem cache")
+	}
+	return nil
+}
+
+func (s *SysInfo) setAutoClearInterval(hostID uint, req model.AutoClearMemCacheReq) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.SysInfo_Set_Auto_Clear,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to set auto clear interval")
+		return fmt.Errorf("failed to set auto clear interval")
+	}
+	return nil
+}

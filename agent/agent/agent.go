@@ -807,6 +807,24 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 清理缓存
+	case model.Sysinfo_Clear_Mem_Cache:
+		if err := action.ClearMemCache(); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 设置自动清理
+	case model.SysInfo_Set_Auto_Clear:
+		var autoClearReq model.AutoClearMemCacheReq
+		if err := json.Unmarshal([]byte(actionData.Data), &autoClearReq); err != nil {
+			return nil, err
+		}
+		if err := action.SetAutoClearInterval(autoClearReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 文件树
 	case model.File_Tree:
 		var fileOption model.FileOption

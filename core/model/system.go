@@ -18,3 +18,7 @@ type SetTimeReq struct {
 type SetTimezoneReq struct {
 	Timezone string `json:"timezone"` //时区
 }
+
+type AutoClearMemCacheReq struct {
+	Interval int `json:"interval"` //时间间隔
+}

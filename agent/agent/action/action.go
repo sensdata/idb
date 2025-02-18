@@ -28,9 +28,42 @@ func SetTime(req model.SetTimeReq) error {
 }
 
 func SetTimezone(req model.SetTimezoneReq) error {
-	return utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.TimeZone))
+	return utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.Timezone))
 }
 
 func SyncTime() error {
 	return utils.ExecCmd("sudo timedatectl set-ntp true")
+}
+
+func ClearMemCache() error {
+	// 先执行 sync 确保数据写入磁盘
+	if err := utils.ExecCmd("sync"); err != nil {
+		return fmt.Errorf("sync failed: %v", err)
+	}
+
+	// 清理页面缓存、目录项和 inode
+	if err := utils.ExecCmd("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'"); err != nil {
+		return fmt.Errorf("clear cache failed: %v", err)
+	}
+
+	return nil
+}
+
+func SetAutoClearInterval(req model.AutoClearMemCacheReq) error {
+	// 移除现有的自动清理任务
+	if err := utils.ExecCmd("crontab -l | grep -v 'drop_caches' | crontab -"); err != nil {
+		return fmt.Errorf("remove existing cron job failed: %v", err)
+	}
+
+	if req.Interval <= 0 {
+		return nil // 如果间隔小于等于0，表示取消自动清理
+	}
+
+	// 创建新的定时任务
+	cronCmd := fmt.Sprintf("echo '0 */%d * * * sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null' | crontab -", req.Interval)
+	if err := utils.ExecCmd(cronCmd); err != nil {
+		return fmt.Errorf("set auto clear interval failed: %v", err)
+	}
+
+	return nil
 }

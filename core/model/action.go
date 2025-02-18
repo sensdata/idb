@@ -3,12 +3,14 @@ package model
 const (
 	Host_Status string = "host_status"
 
-	SysInfo_OverView      string = "sysinfo_overview"
-	SysInfo_Network       string = "sysinfo_network"
-	SysInfo_System        string = "sysinfo_system"
-	SysInfo_Set_Time      string = "sysinfo_set_time"
-	SysInfo_Set_Time_Zone string = "sysinfo_set_time_zone"
-	SysInfo_Sync_Time     string = "sysinfo_sync_time"
+	SysInfo_OverView        string = "sysinfo_overview"
+	SysInfo_Network         string = "sysinfo_network"
+	SysInfo_System          string = "sysinfo_system"
+	SysInfo_Set_Time        string = "sysinfo_set_time"
+	SysInfo_Set_Time_Zone   string = "sysinfo_set_time_zone"
+	SysInfo_Sync_Time       string = "sysinfo_sync_time"
+	Sysinfo_Clear_Mem_Cache string = "sysinfo_clear_mem_cache"
+	SysInfo_Set_Auto_Clear  string = "sysinfo_set_auto_clear"
 
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"
