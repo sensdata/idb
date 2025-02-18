@@ -105,9 +105,8 @@ func (s *SysInfo) Initialize() {
 			{Method: "GET", Path: "/:host/overview", Handler: s.GetOverview},
 			{Method: "GET", Path: "/:host/network", Handler: s.GetNetwork},
 			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
-			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
 			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
-			{Method: "GET", Path: "/:host/setting", Handler: s.GetSysSettings},
+			{Method: "GET", Path: "/:host/settings", Handler: s.GetSysSettings},
 			{Method: "POST", Path: "/:host/action/upd/time", Handler: s.SetTime},
 			{Method: "POST", Path: "/:host/action/upd/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
@@ -258,30 +257,6 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 }
 
 // @Tags Sysinfo
-// @Summary Get system config
-// @Description (not implemented yet) Get system config
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Success 200 {object} model.SystemConfig
-// @Router /sysinfo/{host}/config [get]
-// @Deprecated
-func (s *SysInfo) GetConfig(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	config, err := s.getConfig(uint(hostID))
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-	helper.SuccessWithData(c, config)
-}
-
-// @Tags Sysinfo
 // @Summary Get hardware info
 // @Description (not implemented yet) Get hardware info
 // @Accept json
@@ -305,10 +280,6 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 	helper.SuccessWithData(c, hardware)
 }
 
-func (s *SysInfo) getConfig(_ uint) (model.SystemConfig, error) {
-	return model.SystemConfig{}, nil
-}
-
 func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
 }
@@ -321,7 +292,6 @@ func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 // @Param host path uint true "Host ID"
 // @Success 200 {object} model.SystemSettings
 // @Router /sysinfo/{host}/settings [get]
-// @Deprecated
 func (s *SysInfo) GetSysSettings(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
