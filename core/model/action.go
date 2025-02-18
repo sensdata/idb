@@ -14,6 +14,8 @@ const (
 	SysInfo_Create_Swap     string = "sysinfo_create_swap"
 	Sysinfo_Delete_Swap     string = "sysinfo_delete_swap"
 	Sysinfo_Update_Dns      string = "sysinfo_update_dns"
+	Sysinfo_Get_Sys_Setting string = "sysinfo_get_sys_setting"
+	Sysinfo_Upd_Sys_Setting string = "sysinfo_upd_sys_setting"
 
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"

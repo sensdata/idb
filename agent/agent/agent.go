@@ -843,6 +843,40 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 设置dns
+	case model.Sysinfo_Update_Dns:
+		var dnsReq model.UpdateDnsSettingsReq
+		if err := json.Unmarshal([]byte(actionData.Data), &dnsReq); err != nil {
+			return nil, err
+		}
+		if err := action.UpdateDnsSettings(dnsReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 获取系统设置
+	case model.Sysinfo_Get_Sys_Setting:
+		sysSetting, err := action.GetSystemSettings()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(sysSetting)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// 更新系统设置
+	case model.Sysinfo_Upd_Sys_Setting:
+		var sysSetting model.UpdateSystemSettingsReq
+		if err := json.Unmarshal([]byte(actionData.Data), &sysSetting); err != nil {
+			return nil, err
+		}
+		if err := action.UpdateSystemSettings(sysSetting); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 文件树
 	case model.File_Tree:
 		var fileOption model.FileOption

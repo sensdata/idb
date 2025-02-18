@@ -180,3 +180,49 @@ func (s *SysInfo) updateDNS(hostID uint, req model.UpdateDnsSettingsReq) error {
 	}
 	return nil
 }
+
+func (s *SysInfo) getSystemSettings(hostID uint) (*model.SystemSettings, error) {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Get_Sys_Setting,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return nil, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to get system settings")
+		return nil, fmt.Errorf("failed to get system settings")
+	}
+	var settings model.SystemSettings
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &settings)
+	if err != nil {
+		return nil, err
+	}
+	return &settings, nil
+}
+
+func (s *SysInfo) updateSystemSettings(hostID uint, req model.UpdateSystemSettingsReq) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Upd_Sys_Setting,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to update system settings")
+		return fmt.Errorf("failed to update system settings")
+	}
+	return nil
+}

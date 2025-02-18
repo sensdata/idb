@@ -107,6 +107,7 @@ func (s *SysInfo) Initialize() {
 			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
 			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
 			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
+			{Method: "GET", Path: "/:host/setting", Handler: s.GetSysSettings},
 			{Method: "POST", Path: "/:host/action/upd/time", Handler: s.SetTime},
 			{Method: "POST", Path: "/:host/action/upd/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
@@ -115,6 +116,7 @@ func (s *SysInfo) Initialize() {
 			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
 			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
 			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
+			{Method: "POST", Path: "/:host/action/upd/settings", Handler: s.UpdateSysSetting},
 		},
 	)
 
@@ -309,6 +311,30 @@ func (s *SysInfo) getConfig(_ uint) (model.SystemConfig, error) {
 
 func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
+}
+
+// @Tags Sysinfo
+// @Summary Get system settings
+// @Description Get system settings of the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.SystemSettings
+// @Router /sysinfo/{host}/settings [get]
+// @Deprecated
+func (s *SysInfo) GetSysSettings(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	settings, err := s.getSystemSettings(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, settings)
 }
 
 // @Tags Sysinfo
@@ -523,7 +549,36 @@ func (s *SysInfo) UpdateDnsSettings(c *gin.Context) {
 	}
 	err = s.updateDNS(uint(hostID), req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update dns", err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update dns settings", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Update system settings
+// @Description Update system settings for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateSystemSettingsReq true "System settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/upd/settings [post]
+func (s *SysInfo) UpdateSysSetting(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateSystemSettingsReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+	err = s.updateSystemSettings(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update system settings", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)
