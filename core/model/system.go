@@ -22,3 +22,7 @@ type SetTimezoneReq struct {
 type AutoClearMemCacheReq struct {
 	Interval int `json:"interval"` //时间间隔
 }
+
+type CreateSwapReq struct {
+	Size int `json:"size"` //大小，单位MB
+}

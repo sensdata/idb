@@ -825,6 +825,24 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 创建swap
+	case model.SysInfo_Create_Swap:
+		var createSwapReq model.CreateSwapReq
+		if err := json.Unmarshal([]byte(actionData.Data), &createSwapReq); err != nil {
+			return nil, err
+		}
+		if err := action.CreateSwap(createSwapReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 删除swap
+	case model.Sysinfo_Delete_Swap:
+		if err := action.DeleteSwap(); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 文件树
 	case model.File_Tree:
 		var fileOption model.FileOption

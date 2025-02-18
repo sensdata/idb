@@ -111,7 +111,9 @@ func (s *SysInfo) Initialize() {
 			{Method: "POST", Path: "/:host/action/set/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
 			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
-			{Method: "POST", Path: "/:host/action/memcache/auto", Handler: s.SetAutoClearInterval},
+			{Method: "POST", Path: "/:host/action/memcache/auto/set", Handler: s.SetAutoClearInterval},
+			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
+			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
 		},
 	)
 
@@ -422,7 +424,7 @@ func (s *SysInfo) ClearMemCache(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.AutoClearMemCacheReq true "Auto clear interval settings"
 // @Success 200
-// @Router /sysinfo/{host}/action/memcache/auto [post]
+// @Router /sysinfo/{host}/action/memcache/auto/set [post]
 func (s *SysInfo) SetAutoClearInterval(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -439,6 +441,59 @@ func (s *SysInfo) SetAutoClearInterval(c *gin.Context) {
 	err = s.setAutoClearInterval(uint(hostID), req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set auto clear interval", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Create swap
+// @Description Create swap for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateSwapReq true "Create swap settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/swap/create [post]
+func (s *SysInfo) CreateSwap(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CreateSwapReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+
+	err = s.createSwap(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to creat swat", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Delete swap
+// @Description Delete swap for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /sysinfo/{host}/action/swap/delete [post]
+func (s *SysInfo) DeleteSwap(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.deleteSwap(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to creat swat", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

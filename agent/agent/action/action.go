@@ -67,3 +67,17 @@ func SetAutoClearInterval(req model.AutoClearMemCacheReq) error {
 
 	return nil
 }
+
+func CreateSwap(req model.CreateSwapReq) error {
+	var size string
+	if req.Size >= 1024 {
+		size = fmt.Sprintf("%dG", req.Size/1024)
+	} else {
+		size = fmt.Sprintf("%dM", req.Size)
+	}
+	return utils.ExecCmd(fmt.Sprintf("sudo fallocate -l %s /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile", size))
+}
+
+func DeleteSwap() error {
+	return utils.ExecCmd("sudo swapoff /swapfile && sudo rm /swapfile")
+}

@@ -116,3 +116,44 @@ func (s *SysInfo) setAutoClearInterval(hostID uint, req model.AutoClearMemCacheR
 	}
 	return nil
 }
+
+func (s *SysInfo) createSwap(hostID uint, req model.CreateSwapReq) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.SysInfo_Create_Swap,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to create swap")
+		return fmt.Errorf("failed to create swap")
+	}
+	return nil
+}
+
+func (s *SysInfo) deleteSwap(hostID uint) error {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Delete_Swap,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to delete swap")
+		return fmt.Errorf("failed to delete swap")
+	}
+	return nil
+}
