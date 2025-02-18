@@ -10,7 +10,6 @@
         :readonly="readonly"
         :error="error"
         :allow-clear="true"
-        class="!w-[calc(100%-32px)]"
         @change="handleInputChange"
       />
       <a-popover
@@ -21,7 +20,7 @@
         position="right"
         class="file-selector-popover"
       >
-        <a-button :disabled="disabled" class="!w-8" @click="handleOpenSelector">
+        <a-button :disabled="disabled" @click="handleOpenSelector">
           <template #icon>
             <icon-folder />
           </template>
