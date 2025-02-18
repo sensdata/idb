@@ -74,6 +74,12 @@ definitions:
       status:
         type: string
     type: object
+  model.AutoClearMemCacheReq:
+    properties:
+      interval:
+        description: 时间间隔
+        type: integer
+    type: object
   model.CSRInfo:
     properties:
       common_name:
@@ -390,6 +396,12 @@ definitions:
     - form
     - name
     - type
+    type: object
+  model.CreateSwapReq:
+    properties:
+      size:
+        description: 大小，单位MB
+        type: integer
     type: object
   model.CreateUser:
     properties:
@@ -1399,6 +1411,18 @@ definitions:
       value:
         type: string
     type: object
+  model.SetTimeReq:
+    properties:
+      timestamp:
+        description: 时间戳
+        type: integer
+    type: object
+  model.SetTimezoneReq:
+    properties:
+      timezone:
+        description: 时区
+        type: string
+    type: object
   model.SettingInfo:
     properties:
       bind_domain:
@@ -1470,6 +1494,15 @@ definitions:
       vertual:
         description: 虚拟化平台
         type: string
+    type: object
+  model.SystemSettings:
+    properties:
+      max_open_files:
+        description: 系统最大打开文件数
+        type: integer
+      max_watch_files:
+        description: inotify 监控的最大文件数
+        type: integer
     type: object
   model.TerminalRequest:
     properties:
@@ -1547,6 +1580,20 @@ definitions:
       tx_speed:
         description: 发送实时速率
         type: string
+    type: object
+  model.UpdateDnsSettingsReq:
+    properties:
+      retry:
+        description: 重试次数
+        type: integer
+      servers:
+        description: DNS服务器
+        items:
+          type: string
+        type: array
+      timeout:
+        description: 超时时间
+        type: integer
     type: object
   model.UpdateGitFile:
     properties:
@@ -1661,6 +1708,20 @@ definitions:
     - bind_ip
     - bind_port
     - https
+    type: object
+  model.UpdateSystemSettingsReq:
+    properties:
+      max_open_files:
+        description: 系统最大打开文件数
+        minimum: 1024
+        type: integer
+      max_watch_files:
+        description: inotify 监控的最大文件数
+        minimum: 8192
+        type: integer
+    required:
+    - max_open_files
+    - max_watch_files
     type: object
   model.UpdateUser:
     properties:
@@ -4569,7 +4630,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.PageResult'
+            $ref: '#/definitions/model.HostInfo'
       summary: Get host info
       tags:
       - Host
@@ -6751,6 +6812,213 @@ paths:
       summary: Plugin menu
       tags:
       - Sysctl
+  /sysinfo/{host}/action/memcache/auto/set:
+    post:
+      consumes:
+      - application/json
+      description: Set auto clear interval for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Auto clear interval settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AutoClearMemCacheReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set auto clear interval
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/memcache/clear:
+    post:
+      consumes:
+      - application/json
+      description: Clear memory cache for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Clear memory cache
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/swap/create:
+    post:
+      consumes:
+      - application/json
+      description: Create swap for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Create swap settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateSwapReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create swap
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/swap/delete:
+    post:
+      consumes:
+      - application/json
+      description: Delete swap for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete swap
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/sync/time:
+    post:
+      consumes:
+      - application/json
+      description: Sync system time with NTP server for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync system time
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/upd/dns:
+    post:
+      consumes:
+      - application/json
+      description: Update DNS settings for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: DNS settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateDnsSettingsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update DNS settings
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/upd/settings:
+    post:
+      consumes:
+      - application/json
+      description: Update system settings for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: System settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateSystemSettingsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update system settings
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/upd/time:
+    post:
+      consumes:
+      - application/json
+      description: Set system time for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Time settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetTimeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set system time
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/upd/timezone:
+    post:
+      consumes:
+      - application/json
+      description: Set system timezone for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Time-zone settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetTimezoneReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set system timezone
+      tags:
+      - Sysinfo
   /sysinfo/{host}/config:
     get:
       consumes:
@@ -6835,6 +7103,28 @@ paths:
           schema:
             $ref: '#/definitions/model.Overview'
       summary: Get system overview info
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/settings:
+    get:
+      consumes:
+      - application/json
+      deprecated: true
+      description: Get system settings of the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.SystemSettings'
+      summary: Get system settings
       tags:
       - Sysinfo
   /sysinfo/{host}/system:

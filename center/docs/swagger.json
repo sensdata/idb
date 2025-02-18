@@ -4285,7 +4285,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.PageResult"
+                            "$ref": "#/definitions/model.HostInfo"
                         }
                     }
                 }
@@ -7535,6 +7535,321 @@
                 }
             }
         },
+        "/sysinfo/{host}/action/memcache/auto/set": {
+            "post": {
+                "description": "Set auto clear interval for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Set auto clear interval",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Auto clear interval settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AutoClearMemCacheReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/memcache/clear": {
+            "post": {
+                "description": "Clear memory cache for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Clear memory cache",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/swap/create": {
+            "post": {
+                "description": "Create swap for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Create swap",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create swap settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateSwapReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/swap/delete": {
+            "post": {
+                "description": "Delete swap for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Delete swap",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/sync/time": {
+            "post": {
+                "description": "Sync system time with NTP server for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Sync system time",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/upd/dns": {
+            "post": {
+                "description": "Update DNS settings for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Update DNS settings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "DNS settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateDnsSettingsReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/upd/settings": {
+            "post": {
+                "description": "Update system settings for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Update system settings",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "System settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateSystemSettingsReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/upd/time": {
+            "post": {
+                "description": "Set system time for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Set system time",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Time settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetTimeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/action/upd/timezone": {
+            "post": {
+                "description": "Set system timezone for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Set system timezone",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Time-zone settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetTimezoneReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/sysinfo/{host}/config": {
             "get": {
                 "description": "(not implemented yet) Get system config",
@@ -7660,6 +7975,39 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.Overview"
+                        }
+                    }
+                }
+            }
+        },
+        "/sysinfo/{host}/settings": {
+            "get": {
+                "description": "Get system settings of the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get system settings",
+                "deprecated": true,
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SystemSettings"
                         }
                     }
                 }
@@ -8302,6 +8650,15 @@
                 }
             }
         },
+        "model.AutoClearMemCacheReq": {
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "description": "时间间隔",
+                    "type": "integer"
+                }
+            }
+        },
         "model.CSRInfo": {
             "type": "object",
             "properties": {
@@ -8769,6 +9126,15 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "model.CreateSwapReq": {
+            "type": "object",
+            "properties": {
+                "size": {
+                    "description": "大小，单位MB",
+                    "type": "integer"
                 }
             }
         },
@@ -10280,6 +10646,24 @@
                 }
             }
         },
+        "model.SetTimeReq": {
+            "type": "object",
+            "properties": {
+                "timestamp": {
+                    "description": "时间戳",
+                    "type": "integer"
+                }
+            }
+        },
+        "model.SetTimezoneReq": {
+            "type": "object",
+            "properties": {
+                "timezone": {
+                    "description": "时区",
+                    "type": "string"
+                }
+            }
+        },
         "model.SettingInfo": {
             "type": "object",
             "properties": {
@@ -10381,6 +10765,19 @@
                 "vertual": {
                     "description": "虚拟化平台",
                     "type": "string"
+                }
+            }
+        },
+        "model.SystemSettings": {
+            "type": "object",
+            "properties": {
+                "max_open_files": {
+                    "description": "系统最大打开文件数",
+                    "type": "integer"
+                },
+                "max_watch_files": {
+                    "description": "inotify 监控的最大文件数",
+                    "type": "integer"
                 }
             }
         },
@@ -10493,6 +10890,26 @@
                 "tx_speed": {
                     "description": "发送实时速率",
                     "type": "string"
+                }
+            }
+        },
+        "model.UpdateDnsSettingsReq": {
+            "type": "object",
+            "properties": {
+                "retry": {
+                    "description": "重试次数",
+                    "type": "integer"
+                },
+                "servers": {
+                    "description": "DNS服务器",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeout": {
+                    "description": "超时时间",
+                    "type": "integer"
                 }
             }
         },
@@ -10661,6 +11078,25 @@
                 },
                 "https_key_path": {
                     "type": "string"
+                }
+            }
+        },
+        "model.UpdateSystemSettingsReq": {
+            "type": "object",
+            "required": [
+                "max_open_files",
+                "max_watch_files"
+            ],
+            "properties": {
+                "max_open_files": {
+                    "description": "系统最大打开文件数",
+                    "type": "integer",
+                    "minimum": 1024
+                },
+                "max_watch_files": {
+                    "description": "inotify 监控的最大文件数",
+                    "type": "integer",
+                    "minimum": 8192
                 }
             }
         },

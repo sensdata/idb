@@ -131,7 +131,7 @@ func (b *BaseApi) DeleteHost(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200 {object} model.PageResult
+// @Success 200 {object} model.HostInfo
 // @Router /hosts/{host} [get]
 func (b *BaseApi) HostInfo(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
