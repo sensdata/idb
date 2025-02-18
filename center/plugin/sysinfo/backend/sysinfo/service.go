@@ -108,6 +108,7 @@ func (s *SysInfo) Initialize() {
 			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
 			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
 			{Method: "POST", Path: "/:host/action/set/time", Handler: s.SetTime},
+			{Method: "POST", Path: "/:host/action/set/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
 		},
 	)
@@ -311,7 +312,7 @@ func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body TimeRequest true "Time settings"
+// @Param request body model.SetTimeReq true "Time settings"
 // @Success 200
 // @Router /sysinfo/{host}/action/set/time [post]
 func (s *SysInfo) SetTime(c *gin.Context) {
@@ -330,6 +331,36 @@ func (s *SysInfo) SetTime(c *gin.Context) {
 	err = s.setTime(uint(hostID), req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set time", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Set system timezone
+// @Description Set system timezone for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.SetTimezoneReq true "Time-zone settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/set/timezone [post]
+func (s *SysInfo) SetTimeZone(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetTimezoneReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+
+	err = s.setTimeZone(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set time-zone", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

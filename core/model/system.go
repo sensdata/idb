@@ -13,3 +13,8 @@ type SystemInfo struct {
 type SetTimeReq struct {
 	Timestamp int64 `json:"timestamp"` //时间戳
 }
+
+// 设置时区请求
+type SetTimezoneReq struct {
+	Timezone string `json:"timezone"` //时区
+}

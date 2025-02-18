@@ -789,6 +789,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 设置时区
+	case model.SysInfo_Set_Time_Zone:
+		var setTimezoneReq model.SetTimezoneReq
+		if err := json.Unmarshal([]byte(actionData.Data), &setTimezoneReq); err != nil {
+			return nil, err
+		}
+		if err := action.SetTimezone(setTimezoneReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 同步时间
 	case model.SysInfo_Sync_Time:
 		if err := action.SyncTime(); err != nil {

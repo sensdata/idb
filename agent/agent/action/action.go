@@ -27,6 +27,10 @@ func SetTime(req model.SetTimeReq) error {
 	return nil
 }
 
+func SetTimezone(req model.SetTimezoneReq) error {
+	return utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.TimeZone))
+}
+
 func SyncTime() error {
 	return utils.ExecCmd("sudo timedatectl set-ntp true")
 }
