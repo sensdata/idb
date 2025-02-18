@@ -157,3 +157,26 @@ func (s *SysInfo) deleteSwap(hostID uint) error {
 	}
 	return nil
 }
+
+func (s *SysInfo) updateDNS(hostID uint, req model.UpdateDnsSettingsReq) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Update_Dns,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to update dns")
+		return fmt.Errorf("failed to update dns")
+	}
+	return nil
+}

@@ -35,16 +35,40 @@ func GetNetwork() (*model.NetworkInfo, error) {
 }
 
 func getDNSInfo() (*model.DNSInfo, error) {
-	dnsInfo := &model.DNSInfo{}
+	// 检查是否使用 systemd-resolved
+	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
+		// 使用 systemd-resolved 的配置文件
+		file, err := os.Open("/run/systemd/resolve/resolv.conf")
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		return parseDNSConfig(file)
+	}
+
+	// 如果不是 systemd-resolved，使用标准的 resolv.conf
 	file, err := os.Open("/etc/resolv.conf")
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
+	return parseDNSConfig(file)
+}
+
+// 解析 DNS 配置文件
+func parseDNSConfig(file *os.File) (*model.DNSInfo, error) {
+	dnsInfo := &model.DNSInfo{}
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		line := scanner.Text()
+		// 跳过注释和空行
+		if strings.HasPrefix(line, "#") || len(strings.TrimSpace(line)) == 0 {
+			continue
+		}
+
 		if strings.HasPrefix(line, "nameserver") {
 			fields := strings.Fields(line)
 			if len(fields) > 1 {

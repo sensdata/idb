@@ -107,13 +107,14 @@ func (s *SysInfo) Initialize() {
 			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
 			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
 			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
-			{Method: "POST", Path: "/:host/action/set/time", Handler: s.SetTime},
-			{Method: "POST", Path: "/:host/action/set/timezone", Handler: s.SetTimeZone},
+			{Method: "POST", Path: "/:host/action/upd/time", Handler: s.SetTime},
+			{Method: "POST", Path: "/:host/action/upd/timezone", Handler: s.SetTimeZone},
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
 			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
 			{Method: "POST", Path: "/:host/action/memcache/auto/set", Handler: s.SetAutoClearInterval},
 			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
 			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
+			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
 		},
 	)
 
@@ -318,7 +319,7 @@ func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 // @Param host path uint true "Host ID"
 // @Param request body model.SetTimeReq true "Time settings"
 // @Success 200
-// @Router /sysinfo/{host}/action/set/time [post]
+// @Router /sysinfo/{host}/action/upd/time [post]
 func (s *SysInfo) SetTime(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -348,7 +349,7 @@ func (s *SysInfo) SetTime(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.SetTimezoneReq true "Time-zone settings"
 // @Success 200
-// @Router /sysinfo/{host}/action/set/timezone [post]
+// @Router /sysinfo/{host}/action/upd/timezone [post]
 func (s *SysInfo) SetTimeZone(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -494,6 +495,35 @@ func (s *SysInfo) DeleteSwap(c *gin.Context) {
 	err = s.deleteSwap(uint(hostID))
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to creat swat", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Update DNS settings
+// @Description Update DNS settings for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateDnsSettingsReq true "DNS settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/upd/dns [post]
+func (s *SysInfo) UpdateDnsSettings(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateDnsSettingsReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+	err = s.updateDNS(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update dns", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

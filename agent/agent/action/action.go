@@ -2,7 +2,9 @@ package action
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/sensdata/idb/core/model"
@@ -80,4 +82,78 @@ func CreateSwap(req model.CreateSwapReq) error {
 
 func DeleteSwap() error {
 	return utils.ExecCmd("sudo swapoff /swapfile && sudo rm /swapfile")
+}
+
+func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
+	// 检查是否使用 systemd-resolved
+	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
+		// 使用 systemd-resolved 的方式修改 DNS
+		for _, server := range req.Servers {
+			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns eth0 %s", server)); err != nil {
+				return fmt.Errorf("update DNS settings failed: %v", err)
+			}
+		}
+
+		// 设置 DNS 配置参数
+		if req.Timeout > 0 {
+			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl set-dns-option eth0 timeout:%d", req.Timeout)); err != nil {
+				return fmt.Errorf("set DNS timeout failed: %v", err)
+			}
+		}
+
+		if req.Retry > 0 {
+			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl set-dns-option eth0 attempts:%d", req.Retry)); err != nil {
+				return fmt.Errorf("set DNS retry failed: %v", err)
+			}
+		}
+
+		return nil
+	}
+
+	// 如果不是使用 systemd-resolved，则使用传统方式修改 /etc/resolv.conf
+	var content strings.Builder
+
+	// 保留 search 设置
+	if data, err := os.ReadFile("/etc/resolv.conf"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "search") {
+				content.WriteString(line + "\n")
+				break
+			}
+		}
+	}
+
+	// 添加超时设置
+	if req.Timeout > 0 {
+		content.WriteString(fmt.Sprintf("options timeout:%d\n", req.Timeout))
+	}
+
+	// 添加重试次数设置
+	if req.Retry > 0 {
+		content.WriteString(fmt.Sprintf("options attempts:%d\n", req.Retry))
+	}
+
+	// 添加 DNS 服务器
+	for _, server := range req.Servers {
+		if server != "" {
+			content.WriteString(fmt.Sprintf("nameserver %s\n", server))
+		}
+	}
+
+	// 备份原文件
+	if err := utils.ExecCmd("sudo cp /etc/resolv.conf /etc/resolv.conf.backup"); err != nil {
+		return fmt.Errorf("backup resolv.conf failed: %v", err)
+	}
+
+	// 写入新配置
+	tmpFile := "/tmp/resolv.conf"
+	if err := os.WriteFile(tmpFile, []byte(content.String()), 0644); err != nil {
+		return fmt.Errorf("write temporary file failed: %v", err)
+	}
+
+	if err := utils.ExecCmd(fmt.Sprintf("sudo mv %s /etc/resolv.conf", tmpFile)); err != nil {
+		return fmt.Errorf("update DNS settings failed: %v", err)
+	}
+
+	return nil
 }

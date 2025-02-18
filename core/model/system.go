@@ -26,3 +26,9 @@ type AutoClearMemCacheReq struct {
 type CreateSwapReq struct {
 	Size int `json:"size"` //大小，单位MB
 }
+
+type UpdateDnsSettingsReq struct {
+	Servers []string `json:"servers"` //DNS服务器
+	Timeout int      `json:"timeout"` //超时时间
+	Retry   int      `json:"retry"`   //重试次数
+}

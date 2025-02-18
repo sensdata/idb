@@ -13,6 +13,7 @@ const (
 	SysInfo_Set_Auto_Clear  string = "sysinfo_set_auto_clear"
 	SysInfo_Create_Swap     string = "sysinfo_create_swap"
 	Sysinfo_Delete_Swap     string = "sysinfo_delete_swap"
+	Sysinfo_Update_Dns      string = "sysinfo_update_dns"
 
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"
