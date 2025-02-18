@@ -3,6 +3,7 @@ export default {
   'menu.profile': '个人中心',
   'menu.faq': '常见问题',
   'menu.manage.host': '节点管理',
+  'menu.manage.settings': '面板设置',
   'menu.app.sysinfo': '系统信息',
   'menu.app.sysinfo.overview': '状态概览',
   'menu.app.crontab': '计划任务',

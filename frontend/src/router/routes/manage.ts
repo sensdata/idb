@@ -9,9 +9,18 @@ const manageRoutes: RouteRecordRaw[] = [
       locale: 'menu.manage.host',
       requiresAuth: true,
       icon: DeskTopIcon,
-      card: true,
     },
-    component: () => import('@/views/mange/host/list.vue'),
+    component: () => import('@/views/manage/host/list.vue'),
+  },
+  {
+    path: '/manage/settings',
+    name: 'settings',
+    meta: {
+      locale: 'menu.manage.settings',
+      requiresAuth: true,
+      icon: 'icon-settings',
+    },
+    component: () => import('@/views/manage/settings/index.vue'),
   },
 ];
 

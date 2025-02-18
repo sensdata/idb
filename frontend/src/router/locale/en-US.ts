@@ -1,0 +1,16 @@
+export default {
+  'menu.dashboard': 'Dashboard',
+  'menu.profile': 'Profile',
+  'menu.faq': 'FAQ',
+  'menu.manage.host': 'Host Management',
+  'menu.manage.settings': 'Panel Settings',
+  'menu.app.sysinfo': 'System Info',
+  'menu.app.sysinfo.overview': 'Overview',
+  'menu.app.crontab': 'Crontab',
+  'menu.app.file': 'File Manager',
+  'menu.app.terminal': 'Terminal',
+  'menu.app.script': 'Script Manager',
+  'menu.app.process': 'Process Manager',
+  'menu.app.test': 'Test',
+  'router.guard.hostId.message': 'Please select a host',
+};

@@ -20,7 +20,6 @@ const appRoutes: RouteRecordRaw[] = [
         meta: {
           locale: 'menu.app.sysinfo.overview',
           requiresAuth: true,
-          card: true,
         },
       },
     ],
