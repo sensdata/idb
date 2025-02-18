@@ -8,3 +8,8 @@ type SystemInfo struct {
 	Platform string `json:"platform"`  //系统类型 x86_64, arm64, etc.
 	Vertual  string `json:"vertual"`   //虚拟化平台
 }
+
+// 设置时间请求
+type SetTimeReq struct {
+	Timestamp int64 `json:"timestamp"` //时间戳
+}

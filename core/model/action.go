@@ -3,9 +3,11 @@ package model
 const (
 	Host_Status string = "host_status"
 
-	SysInfo_OverView string = "sysinfo_overview"
-	SysInfo_Network  string = "sysinfo_network"
-	SysInfo_System   string = "sysinfo_system"
+	SysInfo_OverView  string = "sysinfo_overview"
+	SysInfo_Network   string = "sysinfo_network"
+	SysInfo_System    string = "sysinfo_system"
+	SysInfo_Set_Time  string = "sysinfo_set_time"
+	SysInfo_Sync_Time string = "sysinfo_sync_time"
 
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"

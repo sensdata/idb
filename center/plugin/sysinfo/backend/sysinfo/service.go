@@ -107,6 +107,8 @@ func (s *SysInfo) Initialize() {
 			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
 			{Method: "GET", Path: "/:host/config", Handler: s.GetConfig},
 			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
+			{Method: "POST", Path: "/:host/action/set/time", Handler: s.SetTime},
+			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
 		},
 	)
 
@@ -147,6 +149,35 @@ func (s *SysInfo) GetMenu(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"type": "menu", "payload": menuItems})
+}
+
+func (s *SysInfo) getPluginInfo() (plugin.PluginInfo, error) {
+	return s.plugin.Info, nil
+}
+
+func (s *SysInfo) getMenus() ([]plugin.MenuItem, error) {
+	return s.plugin.Menu, nil
+}
+
+func (s *SysInfo) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
+	var actionResponse model.ActionResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(actionRequest).
+		SetResult(&actionResponse).
+		Post("/actions") // 修改URL路径
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("received error response: %s", resp.Status())
+		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	return &actionResponse, nil
 }
 
 // @Tags Sysinfo
@@ -266,14 +297,6 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 	helper.SuccessWithData(c, hardware)
 }
 
-func (s *SysInfo) getPluginInfo() (plugin.PluginInfo, error) {
-	return s.plugin.Info, nil
-}
-
-func (s *SysInfo) getMenus() ([]plugin.MenuItem, error) {
-	return s.plugin.Menu, nil
-}
-
 func (s *SysInfo) getConfig(_ uint) (model.SystemConfig, error) {
 	return model.SystemConfig{}, nil
 }
@@ -282,23 +305,55 @@ func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
 	return model.HardwareInfo{}, nil
 }
 
-func (s *SysInfo) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
-	var actionResponse model.ActionResponse
-
-	resp, err := s.restyClient.R().
-		SetBody(actionRequest).
-		SetResult(&actionResponse).
-		Post("/actions") // 修改URL路径
-
+// @Tags Sysinfo
+// @Summary Set system time
+// @Description Set system time for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body TimeRequest true "Time settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/set/time [post]
+func (s *SysInfo) SetTime(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		LOG.Error("failed to send request: %v", err)
-		return nil, fmt.Errorf("failed to send request: %v", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
 	}
 
-	if resp.StatusCode() != 200 {
-		LOG.Error("received error response: %s", resp.Status())
-		return nil, fmt.Errorf("received error response: %s", resp.Status())
+	var req model.SetTimeReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
 	}
 
-	return &actionResponse, nil
+	err = s.setTime(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set time", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Sync system time
+// @Description Sync system time with NTP server for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /sysinfo/{host}/action/sync/time [post]
+func (s *SysInfo) SyncTime(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.syncTime(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to sync time", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }

@@ -778,6 +778,24 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+		// 设置时间
+	case model.SysInfo_Set_Time:
+		var setTimeReq model.SetTimeReq
+		if err := json.Unmarshal([]byte(actionData.Data), &setTimeReq); err != nil {
+			return nil, err
+		}
+		if err := action.SetTime(setTimeReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 同步时间
+	case model.SysInfo_Sync_Time:
+		if err := action.SyncTime(); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 文件树
 	case model.File_Tree:
 		var fileOption model.FileOption
