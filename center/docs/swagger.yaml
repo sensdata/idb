@@ -1468,15 +1468,6 @@ definitions:
     required:
     - option
     type: object
-  model.SystemConfig:
-    properties:
-      max_opend_files:
-        description: 最大文件打开数
-        type: integer
-      max_watched_files:
-        description: 最大监控文件数
-        type: integer
-    type: object
   model.SystemInfo:
     properties:
       host_name:
@@ -7019,28 +7010,6 @@ paths:
       summary: Set system timezone
       tags:
       - Sysinfo
-  /sysinfo/{host}/config:
-    get:
-      consumes:
-      - application/json
-      deprecated: true
-      description: (not implemented yet) Get system config
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.SystemConfig'
-      summary: Get system config
-      tags:
-      - Sysinfo
   /sysinfo/{host}/hardware:
     get:
       consumes:
@@ -7109,7 +7078,6 @@ paths:
     get:
       consumes:
       - application/json
-      deprecated: true
       description: Get system settings of the specified host
       parameters:
       - description: Host ID

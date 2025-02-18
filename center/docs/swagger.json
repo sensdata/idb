@@ -7850,39 +7850,6 @@
                 }
             }
         },
-        "/sysinfo/{host}/config": {
-            "get": {
-                "description": "(not implemented yet) Get system config",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Sysinfo"
-                ],
-                "summary": "Get system config",
-                "deprecated": true,
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.SystemConfig"
-                        }
-                    }
-                }
-            }
-        },
         "/sysinfo/{host}/hardware": {
             "get": {
                 "description": "(not implemented yet) Get hardware info",
@@ -7993,7 +7960,6 @@
                     "Sysinfo"
                 ],
                 "summary": "Get system settings",
-                "deprecated": true,
                 "parameters": [
                     {
                         "type": "integer",
@@ -10727,19 +10693,6 @@
                         "nftables",
                         "iptables"
                     ]
-                }
-            }
-        },
-        "model.SystemConfig": {
-            "type": "object",
-            "properties": {
-                "max_opend_files": {
-                    "description": "最大文件打开数",
-                    "type": "integer"
-                },
-                "max_watched_files": {
-                    "description": "最大监控文件数",
-                    "type": "integer"
                 }
             }
         },
