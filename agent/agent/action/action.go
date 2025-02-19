@@ -138,11 +138,58 @@ func CreateSwap(req model.CreateSwapReq) error {
 	} else {
 		size = fmt.Sprintf("%dM", req.Size)
 	}
-	return utils.ExecCmd(fmt.Sprintf("sudo fallocate -l %s /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile", size))
+
+	// 首先尝试使用 fallocate（更快）
+	err := utils.ExecCmd(fmt.Sprintf("sudo fallocate -l %s /swapfile", size))
+	if err != nil {
+		// 如果 fallocate 失败，使用 dd 命令（更通用）
+		blocks := req.Size * 1024 // 转换为 KB
+		if err := utils.ExecCmd(fmt.Sprintf("sudo dd if=/dev/zero of=/swapfile bs=1024 count=%d", blocks)); err != nil {
+			return fmt.Errorf("create swap file failed: %v", err)
+		}
+	}
+
+	// 设置权限
+	if err := utils.ExecCmd("sudo chmod 600 /swapfile"); err != nil {
+		return fmt.Errorf("set swap file permission failed: %v", err)
+	}
+
+	// 格式化为 swap
+	if err := utils.ExecCmd("sudo mkswap /swapfile"); err != nil {
+		return fmt.Errorf("format swap file failed: %v", err)
+	}
+
+	// 启用 swap
+	if err := utils.ExecCmd("sudo swapon /swapfile"); err != nil {
+		return fmt.Errorf("enable swap failed: %v", err)
+	}
+
+	// 可选：添加到 fstab 使其开机自动挂载
+	fstabEntry := "/swapfile none swap sw 0 0"
+	if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a /etc/fstab", fstabEntry)); err != nil {
+		return fmt.Errorf("add swap to fstab failed: %v", err)
+	}
+
+	return nil
 }
 
 func DeleteSwap() error {
-	return utils.ExecCmd("sudo swapoff /swapfile && sudo rm /swapfile")
+	// 先关闭 swap
+	if err := utils.ExecCmd("sudo swapoff /swapfile"); err != nil {
+		return fmt.Errorf("disable swap failed: %v", err)
+	}
+
+	// 从 fstab 中移除
+	if err := utils.ExecCmd("sudo sed -i '/\\/swapfile/d' /etc/fstab"); err != nil {
+		return fmt.Errorf("remove swap from fstab failed: %v", err)
+	}
+
+	// 删除文件
+	if err := utils.ExecCmd("sudo rm -f /swapfile"); err != nil {
+		return fmt.Errorf("remove swap file failed: %v", err)
+	}
+
+	return nil
 }
 
 func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
