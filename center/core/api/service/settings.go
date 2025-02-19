@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"net"
 	"strconv"
 
 	"github.com/sensdata/idb/center/global"
@@ -15,6 +16,7 @@ type SettingsService struct{}
 
 type ISettingsService interface {
 	About() (*model.About, error)
+	IPs() (*model.AvailableIps, error)
 	Settings() (*model.SettingInfo, error)
 	Update(req model.UpdateSettingRequest) error
 }
@@ -29,6 +31,46 @@ func (s *SettingsService) About() (*model.About, error) {
 	about.Version = global.Version
 
 	return &about, nil
+}
+
+func (s *SettingsService) IPs() (*model.AvailableIps, error) {
+	var availableIps model.AvailableIps
+	availableIps.IPs = make([]model.BindIp, 0)
+
+	// 添加几项ip：
+	// 所有IP - 0.0.0.0
+	availableIps.IPs = append(availableIps.IPs, model.BindIp{IP: "0.0.0.0", Name: "All IP"})
+	// 127.0.0.1 - 127.0.0.1
+	availableIps.IPs = append(availableIps.IPs, model.BindIp{IP: "127.0.0.1", Name: "127.0.0.1"})
+	// ::1 - ::1
+	availableIps.IPs = append(availableIps.IPs, model.BindIp{IP: "::1", Name: "::1"})
+	// Link-Local Address
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return &availableIps, nil
+	}
+	for _, iface := range interfaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			// 获取 Link-Local 地址
+			if ipNet.IP.IsLinkLocalUnicast() {
+				name := iface.Name + " - Link Local"
+				availableIps.IPs = append(
+					availableIps.IPs,
+					model.BindIp{IP: ipNet.IP.String(), Name: name},
+				)
+			}
+		}
+	}
+
+	return &availableIps, nil
 }
 
 func (s *SettingsService) Settings() (*model.SettingInfo, error) {

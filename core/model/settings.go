@@ -5,6 +5,15 @@ type Profile struct {
 	Name string `json:"name"`
 }
 
+type BindIp struct {
+	IP   string `json:"ip"`
+	Name string `json:"name"`
+}
+
+type AvailableIps struct {
+	IPs []BindIp `json:"ips"`
+}
+
 type About struct {
 	Version string `json:"version"`
 }

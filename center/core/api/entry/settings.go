@@ -23,6 +23,22 @@ func (b *BaseApi) About(c *gin.Context) {
 }
 
 // @Tags Settings
+// @Summary Get avaiable ips
+// @Description Get avaiable ips
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.AvailableIps
+// @Router /settings/ips [get]
+func (b *BaseApi) IPs(c *gin.Context) {
+	result, err := settingsService.IPs()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}
+
+// @Tags Settings
 // @Summary Get server settings
 // @Description Get server settings
 // @Accept json
