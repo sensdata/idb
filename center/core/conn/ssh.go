@@ -28,6 +28,7 @@ type ISSHService interface {
 	Stop()
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host) error
+	UninstallAgent(host model.Host) error
 	AgentStatus(host model.Host) (*core.AgentStatus, error)
 	RestartAgent(host model.Host) error
 }
@@ -200,6 +201,65 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 
 	global.LOG.Info("Agent installation output: %s", output)
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
+
+	return nil
+}
+
+func (s *SSHService) UninstallAgent(host model.Host) error {
+	global.LOG.Info("Uninstall agent in host %s begin", host.Addr)
+
+	// 1. 检查并确保 SSH 连接存在
+	client, err := s.checkClient(host)
+	if err != nil {
+		return err
+	}
+
+	// 2. 检查 agent 是否已安装
+	checkCmd := `
+		if systemctl is-active --quiet idb-agent.service || [ -f /var/lib/idb-agent/idb-agent ]; then
+			echo "installed"
+		else
+			echo "not installed"
+		fi
+	`
+	output, err := executeCommand(client, checkCmd)
+	if err != nil {
+		global.LOG.Error("Failed to check agent status on host %s: %v", host.Addr, err)
+		return fmt.Errorf("failed to check agent status: %v", err)
+	}
+
+	if strings.TrimSpace(output) != "installed" {
+		global.LOG.Info("Agent is not installed on host %s", host.Addr)
+		return nil
+	}
+
+	// 3. 执行卸载的一系列动作命令
+	uninstallCmd := `
+		if ! sudo -n true 2>/dev/null; then
+			echo "no_sudo_access"
+			exit 1
+		fi &&
+		(sudo systemctl stop idb-agent.service || true) &&
+		(sudo systemctl disable idb-agent.service || true) &&
+		sudo rm -f /etc/systemd/system/idb-agent.service &&
+		sudo rm -rf /var/lib/idb-agent &&
+		sudo rm -rf /etc/idb-agent &&
+		sudo rm -rf /var/log/idb-agent &&
+		sudo rm -rf /run/idb-agent &&
+		sudo systemctl daemon-reload
+	`
+	output, err = executeCommand(client, uninstallCmd)
+	if err != nil {
+		if strings.Contains(output, "no_sudo_access") {
+			global.LOG.Error("No sudo access on host %s", host.Addr)
+			return fmt.Errorf("no sudo access on host %s", host.Addr)
+		}
+		global.LOG.Error("Failed to uninstall agent on host %s: %v", host.Addr, err)
+		return fmt.Errorf("failed to uninstall agent: %v", err)
+	}
+
+	global.LOG.Info("Agent uninstall output: %s", output)
+	global.LOG.Info("Uninstall agent in host %s completed", host.Addr)
 
 	return nil
 }

@@ -323,6 +323,28 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Uninstall agent in host
+// @Description Uninstall agent in host
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200
+// @Router /hosts/{host}/agent/uninstall [post]
+func (b *BaseApi) UninstallAgent(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	if err := hostService.UninstallAgent(uint(hostID)); err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
 // @Summary Restart agent
 // @Description Restart agent
 // @Accept json

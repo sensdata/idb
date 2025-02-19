@@ -32,6 +32,7 @@ type IHostService interface {
 	TestSSH(req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
 	InstallAgent(id uint) error
+	UninstallAgent(id uint) error
 	AgentStatus(id uint) (*core.AgentStatus, error)
 	RestartAgent(id uint) error
 }
@@ -282,6 +283,20 @@ func (s *HostService) InstallAgent(id uint) error {
 
 	// 安装
 	if err := conn.SSH.InstallAgent(host); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *HostService) UninstallAgent(id uint) error {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil {
+		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 卸载
+	if err := conn.SSH.UninstallAgent(host); err != nil {
 		return err
 	}
 	return nil
