@@ -49,12 +49,13 @@ func getDNSInfo() (*model.DNSInfo, error) {
 				}
 				// 查找包含 eth0 的行
 				if strings.Contains(line, "eth0") {
-					// 移除 "Link X (eth0):" 部分
-					parts := strings.SplitN(line, ":", 2)
-					if len(parts) == 2 {
-						// 分割并清理 DNS 服务器列表
-						servers := strings.Fields(strings.TrimSpace(parts[1]))
-						dnsInfo.Servers = append(dnsInfo.Servers, servers...)
+					// 使用更可靠的方式提取DNS服务器信息
+					if idx := strings.Index(line, ":"); idx != -1 {
+						dnsServers := strings.TrimSpace(line[idx+1:])
+						if len(dnsServers) > 0 {
+							servers := strings.Fields(dnsServers)
+							dnsInfo.Servers = append(dnsInfo.Servers, servers...)
+						}
 					}
 				}
 			}
@@ -71,7 +72,7 @@ func getDNSInfo() (*model.DNSInfo, error) {
 					}
 				} else if strings.HasPrefix(line, "DNSStubRetryCount=") {
 					if val, err := strconv.Atoi(strings.TrimPrefix(line, "DNSStubRetryCount=")); err == nil {
-						dnsInfo.RetryTimes = val
+						dnsInfo.Retry = val
 					}
 				}
 			}
@@ -116,7 +117,7 @@ func parseDNSConfig(file *os.File) (*model.DNSInfo, error) {
 				if strings.HasPrefix(field, "timeout:") {
 					dnsInfo.Timeout, _ = strconv.Atoi(strings.TrimPrefix(field, "timeout:"))
 				} else if strings.HasPrefix(field, "attempts:") {
-					dnsInfo.RetryTimes, _ = strconv.Atoi(strings.TrimPrefix(field, "attempts:"))
+					dnsInfo.Retry, _ = strconv.Atoi(strings.TrimPrefix(field, "attempts:"))
 				}
 			}
 		}
