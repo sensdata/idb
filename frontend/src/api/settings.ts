@@ -17,3 +17,12 @@ export function getSettingsApi() {
 export function updateSettingsApi(data: SettingsForm) {
   return request.post<SettingsForm>('/settings', data);
 }
+
+export function getAvailableIpsApi() {
+  return request.get<{
+    ips: Array<{
+      ip: string;
+      name: string;
+    }>;
+  }>('/settings/ips');
+}

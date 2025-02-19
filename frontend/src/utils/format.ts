@@ -20,6 +20,48 @@ export function formatFileSize(size?: number): string {
   return size.toFixed(2) + 'GB';
 }
 
+export const formatMemorySize = formatFileSize;
+
+export function formatBandwidth(bps?: number): string {
+  if (bps == null) {
+    return '-';
+  }
+
+  if (bps < 1000) {
+    return `${bps.toFixed(2)} bps`;
+  }
+  bps /= 1000;
+  if (bps < 1000) {
+    return `${bps.toFixed(2)} Kbps`;
+  }
+  bps /= 1000;
+  if (bps < 1000) {
+    return `${bps.toFixed(2)} Mbps`;
+  }
+  bps /= 1000;
+  return `${bps.toFixed(2)} Gbps`;
+}
+
+export function formatTransferSpeed(bytesPerSecond?: number): string {
+  if (bytesPerSecond == null) {
+    return '-';
+  }
+
+  if (bytesPerSecond < 1024) {
+    return `${bytesPerSecond.toFixed(2)} B/s`;
+  }
+  bytesPerSecond /= 1024;
+  if (bytesPerSecond < 1024) {
+    return `${bytesPerSecond.toFixed(2)} KB/s`;
+  }
+  bytesPerSecond /= 1024;
+  if (bytesPerSecond < 1024) {
+    return `${bytesPerSecond.toFixed(2)} MB/s`;
+  }
+  bytesPerSecond /= 1024;
+  return `${bytesPerSecond.toFixed(2)} GB/s`;
+}
+
 export function formatTime(time?: string): string {
   if (!time) {
     return '-';

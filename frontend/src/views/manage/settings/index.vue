@@ -88,9 +88,9 @@
   import {
     getSettingsApi,
     updateSettingsApi,
+    getAvailableIpsApi,
     type SettingsForm,
   } from '@/api/settings';
-  import { getAvailableIpsApi } from '@/api/misc';
 
   const { t } = useI18n();
 
@@ -176,7 +176,10 @@
     try {
       isIpLoading.value = true;
       const data = await getAvailableIpsApi();
-      ipOptions.value = data;
+      ipOptions.value = data.ips.map((item) => ({
+        label: item.ip === '0.0.0.0' ? t('manage.settings.allIp') : item.ip,
+        value: item.ip,
+      }));
     } catch (error) {
       Message.error(t('manage.settings.loadIpsFailed'));
     } finally {
@@ -197,8 +200,7 @@
   };
 
   onMounted(() => {
+    fetchIpOptions();
     fetchSettings();
-    // todo
-    // fetchIpOptions();
   });
 </script>

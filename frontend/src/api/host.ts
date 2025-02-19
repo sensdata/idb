@@ -58,3 +58,15 @@ export const installHostAgentApi = (
 ): Promise<InstallAgentResult> => {
   return axios.post(`hosts/${hostId}/agent/install`);
 };
+
+export interface HostStatusResult {
+  cpu: number;
+  disk: number;
+  mem: number;
+  rx: number;
+  tx: number;
+}
+
+export const getHostStatusApi = (hostId: number): Promise<HostStatusResult> => {
+  return request.get(`hosts/${hostId}/status`);
+};

@@ -7,7 +7,7 @@
         </template>
       </a-button>
       <div class="host-name truncate">Hostname</div>
-      <a-button class="cmd" @click="openTerminal?.()">
+      <a-button class="btn" @click="openTerminal?.()">
         <template #icon>
           <icon-code-square />
         </template>
@@ -18,24 +18,24 @@
         <div class="info-content-left">
           <div class="info-item">
             <div class="info-item-label">CPU: </div>
-            <div class="info-item-content"> 17.82% </div>
+            <div class="info-item-content"> {{ state.cpu_usage }} </div>
           </div>
           <div class="info-item">
             <div class="info-item-label">内存: </div>
-            <div class="info-item-content"> 1.2G/3.7G </div>
+            <div class="info-item-content"> {{ state.memory_usage }} </div>
           </div>
           <div class="info-item">
             <div class="info-item-label">网络: </div>
             <div class="info-item-content">
               <up-stream-icon class="info-item-content-icon" />
-              <span>128.2K/s</span>
+              <span>{{ state.network_up }}</span>
               <down-stream-icon class="info-item-content-icon downstream" />
-              <span>128.3K/s</span>
+              <span>{{ state.network_down }}</span>
             </div>
           </div>
         </div>
         <div class="info-content-right">
-          <a-button class="cmd">
+          <a-button class="btn" @click="gotoSysInfo()">
             <template #icon>
               <icon-right />
             </template>
@@ -46,7 +46,9 @@
     <div class="app-list">
       <div class="app-list-title">应用列表</div>
       <div class="actions">
-        <span class="refresh"><icon-refresh /></span>
+        <span class="refresh" @click="refreshStatus">
+          <icon-refresh :spin="isLoading" />
+        </span>
         <span class="setting"><icon-settings /></span>
         <span class="home"><icon-home /></span>
       </div>
@@ -55,28 +57,64 @@
 </template>
 
 <script lang="ts" setup>
-  import { inject, reactive } from 'vue';
+  import { inject, reactive, ref, onMounted } from 'vue';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
   import router from '@/router';
   import { SELECT_HOST } from '@/router/constants';
+  import { getHostStatusApi } from '@/api/host';
+  import { Message } from '@arco-design/web-vue';
+  import useCurrentHost from '@/hooks/current-host';
+  import { formatMemorySize, formatTransferSpeed } from '@/utils/format';
 
   defineProps<{
     collapsed: boolean;
   }>();
 
+  const { currentHostId } = useCurrentHost();
+
   const state = reactive({
-    cpu_usage: '',
-    cpu_total: '',
-    memory_usage: '',
-    memory_total: '',
+    cpu_usage: '0%',
+    memory_usage: '0MB/0MB',
+    network_up: '0KB/s',
+    network_down: '0KB/s',
   });
+
+  const isLoading = ref(false);
+
+  const refreshStatus = async () => {
+    if (!currentHostId.value || isLoading.value) return;
+
+    isLoading.value = true;
+    try {
+      const result = await getHostStatusApi(currentHostId.value);
+      state.cpu_usage = result.cpu + '%';
+      state.memory_usage =
+        formatMemorySize(result.mem) + '/' + formatMemorySize(result.disk);
+      state.network_up = formatTransferSpeed(result.tx);
+      state.network_down = formatTransferSpeed(result.rx);
+    } catch (error) {
+      Message.error('获取状态失败');
+    } finally {
+      isLoading.value = false;
+    }
+  };
 
   const gotoManage = () => {
     router.push(SELECT_HOST);
   };
 
   const openTerminal = inject<() => void>('openTerminal');
+
+  const gotoSysInfo = () => {
+    router.push('/app/sysinfo');
+  };
+
+  onMounted(() => {
+    if (currentHostId.value) {
+      refreshStatus();
+    }
+  });
 </script>
 
 <style scoped lang="less">
@@ -180,7 +218,7 @@
 
   .collapsed {
     .host-name,
-    .cmd,
+    .btn,
     .info,
     .app-list {
       display: none;
