@@ -50,6 +50,10 @@ func (s *SettingsService) IPs() (*model.AvailableIps, error) {
 		return &availableIps, nil
 	}
 	for _, iface := range interfaces {
+		// 只要 eth0
+		if iface.Name != "eth0" {
+			continue
+		}
 		addrs, err := iface.Addrs()
 		if err != nil {
 			continue
@@ -61,10 +65,9 @@ func (s *SettingsService) IPs() (*model.AvailableIps, error) {
 			}
 			// 获取 Link-Local 地址
 			if ipNet.IP.IsLinkLocalUnicast() {
-				name := iface.Name + " - Link Local"
 				availableIps.IPs = append(
 					availableIps.IPs,
-					model.BindIp{IP: ipNet.IP.String(), Name: name},
+					model.BindIp{IP: ipNet.IP.String(), Name: ipNet.IP.String()},
 				)
 			}
 		}
