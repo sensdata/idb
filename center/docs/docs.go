@@ -6942,6 +6942,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings/ips": {
+            "get": {
+                "description": "Get avaiable ips",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get avaiable ips",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AvailableIps"
+                        }
+                    }
+                }
+            }
+        },
         "/ssh/info": {
             "get": {
                 "description": "Get plugin information",
@@ -8654,6 +8677,28 @@ const docTemplate = `{
                 "interval": {
                     "description": "时间间隔",
                     "type": "integer"
+                }
+            }
+        },
+        "model.AvailableIps": {
+            "type": "object",
+            "properties": {
+                "ips": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.BindIp"
+                    }
+                }
+            }
+        },
+        "model.BindIp": {
+            "type": "object",
+            "properties": {
+                "ip": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

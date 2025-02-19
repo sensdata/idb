@@ -80,6 +80,20 @@ definitions:
         description: 时间间隔
         type: integer
     type: object
+  model.AvailableIps:
+    properties:
+      ips:
+        items:
+          $ref: '#/definitions/model.BindIp'
+        type: array
+    type: object
+  model.BindIp:
+    properties:
+      ip:
+        type: string
+      name:
+        type: string
+    type: object
   model.CSRInfo:
     properties:
       common_name:
@@ -6442,6 +6456,21 @@ paths:
           schema:
             $ref: '#/definitions/model.About'
       summary: Get server descriptions
+      tags:
+      - Settings
+  /settings/ips:
+    get:
+      consumes:
+      - application/json
+      description: Get avaiable ips
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AvailableIps'
+      summary: Get avaiable ips
       tags:
       - Settings
   /ssh/{host}/config:
