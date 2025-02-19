@@ -9158,16 +9158,19 @@ const docTemplate = `{
         "model.DNSInfo": {
             "type": "object",
             "properties": {
-                "retryTimes": {
+                "retry": {
+                    "description": "重试次数",
                     "type": "integer"
                 },
                 "servers": {
+                    "description": "dns服务器",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "timeout": {
+                    "description": "超时时间",
                     "type": "integer"
                 }
             }

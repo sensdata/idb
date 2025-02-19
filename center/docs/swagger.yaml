@@ -418,13 +418,16 @@ definitions:
     type: object
   model.DNSInfo:
     properties:
-      retryTimes:
+      retry:
+        description: 重试次数
         type: integer
       servers:
+        description: dns服务器
         items:
           type: string
         type: array
       timeout:
+        description: 超时时间
         type: integer
     type: object
   model.DaemonJsonConf:
