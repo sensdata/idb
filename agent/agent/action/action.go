@@ -195,11 +195,10 @@ func DeleteSwap() error {
 func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 	// 检查是否使用 systemd-resolved
 	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
-		// 使用 systemd-resolved 的方式修改 DNS
-		for _, server := range req.Servers {
-			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns eth0 %s", server)); err != nil {
-				return fmt.Errorf("update DNS settings failed: %v", err)
-			}
+		// 使用 systemd-resolved 的方式修改 DNS，一次性设置所有 DNS 服务器
+		dnsServers := strings.Join(req.Servers, " ")
+		if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns eth0 %s", dnsServers)); err != nil {
+			return fmt.Errorf("update DNS settings failed: %v", err)
 		}
 
 		// 对于 systemd-resolved，我们将超时和重试设置写入 resolved.conf

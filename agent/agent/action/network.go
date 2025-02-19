@@ -35,19 +35,54 @@ func GetNetwork() (*model.NetworkInfo, error) {
 }
 
 func getDNSInfo() (*model.DNSInfo, error) {
+	dnsInfo := &model.DNSInfo{}
+
 	// 检查是否使用 systemd-resolved
 	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
-		// 使用 systemd-resolved 的配置文件
-		file, err := os.Open("/run/systemd/resolve/resolv.conf")
-		if err != nil {
-			return nil, err
+		// 获取 DNS 服务器列表
+		out, err := utils.Exec("resolvectl dns")
+		if err == nil {
+			for _, line := range strings.Split(out, "\n") {
+				// 跳过空行
+				if len(strings.TrimSpace(line)) == 0 {
+					continue
+				}
+				// 查找包含 eth0 的行
+				if strings.Contains(line, "eth0") {
+					// 移除 "Link X (eth0):" 部分
+					parts := strings.SplitN(line, ":", 2)
+					if len(parts) == 2 {
+						// 分割并清理 DNS 服务器列表
+						servers := strings.Fields(strings.TrimSpace(parts[1]))
+						dnsInfo.Servers = append(dnsInfo.Servers, servers...)
+					}
+				}
+			}
 		}
-		defer file.Close()
 
-		return parseDNSConfig(file)
+		// 获取超时和重试设置
+		if data, err := os.ReadFile("/etc/systemd/resolved.conf"); err == nil {
+			lines := strings.Split(string(data), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "ResolveTimeoutSec=") {
+					if val, err := strconv.Atoi(strings.TrimPrefix(line, "ResolveTimeoutSec=")); err == nil {
+						dnsInfo.Timeout = val
+					}
+				} else if strings.HasPrefix(line, "DNSStubRetryCount=") {
+					if val, err := strconv.Atoi(strings.TrimPrefix(line, "DNSStubRetryCount=")); err == nil {
+						dnsInfo.RetryTimes = val
+					}
+				}
+			}
+		}
+
+		if len(dnsInfo.Servers) > 0 {
+			return dnsInfo, nil
+		}
 	}
 
-	// 如果不是 systemd-resolved，使用标准的 resolv.conf
+	// 如果不是 systemd-resolved 或获取失败，使用标准的 resolv.conf
 	file, err := os.Open("/etc/resolv.conf")
 	if err != nil {
 		return nil, err

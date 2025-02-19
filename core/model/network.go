@@ -7,9 +7,9 @@ type NetworkInfo struct {
 }
 
 type DNSInfo struct {
-	Servers    []string
-	Timeout    int
-	RetryTimes int
+	Servers    []string `json:"servers"` //dns服务器
+	Timeout    int      `json:"timeout"` //超时时间
+	RetryTimes int      `json:"retry"`   //重试次数
 }
 
 // 网络接口
