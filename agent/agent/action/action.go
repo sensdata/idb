@@ -83,26 +83,47 @@ func ClearMemCache() error {
 		return fmt.Errorf("sync failed: %v", err)
 	}
 
-	// 清理页面缓存、目录项和 inode
+	// 检查 drop_caches 文件是否存在
+	if _, err := os.Stat("/proc/sys/vm/drop_caches"); err != nil {
+		return fmt.Errorf("system does not support memory cache clearing")
+	}
+
+	// 尝试直接写入
 	if err := utils.ExecCmd("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'"); err != nil {
-		return fmt.Errorf("clear cache failed: %v", err)
+		// 如果失败，尝试使用 sysctl 命令
+		if err := utils.ExecCmd("sudo sysctl -w vm.drop_caches=3"); err != nil {
+			return fmt.Errorf("clear cache failed: %v", err)
+		}
 	}
 
 	return nil
 }
 
 func SetAutoClearInterval(req model.AutoClearMemCacheReq) error {
+	// 检查系统是否支持 crontab
+	if _, err := utils.Exec("command -v crontab"); err != nil {
+		return fmt.Errorf("crontab is not available on this system")
+	}
+
+	// 检查是否支持清理缓存
+	if _, err := os.Stat("/proc/sys/vm/drop_caches"); err != nil {
+		return fmt.Errorf("system does not support memory cache clearing")
+	}
+
 	// 移除现有的自动清理任务
 	if err := utils.ExecCmd("crontab -l | grep -v 'drop_caches' | crontab -"); err != nil {
-		return fmt.Errorf("remove existing cron job failed: %v", err)
+		// 如果失败，可能是因为还没有 crontab，尝试创建空的
+		if err := utils.ExecCmd("echo '' | crontab -"); err != nil {
+			return fmt.Errorf("initialize crontab failed: %v", err)
+		}
 	}
 
 	if req.Interval <= 0 {
 		return nil // 如果间隔小于等于0，表示取消自动清理
 	}
 
-	// 创建新的定时任务
-	cronCmd := fmt.Sprintf("echo '0 */%d * * * sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null' | crontab -", req.Interval)
+	// 创建新的定时任务，使用 sysctl 命令作为备选
+	cronCmd := fmt.Sprintf("echo '0 */%d * * * sync && (echo 3 | sudo tee /proc/sys/vm/drop_caches || sudo sysctl -w vm.drop_caches=3) > /dev/null 2>&1' | crontab -", req.Interval)
 	if err := utils.ExecCmd(cronCmd); err != nil {
 		return fmt.Errorf("set auto clear interval failed: %v", err)
 	}
