@@ -16,13 +16,16 @@ func SetTime(req model.SetTimeReq) error {
 	// 将时间戳转换为时间对象
 	t := time.Unix(req.Timestamp, 0)
 	timeStr := t.Format("2006-01-02 15:04:05")
-	// 根据不同操作系统执行不同的时间设置命令
+
+	// 检查系统类型
 	switch runtime.GOOS {
 	case "linux":
-		// 设置系统时间
-		out, err := utils.Execf("date -s %s", timeStr)
-		if err != nil {
-			return fmt.Errorf("set time failed: %s", out)
+		// 首先尝试使用 timedatectl（现代 Linux 系统）
+		if err := utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-time '%s'", timeStr)); err != nil {
+			// 如果失败，尝试使用传统的 date 命令
+			if out, err := utils.Execf("sudo date -s '%s'", timeStr); err != nil {
+				return fmt.Errorf("set time failed: %s", out)
+			}
 		}
 	default:
 		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
@@ -31,11 +34,47 @@ func SetTime(req model.SetTimeReq) error {
 }
 
 func SetTimezone(req model.SetTimezoneReq) error {
-	return utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.Timezone))
+	// 检查时区文件是否存在
+	if _, err := os.Stat(fmt.Sprintf("/usr/share/zoneinfo/%s", req.Timezone)); err != nil {
+		return fmt.Errorf("invalid timezone: %s", req.Timezone)
+	}
+
+	// 首先尝试使用 timedatectl
+	if err := utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.Timezone)); err != nil {
+		// 如果失败，尝试直接设置时区链接
+		if err := utils.ExecCmd(fmt.Sprintf("sudo ln -sf /usr/share/zoneinfo/%s /etc/localtime", req.Timezone)); err != nil {
+			return fmt.Errorf("set timezone failed: %v", err)
+		}
+	}
+	return nil
 }
 
 func SyncTime() error {
-	return utils.ExecCmd("sudo timedatectl set-ntp true")
+	// 首先检查是否支持 systemd
+	if _, err := utils.Exec("command -v timedatectl"); err == nil {
+		// 尝试使用 timedatectl 启用 NTP
+		if err := utils.ExecCmd("sudo timedatectl set-ntp true"); err == nil {
+			return nil
+		}
+	}
+
+	// 如果 timedatectl 不可用或失败，尝试使用 ntpd
+	if _, err := utils.Exec("command -v ntpd"); err == nil {
+		if err := utils.ExecCmd("sudo service ntpd restart"); err != nil {
+			return fmt.Errorf("restart ntpd service failed: %v", err)
+		}
+		return nil
+	}
+
+	// 最后尝试使用 ntpdate
+	if _, err := utils.Exec("command -v ntpdate"); err == nil {
+		if err := utils.ExecCmd("sudo ntpdate pool.ntp.org"); err != nil {
+			return fmt.Errorf("sync time with ntpdate failed: %v", err)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("no available time sync service found")
 }
 
 func ClearMemCache() error {
