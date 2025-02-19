@@ -4384,6 +4384,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/hosts/{host}/agent/uninstall": {
+            "post": {
+                "description": "Uninstall agent in host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Uninstall agent in host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/hosts/{host}/conf/agent": {
             "put": {
                 "description": "Update agent config of host",

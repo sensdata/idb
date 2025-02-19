@@ -4684,6 +4684,25 @@ paths:
       summary: Get agent status in host
       tags:
       - Host
+  /hosts/{host}/agent/uninstall:
+    post:
+      consumes:
+      - application/json
+      description: Uninstall agent in host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Uninstall agent in host
+      tags:
+      - Host
   /hosts/{host}/conf/agent:
     put:
       consumes:
