@@ -202,16 +202,33 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 			}
 		}
 
-		// 设置 DNS 配置参数
-		if req.Timeout > 0 {
-			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl set-dns-option eth0 timeout:%d", req.Timeout)); err != nil {
-				return fmt.Errorf("set DNS timeout failed: %v", err)
+		// 对于 systemd-resolved，我们将超时和重试设置写入 resolved.conf
+		if req.Timeout > 0 || req.Retry > 0 {
+			resolvedConf := "/etc/systemd/resolved.conf"
+			if err := utils.ExecCmd(fmt.Sprintf("sudo cp %s %s.backup", resolvedConf, resolvedConf)); err != nil {
+				return fmt.Errorf("backup resolved.conf failed: %v", err)
 			}
-		}
 
-		if req.Retry > 0 {
-			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl set-dns-option eth0 attempts:%d", req.Retry)); err != nil {
-				return fmt.Errorf("set DNS retry failed: %v", err)
+			var options []string
+			if req.Timeout > 0 {
+				options = append(options, fmt.Sprintf("ResolveTimeoutSec=%d", req.Timeout))
+			}
+			if req.Retry > 0 {
+				options = append(options, fmt.Sprintf("DNSStubRetryCount=%d", req.Retry))
+			}
+
+			for _, option := range options {
+				if err := utils.ExecCmd(fmt.Sprintf("sudo sed -i '/^%s=/d' %s", strings.Split(option, "=")[0], resolvedConf)); err != nil {
+					return fmt.Errorf("update resolved.conf failed: %v", err)
+				}
+				if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a %s", option, resolvedConf)); err != nil {
+					return fmt.Errorf("update resolved.conf failed: %v", err)
+				}
+			}
+
+			// 重启 systemd-resolved 服务使配置生效
+			if err := utils.ExecCmd("sudo systemctl restart systemd-resolved"); err != nil {
+				return fmt.Errorf("restart systemd-resolved failed: %v", err)
 			}
 		}
 
