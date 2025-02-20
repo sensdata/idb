@@ -33,6 +33,7 @@ import (
 	"github.com/sensdata/idb/center/plugin"
 	"github.com/sensdata/idb/core/constant"
 	logger "github.com/sensdata/idb/core/log"
+	"github.com/sensdata/idb/core/logstream"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/urfave/cli"
 )
@@ -120,12 +121,20 @@ func StartServices() error {
 	conn.CONFMAN = manager
 	global.Host = manager.GetConfig().Host
 
-	//初始化数据库
+	// 初始化数据库
 	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
 	// 初始化设置
 	db.InitSettings(conn.CONFMAN.GetConfig())
+
+	// 初始化logstream
+	ls, err := logstream.New(nil)
+	if err != nil {
+		global.LOG.Error("Failed to initialize logstream: %v", err)
+		return err
+	}
+	global.LogStream = ls
 
 	// 启动SSH服务
 	global.LOG.Info("Init ssh")
@@ -163,6 +172,11 @@ func StartServices() error {
 }
 
 func StopServices() error {
+	// 关闭 logstream
+	if global.LogStream != nil {
+		global.LogStream.Close()
+	}
+
 	// 停止Agent服务
 	conn.CENTER.Stop()
 
