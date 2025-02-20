@@ -35,6 +35,8 @@ func GetStatus() (*model.HostStatus, error) {
 	}
 	if v != nil {
 		status.Memory = math.Round(v.UsedPercent*100) / 100
+		status.MemTotal = utils.FormatMemorySize(v.Available + v.Used)
+		status.MemUsed = utils.FormatMemorySize(v.Used)
 	}
 
 	// disk
