@@ -9,12 +9,11 @@ import (
 
 	"github.com/sensdata/idb/core/logstream/internal/config"
 	"github.com/sensdata/idb/core/logstream/internal/utils"
+	"github.com/sensdata/idb/core/logstream/pkg/factory"
 	"github.com/sensdata/idb/core/logstream/pkg/reader"
-	readerAdater "github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/logstream/pkg/task"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/logstream/pkg/writer"
-	writerAdapter "github.com/sensdata/idb/core/logstream/pkg/writer/adapters"
 )
 
 type LogStream struct {
@@ -79,7 +78,7 @@ func (ls *LogStream) GetWriter(taskID string) (writer.Writer, error) {
 		return nil, fmt.Errorf("get task failed: %w", err)
 	}
 
-	w, err := writerAdapter.NewFileWriter(task.LogPath, ls.config.LogBufferSize)
+	w, err := factory.NewWriter(task, ls.taskMgr, ls.config)
 	if err != nil {
 		ls.metrics.IncrErrorCount()
 		return nil, fmt.Errorf("create writer failed: %w", err)
@@ -107,7 +106,7 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 		return nil, fmt.Errorf("get task failed: %w", err)
 	}
 
-	r, err := readerAdater.NewTailReader(task.LogPath, ls.config)
+	r, err := factory.NewReader(task, ls.taskMgr, ls.config)
 	if err != nil {
 		ls.metrics.IncrErrorCount()
 		return nil, fmt.Errorf("create reader failed: %w", err)

@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -13,9 +14,10 @@ import (
 
 type FileTaskManager struct {
 	mu       sync.RWMutex
-	tasks    map[string]*types.Task
 	store    Store
 	basePath string
+	tasks    map[string]*types.Task
+	buffers  map[string]*bytes.Buffer
 }
 
 func NewFileTaskManager(cfg *config.Config) (Manager, error) {
@@ -35,9 +37,10 @@ func NewFileTaskManager(cfg *config.Config) (Manager, error) {
 	}
 
 	return &FileTaskManager{
-		tasks:    tasks,
-		store:    store,
 		basePath: filepath.Join(cfg.BasePath, cfg.LogDir),
+		store:    store,
+		tasks:    tasks,
+		buffers:  make(map[string]*bytes.Buffer),
 	}, nil
 }
 
@@ -53,12 +56,22 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 		Type:      taskType,
 		Status:    types.TaskStatusCreated,
 		Metadata:  metadata,
-		LogPath:   filepath.Join(m.basePath, fmt.Sprintf("%s.log", taskID)),
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
 
+	// 根据任务类型设置日志路径
+	if taskType == types.TaskTypeBuffer {
+		// buffer 类型不需要物理文件路径
+		task.LogPath = ""
+		// 初始化 buffer
+		m.buffers[taskID] = bytes.NewBuffer(nil)
+	} else {
+		task.LogPath = filepath.Join(m.basePath, fmt.Sprintf("%s.log", taskID))
+	}
+
 	if err := m.store.Save(task); err != nil {
+		delete(m.buffers, taskID) // 如果保存失败，清理已创建的 buffer
 		return "", fmt.Errorf("save task failed: %v", err)
 	}
 
@@ -72,9 +85,31 @@ func (m *FileTaskManager) Get(taskID string) (*types.Task, error) {
 
 	task, exists := m.tasks[taskID]
 	if !exists {
-		return nil, fmt.Errorf("task %s not found", taskID)
+		return nil, types.ErrTaskNotFound
 	}
 	return task, nil
+}
+
+func (m *FileTaskManager) GetBuffer(taskID string) (*bytes.Buffer, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, exists := m.tasks[taskID]
+	if !exists {
+		return nil, types.ErrTaskNotFound
+	}
+
+	if task.Type != types.TaskTypeBuffer {
+		return nil, fmt.Errorf("task %s is not buffer type", taskID)
+	}
+
+	if buf, exists := m.buffers[taskID]; exists {
+		return buf, nil
+	}
+
+	buf := bytes.NewBuffer(nil)
+	m.buffers[taskID] = buf
+	return buf, nil
 }
 
 // validateTaskStatus 验证任务状态转换是否合法
@@ -135,6 +170,7 @@ func (m *FileTaskManager) Clean(before time.Time) error {
 				continue
 			}
 			delete(m.tasks, taskID)
+			delete(m.buffers, taskID)
 			cleanedCount++
 		}
 	}
@@ -159,6 +195,7 @@ func (m *FileTaskManager) Delete(taskID string) error {
 	}
 
 	delete(m.tasks, taskID)
+	delete(m.buffers, taskID)
 	return nil
 }
 

@@ -4,8 +4,8 @@ import (
 	"io"
 
 	"github.com/gin-gonic/gin"
+	logstream "github.com/sensdata/idb/core/logstream"
 	"github.com/sensdata/idb/core/logstream/internal/config"
-	logstream "github.com/sensdata/idb/core/logstream/pkg"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
