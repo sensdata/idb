@@ -35,6 +35,7 @@ var (
 	ErrRecordNotFound           = errors.New("ErrRecordNotFound")
 	ErrStructTransform          = errors.New("ErrStructTransform")
 	ErrBussiness                = errors.New("BussinessFailed")
+	ErrHostNotFound             = errors.New("ErrHostNotFound")
 	ErrHost                     = errors.New("HostError")
 	ErrSsh                      = errors.New("SshError")
 	ErrAgent                    = errors.New("AgentError")

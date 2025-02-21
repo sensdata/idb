@@ -13,6 +13,7 @@ import (
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -31,8 +32,8 @@ type IHostService interface {
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
-	InstallAgent(id uint) error
-	UninstallAgent(id uint) error
+	InstallAgent(id uint) (*core.TaskInfo, error)
+	UninstallAgent(id uint) (*core.TaskInfo, error)
 	AgentStatus(id uint) (*core.AgentStatus, error)
 	RestartAgent(id uint) error
 }
@@ -274,32 +275,44 @@ func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
 	return nil
 }
 
-func (s *HostService) InstallAgent(id uint) error {
+func (s *HostService) InstallAgent(id uint) (*core.TaskInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
-		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, constant.ErrHostNotFound
 	}
 
-	// 安装
-	if err := conn.SSH.InstallAgent(host); err != nil {
-		return err
+	// 生成任务
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeBuffer, nil)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	// 异步安装
+	go conn.SSH.InstallAgent(host, taskId)
+
+	// 先返回task信息
+	return &core.TaskInfo{TaskID: taskId}, nil
 }
 
-func (s *HostService) UninstallAgent(id uint) error {
+func (s *HostService) UninstallAgent(id uint) (*core.TaskInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
-		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, constant.ErrHostNotFound
 	}
 
-	// 卸载
-	if err := conn.SSH.UninstallAgent(host); err != nil {
-		return err
+	// 生成任务
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeBuffer, nil)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	// 异步卸载
+	go conn.SSH.UninstallAgent(host, taskId)
+
+	// 先返回task信息
+	return &core.TaskInfo{TaskID: taskId}, nil
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
