@@ -16,10 +16,16 @@ const (
 	TaskStatusCanceled TaskStatus = "canceled"
 )
 
+// TaskType 任务类型
+const (
+	TaskTypeBuffer = "buffer" // 内存缓冲日志
+	TaskTypeFile   = "file"   // 文件存储日志
+)
+
 // Task 任务信息
 type Task struct {
 	ID        string                 `json:"id"`
-	Type      string                 `json:"type"`
+	Type      string                 `json:"type"` // buffer/file
 	Status    TaskStatus             `json:"status"`
 	Metadata  map[string]interface{} `json:"metadata"`
 	LogPath   string                 `json:"log_path"`

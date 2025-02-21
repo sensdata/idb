@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/sensdata/idb/core/logstream/pkg/types"
@@ -13,6 +14,9 @@ type Manager interface {
 
 	// Get 获取任务信息
 	Get(taskID string) (*types.Task, error)
+
+	// GetBuffer 获取任务缓冲区
+	GetBuffer(taskID string) (*bytes.Buffer, error)
 
 	// Update 更新任务状态
 	Update(taskID string, status types.TaskStatus) error

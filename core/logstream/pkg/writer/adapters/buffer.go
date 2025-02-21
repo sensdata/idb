@@ -14,9 +14,12 @@ type BufferWriter struct {
 	buffer *bytes.Buffer
 }
 
-func NewBufferWriter() *BufferWriter {
+func NewBufferWriter(buffer *bytes.Buffer) *BufferWriter {
+	if buffer == nil {
+		buffer = bytes.NewBuffer(nil)
+	}
 	return &BufferWriter{
-		buffer: bytes.NewBuffer(nil),
+		buffer: buffer,
 	}
 }
 

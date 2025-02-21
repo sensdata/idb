@@ -14,9 +14,13 @@ type BufferReader struct {
 	closed bool
 }
 
-func NewBufferReader() *BufferReader {
+// NewBufferReader 使用已存在的 buffer 创建 reader
+func NewBufferReader(buffer *bytes.Buffer) *BufferReader {
+	if buffer == nil {
+		buffer = bytes.NewBuffer(nil)
+	}
 	return &BufferReader{
-		buffer: bytes.NewBuffer(nil),
+		buffer: buffer,
 		subs:   make([]chan []byte, 0),
 	}
 }
