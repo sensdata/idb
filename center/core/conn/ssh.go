@@ -13,6 +13,7 @@ import (
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream/pkg/writer"
 	core "github.com/sensdata/idb/core/model"
 	"golang.org/x/crypto/ssh"
 )
@@ -27,8 +28,8 @@ type ISSHService interface {
 	Start() error
 	Stop()
 	TestConnection(host model.Host) error
-	InstallAgent(host model.Host) error
-	UninstallAgent(host model.Host) error
+	InstallAgent(host model.Host, taskId string) error
+	UninstallAgent(host model.Host, taskId string) error
 	AgentStatus(host model.Host) (*core.AgentStatus, error)
 	RestartAgent(host model.Host) error
 }
@@ -143,23 +144,45 @@ func isValidSSHClient(client *ssh.Client) bool {
 	return err == nil
 }
 
-func (s *SSHService) InstallAgent(host model.Host) error {
+func writerLog(wp *writer.Writer, log string) {
+	if wp != nil {
+		(*wp).WriteRaw([]byte(log))
+	}
+}
+
+func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
+	var writer *writer.Writer
+	if taskId != "" {
+		w, err := global.LogStream.GetWriter(taskId)
+		if err != nil {
+			global.LOG.Error("Failed to get log writer for task %s: %v", taskId, err)
+			return fmt.Errorf("failed to get log writer for task %s: %v", taskId, err)
+		}
+		writer = &w
+	}
+
 	global.LOG.Info("Install agent to host %s begin", host.Addr)
+	writerLog(writer, fmt.Sprintf("Install agent to host %s begin", host.Addr))
 
 	// 1. 检查 agent 安装包路径
+	writerLog(writer, "Check agent package path")
 	agentPackagePath := filepath.Join(constant.CenterAgentDir, fmt.Sprintf(constant.CenterAgentPkg, global.Version))
 	if _, err := os.Stat(agentPackagePath); os.IsNotExist(err) {
 		global.LOG.Error("Agent package not found at %s", agentPackagePath)
+		writerLog(writer, fmt.Sprintf("Agent package not found at %s", agentPackagePath))
 		return fmt.Errorf("agent package not found at %s", agentPackagePath)
 	}
 
 	// 2. 检查并确保 SSH 连接存在
+	writerLog(writer, "Check and ensure SSH connection")
 	client, err := s.checkClient(host)
 	if err != nil {
+		writerLog(writer, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
 		return err
 	}
 
 	// 3. 检查目标机器是否已安装 agent
+	writerLog(writer, "Check agent installation status")
 	checkCmd := `
         if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
             echo "installed"
@@ -170,22 +193,27 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 	output, err := executeCommand(client, checkCmd)
 	if err != nil {
 		global.LOG.Error("Failed to check agent installation status on host %s: %v", host.Addr, err)
+		writerLog(writer, fmt.Sprintf("Failed to check agent installation status on host %s: %v", host.Addr, err))
 		return fmt.Errorf("failed to check agent installation status: %v", err)
 	}
 
 	if strings.TrimSpace(output) == "installed" {
 		global.LOG.Info("Agent is already installed on host %s", host.Addr)
+		writerLog(writer, fmt.Sprintf("Agent is already installed on host %s", host.Addr))
 		return nil
 	}
 
 	// 4. 传输 agent 包文件
+	writerLog(writer, "Transfer agent package")
 	err = s.transferFile(client, agentPackagePath, "/tmp/idb-agent.tar.gz")
 	if err != nil {
 		global.LOG.Error("Failed to transfer agent package to host %s: %v", host.Addr, err)
+		writerLog(writer, fmt.Sprintf("Failed to transfer agent package to host %s: %v", host.Addr, err))
 		return fmt.Errorf("failed to transfer agent package: %v", err)
 	}
 
 	// 5. 执行解压和安装命令
+	writerLog(writer, "Unpack and install agent")
 	installCmd := `
         mkdir -p /tmp/idb-agent && 
         tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
@@ -196,25 +224,41 @@ func (s *SSHService) InstallAgent(host model.Host) error {
 	output, err = executeCommand(client, installCmd)
 	if err != nil {
 		global.LOG.Error("Failed to install agent to host %s: %v", host.Addr, err)
+		writerLog(writer, fmt.Sprintf("Failed to install agent to host %s: %v", host.Addr, err))
 		return fmt.Errorf("failed to install agent: %v", err)
 	}
 
 	global.LOG.Info("Agent installation output: %s", output)
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
-
+	writerLog(writer, output)
+	writerLog(writer, fmt.Sprintf("Install agent to host %s completed", host.Addr))
 	return nil
 }
 
-func (s *SSHService) UninstallAgent(host model.Host) error {
+func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
+	var writer *writer.Writer
+	if taskId != "" {
+		w, err := global.LogStream.GetWriter(taskId)
+		if err != nil {
+			global.LOG.Error("Failed to get log writer for task %s: %v", taskId, err)
+			return fmt.Errorf("failed to get log writer for task %s: %v", taskId, err)
+		}
+		writer = &w
+	}
+
 	global.LOG.Info("Uninstall agent in host %s begin", host.Addr)
+	writerLog(writer, fmt.Sprintf("Uninstall agent in host %s begin", host.Addr))
 
 	// 1. 检查并确保 SSH 连接存在
+	writerLog(writer, "Check SSH connection")
 	client, err := s.checkClient(host)
 	if err != nil {
+		writerLog(writer, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
 		return err
 	}
 
 	// 2. 检查 agent 是否已安装
+	writerLog(writer, "Check agent installation status")
 	checkCmd := `
 		if systemctl is-active --quiet idb-agent.service || [ -f /var/lib/idb-agent/idb-agent ]; then
 			echo "installed"
@@ -225,15 +269,18 @@ func (s *SSHService) UninstallAgent(host model.Host) error {
 	output, err := executeCommand(client, checkCmd)
 	if err != nil {
 		global.LOG.Error("Failed to check agent status on host %s: %v", host.Addr, err)
+		writerLog(writer, fmt.Sprintf("Failed to check agent status on host %s: %v", host.Addr, err))
 		return fmt.Errorf("failed to check agent status: %v", err)
 	}
 
 	if strings.TrimSpace(output) != "installed" {
 		global.LOG.Info("Agent is not installed on host %s", host.Addr)
+		writerLog(writer, fmt.Sprintf("Agent is not installed on host %s", host.Addr))
 		return nil
 	}
 
 	// 3. 执行卸载的一系列动作命令
+	writerLog(writer, "Uninstall agent service")
 	uninstallCmd := `
 		if ! sudo -n true 2>/dev/null; then
 			echo "no_sudo_access"
@@ -252,15 +299,18 @@ func (s *SSHService) UninstallAgent(host model.Host) error {
 	if err != nil {
 		if strings.Contains(output, "no_sudo_access") {
 			global.LOG.Error("No sudo access on host %s", host.Addr)
+			writerLog(writer, fmt.Sprintf("No sudo access on host %s", host.Addr))
 			return fmt.Errorf("no sudo access on host %s", host.Addr)
 		}
 		global.LOG.Error("Failed to uninstall agent on host %s: %v", host.Addr, err)
+		writerLog(writer, fmt.Sprintf("Failed to uninstall agent on host %s: %v", host.Addr, err))
 		return fmt.Errorf("failed to uninstall agent: %v", err)
 	}
 
 	global.LOG.Info("Agent uninstall output: %s", output)
 	global.LOG.Info("Uninstall agent in host %s completed", host.Addr)
-
+	writerLog(writer, output)
+	writerLog(writer, fmt.Sprintf("Uninstall agent in host %s completed", host.Addr))
 	return nil
 }
 
@@ -361,7 +411,7 @@ func (s *SSHService) ensureConnections() {
 		if err != nil {
 			continue
 		} else {
-			go s.InstallAgent(host)
+			go s.InstallAgent(host, "")
 		}
 	}
 }

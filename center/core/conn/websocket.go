@@ -41,7 +41,7 @@ type SshConn struct {
 	LastResult string         `json:"last_result"`
 }
 
-func NewIWebSocketService() IWebSocketService {
+func NewWebSocketService() IWebSocketService {
 	return &WebSocketService{}
 }
 

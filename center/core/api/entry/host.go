@@ -306,7 +306,7 @@ func (b *BaseApi) AgentStatus(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200
+// @Success 200 {object} model.TaskInfo
 // @Router /hosts/{host}/agent/install [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -315,11 +315,12 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 		return
 	}
 
-	if err := hostService.InstallAgent(uint(hostID)); err != nil {
+	taskInfo, err := hostService.InstallAgent(uint(hostID))
+	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
-	SuccessWithData(c, nil)
+	SuccessWithData(c, taskInfo)
 }
 
 // @Tags Host
@@ -328,7 +329,7 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200
+// @Success 200 {object} model.TaskInfo
 // @Router /hosts/{host}/agent/uninstall [post]
 func (b *BaseApi) UninstallAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -337,11 +338,12 @@ func (b *BaseApi) UninstallAgent(c *gin.Context) {
 		return
 	}
 
-	if err := hostService.UninstallAgent(uint(hostID)); err != nil {
+	taskInfo, err := hostService.UninstallAgent(uint(hostID))
+	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
-	SuccessWithData(c, nil)
+	SuccessWithData(c, taskInfo)
 }
 
 // @Tags Host
