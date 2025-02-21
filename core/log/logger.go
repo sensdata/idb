@@ -66,6 +66,12 @@ func (l *Log) Info(format string, args ...interface{}) {
 	l.Logger.Sync()
 }
 
+// Warn 记录信息日志
+func (l *Log) Warn(format string, args ...interface{}) {
+	l.Logger.Warn(fmt.Sprintf(format, args...))
+	l.Logger.Sync()
+}
+
 // Error 记录错误日志
 func (l *Log) Error(format string, args ...interface{}) {
 	l.Logger.Error(fmt.Sprintf(format, args...))

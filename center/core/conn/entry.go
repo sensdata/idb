@@ -20,6 +20,7 @@ var (
 
 	CONFMAN   *config.Manager
 	SSH       ISSHService
+	TASK      ITaskService
 	CENTER    ICenter
 	WEBSOCKET IWebSocketService
 	PLUGINS   []plugin.IdbPlugin
