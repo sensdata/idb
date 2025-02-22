@@ -23,12 +23,14 @@
 </template>
 
 <script setup lang="ts">
+  import { useConfirm } from '@/hooks/confirm';
   import { computed } from 'vue';
 
   interface OperationOption {
     text: string;
     disabled?: boolean;
     visible?: boolean;
+    confirm?: string;
     click: (event: Event) => void;
   }
 
@@ -40,7 +42,11 @@
     return props.options.filter((option) => option.visible !== false);
   });
 
-  const handleClick = (option: any, event: Event) => {
+  const { confirm } = useConfirm();
+  const handleClick = async (option: any, event: Event) => {
+    if (option.confirm && !(await confirm(option.confirm))) {
+      return;
+    }
     option.click(event);
   };
 </script>

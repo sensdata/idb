@@ -1,4 +1,4 @@
-import { HostEntity, HostGroupEntity } from '@/entity/Host';
+import { HostEntity, HostStatusVo } from '@/entity/Host';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 import axios from 'axios';
@@ -7,12 +7,7 @@ export function getHostListApi(params?: ApiListParams) {
   return request.get<ApiListResult<HostEntity>>('hosts', params);
 }
 
-export function getHostGroupListApi(params: ApiListParams) {
-  return request.get<ApiListResult<HostGroupEntity>>('hosts/groups', params);
-}
-
 export type CreateHostParams = Partial<HostEntity>;
-
 export interface CreateHostResult {
   id: number;
   name: string;
@@ -24,8 +19,15 @@ export const createHostApi = (
   return axios.post('/hosts', params);
 };
 
-export function deleteHostApi(ids: number[]) {
-  return request.delete('host/delete', { ids });
+export type UpdateHostParams = Partial<HostEntity> & { id: number };
+export const updateHostApi = (
+  params: UpdateHostParams
+): Promise<CreateHostResult> => {
+  return axios.put('/hosts', params);
+};
+
+export function deleteHostApi(id: number) {
+  return request.delete('hosts/delete', { id });
 }
 
 export interface TestSSHResult {
@@ -59,16 +61,10 @@ export const installHostAgentApi = (
   return axios.post(`hosts/${hostId}/agent/install`);
 };
 
-export interface HostStatusResult {
-  cpu: number;
-  disk: number;
-  mem: number;
-  mem_total: string;
-  mem_used: string;
-  rx: number;
-  tx: number;
-}
-
-export const getHostStatusApi = (hostId: number): Promise<HostStatusResult> => {
+export const getHostStatusApi = (hostId: number): Promise<HostStatusVo> => {
   return request.get(`hosts/${hostId}/status`);
+};
+
+export const restartHostAgentApi = (hostId: number): Promise<void> => {
+  return request.post(`hosts/${hostId}/agent/restart`);
 };

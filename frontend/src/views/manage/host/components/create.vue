@@ -114,6 +114,7 @@
       </a-form-item>
     </a-form>
   </a-modal>
+  <group-form ref="groupFormRef" @ok="handleGroupFormOk" />
 </template>
 
 <script lang="ts" setup>
@@ -124,7 +125,6 @@
   import {
     CreateHostParams,
     createHostApi,
-    getHostGroupListApi,
     testHostSSHApi,
     testHostAgentApi,
     installHostAgentApi,
@@ -132,7 +132,9 @@
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
+  import { getHostGroupListApi } from '@/api/group';
   import FileSelector from '@/components/file/file-selector/index.vue';
+  import GroupForm from './group-form.vue';
 
   interface TestResult {
     success: boolean;
@@ -243,8 +245,15 @@
     await loadGroupOptions();
   };
 
+  const groupFormRef = ref<InstanceType<typeof GroupForm>>();
   const handleAddGroup = () => {
-    // todo
+    const form = groupFormRef.value;
+    form?.reset();
+    form?.show();
+  };
+
+  const handleGroupFormOk = () => {
+    loadGroupOptions();
   };
 
   const validate = () => {

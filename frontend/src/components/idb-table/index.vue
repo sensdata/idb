@@ -340,7 +340,14 @@
     setLoading(true);
     try {
       Object.assign(params, newParams);
-      const data = await props.fetch(toRaw(params));
+      let rawParams = toRaw(params);
+      if (props.beforeFetchHook) {
+        rawParams = props.beforeFetchHook(rawParams);
+      }
+      let data = await props.fetch(rawParams);
+      if (props.afterFetchHook) {
+        data = props.afterFetchHook(data);
+      }
       setData(data);
     } finally {
       setLoading(false);

@@ -1,51 +1,61 @@
 export default {
-  'manage.host.list.title': 'Host List',
-  'manage.host.list.create': 'Create Host',
+  'manage.host.enum.auth_mode.password': 'Password',
+  'manage.host.enum.auth_mode.private_key': 'Private Key',
+
+  'manage.host.list.action.add': 'Add Host',
+  'manage.host.list.column.name': 'Host Name',
+  'manage.host.list.column.addr': 'Host Address',
+  'manage.host.list.column.group_name': 'Group',
+  'manage.host.list.column.ctrl_end': 'Control End',
+  'manage.host.list.column.cpu': 'CPU',
+  'manage.host.list.column.memory': 'Memory',
+  'manage.host.list.column.disk': 'Storage',
+  'manage.host.list.column.network': 'Network',
+  'manage.host.list.name_local': 'Local Host',
+  'manage.host.list.name_default': 'Default',
+  'manage.host.list.group_default': 'Default Group',
+  'manage.host.list.operation.goto': 'Enter Desktop',
+  'manage.host.list.operation.setting': 'Host Settings',
+  'manage.host.list.operation.sshTerminal': 'SSH Terminal',
+  'manage.host.list.operation.restart': 'Restart',
+  'manage.host.list.operation.delete': 'Delete',
+  'manage.host.list.restart.confirm':
+    'Are you sure to restart the selected host?',
+  'manage.host.list.restart.success': 'Restart successfully',
   'manage.host.list.delete.confirm':
-    'Are you sure to delete the selected hosts?',
+    'Are you sure to delete the selected host?',
   'manage.host.list.delete.success': 'Delete successfully',
 
   'manage.host.form.title.create': 'Create Host',
-  'manage.host.form.title.edit': 'Edit Host',
-  'manage.host.form.save.success': 'Save successfully',
+  'manage.host.form.title.edit': 'Host Settings',
 
-  'manage.host.form.name.label': 'Name',
+  'manage.host.form.name.label': 'Host Name',
   'manage.host.form.name.placeholder': 'Please enter host name',
   'manage.host.form.name.required': 'Please enter host name',
-
   'manage.host.form.group.label': 'Group',
-  'manage.host.form.group.placeholder': 'Please select group',
-  'manage.host.form.group.default': 'Default Group',
+  'manage.host.form.group.placeholder': 'Default Group',
   'manage.host.form.group.add': 'Add Group',
-
-  'manage.host.form.addr.label': 'Address',
+  'manage.host.form.group.default': 'Default Group',
+  'manage.host.form.addr.label': 'Host Address',
   'manage.host.form.addr.placeholder': 'Please enter host address',
   'manage.host.form.addr.required': 'Please enter host address',
-
   'manage.host.form.port.label': 'Port',
   'manage.host.form.port.placeholder': 'Please enter port',
   'manage.host.form.port.required': 'Please enter port',
-
   'manage.host.form.user.label': 'Username',
   'manage.host.form.user.placeholder': 'Please enter username',
   'manage.host.form.user.required': 'Please enter username',
-
   'manage.host.form.auth_mode.label': 'Auth Mode',
   'manage.host.form.auth_mode.required': 'Please select auth mode',
-
   'manage.host.form.password.label': 'Password',
   'manage.host.form.password.placeholder': 'Please enter password',
   'manage.host.form.password.required': 'Please enter password',
-
   'manage.host.form.private_key.label': 'Private Key',
   'manage.host.form.private_key.placeholder': 'Please select private key file',
   'manage.host.form.private_key.required': 'Please select private key file',
-
   'manage.host.form.pass_phrase.label': 'Pass Phrase',
   'manage.host.form.pass_phrase.placeholder': 'Please enter pass phrase',
-
-  'manage.host.enum.auth_mode.password': 'Password',
-  'manage.host.enum.auth_mode.private_key': 'Private Key',
+  'manage.host.form.save.success': 'Save successfully',
 
   'manage.host.terminal.title': 'SSH Terminal',
 
@@ -59,4 +69,12 @@ export default {
   'manage.host.agent.installSuccess': 'Agent installed successfully',
   'manage.host.agent.installFailed': 'Failed to install agent',
   'manage.host.agent.notInstalled': 'Agent not detected, install now?',
+
+  'manage.host.group.form.title.create': 'Add Group',
+  'manage.host.group.form.title.edit': 'Edit Group',
+  'manage.host.group.form.name.label': 'Group Name',
+  'manage.host.group.form.name.placeholder': 'Please enter group name',
+  'manage.host.group.form.name.required': 'Please enter group name',
+  'manage.host.group.form.save.success': 'Group added successfully',
+  'manage.host.group.form.update.success': 'Group updated successfully',
 };

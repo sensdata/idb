@@ -1,12 +1,17 @@
 import { BaseEntity } from '@/types/global';
+import { HostGroupEntity } from './Group';
 
-export interface HostGroupEntity extends BaseEntity {
-  id: number;
-  created_at: number;
-  group_name: string;
+export interface HostStatusVo {
+  cpu: number;
+  disk: number;
+  mem: number;
+  mem_total: string;
+  mem_used: string;
+  rx: number;
+  tx: number;
 }
 
-export interface HostEntity extends BaseEntity {
+export interface HostEntity extends BaseEntity, HostStatusVo {
   created_at: number;
 
   group: HostGroupEntity;
@@ -26,7 +31,4 @@ export interface HostEntity extends BaseEntity {
 
   // todo: 需要新增
   is_default?: boolean;
-  cpu_rate: number;
-  memory_rate: number;
-  disk_rate: number;
 }

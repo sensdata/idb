@@ -90,8 +90,8 @@
       const result = await getHostStatusApi(currentHostId.value);
       state.cpu_usage = result.cpu + '%';
       state.memory_usage = result.mem_used + '/' + result.mem_total;
-      state.network_up = formatTransferSpeed(result.tx, 0);
-      state.network_down = formatTransferSpeed(result.rx, 0);
+      state.network_up = formatTransferSpeed(result.tx);
+      state.network_down = formatTransferSpeed(result.rx);
     } catch (error) {
       Message.error('获取状态失败');
     } finally {

@@ -7,7 +7,6 @@ export default {
   'manage.host.list.column.addr': '主机地址',
   'manage.host.list.column.group_name': '分组',
   'manage.host.list.column.ctrl_end': '受控端',
-  'manage.host.list.column.safe': '安全',
   'manage.host.list.column.cpu': 'CPU',
   'manage.host.list.column.memory': '内存',
   'manage.host.list.column.disk': '存储',
@@ -18,8 +17,16 @@ export default {
   'manage.host.list.operation.goto': '进入桌面',
   'manage.host.list.operation.setting': '节点设置',
   'manage.host.list.operation.sshTerminal': 'SSH终端',
+  'manage.host.list.operation.restart': '重启',
+  'manage.host.list.operation.delete': '删除',
+  'manage.host.list.restart.confirm': '确定重启选中的节点吗？',
+  'manage.host.list.restart.success': '重启成功',
+  'manage.host.list.delete.confirm': '确定删除选中的节点吗？',
+  'manage.host.list.delete.success': '删除成功',
 
   'manage.host.form.title.create': '添加节点',
+  'manage.host.form.title.edit': '节点设置',
+
   'manage.host.form.name.label': '节点名称',
   'manage.host.form.name.placeholder': '请输入节点名称',
   'manage.host.form.name.required': '请输入节点名称',
@@ -60,4 +67,12 @@ export default {
   'manage.host.agent.installSuccess': '受控端安装成功',
   'manage.host.agent.installFailed': '受控端安装失败',
   'manage.host.agent.notInstalled': '未检测到受控端，是否立即安装？',
+
+  'manage.host.group.form.title.create': '添加分组',
+  'manage.host.group.form.title.edit': '编辑分组',
+  'manage.host.group.form.name.label': '分组名称',
+  'manage.host.group.form.name.placeholder': '请输入分组名称',
+  'manage.host.group.form.name.required': '请输入分组名称',
+  'manage.host.group.form.save.success': '分组添加成功',
+  'manage.host.group.form.update.success': '分组更新成功',
 };
