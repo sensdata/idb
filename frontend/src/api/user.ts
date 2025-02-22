@@ -21,3 +21,10 @@ export function logoutApi() {
 export function getUserInfoApi() {
   return request.get<UserState>('users/profile');
 }
+
+export function changePasswordApi(data: {
+  old_password: string;
+  new_password: string;
+}) {
+  return request.put('users/password', data);
+}

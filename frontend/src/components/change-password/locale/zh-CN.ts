@@ -1,0 +1,16 @@
+export default {
+  'components.changePassword.title': '修改密码',
+  'components.changePassword.old': '当前密码',
+  'components.changePassword.new': '新密码',
+  'components.changePassword.confirm': '确认密码',
+  'components.changePassword.oldPlaceholder': '请输入当前密码',
+  'components.changePassword.newPlaceholder': '请输入新密码',
+  'components.changePassword.confirmPlaceholder': '请确认新密码',
+  'components.changePassword.oldRequired': '请输入当前密码',
+  'components.changePassword.newRequired': '请输入新密码',
+  'components.changePassword.confirmRequired': '请确认新密码',
+  'components.changePassword.notMatch': '两次输入的密码不一致',
+  'components.changePassword.lengthError': '密码长度不能小于6位',
+  'components.changePassword.success': '密码修改成功',
+  'components.changePassword.failed': '密码修改失败',
+};

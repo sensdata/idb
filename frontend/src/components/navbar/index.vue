@@ -145,27 +145,19 @@
             <IconUser v-else />
           </a-avatar>
           <template #content>
-            <a-doption>
+            <a-doption v-if="false">
               <a-space @click="switchRoles">
                 <icon-tag />
                 <span>
-                  {{ $t('messageBox.switchRoles') }}
+                  {{ $t('navbar.switchRoles') }}
                 </span>
               </a-space>
             </a-doption>
             <a-doption>
-              <a-space @click="$router.push({ name: 'Info' })">
-                <icon-user />
+              <a-space @click="changePwd">
+                <icon-lock />
                 <span>
-                  {{ $t('messageBox.userCenter') }}
-                </span>
-              </a-space>
-            </a-doption>
-            <a-doption>
-              <a-space @click="$router.push({ name: 'Setting' })">
-                <icon-settings />
-                <span>
-                  {{ $t('messageBox.userSettings') }}
+                  {{ $t('navbar.changePassword') }}
                 </span>
               </a-space>
             </a-doption>
@@ -173,7 +165,7 @@
               <a-space @click="handleLogout">
                 <icon-export />
                 <span>
-                  {{ $t('messageBox.logout') }}
+                  {{ $t('navbar.logout') }}
                 </span>
               </a-space>
             </a-doption>
@@ -182,6 +174,7 @@
       </li>
     </ul>
   </div>
+  <change-password ref="changePwdRef" />
 </template>
 
 <script lang="ts" setup>
@@ -195,6 +188,7 @@
   import LogoImage from '@/assets/logo-wide.png';
   import Menu from '@/components/menu/index.vue';
   import MessageBox from '../message-box/index.vue';
+  import ChangePassword from '../change-password/index.vue';
 
   const appStore = useAppStore();
   const userStore = useUserStore();
@@ -253,6 +247,11 @@
     Message.success(res as string);
   };
   const toggleDrawerMenu = inject('toggleDrawerMenu') as () => void;
+  const changePwdRef = ref<InstanceType<typeof ChangePassword>>();
+
+  const changePwd = () => {
+    changePwdRef.value?.show();
+  };
 </script>
 
 <style scoped lang="less">
@@ -289,15 +288,14 @@
       align-items: center;
       padding: 0 10px;
     }
-
     a {
       color: var(--color-text-1);
       text-decoration: none;
     }
     .nav-btn {
-      border-color: rgb(var(--gray-2));
       color: rgb(var(--gray-8));
       font-size: 16px;
+      border-color: rgb(var(--gray-2));
     }
     .trigger-btn,
     .ref-btn {
@@ -308,12 +306,8 @@
       margin-left: 14px;
     }
   }
-</style>
 
-<style lang="less">
-  .message-popover {
-    .arco-popover-content {
-      margin-top: 0;
-    }
+  .message-popover:deep(.arco-popover-content) {
+    margin-top: 0;
   }
 </style>

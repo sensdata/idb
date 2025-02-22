@@ -1,0 +1,124 @@
+<template>
+  <a-modal
+    v-model:visible="visible"
+    :title="$t('components.changePassword.title')"
+    :ok-loading="loading"
+    @cancel="handleCancel"
+    @before-ok="handleBeforeOk"
+  >
+    <a-form ref="formRef" :model="model" :rules="rules">
+      <a-form-item
+        field="old_password"
+        :label="$t('components.changePassword.old')"
+      >
+        <a-input-password
+          v-model="model.old_password"
+          :placeholder="$t('components.changePassword.oldPlaceholder')"
+          autocomplete="current-password"
+          allow-clear
+        />
+      </a-form-item>
+      <a-form-item
+        field="new_password"
+        :label="$t('components.changePassword.new')"
+      >
+        <a-input-password
+          v-model="model.new_password"
+          :placeholder="$t('components.changePassword.newPlaceholder')"
+          autocomplete="new-password"
+          allow-clear
+        />
+      </a-form-item>
+      <a-form-item
+        field="confirm_password"
+        :label="$t('components.changePassword.confirm')"
+      >
+        <a-input-password
+          v-model="model.confirm_password"
+          :placeholder="$t('components.changePassword.confirmPlaceholder')"
+          autocomplete="new-password"
+          allow-clear
+        />
+      </a-form-item>
+    </a-form>
+  </a-modal>
+</template>
+
+<script lang="ts" setup>
+  import { reactive, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
+  import { changePasswordApi } from '@/api/user';
+  import useVisible from '@/hooks/visible';
+  import useLoading from '@/hooks/loading';
+
+  const { t } = useI18n();
+  const { visible, show } = useVisible();
+  const { loading, showLoading, hideLoading } = useLoading();
+
+  const formRef = ref();
+  const model = reactive({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+
+  const rules = {
+    old_password: [
+      { required: true, message: t('components.changePassword.oldRequired') },
+    ],
+    new_password: [
+      { required: true, message: t('components.changePassword.newRequired') },
+      { minLength: 6, message: t('components.changePassword.lengthError') },
+    ],
+    confirm_password: [
+      {
+        required: true,
+        message: t('components.changePassword.confirmRequired'),
+      },
+      {
+        validator: (value: string, cb: (error?: string) => void) => {
+          if (value !== model.new_password) {
+            cb(t('components.changePassword.notMatch'));
+          }
+          cb();
+        },
+      },
+    ],
+  };
+
+  const handleBeforeOk = async (done: any) => {
+    if (!formRef.value) return;
+
+    try {
+      await formRef.value.validate();
+      showLoading();
+      await changePasswordApi({
+        old_password: model.old_password,
+        new_password: model.new_password,
+      });
+      Message.success(t('components.changePassword.success'));
+      done();
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        Message.error(err.response.data.message);
+      } else {
+        Message.error(t('components.changePassword.failed'));
+      }
+      done(false);
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const handleCancel = () => {
+    model.old_password = '';
+    model.new_password = '';
+    model.confirm_password = '';
+    formRef.value?.clearValidate();
+  };
+
+  defineExpose({
+    show,
+  });
+</script>
