@@ -21,3 +21,8 @@ export interface FileInfoEntity {
   uid: string;
   update_time: string;
 }
+
+export type SimpleFileInfoEntity = Pick<
+  FileInfoEntity,
+  'name' | 'path' | 'is_dir' | 'extension' | 'size'
+>;

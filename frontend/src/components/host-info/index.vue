@@ -65,7 +65,7 @@
   import { getHostStatusApi } from '@/api/host';
   import { Message } from '@arco-design/web-vue';
   import useCurrentHost from '@/hooks/current-host';
-  import { formatMemorySize, formatTransferSpeed } from '@/utils/format';
+  import { formatTransferSpeed } from '@/utils/format';
 
   defineProps<{
     collapsed: boolean;
@@ -89,10 +89,9 @@
     try {
       const result = await getHostStatusApi(currentHostId.value);
       state.cpu_usage = result.cpu + '%';
-      state.memory_usage =
-        formatMemorySize(result.mem) + '/' + formatMemorySize(result.disk);
-      state.network_up = formatTransferSpeed(result.tx);
-      state.network_down = formatTransferSpeed(result.rx);
+      state.memory_usage = result.mem_used + '/' + result.mem_total;
+      state.network_up = formatTransferSpeed(result.tx, 0);
+      state.network_down = formatTransferSpeed(result.rx, 0);
     } catch (error) {
       Message.error('获取状态失败');
     } finally {

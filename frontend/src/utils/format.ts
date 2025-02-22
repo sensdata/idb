@@ -1,6 +1,6 @@
 import { useI18n } from 'vue-i18n';
 
-export function formatFileSize(size?: number): string {
+export function formatFileSize(size?: number, fixed = 1): string {
   if (size == null) {
     return '-';
   }
@@ -10,36 +10,36 @@ export function formatFileSize(size?: number): string {
   }
   size /= 1024;
   if (size < 1024) {
-    return size.toFixed(2) + 'KB';
+    return size.toFixed(fixed) + 'KB';
   }
   size /= 1024;
   if (size < 1024) {
-    return size.toFixed(2) + 'MB';
+    return size.toFixed(fixed) + 'MB';
   }
   size /= 1024;
-  return size.toFixed(2) + 'GB';
+  return size.toFixed(fixed) + 'GB';
 }
 
 export const formatMemorySize = formatFileSize;
 
-export function formatBandwidth(bps?: number): string {
+export function formatBandwidth(bps?: number, fixed = 1): string {
   if (bps == null) {
     return '-';
   }
 
   if (bps < 1000) {
-    return `${bps.toFixed(2)} bps`;
+    return `${bps.toFixed(0)} bps`;
   }
   bps /= 1000;
   if (bps < 1000) {
-    return `${bps.toFixed(2)} Kbps`;
+    return `${bps.toFixed(fixed)} Kbps`;
   }
   bps /= 1000;
   if (bps < 1000) {
-    return `${bps.toFixed(2)} Mbps`;
+    return `${bps.toFixed(fixed)} Mbps`;
   }
   bps /= 1000;
-  return `${bps.toFixed(2)} Gbps`;
+  return `${bps.toFixed(fixed)} Gbps`;
 }
 
 export function formatTransferSpeed(bytesPerSecond?: number): string {
@@ -48,18 +48,18 @@ export function formatTransferSpeed(bytesPerSecond?: number): string {
   }
 
   if (bytesPerSecond < 1024) {
-    return `${bytesPerSecond.toFixed(2)} B/s`;
+    return `${bytesPerSecond.toFixed(0)} B/s`;
   }
   bytesPerSecond /= 1024;
   if (bytesPerSecond < 1024) {
-    return `${bytesPerSecond.toFixed(2)} KB/s`;
+    return `${bytesPerSecond.toFixed(bytesPerSecond >= 100 ? 0 : 1)} K/s`;
   }
   bytesPerSecond /= 1024;
   if (bytesPerSecond < 1024) {
-    return `${bytesPerSecond.toFixed(2)} MB/s`;
+    return `${bytesPerSecond.toFixed(bytesPerSecond >= 100 ? 0 : 1)} M/s`;
   }
   bytesPerSecond /= 1024;
-  return `${bytesPerSecond.toFixed(2)} GB/s`;
+  return `${bytesPerSecond.toFixed(bytesPerSecond >= 100 ? 0 : 1)} G/s`;
 }
 
 export function formatTime(time?: string): string {

@@ -63,6 +63,8 @@ export interface HostStatusResult {
   cpu: number;
   disk: number;
   mem: number;
+  mem_total: string;
+  mem_used: string;
   rx: number;
   tx: number;
 }
