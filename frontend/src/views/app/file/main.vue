@@ -200,6 +200,7 @@
     <rename-drawer ref="renameDrawerRef" @ok="reload" />
     <property-drawer ref="propertyDrawerRef" />
     <delete-file-modal ref="deleteFileModalRef" @ok="reload" />
+    <upload-files-drawer ref="uploadFilesDrawerRef" @ok="reload" />
   </div>
 </template>
 
@@ -230,6 +231,7 @@
   import OwnerDrawer from '@/components/file/owner-drawer/index.vue';
   import RenameDrawer from '@/components/file/rename-drawer/index.vue';
   import PropertyDrawer from '@/components/file/property-drawer/index.vue';
+  import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
   import FileTree from './components/file-tree/index.vue';
   import useFileStore from './store/file-store';
   import { FileItem } from './types/file-item';
@@ -245,6 +247,7 @@
   const renameDrawerRef = ref<InstanceType<typeof RenameDrawer>>();
   const propertyDrawerRef = ref<InstanceType<typeof PropertyDrawer>>();
   const deleteFileModalRef = ref<InstanceType<typeof DeleteFileModal>>();
+  const uploadFilesDrawerRef = ref<InstanceType<typeof UploadFilesDrawer>>();
   const store = useFileStore();
   const { current, tree, pasteVisible, selected } = storeToRefs(store);
 
@@ -367,7 +370,10 @@
   };
 
   const handleUpload = () => {
-    console.log('upload');
+    uploadFilesDrawerRef.value?.show();
+    uploadFilesDrawerRef.value?.setData({
+      directory: store.pwd,
+    });
   };
   const handleTerminal = () => {
     console.log('terminal');
