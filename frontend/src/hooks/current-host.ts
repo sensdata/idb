@@ -7,7 +7,7 @@ export default function usetCurrentHost() {
   const router = useRouter();
   const hostStore = useHostStore();
   const currentHostId = computed(() => {
-    return +(route.query.id || hostStore.currentId || '') || undefined;
+    return +(route?.query?.id || hostStore.currentId || '') || undefined;
   });
   if (currentHostId.value !== hostStore.currentId) {
     hostStore.setCurrentId(currentHostId.value);
@@ -19,7 +19,7 @@ export default function usetCurrentHost() {
       if (redirect) {
         router.replace({
           query: {
-            ...route.query,
+            ...route?.query,
             id,
           },
         });
