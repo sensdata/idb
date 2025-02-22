@@ -13,7 +13,7 @@ export default function useLocale() {
     }
     i18.locale.value = value;
     localStorage.setItem('idb-lang', value);
-    Message.success(i18.t('navbar.action.locale'));
+    Message.success(i18.t('locale.switchLocale'));
   };
   return {
     currentLocale,

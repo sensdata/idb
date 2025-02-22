@@ -18,8 +18,7 @@ const routerLocales: LocaleModules = import.meta.glob('../router/**/zh-CN.ts', {
 });
 
 export default {
-  'navbar.docs': '文档中心',
-  'navbar.action.locale': '切换为中文',
+  'locale.switchLocale': '切换为中文',
   ...localeMessageBox,
   ...Object.values({
     ...componentLocales,

@@ -82,7 +82,7 @@
   import { useStorage } from '@vueuse/core';
   import { useUserStore } from '@/store';
   import useLoading from '@/hooks/loading';
-  import type { LoginData } from '@/api/user';
+  import type { LoginDataDo } from '@/api/user';
   import { DEFAULT_ROUTE_NAME } from '@/router/constants';
 
   function serialize(str: string): string {
@@ -126,7 +126,7 @@
     if (!errors) {
       setLoading(true);
       try {
-        await userStore.login(values as LoginData);
+        await userStore.login(values as LoginDataDo);
         const { redirect, ...othersQuery } = router.currentRoute.value.query;
         router.push({
           name: (redirect as string) || DEFAULT_ROUTE_NAME,

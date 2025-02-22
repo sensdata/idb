@@ -1,7 +1,6 @@
 export default {
   'menu.dashboard': 'Dashboard',
   'menu.profile': 'Profile',
-  'menu.faq': 'FAQ',
   'menu.manage.host': 'Host Management',
   'menu.manage.settings': 'Panel Settings',
   'menu.app.sysinfo': 'System Info',

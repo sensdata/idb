@@ -1,7 +1,7 @@
 import { BaseEntity } from '@/types/global';
 import { HostGroupEntity } from './Group';
 
-export interface HostStatusVo {
+export interface HostStatusDo {
   cpu: number;
   disk: number;
   mem: number;
@@ -11,7 +11,7 @@ export interface HostStatusVo {
   tx: number;
 }
 
-export interface HostEntity extends BaseEntity, HostStatusVo {
+export interface HostEntity extends BaseEntity, HostStatusDo {
   created_at: number;
 
   group: HostGroupEntity;
