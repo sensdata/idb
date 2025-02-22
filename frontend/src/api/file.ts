@@ -20,6 +20,21 @@ export function getFileListApi(params?: FileListApiParams) {
     });
 }
 
+export interface SearchFileListApiParams {
+  path: string;
+  search?: string;
+  show_hidden?: boolean;
+  dir?: boolean;
+  page: number;
+  page_size: number;
+}
+export function searchFileListApi(params: SearchFileListApiParams) {
+  return request.get<ApiListResult<FileInfoEntity>>(
+    'files/{host}/search',
+    params
+  );
+}
+
 export function getFileDetailApi(data: { path: string }) {
   return request.get<FileInfoEntity>('files/{host}/detail', data);
 }

@@ -15,7 +15,10 @@
       <a-form-item field="user" :label="$t('components.file.ownerDrawer.user')">
         <a-input v-model="formState.user" class="w-60" />
       </a-form-item>
-      <a-form-item field="group" :label="$t('components.file.ownerDrawer.group')">
+      <a-form-item
+        field="group"
+        :label="$t('components.file.ownerDrawer.group')"
+      >
         <a-input v-model="formState.group" class="w-60" />
       </a-form-item>
       <a-form-item field="sub" label=" ">
@@ -48,8 +51,14 @@
   });
 
   const rules = {
-    user: { required: true, message: t('components.file.ownerDrawer.userRequired') },
-    group: { required: true, message: t('components.file.ownerDrawer.groupRequired') },
+    user: {
+      required: true,
+      message: t('components.file.ownerDrawer.userRequired'),
+    },
+    group: {
+      required: true,
+      message: t('components.file.ownerDrawer.groupRequired'),
+    },
   };
 
   const visible = ref(false);

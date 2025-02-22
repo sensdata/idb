@@ -14,11 +14,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { FileItem } from '../../types/file-item';
+  import { FileTreeItem } from './type';
   import ItemRender from './item-render.vue';
 
   const props = defineProps<{
-    items: FileItem[];
+    items: FileTreeItem[];
     level: number;
   }>();
 </script>

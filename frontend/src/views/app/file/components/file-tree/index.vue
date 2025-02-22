@@ -6,14 +6,14 @@
 
 <script lang="ts" setup>
   import { provide, ref, watch } from 'vue';
-  import { FileItem } from '../../types/file-item';
   import ListRender from './list-render.vue';
+  import { FileTreeItem } from './type';
 
   const props = defineProps<{
-    items: FileItem[];
-    selected?: FileItem | null;
-    selectedChange: (item: FileItem) => void;
-    openChange: (item: FileItem, open: boolean) => void;
+    items: FileTreeItem[];
+    selected?: FileTreeItem | null;
+    selectedChange: (item: FileTreeItem) => void;
+    openChange: (item: FileTreeItem, open: boolean) => void;
   }>();
 
   const selected = ref(props.selected);

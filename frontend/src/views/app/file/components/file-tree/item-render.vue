@@ -44,16 +44,16 @@
   import RightIcon from '@/assets/icons/direction-right.svg';
   import ListRender from './list-render.vue';
   import IconRender from './icon-render';
-  import { FileItem } from '../../types/file-item';
+  import { FileTreeItem } from './type';
 
   const props = defineProps<{
-    item: FileItem;
+    item: FileTreeItem;
     level: number;
   }>();
-  const selected = inject<Ref<FileItem | undefined | null>>('selected')!;
-  const selectedChange = inject<(item: FileItem) => void>('selectedChange');
+  const selected = inject<Ref<FileTreeItem | undefined | null>>('selected')!;
+  const selectedChange = inject<(item: FileTreeItem) => void>('selectedChange');
   const openChange =
-    inject<(item: FileItem, open: boolean) => void>('openChange');
+    inject<(item: FileTreeItem, open: boolean) => void>('openChange');
 
   function handleToggle() {
     openChange?.(props.item, !props.item.open);

@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
-import { getFileDetailApi, getFileListApi } from '@/api/file';
+import { getFileDetailApi, searchFileListApi } from '@/api/file';
+import { SimpleFileInfoEntity } from '@/entity/FileInfo';
 import { FileItem } from '../types/file-item';
+import { FileTreeItem } from '../components/file-tree/type';
 
 const useFileStore = defineStore('file-manage', {
   state: () => ({
-    current: null as FileItem | null,
-    tree: [] as FileItem[],
+    current: null as SimpleFileInfoEntity | null,
+    tree: [] as FileTreeItem[],
     addressItems: [] as FileItem[],
     showHidden: false,
     selected: [] as FileItem[],
@@ -21,19 +23,21 @@ const useFileStore = defineStore('file-manage', {
   },
   actions: {
     initTree() {
-      getFileListApi({
+      searchFileListApi({
         page: 1,
         page_size: 100,
         show_hidden: this.$state.showHidden,
+        dir: true,
+        path: this.pwd,
       }).then((res) => {
         this.$state.tree = res.items;
       });
     },
     getItemByPath(path: string) {
       function findItemByPath(
-        tree: FileItem[],
+        tree: FileTreeItem[],
         targetPath: string
-      ): FileItem | null {
+      ): FileTreeItem | null {
         for (const node of tree) {
           if (node.path === targetPath) {
             return node;
@@ -49,11 +53,11 @@ const useFileStore = defineStore('file-manage', {
       }
       return findItemByPath(this.$state.tree, path);
     },
-    getParent(item: FileItem) {
+    getParent(item: FileTreeItem) {
       function findParentByPath(
-        tree: FileItem[],
+        tree: FileTreeItem[],
         targetPath: string
-      ): FileItem | null {
+      ): FileTreeItem | null {
         for (const node of tree) {
           // 跳过不匹配的前缀项，优化性能
           if (!targetPath.startsWith(node.path)) {
@@ -79,25 +83,26 @@ const useFileStore = defineStore('file-manage', {
       }
       return findParentByPath(this.$state.tree, item.path);
     },
-    async loadTreeChildren(treeItem: FileItem) {
+    async loadTreeChildren(treeItem: FileTreeItem) {
       treeItem.loading = true;
-      const data = await getFileListApi({
+      const data = await searchFileListApi({
         page: 1,
         page_size: 100,
         show_hidden: this.$state.showHidden,
         path: treeItem.path,
+        dir: true,
       });
-      treeItem.items = data.items;
+      treeItem.items = data.items || [];
       Object.assign(treeItem, { open: true });
       Object.assign(treeItem, { loading: false });
       this.$state.tree = [...this.$state.tree];
     },
-    handleTreeItemSelect(treeItem: FileItem) {
+    handleTreeItemSelect(treeItem: FileTreeItem) {
       if (this.$state.current?.path !== treeItem?.path) {
         this.$state.current = treeItem;
       }
     },
-    handleTreeItemOpenChange(treeItem: FileItem, open: boolean) {
+    handleTreeItemOpenChange(treeItem: FileTreeItem, open: boolean) {
       if (!treeItem.is_dir) {
         return;
       }
