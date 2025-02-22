@@ -69,6 +69,7 @@
   <host-create ref="formRef" @ok="reload"></host-create>
   <host-edit ref="editRef" @ok="reload" />
   <ssh-terminal ref="termRef" />
+  <ssh-form ref="sshFormRef" @ok="reload" />
 </template>
 
 <script lang="ts" setup>
@@ -91,6 +92,7 @@
   import HostCreate from './components/create.vue';
   import SshTerminal from './components/ssh-terminal.vue';
   import HostEdit from './components/edit.vue';
+  import SshForm from './components/ssh-form.vue';
 
   interface HostItem extends HostEntity {
     statusReady: boolean;
@@ -100,6 +102,7 @@
   const router = useRouter();
   const termRef = ref<InstanceType<typeof SshTerminal>>();
   const editRef = ref<InstanceType<typeof HostEdit>>();
+  const sshFormRef = ref<InstanceType<typeof SshForm>>();
 
   const columns = [
     {
@@ -174,6 +177,15 @@
           form?.reset();
           form?.loadOptions();
           form?.setData(record);
+          form?.show();
+        },
+      },
+      {
+        text: t('manage.host.list.operation.updateSSH'),
+        click: () => {
+          const form = sshFormRef.value;
+          form?.reset();
+          form?.load(record.id);
           form?.show();
         },
       },

@@ -19,6 +19,7 @@ export default {
   'manage.host.list.operation.sshTerminal': 'SSH Terminal',
   'manage.host.list.operation.restart': 'Restart',
   'manage.host.list.operation.delete': 'Delete',
+  'manage.host.list.operation.updateSSH': 'SSH Config',
   'manage.host.list.restart.confirm':
     'Are you sure to restart the selected host?',
   'manage.host.list.restart.success': 'Restart successfully',
@@ -77,4 +78,7 @@ export default {
   'manage.host.group.form.name.required': 'Please enter group name',
   'manage.host.group.form.save.success': 'Group added successfully',
   'manage.host.group.form.update.success': 'Group updated successfully',
+
+  'manage.host.ssh.form.title': 'SSH Configuration',
+  'manage.host.form.load.failed': 'Failed to load data',
 };

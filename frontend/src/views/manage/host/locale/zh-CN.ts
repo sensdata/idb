@@ -19,6 +19,7 @@ export default {
   'manage.host.list.operation.sshTerminal': 'SSH终端',
   'manage.host.list.operation.restart': '重启',
   'manage.host.list.operation.delete': '删除',
+  'manage.host.list.operation.updateSSH': 'SSH设置',
   'manage.host.list.restart.confirm': '确定重启选中的节点吗？',
   'manage.host.list.restart.success': '重启成功',
   'manage.host.list.delete.confirm': '确定删除选中的节点吗？',
@@ -75,4 +76,7 @@ export default {
   'manage.host.group.form.name.required': '请输入分组名称',
   'manage.host.group.form.save.success': '分组添加成功',
   'manage.host.group.form.update.success': '分组更新成功',
+
+  'manage.host.ssh.form.title': 'SSH设置',
+  'manage.host.form.load.failed': '加载数据失败',
 };

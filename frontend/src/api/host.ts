@@ -1,10 +1,14 @@
-import { HostEntity, HostStatusVo } from '@/entity/Host';
+import { HostEntity, HostStatusDo } from '@/entity/Host';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 import axios from 'axios';
 
 export function getHostListApi(params?: ApiListParams) {
   return request.get<ApiListResult<HostEntity>>('hosts', params);
+}
+
+export function getHostInfoApi(hostId: number) {
+  return request.get<HostEntity>(`hosts/${hostId}`);
 }
 
 export type CreateHostParams = Partial<HostEntity>;
@@ -24,6 +28,13 @@ export const updateHostApi = (
   params: UpdateHostParams
 ): Promise<CreateHostResult> => {
   return axios.put('/hosts', params);
+};
+
+export const updateHostSSHApi = (
+  hostId: number,
+  params: UpdateHostParams
+): Promise<CreateHostResult> => {
+  return axios.put(`/hosts/${hostId}/conf/ssh`, params);
 };
 
 export function deleteHostApi(id: number) {
@@ -61,7 +72,7 @@ export const installHostAgentApi = (
   return axios.post(`hosts/${hostId}/agent/install`);
 };
 
-export const getHostStatusApi = (hostId: number): Promise<HostStatusVo> => {
+export const getHostStatusApi = (hostId: number): Promise<HostStatusDo> => {
   return request.get(`hosts/${hostId}/status`);
 };
 
