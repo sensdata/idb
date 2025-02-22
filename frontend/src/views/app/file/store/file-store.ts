@@ -87,7 +87,7 @@ const useFileStore = defineStore('file-manage', {
       treeItem.loading = true;
       const data = await searchFileListApi({
         page: 1,
-        page_size: 100,
+        page_size: 500,
         show_hidden: this.$state.showHidden,
         path: treeItem.path,
         dir: true,
@@ -122,27 +122,21 @@ const useFileStore = defineStore('file-manage', {
         this.loadTreeChildren(treeItem);
       }
     },
-    handleAddressSearch(payload: { path: string; word?: string }) {
+    async handleAddressSearch(payload: { path: string; word?: string }) {
       if (!payload.word) {
         this.$state.addressItems = [];
         return;
       }
 
-      // todo
-      window.setTimeout(() => {
-        // this.$state.addressItems = [
-        //   {
-        //     name: payload.word + '-1',
-        //     path: payload.path + '/' + payload.word + '-1',
-        //     is_dir: true,
-        //   },
-        //   {
-        //     name: payload.word + '-2',
-        //     path: payload.path + '/' + payload.word + '-2',
-        //     is_dir: true,
-        //   },
-        // ] as any[];
-      }, 1000);
+      const data = await searchFileListApi({
+        page: 1,
+        page_size: 100,
+        show_hidden: this.$state.showHidden,
+        path: payload.path,
+        dir: true,
+        search: payload.word,
+      });
+      this.$state.addressItems = data.items || [];
     },
     handleOpen(item: FileItem) {
       const treeItem = this.getItemByPath(item.path);
@@ -169,6 +163,7 @@ const useFileStore = defineStore('file-manage', {
       if (item.is_dir) {
         this.handleOpen(item);
         this.$state.current = item;
+        this.$state.addressItems = [];
       }
     },
     handleBack() {

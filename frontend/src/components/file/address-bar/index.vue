@@ -17,6 +17,7 @@
       allow-clear
       @clear="handleClear"
       @input="handleInputValueChange"
+      @keydown.tab.prevent="handleTab"
       @press-enter="handleGo"
     >
       <template #prefix>
@@ -51,7 +52,7 @@
 <script lang="ts" setup>
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { debounce } from 'lodash';
-  import { computed, ref } from 'vue';
+  import { computed, ref, watch } from 'vue';
 
   const props = defineProps<{
     path: string;
@@ -81,12 +82,12 @@
 
   const value = ref('');
 
-  const handleInputValueChange = debounce(() => {
-    emit('search', {
-      path: props.path,
-      word: value.value,
-    });
-  }, 300);
+  const validOptions = computed(() => {
+    return (props.items || []).map((item) => ({
+      value: item.name,
+      label: item.name,
+    }));
+  });
 
   const handleClear = () => {
     value.value = '';
@@ -96,13 +97,6 @@
       word: '',
     });
   };
-
-  const validOptions = computed(() => {
-    return (props.items || []).map((item) => ({
-      value: item.name,
-      label: item.name,
-    }));
-  });
 
   const popupVisible = ref(false);
   const computedPopupVisible = computed(
@@ -136,6 +130,33 @@
     value.value = item.value;
     handleGo();
   }
+
+  const triggerByTab = ref(false);
+  const handleInputValueChange = debounce(() => {
+    triggerByTab.value = false;
+    emit('search', {
+      path: props.path,
+      word: value.value,
+    });
+  }, 300);
+  const handleTab = () => {
+    if (validOptions.value.length === 1) {
+      handleSelect(validOptions.value[0]);
+    } else {
+      triggerByTab.value = true;
+      emit('search', {
+        path: props.path,
+        word: value.value,
+      });
+    }
+  };
+
+  watch(validOptions, () => {
+    if (validOptions.value.length === 1 && triggerByTab.value) {
+      triggerByTab.value = false;
+      handleSelect(validOptions.value[0]);
+    }
+  });
 </script>
 
 <style scoped>
