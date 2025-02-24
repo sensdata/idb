@@ -38,7 +38,10 @@ func (s *GroupService) Create(req core.CreateGroup) (*core.GroupInfo, error) {
 	if err := copier.Copy(&group, &req); err != nil {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
 	}
-
+	//检查创建的名称是default，如果是则不允许
+	if req.GroupName == "default" {
+		return nil, errors.WithMessage(constant.ErrInternalServer, "can't create group with name default")
+	}
 	if err := GroupRepo.Create(&group); err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
@@ -50,6 +53,11 @@ func (s *GroupService) Create(req core.CreateGroup) (*core.GroupInfo, error) {
 }
 
 func (s *GroupService) Update(id uint, upMap map[string]interface{}) error {
+	// 检查更新的名称是否是default，如果则不允许
+	if upMap["group_name"] == "default" {
+		return errors.WithMessage(constant.ErrInternalServer, "can't update group with name default")
+	}
+
 	return GroupRepo.Update(id, upMap)
 }
 

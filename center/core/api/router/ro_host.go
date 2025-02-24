@@ -14,6 +14,9 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := entry.ApiGroup
 	{
 		hostRouter.GET("/groups", baseApi.ListHostGroup)                  // 获取设备组列表
+		hostRouter.POST("/groups", baseApi.CreateHostGroup)               // 创建设备组
+		hostRouter.PUT("/groups", baseApi.UpdateHostGroup)                // 更新设备组
+		hostRouter.DELETE("/groups", baseApi.DeleteHostGroup)             // 删除设备组
 		hostRouter.GET("", baseApi.ListHost)                              // 获取设备列表
 		hostRouter.POST("", baseApi.CreateHost)                           // 新增设备
 		hostRouter.PUT("", baseApi.UpdateHost)                            // 更新设备
