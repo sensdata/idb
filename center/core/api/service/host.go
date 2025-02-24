@@ -428,8 +428,9 @@ func (s *HostService) getAgentStatus(id uint) (*core.AgentStatus, error) {
 
 	// 查询安装状态
 	installed, err := conn.SSH.AgentInstalled(host)
-	if err != nil {
-		return &status, errors.WithMessage(constant.ErrSsh, err.Error())
+	// 没拿到安装状态可能是SSH配置错误，但是如果已经拿到agent连接状态，说明agent已经安装
+	if installed == "unknown" && status.Connected != "unknown" {
+		installed = "installed"
 	}
 	status.Status = installed
 
