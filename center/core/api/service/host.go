@@ -422,16 +422,14 @@ func (s *HostService) getAgentStatus(id uint) (*core.AgentStatus, error) {
 	// 查询连接状态
 	if conn.CENTER.IsAgentConnected(host) {
 		status.Connected = "online"
-	} else {
-		status.Connected = "offline"
+		status.Status = "installed"
+
+		return &status, nil
 	}
+	status.Connected = "offline"
 
 	// 查询安装状态
-	installed, err := conn.SSH.AgentInstalled(host)
-	// 没拿到安装状态可能是SSH配置错误，但是如果已经拿到agent连接状态，说明agent已经安装
-	if installed == "unknown" && status.Connected != "unknown" {
-		installed = "installed"
-	}
+	installed, _ := conn.SSH.AgentInstalled(host)
 	status.Status = installed
 
 	return &status, nil
