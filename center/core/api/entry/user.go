@@ -138,7 +138,7 @@ func (b *BaseApi) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := userService.ChangePassword(req.ID, req); err != nil {
+	if err := userService.ChangePassword(req); err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}

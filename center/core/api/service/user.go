@@ -17,7 +17,7 @@ type IUserService interface {
 	Create(req core.CreateUser) (*core.UserInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(ids []uint) error
-	ChangePassword(id uint, req core.ChangePassword) error
+	ChangePassword(req core.ChangePassword) error
 	Profile(userId uint) (*core.Profile, error)
 }
 
@@ -86,16 +86,25 @@ func (s *UserService) Delete(ids []uint) error {
 	return UserRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
-func (s *UserService) ChangePassword(id uint, req core.ChangePassword) error {
+func (s *UserService) ChangePassword(req core.ChangePassword) error {
 	//找用户
-	user, err := UserRepo.Get(UserRepo.WithByID(id))
+	user, err := UserRepo.Get(UserRepo.WithByID(req.ID))
 	if err != nil {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
-	passwordHash := utils.HashPassword(req.Password, user.Salt)
+	// 校验原密码
+	oldHash := utils.HashPassword(req.OldPassword, user.Salt)
+	if oldHash != user.Password {
+		return constant.ErrInvalidOldPassword
+	}
+
+	// 生成新的盐和密码
+	salt := utils.GenerateNonce(8)
+	passwordHash := utils.HashPassword(req.Password, salt)
 	upMap := make(map[string]interface{})
 	upMap["password"] = passwordHash
+	upMap["salt"] = salt
 
 	return UserRepo.Update(user.ID, upMap)
 }

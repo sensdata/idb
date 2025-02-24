@@ -36,6 +36,7 @@ type ValidUser struct {
 }
 
 type ChangePassword struct {
-	ID       uint   `json:"id"`
-	Password string `json:"password" validate:"required"`
+	ID          uint   `json:"id" validate:"required"`
+	OldPassword string `json:"old_password" validate:"required"`
+	Password    string `json:"password" validate:"required"`
 }

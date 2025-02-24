@@ -27,6 +27,7 @@ var (
 	ErrInvalidParams            = errors.New("InvalidParams")
 	ErrNotLogin                 = errors.New("NotLogin")
 	ErrPasswordExpired          = errors.New("PasswordExpired")
+	ErrInvalidOldPassword       = errors.New("InvalidOldPassword")
 	ErrNameIsExist              = errors.New("NameIsExist")
 	ErrInvalidAccountOrPassword = errors.New("InvalidAccountOrPassword")
 	ErrAuth                     = errors.New("ErrAuth")
