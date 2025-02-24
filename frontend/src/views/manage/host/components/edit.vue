@@ -39,11 +39,10 @@
   import { toRaw, reactive, ref, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
-  import { updateHostApi } from '@/api/host';
+  import { updateHostApi, getHostGroupListApi } from '@/api/host';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import type { HostEntity } from '@/entity/Host';
-  import { getHostGroupListApi } from '@/api/group';
   import GroupForm from './group-form.vue';
 
   const emit = defineEmits(['ok']);

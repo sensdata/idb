@@ -125,6 +125,7 @@
   import {
     CreateHostParams,
     createHostApi,
+    getHostGroupListApi,
     testHostSSHApi,
     testHostAgentApi,
     installHostAgentApi,
@@ -132,7 +133,6 @@
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
-  import { getHostGroupListApi } from '@/api/group';
   import FileSelector from '@/components/file/file-selector/index.vue';
   import GroupForm from './group-form.vue';
 

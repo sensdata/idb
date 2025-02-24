@@ -6,7 +6,7 @@ export default {
   'manage.host.list.column.name': '节点名称',
   'manage.host.list.column.addr': '主机地址',
   'manage.host.list.column.group_name': '分组',
-  'manage.host.list.column.ctrl_end': '受控端',
+  'manage.host.list.column.agent': '受控端',
   'manage.host.list.column.cpu': 'CPU',
   'manage.host.list.column.memory': '内存',
   'manage.host.list.column.disk': '存储',
@@ -24,6 +24,8 @@ export default {
   'manage.host.list.restart.success': '重启成功',
   'manage.host.list.delete.confirm': '确定删除选中的节点吗？',
   'manage.host.list.delete.success': '删除成功',
+  'manage.host.list.agent.online': '在线',
+  'manage.host.list.agent.offline': '离线',
 
   'manage.host.form.title.create': '添加节点',
   'manage.host.form.title.edit': '节点设置',

@@ -6,7 +6,7 @@ export default {
   'manage.host.list.column.name': 'Host Name',
   'manage.host.list.column.addr': 'Host Address',
   'manage.host.list.column.group_name': 'Group',
-  'manage.host.list.column.ctrl_end': 'Control End',
+  'manage.host.list.column.agent': 'Agent',
   'manage.host.list.column.cpu': 'CPU',
   'manage.host.list.column.memory': 'Memory',
   'manage.host.list.column.disk': 'Storage',
@@ -26,6 +26,8 @@ export default {
   'manage.host.list.delete.confirm':
     'Are you sure to delete the selected host?',
   'manage.host.list.delete.success': 'Delete successfully',
+  'manage.host.list.agent.online': 'Online',
+  'manage.host.list.agent.offline': 'Offline',
 
   'manage.host.form.title.create': 'Create Host',
   'manage.host.form.title.edit': 'Host Settings',

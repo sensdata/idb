@@ -9,6 +9,7 @@ export interface LoginDataDo {
 export interface LoginRes {
   token: string;
   name: string;
+  id: number; // todo: 缺少字段
 }
 export function loginApi(data: LoginDataDo) {
   return request.post<LoginRes>('auth/sessions', data);
@@ -23,8 +24,9 @@ export function getUserInfoApi() {
 }
 
 export function changePasswordApi(data: {
+  id: number;
   old_password: string;
-  new_password: string;
+  password: string;
 }) {
   return request.put('users/password', data);
 }

@@ -39,7 +39,7 @@
   import { Message } from '@arco-design/web-vue';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
-  import { createHostGroupApi, updateHostGroupApi } from '@/api/group';
+  import { createHostGroupApi, updateHostGroupApi } from '@/api/host';
 
   interface HostGroup {
     id: number;

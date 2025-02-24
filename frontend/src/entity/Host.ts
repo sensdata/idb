@@ -1,5 +1,10 @@
 import { BaseEntity } from '@/types/global';
-import { HostGroupEntity } from './Group';
+
+export interface HostGroupEntity extends BaseEntity {
+  id: number;
+  group_name: string;
+  created_at: number;
+}
 
 export interface HostStatusDo {
   cpu: number;
@@ -28,6 +33,8 @@ export interface HostEntity extends BaseEntity, HostStatusDo {
   agent_port: number;
   agent_mode: string;
   agent_key: string;
+
+  agent_status: string;
 
   // todo: 需要新增
   is_default?: boolean;

@@ -49,9 +49,11 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { changePasswordApi } from '@/api/user';
+  import { useUserStore } from '@/store';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
 
+  const userStore = useUserStore();
   const { t } = useI18n();
   const { visible, show } = useVisible();
   const { loading, showLoading, hideLoading } = useLoading();
@@ -94,8 +96,9 @@
       await formRef.value.validate();
       showLoading();
       await changePasswordApi({
+        id: userStore.id,
         old_password: model.old_password,
-        new_password: model.new_password,
+        password: model.new_password,
       });
       Message.success(t('components.changePassword.success'));
       done();

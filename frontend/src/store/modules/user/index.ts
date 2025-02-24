@@ -14,6 +14,7 @@ const useUserStore = defineStore('user', {
     name: undefined,
     avatar: undefined,
     role: '',
+    id: 0,
   }),
 
   getters: {
@@ -54,6 +55,7 @@ const useUserStore = defineStore('user', {
       try {
         const data = await userLogin(loginForm);
         this.setInfo({
+          id: data.id,
           name: data.name,
         });
         setToken(data.token);

@@ -13,6 +13,14 @@
         {{ $t('manage.host.list.action.add') }}
       </a-button>
     </template>
+    <template #agent="{ record }: { record: HostItem }">
+      <div v-if="record.agent_status === 'online'" class="color-success">{{
+        $t('manage.host.list.agent.online')
+      }}</div>
+      <div v-else-if="record.agent_status === 'offline'" class="color-danger">{{
+        $t('manage.host.list.agent.offline')
+      }}</div>
+    </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
       <div>
@@ -122,10 +130,10 @@
       },
     },
     {
-      dataIndex: 'ctrl_end',
-      title: t('manage.host.list.column.ctrl_end'),
+      dataIndex: 'agent_status',
+      title: t('manage.host.list.column.agent'),
       width: 120,
-      // todo
+      slotName: 'agent',
     },
     {
       dataIndex: 'cpu',
