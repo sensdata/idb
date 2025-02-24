@@ -107,6 +107,43 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
+	var hostsInfos []core.HostInfo
+	for _, host := range hosts {
+		//找组
+		var group core.GroupInfo
+		g, err := HostGroupRepo.Get(HostGroupRepo.WithByID(host.GroupID))
+		if err != nil {
+			group = core.GroupInfo{}
+		} else {
+			group = core.GroupInfo{ID: g.ID, GroupName: g.GroupName, CreatedAt: g.CreatedAt}
+		}
+
+		// 查询状态
+		status, err := s.getAgentStatus(host.ID)
+
+		hostsInfos = append(
+			hostsInfos,
+			core.HostInfo{
+				ID:          host.ID,
+				CreatedAt:   host.CreatedAt,
+				GroupInfo:   group,
+				Name:        host.Name,
+				Addr:        host.Addr,
+				Port:        host.Port,
+				User:        host.User,
+				AuthMode:    host.AuthMode,
+				Password:    host.Password,
+				PrivateKey:  host.PrivateKey,
+				PassPhrase:  host.PassPhrase,
+				AgentAddr:   host.AgentAddr,
+				AgentPort:   host.AgentPort,
+				AgentKey:    host.AgentKey,
+				AgentMode:   host.AgentMode,
+				AgentStatus: *status,
+			},
+		)
+	}
+
 	return &core.PageResult{Total: total, Items: hosts}, nil
 }
 
@@ -191,22 +228,26 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 		return nil, constant.ErrInternalServer
 	}
 
+	// 查询状态
+	status, err := s.getAgentStatus(host.ID)
+
 	return &core.HostInfo{
-		ID:         host.ID,
-		CreatedAt:  host.CreatedAt,
-		GroupInfo:  core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
-		Name:       host.Name,
-		Addr:       host.Addr,
-		Port:       host.Port,
-		User:       host.User,
-		AuthMode:   host.AuthMode,
-		Password:   host.Password,
-		PrivateKey: host.PrivateKey,
-		PassPhrase: host.PassPhrase,
-		AgentAddr:  host.AgentAddr,
-		AgentPort:  host.AgentPort,
-		AgentKey:   host.AgentKey,
-		AgentMode:  host.AgentMode,
+		ID:          host.ID,
+		CreatedAt:   host.CreatedAt,
+		GroupInfo:   core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		Name:        host.Name,
+		Addr:        host.Addr,
+		Port:        host.Port,
+		User:        host.User,
+		AuthMode:    host.AuthMode,
+		Password:    host.Password,
+		PrivateKey:  host.PrivateKey,
+		PassPhrase:  host.PassPhrase,
+		AgentAddr:   host.AgentAddr,
+		AgentPort:   host.AgentPort,
+		AgentKey:    host.AgentKey,
+		AgentMode:   host.AgentMode,
+		AgentStatus: *status,
 	}, nil
 }
 
@@ -363,16 +404,19 @@ func (s *HostService) UninstallAgent(id uint) (*core.TaskInfo, error) {
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
+	return s.getAgentStatus(id)
+}
+
+func (s *HostService) getAgentStatus(id uint) (*core.AgentStatus, error) {
+	status := core.AgentStatus{
+		Status:    "unknown",
+		Connected: "unknown",
+	}
+
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
-		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
-	}
-
-	// 查询安装状态
-	status, err := conn.SSH.AgentStatus(host)
-	if err != nil {
-		return nil, errors.WithMessage(constant.ErrSsh, err.Error())
+		return &status, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
 	// 查询连接状态
@@ -382,7 +426,14 @@ func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
 		status.Connected = "offline"
 	}
 
-	return status, nil
+	// 查询安装状态
+	installed, err := conn.SSH.AgentInstalled(host)
+	if err != nil {
+		return &status, errors.WithMessage(constant.ErrSsh, err.Error())
+	}
+	status.Status = installed
+
+	return &status, nil
 }
 
 func (s *HostService) RestartAgent(id uint) error {

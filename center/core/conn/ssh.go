@@ -14,7 +14,6 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/logstream/pkg/writer"
-	core "github.com/sensdata/idb/core/model"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -30,7 +29,7 @@ type ISSHService interface {
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host, taskId string) error
 	UninstallAgent(host model.Host, taskId string) error
-	AgentStatus(host model.Host) (*core.AgentStatus, error)
+	AgentInstalled(host model.Host) (string, error)
 	RestartAgent(host model.Host) error
 }
 
@@ -314,11 +313,13 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	return nil
 }
 
-func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
+func (s *SSHService) AgentInstalled(host model.Host) (string, error) {
+	installed := "unknown"
+
 	// 1. 检查并确保 SSH 连接存在
 	client, err := s.checkClient(host)
 	if err != nil {
-		return nil, err
+		return installed, err
 	}
 
 	// 2. 检查目标机器是否已安装 agent
@@ -332,13 +333,13 @@ func (s *SSHService) AgentStatus(host model.Host) (*core.AgentStatus, error) {
 	output, err := executeCommand(client, checkCmd)
 	if err != nil {
 		global.LOG.Error("Failed to check agent installation status on host %s: %v", host.Addr, err)
-		return nil, fmt.Errorf("failed to check agent installation status: %v", err)
+		return installed, fmt.Errorf("failed to check agent installation status: %v", err)
 	}
 
-	status := strings.TrimSpace(output)
-	global.LOG.Info("Agent %s in host %s", status, host.Addr)
+	installed = strings.TrimSpace(output)
+	global.LOG.Info("Agent %s in host %s", installed, host.Addr)
 
-	return &core.AgentStatus{Status: status}, nil
+	return installed, nil
 }
 
 func (s *SSHService) RestartAgent(host model.Host) error {
