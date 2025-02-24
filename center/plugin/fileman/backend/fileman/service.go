@@ -354,44 +354,6 @@ func (s *FileMan) SearchFile(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file defail
-// @Description Get detail of a file
-// @Accept json
-// @Produce json
-// @Param host path uint true "Host ID"
-// @Param path query string true "Directory path (default is root directory)"
-// @Success 200 {array} model.FileInfo
-// @Router /files/{host}/detail [get]
-func (s *FileMan) GetFileDetail(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	path := c.Query("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid path", err)
-		return
-	}
-
-	req := model.FileOption{
-		FileOption: files.FileOption{
-			Path:   path,
-			Expand: false,
-		},
-	}
-
-	file, err := s.getFileList(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
-		return
-	}
-
-	helper.SuccessWithData(c, file)
-}
-
-// @Tags File
 // @Summary Create file or directory
 // @Description Create a new file or directory
 // @Accept json
