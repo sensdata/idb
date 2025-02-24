@@ -46,5 +46,5 @@ func (s *AuthService) Login(c *gin.Context, info model.Login) (*model.LoginResul
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
-	return &model.LoginResult{Name: user.Name, Token: token}, nil
+	return &model.LoginResult{ID: int(user.ID), Name: user.Name, Token: token}, nil
 }
