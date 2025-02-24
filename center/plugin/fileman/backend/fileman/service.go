@@ -114,7 +114,7 @@ func (s *FileMan) Initialize() {
 			{Method: "DELETE", Path: "/:host/batch", Handler: s.BatchDeleteFile},
 			{Method: "POST", Path: "/:host/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/:host/decompress", Handler: s.DeCompressFile},
-			{Method: "GET", Path: "/:host/content", Handler: s.GetContent},
+			{Method: "GET", Path: "/:host/detail", Handler: s.GetDetail},
 			{Method: "PUT", Path: "/:host/content", Handler: s.SaveContent},
 			{Method: "POST", Path: "/:host/upload", Handler: s.Upload},
 			{Method: "GET", Path: "/:host/download", Handler: s.Download},
@@ -512,15 +512,16 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file content
+// @Summary Get file detail
 // @Description Get the content of a file
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
+// @Param expand query bool false "Get file content or sub-files"
 // @Success 200 {object} model.FileInfo
-// @Router /files/{host}/content [get]
-func (s *FileMan) GetContent(c *gin.Context) {
+// @Router /files/{host}/detail [get]
+func (s *FileMan) GetDetail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -533,8 +534,11 @@ func (s *FileMan) GetContent(c *gin.Context) {
 		return
 	}
 
+	expand, _ := strconv.ParseBool(c.Query("expand"))
+
 	req := model.FileContentReq{
-		Path: path,
+		Path:   path,
+		Expand: expand,
 	}
 
 	info, err := s.getContent(hostID, req)

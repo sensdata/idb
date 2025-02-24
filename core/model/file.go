@@ -11,7 +11,8 @@ type FileOption struct {
 }
 
 type FileContentReq struct {
-	Path string `json:"path" validate:"required"`
+	Path   string `json:"path" validate:"required"`
+	Expand bool   `json:"expand"`
 }
 
 type FileCreate struct {

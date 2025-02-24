@@ -245,7 +245,7 @@ func (f *FileService) DeCompress(c model.FileDeCompress) error {
 func (f *FileService) GetContent(op model.FileContentReq) (*model.FileInfo, error) {
 	info, err := files.NewFileInfo(files.FileOption{
 		Path:   op.Path,
-		Expand: true,
+		Expand: op.Expand,
 	})
 	if err != nil {
 		return &model.FileInfo{}, err
