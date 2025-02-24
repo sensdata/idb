@@ -22,6 +22,9 @@ type HostService struct{}
 
 type IHostService interface {
 	ListGroup(req core.PageInfo) (*core.PageResult, error)
+	CreateGroup(req core.CreateGroup) (*core.GroupInfo, error)
+	UpdateGroup(id uint, upMap map[string]interface{}) error
+	DeleteGroup(ids []uint) error
 	List(req core.ListHost) (*core.PageResult, error)
 	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
@@ -50,6 +53,45 @@ func (s *HostService) ListGroup(req core.PageInfo) (*core.PageResult, error) {
 	}
 
 	return &core.PageResult{Total: total, Items: groups}, nil
+}
+
+func (s *HostService) CreateGroup(req core.CreateGroup) (*core.GroupInfo, error) {
+	var group model.HostGroup
+	if err := copier.Copy(&group, &req); err != nil {
+		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
+	}
+	//检查创建的名称是default，如果是则不允许
+	if req.GroupName == "default" {
+		return nil, errors.WithMessage(constant.ErrInternalServer, "can't create group with name default")
+	}
+	if err := HostGroupRepo.Create(&group); err != nil {
+		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
+	}
+	return &core.GroupInfo{ID: group.ID, GroupName: group.GroupName, CreatedAt: group.CreatedAt}, nil
+}
+
+func (s *HostService) UpdateGroup(id uint, upMap map[string]interface{}) error {
+	// 检查更新的名称是否是default，如果则不允许
+	if upMap["group_name"] == "default" {
+		return errors.WithMessage(constant.ErrInternalServer, "can't update group with name default")
+	}
+
+	return HostGroupRepo.Update(id, upMap)
+}
+
+func (s *HostService) DeleteGroup(ids []uint) error {
+	defaultGroup, err := HostGroupRepo.Get(HostGroupRepo.WithByName("default"))
+	if err != nil {
+		return errors.WithMessage(constant.ErrInternalServer, err.Error())
+	}
+	//判断如果ids中包含 defaultGroup.ID
+	for _, id := range ids {
+		if id == defaultGroup.ID {
+			return errors.WithMessage(constant.ErrInternalServer, "can't delete default group")
+		}
+	}
+
+	return HostGroupRepo.Delete(CommonRepo.WithIdsIn(ids))
 }
 
 // List host
@@ -114,6 +156,11 @@ func (s *HostService) Update(id uint, upMap map[string]interface{}) error {
 }
 
 func (s *HostService) Delete(id uint) error {
+	// host 1不可以删除
+	if id == 1 {
+		return errors.WithMessage(constant.ErrInternalServer, "can't delete default host")
+	}
+
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {

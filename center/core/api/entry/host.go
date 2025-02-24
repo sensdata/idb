@@ -32,6 +32,72 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Create host group
+// @Description Create host group
+// @Accept json
+// @Produce json
+// @Param request body model.CreateGroup true "request"
+// @Success 200 {object} model.GroupInfo
+// @Router /hosts/groups [post]
+func (b *BaseApi) CreateHostGroup(c *gin.Context) {
+	var req model.CreateGroup
+	if err := CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := hostService.CreateGroup(req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}
+
+// @Tags Host
+// @Summary Update host group
+// @Description Update host group
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateGroup true "group edit details"
+// @Success 200
+// @Router /hosts/groups [put]
+func (b *BaseApi) UpdateHostGroup(c *gin.Context) {
+	var req model.UpdateGroup
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	upMap := make(map[string]interface{})
+	upMap["group_name"] = req.GroupName
+	if err := hostService.UpdateGroup(req.ID, upMap); err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
+// @Summary Delete host group
+// @Description Delete host group
+// @Accept json
+// @Produce json
+// @Param id query int true "Group ID"
+// @Success 200
+// @Router /hosts/groups [delete]
+func (b *BaseApi) DeleteHostGroup(c *gin.Context) {
+	groupID, err := strconv.ParseUint(c.Query("id"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid group ID", err)
+		return
+	}
+	if err := hostService.DeleteGroup([]uint{uint(groupID)}); err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
 // @Summary get host list
 // @Description get host list
 // @Accept json
