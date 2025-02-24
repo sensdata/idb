@@ -102,7 +102,7 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		opts = append(opts, HostRepo.WithByName(req.Keyword))
 	}
 
-	total, hosts, err := HostRepo.Page(req.Page, req.PageSize, opts...)
+	_, hosts, err := HostRepo.Page(req.Page, req.PageSize, opts...)
 	if err != nil {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
@@ -144,7 +144,7 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		)
 	}
 
-	return &core.PageResult{Total: total, Items: hosts}, nil
+	return &core.PageResult{Total: int64(len(hostsInfos)), Items: hostsInfos}, nil
 }
 
 func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
