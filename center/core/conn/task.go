@@ -26,17 +26,16 @@ func NewTaskService() *TaskService {
 	return &TaskService{}
 }
 
-var taskService = NewTaskService()
-
 func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	ls := global.LogStream
 	taskID := c.Param("taskId")
 	if taskID == "" {
-		return errors.New("Invalid task ID")
+		return errors.New("invalid task ID")
 	}
 
 	reader, err := ls.GetReader(taskID)
 	if err != nil {
+		global.LOG.Error("get reader failed: %v", err)
 		return fmt.Errorf("get reader failed: %w", err)
 	}
 
@@ -45,6 +44,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 
 	logCh, err := reader.Follow()
 	if err != nil {
+		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
 	}
 

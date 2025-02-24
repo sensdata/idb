@@ -13,10 +13,10 @@ import (
 // @Description Connect to task log stream through Server-Sent Events
 // @Accept json
 // @Produce text/event-stream
-// @Param taskId path string true "Task ID"
+// @Param tid path string true "Task ID"
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
-// @Router /tasks/{taskId}/logs/stream [get]
+// @Router /tasks/{taskId}/logs [get]
 func (b *BaseApi) HandleTaskLogStream(c *gin.Context) {
 	// 设置 SSE 必要的 headers
 	c.Header("Content-Type", "text/event-stream")
