@@ -58,7 +58,6 @@ type FileCompress struct {
 
 type FileDeCompress struct {
 	Dst  string `json:"dst"  validate:"required"`
-	Type string `json:"type"  validate:"required"`
 	Path string `json:"path" validate:"required"`
 }
 

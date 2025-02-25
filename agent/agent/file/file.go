@@ -238,8 +238,29 @@ func (f *FileService) Compress(c model.FileCompress) error {
 }
 
 func (f *FileService) DeCompress(c model.FileDeCompress) error {
+	var dcType files.CompressType
+	ext := strings.ToLower(filepath.Ext(c.Path))
+	switch ext {
+	case ".zip":
+		dcType = files.Zip
+	case ".gz":
+		if strings.HasSuffix(c.Path, ".tar.gz") {
+			dcType = files.TarGz
+		} else {
+			dcType = files.Gz
+		}
+	case ".bz2":
+		dcType = files.Bz2
+	case ".tar":
+		dcType = files.Tar
+	case ".xz":
+		dcType = files.Xz
+	default:
+		return fmt.Errorf("unsupported compress type: %s", ext)
+	}
+
 	fo := files.NewFileOp()
-	return fo.Decompress(c.Path, c.Dst, files.CompressType(c.Type))
+	return fo.Decompress(c.Path, c.Dst, dcType)
 }
 
 func (f *FileService) GetContent(op model.FileContentReq) (*model.FileInfo, error) {
