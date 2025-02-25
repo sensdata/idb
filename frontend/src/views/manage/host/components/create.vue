@@ -115,6 +115,7 @@
     </a-form>
   </a-modal>
   <group-form ref="groupFormRef" @ok="handleGroupFormOk" />
+  <install-log ref="installLogRef" />
 </template>
 
 <script lang="ts" setup>
@@ -130,11 +131,13 @@
     testHostAgentApi,
     installHostAgentApi,
   } from '@/api/host';
+  import { API_BASE_URL } from '@/helper/api-helper';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
   import FileSelector from '@/components/file/file-selector/index.vue';
   import GroupForm from './group-form.vue';
+  import InstallLog from './install-log.vue';
 
   interface TestResult {
     success: boolean;
@@ -290,24 +293,70 @@
     }
   };
 
+  const installLogRef = ref<InstanceType<typeof InstallLog>>();
+
+  const logInstallMsgs = (taskId: string) => {
+    const url = `${API_BASE_URL}/tasks/${taskId}/logs`;
+
+    const logComponent = installLogRef.value;
+    if (!logComponent) {
+      return;
+    }
+
+    logComponent.reset();
+    logComponent.show();
+
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      try {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          data = {
+            message: event.data,
+            level: 'info',
+            time: new Date().getTime(),
+          };
+        }
+
+        if (data.message) {
+          const level = data.level?.toLowerCase() || 'info';
+          logComponent.addLog(data.message, level as any);
+        }
+
+        if (data.status === 'completed') {
+          eventSource.close();
+          logComponent.setStatus('completed');
+          Message.success(t('manage.host.agent.installSuccess'));
+        } else if (data.status === 'failed') {
+          eventSource.close();
+          logComponent.setStatus('failed');
+          Message.error(t('manage.host.agent.installFailed'));
+        }
+      } catch (err) {
+        console.error('Error parsing log message:', err);
+        logComponent.addLog(event.data, 'error');
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      logComponent.setStatus('failed');
+      Message.error(t('manage.host.agent.installFailed'));
+    };
+  };
+
   const installAgent = async (hostId: number) => {
-    let loadingInstance: any = null;
     try {
-      loadingInstance = Message.loading({
-        content: t('manage.host.agent.installing'),
-        duration: 0,
-      });
       const result = await installHostAgentApi(hostId);
-      loadingInstance.close();
-      if (result.success) {
-        Message.success(t('manage.host.agent.installSuccess'));
+      if (result.task_id) {
+        logInstallMsgs(result.task_id);
       } else {
         Message.error(t('manage.host.agent.installFailed'));
       }
     } catch (error) {
-      if (loadingInstance) {
-        loadingInstance.close();
-      }
       Message.error(t('manage.host.agent.installFailed'));
       console.error('Failed to install agent:', error);
     }
@@ -330,15 +379,14 @@
     emit('success');
   };
 
-  const handleBeforeOk = async (done: any) => {
+  const handleBeforeOk = async () => {
     if (await validate()) {
       try {
         showLoading();
         const data = getData();
         const res = await createHostApi(data as CreateHostParams);
-        await checkAgentInstall(res.id);
-        done();
         Message.success(t('manage.host.form.save.success'));
+        checkAgentInstall(res.id);
         emit('ok');
         return true;
       } catch (err: any) {

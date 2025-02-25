@@ -78,8 +78,7 @@ export interface TestAgentResult {
 }
 
 export interface InstallAgentResult {
-  success: boolean;
-  message?: string;
+  task_id: string;
 }
 
 export const testHostAgentApi = (hostId: number): Promise<TestAgentResult> => {
