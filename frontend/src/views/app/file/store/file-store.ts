@@ -162,6 +162,7 @@ const useFileStore = defineStore('file-manage', {
     async handleGoto(path: string) {
       const item = await getFileDetailApi({
         path,
+        expand: false,
       });
       if (!item) {
         return;

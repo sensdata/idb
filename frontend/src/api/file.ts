@@ -35,7 +35,7 @@ export function searchFileListApi(params: SearchFileListApiParams) {
   );
 }
 
-export function getFileDetailApi(data: { path: string }) {
+export function getFileDetailApi(data: { path: string; expand?: boolean }) {
   return request.get<FileInfoEntity>('files/{host}/detail', data);
 }
 
@@ -79,17 +79,6 @@ export function batchDeleteFileApi(data: BatchDeleteFileParams) {
   return request.delete('files/{host}/batch', data);
 }
 
-export interface BatchUpdateRoleParams {
-  group: string;
-  user: string;
-  mode: number;
-  sources: string[];
-  sub: boolean;
-}
-export function batchUpdateFileRoleApi(data: BatchUpdateRoleParams) {
-  return request.put('files/{host}/batch/role', data);
-}
-
 export interface BatchUpdateModeParams {
   mode: string;
   sources: string[];
@@ -116,6 +105,20 @@ export interface BatchUpdateOwnerParams {
 }
 export function batchUpdateFileOwnerApi(data: BatchUpdateOwnerParams) {
   return request.put('files/{host}/batch/owner', data);
+}
+
+export interface BatchUpdateRoleParams {
+  group: string;
+  user: string;
+  mode: string;
+  sources: string[];
+  sub: boolean;
+}
+export function batchUpdateFileRoleApi(data: BatchUpdateRoleParams) {
+  return Promise.all([
+    batchUpdateFileModeApi(data),
+    batchUpdateFileOwnerApi(data),
+  ]);
 }
 
 export interface CompressionParams {

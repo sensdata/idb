@@ -28,6 +28,7 @@ export default {
   'manage.host.list.delete.success': 'Delete successfully',
   'manage.host.list.agent.online': 'Online',
   'manage.host.list.agent.offline': 'Offline',
+  'manage.host.list.agent.uninstalled': 'Uninstalled',
 
   'manage.host.form.title.create': 'Create Host',
   'manage.host.form.title.edit': 'Host Settings',
@@ -72,6 +73,12 @@ export default {
   'manage.host.agent.installSuccess': 'Agent installed successfully',
   'manage.host.agent.installFailed': 'Failed to install agent',
   'manage.host.agent.notInstalled': 'Agent not detected, install now?',
+  'manage.host.agent.installTitle': 'Install Agent',
+  'manage.host.agent.statusInstalling': 'Installing',
+  'manage.host.agent.statusCompleted': 'Completed',
+  'manage.host.agent.statusFailed': 'Failed',
+  'manage.host.agent.waitingForLogs': 'Waiting for installation logs...',
+  'manage.host.agent.close': 'Close',
 
   'manage.host.group.form.title.create': 'Add Group',
   'manage.host.group.form.title.edit': 'Edit Group',

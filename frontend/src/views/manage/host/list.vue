@@ -14,12 +14,21 @@
       </a-button>
     </template>
     <template #agent="{ record }: { record: HostItem }">
-      <div v-if="record.agent_status === 'online'" class="color-success">{{
-        $t('manage.host.list.agent.online')
-      }}</div>
-      <div v-else-if="record.agent_status === 'offline'" class="color-danger">{{
-        $t('manage.host.list.agent.offline')
-      }}</div>
+      <div
+        v-if="record.agent_status?.status !== 'installed'"
+        class="color-danger"
+        >{{ $t('manage.host.list.agent.uninstalled') }}</div
+      >
+      <div
+        v-else-if="record.agent_status?.connected === 'online'"
+        class="color-success"
+        >{{ $t('manage.host.list.agent.online') }}</div
+      >
+      <div
+        v-else-if="record.agent_status?.connected === 'offline'"
+        class="color-danger"
+        >{{ $t('manage.host.list.agent.offline') }}</div
+      >
     </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>

@@ -26,6 +26,7 @@ export default {
   'manage.host.list.delete.success': '删除成功',
   'manage.host.list.agent.online': '在线',
   'manage.host.list.agent.offline': '离线',
+  'manage.host.list.agent.uninstalled': '未安装',
 
   'manage.host.form.title.create': '添加节点',
   'manage.host.form.title.edit': '节点设置',
@@ -70,6 +71,12 @@ export default {
   'manage.host.agent.installSuccess': '受控端安装成功',
   'manage.host.agent.installFailed': '受控端安装失败',
   'manage.host.agent.notInstalled': '未检测到受控端，是否立即安装？',
+  'manage.host.agent.installTitle': '安装受控端',
+  'manage.host.agent.statusInstalling': '安装中',
+  'manage.host.agent.statusCompleted': '安装完成',
+  'manage.host.agent.statusFailed': '安装失败',
+  'manage.host.agent.waitingForLogs': '等待安装日志...',
+  'manage.host.agent.close': '关闭',
 
   'manage.host.group.form.title.create': '添加分组',
   'manage.host.group.form.title.edit': '编辑分组',
