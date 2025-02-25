@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -288,6 +290,9 @@ func (s *FileMan) getContent(hostID uint64, op model.FileContentReq) (*model.Fil
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
+		if strings.Contains(actionResponse.Data.Action.Data, "no such file or directory") {
+			return &fileInfo, constant.ErrFileNotExist
+		}
 		return &fileInfo, fmt.Errorf("failed to get file content")
 	}
 

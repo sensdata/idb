@@ -40,6 +40,7 @@ var (
 	ErrHost                     = errors.New("HostError")
 	ErrSsh                      = errors.New("SshError")
 	ErrAgent                    = errors.New("AgentError")
+	ErrFileNotExist             = errors.New("file does not exist")
 )
 
 // cmd
