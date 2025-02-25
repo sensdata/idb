@@ -154,9 +154,13 @@ definitions:
     properties:
       id:
         type: integer
+      old_password:
+        type: string
       password:
         type: string
     required:
+    - id
+    - old_password
     - password
     type: object
   model.ComposeCreate:
@@ -830,6 +834,8 @@ definitions:
         type: string
       agent_port:
         type: integer
+      agent_status:
+        $ref: '#/definitions/model.AgentStatus'
       auth_mode:
         type: string
       created_at:
@@ -859,6 +865,12 @@ definitions:
         type: number
       mem:
         type: number
+      mem_total:
+        description: 总可用 = 物理内存 - 内核占用
+        type: string
+      mem_used:
+        description: 已使用 = 进程占用 + 缓冲区 + 缓存区
+        type: string
       rx:
         description: 接收实时速率
         type: number
@@ -995,6 +1007,8 @@ definitions:
     type: object
   model.LoginResult:
     properties:
+      id:
+        type: integer
       name:
         type: string
       token:
@@ -1511,6 +1525,11 @@ definitions:
       max_watch_files:
         description: inotify 监控的最大文件数
         type: integer
+    type: object
+  model.TaskInfo:
+    properties:
+      task_id:
+        type: string
     type: object
   model.TerminalRequest:
     properties:
@@ -3963,31 +3982,6 @@ paths:
       tags:
       - File
   /files/{host}/content:
-    get:
-      consumes:
-      - application/json
-      description: Get the content of a file
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: File path
-        in: query
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.FileInfo'
-      summary: Get file content
-      tags:
-      - File
     put:
       consumes:
       - application/json
@@ -4039,28 +4033,30 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get detail of a file
+      description: Get the content of a file
       parameters:
       - description: Host ID
         in: path
         name: host
         required: true
         type: integer
-      - description: Directory path (default is root directory)
+      - description: File path
         in: query
         name: path
         required: true
         type: string
+      - description: Get file content or sub-files
+        in: query
+        name: expand
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.FileInfo'
-            type: array
-      summary: Get file defail
+            $ref: '#/definitions/model.FileInfo'
+      summary: Get file detail
       tags:
       - File
   /files/{host}/download:
@@ -4658,6 +4654,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.TaskInfo'
       summary: Install agent in host
       tags:
       - Host
@@ -4717,6 +4715,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.TaskInfo'
       summary: Uninstall agent in host
       tags:
       - Host
@@ -4817,6 +4817,24 @@ paths:
       tags:
       - Host
   /hosts/groups:
+    delete:
+      consumes:
+      - application/json
+      description: Delete host group
+      parameters:
+      - description: Group ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete host group
+      tags:
+      - Host
     get:
       consumes:
       - application/json
@@ -4840,6 +4858,46 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: get host group list
+      tags:
+      - Host
+    post:
+      consumes:
+      - application/json
+      description: Create host group
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GroupInfo'
+      summary: Create host group
+      tags:
+      - Host
+    put:
+      consumes:
+      - application/json
+      description: Update host group
+      parameters:
+      - description: group edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGroup'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update host group
       tags:
       - Host
   /hosts/test/ssh:
@@ -7199,6 +7257,31 @@ paths:
       summary: Get plugin menu
       tags:
       - Sysinfo
+  /tasks/{taskId}/logs:
+    get:
+      consumes:
+      - application/json
+      description: Connect to task log stream through Server-Sent Events
+      parameters:
+      - description: Task ID
+        in: path
+        name: tid
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to task log stream
+      tags:
+      - Task
   /terminals/{host}/install:
     post:
       consumes:

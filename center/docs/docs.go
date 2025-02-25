@@ -3251,43 +3251,6 @@ const docTemplate = `{
             }
         },
         "/files/{host}/content": {
-            "get": {
-                "description": "Get the content of a file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Get file content",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "File path",
-                        "name": "path",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.FileInfo"
-                        }
-                    }
-                }
-            },
             "put": {
                 "description": "Update the content of a file",
                 "consumes": [
@@ -3362,7 +3325,7 @@ const docTemplate = `{
         },
         "/files/{host}/detail": {
             "get": {
-                "description": "Get detail of a file",
+                "description": "Get the content of a file",
                 "consumes": [
                     "application/json"
                 ],
@@ -3372,7 +3335,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Get file defail",
+                "summary": "Get file detail",
                 "parameters": [
                     {
                         "type": "integer",
@@ -3383,20 +3346,23 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Directory path (default is root directory)",
+                        "description": "File path",
                         "name": "path",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Get file content or sub-files",
+                        "name": "expand",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.FileInfo"
-                            }
+                            "$ref": "#/definitions/model.FileInfo"
                         }
                     }
                 }
@@ -4229,6 +4195,94 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "description": "Update host group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Update host group",
+                "parameters": [
+                    {
+                        "description": "group edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create host group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Create host group",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGroup"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GroupInfo"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete host group",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Delete host group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Group ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
             }
         },
         "/hosts/test/ssh": {
@@ -4318,7 +4372,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskInfo"
+                        }
                     }
                 }
             }
@@ -4408,7 +4465,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskInfo"
+                        }
                     }
                 }
             }
@@ -8066,6 +8126,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/tasks/{taskId}/logs": {
+            "get": {
+                "description": "Connect to task log stream through Server-Sent Events",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Task"
+                ],
+                "summary": "Connect to task log stream",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "tid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/terminals/{host}/install": {
             "post": {
                 "description": "Install terminal",
@@ -8789,11 +8887,16 @@ const docTemplate = `{
         "model.ChangePassword": {
             "type": "object",
             "required": [
+                "id",
+                "old_password",
                 "password"
             ],
             "properties": {
                 "id": {
                     "type": "integer"
+                },
+                "old_password": {
+                    "type": "string"
                 },
                 "password": {
                     "type": "string"
@@ -9794,6 +9897,9 @@ const docTemplate = `{
                 "agent_port": {
                     "type": "integer"
                 },
+                "agent_status": {
+                    "$ref": "#/definitions/model.AgentStatus"
+                },
                 "auth_mode": {
                     "type": "string"
                 },
@@ -9837,6 +9943,14 @@ const docTemplate = `{
                 },
                 "mem": {
                     "type": "number"
+                },
+                "mem_total": {
+                    "description": "总可用 = 物理内存 - 内核占用",
+                    "type": "string"
+                },
+                "mem_used": {
+                    "description": "已使用 = 进程占用 + 缓冲区 + 缓存区",
+                    "type": "string"
                 },
                 "rx": {
                     "description": "接收实时速率",
@@ -10041,6 +10155,9 @@ const docTemplate = `{
         "model.LoginResult": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -10811,6 +10928,14 @@ const docTemplate = `{
                 "max_watch_files": {
                     "description": "inotify 监控的最大文件数",
                     "type": "integer"
+                }
+            }
+        },
+        "model.TaskInfo": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string"
                 }
             }
         },
