@@ -235,7 +235,7 @@
         })),
       ];
     } catch (err: any) {
-      Message.error(err);
+      // Message.error(err);
     } finally {
       setGroupLoading(false);
     }
@@ -341,6 +341,8 @@
         Message.success(t('manage.host.form.save.success'));
         emit('ok');
         return true;
+      } catch (err: any) {
+        Message.error(err);
       } finally {
         hideLoading();
       }

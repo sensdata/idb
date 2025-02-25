@@ -89,8 +89,10 @@
     ],
   };
 
-  const handleBeforeOk = async (done: any) => {
-    if (!formRef.value) return;
+  const handleBeforeOk = async () => {
+    if (!formRef.value) {
+      return false;
+    }
 
     try {
       await formRef.value.validate();
@@ -101,14 +103,10 @@
         password: model.new_password,
       });
       Message.success(t('components.changePassword.success'));
-      done();
+      return true;
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        Message.error(err.response.data.message);
-      } else {
-        Message.error(t('components.changePassword.failed'));
-      }
-      done(false);
+      Message.error(err);
+      return false;
     } finally {
       hideLoading();
     }

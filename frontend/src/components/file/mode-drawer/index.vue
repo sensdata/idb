@@ -45,7 +45,10 @@
       <a-form-item field="user" :label="$t('components.file.modeDrawer.user')">
         <a-input v-model="formState.user" class="w-60" />
       </a-form-item>
-      <a-form-item field="group" :label="$t('components.file.modeDrawer.group')">
+      <a-form-item
+        field="group"
+        :label="$t('components.file.modeDrawer.group')"
+      >
         <a-input v-model="formState.group" class="w-60" />
       </a-form-item>
       <a-form-item field="sub" label=" ">
@@ -97,8 +100,14 @@
         cb();
       },
     },
-    user: { required: true, message: t('components.file.modeDrawer.user_required') },
-    group: { required: true, message: t('components.file.modeDrawer.group_required') },
+    user: {
+      required: true,
+      message: t('components.file.modeDrawer.user_required'),
+    },
+    group: {
+      required: true,
+      message: t('components.file.modeDrawer.group_required'),
+    },
   };
 
   const visible = ref(false);
@@ -205,6 +214,8 @@
         Message.success(t('components.file.modeDrawer.message.success'));
         emit('ok');
         return true;
+      } catch (err: any) {
+        Message.error(err);
       } finally {
         setLoading(false);
       }

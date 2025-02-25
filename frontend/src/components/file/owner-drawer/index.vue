@@ -85,16 +85,17 @@
     });
   };
 
-  const handleBeforeOk = async (done: any) => {
+  const handleBeforeOk = async () => {
     if (await validate()) {
       try {
         setLoading(true);
         const data = getData();
         await updateFileOwnerApi(data);
-        done();
         Message.success(t('components.file.modeDrawer.message.success'));
         emit('ok');
         return true;
+      } catch (err: any) {
+        Message.error(err);
       } finally {
         setLoading(false);
       }

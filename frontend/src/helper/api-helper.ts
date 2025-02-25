@@ -69,18 +69,18 @@ axios.interceptors.response.use(
       return Promise.reject(error);
     }
     if (error?.response?.data?.message) {
-      Message.error(String(error.response.data.message));
+      // Message.error(String(error.response.data.message));
       return Promise.reject(error.response.data.message);
     }
     if (error?.message && error.message.includes('timeout')) {
-      Message.error(t('common.request.timeout'));
+      // Message.error(t('common.request.timeout'));
       return Promise.reject(new Error(t('common.request.timeout') as string));
     }
 
     // eslint-disable-next-line no-console
     console.log(error);
-    Message.error(error.message);
-    return Promise.reject(error);
+    // Message.error(error.message);
+    return Promise.reject(error.message);
   }
 );
 

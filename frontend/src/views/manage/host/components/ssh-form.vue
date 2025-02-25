@@ -208,13 +208,12 @@
     }
   };
 
-  const handleBeforeOk = async (done: any) => {
+  const handleBeforeOk = async () => {
     if (await validate()) {
       try {
         showLoading();
         const data = getData();
         await updateHostSSHApi(data.id, data);
-        done();
         Message.success(t('manage.host.form.save.success'));
         emit('ok');
         return true;

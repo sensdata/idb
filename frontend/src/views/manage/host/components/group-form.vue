@@ -89,7 +89,7 @@
     });
   };
 
-  const handleBeforeOk = async (done: any) => {
+  const handleBeforeOk = async () => {
     if (await validate()) {
       try {
         showLoading();
@@ -101,9 +101,10 @@
           await createHostGroupApi(data);
           Message.success(t('manage.host.group.form.save.success'));
         }
-        done();
         emit('ok');
         return true;
+      } catch (err: any) {
+        Message.error(err);
       } finally {
         hideLoading();
       }

@@ -9,10 +9,16 @@
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules">
-      <a-form-item field="path" :label="$t('components.file.renameDrawer.path')">
+      <a-form-item
+        field="path"
+        :label="$t('components.file.renameDrawer.path')"
+      >
         <span>{{ pwd }}</span>
       </a-form-item>
-      <a-form-item field="name" :label="$t('components.file.renameDrawer.name')">
+      <a-form-item
+        field="name"
+        :label="$t('components.file.renameDrawer.name')"
+      >
         <a-input v-model="formState.name" />
       </a-form-item>
     </a-form>
@@ -59,7 +65,7 @@
     });
   };
 
-  const handleBeforeOk = async (done: any) => {
+  const handleBeforeOk = async () => {
     if (!(await validate())) {
       return false;
     }
@@ -71,13 +77,14 @@
       });
       visible.value = false;
       Message.success(t('components.file.renameDrawer.success'));
-      done();
       emit('ok');
+      return true;
+    } catch (err: any) {
+      Message.error(err);
+      return false;
     } finally {
       setLoading(false);
     }
-
-    return false;
   };
   const handleCancel = () => {
     visible.value = false;

@@ -63,7 +63,7 @@
     </template>
     <template #network="{ record }: { record: HostItem }">
       <span v-if="!record.statusReady">-</span>
-      <div class="network-cell">
+      <div v-else class="network-cell">
         <up-stream-icon class="network-icon" />
         <span>{{ formatTransferSpeed(record.tx) }}</span>
         <down-stream-icon class="network-icon downstream" />
