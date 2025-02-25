@@ -132,7 +132,6 @@ export function compressFilesApi(data: CompressionParams) {
 export interface DecompressionParams {
   dst: string; // 输出目录
   path: string; // 文件路径
-  type: string; // 压缩类型
 }
 export function decompressFilesApi(data: DecompressionParams) {
   return request.post('files/{host}/decompress', data);

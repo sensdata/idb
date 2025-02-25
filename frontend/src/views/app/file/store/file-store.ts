@@ -20,6 +20,12 @@ const useFileStore = defineStore('file-manage', {
     pasteVisible(state) {
       return (state.copyActive || state.cutActive) && state.selected.length > 0;
     },
+    decompressVisible(state) {
+      return (
+        state.selected.length === 1 &&
+        state.selected[0]?.mime_type === 'application/x-gzip'
+      );
+    },
   },
   actions: {
     initTree() {

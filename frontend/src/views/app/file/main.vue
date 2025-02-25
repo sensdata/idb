@@ -80,6 +80,21 @@
                   <icon-scissor />
                   <span class="ml-2">{{ $t('app.file.list.action.cut') }}</span>
                 </a-button>
+                <a-button
+                  v-if="decompressVisible"
+                  @click="handleBatchDecompress"
+                >
+                  <decompression-icon />
+                  <span class="ml-2">{{
+                    $t('app.file.list.action.decompress')
+                  }}</span>
+                </a-button>
+                <a-button v-else @click="handleBatchCompress">
+                  <compression-icon />
+                  <span class="ml-2">{{
+                    $t('app.file.list.action.compress')
+                  }}</span>
+                </a-button>
                 <a-button @click="handleBatchDelete">
                   <icon-delete />
                   <span class="ml-2">{{
@@ -201,6 +216,8 @@
     <property-drawer ref="propertyDrawerRef" />
     <delete-file-modal ref="deleteFileModalRef" @ok="reload" />
     <upload-files-drawer ref="uploadFilesDrawerRef" @ok="reload" />
+    <compress-drawer ref="compressDrawerRef" @ok="reload" />
+    <decompress-drawer ref="decompressDrawerRef" @ok="reload" />
   </div>
 </template>
 
@@ -223,6 +240,8 @@
   import useLoading from '@/hooks/loading';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
+  import CompressionIcon from '@/assets/icons/compression.svg';
+  import DecompressionIcon from '@/assets/icons/decompression.svg';
   import AddressBar from '@/components/file/address-bar/index.vue';
   import CreateFileDrawer from '@/components/file/create-file-drawer/index.vue';
   import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
@@ -232,6 +251,8 @@
   import RenameDrawer from '@/components/file/rename-drawer/index.vue';
   import PropertyDrawer from '@/components/file/property-drawer/index.vue';
   import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
+  import CompressDrawer from '@/components/file/compress-drawer/index.vue';
+  import DecompressDrawer from '@/components/file/decompress-drawer/index.vue';
   import FileTree from './components/file-tree/index.vue';
   import useFileStore from './store/file-store';
   import { FileItem } from './types/file-item';
@@ -248,8 +269,11 @@
   const propertyDrawerRef = ref<InstanceType<typeof PropertyDrawer>>();
   const deleteFileModalRef = ref<InstanceType<typeof DeleteFileModal>>();
   const uploadFilesDrawerRef = ref<InstanceType<typeof UploadFilesDrawer>>();
+  const compressDrawerRef = ref<InstanceType<typeof CompressDrawer>>();
+  const decompressDrawerRef = ref<InstanceType<typeof DecompressDrawer>>();
   const store = useFileStore();
-  const { current, tree, pasteVisible, selected } = storeToRefs(store);
+  const { current, tree, pasteVisible, decompressVisible, selected } =
+    storeToRefs(store);
 
   const columns = [
     {
@@ -381,6 +405,22 @@
 
   const handleBatchDownload = () => {
     console.log('batch download');
+  };
+
+  const handleBatchCompress = () => {
+    if (!selected.value?.length) {
+      return;
+    }
+    compressDrawerRef.value?.setFiles(unref(selected));
+    compressDrawerRef.value?.show();
+  };
+
+  const handleBatchDecompress = () => {
+    if (!selected.value?.length) {
+      return;
+    }
+    decompressDrawerRef.value?.setFiles(unref(selected));
+    decompressDrawerRef.value?.show();
   };
 
   const handleBatchDelete = () => {

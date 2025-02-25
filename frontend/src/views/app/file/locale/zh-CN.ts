@@ -8,6 +8,8 @@ export default {
   'app.file.list.action.copy': '复制',
   'app.file.list.action.paste': '粘贴({count})',
   'app.file.list.action.cut': '剪切',
+  'app.file.list.action.compress': '压缩',
+  'app.file.list.action.decompress': '解压',
   'app.file.list.action.delete': '删除',
   'app.file.list.action.terminal': '终端',
   'app.file.list.filter.showHidden': '显示隐藏文件和系统文件',
