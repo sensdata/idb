@@ -601,12 +601,9 @@ definitions:
         type: string
       path:
         type: string
-      type:
-        type: string
     required:
     - dst
     - path
-    - type
     type: object
   model.FileEdit:
     properties:

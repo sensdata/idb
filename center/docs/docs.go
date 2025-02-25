@@ -9547,17 +9547,13 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "dst",
-                "path",
-                "type"
+                "path"
             ],
             "properties": {
                 "dst": {
                     "type": "string"
                 },
                 "path": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }

@@ -263,7 +263,7 @@ func (s *FileMan) decompress(hostID uint64, op model.FileDeCompress) error {
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to decompress")
+		return errors.New(actionResponse.Data.Action.Data)
 	}
 
 	return nil
