@@ -120,7 +120,7 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 func (ls *LogStream) GetTaskWatcher(taskID string) (task.TaskWatcher, error) {
 	watcher, err := ls.taskMgr.GetWatcher(taskID)
 	if err != nil {
-		return nil, fmt.Errorf("get watcher failed: %w", err)
+		return nil, err
 	}
 
 	return watcher, nil

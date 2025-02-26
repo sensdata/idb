@@ -118,14 +118,9 @@ func (m *FileTaskManager) GetWatcher(taskID string) (TaskWatcher, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	task, exists := m.tasks[taskID]
+	_, exists := m.tasks[taskID]
 	if !exists {
 		return nil, types.ErrTaskNotFound
-	}
-
-	// 检查任务状态
-	if task.Status.IsFinalStatus() {
-		return nil, fmt.Errorf("cannot watch task in final status: %s", task.Status)
 	}
 
 	watcher := NewTaskStatusWatcher(taskID, m)

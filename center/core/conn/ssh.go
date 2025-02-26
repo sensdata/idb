@@ -2,6 +2,7 @@ package conn
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -151,7 +152,13 @@ func taskLog(wp *writer.Writer, log string) {
 }
 
 func taskStatus(taskId string, status types.TaskStatus) {
-	global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusRunning)
+	if taskId == "" {
+		return
+	}
+
+	if err := global.LogStream.UpdateTaskStatus(taskId, status); err != nil {
+		global.LOG.Error("Failed to update task status to %s : %v", status, err)
+	}
 }
 
 func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
@@ -215,8 +222,8 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
 	}
 
 	// 4. 传输 agent 包文件
-	taskLog(writer, "Transfer agent package")
-	err = s.transferFile(client, agentPackagePath, "/tmp/idb-agent.tar.gz")
+	taskLog(writer, "Start transferring agent package")
+	err = s.transferFile(client, agentPackagePath, "/tmp/idb-agent.tar.gz", writer)
 	if err != nil {
 		global.LOG.Error("Failed to transfer agent package to host %s: %v", host.Addr, err)
 		taskLog(writer, fmt.Sprintf("Failed to transfer agent package to host %s: %v", host.Addr, err))
@@ -385,7 +392,7 @@ func (s *SSHService) RestartAgent(host model.Host) error {
 	return nil
 }
 
-func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath string) error {
+func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath string, wp *writer.Writer) error {
 	// 打开 SFTP 会话
 	sftpClient, err := sftp.NewClient(client)
 	if err != nil {
@@ -402,6 +409,12 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 	}
 	defer localFile.Close()
 
+	fileInfo, err := localFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %v", err)
+	}
+	totalSize := fileInfo.Size()
+
 	// 创建远程文件
 	remoteFile, err := sftpClient.Create(remotePath)
 	if err != nil {
@@ -411,11 +424,35 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 	defer remoteFile.Close()
 
 	// 复制文件内容
-	_, err = localFile.WriteTo(remoteFile)
-	if err != nil {
-		global.LOG.Error("failed to write file to remote server: %v", err)
-		return err
+	buf := make([]byte, 32*1024) // 32KB 缓冲区
+	var copied int64
+	lastProgress := 0
+
+	for {
+		n, err := localFile.Read(buf)
+		if n > 0 {
+			_, writeErr := remoteFile.Write(buf[:n])
+			if writeErr != nil {
+				return fmt.Errorf("failed to write to remote file: %v", writeErr)
+			}
+			copied += int64(n)
+
+			// 计算并报告进度
+			progress := int(float64(copied) / float64(totalSize) * 100)
+			if progress > lastProgress {
+				taskLog(wp, fmt.Sprintf("Transferring agent package: %d%%", progress))
+				lastProgress = progress
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read local file: %v", err)
+		}
 	}
+
+	taskLog(wp, "Agent package transfer completed")
 
 	global.LOG.Info("File transferred successfully to %s", remotePath)
 	return nil

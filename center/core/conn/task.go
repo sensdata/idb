@@ -34,14 +34,6 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		return errors.New("invalid task ID")
 	}
 
-	// 获取任务状态监听器
-	watcher, err := ls.GetTaskWatcher(taskID)
-	if err != nil {
-		global.LOG.Error("get task watcher failed: %v", err)
-		return fmt.Errorf("get task watcher failed: %w", err)
-	}
-	defer watcher.Close()
-
 	reader, err := ls.GetReader(taskID)
 	if err != nil {
 		global.LOG.Error("get reader failed: %v", err)
@@ -55,6 +47,14 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		return fmt.Errorf("follow log failed: %w", err)
 	}
 
+	// 获取任务状态监听器
+	watcher, err := ls.GetTaskWatcher(taskID)
+	if err != nil {
+		global.LOG.Error("get task watcher failed: %v", err)
+		return fmt.Errorf("get task watcher failed: %w", err)
+	}
+	defer watcher.Close()
+
 	// 获取状态监听通道
 	statusCh, err := watcher.WatchStatus()
 	if err != nil {
@@ -62,71 +62,37 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		return fmt.Errorf("watch status failed: %w", err)
 	}
 
-	clientGone := c.Request.Context().Done()
+	// 使用 context 来控制超时和客户端断开
+	ctx, cancel := context.WithTimeout(c.Request.Context(), connectionTimeout)
+	defer cancel()
+
 	heartbeat := time.NewTicker(heartbeatInterval)
 	defer heartbeat.Stop()
-	timeout := time.NewTimer(connectionTimeout)
-	defer timeout.Stop()
 
 	// 添加一个 done 通道用于控制 goroutine 退出
 	done := make(chan struct{})
 	defer close(done)
 
-	bufferedCh := make(chan []byte, maxBufferSize/1024)
-	defer close(bufferedCh)
-
-	// 启动日志处理协程
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				global.LOG.Error("log processor panic: %v", r)
-			}
-		}()
-
-		for {
-			select {
-			case msg, ok := <-logCh:
-				if !ok {
-					return
-				}
-				select {
-				case bufferedCh <- msg:
-				default:
-					global.LOG.Warn("Log buffer full, dropping messages for task: %s", taskID)
-				}
-			case <-clientGone:
-				return
-			case <-done:
-				return
-			}
-		}
-	}()
-
-	// 使用 context 来控制超时和客户端断开
-	ctx, cancel := context.WithTimeout(c.Request.Context(), connectionTimeout)
-	defer cancel()
-
 	c.Stream(func(w io.Writer) bool {
 		select {
-		case msg, ok := <-bufferedCh:
-			if !ok {
-				return false
-			}
+		case msg := <-logCh:
+			global.LOG.Info("task logCh: %s", string(msg))
 			c.SSEvent("log", string(msg))
 			return true
-		case status, ok := <-statusCh:
-			if !ok {
-				return false
-			}
-			// 发送状态变更事件并检查错误
+		case status := <-statusCh:
+			global.LOG.Info("task statusCh: %s", string(status))
 			c.SSEvent("status", status)
 			return true
 		case <-heartbeat.C:
+			global.LOG.Info("task heartbeat")
 			c.SSEvent("heartbeat", time.Now().Unix())
 			return true
 		case <-ctx.Done():
+			global.LOG.Info("task done")
 			if ctx.Err() == context.DeadlineExceeded {
 				c.SSEvent("error", "Connection timeout")
+			} else {
+				c.SSEvent("error", "Connection closed")
 			}
 			return false
 		}
