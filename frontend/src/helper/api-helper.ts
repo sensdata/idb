@@ -81,7 +81,7 @@ axios.interceptors.response.use(
       } else {
         window.location.href = '/login';
       }
-      return Promise.reject(error);
+      return Promise.reject(t('common.request.unauthorized'));
     }
     if (error?.response?.data?.message) {
       // Message.error(String(error.response.data.message));

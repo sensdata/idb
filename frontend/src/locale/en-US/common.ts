@@ -9,6 +9,7 @@ export default {
   'common.table.operation': 'Operation',
 
   'common.request.timeout': 'Request timeout, please try again later',
+  'common.request.unauthorized': 'Login expired, please log in again',
 
   'common.timeFormat.days': '{days} days ',
   'common.timeFormat.hours': '{hours} hours ',

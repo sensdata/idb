@@ -9,6 +9,7 @@ export default {
   'common.table.operation': '操作',
 
   'common.request.timeout': '请求超时，请稍后重试',
+  'common.request.unauthorized': '登录过期，请重新登录',
 
   'common.timeFormat.days': '{days}天',
   'common.timeFormat.hours': '{hours}小时',
