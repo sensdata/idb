@@ -12,6 +12,6 @@ func (s *TaskRouter) InitRouter(Router *gin.RouterGroup) {
 	taskRouter := Router.Group("tasks")
 	baseApi := entry.ApiGroup
 	{
-		taskRouter.GET("/:taskId/logs", middleware.NewJWT().JWTCookieAuth(), baseApi.HandleTaskLogStream) // 连接到任务日志流
+		taskRouter.GET("/:taskId/logs", middleware.NewJWT().JWTAuth(), baseApi.HandleTaskLogStream) // 连接到任务日志流
 	}
 }

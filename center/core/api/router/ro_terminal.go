@@ -10,19 +10,19 @@ type TerminalRouter struct{}
 
 func (s *TerminalRouter) InitRouter(Router *gin.RouterGroup) {
 	terminalRouter := Router.Group("terminals")
+	terminalRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
 		// websocket接口
-		terminalRouter.GET("/:host/ssh/start", middleware.NewJWT().JWTCookieAuth(), baseApi.HandleSshTerminal) // 创建ssh终端会话
-
-		terminalRouter.GET("/:host/start", middleware.NewJWT().JWTCookieAuth(), baseApi.HandleTerminal) // 创建或连接到终端会话
+		terminalRouter.GET("/:host/ssh/start", baseApi.HandleSshTerminal) // 创建ssh终端会话
+		terminalRouter.GET("/:host/start", baseApi.HandleTerminal)        // 创建或连接到终端会话
 
 		// http接口
-		terminalRouter.GET("/:host/sessions", middleware.NewJWT().JWTAuth(), baseApi.TerminalSessions)      // 枚举终端会话
-		terminalRouter.POST("/:host/sessions/prune", middleware.NewJWT().JWTAuth(), baseApi.PruneSessions)  // 清理非活跃的终端会话
-		terminalRouter.POST("/:host/sessions/detach", middleware.NewJWT().JWTAuth(), baseApi.DetachSession) // 分离终端会话
-		terminalRouter.POST("/:host/sessions/quit", middleware.NewJWT().JWTAuth(), baseApi.QuitSession)     // 终止终端会话
-		terminalRouter.POST("/:host/sessions/rename", middleware.NewJWT().JWTAuth(), baseApi.RenameSession) // 重命名终端会话
-		terminalRouter.POST("/:host/install", middleware.NewJWT().JWTAuth(), baseApi.InstallTerminal)       // 安装Agent侧的终端环境
+		terminalRouter.GET("/:host/sessions", baseApi.TerminalSessions)      // 枚举终端会话
+		terminalRouter.POST("/:host/sessions/prune", baseApi.PruneSessions)  // 清理非活跃的终端会话
+		terminalRouter.POST("/:host/sessions/detach", baseApi.DetachSession) // 分离终端会话
+		terminalRouter.POST("/:host/sessions/quit", baseApi.QuitSession)     // 终止终端会话
+		terminalRouter.POST("/:host/sessions/rename", baseApi.RenameSession) // 重命名终端会话
+		terminalRouter.POST("/:host/install", baseApi.InstallTerminal)       // 安装Agent侧的终端环境
 	}
 }

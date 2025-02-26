@@ -22,33 +22,17 @@ func NewJWT() *JWT {
 // to check JWT tokens
 func (j *JWT) JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
+		var token string
+		var err error
+		token = c.GetHeader("Authorization")
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
-			c.Abort()
-			return
-		}
-
-		claims, err := utils.ValidateJWT(token, j.SigningKey)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		c.Set("user", claims)
-		c.Next()
-	}
-}
-
-// JWTCookieAuth 从cookie中获取并验证JWT token
-func (j *JWT) JWTCookieAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token, err := c.Cookie("idb-token")
-		if err != nil || token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
-			c.Abort()
-			return
+			// not in headers, check cookies
+			token, err = c.Cookie("idb-token")
+			if err != nil || token == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
+				c.Abort()
+				return
+			}
 		}
 
 		claims, err := utils.ValidateJWT(token, j.SigningKey)
