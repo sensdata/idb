@@ -5,7 +5,7 @@
     :title="$t('components.file.renameDrawer.title')"
     unmountOnClose
     :ok-loading="loading"
-    @before-ok="handleBeforeOk"
+    @ok="handleOk"
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules">
@@ -54,6 +54,22 @@
   const visible = ref(false);
   const { loading, setLoading } = useLoading(false);
 
+  const show = () => {
+    visible.value = true;
+  };
+
+  const hide = () => {
+    visible.value = false;
+  };
+
+  const showLoading = () => {
+    setLoading(true);
+  };
+
+  const hideLoading = () => {
+    setLoading(false);
+  };
+
   const setData = (data: { path: string }) => {
     formState.path = data.path;
     formState.name = data.path.split('/').pop() || '';
@@ -65,35 +81,27 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (!(await validate())) {
-      return false;
-    }
-    setLoading(true);
+  const handleOk = async () => {
     try {
+      if (!(await validate())) {
+        return;
+      }
+      showLoading();
       await renameFileApi({
         source: formState.path,
         name: formState.name,
       });
-      visible.value = false;
       Message.success(t('components.file.renameDrawer.success'));
       emit('ok');
-      return true;
+      hide();
     } catch (err: any) {
       Message.error(err);
-      return false;
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
-  const handleCancel = () => {
-    visible.value = false;
-  };
 
-  const show = () => {
-    visible.value = true;
-  };
-  const hide = () => {
+  const handleCancel = () => {
     visible.value = false;
   };
 

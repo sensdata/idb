@@ -4,8 +4,8 @@
     :title="$t('manage.host.form.title.edit')"
     width="540px"
     :ok-loading="loading"
+    @ok="handleOk"
     @cancel="handleCancel"
-    @before-ok="handleBeforeOk"
   >
     <a-form ref="formRef" :model="model" :rules="rules">
       <a-form-item field="name" :label="$t('manage.host.form.name.label')">
@@ -127,22 +127,22 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        showLoading();
-        const data = getData();
-        await updateHostApi(data);
-        Message.success(t('manage.host.form.save.success'));
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(err);
-      } finally {
-        hideLoading();
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      const data = getData();
+      await updateHostApi(data);
+      Message.success(t('manage.host.form.save.success'));
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {

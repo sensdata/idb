@@ -10,8 +10,8 @@
     "
     width="400px"
     :ok-loading="loading"
+    @ok="handleOk"
     @cancel="handleCancel"
-    @before-ok="handleBeforeOk"
   >
     <a-form
       ref="formRef"
@@ -89,27 +89,27 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        showLoading();
-        const data = getData();
-        if (isEdit.value) {
-          await updateHostGroupApi(data);
-          Message.success(t('manage.host.group.form.update.success'));
-        } else {
-          await createHostGroupApi(data);
-          Message.success(t('manage.host.group.form.save.success'));
-        }
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(err);
-      } finally {
-        hideLoading();
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      const data = getData();
+      if (isEdit.value) {
+        await updateHostGroupApi(data);
+        Message.success(t('manage.host.group.form.update.success'));
+      } else {
+        await createHostGroupApi(data);
+        Message.success(t('manage.host.group.form.save.success'));
+      }
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {

@@ -4,8 +4,8 @@
     :title="$t('manage.host.ssh.form.title')"
     width="540px"
     :ok-loading="loading"
+    @ok="handleOk"
     @cancel="handleCancel"
-    @before-ok="handleBeforeOk"
   >
     <a-form ref="formRef" :model="model" :rules="rules">
       <a-form-item field="addr" :label="$t('manage.host.form.addr.label')">
@@ -208,22 +208,22 @@
     }
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        showLoading();
-        const data = getData();
-        await updateHostSSHApi(data.id, data);
-        Message.success(t('manage.host.form.save.success'));
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(t('manage.host.form.save.failed'));
-      } finally {
-        hideLoading();
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      const data = getData();
+      await updateHostSSHApi(model.id, data);
+      Message.success(t('manage.host.form.save.success'));
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {

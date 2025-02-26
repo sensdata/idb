@@ -5,7 +5,7 @@
     :title="$t('components.file.compressDrawer.title')"
     unmountOnClose
     :ok-loading="loading"
-    @before-ok="handleBeforeOk"
+    @ok="handleOk"
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules">
@@ -108,27 +108,27 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        showLoading();
-        await compressFilesApi({
-          name: formState.name + '.' + formState.type,
-          files: files.value.map((f) => f.path),
-          dst: files.value[0].path.split('/').slice(0, -1).join('/'),
-          type: formState.type,
-          replace: formState.replace,
-        });
-        Message.success(t('components.file.compressDrawer.success'));
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(err);
-      } finally {
-        hideLoading();
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      await compressFilesApi({
+        name: formState.name + '.' + formState.type,
+        files: files.value.map((f) => f.path),
+        dst: files.value[0].path.split('/').slice(0, -1).join('/'),
+        type: formState.type,
+        replace: formState.replace,
+      });
+      Message.success(t('components.file.compressDrawer.success'));
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {

@@ -5,7 +5,7 @@
     :title="$t('components.file.decompressDrawer.title')"
     unmountOnClose
     :ok-loading="loading"
-    @before-ok="handleBeforeOk"
+    @ok="handleOk"
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules">
@@ -104,27 +104,27 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        showLoading();
-        await decompressFilesApi({
-          path: files.value[0].path,
-          dst:
-            formState.dst_type === 'current'
-              ? files.value[0].path.split('/').slice(0, -1).join('/')
-              : formState.dst,
-        });
-        Message.success(t('components.file.decompressDrawer.success'));
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(err);
-      } finally {
-        hideLoading();
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      await decompressFilesApi({
+        path: files.value[0].path,
+        dst:
+          formState.dst_type === 'current'
+            ? files.value[0].path.split('/').slice(0, -1).join('/')
+            : formState.dst,
+      });
+      Message.success(t('components.file.decompressDrawer.success'));
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {

@@ -4,7 +4,7 @@
     :title="$t('components.changePassword.title')"
     :ok-loading="loading"
     @cancel="handleCancel"
-    @before-ok="handleBeforeOk"
+    @ok="handleOk"
   >
     <a-form ref="formRef" :model="model" :rules="rules">
       <a-form-item
@@ -89,9 +89,9 @@
     ],
   };
 
-  const handleBeforeOk = async () => {
+  const handleOk = async () => {
     if (!formRef.value) {
-      return false;
+      return;
     }
 
     try {
@@ -103,10 +103,9 @@
         password: model.new_password,
       });
       Message.success(t('components.changePassword.success'));
-      return true;
+      visible.value = true;
     } catch (err: any) {
       Message.error(err);
-      return false;
     } finally {
       hideLoading();
     }

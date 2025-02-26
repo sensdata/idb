@@ -5,7 +5,7 @@
     :title="$t('components.file.ownerDrawer.title')"
     unmountOnClose
     :ok-loading="loading"
-    @before-ok="handleBeforeOk"
+    @ok="handleOk"
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules">
@@ -64,6 +64,22 @@
   const visible = ref(false);
   const { loading, setLoading } = useLoading(false);
 
+  const show = () => {
+    visible.value = true;
+  };
+
+  const hide = () => {
+    visible.value = false;
+  };
+
+  const showLoading = () => {
+    setLoading(true);
+  };
+
+  const hideLoading = () => {
+    setLoading(false);
+  };
+
   const setData = (data: FileInfoEntity) => {
     formState.path = data.path;
     formState.user = data.user;
@@ -85,32 +101,24 @@
     });
   };
 
-  const handleBeforeOk = async () => {
-    if (await validate()) {
-      try {
-        setLoading(true);
-        const data = getData();
-        await updateFileOwnerApi(data);
-        Message.success(t('components.file.modeDrawer.message.success'));
-        emit('ok');
-        return true;
-      } catch (err: any) {
-        Message.error(err);
-      } finally {
-        setLoading(false);
+  const handleOk = async () => {
+    try {
+      if (!(await validate())) {
+        return;
       }
+      showLoading();
+      await updateFileOwnerApi(getData());
+      Message.success(t('components.file.modeDrawer.message.success'));
+      emit('ok');
+      hide();
+    } catch (err: any) {
+      Message.error(err);
+    } finally {
+      hideLoading();
     }
-    return false;
   };
 
   const handleCancel = () => {
-    visible.value = false;
-  };
-
-  const show = () => {
-    visible.value = true;
-  };
-  const hide = () => {
     visible.value = false;
   };
 
