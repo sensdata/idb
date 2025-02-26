@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { Message } from '@arco-design/web-vue';
+// import { Message } from '@arco-design/web-vue';
 import { clearToken, getToken } from '@/helper/auth';
 import { t } from '@/utils/i18n';
 
@@ -69,7 +69,7 @@ axios.interceptors.response.use(
       return response.data.data;
     }
 
-    Message.error(response.data.message as string);
+    // Message.error(response.data.message as string);
 
     return Promise.reject(response.data.message);
   },

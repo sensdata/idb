@@ -83,7 +83,7 @@ export function batchDeleteFileApi(data: BatchDeleteFileParams) {
 }
 
 export interface BatchUpdateModeParams {
-  mode: string;
+  mode: number;
   sources: string[];
   sub: boolean;
 }
@@ -113,7 +113,7 @@ export function batchUpdateFileOwnerApi(data: BatchUpdateOwnerParams) {
 export interface BatchUpdateRoleParams {
   group: string;
   user: string;
-  mode: string;
+  mode: number;
   sources: string[];
   sub: boolean;
 }

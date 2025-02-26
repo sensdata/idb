@@ -225,7 +225,7 @@
       showLoading();
       await batchUpdateFileRoleApi({
         ...getData(),
-        mode: formState.mode,
+        mode: +formState.mode,
       });
       Message.success(t('components.file.modeDrawer.message.success'));
       emit('ok');

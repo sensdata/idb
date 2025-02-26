@@ -6,7 +6,9 @@
           <icon-arrow-left />
         </template>
       </a-button>
-      <div class="host-name truncate">Hostname</div>
+      <div class="host-name truncate"
+        >{{ hostStore.current?.name || hostStore.current?.addr }}
+      </div>
       <a-button class="btn" @click="openTerminal?.()">
         <template #icon>
           <icon-code-square />
@@ -58,20 +60,20 @@
 
 <script lang="ts" setup>
   import { inject, reactive, ref, onMounted } from 'vue';
-  import UpStreamIcon from '@/assets/icons/upstream.svg';
-  import DownStreamIcon from '@/assets/icons/downstream.svg';
+  import { Message } from '@arco-design/web-vue';
   import router from '@/router';
+  import { useHostStore } from '@/store';
   import { SELECT_HOST } from '@/router/constants';
   import { getHostStatusApi } from '@/api/host';
-  import { Message } from '@arco-design/web-vue';
-  import useCurrentHost from '@/hooks/current-host';
   import { formatTransferSpeed } from '@/utils/format';
+  import DownStreamIcon from '@/assets/icons/downstream.svg';
+  import UpStreamIcon from '@/assets/icons/upstream.svg';
 
   defineProps<{
     collapsed: boolean;
   }>();
 
-  const { currentHostId } = useCurrentHost();
+  const hostStore = useHostStore();
 
   const state = reactive({
     cpu_usage: '0%',
@@ -83,11 +85,11 @@
   const isLoading = ref(false);
 
   const refreshStatus = async () => {
-    if (!currentHostId.value || isLoading.value) return;
+    if (!hostStore.currentId || isLoading.value) return;
 
     isLoading.value = true;
     try {
-      const result = await getHostStatusApi(currentHostId.value);
+      const result = await getHostStatusApi(hostStore.currentId);
       state.cpu_usage = result.cpu + '%';
       state.memory_usage = result.mem_used + '/' + result.mem_total;
       state.network_up = formatTransferSpeed(result.tx);
@@ -110,7 +112,7 @@
   };
 
   onMounted(() => {
-    if (currentHostId.value) {
+    if (hostStore.currentId) {
       refreshStatus();
     }
   });
