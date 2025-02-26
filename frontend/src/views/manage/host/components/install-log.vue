@@ -4,7 +4,7 @@
     :title="$t('manage.host.agent.installTitle')"
     :footer="false"
     :mask-closable="false"
-    :closable="isCompleted"
+    :closable="true"
     width="600px"
     @cancel="handleCancel"
   >
@@ -25,7 +25,6 @@
       </div>
       <div ref="logContentRef" class="log-content">
         <div v-for="(log, index) in logs" :key="index" class="log-item">
-          <span class="log-time">{{ formatTime(log.time) }}</span>
           <span :class="['log-message', log.level]">{{ log.message }}</span>
         </div>
         <div v-if="logs.length === 0" class="empty-log">
@@ -89,11 +88,6 @@
         return 'arcoblue';
     }
   });
-
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
-  };
 
   const scrollToBottom = async () => {
     await nextTick();

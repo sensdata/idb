@@ -20,10 +20,13 @@ export function useConfirm() {
     }
     return new Promise((resolve) => {
       Modal.confirm({
-        title: options.title || t('common.confirm.title'),
-        content: options.content,
-        okText: options.okText || t('common.confirm.okText'),
-        cancelText: options.cancelText || t('common.confirm.cancelText'),
+        title: (options as ConfirmOptions).title || t('common.confirm.title'),
+        content: (options as ConfirmOptions).content,
+        okText:
+          (options as ConfirmOptions).okText || t('common.confirm.okText'),
+        cancelText:
+          (options as ConfirmOptions).cancelText ||
+          t('common.confirm.cancelText'),
         onCancel: () => {
           resolve(false);
         },

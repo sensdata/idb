@@ -32,6 +32,7 @@
             v-if="formState.dst_type === 'custom'"
             ref="fileSelectorRef"
             v-model="formState.dst"
+            :initial-path="formState.dst"
             class="mt-2"
             type="directory"
             :placeholder="$t('components.file.decompressDrawer.dstPlaceholder')"
@@ -132,6 +133,9 @@
 
   const setFiles = (selectedFiles: FileInfoEntity[]) => {
     files.value = selectedFiles;
+    if (selectedFiles.length > 0) {
+      formState.dst = selectedFiles[0].path.split('/').slice(0, -1).join('/');
+    }
   };
 
   defineExpose({

@@ -73,9 +73,12 @@ export function deleteFileApi(data: DeleteFileParams) {
 export interface BatchDeleteFileParams {
   force_delete?: boolean;
   permanently_delete?: boolean;
-  sources: string[];
+  sources: string[] | string;
 }
 export function batchDeleteFileApi(data: BatchDeleteFileParams) {
+  if (Array.isArray(data.sources)) {
+    data.sources = data.sources.join(',');
+  }
   return request.delete('files/{host}/batch', data);
 }
 
@@ -184,7 +187,7 @@ export interface MoveFileParams {
   name?: string;
   sources: string[];
   cover: boolean;
-  type: 'copy' | 'move';
+  type: 'copy' | 'cut';
 }
 export function moveFileApi(data: MoveFileParams) {
   return request.put('files/{host}/move', data);

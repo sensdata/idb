@@ -6,7 +6,9 @@
     @ok="handleOk"
     @cancel="handleCancel"
   >
-    <a-alert type="warning">{{ $t('components.file.deleteFileModal.alert') }}</a-alert>
+    <a-alert type="warning">{{
+      $t('components.file.deleteFileModal.alert')
+    }}</a-alert>
     <div class="mt-4">
       <a-checkbox v-model="formState.force_delete">
         {{ $t('components.file.deleteFileModal.force_delete') }}

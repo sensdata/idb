@@ -64,12 +64,6 @@
                 </a-button>
               </template>
               <template v-else>
-                <a-button @click="handleBatchDownload">
-                  <icon-download />
-                  <span class="ml-2">{{
-                    $t('app.file.list.action.download')
-                  }}</span>
-                </a-button>
                 <a-button @click="store.handleCopy">
                   <icon-copy />
                   <span class="ml-2">{{
@@ -118,7 +112,7 @@
                   }}
                 </span>
               </a-button>
-              <a-button @click="handleClearSelected">
+              <a-button @click="clearSelected">
                 <template #icon>
                   <icon-close />
                 </template>
@@ -195,6 +189,9 @@
                   <a-doption value="copyPath">
                     {{ $t('app.file.list.operation.copyPath') }}
                   </a-doption>
+                  <a-doption value="download">
+                    {{ $t('app.file.list.operation.download') }}
+                  </a-doption>
                   <a-doption value="property">
                     {{ $t('app.file.list.operation.property') }}
                   </a-doption>
@@ -208,16 +205,16 @@
         </div>
       </div>
     </a-spin>
-    <mode-drawer ref="modeDrawerRef" @ok="reload" />
-    <owner-drawer ref="ownerDrawerRef" @ok="reload" />
-    <create-file-drawer ref="createFileDrawerRef" @ok="reload" />
-    <create-folder-drawer ref="createFolderDrawerRef" @ok="reload" />
-    <rename-drawer ref="renameDrawerRef" @ok="reload" />
+    <mode-drawer ref="modeDrawerRef" @ok="handleOk" />
+    <owner-drawer ref="ownerDrawerRef" @ok="handleOk" />
+    <create-file-drawer ref="createFileDrawerRef" @ok="handleOk" />
+    <create-folder-drawer ref="createFolderDrawerRef" @ok="handleOk" />
+    <rename-drawer ref="renameDrawerRef" @ok="handleOk" />
     <property-drawer ref="propertyDrawerRef" />
-    <delete-file-modal ref="deleteFileModalRef" @ok="reload" />
-    <upload-files-drawer ref="uploadFilesDrawerRef" @ok="reload" />
-    <compress-drawer ref="compressDrawerRef" @ok="reload" />
-    <decompress-drawer ref="decompressDrawerRef" @ok="reload" />
+    <delete-file-modal ref="deleteFileModalRef" @ok="handleOk" />
+    <upload-files-drawer ref="uploadFilesDrawerRef" @ok="handleOk" />
+    <compress-drawer ref="compressDrawerRef" @ok="handleOk" />
+    <decompress-drawer ref="decompressDrawerRef" @ok="handleOk" />
   </div>
 </template>
 
@@ -226,6 +223,7 @@
   import {
     computed,
     GlobalComponents,
+    inject,
     onMounted,
     ref,
     unref,
@@ -233,6 +231,7 @@
   } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
+  import { resolveApiUrl } from '@/helper/api-helper';
   import { getFileListApi, moveFileApi } from '@/api/file';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { formatFileSize, formatTime } from '@/utils/format';
@@ -258,6 +257,7 @@
   import { FileItem } from './types/file-item';
 
   const { t } = useI18n();
+  const openTerminal = inject<() => void>('openTerminal');
   const { copyText } = useClipboard();
   const { loading, setLoading } = useLoading(false);
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
@@ -343,7 +343,7 @@
     gridRef.value?.load(params.value);
   });
 
-  const handleClearSelected = () => {
+  const clearSelected = () => {
     store.clearSelected();
     gridRef.value?.clearSelected();
   };
@@ -384,9 +384,9 @@
         sources: store.selected.map((item) => item.path),
         dest: store.pwd,
         cover: false,
-        type: store.cutActive ? 'move' : 'copy',
+        type: store.cutActive ? 'cut' : 'copy',
       });
-      store.clearSelected();
+      clearSelected();
       gridRef.value?.reload();
     } finally {
       setLoading(false);
@@ -400,11 +400,9 @@
     });
   };
   const handleTerminal = () => {
-    console.log('terminal');
-  };
-
-  const handleBatchDownload = () => {
-    console.log('batch download');
+    // const pwd = store.pwd;
+    // todo: set terminal pwd path
+    openTerminal?.();
   };
 
   const handleBatchCompress = () => {
@@ -447,6 +445,13 @@
     }
   };
 
+  const handleDownload = (record: FileItem) => {
+    const a = document.createElement('a');
+    a.href = resolveApiUrl('/files/{host}/download', { source: record.path });
+    a.download = record.name;
+    a.click();
+  };
+
   const handleProperty = (record: FileItem) => {
     propertyDrawerRef.value?.setData(record);
     propertyDrawerRef.value?.show();
@@ -471,6 +476,9 @@
       case 'copyPath':
         handleCopyPath(record);
         break;
+      case 'download':
+        handleDownload(record);
+        break;
       case 'property':
         handleProperty(record);
         break;
@@ -484,6 +492,11 @@
 
   const reload = () => {
     gridRef.value?.reload();
+  };
+
+  const handleOk = () => {
+    clearSelected();
+    reload();
   };
 
   onMounted(() => {

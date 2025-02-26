@@ -18,6 +18,21 @@ export function setApiHostId(hostId?: number) {
   apiHostId = hostId;
 }
 
+export function resolveApiUrl(url: string, params?: Record<string, any>) {
+  const urlParams = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    urlParams.set(key, String(value));
+  });
+  if (url.indexOf('{host}') !== -1) {
+    const hostId = params?.host || apiHostId;
+    url = url.replace('{host}', String(hostId));
+  }
+  if (url.startsWith('/') && (API_BASE_URL || '').endsWith('/')) {
+    url = url.slice(1);
+  }
+  return API_BASE_URL + url + '?' + urlParams.toString();
+}
+
 axios.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     // let each request carry token
@@ -134,13 +149,13 @@ class ApiHelper {
 
   delete<T = any>(
     url: string,
-    data?: Record<string, any>,
+    params?: Record<string, any>,
     config?: AxiosRequestConfig<any>
   ) {
     return this.request({
       method: 'delete',
       url,
-      data,
+      params,
       ...config,
     }) as unknown as Promise<T>;
   }

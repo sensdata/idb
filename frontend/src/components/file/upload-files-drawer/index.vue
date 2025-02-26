@@ -41,7 +41,7 @@
   import { computed, reactive, ref } from 'vue';
   import type { FileItem } from '@arco-design/web-vue/es/upload/interfaces';
   import { useHostStore } from '@/store';
-  import { API_BASE_URL } from '@/helper/api-helper';
+  import { resolveApiUrl } from '@/helper/api-helper';
   import { getToken } from '@/helper/auth';
   import FileSelector from '@/components/file/file-selector/index.vue';
 
@@ -60,7 +60,7 @@
   const fileList = ref<FileItem[]>([]);
   const action = computed(() => {
     const host = hostStore.currentId ?? hostStore.defaultId;
-    return API_BASE_URL + `/files/${host}/upload`;
+    return resolveApiUrl(`/files/${host}/upload`);
   });
 
   const setData = (data: { directory: string }) => {

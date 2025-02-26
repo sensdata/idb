@@ -131,7 +131,7 @@
     testHostAgentApi,
     installHostAgentApi,
   } from '@/api/host';
-  import { API_BASE_URL } from '@/helper/api-helper';
+  import { resolveApiUrl } from '@/helper/api-helper';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
@@ -296,7 +296,7 @@
   const installLogRef = ref<InstanceType<typeof InstallLog>>();
 
   const logInstallMsgs = (taskId: string) => {
-    const url = `${API_BASE_URL}/tasks/${taskId}/logs`;
+    const url = resolveApiUrl(`tasks/${taskId}/logs`);
 
     const logComponent = installLogRef.value;
     if (!logComponent) {
@@ -306,42 +306,37 @@
     logComponent.reset();
     logComponent.show();
 
+    let heartbeat = Date.now();
     const eventSource = new EventSource(url);
-
-    eventSource.onmessage = (event) => {
-      try {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          data = {
-            message: event.data,
-            level: 'info',
-            time: new Date().getTime(),
-          };
-        }
-
-        if (data.message) {
-          const level = data.level?.toLowerCase() || 'info';
-          logComponent.addLog(data.message, level as any);
-        }
-
-        if (data.status === 'completed') {
-          eventSource.close();
-          logComponent.setStatus('completed');
-          Message.success(t('manage.host.agent.installSuccess'));
-        } else if (data.status === 'failed') {
-          eventSource.close();
-          logComponent.setStatus('failed');
-          Message.error(t('manage.host.agent.installFailed'));
-        }
-      } catch (err) {
-        console.error('Error parsing log message:', err);
-        logComponent.addLog(event.data, 'error');
+    eventSource.addEventListener('log', (event) => {
+      logComponent.addLog(event.data, 'info');
+    });
+    eventSource.addEventListener('heartbeat', () => {
+      heartbeat = Date.now();
+    });
+    const timer = window.setInterval(() => {
+      if (Date.now() - heartbeat > 10e3) {
+        clearInterval(timer);
+        eventSource.close();
+        logComponent.setStatus('failed');
+        Message.error(t('manage.host.agent.installFailed'));
       }
-    };
+    }, 1000);
+    eventSource.addEventListener('error', () => {
+      clearInterval(timer);
+      eventSource.close();
+      logComponent.setStatus('failed');
+      Message.error(t('manage.host.agent.installFailed'));
+    });
+    eventSource.addEventListener('success', () => {
+      clearInterval(timer);
+      eventSource.close();
+      logComponent.setStatus('completed');
+      Message.success(t('manage.host.agent.installSuccess'));
+    });
 
     eventSource.onerror = () => {
+      clearInterval(timer);
       eventSource.close();
       logComponent.setStatus('failed');
       Message.error(t('manage.host.agent.installFailed'));
