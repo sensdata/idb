@@ -93,3 +93,9 @@ func ValidateStatusTransition(current, new TaskStatus) error {
 
 	return nil
 }
+
+func (s TaskStatus) IsFinalStatus() bool {
+	return s == TaskStatusSuccess ||
+		s == TaskStatusFailed ||
+		s == TaskStatusCanceled
+}

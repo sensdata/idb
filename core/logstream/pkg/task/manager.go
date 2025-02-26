@@ -29,4 +29,7 @@ type Manager interface {
 
 	// Clean 清理过期任务
 	Clean(before time.Time) error
+
+	// 获取任务状态变更通知器
+	GetWatcher(taskID string) (TaskWatcher, error)
 }

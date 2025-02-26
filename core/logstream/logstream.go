@@ -117,6 +117,15 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 	return r, nil
 }
 
+func (ls *LogStream) GetTaskWatcher(taskID string) (task.TaskWatcher, error) {
+	watcher, err := ls.taskMgr.GetWatcher(taskID)
+	if err != nil {
+		return nil, fmt.Errorf("get watcher failed: %w", err)
+	}
+
+	return watcher, nil
+}
+
 func (ls *LogStream) CreateTask(taskType string, metadata map[string]interface{}) (string, error) {
 	// 验证任务类型
 	if taskType == "" {

@@ -18,6 +18,7 @@ type FileTaskManager struct {
 	basePath string
 	tasks    map[string]*types.Task
 	buffers  map[string]*bytes.Buffer
+	watchers map[string][]*TaskStatusWatcher // 添加 watchers 管理
 }
 
 func NewFileTaskManager(cfg *config.Config) (Manager, error) {
@@ -41,6 +42,7 @@ func NewFileTaskManager(cfg *config.Config) (Manager, error) {
 		store:    store,
 		tasks:    tasks,
 		buffers:  make(map[string]*bytes.Buffer),
+		watchers: make(map[string][]*TaskStatusWatcher),
 	}, nil
 }
 
@@ -112,67 +114,164 @@ func (m *FileTaskManager) GetBuffer(taskID string) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-// validateTaskStatus 验证任务状态转换是否合法
-func validateTaskStatus(current, new types.TaskStatus) error {
-	// 已完成或取消的任务不能更改状态
-	if current == types.TaskStatusSuccess ||
-		current == types.TaskStatusFailed ||
-		current == types.TaskStatusCanceled {
-		return fmt.Errorf("task is already in final status: %s", current)
-	}
-
-	// 运行中的任务只能更新为完成、失败或取消状态
-	if current == types.TaskStatusRunning {
-		if new != types.TaskStatusSuccess &&
-			new != types.TaskStatusFailed &&
-			new != types.TaskStatusCanceled {
-			return fmt.Errorf("invalid status transition: %s -> %s", current, new)
-		}
-	}
-
-	return nil
-}
-
-func (m *FileTaskManager) Update(taskID string, status types.TaskStatus) error {
+func (m *FileTaskManager) GetWatcher(taskID string) (TaskWatcher, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	task, exists := m.tasks[taskID]
 	if !exists {
+		return nil, types.ErrTaskNotFound
+	}
+
+	// 检查任务状态
+	if task.Status.IsFinalStatus() {
+		return nil, fmt.Errorf("cannot watch task in final status: %s", task.Status)
+	}
+
+	watcher := NewTaskStatusWatcher(taskID, m)
+	if m.watchers[taskID] == nil {
+		m.watchers[taskID] = make([]*TaskStatusWatcher, 0)
+	}
+	m.watchers[taskID] = append(m.watchers[taskID], watcher)
+	return watcher, nil
+}
+
+func (m *FileTaskManager) Update(taskID string, status types.TaskStatus) error {
+	m.mu.Lock()
+	task, exists := m.tasks[taskID]
+	if !exists {
+		m.mu.Unlock()
 		return fmt.Errorf("task %s not found", taskID)
 	}
 
-	if err := validateTaskStatus(task.Status, status); err != nil {
+	if err := types.ValidateStatusTransition(task.Status, status); err != nil {
+		m.mu.Unlock()
 		return err
 	}
 
+	oldStatus := task.Status
 	task.Status = status
 	task.UpdatedAt = time.Now()
 
 	if err := m.store.Update(task); err != nil {
+		m.mu.Unlock()
 		return fmt.Errorf("update task failed: %v", err)
+	}
+
+	// 只在状态真正发生变化时才通知观察者
+	var watchersCopy []*TaskStatusWatcher
+	if oldStatus != status {
+		if watchers, exists := m.watchers[taskID]; exists {
+			watchersCopy = append([]*TaskStatusWatcher(nil), watchers...)
+		}
+	}
+	m.mu.Unlock()
+
+	// 在锁外通知观察者
+	for _, w := range watchersCopy {
+		w.NotifyStatusChange(status)
+	}
+
+	// 任务完成时清理观察者
+	if status.IsFinalStatus() {
+		m.cleanClosedWatchers(taskID)
 	}
 
 	return nil
 }
 
-func (m *FileTaskManager) Clean(before time.Time) error {
+// removeWatcher 内部方法，从管理器中移除观察者
+func (m *FileTaskManager) removeWatcher(taskID string, watcher *TaskStatusWatcher) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	var cleanedCount int
-	var lastError error
+	watchers := m.watchers[taskID]
+	for i, w := range watchers {
+		if w == watcher {
+			m.watchers[taskID] = append(watchers[:i], watchers[i+1:]...)
+			break
+		}
+	}
 
+	// 清理空的观察者列表
+	if len(m.watchers[taskID]) == 0 {
+		delete(m.watchers, taskID)
+	}
+}
+
+// cleanClosedWatchers 清理已关闭的观察者
+func (m *FileTaskManager) cleanClosedWatchers(taskID string) {
+	m.mu.Lock()
+	var taskIDs []string
+	if taskID != "" {
+		taskIDs = []string{taskID}
+	} else {
+		// 清理任务的所有观察者
+		taskIDs = make([]string, 0, len(m.watchers))
+		for id := range m.watchers {
+			taskIDs = append(taskIDs, id)
+		}
+	}
+	m.mu.Unlock()
+
+	for _, id := range taskIDs {
+		m.mu.Lock()
+		watchers, exists := m.watchers[id]
+		if !exists {
+			m.mu.Unlock()
+			continue
+		}
+
+		activeWatchers := make([]*TaskStatusWatcher, 0, len(watchers))
+		for _, w := range watchers {
+			if !w.IsClosed() {
+				activeWatchers = append(activeWatchers, w)
+			}
+		}
+
+		if len(activeWatchers) == 0 {
+			delete(m.watchers, id)
+		} else {
+			m.watchers[id] = activeWatchers
+		}
+		m.mu.Unlock()
+	}
+}
+
+func (m *FileTaskManager) Clean(before time.Time) error {
+	// 先收集需要清理的任务
+	m.mu.RLock()
+	toClean := make([]string, 0)
 	for taskID, task := range m.tasks {
 		if task.UpdatedAt.Before(before) {
-			if err := m.store.Delete(taskID); err != nil {
-				lastError = err
-				continue
-			}
-			delete(m.tasks, taskID)
-			delete(m.buffers, taskID)
-			cleanedCount++
+			toClean = append(toClean, taskID)
 		}
+	}
+	m.mu.RUnlock()
+
+	// 逐个清理任务
+	var cleanedCount int
+	var lastError error
+	for _, taskID := range toClean {
+		m.mu.Lock()
+		// 关闭观察者
+		if watchers, exists := m.watchers[taskID]; exists {
+			for _, w := range watchers {
+				w.Close()
+			}
+			delete(m.watchers, taskID)
+		}
+
+		// 删除任务
+		if err := m.store.Delete(taskID); err != nil {
+			lastError = err
+			m.mu.Unlock()
+			continue
+		}
+		delete(m.tasks, taskID)
+		delete(m.buffers, taskID)
+		cleanedCount++
+		m.mu.Unlock()
 	}
 
 	if lastError != nil {
@@ -192,6 +291,14 @@ func (m *FileTaskManager) Delete(taskID string) error {
 
 	if err := m.store.Delete(taskID); err != nil {
 		return fmt.Errorf("delete task failed: %v", err)
+	}
+
+	// 关闭并清理所有观察者
+	if watchers, exists := m.watchers[taskID]; exists {
+		for _, w := range watchers {
+			w.Close()
+		}
+		delete(m.watchers, taskID)
 	}
 
 	delete(m.tasks, taskID)
