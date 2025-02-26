@@ -68,13 +68,12 @@ func GetOverview() (*model.Overview, error) {
 
 	info, _ := host.Info()
 	overview.BootTime = utils.FormatTime(int64(info.BootTime))
-	overview.RunTime = utils.FormatDuration(int64(info.Uptime))
+	overview.RunTime = int64(info.Uptime)
 
 	times, _ := cpu.Times(false)
 	if len(times) > 0 {
 		t := times[0]
-		idleSeconds := int64(t.Idle)
-		overview.IdleTime = utils.FormatDuration(idleSeconds)
+		overview.IdleTime = int64(t.Idle)
 	}
 
 	percents, _ := cpu.Percent(0, false)

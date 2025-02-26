@@ -5,8 +5,8 @@ type Overview struct {
 	ServerTime     string      `json:"server_time"`      //服务器时间
 	ServerTimeZone string      `json:"server_time_zone"` //服务器时区
 	BootTime       string      `json:"boot_time"`        //启动时间
-	RunTime        string      `json:"run_time"`         //运行时间
-	IdleTime       string      `json:"idle_time"`        //空闲时间
+	RunTime        int64       `json:"run_time"`         //运行时间
+	IdleTime       int64       `json:"idle_time"`        //空闲时间
 	CpuUsage       string      `json:"cpu_usage"`        //CPU使用率
 	CurrentLoad    LoadState   `json:"current_load"`     //当前负载
 	MemoryUsage    MemoryState `json:"memory_usage"`     //内存使用
