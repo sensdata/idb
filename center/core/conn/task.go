@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -73,30 +73,58 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	done := make(chan struct{})
 	defer close(done)
 
-	c.Stream(func(w io.Writer) bool {
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 创建一个缓冲通道来处理日志
+	bufferCh := make(chan string, 100)
+	defer close(bufferCh)
+
+	// 启动一个 goroutine 来处理日志缓冲
+	go func() {
+		for {
+			select {
+			case msg := <-logCh:
+				select {
+				case bufferCh <- string(msg):
+				default:
+					// 如果缓冲区满了，丢弃最旧的消息
+					<-bufferCh
+					bufferCh <- string(msg)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	for {
 		select {
-		case msg := <-logCh:
-			global.LOG.Info("task logCh: %s", string(msg))
-			c.SSEvent("log", string(msg))
-			return true
+		case msg := <-bufferCh:
+			c.SSEvent("log", msg)
+			flusher.Flush()
 		case status := <-statusCh:
-			global.LOG.Info("task statusCh: %s", string(status))
 			c.SSEvent("status", status)
-			return true
+			flusher.Flush()
 		case <-heartbeat.C:
-			global.LOG.Info("task heartbeat")
 			c.SSEvent("heartbeat", time.Now().Unix())
-			return true
+			flusher.Flush()
 		case <-ctx.Done():
-			global.LOG.Info("task done")
 			if ctx.Err() == context.DeadlineExceeded {
 				c.SSEvent("error", "Connection timeout")
 			} else {
 				c.SSEvent("error", "Connection closed")
 			}
-			return false
+			flusher.Flush()
+			return nil
 		}
-	})
-
-	return nil
+	}
 }

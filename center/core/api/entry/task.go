@@ -18,12 +18,6 @@ import (
 // @Failure 400 {object} model.Response "Bad Request"
 // @Router /tasks/{taskId}/logs [get]
 func (b *BaseApi) HandleTaskLogStream(c *gin.Context) {
-	// 设置 SSE 必要的 headers
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Transfer-Encoding", "chunked")
-
 	err := conn.TASK.HandleTaskLogStream(c)
 	if err != nil {
 		global.LOG.Error("Handle task log stream failed: %v", err)
