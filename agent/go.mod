@@ -111,7 +111,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/shirou/gopsutil v2.21.11+incompatible
 	github.com/shirou/gopsutil/v4 v4.24.7
 	github.com/urfave/cli v1.22.15
 	github.com/vishvananda/netlink v1.3.0
