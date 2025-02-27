@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -50,31 +51,83 @@ func SetTimezone(req model.SetTimezoneReq) error {
 }
 
 func SyncTime() error {
-	// 首先检查是否支持 systemd
-	if _, err := utils.Exec("command -v timedatectl"); err == nil {
-		// 尝试使用 timedatectl 启用 NTP
-		if err := utils.ExecCmd("sudo timedatectl set-ntp true"); err == nil {
-			return nil
-		}
-	}
+	go func() {
+		// 首先检查是否支持 systemd
+		global.LOG.Info("try sync with systemd")
+		if _, err := utils.Exec("command -v timedatectl"); err == nil {
+			global.LOG.Info("disable ntp")
 
-	// 如果 timedatectl 不可用或失败，尝试使用 ntpd
-	if _, err := utils.Exec("command -v ntpd"); err == nil {
-		if err := utils.ExecCmd("sudo service ntpd restart"); err != nil {
-			return fmt.Errorf("restart ntpd service failed: %v", err)
-		}
-		return nil
-	}
+			// 先停止 NTP 服务
+			utils.ExecCmd("sudo timedatectl set-ntp false")
+			time.Sleep(1 * time.Second)
 
-	// 最后尝试使用 ntpdate
-	if _, err := utils.Exec("command -v ntpdate"); err == nil {
-		if err := utils.ExecCmd("sudo ntpdate pool.ntp.org"); err != nil {
-			return fmt.Errorf("sync time with ntpdate failed: %v", err)
+			// 重新启用 NTP
+			global.LOG.Info("enable ntp")
+			if err := utils.ExecCmd("sudo timedatectl set-ntp true"); err == nil {
+				// 等待更长时间让时间同步
+				for i := 0; i < 5; i++ {
+					time.Sleep(3 * time.Second)
+					// 验证同步状态
+					global.LOG.Info("sync checking")
+					output, err := utils.Exec("timedatectl show --property=NTPSynchronized --value")
+					if err == nil && strings.TrimSpace(output) == "yes" {
+						global.LOG.Info("sync ok")
+						// 同步成功后，同步硬件时钟
+						utils.ExecCmd("sudo hwclock --systohc")
+						return
+					}
+				}
+				// 如果15秒后仍未同步成功，继续尝试其他方法
+			}
 		}
-		return nil
-	}
 
-	return fmt.Errorf("no available time sync service found")
+		// 尝试使用 systemd-timesyncd
+		global.LOG.Info("try sync with systemd-timesyncd")
+		if _, err := utils.Exec("systemctl list-unit-files systemd-timesyncd.service"); err == nil {
+			global.LOG.Info("stop ")
+
+			// 先停止服务
+			utils.ExecCmd("sudo systemctl stop systemd-timesyncd")
+			time.Sleep(1 * time.Second)
+
+			global.LOG.Info("restart ")
+			if err := utils.ExecCmd("sudo systemctl restart systemd-timesyncd"); err == nil {
+				// 等待更长时间让时间同步
+				for i := 0; i < 5; i++ {
+					time.Sleep(3 * time.Second)
+					global.LOG.Info("sync checking")
+					if out, err := utils.Exec("timedatectl status"); err == nil &&
+						strings.Contains(out, "System clock synchronized: yes") {
+						global.LOG.Info("sync ok")
+						// 同步成功后，同步硬件时钟
+						utils.ExecCmd("sudo hwclock --systohc")
+						return
+					}
+				}
+			}
+		}
+
+		// 最后尝试使用 ntpdate
+		global.LOG.Info("try sync with ntpdate")
+		if _, err := utils.Exec("command -v ntpdate"); err == nil {
+			global.LOG.Info("stop")
+			// 先停止可能运行的 NTP 服务
+			utils.ExecCmd("sudo systemctl stop systemd-timesyncd")
+			time.Sleep(1 * time.Second)
+
+			global.LOG.Info("start")
+			if err := utils.ExecCmd("sudo ntpdate pool.ntp.org"); err == nil {
+				global.LOG.Info("sync ok")
+				// 同步成功后，同步硬件时钟
+				utils.ExecCmd("sudo hwclock --systohc")
+				return
+			}
+		}
+
+		global.LOG.Error("sync time failed")
+	}()
+
+	return nil
 }
 
 func ClearMemCache() error {
