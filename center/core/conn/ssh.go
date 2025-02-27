@@ -156,6 +156,8 @@ func taskStatus(taskId string, status types.TaskStatus) {
 		return
 	}
 
+	// 延迟1秒更新状态
+	time.Sleep(time.Second)
 	if err := global.LogStream.UpdateTaskStatus(taskId, status); err != nil {
 		global.LOG.Error("Failed to update task status to %s : %v", status, err)
 	}
@@ -217,7 +219,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
 	if strings.TrimSpace(output) == "installed" {
 		global.LOG.Info("Agent is already installed on host %s", host.Addr)
 		taskLog(writer, fmt.Sprintf("Agent is already installed on host %s", host.Addr))
-		taskStatus(taskId, types.TaskStatusSuccess)
+		taskStatus(taskId, types.TaskStatusCanceled)
 		return nil
 	}
 

@@ -371,7 +371,7 @@ func (s *HostService) InstallAgent(id uint) (*core.TaskInfo, error) {
 	}
 
 	// 生成任务
-	taskId, err := global.LogStream.CreateTask(types.TaskTypeBuffer, nil)
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +391,7 @@ func (s *HostService) UninstallAgent(id uint) (*core.TaskInfo, error) {
 	}
 
 	// 生成任务
-	taskId, err := global.LogStream.CreateTask(types.TaskTypeBuffer, nil)
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
 	if err != nil {
 		return nil, err
 	}

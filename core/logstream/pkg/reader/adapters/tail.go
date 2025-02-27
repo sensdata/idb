@@ -73,7 +73,7 @@ func (r *TailReader) Follow() (<-chan []byte, error) {
 		Poll:      true,
 		Location: &tail.SeekInfo{
 			Offset: 0,
-			Whence: io.SeekEnd,
+			Whence: io.SeekStart,
 		},
 	}
 
