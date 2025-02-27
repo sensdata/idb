@@ -122,7 +122,7 @@
   import { toRaw, reactive, ref, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
-  import { AUTH_MODE } from '@/config/enum';
+  import { AUTH_MODE, TASK_STATUS } from '@/config/enum';
   import {
     CreateHostParams,
     createHostApi,
@@ -322,25 +322,32 @@
         Message.error(t('manage.host.agent.installFailed'));
       }
     }, 1000);
+    eventSource.addEventListener('status', (event) => {
+      const status = event.data;
+      switch (status) {
+        case TASK_STATUS.Success:
+          clearInterval(timer);
+          eventSource.close();
+          logComponent.setStatus('completed');
+          Message.success(t('manage.host.agent.installSuccess'));
+          break;
+        case TASK_STATUS.Failed:
+        case TASK_STATUS.Canceled:
+          clearInterval(timer);
+          eventSource.close();
+          logComponent.setStatus('failed');
+          Message.error(t('manage.host.agent.installFailed'));
+          break;
+        default:
+          break;
+      }
+    });
     eventSource.addEventListener('error', () => {
       clearInterval(timer);
       eventSource.close();
       logComponent.setStatus('failed');
       Message.error(t('manage.host.agent.installFailed'));
     });
-    eventSource.addEventListener('success', () => {
-      clearInterval(timer);
-      eventSource.close();
-      logComponent.setStatus('completed');
-      Message.success(t('manage.host.agent.installSuccess'));
-    });
-
-    eventSource.onerror = () => {
-      clearInterval(timer);
-      eventSource.close();
-      logComponent.setStatus('failed');
-      Message.error(t('manage.host.agent.installFailed'));
-    };
   };
 
   const installAgent = async (hostId: number) => {

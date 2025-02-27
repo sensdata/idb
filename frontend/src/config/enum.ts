@@ -27,3 +27,11 @@ export enum CRONTAB_PERIOD_TYPE {
   EVERY_N_MINUTES = 'EVERY_N_MINUTES', // 每N分钟
   EVERY_N_SECONDS = 'EVERY_N_SECONDS', // 每N秒
 }
+
+export enum TASK_STATUS {
+  Created = 'created',
+  Running = 'running',
+  Success = 'success',
+  Failed = 'failed',
+  Canceled = 'canceled',
+}
