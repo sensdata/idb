@@ -7,12 +7,29 @@
         <div class="col3"></div>
         <div class="col4">
           <a-space>
-            <a-button type="primary" size="mini">{{
+            <a-button type="primary" size="mini" @click="handleModifyTime">{{
               $t('app.sysinfo.button.modify')
             }}</a-button>
-            <a-button type="primary" size="mini">{{
-              $t('app.sysinfo.button.sync_time')
-            }}</a-button>
+            <a-button
+              type="primary"
+              size="mini"
+              :loading="isSyncingTime"
+              @click="handleSyncTime"
+              >{{ $t('app.sysinfo.button.sync_time') }}</a-button
+            >
+            <span
+              v-if="syncTimeStatus"
+              :class="{
+                'sync-success': syncTimeStatus === 'success',
+                'sync-syncing': syncTimeStatus === 'syncing',
+              }"
+            >
+              {{
+                syncTimeStatus === 'syncing'
+                  ? $t('app.sysinfo.sync.syncing')
+                  : $t('app.sysinfo.sync.success')
+              }}
+            </span>
           </a-space>
         </div>
       </div>
@@ -247,16 +264,26 @@
       </div>
     </div>
   </a-spin>
+  <time-modify ref="timeModifyRef" @ok="load" />
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { onMounted, reactive } from 'vue';
+  import { onMounted, reactive, ref } from 'vue';
   import { formatSeconds, formatTime } from '@/utils/format';
   import useLoading from '@/hooks/loading';
-  import { getSysInfoOverviewtApi, SysInfoOverviewRes } from '@/api/sysinfo';
+  import {
+    getSysInfoOverviewtApi,
+    SysInfoOverviewRes,
+    syncTimeApi,
+  } from '@/api/sysinfo';
+  import { Message } from '@arco-design/web-vue';
+  import TimeModify from '@/components/time-modify/index.vue';
 
   const { t } = useI18n();
+  const { loading, setLoading } = useLoading(false);
+
+  const data = reactive<Partial<SysInfoOverviewRes>>({});
 
   const storageColumns = [
     {
@@ -286,7 +313,21 @@
       width: 120,
     },
   ];
-  const data = reactive<Partial<SysInfoOverviewRes>>({});
+
+  const isSyncingTime = ref(false);
+  const syncTimeStatus = ref<'syncing' | 'success' | null>(null);
+
+  const timeModifyRef = ref<InstanceType<typeof TimeModify>>();
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await getSysInfoOverviewtApi();
+      Object.assign(data, res);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStorageUsedColor = (rate: number) => {
     if (rate >= 80) {
@@ -298,15 +339,32 @@
     return 'green';
   };
 
-  const { loading, setLoading } = useLoading(false);
+  const handleModifyTime = () => {
+    if (timeModifyRef.value) {
+      timeModifyRef.value.setCurrentTime(formatTime(data.server_time));
+      timeModifyRef.value.show();
+    }
+  };
 
-  const load = async () => {
-    setLoading(true);
+  const handleSyncTime = async () => {
+    if (isSyncingTime.value) return;
+
+    isSyncingTime.value = true;
+    syncTimeStatus.value = 'syncing';
+
     try {
-      const res = await getSysInfoOverviewtApi();
-      Object.assign(data, res);
+      await syncTimeApi();
+      syncTimeStatus.value = 'success';
+      await load();
+
+      setTimeout(() => {
+        syncTimeStatus.value = null;
+      }, 3000);
+    } catch (err: any) {
+      Message.error(err.message || t('app.sysinfo.sync.failed'));
+      syncTimeStatus.value = null;
     } finally {
-      setLoading(false);
+      isSyncingTime.value = false;
     }
   };
 
@@ -330,7 +388,6 @@
     padding: 12px 40px;
     line-height: 24px;
     border-bottom: 1px solid var(--color-border-2);
-
     &:last-child {
       border-bottom: none;
     }
@@ -350,7 +407,6 @@
     justify-content: flex-start;
     width: 100%;
     margin-bottom: 14px;
-
     &:last-child {
       margin-bottom: 0;
     }
@@ -380,5 +436,13 @@
 
   .col4 {
     min-width: 160px;
+  }
+
+  .sync-syncing {
+    color: var(--color-text-2);
+  }
+
+  .sync-success {
+    color: rgb(var(--red-6));
   }
 </style>

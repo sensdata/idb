@@ -42,4 +42,7 @@ export default {
   'app.sysinfo.button.auto_clear_setting': '自动清理设置',
   'app.sysinfo.button.clear_cache_confirm': '确定清理缓存吗？',
   'app.sysinfo.button.create_virtual_memory': '立即创建虚拟内存',
+  'app.sysinfo.sync.syncing': '正在同步时间...',
+  'app.sysinfo.sync.success': '成功更新时间',
+  'app.sysinfo.sync.failed': '同步时间失败',
 };

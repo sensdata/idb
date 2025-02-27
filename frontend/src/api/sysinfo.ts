@@ -92,3 +92,15 @@ export interface SysInfoSystemRes {
 export function getSysInfoSystemApi() {
   return request.get('sysinfo/{host}/system');
 }
+
+export function syncTimeApi() {
+  return request.post('sysinfo/{host}/action/sync/time');
+}
+
+export interface UpdateTimeParams {
+  timestamp: number;
+}
+
+export function updateTimeApi(data: UpdateTimeParams) {
+  return request.post('sysinfo/{host}/action/upd/time', data);
+}
