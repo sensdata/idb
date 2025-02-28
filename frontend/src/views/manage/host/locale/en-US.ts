@@ -72,11 +72,14 @@ export default {
   'manage.host.agent.installing': 'Installing agent...',
   'manage.host.agent.installSuccess': 'Agent installed successfully',
   'manage.host.agent.installFailed': 'Failed to install agent',
+  'manage.host.agent.installTimeout':
+    'Install timeout, please refresh to view the installation result',
   'manage.host.agent.notInstalled': 'Agent not detected, install now?',
   'manage.host.agent.installTitle': 'Install Agent',
   'manage.host.agent.statusInstalling': 'Installing',
   'manage.host.agent.statusCompleted': 'Completed',
   'manage.host.agent.statusFailed': 'Failed',
+  'manage.host.agent.statusTimeout': 'Install timeout',
   'manage.host.agent.waitingForLogs': 'Waiting for installation logs...',
   'manage.host.agent.close': 'Close',
 

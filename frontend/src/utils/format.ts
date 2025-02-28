@@ -62,9 +62,16 @@ export function formatTransferSpeed(bytesPerSecond?: number): string {
   return `${bytesPerSecond.toFixed(bytesPerSecond >= 100 ? 0 : 1)} G/s`;
 }
 
-export function formatTime(time?: string): string {
+export function formatTime(time?: string | number): string {
   if (!time) {
     return '-';
+  }
+  if (
+    typeof time === 'number' &&
+    time.toString().length <= 11 &&
+    time.toString().length >= 10
+  ) {
+    time *= 1e3;
   }
   const date = new Date(time);
   if (Number.isNaN(date.getTime())) {

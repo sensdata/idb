@@ -308,40 +308,96 @@
 
     let heartbeat = Date.now();
     const eventSource = new EventSource(url);
-    eventSource.addEventListener('log', (event) => {
-      logComponent.addLog(event.data, 'info');
+
+    // 处理日志事件
+    eventSource.addEventListener('log', (event: Event) => {
+      try {
+        if (event instanceof MessageEvent) {
+          const logData = JSON.parse(event.data);
+          if (
+            logData &&
+            typeof logData === 'object' &&
+            logData.level &&
+            logData.message
+          ) {
+            // 如果日志数据包含级别和消息
+            const level = logData.level.toLowerCase();
+            // 将level映射到组件支持的级别
+            let mappedLevel: 'info' | 'error' | 'warn' | 'debug' = 'info';
+
+            if (level === 'debug') {
+              mappedLevel = 'debug';
+            } else if (level === 'info') {
+              mappedLevel = 'info';
+            } else if (level === 'warn') {
+              mappedLevel = 'warn';
+            } else if (level === 'error') {
+              mappedLevel = 'error';
+            }
+
+            logComponent.addLog({
+              time: logData.timestamp,
+              message: logData.message,
+              level: mappedLevel,
+            });
+          } else {
+            // 如果是普通字符串，默认为info级别
+            logComponent.addLog({
+              time: Date.now(),
+              message: event.data,
+              level: 'info',
+            });
+          }
+        }
+      } catch (e) {
+        // 如果解析JSON失败，则按原样显示为info级别
+        if (event instanceof MessageEvent) {
+          logComponent.addLog({
+            time: Date.now(),
+            message: event.data,
+            level: 'info',
+          });
+        }
+      }
     });
+
     eventSource.addEventListener('heartbeat', () => {
       heartbeat = Date.now();
     });
+
     const timer = window.setInterval(() => {
-      if (Date.now() - heartbeat > 10e3) {
+      if (Date.now() - heartbeat > 30e3) {
         clearInterval(timer);
         eventSource.close();
         logComponent.setStatus('failed');
-        Message.error(t('manage.host.agent.installFailed'));
+        Message.error(t('manage.host.agent.installTimeout'));
       }
     }, 1000);
-    eventSource.addEventListener('status', (event) => {
-      const status = event.data;
-      switch (status) {
-        case TASK_STATUS.Success:
-          clearInterval(timer);
-          eventSource.close();
-          logComponent.setStatus('completed');
-          Message.success(t('manage.host.agent.installSuccess'));
-          break;
-        case TASK_STATUS.Failed:
-        case TASK_STATUS.Canceled:
-          clearInterval(timer);
-          eventSource.close();
-          logComponent.setStatus('failed');
-          Message.error(t('manage.host.agent.installFailed'));
-          break;
-        default:
-          break;
+
+    eventSource.addEventListener('status', (event: Event) => {
+      if (event instanceof MessageEvent) {
+        const status = event.data;
+        switch (status) {
+          case TASK_STATUS.Success:
+            clearInterval(timer);
+            eventSource.close();
+            logComponent.setStatus('completed');
+            Message.success(t('manage.host.agent.installSuccess'));
+            break;
+          case TASK_STATUS.Failed:
+          case TASK_STATUS.Canceled:
+            clearInterval(timer);
+            eventSource.close();
+            logComponent.setStatus('failed');
+            Message.error(t('manage.host.agent.installFailed'));
+            break;
+          default:
+            break;
+        }
       }
     });
+
+    // 全局错误处理
     eventSource.addEventListener('error', () => {
       clearInterval(timer);
       eventSource.close();

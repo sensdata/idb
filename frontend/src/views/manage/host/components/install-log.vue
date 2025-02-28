@@ -25,6 +25,7 @@
       </div>
       <div ref="logContentRef" class="log-content">
         <div v-for="(log, index) in logs" :key="index" class="log-item">
+          <span class="log-time"> {{ formatTime(log.time) }} </span>
           <span :class="['log-message', log.level]">{{ log.message }}</span>
         </div>
         <div v-if="logs.length === 0" class="empty-log">
@@ -43,6 +44,7 @@
 <script lang="ts" setup>
   import { ref, computed, watch, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { formatTime } from '@/utils/format';
   import useVisible from '@/hooks/visible';
 
   const emit = defineEmits(['ok', 'cancel']);
@@ -52,11 +54,13 @@
   interface LogItem {
     time: number;
     message: string;
-    level: 'info' | 'error' | 'warning' | 'success';
+    level: 'info' | 'error' | 'warn' | 'debug';
   }
 
   const logs = ref<LogItem[]>([]);
-  const status = ref<'installing' | 'completed' | 'failed'>('installing');
+  const status = ref<'installing' | 'completed' | 'failed' | 'timeout'>(
+    'installing'
+  );
   const logContentRef = ref<HTMLElement | null>(null);
 
   const isCompleted = computed(() => {
@@ -71,6 +75,8 @@
         return t('manage.host.agent.statusCompleted');
       case 'failed':
         return t('manage.host.agent.statusFailed');
+      case 'timeout':
+        return t('manage.host.agent.statusTimeout');
       default:
         return '';
     }
@@ -84,6 +90,8 @@
         return 'green';
       case 'failed':
         return 'red';
+      case 'timeout':
+        return 'arcoblue';
       default:
         return 'arcoblue';
     }
@@ -100,19 +108,17 @@
     scrollToBottom();
   });
 
-  const addLog = (message: string, level: LogItem['level'] = 'info') => {
-    logs.value.push({
-      time: Date.now(),
-      message,
-      level,
-    });
+  const addLog = (log: LogItem) => {
+    logs.value.push(log);
   };
 
   const clearLogs = () => {
     logs.value = [];
   };
 
-  const setStatus = (newStatus: 'installing' | 'completed' | 'failed') => {
+  const setStatus = (
+    newStatus: 'installing' | 'completed' | 'failed' | 'timeout'
+  ) => {
     status.value = newStatus;
   };
 
@@ -179,19 +185,23 @@
   }
 
   .log-message {
-    color: var(--color-text-1);
+    color: var(--color-text-2);
+  }
+
+  .log-message.debug {
+    color: #6c757d;
+  }
+
+  .log-message.info {
+    color: #212529;
+  }
+
+  .log-message.warn {
+    color: #ffc107;
   }
 
   .log-message.error {
-    color: var(--color-danger-light-4);
-  }
-
-  .log-message.warning {
-    color: var(--color-warning-light-4);
-  }
-
-  .log-message.success {
-    color: var(--color-success-light-4);
+    color: #dc3545;
   }
 
   .empty-log {

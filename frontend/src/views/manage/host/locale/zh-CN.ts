@@ -68,13 +68,15 @@ export default {
   'manage.host.form.test.error': '检测出错：{message}',
 
   'manage.host.agent.installing': '正在安装受控端...',
-  'manage.host.agent.installSuccess': '受控端安装成功',
-  'manage.host.agent.installFailed': '受控端安装失败',
+  'manage.host.agent.installSuccess': '安装成功',
+  'manage.host.agent.installFailed': '安装失败',
+  'manage.host.agent.installTimeout': '安装超时，请刷新后查看安装结果',
   'manage.host.agent.notInstalled': '未检测到受控端，是否立即安装？',
   'manage.host.agent.installTitle': '安装受控端',
   'manage.host.agent.statusInstalling': '安装中',
   'manage.host.agent.statusCompleted': '安装完成',
   'manage.host.agent.statusFailed': '安装失败',
+  'manage.host.agent.statusTimeout': '安装超时',
   'manage.host.agent.waitingForLogs': '等待安装日志...',
   'manage.host.agent.close': '关闭',
 
