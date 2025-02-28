@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
 const (
@@ -41,7 +42,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	}
 	defer reader.Close()
 
-	logCh, err := reader.Follow()
+	logCh, err := reader.FollowEntry()
 	if err != nil {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
@@ -80,7 +81,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	c.Writer.Header().Set("Transfer-Encoding", "chunked")
 
 	// 创建一个缓冲通道来处理日志
-	bufferCh := make(chan string, 100)
+	bufferCh := make(chan types.LogEntry, 100)
 	defer close(bufferCh)
 
 	// 启动一个 goroutine 来处理日志缓冲
@@ -89,11 +90,11 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 			select {
 			case msg := <-logCh:
 				select {
-				case bufferCh <- string(msg):
+				case bufferCh <- msg:
 				default:
 					// 如果缓冲区满了，丢弃最旧的消息
 					<-bufferCh
-					bufferCh <- string(msg)
+					bufferCh <- msg
 				}
 			case <-ctx.Done():
 				return
@@ -109,7 +110,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	for {
 		select {
 		case msg := <-bufferCh:
-			c.SSEvent("log", msg)
+			c.SSEvent(string(msg.Level), msg.Message)
 			flusher.Flush()
 		case status := <-statusCh:
 			c.SSEvent("status", status)
