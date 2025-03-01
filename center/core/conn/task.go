@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/global"
-	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
 const (
@@ -42,7 +41,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	}
 	defer reader.Close()
 
-	logCh, err := reader.FollowEntry()
+	logCh, err := reader.Follow()
 	if err != nil {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
@@ -81,7 +80,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	c.Writer.Header().Set("Transfer-Encoding", "chunked")
 
 	// 创建一个缓冲通道来处理日志
-	bufferCh := make(chan types.LogEntry, 100)
+	bufferCh := make(chan []byte, 100)
 	defer close(bufferCh)
 
 	// 启动一个 goroutine 来处理日志缓冲
@@ -110,7 +109,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	for {
 		select {
 		case msg := <-bufferCh:
-			c.SSEvent(string(msg.Level), msg.Message)
+			c.SSEvent("log", string(msg))
 			flusher.Flush()
 		case status := <-statusCh:
 			c.SSEvent("status", status)
