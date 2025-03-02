@@ -77,4 +77,17 @@ export default {
   'app.sysinfo.network.proto_static': 'Static',
   'app.sysinfo.network.ethernet': 'Ethernet',
   'app.sysinfo.network.loopback': 'Loopback',
+
+  // System information page
+  'app.sysinfo.system.host_name': 'Host Name',
+  'app.sysinfo.system.host_name_label': 'Name:',
+  'app.sysinfo.system.platform': 'Distribution',
+  'app.sysinfo.system.platform_label': 'Version:',
+  'app.sysinfo.system.version': 'System Version',
+  'app.sysinfo.system.version_label': 'Version:',
+  'app.sysinfo.system.kernel': 'Kernel Version',
+  'app.sysinfo.system.kernel_label': 'Kernel:',
+  'app.sysinfo.system.virtual': 'Virtualization',
+  'app.sysinfo.system.virtual_label': 'Platform:',
+  'app.sysinfo.system.not_virtual': 'Physical Machine',
 };

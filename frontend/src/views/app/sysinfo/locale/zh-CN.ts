@@ -75,4 +75,17 @@ export default {
   'app.sysinfo.network.proto_static': '静态分配',
   'app.sysinfo.network.ethernet': '以太网',
   'app.sysinfo.network.loopback': '本地环路',
+
+  // 系统信息页面
+  'app.sysinfo.system.host_name': '主机名称',
+  'app.sysinfo.system.host_name_label': '名称：',
+  'app.sysinfo.system.platform': '发行版本',
+  'app.sysinfo.system.platform_label': '版本：',
+  'app.sysinfo.system.version': '系统版本',
+  'app.sysinfo.system.version_label': '版本号：',
+  'app.sysinfo.system.kernel': '内核版本',
+  'app.sysinfo.system.kernel_label': '内核：',
+  'app.sysinfo.system.virtual': '虚拟化平台',
+  'app.sysinfo.system.virtual_label': '平台：',
+  'app.sysinfo.system.not_virtual': '物理机',
 };

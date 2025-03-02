@@ -31,6 +31,15 @@ const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
         },
       },
+      {
+        path: 'system',
+        name: 'sysinfoSystem',
+        component: () => import('@/views/app/sysinfo/system.vue'),
+        meta: {
+          locale: 'menu.app.sysinfo.system',
+          requiresAuth: true,
+        },
+      },
     ],
   },
   {

@@ -105,6 +105,14 @@ export function updateTimeApi(data: UpdateTimeParams) {
   return request.post('sysinfo/{host}/action/upd/time', data);
 }
 
+export interface UpdateHostNameParams {
+  host_name: string;
+}
+
+export function updateHostNameApi(data: UpdateHostNameParams) {
+  return request.post('sysinfo/{host}/action/upd/hostname', data);
+}
+
 export interface UpdateDNSParams {
   retry: number;
   servers: string[];
