@@ -24,6 +24,8 @@ export default {
   'common.edit': '编辑',
   'common.add': '添加',
   'common.delete': '删除',
+  'common.view': '查看',
+  'common.modify': '修改',
 
   'common.yes': '是',
   'common.no': '否',

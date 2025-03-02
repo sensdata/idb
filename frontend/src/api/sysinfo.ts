@@ -51,7 +51,7 @@ export function getSysInfoOverviewtApi() {
 
 export interface SysInfoNetworkRes {
   dns: {
-    retryTimes: number;
+    retry: number;
     servers: [string];
     timeout: number;
   };

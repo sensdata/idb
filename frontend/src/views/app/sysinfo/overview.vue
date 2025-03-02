@@ -2,20 +2,20 @@
   <a-spin :loading="loading">
     <div class="box">
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.server_time') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.server_time') }}</div>
         <div class="col2">{{ formatTime(data.server_time) }}</div>
         <div class="col3"></div>
         <div class="col4">
           <a-space>
             <a-button type="primary" size="mini" @click="handleModifyTime">{{
-              $t('app.sysinfo.button.modify')
+              $t('common.modify')
             }}</a-button>
             <a-button
               type="primary"
               size="mini"
               :loading="isSyncingTime"
               @click="handleSyncTime"
-              >{{ $t('app.sysinfo.button.sync_time') }}</a-button
+              >{{ $t('app.sysinfo.overview.button.sync_time') }}</a-button
             >
             <span
               v-if="syncTimeStatus"
@@ -26,116 +26,122 @@
             >
               {{
                 syncTimeStatus === 'syncing'
-                  ? $t('app.sysinfo.sync.syncing')
-                  : $t('app.sysinfo.sync.success')
+                  ? $t('app.sysinfo.overview.sync.syncing')
+                  : $t('app.sysinfo.overview.sync.success')
               }}
             </span>
           </a-space>
         </div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.server_time_zone') }}</div>
+        <div class="col1">{{
+          $t('app.sysinfo.overview.server_time_zone')
+        }}</div>
         <div class="col2">{{ data.server_time_zone }}</div>
         <div class="col3"></div>
         <div class="col4">
           <a-button type="primary" size="mini">{{
-            $t('app.sysinfo.button.modify')
+            $t('common.modify')
           }}</a-button>
         </div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.boot_time') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.boot_time') }}</div>
         <div class="col2"> {{ formatTime(data.boot_time) }} </div>
         <div class="col3"></div>
         <div class="col4">
-          <a-tag color="blue">{{ $t('app.sysinfo.tag.busy') }}</a-tag>
+          <a-tag color="blue">{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag>
         </div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.run_time') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.run_time') }}</div>
         <div class="col2"> {{ formatSeconds(data.run_time) }} </div>
         <div class="col3"></div>
         <div class="col4"></div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.idle_time') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.idle_time') }}</div>
         <div class="col2">{{ formatSeconds(data.idle_time) }}</div>
         <div class="col3"></div>
         <div class="col4">
           <a-tag color="green">{{
             // todo
-            $t('app.sysinfo.tag.label_free', { free: '92.41' })
+            $t('app.sysinfo.overview.tag.label_free', { free: '92.41' })
           }}</a-tag>
         </div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.cpu_usage') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.cpu_usage') }}</div>
         <div class="col2">{{ data.cpu_usage }}</div>
         <div class="col3"></div>
         <div class="col4"></div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.current_load') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.current_load') }}</div>
         <div class="colspan">
           <div class="subline">
-            <div class="col2">{{ $t('app.sysinfo.tag.count1') }}</div>
+            <div class="col2">{{ $t('app.sysinfo.overview.tag.count1') }}</div>
             <div class="col3">{{ data.current_load?.process_count1 }}</div>
             <div class="col4">
               <template v-if="data.current_load?.process_count1">
                 <a-tag
                   v-if="data.current_load.process_count1 > 50"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
                 >
                 <a-tag
                   v-else-if="data.current_load.process_count1 > 30"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
                 >
                 <a-tag v-else color="green">{{
-                  $t('app.sysinfo.tag.free')
+                  $t('app.sysinfo.overview.tag.free')
                 }}</a-tag>
               </template>
             </div>
           </div>
           <div class="subline">
-            <div class="col2">{{ $t('app.sysinfo.process_count5') }}</div>
+            <div class="col2">{{
+              $t('app.sysinfo.overview.process_count5')
+            }}</div>
             <div class="col3">{{ data.current_load?.process_count5 }}</div>
             <div class="col4">
               <template v-if="data.current_load?.process_count5">
                 <a-tag
                   v-if="data.current_load.process_count5 > 50"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
                 >
                 <a-tag
                   v-else-if="data.current_load.process_count5 > 30"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
                 >
                 <a-tag v-else color="green">{{
-                  $t('app.sysinfo.tag.free')
+                  $t('app.sysinfo.overview.tag.free')
                 }}</a-tag>
               </template>
             </div>
           </div>
           <div class="subline">
-            <div class="col2">{{ $t('app.sysinfo.process_count15') }}</div>
+            <div class="col2">{{
+              $t('app.sysinfo.overview.process_count15')
+            }}</div>
             <div class="col3">{{ data.current_load?.process_count15 }}</div>
             <div class="col4">
               <template v-if="data.current_load?.process_count15">
                 <a-tag
                   v-if="data.current_load.process_count15 > 50"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.busy') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
                 >
                 <a-tag
                   v-else-if="data.current_load.process_count15 > 30"
                   color="blue"
-                  >{{ $t('app.sysinfo.tag.normal') }}</a-tag
+                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
                 >
                 <a-tag v-else color="green">{{
-                  $t('app.sysinfo.tag.free')
+                  $t('app.sysinfo.overview.tag.free')
                 }}</a-tag>
               </template>
             </div>
@@ -143,12 +149,14 @@
         </div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.memory_usage') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.memory_usage') }}</div>
         <div class="colspan">
           <div class="subline">
             <div class="col2">
-              {{ $t('app.sysinfo.memory_total') }}
-              <a-tooltip :content="$t('app.sysinfo.memory_total_tips')">
+              {{ $t('app.sysinfo.overview.memory_total') }}
+              <a-tooltip
+                :content="$t('app.sysinfo.overview.memory_total_tips')"
+              >
                 <icon-question-circle-fill
                   class="color-primary cursor-pointer"
                 />
@@ -158,11 +166,11 @@
             <div class="col4"></div>
           </div>
           <div class="subline">
-            <div class="col2">{{ $t('app.sysinfo.memory_free') }}</div>
+            <div class="col2">{{ $t('app.sysinfo.overview.memory_free') }}</div>
             <div class="col3">{{ data.memory_usage?.free }}</div>
             <div class="col4">
               <a-tag v-if="data.memory_usage?.free_rate" color="gold">{{
-                $t('app.sysinfo.tag.leave_unused', {
+                $t('app.sysinfo.overview.tag.leave_unused', {
                   used: data.memory_usage.free_rate.toFixed(2) + '%',
                 })
               }}</a-tag>
@@ -170,8 +178,8 @@
           </div>
           <div class="subline">
             <div class="col2">
-              {{ $t('app.sysinfo.memory_used') }}
-              <a-tooltip :content="$t('app.sysinfo.memory_used_tips')">
+              {{ $t('app.sysinfo.overview.memory_used') }}
+              <a-tooltip :content="$t('app.sysinfo.overview.memory_used_tips')">
                 <icon-question-circle-fill
                   class="color-primary cursor-pointer"
                 />
@@ -181,18 +189,20 @@
             <div class="col4"></div>
           </div>
           <div class="subline">
-            <div class="col2">{{ $t('app.sysinfo.memory_real_used') }}</div>
+            <div class="col2">{{
+              $t('app.sysinfo.overview.memory_real_used')
+            }}</div>
             <div class="col3"> {{ data.memory_usage?.real_used }}</div>
             <div class="col4">
               <a-link class="text-sm">{{
-                $t('app.sysinfo.button.view_memory')
+                $t('app.sysinfo.overview.button.view_memory')
               }}</a-link>
             </div>
           </div>
           <div class="subline">
             <div class="col2">
-              {{ $t('app.sysinfo.memory_buffered') }}
-              <!-- <a-tooltip :content="$t('app.sysinfo.memory_buffered_tips')">
+              {{ $t('app.sysinfo.overview.memory_buffered') }}
+              <!-- <a-tooltip :content="$t('app.sysinfo.overview.memory_buffered_tips')">
                 <icon-question-circle-fill
                   class="color-primary cursor-pointer"
                 />
@@ -203,8 +213,8 @@
           </div>
           <div class="subline">
             <div class="col2">
-              {{ $t('app.sysinfo.memory_cached') }}
-              <!-- <a-tooltip :content="$t('app.sysinfo.memory_cached_tips')">
+              {{ $t('app.sysinfo.overview.memory_cached') }}
+              <!-- <a-tooltip :content="$t('app.sysinfo.overview.memory_cached_tips')">
                 <icon-question-circle-fill
                   class="color-primary cursor-pointer"
                 />
@@ -214,10 +224,10 @@
             <div class="col4">
               <a-space>
                 <a-button type="primary" size="mini">{{
-                  $t('app.sysinfo.button.clear_cache')
+                  $t('app.sysinfo.overview.button.clear_cache')
                 }}</a-button>
                 <a-button type="primary" size="mini">{{
-                  $t('app.sysinfo.button.auto_clear_setting')
+                  $t('app.sysinfo.overview.button.auto_clear_setting')
                 }}</a-button>
               </a-space>
             </div>
@@ -225,31 +235,32 @@
         </div>
       </div>
       <div class="line no-border">
-        <div class="col1">{{ $t('app.sysinfo.virtual_memory') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.virtual_memory') }}</div>
         <div class="col2">
           <!-- todo -->
-          {{ $t('app.sysinfo.no_virtual_memory') }}
+          {{ $t('app.sysinfo.overview.no_virtual_memory') }}
         </div>
         <div class="col3"></div>
         <div class="col4">
           <a-button type="primary" size="mini">{{
-            $t('app.sysinfo.button.create_virtual_memory')
+            $t('app.sysinfo.overview.button.create_virtual_memory')
           }}</a-button>
         </div>
       </div>
       <div class="line">
-        <div class="col1">({{ $t('app.sysinfo.swap_usage') }})</div>
+        <div class="col1">({{ $t('app.sysinfo.overview.swap_usage') }})</div>
         <div class="col2">/</div>
         <div class="col3">{{ data.swap_usage?.total }}</div>
         <div class="col4"></div>
       </div>
       <div class="line">
-        <div class="col1">{{ $t('app.sysinfo.storage') }}</div>
+        <div class="col1">{{ $t('app.sysinfo.overview.storage') }}</div>
         <div class="colspan mb-6">
           <a-table
             :columns="storageColumns"
             :data="data.storage || []"
             :pagination="false"
+            size="small"
           >
             <template #rate="{ record }">
               <a-tag
@@ -287,27 +298,27 @@
 
   const storageColumns = [
     {
-      title: t('app.sysinfo.storage_mount_point'),
+      title: t('app.sysinfo.overview.storage_mount_point'),
       dataIndex: 'name',
       width: 200,
     },
     {
-      title: t('app.sysinfo.storage_total'),
+      title: t('app.sysinfo.overview.storage_total'),
       dataIndex: 'total',
       width: 120,
     },
     {
-      title: t('app.sysinfo.storage_used'),
+      title: t('app.sysinfo.overview.storage_used'),
       dataIndex: 'used',
       width: 120,
     },
     {
-      title: t('app.sysinfo.storage_free'),
+      title: t('app.sysinfo.overview.storage_free'),
       dataIndex: 'free',
       width: 120,
     },
     {
-      title: t('app.sysinfo.storage_used_rate'),
+      title: t('app.sysinfo.overview.storage_used_rate'),
       dataIndex: 'used_rate',
       slotName: 'rate',
       width: 120,
@@ -361,7 +372,7 @@
         syncTimeStatus.value = null;
       }, 3000);
     } catch (err: any) {
-      Message.error(err.message || t('app.sysinfo.sync.failed'));
+      Message.error(err.message || t('app.sysinfo.overview.sync.failed'));
       syncTimeStatus.value = null;
     } finally {
       isSyncingTime.value = false;

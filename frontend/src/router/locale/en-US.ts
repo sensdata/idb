@@ -5,6 +5,7 @@ export default {
   'menu.manage.settings': 'Panel Settings',
   'menu.app.sysinfo': 'System Info',
   'menu.app.sysinfo.overview': 'Overview',
+  'menu.app.sysinfo.network': 'Network',
   'menu.app.crontab': 'Crontab',
   'menu.app.file': 'File Manager',
   'menu.app.terminal': 'Terminal',
