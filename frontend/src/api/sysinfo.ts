@@ -90,7 +90,7 @@ export interface SysInfoSystemRes {
   vertual: string;
 }
 export function getSysInfoSystemApi() {
-  return request.get('sysinfo/{host}/system');
+  return request.get<SysInfoSystemRes>('sysinfo/{host}/system');
 }
 
 export function syncTimeApi() {
@@ -103,4 +103,13 @@ export interface UpdateTimeParams {
 
 export function updateTimeApi(data: UpdateTimeParams) {
   return request.post('sysinfo/{host}/action/upd/time', data);
+}
+
+export interface UpdateDNSParams {
+  retry: number;
+  servers: string[];
+  timeout: number;
+}
+export function updateDNSApi(data: UpdateDNSParams) {
+  return request.post('sysinfo/{host}/action/upd/dns', data);
 }

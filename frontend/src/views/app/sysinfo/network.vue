@@ -51,7 +51,7 @@
                 }}
               </a-tag>
             </div>
-            <div v-if="index === 0" class="col4">
+            <div v-if="index === 0" class="col4 hidden">
               <a-button
                 type="primary"
                 size="mini"
@@ -123,6 +123,7 @@
       </div>
     </div>
   </a-spin>
+  <dns-modify ref="dnsModifyRef" @ok="handleDNSUpdateSuccess" />
 </template>
 
 <script lang="ts" setup>
@@ -131,9 +132,11 @@
   import { Message } from '@arco-design/web-vue';
   import { getSysInfoNetworkApi, SysInfoNetworkRes } from '@/api/sysinfo';
   import useLoading from '@/hooks/loading';
+  import DnsModify from '@/views/app/sysinfo/components/dns-modify/index.vue';
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);
+  const dnsModifyRef = ref<InstanceType<typeof DnsModify>>();
   const data = ref<SysInfoNetworkRes>({
     dns: {
       retry: 0,
@@ -228,12 +231,26 @@
     }
   };
 
+  // 处理DNS修改
   const handleModifyDNS = () => {
-    console.log('handleModifyDNS');
+    if (dnsModifyRef.value && data.value.dns) {
+      dnsModifyRef.value.setDNSData({
+        servers: [...data.value.dns.servers],
+        timeout: data.value.dns.timeout,
+        retry: data.value.dns.retry,
+      });
+      dnsModifyRef.value.show();
+    }
+  };
+
+  // DNS更新成功后的处理
+  const handleDNSUpdateSuccess = () => {
+    // 立即刷新数据
+    fetchData();
   };
 
   const handleModifyNetwork = () => {
-    console.log('handleModifyNetwork');
+    // todo: 修改网络接口
   };
 
   onMounted(() => {
