@@ -74,6 +74,12 @@ definitions:
       status:
         type: string
     type: object
+  model.AutoClearMemCacheConf:
+    properties:
+      interval:
+        description: 时间间隔
+        type: integer
+    type: object
   model.AutoClearMemCacheReq:
     properties:
       interval:
@@ -1149,14 +1155,14 @@ definitions:
         description: 当前负载
       idle_time:
         description: 空闲时间
-        type: string
+        type: integer
       memory_usage:
         allOf:
         - $ref: '#/definitions/model.MemoryState'
         description: 内存使用
       run_time:
         description: 运行时间
-        type: string
+        type: integer
       server_time:
         description: 服务器时间
         type: string
@@ -6910,6 +6916,26 @@ paths:
       tags:
       - Sysctl
   /sysinfo/{host}/action/memcache/auto/set:
+    get:
+      consumes:
+      - application/json
+      description: Get auto clear interval for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AutoClearMemCacheConf'
+      summary: Get auto clear interval
+      tags:
+      - Sysinfo
     post:
       consumes:
       - application/json

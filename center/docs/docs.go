@@ -7651,6 +7651,36 @@ const docTemplate = `{
             }
         },
         "/sysinfo/{host}/action/memcache/auto/set": {
+            "get": {
+                "description": "Get auto clear interval for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Get auto clear interval",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AutoClearMemCacheConf"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Set auto clear interval for the specified host",
                 "consumes": [
@@ -8766,6 +8796,15 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "model.AutoClearMemCacheConf": {
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "description": "时间间隔",
+                    "type": "integer"
                 }
             }
         },
@@ -10368,7 +10407,7 @@ const docTemplate = `{
                 },
                 "idle_time": {
                     "description": "空闲时间",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "memory_usage": {
                     "description": "内存使用",
@@ -10380,7 +10419,7 @@ const docTemplate = `{
                 },
                 "run_time": {
                     "description": "运行时间",
-                    "type": "string"
+                    "type": "integer"
                 },
                 "server_time": {
                     "description": "服务器时间",
