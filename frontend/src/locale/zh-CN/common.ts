@@ -26,6 +26,7 @@ export default {
   'common.delete': '删除',
   'common.view': '查看',
   'common.modify': '修改',
+  'common.save': '保存',
 
   'common.yes': '是',
   'common.no': '否',

@@ -90,4 +90,11 @@ export default {
   'app.sysinfo.system.virtual': 'Virtualization',
   'app.sysinfo.system.virtual_label': 'Platform:',
   'app.sysinfo.system.not_virtual': 'Physical Machine',
+
+  // System configuration page
+  'app.sysinfo.config.max_watch_files': 'Max Watched Files:',
+  'app.sysinfo.config.max_open_files': 'Max Open Files:',
+  'app.sysinfo.config.files': 'files',
+  'app.sysinfo.config.save_success': 'System configuration saved successfully',
+  'app.sysinfo.config.save_failed': 'Failed to save system configuration',
 };

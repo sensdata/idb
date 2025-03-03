@@ -7,6 +7,7 @@ export default {
   'menu.app.sysinfo.overview': 'Overview',
   'menu.app.sysinfo.network': 'Network',
   'menu.app.sysinfo.system': 'System',
+  'menu.app.sysinfo.config': 'Configuration',
   'menu.app.crontab': 'Crontab',
   'menu.app.file': 'File Manager',
   'menu.app.terminal': 'Terminal',

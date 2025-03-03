@@ -121,3 +121,20 @@ export interface UpdateDNSParams {
 export function updateDNSApi(data: UpdateDNSParams) {
   return request.post('sysinfo/{host}/action/upd/dns', data);
 }
+
+export interface SysInfoSettingsRes {
+  max_open_files: number;
+  max_watch_files: number;
+}
+export function getSysInfoSettingsApi() {
+  return request.get<SysInfoSettingsRes>('sysinfo/{host}/settings');
+}
+
+export interface UpdateSettingsParams {
+  max_open_files: number;
+  max_watch_files: number;
+}
+
+export function updateSysInfoSettingsApi(data: UpdateSettingsParams) {
+  return request.post('sysinfo/{host}/action/upd/settings', data);
+}

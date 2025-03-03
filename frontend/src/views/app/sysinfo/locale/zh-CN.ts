@@ -88,4 +88,11 @@ export default {
   'app.sysinfo.system.virtual': '虚拟化平台',
   'app.sysinfo.system.virtual_label': '平台：',
   'app.sysinfo.system.not_virtual': '物理机',
+
+  // 系统配置页面
+  'app.sysinfo.config.max_watch_files': '最大监控文件个数：',
+  'app.sysinfo.config.max_open_files': '最大文件打开数量：',
+  'app.sysinfo.config.files': '个',
+  'app.sysinfo.config.save_success': '系统配置保存成功',
+  'app.sysinfo.config.save_failed': '系统配置保存失败',
 };

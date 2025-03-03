@@ -7,6 +7,7 @@ export default {
   'menu.app.sysinfo.overview': '状态概览',
   'menu.app.sysinfo.network': '网络信息',
   'menu.app.sysinfo.system': '系统信息',
+  'menu.app.sysinfo.config': '系统配置',
   'menu.app.crontab': '计划任务',
   'menu.app.file': '文件管理',
   'menu.app.terminal': '命令终端',
