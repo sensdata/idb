@@ -105,4 +105,11 @@ export default {
     '确定要删除虚拟内存吗？删除后系统性能可能会受到影响。',
   'app.sysinfo.overview.delete_swap_success': '删除虚拟内存成功',
   'app.sysinfo.overview.delete_swap_failed': '删除虚拟内存失败',
+
+  'app.sysinfo.overview.create_swap_title': '创建虚拟内存',
+  'app.sysinfo.overview.create_swap_input_tip': '请输入要创建的虚拟内存大小',
+  'app.sysinfo.overview.create_swap_size': '大小：',
+  'app.sysinfo.overview.create_swap_size_required': '请输入虚拟内存大小',
+  'app.sysinfo.overview.create_swap_success': '创建虚拟内存成功',
+  'app.sysinfo.overview.create_swap_failed': '创建虚拟内存失败',
 };

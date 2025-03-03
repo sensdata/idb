@@ -241,13 +241,16 @@
           ({{ $t('app.sysinfo.overview.swap_usage') }})
         </div>
         <div class="colspan">
-          <div v-if="!data.swap_usage" class="subline">
+          <div
+            v-if="!data.swap_usage || data.swap_usage.total === '0B'"
+            class="subline"
+          >
             <div class="col2">{{
               $t('app.sysinfo.overview.no_virtual_memory')
             }}</div>
             <div class="col3"></div>
             <div class="col4">
-              <a-button type="primary" size="mini">{{
+              <a-button type="primary" size="mini" @click="handleCreateSwap">{{
                 $t('app.sysinfo.overview.button.create_virtual_memory')
               }}</a-button>
             </div>
@@ -314,6 +317,7 @@
     </div>
   </a-spin>
   <time-modify ref="timeModifyRef" @ok="load" />
+  <create-swap-modal ref="createSwapModalRef" @ok="load" />
 </template>
 
 <script lang="ts" setup>
@@ -330,6 +334,7 @@
   import { useConfirm } from '@/hooks/confirm';
   import { Message } from '@arco-design/web-vue';
   import TimeModify from '@/components/time-modify/index.vue';
+  import CreateSwapModal from './components/create-swap-modal/index.vue';
 
   const { t } = useI18n();
   const { confirm } = useConfirm();
@@ -370,6 +375,7 @@
   const syncTimeStatus = ref<'syncing' | 'success' | null>(null);
 
   const timeModifyRef = ref<InstanceType<typeof TimeModify>>();
+  const createSwapModalRef = ref<InstanceType<typeof CreateSwapModal>>();
 
   const load = async () => {
     setLoading(true);
@@ -417,6 +423,13 @@
       syncTimeStatus.value = null;
     } finally {
       isSyncingTime.value = false;
+    }
+  };
+
+  const handleCreateSwap = () => {
+    if (createSwapModalRef.value) {
+      createSwapModalRef.value.reset();
+      createSwapModalRef.value.show();
     }
   };
 

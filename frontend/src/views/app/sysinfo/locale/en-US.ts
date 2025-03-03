@@ -108,4 +108,14 @@ export default {
   'app.sysinfo.overview.delete_swap_success':
     'Virtual memory deleted successfully',
   'app.sysinfo.overview.delete_swap_failed': 'Failed to delete virtual memory',
+
+  'app.sysinfo.overview.create_swap_title': 'Create Virtual Memory',
+  'app.sysinfo.overview.create_swap_input_tip':
+    'Please enter the size of virtual memory to create',
+  'app.sysinfo.overview.create_swap_size': 'Size:',
+  'app.sysinfo.overview.create_swap_size_required':
+    'Please enter virtual memory size',
+  'app.sysinfo.overview.create_swap_success':
+    'Virtual memory created successfully',
+  'app.sysinfo.overview.create_swap_failed': 'Failed to create virtual memory',
 };
