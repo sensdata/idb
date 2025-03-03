@@ -204,15 +204,21 @@
   ];
 
   // 获取网络信息数据
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       const res = await getSysInfoNetworkApi();
       data.value = res;
     } catch (err: any) {
-      Message.error(err.message || 'Failed to fetch network information');
+      if (!silent) {
+        Message.error(err.message || 'Failed to fetch network information');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -220,7 +226,7 @@
   let timer: number | null = null;
   const startTimer = () => {
     timer = window.setInterval(() => {
-      fetchData();
+      fetchData(true);
     }, 5000);
   };
 
