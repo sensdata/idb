@@ -122,6 +122,17 @@ export function updateDNSApi(data: UpdateDNSParams) {
   return request.post('sysinfo/{host}/action/upd/dns', data);
 }
 
+export interface CreateSwapParams {
+  size: number;
+}
+export function createSwapApi(data: CreateSwapParams) {
+  return request.post('sysinfo/{host}/action/swap/create', data);
+}
+
+export function deleteSwapApi() {
+  return request.post('sysinfo/{host}/action/swap/delete');
+}
+
 export interface SysInfoSettingsRes {
   max_open_files: number;
   max_watch_files: number;

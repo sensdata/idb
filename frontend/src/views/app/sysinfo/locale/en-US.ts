@@ -25,6 +25,9 @@ export default {
   'app.sysinfo.overview.virtual_memory': 'Virtual Memory',
   'app.sysinfo.overview.no_virtual_memory': 'No Virtual Memory Detected',
   'app.sysinfo.overview.swap_usage': 'Swap Space',
+  'app.sysinfo.overview.swap_total': 'Total Size',
+  'app.sysinfo.overview.swap_used': 'Used',
+  'app.sysinfo.overview.swap_free': 'Free',
   'app.sysinfo.overview.storage': 'Storage',
   'app.sysinfo.overview.storage_mount_point': 'Mount Point',
   'app.sysinfo.overview.storage_total': 'Total Size',
@@ -41,6 +44,7 @@ export default {
   'app.sysinfo.overview.button.view_memory': 'View Memory Usage',
   'app.sysinfo.overview.button.clear_cache': 'Clear Cache',
   'app.sysinfo.overview.button.auto_clear_setting': 'Auto Clear Settings',
+  'app.sysinfo.overview.button.delete_swap': 'Delete Swap',
   'app.sysinfo.overview.button.clear_cache_confirm':
     'Are you sure to clear cache?',
   'app.sysinfo.overview.button.create_virtual_memory': 'Create Virtual Memory',
@@ -97,4 +101,11 @@ export default {
   'app.sysinfo.config.files': 'files',
   'app.sysinfo.config.save_success': 'System configuration saved successfully',
   'app.sysinfo.config.save_failed': 'Failed to save system configuration',
+
+  'app.sysinfo.overview.delete_swap_confirm_title': 'Delete Virtual Memory',
+  'app.sysinfo.overview.delete_swap_confirm_content':
+    'Are you sure you want to delete the virtual memory? System performance may be affected after deletion.',
+  'app.sysinfo.overview.delete_swap_success':
+    'Virtual memory deleted successfully',
+  'app.sysinfo.overview.delete_swap_failed': 'Failed to delete virtual memory',
 };

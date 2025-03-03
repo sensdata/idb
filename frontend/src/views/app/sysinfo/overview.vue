@@ -235,23 +235,61 @@
         </div>
       </div>
       <div class="line no-border">
-        <div class="col1">{{ $t('app.sysinfo.overview.virtual_memory') }}</div>
-        <div class="col2">
-          <!-- todo -->
-          {{ $t('app.sysinfo.overview.no_virtual_memory') }}
+        <div class="col1">
+          {{ $t('app.sysinfo.overview.virtual_memory') }}
+          <br />
+          ({{ $t('app.sysinfo.overview.swap_usage') }})
         </div>
-        <div class="col3"></div>
-        <div class="col4">
-          <a-button type="primary" size="mini">{{
-            $t('app.sysinfo.overview.button.create_virtual_memory')
-          }}</a-button>
+        <div class="colspan">
+          <div v-if="!data.swap_usage" class="subline">
+            <div class="col2">{{
+              $t('app.sysinfo.overview.no_virtual_memory')
+            }}</div>
+            <div class="col3"></div>
+            <div class="col4">
+              <a-button type="primary" size="mini">{{
+                $t('app.sysinfo.overview.button.create_virtual_memory')
+              }}</a-button>
+            </div>
+          </div>
+          <template v-else>
+            <div class="subline">
+              <div class="col2">{{
+                $t('app.sysinfo.overview.swap_total')
+              }}</div>
+              <div class="col3">{{ data.swap_usage?.total }}</div>
+              <div class="col4"></div>
+            </div>
+            <div class="subline">
+              <div class="col2">{{ $t('app.sysinfo.overview.swap_used') }}</div>
+              <div class="col3">{{ data.swap_usage?.used }}</div>
+              <div class="col4"></div>
+            </div>
+            <div class="subline">
+              <div class="col2">{{ $t('app.sysinfo.overview.swap_free') }}</div>
+              <div class="col3">{{ data.swap_usage?.free }}</div>
+              <div class="col4">
+                <a-tag
+                  :color="getStorageUsedColor(data.swap_usage!.used_rate)"
+                  class="italic"
+                >
+                  {{ data.swap_usage!.used_rate }}%
+                </a-tag>
+              </div>
+            </div>
+            <div class="subline">
+              <div class="col2"></div>
+              <div class="col3">
+                <a-button
+                  type="primary"
+                  size="mini"
+                  @click="handleDeleteSwap"
+                  >{{ $t('app.sysinfo.overview.button.delete_swap') }}</a-button
+                >
+              </div>
+            </div>
+          </template>
         </div>
-      </div>
-      <div class="line">
-        <div class="col1">({{ $t('app.sysinfo.overview.swap_usage') }})</div>
-        <div class="col2">/</div>
-        <div class="col3">{{ data.swap_usage?.total }}</div>
-        <div class="col4"></div>
       </div>
       <div class="line">
         <div class="col1">{{ $t('app.sysinfo.overview.storage') }}</div>
@@ -287,11 +325,14 @@
     getSysInfoOverviewtApi,
     SysInfoOverviewRes,
     syncTimeApi,
+    deleteSwapApi,
   } from '@/api/sysinfo';
+  import { useConfirm } from '@/hooks/confirm';
   import { Message } from '@arco-design/web-vue';
   import TimeModify from '@/components/time-modify/index.vue';
 
   const { t } = useI18n();
+  const { confirm } = useConfirm();
   const { loading, setLoading } = useLoading(false);
 
   const data = reactive<Partial<SysInfoOverviewRes>>({});
@@ -376,6 +417,28 @@
       syncTimeStatus.value = null;
     } finally {
       isSyncingTime.value = false;
+    }
+  };
+
+  const handleDeleteSwap = async () => {
+    try {
+      if (
+        await confirm({
+          title: t('app.sysinfo.overview.delete_swap_confirm_title'),
+          content: t('app.sysinfo.overview.delete_swap_confirm_content'),
+        })
+      ) {
+        setLoading(true);
+        await deleteSwapApi();
+        Message.success(t('app.sysinfo.overview.delete_swap_success'));
+        await load();
+      }
+    } catch (err: any) {
+      Message.error(
+        err.message || t('app.sysinfo.overview.delete_swap_failed')
+      );
+    } finally {
+      setLoading(false);
     }
   };
 

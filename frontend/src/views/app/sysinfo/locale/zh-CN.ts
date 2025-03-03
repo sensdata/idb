@@ -24,6 +24,9 @@ export default {
   'app.sysinfo.overview.virtual_memory': '虚拟内存',
   'app.sysinfo.overview.no_virtual_memory': '未监测到虚拟内存',
   'app.sysinfo.overview.swap_usage': '交换空间',
+  'app.sysinfo.overview.swap_total': '总大小',
+  'app.sysinfo.overview.swap_used': '已使用',
+  'app.sysinfo.overview.swap_free': '剩余可用',
   'app.sysinfo.overview.storage': '存储空间',
   'app.sysinfo.overview.storage_mount_point': '挂载点',
   'app.sysinfo.overview.storage_total': '总大小',
@@ -39,6 +42,7 @@ export default {
   'app.sysinfo.overview.button.sync_time': '同步时间',
   'app.sysinfo.overview.button.view_memory': '查看内存使用情况',
   'app.sysinfo.overview.button.clear_cache': '清理缓存',
+  'app.sysinfo.overview.button.delete_swap': '删除虚拟内存',
   'app.sysinfo.overview.button.auto_clear_setting': '自动清理设置',
   'app.sysinfo.overview.button.clear_cache_confirm': '确定清理缓存吗？',
   'app.sysinfo.overview.button.create_virtual_memory': '立即创建虚拟内存',
@@ -95,4 +99,10 @@ export default {
   'app.sysinfo.config.files': '个',
   'app.sysinfo.config.save_success': '系统配置保存成功',
   'app.sysinfo.config.save_failed': '系统配置保存失败',
+
+  'app.sysinfo.overview.delete_swap_confirm_title': '删除虚拟内存',
+  'app.sysinfo.overview.delete_swap_confirm_content':
+    '确定要删除虚拟内存吗？删除后系统性能可能会受到影响。',
+  'app.sysinfo.overview.delete_swap_success': '删除虚拟内存成功',
+  'app.sysinfo.overview.delete_swap_failed': '删除虚拟内存失败',
 };
