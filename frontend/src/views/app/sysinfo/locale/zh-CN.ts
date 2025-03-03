@@ -106,19 +106,19 @@ export default {
   'app.sysinfo.overview.delete_swap_success': '删除虚拟内存成功',
   'app.sysinfo.overview.delete_swap_failed': '删除虚拟内存失败',
 
-  'app.sysinfo.overview.create_swap_title': '创建虚拟内存',
-  'app.sysinfo.overview.create_swap_input_tip': '请输入要创建的虚拟内存大小',
-  'app.sysinfo.overview.create_swap_size': '大小：',
-  'app.sysinfo.overview.create_swap_size_required': '请输入虚拟内存大小',
-  'app.sysinfo.overview.create_swap_success': '创建虚拟内存成功',
-  'app.sysinfo.overview.create_swap_failed': '创建虚拟内存失败',
+  'app.sysinfo.createSwap.title': '创建虚拟内存',
+  'app.sysinfo.createSwap.input_tip': '请输入要创建的虚拟内存大小',
+  'app.sysinfo.createSwap.size': '大小：',
+  'app.sysinfo.createSwap.size_required': '请输入虚拟内存大小',
+  'app.sysinfo.createSwap.success': '创建虚拟内存成功',
+  'app.sysinfo.createSwap.failed': '创建虚拟内存失败',
 
-  'app.sysinfo.overview.timezone_modify_title': '修改系统时区',
-  'app.sysinfo.overview.timezone_modify_label': '时区：',
-  'app.sysinfo.overview.timezone_modify_placeholder': '例如：Asia/Shanghai',
-  'app.sysinfo.overview.timezone_modify_example':
+  'app.sysinfo.timezoneModify.title': '修改系统时区',
+  'app.sysinfo.timezoneModify.label': '时区：',
+  'app.sysinfo.timezoneModify.placeholder': '例如：Asia/Shanghai',
+  'app.sysinfo.timezoneModify.example':
     '常用时区：Asia/Shanghai（中国）, America/New_York（美国东部）, Europe/London（英国）',
-  'app.sysinfo.overview.timezone_modify_required': '请输入时区',
-  'app.sysinfo.overview.timezone_modify_success': '修改时区成功',
-  'app.sysinfo.overview.timezone_modify_failed': '修改时区失败',
+  'app.sysinfo.timezoneModify.required': '请输入时区',
+  'app.sysinfo.timezoneModify.success': '修改时区成功',
+  'app.sysinfo.timezoneModify.failed': '修改时区失败',
 };

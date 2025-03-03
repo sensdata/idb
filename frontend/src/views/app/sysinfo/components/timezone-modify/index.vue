@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:visible="visible"
-    :title="$t('app.sysinfo.overview.timezone_modify_title')"
+    :title="$t('app.sysinfo.timezoneModify.title')"
     :ok-loading="loading"
     @ok="handleOk"
     @cancel="handleCancel"
@@ -10,22 +10,22 @@
       <a-form-item
         class="mb-0"
         field="timezone"
-        :label="$t('app.sysinfo.overview.timezone_modify_label')"
+        :label="$t('app.sysinfo.timezoneModify.label')"
         :rules="[
           {
             required: true,
-            message: $t('app.sysinfo.overview.timezone_modify_required'),
+            message: $t('app.sysinfo.timezoneModify.required'),
           },
         ]"
       >
         <a-input
           v-model="formState.timezone"
-          :placeholder="$t('app.sysinfo.overview.timezone_modify_placeholder')"
+          :placeholder="$t('app.sysinfo.timezoneModify.placeholder')"
         />
       </a-form-item>
       <a-form-item>
         <p class="text-gray-500 text-sm">
-          {{ $t('app.sysinfo.overview.timezone_modify_example') }}
+          {{ $t('app.sysinfo.timezoneModify.example') }}
         </p>
       </a-form-item>
     </a-form>
@@ -59,13 +59,11 @@
 
       showLoading();
       await updateTimeZoneApi({ timezone: formState.timezone });
-      Message.success(t('app.sysinfo.overview.timezone_modify_success'));
+      Message.success(t('app.sysinfo.timezoneModify.success'));
       emit('ok');
       hide();
     } catch (err: any) {
-      Message.error(
-        err.message || t('app.sysinfo.overview.timezone_modify_failed')
-      );
+      Message.error(err.message || t('app.sysinfo.timezoneModify.failed'));
     } finally {
       hideLoading();
     }

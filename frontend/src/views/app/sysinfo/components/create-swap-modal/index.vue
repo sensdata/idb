@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:visible="visible"
-    :title="$t('app.sysinfo.overview.create_swap_title')"
+    :title="$t('app.sysinfo.createSwap.title')"
     :ok-loading="loading"
     @ok="handleOk"
     @cancel="handleCancel"
@@ -9,16 +9,16 @@
     <a-form ref="formRef" :model="formState">
       <a-form-item class="mb-0">
         <p class="text-gray-500">
-          {{ $t('app.sysinfo.overview.create_swap_input_tip') }}
+          {{ $t('app.sysinfo.createSwap.input_tip') }}
         </p>
       </a-form-item>
       <a-form-item
         field="size"
-        :label="$t('app.sysinfo.overview.create_swap_size')"
+        :label="$t('app.sysinfo.createSwap.size')"
         :rules="[
           {
             required: true,
-            message: $t('app.sysinfo.overview.create_swap_size_required'),
+            message: $t('app.sysinfo.createSwap.size_required'),
           },
         ]"
       >
@@ -78,13 +78,11 @@
       }
       showLoading();
       await createSwapApi({ size });
-      Message.success(t('app.sysinfo.overview.create_swap_success'));
+      Message.success(t('app.sysinfo.createSwap.success'));
       emit('ok');
       hide();
     } catch (err: any) {
-      Message.error(
-        err.message || t('app.sysinfo.overview.create_swap_failed')
-      );
+      Message.error(err.message || t('app.sysinfo.createSwap.failed'));
     } finally {
       hideLoading();
     }

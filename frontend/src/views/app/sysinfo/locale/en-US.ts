@@ -109,23 +109,20 @@ export default {
     'Virtual memory deleted successfully',
   'app.sysinfo.overview.delete_swap_failed': 'Failed to delete virtual memory',
 
-  'app.sysinfo.overview.create_swap_title': 'Create Virtual Memory',
-  'app.sysinfo.overview.create_swap_input_tip':
+  'app.sysinfo.createSwap.title': 'Create Virtual Memory',
+  'app.sysinfo.createSwap.input_tip':
     'Please enter the size of virtual memory to create',
-  'app.sysinfo.overview.create_swap_size': 'Size:',
-  'app.sysinfo.overview.create_swap_size_required':
-    'Please enter virtual memory size',
-  'app.sysinfo.overview.create_swap_success':
-    'Virtual memory created successfully',
-  'app.sysinfo.overview.create_swap_failed': 'Failed to create virtual memory',
+  'app.sysinfo.createSwap.size': 'Size:',
+  'app.sysinfo.createSwap.size_required': 'Please enter virtual memory size',
+  'app.sysinfo.createSwap.success': 'Virtual memory created successfully',
+  'app.sysinfo.createSwap.failed': 'Failed to create virtual memory',
 
-  'app.sysinfo.overview.timezone_modify_title': 'Modify System Timezone',
-  'app.sysinfo.overview.timezone_modify_label': 'Timezone:',
-  'app.sysinfo.overview.timezone_modify_placeholder': 'e.g. Asia/Shanghai',
-  'app.sysinfo.overview.timezone_modify_example':
+  'app.sysinfo.timezoneModify.title': 'Modify System Timezone',
+  'app.sysinfo.timezoneModify.label': 'Timezone:',
+  'app.sysinfo.timezoneModify.placeholder': 'e.g. Asia/Shanghai',
+  'app.sysinfo.timezoneModify.example':
     'Common timezones: Asia/Shanghai (China), America/New_York (US Eastern), Europe/London (UK)',
-  'app.sysinfo.overview.timezone_modify_required': 'Please enter timezone',
-  'app.sysinfo.overview.timezone_modify_success':
-    'Timezone modified successfully',
-  'app.sysinfo.overview.timezone_modify_failed': 'Failed to modify timezone',
+  'app.sysinfo.timezoneModify.required': 'Please enter timezone',
+  'app.sysinfo.timezoneModify.success': 'Timezone modified successfully',
+  'app.sysinfo.timezoneModify.failed': 'Failed to modify timezone',
 };
