@@ -223,12 +223,20 @@
             <div class="col3">{{ data.memory_usage?.cached }}</div>
             <div class="col4">
               <a-space>
-                <a-button type="primary" size="mini">{{
-                  $t('app.sysinfo.overview.button.clear_cache')
-                }}</a-button>
-                <a-button type="primary" size="mini">{{
-                  $t('app.sysinfo.overview.button.auto_clear_setting')
-                }}</a-button>
+                <a-button
+                  type="primary"
+                  size="mini"
+                  @click="handleClearCache"
+                  >{{ $t('app.sysinfo.overview.button.clear_cache') }}</a-button
+                >
+                <a-button
+                  type="primary"
+                  size="mini"
+                  @click="handleAutoClearCache"
+                  >{{
+                    $t('app.sysinfo.overview.button.auto_clear_setting')
+                  }}</a-button
+                >
               </a-space>
             </div>
           </div>
@@ -319,6 +327,7 @@
   <time-modify ref="timeModifyRef" @ok="load" />
   <create-swap-modal ref="createSwapModalRef" @ok="load" />
   <timezone-modify ref="timezoneModifyRef" @ok="load" />
+  <auto-clear-cache ref="autoClearCacheRef" @ok="load" />
 </template>
 
 <script lang="ts" setup>
@@ -331,12 +340,14 @@
     SysInfoOverviewRes,
     syncTimeApi,
     deleteSwapApi,
+    clearMemoryCacheApi,
   } from '@/api/sysinfo';
   import { useConfirm } from '@/hooks/confirm';
   import { Message } from '@arco-design/web-vue';
   import TimeModify from '@/components/time-modify/index.vue';
   import CreateSwapModal from './components/create-swap-modal/index.vue';
   import TimezoneModify from './components/timezone-modify/index.vue';
+  import AutoClearCache from './components/auto-clear-cache/index.vue';
 
   const { t } = useI18n();
   const { confirm } = useConfirm();
@@ -379,6 +390,7 @@
   const timeModifyRef = ref<InstanceType<typeof TimeModify>>();
   const createSwapModalRef = ref<InstanceType<typeof CreateSwapModal>>();
   const timezoneModifyRef = ref<InstanceType<typeof TimezoneModify>>();
+  const autoClearCacheRef = ref<InstanceType<typeof AutoClearCache>>();
 
   const load = async () => {
     setLoading(true);
@@ -433,6 +445,26 @@
     if (timezoneModifyRef.value) {
       timezoneModifyRef.value.setTimeZone(data.server_time_zone || '');
       timezoneModifyRef.value.show();
+    }
+  };
+
+  const handleClearCache = async () => {
+    try {
+      await clearMemoryCacheApi();
+      Message.success(t('app.sysinfo.overview.clear_cache_success'));
+      await load();
+    } catch (err: any) {
+      Message.error(
+        err.message || t('app.sysinfo.overview.clear_cache_failed')
+      );
+    }
+  };
+
+  const handleAutoClearCache = () => {
+    if (autoClearCacheRef.value) {
+      autoClearCacheRef.value.reset();
+      autoClearCacheRef.value.load();
+      autoClearCacheRef.value.show();
     }
   };
 
