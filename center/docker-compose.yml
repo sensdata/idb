@@ -1,6 +1,6 @@
 services:
   idb:
-    image: idb:${iDB_image_version} # 镜像版本
+    image: sensdb/idb:${iDB_image_version} # 镜像版本
     container_name: ${iDB_service_name} #容器名
     restart: unless-stopped
     env_file:
