@@ -332,7 +332,7 @@
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { onMounted, reactive, ref } from 'vue';
+  import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
   import { formatSeconds, formatTime } from '@/utils/format';
   import useLoading from '@/hooks/loading';
   import {
@@ -392,13 +392,36 @@
   const timezoneModifyRef = ref<InstanceType<typeof TimezoneModify>>();
   const autoClearCacheRef = ref<InstanceType<typeof AutoClearCache>>();
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const res = await getSysInfoOverviewtApi();
       Object.assign(data, res);
+    } catch (err: any) {
+      if (!silent) {
+        Message.error(err?.message);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // 定时刷新数据
+  let timer: number | null = null;
+  const startTimer = () => {
+    timer = window.setInterval(() => {
+      load(true);
+    }, 5000);
+  };
+
+  const stopTimer = () => {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
     }
   };
 
@@ -499,6 +522,11 @@
 
   onMounted(() => {
     load();
+    startTimer();
+  });
+
+  onBeforeUnmount(() => {
+    stopTimer();
   });
 </script>
 
