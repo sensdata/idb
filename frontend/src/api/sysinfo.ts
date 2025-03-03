@@ -105,6 +105,10 @@ export function updateTimeApi(data: UpdateTimeParams) {
   return request.post('sysinfo/{host}/action/upd/time', data);
 }
 
+export function updateTimeZoneApi(data: { timezone: string }) {
+  return request.post('sysinfo/{host}/action/upd/timezone', data);
+}
+
 export interface UpdateHostNameParams {
   host_name: string;
 }

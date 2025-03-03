@@ -40,7 +40,7 @@
         <div class="col2">{{ data.server_time_zone }}</div>
         <div class="col3"></div>
         <div class="col4">
-          <a-button type="primary" size="mini">{{
+          <a-button type="primary" size="mini" @click="handleModifyTimeZone">{{
             $t('common.modify')
           }}</a-button>
         </div>
@@ -318,6 +318,7 @@
   </a-spin>
   <time-modify ref="timeModifyRef" @ok="load" />
   <create-swap-modal ref="createSwapModalRef" @ok="load" />
+  <timezone-modify ref="timezoneModifyRef" @ok="load" />
 </template>
 
 <script lang="ts" setup>
@@ -335,6 +336,7 @@
   import { Message } from '@arco-design/web-vue';
   import TimeModify from '@/components/time-modify/index.vue';
   import CreateSwapModal from './components/create-swap-modal/index.vue';
+  import TimezoneModify from './components/timezone-modify/index.vue';
 
   const { t } = useI18n();
   const { confirm } = useConfirm();
@@ -376,6 +378,7 @@
 
   const timeModifyRef = ref<InstanceType<typeof TimeModify>>();
   const createSwapModalRef = ref<InstanceType<typeof CreateSwapModal>>();
+  const timezoneModifyRef = ref<InstanceType<typeof TimezoneModify>>();
 
   const load = async () => {
     setLoading(true);
@@ -423,6 +426,13 @@
       syncTimeStatus.value = null;
     } finally {
       isSyncingTime.value = false;
+    }
+  };
+
+  const handleModifyTimeZone = () => {
+    if (timezoneModifyRef.value) {
+      timezoneModifyRef.value.setTimeZone(data.server_time_zone || '');
+      timezoneModifyRef.value.show();
     }
   };
 

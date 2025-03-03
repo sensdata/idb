@@ -118,4 +118,14 @@ export default {
   'app.sysinfo.overview.create_swap_success':
     'Virtual memory created successfully',
   'app.sysinfo.overview.create_swap_failed': 'Failed to create virtual memory',
+
+  'app.sysinfo.overview.timezone_modify_title': 'Modify System Timezone',
+  'app.sysinfo.overview.timezone_modify_label': 'Timezone:',
+  'app.sysinfo.overview.timezone_modify_placeholder': 'e.g. Asia/Shanghai',
+  'app.sysinfo.overview.timezone_modify_example':
+    'Common timezones: Asia/Shanghai (China), America/New_York (US Eastern), Europe/London (UK)',
+  'app.sysinfo.overview.timezone_modify_required': 'Please enter timezone',
+  'app.sysinfo.overview.timezone_modify_success':
+    'Timezone modified successfully',
+  'app.sysinfo.overview.timezone_modify_failed': 'Failed to modify timezone',
 };
