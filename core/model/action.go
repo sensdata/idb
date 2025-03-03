@@ -11,6 +11,7 @@ const (
 	SysInfo_Sync_Time       string = "sysinfo_sync_time"
 	Sysinfo_Clear_Mem_Cache string = "sysinfo_clear_mem_cache"
 	SysInfo_Set_Auto_Clear  string = "sysinfo_set_auto_clear"
+	SysInfo_Get_Auto_Clear  string = "sysinfo_get_auto_clear"
 	SysInfo_Create_Swap     string = "sysinfo_create_swap"
 	Sysinfo_Delete_Swap     string = "sysinfo_delete_swap"
 	Sysinfo_Update_Dns      string = "sysinfo_update_dns"

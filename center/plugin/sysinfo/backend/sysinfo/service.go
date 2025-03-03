@@ -112,6 +112,7 @@ func (s *SysInfo) Initialize() {
 			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
 			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
 			{Method: "POST", Path: "/:host/action/memcache/auto/set", Handler: s.SetAutoClearInterval},
+			{Method: "GET", Path: "/:host/action/memcache/auto/set", Handler: s.GetAutoClearInterval},
 			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
 			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
 			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
@@ -441,6 +442,29 @@ func (s *SysInfo) SetAutoClearInterval(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Get auto clear interval
+// @Description Get auto clear interval for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.AutoClearMemCacheConf
+// @Router /sysinfo/{host}/action/memcache/auto/set [get]
+func (s *SysInfo) GetAutoClearInterval(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	conf, err := s.getAutoClearInterval(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to set auto clear interval", err)
+		return
+	}
+	helper.SuccessWithData(c, conf)
 }
 
 // @Tags Sysinfo

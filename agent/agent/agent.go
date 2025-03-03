@@ -825,6 +825,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.SysInfo_Get_Auto_Clear:
+		autoClear, err := action.GetAutoClearInterval()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(autoClear)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 		// 创建swap
 	case model.SysInfo_Create_Swap:
 		var createSwapReq model.CreateSwapReq

@@ -117,6 +117,29 @@ func (s *SysInfo) setAutoClearInterval(hostID uint, req model.AutoClearMemCacheR
 	return nil
 }
 
+func (s *SysInfo) getAutoClearInterval(hostID uint) (*model.AutoClearMemCacheConf, error) {
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.SysInfo_Get_Auto_Clear,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &model.AutoClearMemCacheConf{}, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to get auto clear interval")
+		return &model.AutoClearMemCacheConf{}, fmt.Errorf("failed to get auto clear interval")
+	}
+	var autoClearMemCacheConf model.AutoClearMemCacheConf
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &autoClearMemCacheConf)
+	if err != nil {
+		return &model.AutoClearMemCacheConf{}, err
+	}
+	return &autoClearMemCacheConf, nil
+}
+
 func (s *SysInfo) createSwap(hostID uint, req model.CreateSwapReq) error {
 	data, err := utils.ToJSONString(req)
 	if err != nil {

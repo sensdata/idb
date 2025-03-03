@@ -184,6 +184,38 @@ func SetAutoClearInterval(req model.AutoClearMemCacheReq) error {
 	return nil
 }
 
+func GetAutoClearInterval() (int, error) {
+	// 检查系统是否支持 crontab
+	if _, err := utils.Exec("command -v crontab"); err != nil {
+		return 0, fmt.Errorf("crontab is not available on this system")
+	}
+
+	// 获取当前用户的 crontab 内容
+	output, err := utils.Exec("crontab -l")
+	if err != nil {
+		return 0, nil // 如果没有 crontab 或获取失败，返回 0 表示未设置自动清理
+	}
+
+	// 查找包含 drop_caches 的行
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, "drop_caches") {
+			// 解析 cron 表达式中的小时间隔
+			// 格式类似：0 */6 * * * ...
+			fields := strings.Fields(line)
+			if len(fields) >= 2 && strings.HasPrefix(fields[1], "*/") {
+				intervalStr := strings.TrimPrefix(fields[1], "*/")
+				interval, err := strconv.Atoi(intervalStr)
+				if err != nil {
+					return 0, fmt.Errorf("parse interval failed: %v", err)
+				}
+				return interval, nil
+			}
+		}
+	}
+
+	return 0, nil // 如果没有找到相关配置，返回 0 表示未设置自动清理
+}
+
 func CreateSwap(req model.CreateSwapReq) error {
 	var size string
 	if req.Size >= 1024 {
