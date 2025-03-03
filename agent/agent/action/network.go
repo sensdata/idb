@@ -188,9 +188,16 @@ func getNetwork() ([]model.NetworkInterface, error) {
 		stat := link.Attrs().Statistics
 		fmt.Printf("Tx: %d, Rx: %d", stat.TxBytes, stat.RxBytes)
 
+		// 获取接口状态
+		status := "down"
+		if link.Attrs().Flags&net.FlagUp != 0 {
+			status = "up"
+		}
+
 		interfaces = append(interfaces, model.NetworkInterface{
-			Name: name,
-			Mac:  mac,
+			Name:   name,
+			Mac:    mac,
+			Status: status,
 			Address: model.AddressInfo{
 				Type: ipType,
 				Ip:   address,
