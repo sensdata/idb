@@ -123,8 +123,8 @@
         });
         Message.success(t('app.process.list.message.killSuccess'));
         gridRef.value?.reload();
-      } catch (error) {
-        Message.error(error as string);
+      } catch (error: any) {
+        Message.error(error?.message);
       } finally {
         setLoading(false);
       }

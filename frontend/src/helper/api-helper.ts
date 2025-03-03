@@ -71,7 +71,7 @@ axios.interceptors.response.use(
 
     // Message.error(response.data.message as string);
 
-    return Promise.reject(response.data.message);
+    return Promise.reject(new Error(response.data.message as string));
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -81,11 +81,11 @@ axios.interceptors.response.use(
       } else {
         window.location.href = '/login';
       }
-      return Promise.reject(t('common.request.unauthorized'));
+      return Promise.reject(new Error(t('common.request.unauthorized')));
     }
     if (error?.response?.data?.message) {
       // Message.error(String(error.response.data.message));
-      return Promise.reject(error.response.data.message);
+      return Promise.reject(new Error(error.response.data.message));
     }
     if (error?.message && error.message.includes('timeout')) {
       // Message.error(t('common.request.timeout'));
@@ -95,7 +95,7 @@ axios.interceptors.response.use(
     // eslint-disable-next-line no-console
     console.log(error);
     // Message.error(error.message);
-    return Promise.reject(error.message);
+    return Promise.reject(new Error(error.message));
   }
 );
 

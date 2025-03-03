@@ -126,6 +126,18 @@ export function updateDNSApi(data: UpdateDNSParams) {
   return request.post('sysinfo/{host}/action/upd/dns', data);
 }
 
+export function clearMemoryCacheApi() {
+  return request.post('sysinfo/{host}/action/memcache/clear');
+}
+
+export function getAutoClearMemoryCacheApi() {
+  return request.get('sysinfo/{host}/action/memcache/auto/get');
+}
+
+export function autoClearMemoryCacheApi(data: { interval: number }) {
+  return request.post('sysinfo/{host}/action/memcache/auto/set', data);
+}
+
 export interface CreateSwapParams {
   size: number;
 }

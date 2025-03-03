@@ -220,7 +220,7 @@
             await restartHostAgentApi(record.id);
             Message.success(t('manage.host.list.restart.success'));
           } catch (error: any) {
-            Message.error(error);
+            Message.error(error?.message);
           }
         },
       },
@@ -232,7 +232,7 @@
             await deleteHostApi(record.id);
             Message.success(t('manage.host.list.delete.success'));
           } catch (error: any) {
-            Message.error(error);
+            Message.error(error?.message);
           }
         },
       },

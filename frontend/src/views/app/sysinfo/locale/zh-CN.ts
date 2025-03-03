@@ -49,6 +49,8 @@ export default {
   'app.sysinfo.overview.sync.syncing': '正在同步时间...',
   'app.sysinfo.overview.sync.success': '成功更新时间',
   'app.sysinfo.overview.sync.failed': '同步时间失败',
+  'app.sysinfo.overview.clear_cache_success': '清理缓存成功',
+  'app.sysinfo.overview.clear_cache_failed': '清理缓存失败',
 
   // 网络信息页面
   'app.sysinfo.network.dns': 'DNS信息',
@@ -121,4 +123,14 @@ export default {
   'app.sysinfo.timezoneModify.required': '请输入时区',
   'app.sysinfo.timezoneModify.success': '修改时区成功',
   'app.sysinfo.timezoneModify.failed': '修改时区失败',
+
+  'app.sysinfo.autoClearCache.title': '自动清理缓存设置',
+  'app.sysinfo.autoClearCache.tip': '设置系统自动清理内存缓存的时间间隔',
+  'app.sysinfo.autoClearCache.enabled': '启用自动清理：',
+  'app.sysinfo.autoClearCache.interval': '清理间隔：',
+  'app.sysinfo.autoClearCache.hours': '小时',
+  'app.sysinfo.autoClearCache.interval_required': '请输入清理间隔',
+  'app.sysinfo.autoClearCache.interval_invalid': '清理间隔必须在1-24小时之间',
+  'app.sysinfo.autoClearCache.success': '自动清理缓存设置成功',
+  'app.sysinfo.autoClearCache.failed': '自动清理缓存设置失败',
 };

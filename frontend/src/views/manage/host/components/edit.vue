@@ -93,7 +93,7 @@
         })),
       ];
     } catch (err: any) {
-      // Message.error(err);
+      // Message.error(err?.message);
     } finally {
       setGroupLoading(false);
     }
@@ -139,7 +139,7 @@
       emit('ok');
       hide();
     } catch (err: any) {
-      Message.error(err);
+      Message.error(err?.message);
     } finally {
       hideLoading();
     }

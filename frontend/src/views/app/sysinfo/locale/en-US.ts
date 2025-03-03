@@ -51,6 +51,22 @@ export default {
   'app.sysinfo.overview.sync.syncing': 'Syncing time...',
   'app.sysinfo.overview.sync.success': 'Time updated successfully',
   'app.sysinfo.overview.sync.failed': 'Failed to sync time',
+  'app.sysinfo.overview.clear_cache_success': 'Cache cleared successfully',
+  'app.sysinfo.overview.clear_cache_failed': 'Failed to clear cache',
+
+  'app.sysinfo.autoClearCache.title': 'Auto Clear Cache Settings',
+  'app.sysinfo.autoClearCache.tip':
+    'Set the interval for automatic memory cache clearing',
+  'app.sysinfo.autoClearCache.enabled': 'Enable Auto Clear:',
+  'app.sysinfo.autoClearCache.interval': 'Clear Interval:',
+  'app.sysinfo.autoClearCache.hours': 'hours',
+  'app.sysinfo.autoClearCache.interval_required': 'Please enter clear interval',
+  'app.sysinfo.autoClearCache.interval_invalid':
+    'Clear interval must be between 1-24 hours',
+  'app.sysinfo.autoClearCache.success':
+    'Auto clear cache settings saved successfully',
+  'app.sysinfo.autoClearCache.failed':
+    'Failed to save auto clear cache settings',
 
   // Network information page
   'app.sysinfo.network.dns': 'DNS Information',

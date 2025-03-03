@@ -105,7 +105,7 @@
       Message.success(t('components.changePassword.success'));
       visible.value = true;
     } catch (err: any) {
-      Message.error(err);
+      Message.error(err?.message);
     } finally {
       hideLoading();
     }
