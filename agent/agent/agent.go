@@ -830,7 +830,8 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err != nil {
 			return nil, err
 		}
-		result, err := utils.ToJSONString(autoClear)
+		conf := model.AutoClearMemCacheConf{Interval: autoClear}
+		result, err := utils.ToJSONString(conf)
 		if err != nil {
 			return nil, err
 		}
