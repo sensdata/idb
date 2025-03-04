@@ -7,7 +7,7 @@ type Overview struct {
 	BootTime       string      `json:"boot_time"`        //启动时间
 	RunTime        int64       `json:"run_time"`         //运行时间
 	IdleTime       int64       `json:"idle_time"`        //空闲时间
-	IdleRate       float64     `json:"idel_rate"`        //空闲率
+	IdleRate       float64     `json:"idle_rate"`        //空闲率
 	CpuUsage       string      `json:"cpu_usage"`        //CPU使用率
 	CurrentLoad    LoadState   `json:"current_load"`     //当前负载
 	MemoryUsage    MemoryState `json:"memory_usage"`     //内存使用
