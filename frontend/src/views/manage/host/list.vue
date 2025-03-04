@@ -33,15 +33,10 @@
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
       <div>
-        <template v-if="record.is_default">
-          <span>{{ $t('manage.host.list.name_local') }}</span>
-          <span class="green-6"
-            >({{ $t('manage.host.list.name_default') }})</span
-          >
-        </template>
-        <template v-else>
-          <span>{{ record.name }}</span>
-        </template>
+        <span>{{ record.name }}</span>
+        <span v-if="record.default" class="cyan-6">
+          ({{ $t('manage.host.list.name_default') }})
+        </span>
       </div>
     </template>
     <template #cpu="{ record }: { record: HostItem }">

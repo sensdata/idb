@@ -9,7 +9,7 @@ export interface LoginDataDo {
 export interface LoginRes {
   token: string;
   name: string;
-  id: number; // todo: 缺少字段
+  id: number;
 }
 export function loginApi(data: LoginDataDo) {
   return request.post<LoginRes>('auth/sessions', data);

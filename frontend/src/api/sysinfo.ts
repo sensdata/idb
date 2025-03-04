@@ -1,16 +1,13 @@
 import request from '@/helper/api-helper';
-// todo: 缺少左上角内存+CPU+网络的轮询接口
 
-// todo: 缺少虚拟内存
 // todo: 缺少空闲时间后面的空闲比例
-// todo: 1/5/15分钟进程数不是百分比
 export interface SysInfoOverviewRes {
   boot_time: string;
   cpu_usage: string;
   current_load: {
-    process_count1: number;
-    process_count15: number;
-    process_count5: number;
+    process_count1: string;
+    process_count5: string;
+    process_count15: string;
   };
   memory_usage: {
     buffered: string;
@@ -24,9 +21,8 @@ export interface SysInfoOverviewRes {
     used: string;
     used_rate: number;
   };
-  // 需要返回秒，涉及多语言
   idle_time: number;
-  // todo: 需要返回秒
+  idle_rate: number;
   run_time: number;
   server_time: string;
   server_time_zone: string;

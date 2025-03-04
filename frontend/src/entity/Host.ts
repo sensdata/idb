@@ -39,6 +39,5 @@ export interface HostEntity extends BaseEntity, HostStatusDo {
     connected: 'online' | 'offline';
   };
 
-  // todo: 需要新增
-  is_default?: boolean;
+  default?: boolean;
 }

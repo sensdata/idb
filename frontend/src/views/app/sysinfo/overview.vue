@@ -65,8 +65,9 @@
         <div class="col3"></div>
         <div class="col4">
           <a-tag color="green">{{
-            // todo
-            $t('app.sysinfo.overview.tag.label_free', { free: '92.41' })
+            $t('app.sysinfo.overview.tag.label_free', {
+              free: (data.idle_rate || 0) + '%',
+            })
           }}</a-tag>
         </div>
       </div>
@@ -83,21 +84,7 @@
             <div class="col2">{{ $t('app.sysinfo.overview.tag.count1') }}</div>
             <div class="col3">{{ data.current_load?.process_count1 }}</div>
             <div class="col4">
-              <template v-if="data.current_load?.process_count1">
-                <a-tag
-                  v-if="data.current_load.process_count1 > 50"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
-                >
-                <a-tag
-                  v-else-if="data.current_load.process_count1 > 30"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
-                >
-                <a-tag v-else color="green">{{
-                  $t('app.sysinfo.overview.tag.free')
-                }}</a-tag>
-              </template>
+              <ProcessCountTag :count="data.current_load?.process_count1" />
             </div>
           </div>
           <div class="subline">
@@ -106,21 +93,7 @@
             }}</div>
             <div class="col3">{{ data.current_load?.process_count5 }}</div>
             <div class="col4">
-              <template v-if="data.current_load?.process_count5">
-                <a-tag
-                  v-if="data.current_load.process_count5 > 50"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
-                >
-                <a-tag
-                  v-else-if="data.current_load.process_count5 > 30"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
-                >
-                <a-tag v-else color="green">{{
-                  $t('app.sysinfo.overview.tag.free')
-                }}</a-tag>
-              </template>
+              <ProcessCountTag :count="data.current_load?.process_count5" />
             </div>
           </div>
           <div class="subline">
@@ -129,21 +102,7 @@
             }}</div>
             <div class="col3">{{ data.current_load?.process_count15 }}</div>
             <div class="col4">
-              <template v-if="data.current_load?.process_count15">
-                <a-tag
-                  v-if="data.current_load.process_count15 > 50"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag
-                >
-                <a-tag
-                  v-else-if="data.current_load.process_count15 > 30"
-                  color="blue"
-                  >{{ $t('app.sysinfo.overview.tag.normal') }}</a-tag
-                >
-                <a-tag v-else color="green">{{
-                  $t('app.sysinfo.overview.tag.free')
-                }}</a-tag>
-              </template>
+              <ProcessCountTag :count="data.current_load?.process_count15" />
             </div>
           </div>
         </div>
@@ -332,7 +291,14 @@
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+  import {
+    h,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    resolveComponent,
+  } from 'vue';
   import { formatSeconds, formatTime } from '@/utils/format';
   import useLoading from '@/hooks/loading';
   import {
@@ -391,6 +357,41 @@
   const createSwapModalRef = ref<InstanceType<typeof CreateSwapModal>>();
   const timezoneModifyRef = ref<InstanceType<typeof TimezoneModify>>();
   const autoClearCacheRef = ref<InstanceType<typeof AutoClearCache>>();
+
+  const ProcessCountTag = ({ count }: { count?: string }) => {
+    if (!count) {
+      return null;
+    }
+    const rate = parseFloat(count);
+    if (!rate) {
+      return null;
+    }
+    if (rate > 50) {
+      return h(
+        resolveComponent('a-tag'),
+        {
+          color: 'blue',
+        },
+        () => t('app.sysinfo.overview.tag.busy')
+      );
+    }
+    if (rate > 30) {
+      return h(
+        resolveComponent('a-tag'),
+        {
+          color: 'blue',
+        },
+        () => t('app.sysinfo.overview.tag.normal')
+      );
+    }
+    return h(
+      resolveComponent('a-tag'),
+      {
+        color: 'green',
+      },
+      () => t('app.sysinfo.overview.tag.free')
+    );
+  };
 
   const load = async (silent = false) => {
     if (!silent) {
