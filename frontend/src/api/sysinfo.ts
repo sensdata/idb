@@ -131,10 +131,10 @@ export function clearMemoryCacheApi() {
 }
 
 export function getAutoClearMemoryCacheApi() {
-  return request.get('sysinfo/{host}/action/memcache/auto/get');
+  return request.get('sysinfo/{host}/action/memcache/auto/set');
 }
 
-export function autoClearMemoryCacheApi(data: { interval: number }) {
+export function setAutoClearMemoryCacheApi(data: { interval: number }) {
   return request.post('sysinfo/{host}/action/memcache/auto/set', data);
 }
 

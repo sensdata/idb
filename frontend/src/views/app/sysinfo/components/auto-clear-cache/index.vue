@@ -57,7 +57,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import {
-    autoClearMemoryCacheApi,
+    setAutoClearMemoryCacheApi,
     getAutoClearMemoryCacheApi,
   } from '@/api/sysinfo';
   import useVisible from '@/hooks/visible';
@@ -92,16 +92,21 @@
     }
   };
 
-  const setConfig = (enabled: boolean, intervalHours: number) => {
-    formState.enabled = enabled;
-    formState.interval = intervalHours;
+  const setConfig = (intervalHours: number) => {
+    if (intervalHours > 0) {
+      formState.enabled = true;
+      formState.interval = intervalHours;
+    } else {
+      formState.enabled = false;
+      formState.interval = 1;
+    }
   };
 
   const load = async () => {
     try {
       showLoading();
       const res = await getAutoClearMemoryCacheApi();
-      setConfig(res.enabled, res.interval);
+      setConfig(res.interval);
     } catch (err: any) {
       Message.error(err.message);
     } finally {
@@ -117,9 +122,8 @@
       }
 
       showLoading();
-      // 如果禁用，则间隔设为0
-      const interval = formState.enabled ? formState.interval * 3600 : 0;
-      await autoClearMemoryCacheApi({ interval });
+      const interval = formState.enabled ? formState.interval : 0;
+      await setAutoClearMemoryCacheApi({ interval });
       Message.success(t('app.sysinfo.autoClearCache.success'));
       emit('ok');
       hide();
