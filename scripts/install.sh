@@ -181,9 +181,89 @@ function Install_Compose(){
 
 function Check_Installation() {
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then
-        log "IDB 容器已存在，请勿重复安装"
-        exit 1
+        log "检测到已安装的 IDB 容器"
+        read -p "是否要升级安装？这将备份现有数据 [y/n]: " UPGRADE_IDB
+        if [[ "$UPGRADE_IDB" == "Y" ]] || [[ "$UPGRADE_IDB" == "y" ]]; then
+            Backup_Data
+            log "准备安装新版本..."
+            return 0
+        else
+            log "取消安装"
+            exit 1
+        fi
     fi
+}
+
+function Backup_Data() {
+    local BACKUP_DIR="/tmp/idb-cache"
+    
+    log "清理临时目录..."
+    rm -rf "$BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+    
+    if docker ps -q -f name=idb >/dev/null 2>&1; then
+        log "停止 IDB 容器..."
+        docker stop idb
+    fi
+    
+    if docker ps -a -q -f name=idb >/dev/null 2>&1; then
+        # 保存当前环境变量值
+        docker inspect idb > "$BACKUP_DIR/container_info.json"
+        
+        # 从容器配置中获取实际的挂载路径
+        local DATA_PATH=$(docker inspect idb --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}')
+        local LOG_PATH=$(docker inspect idb --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}')
+        
+        # 备份实际的数据目录
+        if [[ -n "$DATA_PATH" && -d "$DATA_PATH" ]]; then
+            log "备份数据目录: $DATA_PATH"
+            cp -r "$DATA_PATH" "$BACKUP_DIR/data"
+        fi
+        
+        if [[ -n "$LOG_PATH" && -d "$LOG_PATH" ]]; then
+            log "备份日志目录: $LOG_PATH"
+            cp -r "$LOG_PATH" "$BACKUP_DIR/logs"
+        fi
+        
+        log "删除旧容器..."
+        docker rm idb
+        
+        return 0
+    fi
+    
+    return 1
+}
+
+function Restore_Data() {
+    local BACKUP_DIR="/tmp/idb-cache"
+    
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        log "未找到备份数据，执行全新安装"
+        return 0
+    fi
+    
+    log "开始恢复数据..."
+    
+    # 确保目标目录存在
+    mkdir -p "${PANEL_DIR}/data"
+    mkdir -p "${PANEL_DIR}/logs"
+    
+    # 恢复数据到宿主机目录
+    if [[ -d "$BACKUP_DIR/data" ]]; then
+        log "恢复数据目录到: ${PANEL_DIR}/data"
+        cp -r "$BACKUP_DIR/data/." "${PANEL_DIR}/data/"
+    fi
+    
+    if [[ -d "$BACKUP_DIR/logs" ]]; then
+        log "恢复日志目录到: ${PANEL_DIR}/logs"
+        cp -r "$BACKUP_DIR/logs/." "${PANEL_DIR}/logs/"
+    fi
+    
+    log "数据恢复完成"
+    
+    # 清理临时目录
+    log "清理临时文件..."
+    rm -rf "$BACKUP_DIR"
 }
 
 function Set_Dir(){
@@ -330,7 +410,10 @@ function Install_IDB() {
     
     log ".env 文件内容已更新为：\n$(cat ${PANEL_DIR}/.env)"
 
-    # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
+    # 在启动容器前恢复数据
+    Restore_Data
+
+    # 启动新容器
     log "正在启动 IDB..."
     cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
     
@@ -423,7 +506,7 @@ function main(){
     Check_Root
     Install_Docker
     Install_Compose
-    #Check_Installation
+    Check_Installation
     Set_Dir
     Set_Port
     Set_Firewall
