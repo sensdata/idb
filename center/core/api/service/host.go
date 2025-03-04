@@ -119,13 +119,14 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		}
 
 		// 查询状态
-		status, err := s.getAgentStatus(host.ID)
+		status, _ := s.getAgentStatus(host.ID)
 
 		hostsInfos = append(
 			hostsInfos,
 			core.HostInfo{
 				ID:          host.ID,
 				CreatedAt:   host.CreatedAt,
+				Default:     host.Default,
 				GroupInfo:   group,
 				Name:        host.Name,
 				Addr:        host.Addr,
@@ -158,6 +159,7 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 	if err := copier.Copy(&host, &req); err != nil {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
 	}
+	host.Default = false
 
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
@@ -172,6 +174,7 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 	return &core.HostInfo{
 		ID:         host.ID,
 		CreatedAt:  host.CreatedAt,
+		Default:    host.Default,
 		GroupInfo:  core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
 		Name:       host.Name,
 		Addr:       host.Addr,
@@ -193,15 +196,15 @@ func (s *HostService) Update(id uint, upMap map[string]interface{}) error {
 }
 
 func (s *HostService) Delete(id uint) error {
-	// host 1不可以删除
-	if id == 1 {
-		return errors.WithMessage(constant.ErrInternalServer, "can't delete default host")
-	}
-
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// default host不可以删除
+	if host.Default {
+		return errors.WithMessage(constant.ErrInternalServer, "can't delete default host")
 	}
 
 	// 断开agent conn
@@ -229,11 +232,12 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	}
 
 	// 查询状态
-	status, err := s.getAgentStatus(host.ID)
+	status, _ := s.getAgentStatus(host.ID)
 
 	return &core.HostInfo{
 		ID:          host.ID,
 		CreatedAt:   host.CreatedAt,
+		Default:     host.Default,
 		GroupInfo:   core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
 		Name:        host.Name,
 		Addr:        host.Addr,

@@ -3,9 +3,9 @@ package model
 import "time"
 
 type HostInfo struct {
-	ID        uint      `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-
+	ID         uint      `json:"id"`
+	CreatedAt  time.Time `json:"created_at"`
+	Default    bool      `json:"default"`
 	GroupInfo  GroupInfo `json:"group"`
 	Name       string    `json:"name"`
 	Addr       string    `json:"addr"`

@@ -11,6 +11,7 @@ type HostGroup struct {
 type Host struct {
 	BaseModel
 
+	Default    bool   `gorm:"type:bool;not null;default:false" json:"default"`
 	GroupID    uint   `gorm:"type:decimal;not null" json:"group_id"`
 	Name       string `gorm:"type:varchar(64);not null" json:"name"`
 	Addr       string `gorm:"type:varchar(16);not null" json:"addr"`
