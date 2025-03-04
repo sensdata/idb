@@ -328,7 +328,7 @@ function Install_IDB() {
     sed -i "s/^iDB_service_port=.*/iDB_service_port=${PANEL_PORT}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
     
-    log ".env 文件中的端口配置已更新为: iDB_service_host_ip=${LOCAL_IP}, iDB_service_port=${PANEL_PORT}, iDB_service_container_port=${CONTAINER_PORT}"
+    log ".env 文件内容已更新为：\n$(cat ${PANEL_DIR}/.env)"
 
     # 进入 PANEL_DIR 并执行 docker compose up -d 启动 idb
     log "正在启动 IDB..."
@@ -374,11 +374,19 @@ function Install_IDB() {
 }
 
 function Get_Ip(){
-    active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
-    if [[ -z $active_interface ]]; then
+    # 优先获取默认路由对应的源IP
+    LOCAL_IP=$(ip route get 8.8.8.8 | grep -oP 'src \K[^ ]+')
+    if [[ -z "$LOCAL_IP" ]]; then
+        # 备选方案：获取默认网卡的IP
+        default_interface=$(ip route | grep '^default' | awk '{print $5}')
+        if [[ -n "$default_interface" ]]; then
+            LOCAL_IP=$(ip addr show $default_interface | grep -oP 'inet \K[\d.]+')
+        fi
+    fi
+    
+    # 如果上述方法都失败，使用默认值
+    if [[ -z "$LOCAL_IP" ]]; then
         LOCAL_IP="127.0.0.1"
-    else
-        LOCAL_IP=`ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
     fi
 
     PUBLIC_IP=`curl -s https://api64.ipify.org`

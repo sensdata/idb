@@ -15,19 +15,28 @@ if [ -z "$IDB_EXECUTABLE" ]; then
     exit 1
 fi
 
-echo "Starting configure idb.conf"
+# 创建日志函数
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+log "Starting configure idb.conf"
 
 # 修改或添加相关配置
 if grep -q "^host=" "$CONFIG_FILE"; then
     sed -i "s/^host=.*/host=$HOST/" "$CONFIG_FILE"
+    log "更新配置: host=$HOST"
 else
     echo "host=$HOST" >> "$CONFIG_FILE"
+    log "新增配置: host=$HOST"
 fi
 
 if grep -q "^port=" "$CONFIG_FILE"; then
     sed -i "s/^port=.*/port=$PORT/" "$CONFIG_FILE"
+    log "更新配置: port=$PORT"
 else
     echo "port=$PORT" >> "$CONFIG_FILE"
+    log "新增配置: port=$PORT"
 fi
 
 if grep -q "^secret_key=" "$CONFIG_FILE"; then
@@ -36,7 +45,7 @@ else
     echo "secret_key=$SECRET_KEY" >> "$CONFIG_FILE"
 fi
 
-echo "Configured idb.conf with host=$HOST port=$PORT key=$SECRET_KEY"
+log "配置文件更新完成，当前配置内容：\n$(cat "$CONFIG_FILE")"
 
 # 设置文件描述符限制
 ulimit -n 1048576
@@ -44,5 +53,5 @@ ulimit -u 1048576
 ulimit -c 1048576
 
 # 启动应用
-echo "Starting IDB service..."
+log "Starting IDB service..."
 exec "$IDB_EXECUTABLE" start #>> "$LOG_FILE" 2>&1
