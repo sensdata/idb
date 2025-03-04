@@ -41,35 +41,36 @@
 }
 
 each(range(6), {
-  .blue-@{value} {
-    color: var(--idblue-@value);
+  @idx: @value;
+  .blue-@{idx} {
+    color: ~"var(--idblue-@{idx})";
   }
-  .bg-blue-@{value} {
-    background-color: var(--idblue-@value);
+  .bg-blue-@{idx} {
+    background-color: ~"var(--idblue-@{idx})";
   }
-  .green-@{value} {
-    color: var(--idbgreen@value);
+  .green-@{idx} {
+    color: ~"var(--idbgreen-@{idx})";
   }
-  .bg-green-@{value} {
-    background-color: var(--idbgreen@value);
+  .bg-green-@{idx} {
+    background-color: ~"var(--idbgreen-@{idx})";
   }
-  .cyan-@{value} {
-    color: var(--idbcyan@value);
+  .cyan-@{idx} {
+    color: ~"var(--idbcyan-@{idx})";
   }
-  .bg-cyan-@{value} {
-    background-color: var(--idbcyan@value);
+  .bg-cyan-@{idx} {
+    background-color: ~"var(--idbcyan-@{idx})";
   }
-  .autumn-@{value} {
-    color: var(--idbautumn@value);
+  .autumn-@{idx} {
+    color: ~"var(--idbautumn-@{idx})";
   }
-  .bg-autumn-@{value} {
-    background-color: var(--idbautumn@value);
+  .bg-autumn-@{idx} {
+    background-color: ~"var(--idbautumn-@{idx})";
   }
-  .dusk-@{value} {
-    color: var(--idbdusk@value);
+  .dusk-@{idx} {
+    color: ~"var(--idbdusk-@{idx})";
   }
-  .bg-dusk-@{value} {
-    background-color: var(--idbdusk@value);
+  .bg-dusk-@{idx} {
+    background-color: ~"var(--idbdusk-@{idx})";
   }
 });
 

@@ -56,7 +56,7 @@
       <span v-if="!record.statusReady">-</span>
       <a-progress
         v-else
-        class="inline-progress bg-cyan-6"
+        class="inline-progress"
         :percent="+(record.mem / 100).toFixed(3)"
         color="#0FC6C2"
       />
@@ -65,7 +65,7 @@
       <span v-if="!record.statusReady">-</span>
       <a-progress
         v-else
-        class="inline-progress bg-green-6"
+        class="inline-progress"
         :percent="+(record.disk / 100).toFixed(3)"
         color="#0FC6C2"
       />
