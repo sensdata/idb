@@ -74,6 +74,7 @@ func GetOverview() (*model.Overview, error) {
 	if len(times) > 0 {
 		t := times[0]
 		overview.IdleTime = int64(t.Idle)
+		overview.IdleRate = math.Round(t.Idle/(t.User+t.System+t.Idle+t.Nice+t.Iowait+t.Irq+t.Softirq+t.Steal)*100*100) / 100
 	}
 
 	percents, _ := cpu.Percent(0, false)
