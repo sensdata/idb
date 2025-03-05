@@ -167,7 +167,7 @@ var AddTableHost = &gormigrate.Migration{
 				return err
 			}
 			host := model.Host{
-				Default:    true,
+				IsDefault:  true,
 				GroupID:    group.ID,
 				Name:       "localhost",
 				Addr:       global.Host,

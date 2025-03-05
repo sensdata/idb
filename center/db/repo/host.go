@@ -66,7 +66,7 @@ func (r *HostRepo) WithByID(id uint) DBOption {
 
 func (r *HostRepo) WithByDefault() DBOption {
 	return func(g *gorm.DB) *gorm.DB {
-		return g.Where("default = ?", true)
+		return g.Where("is_default = ?", true)
 	}
 }
 
