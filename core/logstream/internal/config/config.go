@@ -32,7 +32,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		// 基础路径配置
-		BasePath: filepath.Join("/var/lib/idb/logstream"),
+		BasePath: filepath.Join("/var/lib/idb/data/logstream"),
 		LogDir:   "logs",
 		TaskDir:  "tasks",
 

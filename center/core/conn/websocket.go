@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +27,7 @@ type IWebSocketService interface {
 }
 
 type SshConn struct {
+	ID         uint   `json:"id"`
 	User       string `json:"user"`
 	Addr       string `json:"addr"`
 	Port       int    `json:"port"`
@@ -133,15 +133,15 @@ func (c *SshConn) NewSshClient() (*SshConn, error) {
 	if c.AuthMode == "password" {
 		config.Auth = []gossh.AuthMethod{gossh.Password(c.Password)}
 	} else {
-		// 读取文件
-		privateKey, err := os.ReadFile(c.PrivateKey)
+		// 读取宿主机文件, 需要利用agent连接来读取文件内容
+		privateKey, err := getPrivateKey(c.ID, c.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			return nil, errors.New(constant.ErrFileRead)
 		}
 		passPhrase := []byte(c.PassPhrase)
 
-		signer, err := makePrivateKeySigner(privateKey, passPhrase)
+		signer, err := makePrivateKeySigner([]byte(privateKey.Content), passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", c.Addr, err)
 			return nil, fmt.Errorf("failed to config private key to host %s, %v", c.Addr, err)

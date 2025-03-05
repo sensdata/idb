@@ -16,6 +16,8 @@ import (
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/logstream/pkg/writer"
+	core "github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -76,19 +78,19 @@ func (s *SSHService) TestConnection(host model.Host) error {
 	config := &ssh.ClientConfig{}
 	config.SetDefaults()
 	config.User = host.User
-	global.LOG.Info("authmode: %s, %s", host.AuthMode, host.Password)
+	global.LOG.Info("authmode: %s, %s, %s", host.AuthMode, host.Password, host.PrivateKey)
 	if host.AuthMode == "password" {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
-		// 读取文件
-		privateKey, err := os.ReadFile(host.PrivateKey)
+		// 读取宿主机文件, 需要利用agent连接来读取文件内容
+		privateKey, err := getPrivateKey(host.ID, host.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			return errors.New(constant.ErrFileRead)
 		}
 		passPhrase := []byte(host.PassPhrase)
 
-		signer, err := makePrivateKeySigner(privateKey, passPhrase)
+		signer, err := makePrivateKeySigner([]byte(privateKey.Content), passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
 			return fmt.Errorf("failed to config private key to host %s, %v", host.Addr, err)
@@ -478,6 +480,47 @@ func (s *SSHService) ensureConnections() {
 	}
 }
 
+func getPrivateKey(hostID uint, path string) (*core.FileInfo, error) {
+	var fileInfo core.FileInfo
+
+	req := core.FileContentReq{
+		Path:   path,
+		Expand: true,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &fileInfo, err
+	}
+
+	actionRequest := core.HostAction{
+		HostID: hostID,
+		Action: core.Action{
+			Action: core.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return &fileInfo, err
+	}
+
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		if strings.Contains(actionResponse.Data, "no such file or directory") {
+			return &fileInfo, constant.ErrFileNotExist
+		}
+		return &fileInfo, fmt.Errorf("failed to get file content")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &fileInfo)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return &fileInfo, fmt.Errorf("json err: %v", err)
+	}
+	return &fileInfo, nil
+}
+
 func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	proto := "tcp"
 	addr := host.Addr
@@ -497,8 +540,8 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 	if host.AuthMode == "password" {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
-		// 读取文件
-		privateKey, err := os.ReadFile(host.PrivateKey)
+		// 读取宿主机文件, 需要利用agent连接来读取文件内容
+		privateKey, err := getPrivateKey(host.ID, host.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			resultCh <- err
@@ -507,7 +550,7 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 
 		passPhrase := []byte(host.PassPhrase)
 
-		signer, err := makePrivateKeySigner(privateKey, passPhrase)
+		signer, err := makePrivateKeySigner([]byte(privateKey.Content), passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
 			resultCh <- err
