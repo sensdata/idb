@@ -1,9 +1,7 @@
 package service
 
 import (
-	"encoding/base64"
 	"fmt"
-	"os"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -308,15 +306,7 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 	if req.AuthMode == "password" {
 		upMap["password"] = req.Password
 	} else {
-		// 读取文件
-		privateKey, err := os.ReadFile(req.PrivateKey)
-		if err != nil {
-			global.LOG.Error("failed to read private key file: %v", err)
-			return errors.New(constant.ErrFileRead)
-		}
-		encodedPrivateKey := base64.StdEncoding.EncodeToString(privateKey)
-
-		upMap["private_key"] = encodedPrivateKey
+		upMap["private_key"] = req.PrivateKey
 		upMap["pass_phrase"] = req.PassPhrase
 	}
 
