@@ -67,7 +67,6 @@ export default {
   'manage.host.form.test.button': 'Test Connection',
   'manage.host.form.test.success': 'Connection successful',
   'manage.host.form.test.failed': 'Connection failed: {message}',
-  'manage.host.form.test.error': 'Test error: {message}',
 
   'manage.host.agent.installing': 'Installing agent...',
   'manage.host.agent.installSuccess': 'Agent installed successfully',

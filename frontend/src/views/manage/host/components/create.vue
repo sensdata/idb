@@ -104,7 +104,7 @@
           <span
             v-if="testResult"
             :class="[
-              'ml-2',
+              'ml-2 text-sm',
               testResult.success ? 'text-green-600' : 'text-red-600',
             ]"
           >
@@ -275,18 +275,16 @@
       testResult.value = null;
 
       const data = getData();
-      const result = await testHostSSHApi(data as CreateHostParams);
+      await testHostSSHApi(data as CreateHostParams);
 
       testResult.value = {
-        success: result.success,
-        message: result.success
-          ? t('manage.host.form.test.success')
-          : t('manage.host.form.test.failed', { message: result.message }),
+        success: true,
+        message: t('manage.host.form.test.success'),
       };
     } catch (err: any) {
       testResult.value = {
         success: false,
-        message: t('manage.host.form.test.error', { message: err.message }),
+        message: t('manage.host.form.test.failed', { message: err.message }),
       };
     } finally {
       setTestLoading(false);

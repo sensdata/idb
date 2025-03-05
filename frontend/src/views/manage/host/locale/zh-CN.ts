@@ -65,7 +65,6 @@ export default {
   'manage.host.form.test.button': '检测连接',
   'manage.host.form.test.success': '连接成功',
   'manage.host.form.test.failed': '连接失败：{message}',
-  'manage.host.form.test.error': '检测出错：{message}',
 
   'manage.host.agent.installing': '正在安装受控端...',
   'manage.host.agent.installSuccess': '安装成功',
