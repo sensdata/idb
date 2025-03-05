@@ -61,14 +61,7 @@ export function deleteHostGroupApi(id: number) {
   });
 }
 
-export interface TestSSHResult {
-  success: boolean;
-  message?: string;
-}
-
-export const testHostSSHApi = (
-  params: CreateHostParams
-): Promise<TestSSHResult> => {
+export const testHostSSHApi = (params: CreateHostParams) => {
   return axios.post('hosts/test/ssh', params);
 };
 
