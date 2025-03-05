@@ -27,7 +27,6 @@ type IWebSocketService interface {
 }
 
 type SshConn struct {
-	ID         uint   `json:"id"`
 	User       string `json:"user"`
 	Addr       string `json:"addr"`
 	Port       int    `json:"port"`
@@ -134,7 +133,7 @@ func (c *SshConn) NewSshClient() (*SshConn, error) {
 		config.Auth = []gossh.AuthMethod{gossh.Password(c.Password)}
 	} else {
 		// 读取宿主机文件, 需要利用agent连接来读取文件内容
-		privateKey, err := getPrivateKey(c.ID, c.PrivateKey)
+		privateKey, err := getPrivateKey(c.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			return nil, errors.New(constant.ErrFileRead)

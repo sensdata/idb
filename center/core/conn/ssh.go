@@ -83,7 +83,7 @@ func (s *SSHService) TestConnection(host model.Host) error {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
 		// 读取宿主机文件, 需要利用agent连接来读取文件内容
-		privateKey, err := getPrivateKey(host.ID, host.PrivateKey)
+		privateKey, err := getPrivateKey(host.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			return errors.New(constant.ErrFileRead)
@@ -480,8 +480,15 @@ func (s *SSHService) ensureConnections() {
 	}
 }
 
-func getPrivateKey(hostID uint, path string) (*core.FileInfo, error) {
+func getPrivateKey(path string) (*core.FileInfo, error) {
 	var fileInfo core.FileInfo
+
+	// 找宿主机host
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Error("Failed to get default host")
+		return &fileInfo, err
+	}
 
 	req := core.FileContentReq{
 		Path:   path,
@@ -493,7 +500,7 @@ func getPrivateKey(hostID uint, path string) (*core.FileInfo, error) {
 	}
 
 	actionRequest := core.HostAction{
-		HostID: hostID,
+		HostID: host.ID,
 		Action: core.Action{
 			Action: core.File_Content,
 			Data:   data,
@@ -541,7 +548,7 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 		config.Auth = []ssh.AuthMethod{ssh.Password(host.Password)}
 	} else {
 		// 读取宿主机文件, 需要利用agent连接来读取文件内容
-		privateKey, err := getPrivateKey(host.ID, host.PrivateKey)
+		privateKey, err := getPrivateKey(host.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
 			resultCh <- err

@@ -13,6 +13,7 @@ type IHostRepo interface {
 	GetList(opts ...DBOption) ([]model.Host, error)
 	Page(page, size int, opts ...DBOption) (int64, []model.Host, error)
 	WithByID(id uint) DBOption
+	WithByDefault() DBOption
 	WithByName(name string) DBOption
 	WithByAddr(addr string) DBOption
 	WithByGroupID(groupID uint) DBOption
@@ -60,6 +61,12 @@ func (r *HostRepo) Page(page, size int, opts ...DBOption) (int64, []model.Host, 
 func (r *HostRepo) WithByID(id uint) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
 		return g.Where("id = ?", id)
+	}
+}
+
+func (r *HostRepo) WithByDefault() DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("default = ?", true)
 	}
 }
 
