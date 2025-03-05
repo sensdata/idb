@@ -33,8 +33,8 @@ type SshConn struct {
 	Port       int    `json:"port"`
 	AuthMode   string `json:"auth_mode"`
 	Password   string `json:"password"`
-	PrivateKey []byte `json:"private_key"`
-	PassPhrase []byte `json:"pass_phrase"`
+	PrivateKey string `json:"private_key"`
+	PassPhrase string `json:"pass_phrase"`
 
 	Client     *gossh.Client  `json:"client"`
 	Session    *gossh.Session `json:"session"`
@@ -90,17 +90,6 @@ func (s *WebSocketService) HandleSshTerminal(c *gin.Context) error {
 	var connInfo SshConn
 	_ = copier.Copy(&connInfo, &host)
 
-	// 读取文件
-	privateKey, err := os.ReadFile(host.PrivateKey)
-	if err != nil {
-		wsHandleError(wsConn, err)
-		return errors.Wrap(err, "failed to get private key")
-	}
-	connInfo.PrivateKey = privateKey
-	if len(host.PassPhrase) != 0 {
-		connInfo.PassPhrase = []byte(host.PassPhrase)
-	}
-
 	client, err := connInfo.NewSshClient()
 	if err != nil {
 		wsHandleError(wsConn, err)
@@ -144,10 +133,18 @@ func (c *SshConn) NewSshClient() (*SshConn, error) {
 	if c.AuthMode == "password" {
 		config.Auth = []gossh.AuthMethod{gossh.Password(c.Password)}
 	} else {
-		signer, err := makePrivateKeySigner(c.PrivateKey, c.PassPhrase)
+		// 读取文件
+		privateKey, err := os.ReadFile(c.PrivateKey)
+		if err != nil {
+			global.LOG.Error("failed to read private key file: %v", err)
+			return nil, errors.New(constant.ErrFileRead)
+		}
+		passPhrase := []byte(c.PassPhrase)
+
+		signer, err := makePrivateKeySigner(privateKey, passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", c.Addr, err)
-			return nil, err
+			return nil, fmt.Errorf("failed to config private key to host %s, %v", c.Addr, err)
 		}
 		config.Auth = []gossh.AuthMethod{gossh.PublicKeys(signer)}
 	}
