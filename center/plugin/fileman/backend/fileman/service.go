@@ -255,7 +255,7 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 		path = "/"
 	}
 
-	show_hidden, _ := strconv.ParseBool(c.Query("force"))
+	show_hidden, _ := strconv.ParseBool(c.Query("show_hidden"))
 
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
@@ -316,7 +316,7 @@ func (s *FileMan) SearchFile(c *gin.Context) {
 
 	search := c.Query("search")
 
-	show_hidden, _ := strconv.ParseBool(c.Query("force"))
+	show_hidden, _ := strconv.ParseBool(c.Query("show_hidden"))
 
 	dir, _ := strconv.ParseBool(c.Query("dir"))
 
