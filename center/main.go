@@ -17,7 +17,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -82,20 +81,8 @@ func main() {
 func Run() error {
 	global.LOG.Info("Center ver: %s", global.Version)
 
-	// 判断pid文件是否存在
+	// 直接创建pid文件
 	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
-	running, err := utils.IsRunning(pidfile)
-	if err != nil {
-		errMsg := fmt.Sprintf("center error %v", err)
-		global.LOG.Error(errMsg)
-		return errors.New(errMsg)
-	}
-	if running {
-		errMsg := fmt.Sprintf("center running %v", err)
-		global.LOG.Error(errMsg)
-		return errors.New(errMsg)
-	}
-	// 创建pid文件
 	utils.CreatePIDFile(pidfile)
 
 	// 启动各项服务
