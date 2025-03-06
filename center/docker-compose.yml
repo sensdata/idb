@@ -15,5 +15,4 @@ services:
       - ${iDB_service_conf_path}:/etc/idb
       - ${iDB_service_data_path}:/var/lib/idb/data
       - ${iDB_service_log_path}:/var/log/idb
-      - /run/idb:/run/idb
     command: ["/var/lib/idb/entrypoint.sh", "/var/lib/idb/idb"]  # 在容器启动时运行 configure.sh 脚本
