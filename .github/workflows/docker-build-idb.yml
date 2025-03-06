@@ -58,7 +58,7 @@ jobs:
       - name: Extract Agent Package
         run: |
           docker create --name temp_container idb:${{ env.VERSION_TAG }}
-          docker cp temp_container:/var/lib/idb/agent/idb-agent.tar.gz ./idb-agent_${{ env.VERSION_TAG }}.tar.gz
+          docker cp temp_container:/var/lib/idb/data/agent/idb-agent.tar.gz ./idb-agent_${{ env.VERSION_TAG }}.tar.gz
           docker rm temp_container
 
       # 推送到 Docker Hub
