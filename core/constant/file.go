@@ -4,7 +4,7 @@ const (
 	CenterConfDir  = "/etc/idb"
 	CenterBinDir   = "/var/lib/idb"
 	CenterDataDir  = "/var/lib/idb/data"
-	CenterAgentDir = "/var/lib/idb/data/agent"
+	CenterAgentDir = "/var/lib/idb/agent"
 	CenterLogDir   = "/var/log/idb"
 	CenterRunDir   = "/run/idb"
 

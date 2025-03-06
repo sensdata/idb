@@ -85,12 +85,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 center 必要的目录结构
-RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/lib/idb/data/agent
+RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/lib/idb/agent
 
 # 从构建阶段复制编译好的 center 应用和必要文件
 COPY --from=frontend-builder /app/frontend/dist/. /var/lib/idb/home
 COPY --from=builder /app/center/idb /var/lib/idb/idb
-COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/data/agent/idb-agent.tar.gz
+COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar.gz
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
