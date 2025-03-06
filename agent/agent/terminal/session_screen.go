@@ -31,8 +31,10 @@ func NewScreenSession(session string, name string, cols, rows int) Session {
 
 // Start session
 func (s *ScreenSession) Start() error {
-	// s.mutex.Lock()
-	// defer s.mutex.Unlock()
+	// check screen command
+	if _, err := exec.LookPath("screen"); err != nil {
+		return errors.New(constant.ErrNotInstalled)
+	}
 
 	// 是否传了名字
 	var sessionName string
@@ -52,11 +54,6 @@ func (s *ScreenSession) Start() error {
 		global.LOG.Info("gen session name: %s", sessionName)
 	}
 	s.Name = sessionName
-
-	// check screen command
-	if _, err := exec.LookPath("screen"); err != nil {
-		return fmt.Errorf("screen is not installed")
-	}
 
 	// create cmd
 	s.cmd = exec.Command("screen", "-S", s.Name, "-s", "bash")
@@ -102,12 +99,9 @@ func (s *ScreenSession) Start() error {
 
 // Attach session
 func (s *ScreenSession) Attach() error {
-	// s.mutex.Lock()
-	// defer s.mutex.Unlock()
-
 	// check screen command
 	if _, err := exec.LookPath("screen"); err != nil {
-		return fmt.Errorf("screen is not installed")
+		return errors.New(constant.ErrNotInstalled)
 	}
 
 	// get all detached sessions
