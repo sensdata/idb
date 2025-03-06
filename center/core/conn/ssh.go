@@ -184,7 +184,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
 
 	// 1. 检查 agent 安装包路径
 	taskLog(writer, types.LogLevelInfo, "Checking agent package path")
-	agentPackagePath := filepath.Join(constant.CenterAgentDir, fmt.Sprintf(constant.CenterAgentPkg, global.Version))
+	agentPackagePath := filepath.Join(constant.CenterAgentDir, constant.CenterAgentPkg)
 	if _, err := os.Stat(agentPackagePath); os.IsNotExist(err) {
 		global.LOG.Error("Agent package not found at %s", agentPackagePath)
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Agent package not found at %s", agentPackagePath))

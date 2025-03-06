@@ -14,7 +14,7 @@ const (
 	CenterConfig   = "idb.conf"
 	CenterLog      = "idb.log"
 	CenterSock     = "idb.sock"
-	CenterAgentPkg = "idb-agent_%s.tar.gz"
+	CenterAgentPkg = "idb-agent.tar.gz"
 
 	AgentConfDir   = "/etc/idb-agent"
 	AgentDataDir   = "/var/lib/idb-agent/data"
