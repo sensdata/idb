@@ -120,6 +120,21 @@ func (a *Center) listenToUnix() error {
 	// 检查sock文件
 	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
 
+	// 确保目录存在
+	if err := os.MkdirAll(constant.CenterRunDir, 0755); err != nil {
+		global.LOG.Error("Failed to create directory: %v", err)
+		return err
+	}
+
+	// 如果sock文件存在，尝试删除
+	if _, err := os.Stat(sockFile); err == nil {
+		if err := os.Remove(sockFile); err != nil {
+			global.LOG.Error("Failed to remove existing sock file: %v", err)
+			return err
+		}
+		global.LOG.Info("Removed existing sock file")
+	}
+
 	var err error
 	a.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
