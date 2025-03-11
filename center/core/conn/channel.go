@@ -319,10 +319,10 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	resultCh <- nil
 
 	// 处理连接
-	go c.handleConnection(conn)
+	go c.handleConnection(host.ID, conn)
 }
 
-func (c *Center) handleConnection(conn net.Conn) {
+func (c *Center) handleConnection(hostID uint, conn net.Conn) {
 	defer func() {
 		agentID := conn.RemoteAddr().String()
 		global.LOG.Info("close conn %s for err", agentID)
@@ -373,7 +373,7 @@ func (c *Center) handleConnection(conn net.Conn) {
 			}
 			switch m := msg.(type) {
 			case *message.Message:
-				c.processMessage(m)
+				c.processMessage(hostID, m)
 			case *message.FileMessage:
 				c.processFileMessage(m)
 			case *message.SessionMessage:
@@ -390,10 +390,15 @@ func (c *Center) handleConnection(conn net.Conn) {
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
-func (c *Center) processMessage(msg *message.Message) {
+func (c *Center) processMessage(hostID uint, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 收到心跳
-		// TODO: 维护在线状态
+		// 处理心跳消息
+		global.LOG.Info("Received heartbeat from agent: %s", msg.Data)
+		// 写入agent版本号
+		if err := HostRepo.Update(hostID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
+			global.LOG.Error("Failed to update agent version: %v", err)
+		}
 	case message.CmdMessage: // 收到Cmd 类型的回复
 		global.LOG.Info("Processing cmd message: %s", msg.Data)
 		// 获取响应通道
@@ -538,6 +543,7 @@ func (c *Center) sendHeartbeat() {
 			"Heartbeat",
 			config.SecretKey,
 			utils.GenerateNonce(16),
+			global.Version,
 			message.Heartbeat,
 		)
 		if err != nil {
@@ -830,6 +836,7 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 		string(data),
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.ActionMessage,
 	)
 	if err != nil {
@@ -891,6 +898,7 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		req.Command,
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.CmdMessage,
 	)
 	if err != nil {
@@ -978,6 +986,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 		data,
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.CmdMessage,
 	)
 	if err != nil {

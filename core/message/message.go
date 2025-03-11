@@ -179,7 +179,7 @@ func SendFileMessage(conn net.Conn, msg *FileMessage) error {
 }
 
 // CreateMessage 创建并签名一个消息
-func CreateMessage(msgID string, data string, key string, nonce string, msgType MessageType) (*Message, error) {
+func CreateMessage(msgID string, data string, key string, nonce string, version string, msgType MessageType) (*Message, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
 
@@ -199,7 +199,7 @@ func CreateMessage(msgID string, data string, key string, nonce string, msgType 
 		Data:      encryptedData,
 		Timestamp: timestamp,
 		Nonce:     nonce,
-		Version:   "1.0",
+		Version:   version,
 		Checksum:  checksum,
 	}
 
@@ -238,7 +238,7 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	return nil
 }
 
-func CreateSessionMessage(msgID string, msgType string, data SessionData, key string, nonce string) (*SessionMessage, error) {
+func CreateSessionMessage(msgID string, msgType string, data SessionData, key string, nonce string, version string) (*SessionMessage, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
 
@@ -258,7 +258,7 @@ func CreateSessionMessage(msgID string, msgType string, data SessionData, key st
 		Data:      data,
 		Timestamp: timestamp,
 		Nonce:     nonce,
-		Version:   "1.0",
+		Version:   version,
 		Checksum:  checksum,
 	}
 

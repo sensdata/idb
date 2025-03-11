@@ -183,6 +183,7 @@ func (aws *AgentWebSocketSession) sendToAgent(msgId string, msgType string, data
 		data,
 		aws.agentSecret,
 		utils.GenerateNonce(16),
+		global.Version,
 	)
 	if err != nil {
 		global.LOG.Error("Error creating session message: %v", err)

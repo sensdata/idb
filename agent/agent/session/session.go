@@ -308,6 +308,7 @@ func (s *Session) sendSessionResult(data string) {
 		message.SessionData{Code: constant.CodeSuccess, Msg: "", Session: s.ID, Data: data},
 		s.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 	)
 	if err != nil {
 		global.LOG.Error("[Session] Error creating session rsp message: %v", err)

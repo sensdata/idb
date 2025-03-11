@@ -122,23 +122,24 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		hostsInfos = append(
 			hostsInfos,
 			core.HostInfo{
-				ID:          host.ID,
-				CreatedAt:   host.CreatedAt,
-				Default:     host.IsDefault,
-				GroupInfo:   group,
-				Name:        host.Name,
-				Addr:        host.Addr,
-				Port:        host.Port,
-				User:        host.User,
-				AuthMode:    host.AuthMode,
-				Password:    host.Password,
-				PrivateKey:  host.PrivateKey,
-				PassPhrase:  host.PassPhrase,
-				AgentAddr:   host.AgentAddr,
-				AgentPort:   host.AgentPort,
-				AgentKey:    host.AgentKey,
-				AgentMode:   host.AgentMode,
-				AgentStatus: *status,
+				ID:           host.ID,
+				CreatedAt:    host.CreatedAt,
+				Default:      host.IsDefault,
+				GroupInfo:    group,
+				Name:         host.Name,
+				Addr:         host.Addr,
+				Port:         host.Port,
+				User:         host.User,
+				AuthMode:     host.AuthMode,
+				Password:     host.Password,
+				PrivateKey:   host.PrivateKey,
+				PassPhrase:   host.PassPhrase,
+				AgentAddr:    host.AgentAddr,
+				AgentPort:    host.AgentPort,
+				AgentKey:     host.AgentKey,
+				AgentMode:    host.AgentMode,
+				AgentVersion: host.AgentVersion,
+				AgentStatus:  *status,
 			},
 		)
 	}
@@ -161,31 +162,33 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
-	host.AgentPort = 9919                      //TODO 从设置中获取
-	host.AgentKey = "idbidbidbidbidbidbidbidb" //TODO 添加以后，如何给到Agent端？
-	host.AgentMode = "https"                   //TODO https连接，需要调整实现
+	host.AgentPort = 9919
+	host.AgentKey = "idbidbidbidbidbidbidbidb"
+	host.AgentMode = "https"
+	host.AgentVersion = ""
 
 	if err := HostRepo.Create(&host); err != nil {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
 	return &core.HostInfo{
-		ID:         host.ID,
-		CreatedAt:  host.CreatedAt,
-		Default:    host.IsDefault,
-		GroupInfo:  core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
-		Name:       host.Name,
-		Addr:       host.Addr,
-		Port:       host.Port,
-		User:       host.User,
-		AuthMode:   host.AuthMode,
-		Password:   host.Password,
-		PrivateKey: host.PrivateKey,
-		PassPhrase: host.PassPhrase,
-		AgentAddr:  host.AgentAddr,
-		AgentPort:  host.AgentPort,
-		AgentKey:   host.AgentKey,
-		AgentMode:  host.AgentMode,
+		ID:           host.ID,
+		CreatedAt:    host.CreatedAt,
+		Default:      host.IsDefault,
+		GroupInfo:    core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		Name:         host.Name,
+		Addr:         host.Addr,
+		Port:         host.Port,
+		User:         host.User,
+		AuthMode:     host.AuthMode,
+		Password:     host.Password,
+		PrivateKey:   host.PrivateKey,
+		PassPhrase:   host.PassPhrase,
+		AgentAddr:    host.AgentAddr,
+		AgentPort:    host.AgentPort,
+		AgentKey:     host.AgentKey,
+		AgentMode:    host.AgentMode,
+		AgentVersion: host.AgentVersion,
 	}, nil
 }
 
@@ -233,23 +236,24 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	status, _ := s.getAgentStatus(host.ID)
 
 	return &core.HostInfo{
-		ID:          host.ID,
-		CreatedAt:   host.CreatedAt,
-		Default:     host.IsDefault,
-		GroupInfo:   core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
-		Name:        host.Name,
-		Addr:        host.Addr,
-		Port:        host.Port,
-		User:        host.User,
-		AuthMode:    host.AuthMode,
-		Password:    host.Password,
-		PrivateKey:  host.PrivateKey,
-		PassPhrase:  host.PassPhrase,
-		AgentAddr:   host.AgentAddr,
-		AgentPort:   host.AgentPort,
-		AgentKey:    host.AgentKey,
-		AgentMode:   host.AgentMode,
-		AgentStatus: *status,
+		ID:           host.ID,
+		CreatedAt:    host.CreatedAt,
+		Default:      host.IsDefault,
+		GroupInfo:    core.GroupInfo{ID: host.GroupID, GroupName: group.GroupName, CreatedAt: group.CreatedAt},
+		Name:         host.Name,
+		Addr:         host.Addr,
+		Port:         host.Port,
+		User:         host.User,
+		AuthMode:     host.AuthMode,
+		Password:     host.Password,
+		PrivateKey:   host.PrivateKey,
+		PassPhrase:   host.PassPhrase,
+		AgentAddr:    host.AgentAddr,
+		AgentPort:    host.AgentPort,
+		AgentKey:     host.AgentKey,
+		AgentMode:    host.AgentMode,
+		AgentVersion: host.AgentVersion,
+		AgentStatus:  *status,
 	}, nil
 }
 

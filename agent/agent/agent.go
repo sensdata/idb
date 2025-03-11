@@ -2190,6 +2190,7 @@ func (a *Agent) sendHeartbeat(conn net.Conn) {
 		"Heartbeat",
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.Heartbeat,
 	)
 	if err != nil {
@@ -2214,6 +2215,7 @@ func (a *Agent) sendCmdResult(conn net.Conn, msgID string, result string) {
 		result,
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.CmdMessage,
 	)
 	if err != nil {
@@ -2244,6 +2246,7 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 		string(data),
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 		message.ActionMessage,
 	)
 	if err != nil {
@@ -2301,6 +2304,7 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType string, c
 		message.SessionData{Code: code, Msg: msg, Type: sessionType, Session: sessionID, Data: data},
 		config.SecretKey,
 		utils.GenerateNonce(16),
+		global.Version,
 	)
 	if err != nil {
 		global.LOG.Error("Error creating session rsp message: %v", err)

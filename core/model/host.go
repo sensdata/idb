@@ -16,11 +16,12 @@ type HostInfo struct {
 	PrivateKey string    `json:"private_key"`
 	PassPhrase string    `json:"pass_phrase"`
 
-	AgentAddr   string      `json:"agent_addr"`
-	AgentPort   int         `json:"agent_port"`
-	AgentMode   string      `json:"agent_mode"`
-	AgentKey    string      `json:"agent_key"`
-	AgentStatus AgentStatus `json:"agent_status"`
+	AgentAddr    string      `json:"agent_addr"`
+	AgentPort    int         `json:"agent_port"`
+	AgentMode    string      `json:"agent_mode"`
+	AgentKey     string      `json:"agent_key"`
+	AgentVersion string      `json:"agent_version"`
+	AgentStatus  AgentStatus `json:"agent_status"`
 }
 
 type ListHost struct {

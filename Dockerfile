@@ -63,7 +63,7 @@ RUN go mod download
 RUN go mod tidy && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
-    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}'" \
+    -ldflags="-s -w -X 'github.com/sensdata/idb/agent/global.Version=${VERSION}'" \
     -o idb-agent .
 
 # 创建 agent 包
@@ -73,6 +73,9 @@ RUN mkdir -p /app/agent-pkg && \
     cp idb-agent.conf /app/agent-pkg/ && \
     cp install-agent.sh /app/agent-pkg/ && \
     tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
+
+# 创建 agent.version文件
+RUN echo "${VERSION}" > /app/idb-agent.version
 
 # 运行阶段
 FROM debian:bookworm
@@ -91,6 +94,7 @@ RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/
 COPY --from=frontend-builder /app/frontend/dist/. /var/lib/idb/home
 COPY --from=builder /app/center/idb /var/lib/idb/idb
 COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar.gz
+COPY --from=builder /app/idb-agent.version /var/lib/idb/agent/idb-agent.version
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
