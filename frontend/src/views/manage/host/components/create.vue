@@ -115,29 +115,25 @@
     </a-form>
   </a-modal>
   <group-form ref="groupFormRef" @ok="handleGroupFormOk" />
-  <install-log ref="installLogRef" />
+  <install-agent ref="installAgentRef" @ok="handleInstallOk" />
 </template>
 
 <script lang="ts" setup>
   import { toRaw, reactive, ref, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
-  import { AUTH_MODE, TASK_STATUS } from '@/config/enum';
+  import { AUTH_MODE } from '@/config/enum';
   import {
     CreateHostParams,
     createHostApi,
     getHostGroupListApi,
     testHostSSHApi,
-    testHostAgentApi,
-    installHostAgentApi,
   } from '@/api/host';
-  import { resolveApiUrl } from '@/helper/api-helper';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
-  import { useConfirm } from '@/hooks/confirm';
   import FileSelector from '@/components/file/file-selector/index.vue';
   import GroupForm from './group-form.vue';
-  import InstallLog from './install-log.vue';
+  import InstallAgent from './install-agent.vue';
 
   interface TestResult {
     success: boolean;
@@ -148,12 +144,12 @@
 
   const { t } = useI18n();
 
-  const { confirm } = useConfirm();
   const { visible, show, hide } = useVisible();
   const { loading, showLoading, hideLoading } = useLoading();
   const { loading: testLoading, setLoading: setTestLoading } = useLoading();
 
   const formRef = ref();
+  const installAgentRef = ref<InstanceType<typeof InstallAgent>>();
   const fileSelectorRef = ref<InstanceType<typeof FileSelector>>();
   const testResult = ref<TestResult | null>(null);
   const model = reactive({
@@ -291,150 +287,6 @@
     }
   };
 
-  const installLogRef = ref<InstanceType<typeof InstallLog>>();
-
-  const logInstallMsgs = (taskId: string) => {
-    const url = resolveApiUrl(`tasks/${taskId}/logs`);
-
-    const logComponent = installLogRef.value;
-    if (!logComponent) {
-      return;
-    }
-
-    logComponent.reset();
-    logComponent.show();
-
-    let heartbeat = Date.now();
-    const eventSource = new EventSource(url);
-
-    // 处理日志事件
-    eventSource.addEventListener('log', (event: Event) => {
-      try {
-        if (event instanceof MessageEvent) {
-          const logData = JSON.parse(event.data);
-          if (
-            logData &&
-            typeof logData === 'object' &&
-            logData.level &&
-            logData.message
-          ) {
-            // 如果日志数据包含级别和消息
-            const level = logData.level.toLowerCase();
-            // 将level映射到组件支持的级别
-            let mappedLevel: 'info' | 'error' | 'warn' | 'debug' = 'info';
-
-            if (level === 'debug') {
-              mappedLevel = 'debug';
-            } else if (level === 'info') {
-              mappedLevel = 'info';
-            } else if (level === 'warn') {
-              mappedLevel = 'warn';
-            } else if (level === 'error') {
-              mappedLevel = 'error';
-            }
-
-            logComponent.addLog({
-              time: logData.timestamp,
-              message: logData.message,
-              level: mappedLevel,
-            });
-          } else {
-            // 如果是普通字符串，默认为info级别
-            logComponent.addLog({
-              time: Date.now(),
-              message: event.data,
-              level: 'info',
-            });
-          }
-        }
-      } catch (e) {
-        // 如果解析JSON失败，则按原样显示为info级别
-        if (event instanceof MessageEvent) {
-          logComponent.addLog({
-            time: Date.now(),
-            message: event.data,
-            level: 'info',
-          });
-        }
-      }
-    });
-
-    eventSource.addEventListener('heartbeat', () => {
-      heartbeat = Date.now();
-    });
-
-    const timer = window.setInterval(() => {
-      if (Date.now() - heartbeat > 30e3) {
-        clearInterval(timer);
-        eventSource.close();
-        logComponent.setStatus('failed');
-        Message.error(t('manage.host.agent.installTimeout'));
-      }
-    }, 1000);
-
-    eventSource.addEventListener('status', (event: Event) => {
-      if (event instanceof MessageEvent) {
-        const status = event.data;
-        switch (status) {
-          case TASK_STATUS.Success:
-            clearInterval(timer);
-            eventSource.close();
-            logComponent.setStatus('completed');
-            Message.success(t('manage.host.agent.installSuccess'));
-            break;
-          case TASK_STATUS.Failed:
-          case TASK_STATUS.Canceled:
-            clearInterval(timer);
-            eventSource.close();
-            logComponent.setStatus('failed');
-            Message.error(t('manage.host.agent.installFailed'));
-            break;
-          default:
-            break;
-        }
-      }
-    });
-
-    // 全局错误处理
-    eventSource.addEventListener('error', () => {
-      clearInterval(timer);
-      eventSource.close();
-      logComponent.setStatus('failed');
-      Message.error(t('manage.host.agent.installFailed'));
-    });
-  };
-
-  const installAgent = async (hostId: number) => {
-    try {
-      const result = await installHostAgentApi(hostId);
-      if (result.task_id) {
-        logInstallMsgs(result.task_id);
-      } else {
-        Message.error(t('manage.host.agent.installFailed'));
-      }
-    } catch (error) {
-      Message.error(t('manage.host.agent.installFailed'));
-      console.error('Failed to install agent:', error);
-    }
-  };
-
-  const checkAgentInstall = async (hostId: number) => {
-    try {
-      const result = await testHostAgentApi(hostId);
-      if (!result.installed) {
-        const confirmResult = await confirm(
-          t('manage.host.agent.notInstalled')
-        );
-        if (confirmResult) {
-          await installAgent(hostId);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check agent:', error);
-    }
-    emit('success');
-  };
-
   const handleOk = async () => {
     try {
       if (!(await validate())) {
@@ -444,7 +296,7 @@
       const data = getData();
       const res = await createHostApi(data);
       Message.success(t('manage.host.form.save.success'));
-      checkAgentInstall(res.id);
+      installAgentRef.value?.checkInstall(res.id);
       emit('ok');
       hide();
     } catch (err: any) {
@@ -452,6 +304,10 @@
     } finally {
       hideLoading();
     }
+  };
+
+  const handleInstallOk = () => {
+    emit('ok');
   };
 
   const handleCancel = () => {

@@ -82,6 +82,8 @@
   <host-edit ref="editRef" @ok="reload" />
   <ssh-terminal ref="termRef" />
   <ssh-form ref="sshFormRef" @ok="reload" />
+  <install-agent ref="installAgentRef" @ok="reload" />
+  <uninstall-agent ref="uninstallAgentRef" @ok="reload" />
 </template>
 
 <script lang="ts" setup>
@@ -105,6 +107,8 @@
   import SshTerminal from './components/ssh-terminal.vue';
   import HostEdit from './components/edit.vue';
   import SshForm from './components/ssh-form.vue';
+  import InstallAgent from './components/install-agent.vue';
+  import UninstallAgent from './components/uninstall-agent.vue';
 
   interface HostItem extends HostEntity {
     statusReady: boolean;
@@ -115,6 +119,8 @@
   const termRef = ref<InstanceType<typeof SshTerminal>>();
   const editRef = ref<InstanceType<typeof HostEdit>>();
   const sshFormRef = ref<InstanceType<typeof SshForm>>();
+  const installAgentRef = ref<InstanceType<typeof InstallAgent>>();
+  const uninstallAgentRef = ref<InstanceType<typeof UninstallAgent>>();
 
   const columns = [
     {
@@ -208,6 +214,21 @@
         },
       },
       {
+        text: t('manage.host.list.operation.installAgent'),
+        visible: record.agent_status?.status !== 'installed',
+        click: () => {
+          installAgentRef.value?.startInstall(record.id);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.uninstallAgent'),
+        confirm: t('manage.host.list.uninstallAgent.confirm'),
+        visible: record.agent_status?.status === 'installed',
+        click: () => {
+          uninstallAgentRef.value?.startUninstall(record.id);
+        },
+      },
+      {
         text: t('manage.host.list.operation.restart'),
         confirm: t('manage.host.list.restart.confirm'),
         click: async () => {
@@ -246,13 +267,15 @@
       return;
     }
     await Promise.all(
-      dataRef.value?.items.map((item) =>
-        getHostStatusApi(item.id).then((statusData) => {
-          Object.assign(item, statusData, {
-            statusReady: true,
-          });
-        })
-      )
+      dataRef.value?.items
+        .filter((item) => item.agent_status?.status === 'installed')
+        .map((item) =>
+          getHostStatusApi(item.id).then((statusData) => {
+            Object.assign(item, statusData, {
+              statusReady: true,
+            });
+          })
+        )
     );
     gridRef.value?.setData(dataRef.value);
   };
