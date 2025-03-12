@@ -182,10 +182,14 @@
       {
         text: t('manage.host.list.operation.goto'),
         click: () => {
-          router.push({
-            name: DEFAULT_APP_ROUTE_NAME,
-            query: { id: record.id },
-          });
+          if (record.agent_status?.status === 'installed') {
+            router.push({
+              name: DEFAULT_APP_ROUTE_NAME,
+              query: { id: record.id },
+            });
+          } else {
+            installAgentRef.value?.confirmInstall(record.id);
+          }
         },
       },
       {

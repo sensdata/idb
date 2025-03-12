@@ -252,20 +252,27 @@
     }
   };
 
+  const confirmInstall = async (hostId: number) => {
+    const confirmResult = await confirm(
+      t('manage.host.installAgent.notInstalled')
+    );
+    if (confirmResult) {
+      startInstall(hostId);
+    }
+  };
+
   const checkInstall = async (hostId: number) => {
     try {
       const result = await testHostAgentApi(hostId);
       if (!result.installed) {
-        const confirmResult = await confirm(
-          t('manage.host.installAgent.notInstalled')
-        );
-        if (confirmResult) {
-          startInstall(hostId);
-        }
+        confirmInstall(hostId);
       }
+      return result.installed;
     } catch (error) {
       console.error('Failed to check agent:', error);
     }
+
+    return false;
   };
 
   const handleCancel = () => {
@@ -283,6 +290,7 @@
     setStatus,
     logTaskMsgs,
     startInstall,
+    confirmInstall,
     checkInstall,
   });
 </script>
