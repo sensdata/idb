@@ -469,7 +469,11 @@ function Install_IDB() {
     # 进入 agent 目录并执行 install-agent.sh
     log "正在执行 install-agent.sh..."
     cd "${CURRENT_DIR}/agent" || { log "无法进入目录 ${CURRENT_DIR}/agent"; exit 1; }
-    
+    # 如果旧版本配置存在，则覆盖当前版本idb-agent.conf
+    if [[ -f "/etc/idb-agent/idb-agent.conf" ]]; then
+        log "旧版本配置存在，则覆盖当前版本配置"
+        cp "/etc/idb-agent/idb-agent.conf" "idb-agent.conf"
+    fi
     sudo bash ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "执行 install-agent.sh 失败，请检查脚本内容。"
