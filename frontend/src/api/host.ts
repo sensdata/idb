@@ -70,18 +70,28 @@ export interface TestAgentResult {
   message?: string;
 }
 
-export interface InstallAgentResult {
-  task_id: string;
-}
-
 export const testHostAgentApi = (hostId: number): Promise<TestAgentResult> => {
   return axios.get(`hosts/${hostId}/test/agent`);
 };
+
+export interface InstallAgentResult {
+  task_id: string;
+}
 
 export const installHostAgentApi = (
   hostId: number
 ): Promise<InstallAgentResult> => {
   return axios.post(`hosts/${hostId}/agent/install`);
+};
+
+export interface UninstallAgentResult {
+  task_id: string;
+}
+
+export const uninstallHostAgentApi = (
+  hostId: number
+): Promise<UninstallAgentResult> => {
+  return axios.post(`hosts/${hostId}/agent/uninstall`);
 };
 
 export const getHostStatusApi = (hostId: number): Promise<HostStatusDo> => {

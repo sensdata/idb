@@ -17,6 +17,8 @@ export default {
   'manage.host.list.operation.goto': 'Enter Desktop',
   'manage.host.list.operation.setting': 'Host Settings',
   'manage.host.list.operation.sshTerminal': 'SSH Terminal',
+  'manage.host.list.operation.installAgent': 'Install Agent',
+  'manage.host.list.operation.uninstallAgent': 'Uninstall Agent',
   'manage.host.list.operation.restart': 'Restart',
   'manage.host.list.operation.delete': 'Delete',
   'manage.host.list.operation.updateSSH': 'SSH Config',
@@ -68,19 +70,23 @@ export default {
   'manage.host.form.test.success': 'Connection successful',
   'manage.host.form.test.failed': 'Connection failed: {message}',
 
-  'manage.host.agent.installing': 'Installing agent...',
-  'manage.host.agent.installSuccess': 'Agent installed successfully',
-  'manage.host.agent.installFailed': 'Failed to install agent',
-  'manage.host.agent.installTimeout':
-    'Install timeout, please refresh to view the installation result',
-  'manage.host.agent.notInstalled': 'Agent not detected, install now?',
-  'manage.host.agent.installTitle': 'Install Agent',
-  'manage.host.agent.statusInstalling': 'Installing',
-  'manage.host.agent.statusCompleted': 'Completed',
-  'manage.host.agent.statusFailed': 'Failed',
-  'manage.host.agent.statusTimeout': 'Install timeout',
-  'manage.host.agent.waitingForLogs': 'Waiting for installation logs...',
-  'manage.host.agent.close': 'Close',
+  'manage.host.installAgent.installing': 'Installing agent...',
+  'manage.host.installAgent.installSuccess': 'Agent installed successfully',
+  'manage.host.installAgent.installFailed': 'Failed to install agent',
+  'manage.host.installAgent.installTimeout': 'Agent installation timeout',
+  'manage.host.installAgent.notInstalled': 'Agent not detected, install now?',
+  'manage.host.installAgent.title': 'Install Agent',
+  'manage.host.installAgent.statusInstalling': 'Installing',
+  'manage.host.installAgent.statusCompleted': 'Completed',
+  'manage.host.installAgent.statusFailed': 'Failed',
+  'manage.host.installAgent.statusTimeout': 'Install timeout',
+  'manage.host.installAgent.waitingForLogs': 'Waiting for logs...',
+  'manage.host.installAgent.close': 'Close',
+
+  'manage.host.list.uninstallAgent.confirm':
+    'Are you sure to uninstall the agent of the current host?',
+  'manage.host.list.uninstallAgent.success': 'Uninstall successfully',
+  'manage.host.list.uninstallAgent.failed': 'Uninstall failed',
 
   'manage.host.group.form.title.create': 'Add Group',
   'manage.host.group.form.title.edit': 'Edit Group',
@@ -92,4 +98,17 @@ export default {
 
   'manage.host.ssh.form.title': 'SSH Configuration',
   'manage.host.form.load.failed': 'Failed to load data',
+
+  // Uninstall agent related
+  'manage.host.uninstallAgent.title': 'Uninstall Agent',
+  'manage.host.uninstallAgent.statusUninstalling': 'Uninstalling',
+  'manage.host.uninstallAgent.statusCompleted': 'Uninstall Completed',
+  'manage.host.uninstallAgent.statusFailed': 'Uninstall Failed',
+  'manage.host.uninstallAgent.statusTimeout': 'Uninstall Timeout',
+  'manage.host.uninstallAgent.uninstallSuccess':
+    'Agent uninstalled successfully',
+  'manage.host.uninstallAgent.uninstallFailed': 'Failed to uninstall agent',
+  'manage.host.uninstallAgent.uninstallTimeout': 'Agent uninstallation timeout',
+  'manage.host.uninstallAgent.close': 'Close',
+  'manage.host.uninstallAgent.waitingForLogs': 'Waiting for logs...',
 };
