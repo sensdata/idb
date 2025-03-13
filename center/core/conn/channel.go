@@ -46,7 +46,7 @@ type ICenter interface {
 	ExecuteAction(req core.HostAction) (*core.Action, error)
 	UploadFile(hostID uint, path string, file *multipart.FileHeader) error
 	DownloadFile(ctx *gin.Context, hostID uint, path string) error
-	GetAgentConn(host model.Host) (*net.Conn, error)
+	GetAgentConn(host *model.Host) (*net.Conn, error)
 	IsAgentConnected(host model.Host) bool
 	RegisterAgentSession(aws *AgentWebSocketSession)
 	UnregisterAgentSession(session string)
@@ -78,13 +78,8 @@ func (c *Center) Start() error {
 		return err
 	}
 
-	// 连接
-	err = c.ensureAgentConnections()
-	if err != nil {
-		return err
-	}
-	// 连接并发送心跳
-	go c.ensureConnectionsAndHeartbeat()
+	// 保障连接和心跳
+	go c.ensureConnections()
 
 	return nil
 }
@@ -234,8 +229,8 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 	}
 }
 
-func (c *Center) ensureConnectionsAndHeartbeat() {
-	ticker := time.NewTicker(time.Second * 30)
+func (c *Center) ensureConnections() {
+	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 
 	for {
@@ -244,41 +239,40 @@ func (c *Center) ensureConnectionsAndHeartbeat() {
 			global.LOG.Info("Stopping heartbeat")
 			return
 		case <-ticker.C:
-			// 连接
-			err := c.ensureAgentConnections()
+			//获取所有的host
+			hosts, err := HostRepo.GetList()
 			if err != nil {
+				global.LOG.Error("Failed to get host list: %v", err)
 				continue
 			}
-			// 心跳
-			c.sendHeartbeat()
+
+			// 检查连接
+			for _, host := range hosts {
+				// 连接
+				c.checkConn(&host)
+			}
+
+			// 发送心跳
+			for _, host := range hosts {
+				c.sendHeartbeat(&host)
+			}
 		}
 	}
 }
 
-func (c *Center) ensureAgentConnections() error {
-	global.LOG.Info("ensureAgentConnections")
+func (c *Center) checkConn(host *model.Host) error {
+	global.LOG.Info("checkConn for host %d - %s", host.ID, host.Addr)
 
-	//获取所有的host
-	hosts, err := HostRepo.GetList()
-	if err != nil {
-		global.LOG.Error("Failed to get host list: %v", err)
-		return err
-	}
-
-	// 挨个确认是否已经建立连接
-	for _, host := range hosts {
-		// 查找agent conn
-		conn, _ := c.getAgentConn(host)
-		if conn != nil {
-			continue
-		} else {
-			resultCh := make(chan error, 1)
-			go c.connectToAgent(&host, resultCh)
-			// handle the result if needed
-			err := <-resultCh
-			if err != nil {
-				global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
-			}
+	// 查找agent conn
+	conn, _ := c.getAgentConn(host)
+	if conn == nil {
+		resultCh := make(chan error, 1)
+		go c.connectToAgent(host, resultCh)
+		// handle the result if needed
+		err := <-resultCh
+		if err != nil {
+			global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
+			return err
 		}
 	}
 
@@ -319,10 +313,10 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	resultCh <- nil
 
 	// 处理连接
-	go c.handleConnection(host.ID, conn)
+	go c.handleConnection(host, conn)
 }
 
-func (c *Center) handleConnection(hostID uint, conn net.Conn) {
+func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 	defer func() {
 		agentID := conn.RemoteAddr().String()
 		global.LOG.Info("close conn %s for err", agentID)
@@ -332,8 +326,6 @@ func (c *Center) handleConnection(hostID uint, conn net.Conn) {
 		c.mu.Unlock()
 		conn.Close()
 	}()
-
-	config := CONFMAN.GetConfig()
 
 	// 缓存区：用来缓存从 conn.Read 读取的数据
 	dataBuffer := make([]byte, 0)
@@ -367,13 +359,13 @@ func (c *Center) handleConnection(hostID uint, conn net.Conn) {
 
 			// 处理解析后的消息
 			msgData := packet[message.MagicBytesLen+message.MsgLenBytes:]
-			msg, err := message.DecodeMessage(msgType, msgData, config.SecretKey)
+			msg, err := message.DecodeMessage(msgType, msgData, host.AgentKey)
 			if err != nil {
 				global.LOG.Error("Error decode message: %v", err)
 			}
 			switch m := msg.(type) {
 			case *message.Message:
-				c.processMessage(hostID, m)
+				c.processMessage(host, m)
 			case *message.FileMessage:
 				c.processFileMessage(m)
 			case *message.SessionMessage:
@@ -390,13 +382,13 @@ func (c *Center) handleConnection(hostID uint, conn net.Conn) {
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
-func (c *Center) processMessage(hostID uint, msg *message.Message) {
+func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 收到心跳
 		// 处理心跳消息
 		global.LOG.Info("Received heartbeat from agent: %s", msg.Data)
 		// 写入agent版本号
-		if err := HostRepo.Update(hostID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
+		if err := HostRepo.Update(host.ID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
 			global.LOG.Error("Failed to update agent version: %v", err)
 		}
 	case message.CmdMessage: // 收到Cmd 类型的回复
@@ -532,35 +524,42 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	}
 }
 
-func (c *Center) sendHeartbeat() {
-	config := CONFMAN.GetConfig()
+func (c *Center) sendHeartbeat(host *model.Host) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for agentID, conn := range c.agentConns {
-		heartbeatMsg, err := message.CreateMessage(
-			utils.GenerateMsgId(),
-			"Heartbeat",
-			config.SecretKey,
-			utils.GenerateNonce(16),
-			global.Version,
-			message.Heartbeat,
-		)
-		if err != nil {
-			global.LOG.Error("Error creating heartbeat message: %v", err)
-			continue
-		}
-
-		err = message.SendMessage(conn, heartbeatMsg)
-		if err != nil {
-			global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
-			conn.Close()
-			delete(c.agentConns, agentID)
-			global.LOG.Info("close conn %s for heartbeat", agentID)
-		} else {
-			global.LOG.Info("Heartbeat sent to %s", agentID)
-		}
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil {
+		return errors.WithMessage(constant.ErrAgent, err.Error())
 	}
+
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+
+	heartbeatMsg, err := message.CreateMessage(
+		utils.GenerateMsgId(),
+		"Heartbeat",
+		host.AgentKey,
+		utils.GenerateNonce(16),
+		global.Version,
+		message.Heartbeat,
+	)
+	if err != nil {
+		global.LOG.Error("Error creating heartbeat message: %v", err)
+		return err
+	}
+
+	err = message.SendMessage(*conn, heartbeatMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
+		(*conn).Close()
+		delete(c.agentConns, agentID)
+		global.LOG.Info("close conn %s for heartbeat", agentID)
+		return err
+	} else {
+		global.LOG.Info("Heartbeat sent to %s", agentID)
+	}
+	return nil
 }
 
 func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader) error {
@@ -572,7 +571,7 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 	}
 
 	// 查找agent conn
-	conn, err := c.getAgentConn(host)
+	conn, err := c.getAgentConn(&host)
 	if err != nil {
 		return errors.WithMessage(constant.ErrAgent, err.Error())
 	}
@@ -672,7 +671,7 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	}
 
 	// 查找agent conn
-	conn, err := c.getAgentConn(host)
+	conn, err := c.getAgentConn(&host)
 	if err != nil {
 		return errors.WithMessage(constant.ErrAgent, err.Error())
 	}
@@ -762,7 +761,7 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	return nil
 }
 
-func (c *Center) GetAgentConn(host model.Host) (*net.Conn, error) {
+func (c *Center) GetAgentConn(host *model.Host) (*net.Conn, error) {
 	return c.getAgentConn(host)
 }
 
@@ -807,7 +806,6 @@ func (c *Center) GetSessionToken(session string) (string, bool) {
 }
 
 func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
-	config := CONFMAN.GetConfig()
 
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
@@ -816,7 +814,7 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 	}
 
 	// 查找agent conn
-	conn, err := c.getAgentConn(host)
+	conn, err := c.getAgentConn(&host)
 	if err != nil {
 		return nil, err
 	}
@@ -834,7 +832,7 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 	msg, err := message.CreateMessage(
 		msgID,
 		string(data),
-		config.SecretKey,
+		host.AgentKey,
 		utils.GenerateNonce(16),
 		global.Version,
 		message.ActionMessage,
@@ -874,8 +872,6 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 
 func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 
-	config := CONFMAN.GetConfig()
-
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(req.HostID))
 	if err != nil {
@@ -883,7 +879,7 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 	}
 
 	// 查找agent conn
-	conn, err := c.getAgentConn(host)
+	conn, err := c.getAgentConn(&host)
 	if err != nil {
 		return "", err
 	}
@@ -896,7 +892,7 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 	msg, err := message.CreateMessage(
 		msgID,
 		req.Command,
-		config.SecretKey,
+		host.AgentKey,
 		utils.GenerateNonce(16),
 		global.Version,
 		message.CmdMessage,
@@ -939,7 +935,7 @@ func (c *Center) IsAgentConnected(host model.Host) bool {
 	return exists && conn != nil
 }
 
-func (c *Center) getAgentConn(host model.Host) (*net.Conn, error) {
+func (c *Center) getAgentConn(host *model.Host) (*net.Conn, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -952,7 +948,6 @@ func (c *Center) getAgentConn(host model.Host) (*net.Conn, error) {
 }
 
 func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
-	config := CONFMAN.GetConfig()
 
 	if len(req.Commands) < 1 {
 		return []string{}, constant.ErrInvalidParams
@@ -965,7 +960,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	}
 
 	// 查找agent conn
-	conn, err := c.getAgentConn(host)
+	conn, err := c.getAgentConn(&host)
 	if err != nil {
 		return []string{}, err
 	}
@@ -984,7 +979,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 	msg, err := message.CreateMessage(
 		msgID,
 		data,
-		config.SecretKey,
+		host.AgentKey,
 		utils.GenerateNonce(16),
 		global.Version,
 		message.CmdMessage,
@@ -1028,7 +1023,7 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 
 func (c *Center) TestAgent(host model.Host, req core.TestAgent) error {
 	// 查找agent conn
-	conn, _ := c.getAgentConn(host)
+	conn, _ := c.getAgentConn(&host)
 	if conn != nil {
 		return nil
 	} else {
@@ -1047,7 +1042,7 @@ func (c *Center) TestAgent(host model.Host, req core.TestAgent) error {
 
 func (c *Center) ReleaseAgentConn(host model.Host) error {
 	// 查找agent conn
-	conn, _ := c.getAgentConn(host)
+	conn, _ := c.getAgentConn(&host)
 	if conn != nil {
 		(*conn).Close()
 	}

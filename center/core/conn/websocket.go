@@ -229,13 +229,13 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "no host found")
 	}
-	agentConn, err := CENTER.GetAgentConn(host)
+	agentConn, err := CENTER.GetAgentConn(&host)
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "agent disconected")
 	}
 
-	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, CONFMAN.GetConfig().SecretKey, token, uint(hostID))
+	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, host.AgentKey, token, uint(hostID))
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create Agent WebSocket session")

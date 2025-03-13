@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	Version string = "0.0.1"
-	Host    string = "127.0.0.1"
+	Version    string = "0.0.1"
+	Host       string = "127.0.0.1"
+	DefaultKey string = ""
 
 	LOG       *log.Log
 	LogStream *logstream.LogStream

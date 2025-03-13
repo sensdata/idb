@@ -163,7 +163,7 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 	//Agent参数设置为默认的先
 	host.AgentAddr = req.Addr
 	host.AgentPort = 9919
-	host.AgentKey = "idbidbidbidbidbidbidbidb"
+	host.AgentKey = utils.GenerateNonce(24) // 随机生成
 	host.AgentMode = "https"
 	host.AgentVersion = ""
 
@@ -328,10 +328,10 @@ func (s *HostService) UpdateAgent(id uint, req core.UpdateHostAgent) error {
 	upMap := make(map[string]interface{})
 	upMap["agent_addr"] = req.AgentAddr
 	upMap["agent_port"] = req.AgentPort
-	if req.AgentKey != "" {
-		upMap["agent_key"] = req.AgentKey
-	}
-	upMap["agent_mode"] = req.AgentMode
+	// if req.AgentKey != "" {
+	// 	upMap["agent_key"] = req.AgentKey
+	// }
+	// upMap["agent_mode"] = req.AgentMode
 
 	return HostRepo.Update(host.ID, upMap)
 }

@@ -12,9 +12,8 @@ import (
 
 // Config定义
 type CenterConfig struct {
-	Host      string `json:"host"`
-	Port      int    `json:"port"`
-	SecretKey string `json:"secret_key"`
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 // Manager定义
@@ -68,8 +67,6 @@ func (m *Manager) loadConfig() error {
 			config.Host = value
 		case "port":
 			fmt.Sscanf(value, "%d", &config.Port)
-		case "secret_key":
-			config.SecretKey = value
 		default:
 			return fmt.Errorf("unknown config key: %s", key)
 		}
@@ -135,18 +132,14 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 	if item == "" {
 		result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
-		result.WriteString(fmt.Sprintf("secret_key=%s\n", m.config.SecretKey))
 	} else {
 		switch item {
 		case "host":
 			result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		case "port":
 			result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
-		case "secret_key":
-			result.WriteString(fmt.Sprintf("secret_key=%s\n", m.config.SecretKey))
 		}
 	}
-
 	return result.String(), nil
 }
 
@@ -165,8 +158,6 @@ func (m *Manager) SetConfig(key, value string) error {
 			return err
 		}
 		m.config.Port = portValue
-	case "secret_key":
-		m.config.SecretKey = value
 	}
 
 	// 保存到文件

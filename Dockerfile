@@ -31,6 +31,10 @@ RUN mkdir -p center/global/certs agent/global/certs && \
     cp cert.pem agent/global/certs/ && \
     cp key.pem center/global/certs/ && \
     cp key.pem agent/global/certs/
+
+# 生成随机密钥
+RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
+    echo "KEY=${KEY}" >> /app/.env
     
 # 设置构建参数
 ARG GOOS=linux
@@ -47,10 +51,11 @@ WORKDIR /app/center
 RUN go mod download
 
 # 编译 center
-RUN go mod tidy && \
+RUN KEY=$(cat /app/.env | grep KEY | cut -d'=' -f2) && \
+    go mod tidy && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
-    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}'" \
+    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}' -X 'github.com/sensdata/idb/center/global.DefaultKey=${KEY}'" \
     -o idb .
 
 # 进入 agent 目录
@@ -72,6 +77,8 @@ RUN mkdir -p /app/agent-pkg && \
     cp idb-agent.service /app/agent-pkg/ && \
     cp idb-agent.conf /app/agent-pkg/ && \
     cp install-agent.sh /app/agent-pkg/ && \
+    KEY=$(cat /app/.env | grep KEY | cut -d'=' -f2) && \
+    sed -i "s/secret_key=.*/secret_key=${KEY}/" /app/agent-pkg/idb-agent.conf && \
     tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
 
 # 创建 agent.version文件

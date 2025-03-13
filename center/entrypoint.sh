@@ -5,7 +5,6 @@ DEFAULT_HOST=127.0.0.1
 DEFAULT_PORT=9918
 HOST=${HOST:-$DEFAULT_HOST}
 PORT=${PORT:-$DEFAULT_PORT}
-SECRET_KEY=idbidbidbidbidbidbidbidb
 CONFIG_FILE=/etc/idb/idb.conf
 LOG_FILE=/var/log/idb/idb.log
 IDB_EXECUTABLE="$1"
@@ -37,12 +36,6 @@ if grep -q "^port=" "$CONFIG_FILE"; then
 else
     echo "port=$PORT" >> "$CONFIG_FILE"
     log "新增配置: port=$PORT"
-fi
-
-if grep -q "^secret_key=" "$CONFIG_FILE"; then
-    sed -i "s/^secret_key=.*/secret_key=$SECRET_KEY/" "$CONFIG_FILE"
-else
-    echo "secret_key=$SECRET_KEY" >> "$CONFIG_FILE"
 fi
 
 log "配置文件更新完成，当前配置内容：\n$(cat "$CONFIG_FILE")"

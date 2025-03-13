@@ -179,8 +179,8 @@ var AddTableHost = &gormigrate.Migration{
 				PassPhrase:   "",
 				AgentAddr:    global.Host,
 				AgentPort:    9919,
-				AgentMode:    "http",
-				AgentKey:     "idbidbidbidbidbidbidbidb",
+				AgentMode:    "https",
+				AgentKey:     global.DefaultKey,
 				AgentVersion: "",
 			}
 			if err := tx.Create(&host).Error; err != nil {
