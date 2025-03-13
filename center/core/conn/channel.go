@@ -248,34 +248,48 @@ func (c *Center) ensureConnections() {
 
 			// 检查连接
 			for _, host := range hosts {
-				// 连接
-				c.checkConn(&host)
-			}
-
-			// 发送心跳
-			for _, host := range hosts {
-				c.sendHeartbeat(&host)
+				global.LOG.Info("checkConn for host %d - %s", host.ID, host.Addr)
+				// 查找agent conn
+				conn, _ := c.getAgentConn(&host)
+				if conn == nil {
+					// 连接
+					resultCh := make(chan error, 1)
+					go c.connectToAgent(&host, resultCh)
+				} else {
+					// 找到conn的，发心跳
+					go c.sendHeartbeat(&host, conn)
+				}
 			}
 		}
 	}
 }
 
-func (c *Center) checkConn(host *model.Host) error {
-	global.LOG.Info("checkConn for host %d - %s", host.ID, host.Addr)
+func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 
-	// 查找agent conn
-	conn, _ := c.getAgentConn(host)
-	if conn == nil {
-		resultCh := make(chan error, 1)
-		go c.connectToAgent(host, resultCh)
-		// handle the result if needed
-		err := <-resultCh
-		if err != nil {
-			global.LOG.Error("Failed to connect to agent %s: %v", host.Addr, err)
-			return err
-		}
+	heartbeatMsg, err := message.CreateMessage(
+		utils.GenerateMsgId(),
+		"Heartbeat",
+		host.AgentKey,
+		utils.GenerateNonce(16),
+		global.Version,
+		message.Heartbeat,
+	)
+	if err != nil {
+		global.LOG.Error("Error creating heartbeat message: %v", err)
+		return err
 	}
 
+	err = message.SendMessage(*conn, heartbeatMsg)
+	if err != nil {
+		global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
+		(*conn).Close()
+		delete(c.agentConns, agentID)
+		global.LOG.Info("close conn %s for heartbeat", agentID)
+		return err
+	} else {
+		global.LOG.Info("Heartbeat sent to %s", agentID)
+	}
 	return nil
 }
 
@@ -522,44 +536,6 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	default: // 不支持的消息
 		global.LOG.Error("Unknown sesssion message type: %s", msg.Type)
 	}
-}
-
-func (c *Center) sendHeartbeat(host *model.Host) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// 查找agent conn
-	conn, err := c.getAgentConn(host)
-	if err != nil {
-		return errors.WithMessage(constant.ErrAgent, err.Error())
-	}
-
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
-
-	heartbeatMsg, err := message.CreateMessage(
-		utils.GenerateMsgId(),
-		"Heartbeat",
-		host.AgentKey,
-		utils.GenerateNonce(16),
-		global.Version,
-		message.Heartbeat,
-	)
-	if err != nil {
-		global.LOG.Error("Error creating heartbeat message: %v", err)
-		return err
-	}
-
-	err = message.SendMessage(*conn, heartbeatMsg)
-	if err != nil {
-		global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
-		(*conn).Close()
-		delete(c.agentConns, agentID)
-		global.LOG.Info("close conn %s for heartbeat", agentID)
-		return err
-	} else {
-		global.LOG.Info("Heartbeat sent to %s", agentID)
-	}
-	return nil
 }
 
 func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader) error {
