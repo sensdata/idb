@@ -112,9 +112,11 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 			c.SSEvent("log", string(msg))
 			flusher.Flush()
 		case status := <-statusCh:
+			global.LOG.Info("SSE STATUS: %s", status)
 			c.SSEvent("status", status)
 			flusher.Flush()
 		case <-heartbeat.C:
+			global.LOG.Info("SSE HEARTBEAT")
 			c.SSEvent("heartbeat", time.Now().Unix())
 			flusher.Flush()
 		case <-ctx.Done():
