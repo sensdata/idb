@@ -199,10 +199,10 @@
     });
 
     const timer = window.setInterval(() => {
-      if (Date.now() - heartbeat > 30e3) {
+      if (Date.now() - heartbeat > 60e3) {
         clearInterval(timer);
         eventSource.close();
-        setStatus('failed');
+        setStatus('timeout');
         Message.error(t('manage.host.installAgent.installTimeout'));
       }
     }, 1000);
