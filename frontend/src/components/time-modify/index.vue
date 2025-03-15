@@ -90,8 +90,10 @@
   };
 
   const setCurrentTime = (time: string) => {
-    currentTime.value = time;
-    formState.newTime = time;
+    if (time) {
+      currentTime.value = time;
+      formState.newTime = time;
+    }
   };
 
   defineExpose({
