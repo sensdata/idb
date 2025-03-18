@@ -587,7 +587,11 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		)
 		if err != nil {
 			global.LOG.Error("Failed to attach session: %v", err)
-			a.sendSessionResult(conn, msg.MsgID, msg.Type, constant.CodeFailed, err.Error(), msg.Data.Type, "", "")
+			code := constant.CodeFailed
+			if err.Error() == constant.ErrNotInstalled {
+				code = constant.CodeErrEnvironment
+			}
+			a.sendSessionResult(conn, msg.MsgID, msg.Type, code, err.Error(), msg.Data.Type, "", "")
 			return
 		}
 

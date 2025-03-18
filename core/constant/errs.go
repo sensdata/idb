@@ -3,22 +3,24 @@ package constant
 import "errors"
 
 const (
-	CodeFailed            = 0
-	CodeSuccess           = 200
-	CodeErrBadRequest     = 400
-	CodeErrUnauthorized   = 401
-	CodeErrUnSafety       = 402
-	CodeErrForbidden      = 403
-	CodeErrNotFound       = 404
-	CodePasswordExpired   = 405
-	CodeAuth              = 406
-	CodeGlobalLoading     = 407
-	CodeErrIP             = 408
-	CodeErrDomain         = 409
-	CodeErrInternalServer = 500
-	CodeErrHeader         = 406
+	CodeFailed          = 0
+	CodeSuccess         = 200
+	CodeErrBadRequest   = 400
+	CodeErrUnauthorized = 401
+	CodeErrUnSafety     = 402
+	CodeErrForbidden    = 403
+	CodeErrNotFound     = 404
+	CodePasswordExpired = 405
+	CodeAuth            = 406
+	CodeGlobalLoading   = 407
 
-	CodeErrXpack = 410
+	CodeErrEnvironment = 410
+	CodeErrIP          = 411
+	CodeErrDomain      = 412
+	CodeErrHeader      = 413
+	CodeErrXpack       = 414
+
+	CodeErrInternalServer = 500
 )
 
 // api

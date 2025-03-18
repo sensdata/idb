@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 )
@@ -102,6 +103,9 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionI
 
 	// attach session
 	err := session.Attach()
+	if err.Error() == constant.ErrNotInstalled {
+		return nil, err
+	}
 	if err != nil {
 		global.LOG.Error("failed to attach session, %v", err)
 		err = session.Start()
