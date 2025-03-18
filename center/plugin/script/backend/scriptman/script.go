@@ -59,6 +59,153 @@ func (s *ScriptMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
+func (s *ScriptMan) createCategory(hostID uint64, req model.CreateGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	gitCreate := model.GitCreate{
+		HostID:       uint(hostID),
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+		Content:      "",
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 创建
+	data, err := utils.ToJSONString(gitCreate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitCreate.HostID,
+		Action: model.Action{
+			Action: model.Git_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to get create script file")
+	}
+
+	return nil
+}
+
+func (s *ScriptMan) updateCategory(hostID uint64, req model.UpdateGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+	gitUpdate := model.GitUpdate{
+		HostID:       uint(hostID),
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+		Content:      "",
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 更新
+	data, err := utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to update script file")
+	}
+
+	return nil
+}
+
+func (s *ScriptMan) deleteCategory(hostID uint64, req model.DeleteGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+	gitDelete := model.GitDelete{
+		HostID:       uint(hostID),
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+	}
+
+	// 检查repo
+	err := s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 删除
+	data, err := utils.ToJSONString(gitDelete)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitDelete.HostID,
+		Action: model.Action{
+			Action: model.Git_Delete,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to delete script file")
+	}
+
+	return nil
+}
+
 func (s *ScriptMan) getScriptList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
@@ -195,6 +342,7 @@ func (s *ScriptMan) create(hostID uint64, req model.CreateGitFile) error {
 		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
+		Dir:          false,
 		Content:      req.Content,
 	}
 
@@ -249,6 +397,7 @@ func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
+		Dir:          false,
 		Content:      req.Content,
 	}
 
@@ -303,6 +452,7 @@ func (s *ScriptMan) delete(hostID uint64, req model.DeleteGitFile) error {
 		HostID:       uint(hostID),
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
+		Dir:          false,
 	}
 
 	// 检查repo

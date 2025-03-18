@@ -22,9 +22,9 @@ type IGitService interface {
 	InitRepo(repoPath string, isBare bool) error
 	GetFileList(repoPath string, relativePath string, extension string, page int, pageSize int) (*model.PageResult, error)
 	GetFile(repoPath string, relativePath string) (*model.GitFile, error)
-	Create(repoPath string, relativePath string, content string) error
-	Update(repoPath string, relativePath string, content string) error
-	Delete(repoPath string, relativePath string) error
+	Create(repoPath string, relativePath string, dir bool, content string) error
+	Update(repoPath string, relativePath string, dir bool, name string, content string) error
+	Delete(repoPath string, relativePath string, dir bool) error
 	Restore(repoPath string, relativePath string, commitHash string) error
 	Log(repoPath string, relativePath string, page int, pageSize int) (*model.PageResult, error)
 	Diff(repoPath string, relativePath string, commitHash string) (string, error)
@@ -180,32 +180,32 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 	rootPath := worktree.Filesystem.Root()
 
 	// 确定目标文件的完整路径
-	filePath := filepath.Join(rootPath, relativePath)
+	realPath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否存在
-	global.LOG.Info("Try get file  %s", filePath)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		global.LOG.Error("File %s does not exist, %v", filePath, err)
-		return nil, fmt.Errorf("file %s does not exist", filePath)
+	global.LOG.Info("Try get file  %s", realPath)
+	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+		global.LOG.Error("File %s does not exist, %v", realPath, err)
+		return nil, fmt.Errorf("file %s does not exist", realPath)
 	}
 
 	// 读取文件内容
-	content, err := os.ReadFile(filePath)
+	content, err := os.ReadFile(realPath)
 	if err != nil {
-		global.LOG.Error("Failed to read file %s, %v", filePath, err)
+		global.LOG.Error("Failed to read file %s, %v", realPath, err)
 		return nil, err
 	}
 
 	// 获取文件信息
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := os.Stat(realPath)
 	if err != nil {
-		global.LOG.Error("Failed to get stat of file %s, %v", filePath, err)
+		global.LOG.Error("Failed to get stat of file %s, %v", realPath, err)
 		return nil, err
 	}
 
 	// 填充到结果
 	gitFile := &model.GitFile{
-		Source:    filePath,
+		Source:    realPath,
 		Name:      filepath.Base(relativePath),
 		Extension: filepath.Ext(relativePath),
 		Content:   string(content), // 将内容转换为字符串
@@ -216,7 +216,7 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 	return gitFile, nil
 }
 
-func (s *GitService) Create(repoPath string, relativePath string, content string) error {
+func (s *GitService) Create(repoPath string, relativePath string, dir bool, content string) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -233,27 +233,36 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 	rootPath := worktree.Filesystem.Root()
 
 	// 确定目标文件的完整路径
-	filePath := filepath.Join(rootPath, relativePath)
-
-	global.LOG.Info("Try create file %s", filePath)
+	realPath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否已存在
-	if _, err := os.Stat(filePath); err == nil {
-		global.LOG.Error("File %s already exists, %v", filePath, err)
-		return fmt.Errorf("file %s already exists", filePath)
+	if _, err := os.Stat(realPath); err == nil {
+		global.LOG.Error("File %s already exists, %v", realPath, err)
+		return fmt.Errorf("file %s already exists", realPath)
 	}
 
-	// 确保相对目录的创建（若存在目录部分）
-	dirPath := filepath.Dir(filePath)
-	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-		global.LOG.Error("Failed to make dir for file %s, %v", filePath, err)
-		return err
-	}
+	// 创建目录
+	if dir {
+		// 创建目录
+		if err := os.MkdirAll(realPath, os.ModePerm); err != nil {
+			global.LOG.Error("Failed to create directory %s, %v", realPath, err)
+			return err
+		}
+		global.LOG.Info("Created directory %s", realPath)
+	} else {
+		// 确保父目录存在
+		dirPath := filepath.Dir(realPath)
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			global.LOG.Error("Failed to create parent directory for %s, %v", realPath, err)
+			return err
+		}
 
-	// 创建文件并写入内容
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		global.LOG.Error("Failed to write to file %s, %v", filePath, err)
-		return err
+		// 创建并写入文件
+		if err := os.WriteFile(realPath, []byte(content), 0644); err != nil {
+			global.LOG.Error("Failed to write file %s, %v", realPath, err)
+			return err
+		}
+		global.LOG.Info("Created file %s", realPath)
 	}
 
 	// 将新创建的改动添加到 Git 索引
@@ -281,7 +290,7 @@ func (s *GitService) Create(repoPath string, relativePath string, content string
 	return nil
 }
 
-func (s *GitService) Update(repoPath string, relativePath string, content string) error {
+func (s *GitService) Update(repoPath string, relativePath string, dir bool, name string, content string) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -298,29 +307,66 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 	rootPath := worktree.Filesystem.Root()
 
 	// 确定目标文件的完整路径
-	filePath := filepath.Join(rootPath, relativePath)
+	realPath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否存在
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		global.LOG.Error("File %s does not exists, %v", filePath, err)
-		return fmt.Errorf("file %s does not exist", filePath)
+	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+		global.LOG.Error("File %s does not exists, %v", realPath, err)
+		return fmt.Errorf("file %s does not exist", realPath)
 	}
 
-	// 更新文件内容
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		global.LOG.Error("Failed to write to file %s, %v", filePath, err)
-		return err
+	var oldPath, newPath string
+	if name != "" {
+		oldPath = relativePath
+		if dir {
+			newPath = filepath.Join(filepath.Dir(relativePath), name)
+		} else {
+			newPath = filepath.Join(filepath.Dir(relativePath), name)
+		}
+
+		// 执行重命名
+		oldRealPath := filepath.Join(rootPath, oldPath)
+		newRealPath := filepath.Join(rootPath, newPath)
+		if err := os.Rename(oldRealPath, newRealPath); err != nil {
+			global.LOG.Error("Failed to rename %s to %s, %v", oldRealPath, newRealPath, err)
+			return err
+		}
+
+		// 从 Git 索引中移除旧路径
+		if _, err = worktree.Remove(oldPath); err != nil {
+			global.LOG.Error("Failed to remove old path %s from index: %v", oldPath, err)
+			return err
+		}
+
+		// 将新路径添加到 Git 索引
+		if _, err = worktree.Add(newPath); err != nil {
+			global.LOG.Error("Failed to add new path %s to index: %v", newPath, err)
+			return err
+		}
+
+		relativePath = newPath // 更新相对路径，用于后续操作
 	}
 
-	// 将更新的文件添加到 Git 索引
-	_, err = worktree.Add(relativePath)
-	if err != nil {
-		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
-		return err
+	// 如果是文件且需要更新内容
+	if !dir && content != "" {
+		targetPath := filepath.Join(rootPath, relativePath)
+		if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
+			global.LOG.Error("Failed to write to file %s, %v", targetPath, err)
+			return err
+		}
+
+		// 将更新的内容添加到 Git 索引
+		if _, err = worktree.Add(relativePath); err != nil {
+			global.LOG.Error("Failed to add updated content %s to index: %v", relativePath, err)
+			return err
+		}
 	}
 
 	// 提交更改
 	commitMsg := fmt.Sprintf("Update %s", relativePath)
+	if name != "" {
+		commitMsg = fmt.Sprintf("Rename %s to %s", oldPath, newPath)
+	}
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "IDB",
@@ -330,14 +376,14 @@ func (s *GitService) Update(repoPath string, relativePath string, content string
 		AllowEmptyCommits: true,
 	})
 	if err != nil {
-		global.LOG.Error("Failed to commit %s%s, %v", repoPath, relativePath, err)
+		global.LOG.Error("Failed to commit changes: %v", err)
 		return err
 	}
 
 	return nil
 }
 
-func (s *GitService) Delete(repoPath string, relativePath string) error {
+func (s *GitService) Delete(repoPath string, relativePath string, dir bool) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -354,12 +400,25 @@ func (s *GitService) Delete(repoPath string, relativePath string) error {
 	rootPath := worktree.Filesystem.Root()
 
 	// 确定目标文件的完整路径
-	filePath := filepath.Join(rootPath, relativePath)
+	realPath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否存在
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		global.LOG.Error("File does not exist %s: %v", filePath, err)
-		return fmt.Errorf("file %s does not exist", filePath)
+	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+		global.LOG.Error("File does not exist %s: %v", realPath, err)
+		return fmt.Errorf("file %s does not exist", realPath)
+	}
+
+	// 从文件系统中删除文件或目录
+	if dir {
+		if err := os.RemoveAll(realPath); err != nil {
+			global.LOG.Error("Failed to remove directory %s: %v", realPath, err)
+			return fmt.Errorf("failed to remove directory: %w", err)
+		}
+	} else {
+		if err := os.Remove(realPath); err != nil {
+			global.LOG.Error("Failed to remove file %s: %v", realPath, err)
+			return fmt.Errorf("failed to remove file: %w", err)
+		}
 	}
 
 	// 将删除的文件从 Git 索引中删除
@@ -434,11 +493,11 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	}
 
 	// 确定目标文件的完整路径
-	filePath := filepath.Join(repoPath, relativePath)
+	realPath := filepath.Join(repoPath, relativePath)
 
 	// 将内容写入目标文件
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		global.LOG.Error("Failed to write to file %s: %v", filePath, err)
+	if err := os.WriteFile(realPath, []byte(content), 0644); err != nil {
+		global.LOG.Error("Failed to write to file %s: %v", realPath, err)
 		return err
 	}
 

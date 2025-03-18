@@ -49,6 +49,7 @@ type GitCreate struct {
 	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
 	RelativePath string `json:"relative_path" validate:"required"`
+	Dir          bool   `json:"dir" validate:"required"`
 	Content      string `json:"content" validate:"required"`
 }
 
@@ -56,6 +57,8 @@ type GitUpdate struct {
 	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
 	RelativePath string `json:"relative_path" validate:"required"`
+	Dir          bool   `json:"dir" validate:"required"`
+	NewName      string `json:"new_name" validate:"required"`
 	Content      string `json:"content" validate:"required"`
 }
 
@@ -63,6 +66,7 @@ type GitDelete struct {
 	HostID       uint   `json:"host_id" validate:"required"`
 	RepoPath     string `json:"repo_path" validate:"required"`
 	RelativePath string `json:"relative_path" validate:"required"`
+	Dir          bool   `json:"dir" validate:"required"`
 }
 
 type GitRestore struct {

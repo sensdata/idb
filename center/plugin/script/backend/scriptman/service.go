@@ -102,6 +102,9 @@ func (s *ScriptMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
 			{Method: "GET", Path: "/:host", Handler: s.GetScriptList},
 			{Method: "GET", Path: "/:host/detail", Handler: s.GetScriptDetail},
 			{Method: "POST", Path: "/:host", Handler: s.Create},
@@ -160,6 +163,105 @@ func (s *ScriptMan) getPluginInfo() (plugin.PluginInfo, error) {
 
 func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
+}
+
+// @Tags Script
+// @Summary Create category
+// @Description Create category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitCategory true "Category creation details"
+// @Success 200
+// @Router /scripts/{host}/category [post]
+func (s *ScriptMan) CreateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CreateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.createCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Script
+// @Summary Update category
+// @Description Update category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitCategory true "category edit details"
+// @Success 200
+// @Router /scripts/{host}/category [put]
+func (s *ScriptMan) UpdateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.updateCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Script
+// @Summary Delete category
+// @Description Delete category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Success 200
+// @Router /scripts/{host}/category [delete]
+func (s *ScriptMan) DeleteCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	req := model.DeleteGitCategory{
+		Type:     scriptType,
+		Category: category,
+	}
+
+	err = s.deleteCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Script
@@ -280,7 +382,7 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Script file creation details"
 // @Success 200
-// @Router /scripts [post]
+// @Router /scripts/{host} [post]
 func (s *ScriptMan) Create(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -308,7 +410,7 @@ func (s *ScriptMan) Create(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Script file edit details"
 // @Success 200
-// @Router /scripts [put]
+// @Router /scripts/{host} [put]
 func (s *ScriptMan) Update(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -338,7 +440,7 @@ func (s *ScriptMan) Update(c *gin.Context) {
 // @Param category query string false "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /scripts [delete]
+// @Router /scripts/{host} [delete]
 func (s *ScriptMan) Delete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

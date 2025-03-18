@@ -13,6 +13,22 @@ type GetGitFileDetail struct {
 	Name     string `json:"name" validate:"required"`
 }
 
+type CreateGitCategory struct {
+	Type     string `json:"type" validate:"required"`
+	Category string `json:"category"`
+}
+
+type UpdateGitCategory struct {
+	Type     string `json:"type" validate:"required"`
+	Category string `json:"category"`
+	NewName  string `json:"new_name"`
+}
+
+type DeleteGitCategory struct {
+	Type     string `json:"type" validate:"required"`
+	Category string `json:"category"`
+}
+
 type CreateGitFile struct {
 	Type     string `json:"type" validate:"required"`
 	Category string `json:"category"`
@@ -24,6 +40,7 @@ type UpdateGitFile struct {
 	Type     string `json:"type" validate:"required"`
 	Category string `json:"category"`
 	Name     string `json:"name" validate:"required"`
+	NewName  string `json:"new_name"`
 	Content  string `json:"content" validate:"required"`
 }
 

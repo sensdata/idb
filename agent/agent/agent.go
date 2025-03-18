@@ -1354,7 +1354,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := GitService.Create(req.RepoPath, req.RelativePath, req.Content)
+		err := GitService.Create(req.RepoPath, req.RelativePath, req.Dir, req.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -1366,7 +1366,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := GitService.Update(req.RepoPath, req.RelativePath, req.Content)
+		err := GitService.Update(req.RepoPath, req.RelativePath, req.Dir, req.NewName, req.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -1378,7 +1378,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := GitService.Delete(req.RepoPath, req.RelativePath)
+		err := GitService.Delete(req.RepoPath, req.RelativePath, req.Dir)
 		if err != nil {
 			return nil, err
 		}
