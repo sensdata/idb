@@ -438,7 +438,7 @@
 
   const handleModifyTime = () => {
     if (timeModifyRef.value) {
-      timeModifyRef.value.setCurrentTime(formatTime(data.server_time));
+      timeModifyRef.value.setCurrentTime(data.server_time);
       timeModifyRef.value.show();
     }
   };
