@@ -85,13 +85,14 @@ RUN mkdir -p /app/agent-pkg && \
 RUN echo "${VERSION}" > /app/idb-agent.version
 
 # 运行阶段
-FROM debian:bookworm
+FROM debian:bookworm-slim
 
 # 安装运行时必要的工具
 RUN apt-get update && apt-get install -y \
-    bash \
+    procps \
     curl \
     sed \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 center 必要的目录结构

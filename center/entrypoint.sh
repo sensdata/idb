@@ -19,6 +19,9 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# 添加重启信号处理
+trap 'log "Received restart signal, restarting service..."; pkill idb; exec "$IDB_EXECUTABLE" start' SIGUSR1
+
 log "Starting configure idb.conf"
 
 # 修改或添加相关配置
@@ -47,4 +50,4 @@ ulimit -c 1048576
 
 # 启动应用
 log "Starting IDB service..."
-exec "$IDB_EXECUTABLE" start #>> "$LOG_FILE" 2>&1
+exec "$IDB_EXECUTABLE" start
