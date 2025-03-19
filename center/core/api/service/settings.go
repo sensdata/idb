@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
@@ -12,7 +13,6 @@ import (
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sensdata/idb/core/utils/common"
-	"github.com/sensdata/idb/core/utils/systemctl"
 )
 
 type SettingsService struct{}
@@ -188,8 +188,9 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 	tx.Commit()
 
 	go func() {
-		// TODO: 确定重启的方式和细节
-		systemctl.Restart("idb.service")
+		if err := syscall.Kill(1, syscall.SIGUSR1); err != nil {
+			global.LOG.Error("Failed to send restart signal: %v", err)
+		}
 	}()
 
 	return nil
