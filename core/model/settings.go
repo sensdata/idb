@@ -15,7 +15,8 @@ type AvailableIps struct {
 }
 
 type About struct {
-	Version string `json:"version"`
+	Version    string `json:"version"`
+	NewVersion string `json:"new_version"`
 }
 
 type SettingInfo struct {

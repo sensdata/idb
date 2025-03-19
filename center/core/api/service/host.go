@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -105,6 +107,9 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 
+	// 最新的agent版本
+	latestVersion := getAgentLatest()
+
 	var hostsInfos []core.HostInfo
 	for _, host := range hosts {
 		//找组
@@ -140,11 +145,26 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 				AgentMode:    host.AgentMode,
 				AgentVersion: host.AgentVersion,
 				AgentStatus:  *status,
+				AgentLatest:  latestVersion,
 			},
 		)
 	}
 
 	return &core.PageResult{Total: int64(len(hostsInfos)), Items: hostsInfos}, nil
+}
+
+func getAgentLatest() string {
+	// latestVersion 通过读取文件 /var/lib/idb/agent/idb-agent.version 来获得
+	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
+	var latestVersion string
+	version, err := os.ReadFile(latestPath)
+	if err != nil {
+		global.LOG.Error("Failed to read latest version: %v", err)
+		latestVersion = ""
+	} else {
+		latestVersion = string(version)
+	}
+	return latestVersion
 }
 
 func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {

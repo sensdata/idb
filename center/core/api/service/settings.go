@@ -4,10 +4,13 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"strings"
 
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
 	"github.com/sensdata/idb/core/utils/common"
 	"github.com/sensdata/idb/core/utils/systemctl"
 )
@@ -30,7 +33,20 @@ func (s *SettingsService) About() (*model.About, error) {
 
 	about.Version = global.Version
 
+	// 获取新版本信息
+	about.NewVersion = getLatestVersion()
+
 	return &about, nil
+}
+
+func getLatestVersion() string {
+	latest, err := utils.Execf("curl %s", conn.CONFMAN.GetConfig().Latest)
+	if err != nil {
+		global.LOG.Error("Failed to get latest version: %v", err)
+		return ""
+	}
+	global.LOG.Info("Got latest version: %s", latest)
+	return strings.TrimSpace(latest)
 }
 
 func (s *SettingsService) IPs() (*model.AvailableIps, error) {

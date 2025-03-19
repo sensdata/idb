@@ -22,6 +22,7 @@ type HostInfo struct {
 	AgentKey     string      `json:"agent_key"`
 	AgentVersion string      `json:"agent_version"`
 	AgentStatus  AgentStatus `json:"agent_status"`
+	AgentLatest  string      `json:"agent_latest"`
 }
 
 type ListHost struct {

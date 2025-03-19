@@ -12,8 +12,9 @@ import (
 
 // Config定义
 type CenterConfig struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
+	Host   string `json:"host"`
+	Port   int    `json:"port"`
+	Latest string `json:"latest"`
 }
 
 // Manager定义
@@ -67,6 +68,8 @@ func (m *Manager) loadConfig() error {
 			config.Host = value
 		case "port":
 			fmt.Sscanf(value, "%d", &config.Port)
+		case "latest":
+			config.Latest = strings.TrimSpace(value)
 		default:
 			return fmt.Errorf("unknown config key: %s", key)
 		}
@@ -111,7 +114,7 @@ func validateItem(item string) bool {
 		return true
 	case "port":
 		return true
-	case "key":
+	case "latest":
 		return true
 	default:
 		return false
@@ -138,6 +141,8 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 			result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		case "port":
 			result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
+		case "latest":
+			result.WriteString(fmt.Sprintf("latest=%s\n", m.config.Latest))
 		}
 	}
 	return result.String(), nil
@@ -158,6 +163,8 @@ func (m *Manager) SetConfig(key, value string) error {
 			return err
 		}
 		m.config.Port = portValue
+	case "latest":
+		m.config.Latest = value
 	}
 
 	// 保存到文件

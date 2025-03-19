@@ -28,6 +28,7 @@ const (
 	AgentConfig  = "idb-agent.conf"
 	AgentLog     = "idb-agent.log"
 	AgentSock    = "idb-agent.sock"
+	AgentLatest  = "idb-agent.version"
 
 	ClashDir = "idb_clash"
 	StoreDir = "idb-store"
