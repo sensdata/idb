@@ -450,7 +450,10 @@ function Install_IDB() {
 
     # 从 idb 容器的 /var/lib/idb/agent 目录下，拷贝 idb-agent_${VERSION}.tar.gz 至当前目录下的 agent目录
     log "正在拷贝 idb-agent 文件..."
-    mkdir -p "${CURRENT_DIR}/agent"  # 创建 agent 目录
+    # 清理 agent 目录
+    rm -rf "${CURRENT_DIR}/agent"
+    # 创建 agent 目录
+    mkdir -p "${CURRENT_DIR}/agent"  
     docker cp "idb:/var/lib/idb/agent/idb-agent.tar.gz" "${CURRENT_DIR}/agent/" 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "拷贝 idb-agent 文件失败，请检查容器是否存在。"
