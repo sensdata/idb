@@ -427,7 +427,7 @@ function Install_IDB() {
     
     # 修改 .env 文件中的端口配置
     log "正在修改 .env 文件中的配置..."
-    sed -i "s/^iDB_service_host_ip=.*/iDB_service_host_ip=${LOCAL_IP}/" "${PANEL_DIR}/.env"
+    sed -i "s/^iDB_service_host_ip=.*/iDB_service_host_ip=${PUBLIC_IP}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_port=.*/iDB_service_port=${PANEL_PORT}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
     
