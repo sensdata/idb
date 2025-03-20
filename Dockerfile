@@ -101,6 +101,8 @@ RUN mkdir -p /etc/idb /var/log/idb /run/idb /var/lib/idb /var/lib/idb/data /var/
 # 从构建阶段复制编译好的 center 应用和必要文件
 COPY --from=frontend-builder /app/frontend/dist/. /var/lib/idb/home
 COPY --from=builder /app/center/idb /var/lib/idb/idb
+COPY --from=builder /app/center/global/certs/cert.pem /var/lib/idb/cert.pem
+COPY --from=builder /app/center/global/certs/key.pem /var/lib/idb/key.pem
 COPY --from=builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar.gz
 COPY --from=builder /app/idb-agent.version /var/lib/idb/agent/idb-agent.version
 COPY center/idb.conf /etc/idb/idb.conf
