@@ -38,3 +38,7 @@ type UpdateSettingRequest struct {
 	HttpsCertPath string `json:"https_cert_path,omitempty"`
 	HttpsKeyPath  string `json:"https_key_path,omitempty"`
 }
+
+type UpdateSettingResponse struct {
+	RedirectUrl string `json:"redirect_url"`
+}

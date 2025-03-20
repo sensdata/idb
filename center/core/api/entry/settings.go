@@ -60,7 +60,7 @@ func (b *BaseApi) Settings(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body model.UpdateSettingRequest true "request"
-// @Success 200
+// @Success 200 {object} model.UpdateSettingResponse
 // @Router /settings [post]
 func (b *BaseApi) UpdateSettings(c *gin.Context) {
 	var req model.UpdateSettingRequest
@@ -68,10 +68,10 @@ func (b *BaseApi) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	err := settingsService.Update(req)
+	rsp, err := settingsService.Update(req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	SuccessWithData(c, "")
+	SuccessWithData(c, rsp)
 }

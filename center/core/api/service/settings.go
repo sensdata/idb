@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -21,7 +22,7 @@ type ISettingsService interface {
 	About() (*model.About, error)
 	IPs() (*model.AvailableIps, error)
 	Settings() (*model.SettingInfo, error)
-	Update(req model.UpdateSettingRequest) error
+	Update(req model.UpdateSettingRequest) (*model.UpdateSettingResponse, error)
 }
 
 func NewISettingsService() ISettingsService {
@@ -132,28 +133,37 @@ func (s *SettingsService) Settings() (*model.SettingInfo, error) {
 	}, nil
 }
 
-func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
-
+func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateSettingResponse, error) {
+	var response model.UpdateSettingResponse
+	var scheme string
 	switch req.Https {
 	case "no":
+		scheme = "http"
 	case "yes":
+		scheme = "https"
 		// 检查type和path
 		switch req.HttpsCertType {
 		case "default":
 		case "path":
 			if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
-				return errors.New("invalid cert path or key path")
+				return &response, errors.New("invalid cert path or key path")
 			}
 		default:
-			return errors.New("invalid cert type")
+			return &response, errors.New("invalid cert type")
 		}
 	default:
-		return errors.New("invalid https value")
+		return &response, errors.New("invalid https value")
+	}
+
+	// 找宿主机host
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Error("Failed to get default host")
+		return &response, err
 	}
 
 	// 开始事务
 	tx := global.DB.Begin()
-	var err error // 用于跟踪错误
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -166,26 +176,34 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 
 	if err = s.updateBindIP(req.BindIP); err != nil {
 		global.LOG.Error("Failed to save BindIP to %s: %v", req.BindIP, err)
-		return err
+		return &response, err
 	}
 
 	if err = s.updateBindPort(req.BindPort); err != nil {
 		global.LOG.Error("Failed to save BindPort to %d: %v", req.BindPort, err)
-		return err
+		return &response, err
 	}
 
 	if err = s.updateBindDomain(req.BindDomain); err != nil {
 		global.LOG.Error("Failed to save BindDomain to %s: %v", req.BindDomain, err)
-		return err
+		return &response, err
 	}
 
 	if err = s.updateHttps(req); err != nil {
 		global.LOG.Error("Failed to save Https settings: %v", err)
-		return err
+		return &response, err
 	}
 
 	// 提交事务
 	tx.Commit()
+
+	var url string
+	if len(req.BindDomain) == 0 {
+		url = fmt.Sprintf("%s://%s:%d/manage/settings", scheme, host.Addr, req.BindPort)
+	} else {
+		url = fmt.Sprintf("%s://%s/manage/settings", scheme, req.BindDomain)
+	}
+	response.RedirectUrl = url
 
 	go func() {
 		// 发送 SIGTERM 信号给主进程，触发容器重启
@@ -194,7 +212,7 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 		}
 	}()
 
-	return nil
+	return &response, nil
 }
 
 func (s *SettingsService) updateBindIP(newIP string) error {
