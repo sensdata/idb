@@ -19,9 +19,6 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-# 添加重启信号处理
-trap 'log "Received restart signal, restarting service..."; pkill idb; exec "$IDB_EXECUTABLE" start' SIGUSR1
-
 log "Starting configure idb.conf"
 
 # 修改或添加相关配置

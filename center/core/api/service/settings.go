@@ -188,8 +188,9 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) error {
 	tx.Commit()
 
 	go func() {
-		if err := syscall.Kill(1, syscall.SIGUSR1); err != nil {
-			global.LOG.Error("Failed to send restart signal: %v", err)
+		// 发送 SIGTERM 信号给主进程，触发容器重启
+		if err := syscall.Kill(1, syscall.SIGTERM); err != nil {
+			global.LOG.Error("Failed to send termination signal: %v", err)
 		}
 	}()
 
