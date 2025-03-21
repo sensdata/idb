@@ -17,5 +17,6 @@ func (s *SettingsRouter) InitRouter(Router *gin.RouterGroup) {
 		settingsRouter.GET("/ips", baseApi.IPs)
 		settingsRouter.GET("", baseApi.Settings)
 		settingsRouter.POST("", baseApi.UpdateSettings)
+		settingsRouter.POST("/upgrade", baseApi.Upgrade)
 	}
 }

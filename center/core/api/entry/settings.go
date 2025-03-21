@@ -75,3 +75,19 @@ func (b *BaseApi) UpdateSettings(c *gin.Context) {
 	}
 	SuccessWithData(c, rsp)
 }
+
+// @Tags Settings
+// @Summary Upgrade server
+// @Description Upgrade server
+// @Accept json
+// @Produce json
+// @Success 200
+// @Router /settings/upgrade [post]
+func (b *BaseApi) Upgrade(c *gin.Context) {
+	err := settingsService.Upgrade()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}

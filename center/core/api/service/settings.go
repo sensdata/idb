@@ -11,6 +11,7 @@ import (
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sensdata/idb/core/utils/common"
@@ -23,6 +24,7 @@ type ISettingsService interface {
 	IPs() (*model.AvailableIps, error)
 	Settings() (*model.SettingInfo, error)
 	Update(req model.UpdateSettingRequest) (*model.UpdateSettingResponse, error)
+	Upgrade() error
 }
 
 func NewISettingsService() ISettingsService {
@@ -286,6 +288,50 @@ func (s *SettingsService) updateHttps(req model.UpdateSettingRequest) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (s *SettingsService) Upgrade() error {
+	newVersion := getLatestVersion()
+	if len(newVersion) == 0 {
+		return errors.New("failed to get latest version")
+	}
+
+	if global.Version == newVersion {
+		return errors.New("already latest version")
+	}
+
+	// 找宿主机host
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Error("Failed to get default host")
+		return err
+	}
+
+	agentConn, err := conn.CENTER.GetAgentConn(&host)
+	if err != nil {
+		global.LOG.Error("Failed to get agent connection")
+		return err
+	}
+
+	// 创建消息
+	cmd := fmt.Sprintf("curl -sSL https://static.sensdata.com/idb/release/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", newVersion)
+
+	msgID := utils.GenerateMsgId()
+	msg, err := message.CreateMessage(
+		msgID,
+		cmd,
+		host.AgentKey,
+		utils.GenerateNonce(16),
+		global.Version,
+		message.CmdMessage,
+	)
+	err = message.SendMessage(*agentConn, msg)
+	if err != nil {
+		global.LOG.Error("Failed to send command message: %v", err)
+		return err
 	}
 
 	return nil
