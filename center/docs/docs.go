@@ -5807,7 +5807,113 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts": {
+        "/scripts/info": {
+            "get": {
+                "description": "Get plugin information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get plugin info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/plugin.PluginInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/menu": {
+            "get": {
+                "description": "Get plugin menu items",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get plugin menu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/plugin.MenuItem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/{host}": {
+            "get": {
+                "description": "Get list of scripts in a directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "List scripts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Update the content of a script file",
                 "consumes": [
@@ -5928,9 +6034,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/info": {
-            "get": {
-                "description": "Get plugin information",
+        "/scripts/{host}/category": {
+            "put": {
+                "description": "Update category",
                 "consumes": [
                     "application/json"
                 ],
@@ -5940,46 +6046,33 @@ const docTemplate = `{
                 "tags": [
                     "Script"
                 ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                "summary": "Update category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "category edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
+                            "$ref": "#/definitions/model.UpdateGitCategory"
                         }
                     }
-                }
-            }
-        },
-        "/scripts/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
                 ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Get plugin menu",
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
-                        }
+                        "description": "OK"
                     }
                 }
-            }
-        },
-        "/scripts/{host}": {
-            "get": {
-                "description": "Get list of scripts in a directory",
+            },
+            "post": {
+                "description": "Create category",
                 "consumes": [
                     "application/json"
                 ],
@@ -5989,7 +6082,43 @@ const docTemplate = `{
                 "tags": [
                     "Script"
                 ],
-                "summary": "List scripts",
+                "summary": "Create category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Delete category",
                 "parameters": [
                     {
                         "type": "integer",
@@ -6010,28 +6139,11 @@ const docTemplate = `{
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
                         "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.PageResult"
-                        }
+                        "description": "OK"
                     }
                 }
             }
@@ -6974,7 +7086,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateSettingResponse"
+                        }
                     }
                 }
             }
@@ -8762,6 +8877,9 @@ const docTemplate = `{
         "model.About": {
             "type": "object",
             "properties": {
+                "new_version": {
+                    "type": "string"
+                },
                 "version": {
                     "type": "string"
                 }
@@ -9172,6 +9290,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CreateGitCategory": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -9926,6 +10058,9 @@ const docTemplate = `{
                 "agent_key": {
                     "type": "string"
                 },
+                "agent_latest": {
+                    "type": "string"
+                },
                 "agent_mode": {
                     "type": "string"
                 },
@@ -9935,11 +10070,17 @@ const docTemplate = `{
                 "agent_status": {
                     "$ref": "#/definitions/model.AgentStatus"
                 },
+                "agent_version": {
+                    "type": "string"
+                },
                 "auth_mode": {
                     "type": "string"
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "default": {
+                    "type": "boolean"
                 },
                 "group": {
                     "$ref": "#/definitions/model.GroupInfo"
@@ -10404,6 +10545,10 @@ const docTemplate = `{
                             "$ref": "#/definitions/model.LoadState"
                         }
                     ]
+                },
+                "idle_rate": {
+                    "description": "空闲率",
+                    "type": "number"
                 },
                 "idle_time": {
                     "description": "空闲时间",
@@ -11106,6 +11251,23 @@ const docTemplate = `{
                 }
             }
         },
+        "model.UpdateGitCategory": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "new_name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "model.UpdateGitFile": {
             "type": "object",
             "required": [
@@ -11121,6 +11283,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "new_name": {
                     "type": "string"
                 },
                 "type": {
@@ -11270,6 +11435,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "https_key_path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateSettingResponse": {
+            "type": "object",
+            "properties": {
+                "redirect_url": {
                     "type": "string"
                 }
             }

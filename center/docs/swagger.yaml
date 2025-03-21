@@ -49,6 +49,8 @@ definitions:
     type: object
   model.About:
     properties:
+      new_version:
+        type: string
       version:
         type: string
     type: object
@@ -324,6 +326,15 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  model.CreateGitCategory:
+    properties:
+      category:
+        type: string
+      type:
+        type: string
+    required:
+    - type
     type: object
   model.CreateGitFile:
     properties:
@@ -833,16 +844,22 @@ definitions:
         type: string
       agent_key:
         type: string
+      agent_latest:
+        type: string
       agent_mode:
         type: string
       agent_port:
         type: integer
       agent_status:
         $ref: '#/definitions/model.AgentStatus'
+      agent_version:
+        type: string
       auth_mode:
         type: string
       created_at:
         type: string
+      default:
+        type: boolean
       group:
         $ref: '#/definitions/model.GroupInfo'
       id:
@@ -1153,6 +1170,9 @@ definitions:
         allOf:
         - $ref: '#/definitions/model.LoadState'
         description: 当前负载
+      idle_rate:
+        description: 空闲率
+        type: number
       idle_time:
         description: 空闲时间
         type: integer
@@ -1625,6 +1645,17 @@ definitions:
         description: 超时时间
         type: integer
     type: object
+  model.UpdateGitCategory:
+    properties:
+      category:
+        type: string
+      new_name:
+        type: string
+      type:
+        type: string
+    required:
+    - type
+    type: object
   model.UpdateGitFile:
     properties:
       category:
@@ -1632,6 +1663,8 @@ definitions:
       content:
         type: string
       name:
+        type: string
+      new_name:
         type: string
       type:
         type: string
@@ -1738,6 +1771,11 @@ definitions:
     - bind_ip
     - bind_port
     - https
+    type: object
+  model.UpdateSettingResponse:
+    properties:
+      redirect_url:
+        type: string
     type: object
   model.UpdateSystemSettingsReq:
     properties:
@@ -5719,7 +5757,7 @@ paths:
       summary: Get plugin menu
       tags:
       - NFTable
-  /scripts:
+  /scripts/{host}:
     delete:
       consumes:
       - application/json
@@ -5750,6 +5788,45 @@ paths:
         "200":
           description: OK
       summary: Delete script file
+      tags:
+      - Script
+    get:
+      consumes:
+      - application/json
+      description: Get list of scripts in a directory
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List scripts
       tags:
       - Script
     post:
@@ -5800,11 +5877,11 @@ paths:
       summary: Update script file content
       tags:
       - Script
-  /scripts/{host}:
-    get:
+  /scripts/{host}/category:
+    delete:
       consumes:
       - application/json
-      description: Get list of scripts in a directory
+      description: Delete category
       parameters:
       - description: Host ID
         in: path
@@ -5820,24 +5897,60 @@ paths:
         in: query
         name: category
         type: string
-      - description: Page
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: List scripts
+      summary: Delete category
+      tags:
+      - Script
+    post:
+      consumes:
+      - application/json
+      description: Create category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Category creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create category
+      tags:
+      - Script
+    put:
+      consumes:
+      - application/json
+      description: Update category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: category edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update category
       tags:
       - Script
   /scripts/{host}/detail:
@@ -6501,6 +6614,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.UpdateSettingResponse'
       summary: Update server settings
       tags:
       - Settings
