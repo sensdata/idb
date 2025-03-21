@@ -96,10 +96,11 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo '${{ env.VERSION_TAG }}' > /data/www/static.sensdata.com/idb/release/latest"
 
-      # 上传 install.sh
+      # 上传 scripts
       - name: Upload scripts
         run: |
           scp ./scripts/install.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
+          scp ./scripts/upgrade.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
 
       # 创建临时 .env 文件并替换 iDB_image_version
       - name: Create temporary .env file
