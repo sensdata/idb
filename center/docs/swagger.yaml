@@ -6649,6 +6649,19 @@ paths:
       summary: Get avaiable ips
       tags:
       - Settings
+  /settings/upgrade:
+    post:
+      consumes:
+      - application/json
+      description: Upgrade server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Upgrade server
+      tags:
+      - Settings
   /ssh/{host}/config:
     get:
       consumes:

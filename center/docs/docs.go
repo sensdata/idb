@@ -7140,6 +7140,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/settings/upgrade": {
+            "post": {
+                "description": "Upgrade server",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Upgrade server",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/ssh/info": {
             "get": {
                 "description": "Get plugin information",
