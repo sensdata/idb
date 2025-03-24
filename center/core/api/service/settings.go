@@ -43,7 +43,9 @@ func (s *SettingsService) About() (*model.About, error) {
 }
 
 func getLatestVersion() string {
-	latest, err := utils.Execf("curl %s", conn.CONFMAN.GetConfig().Latest)
+	cmd := fmt.Sprintf("curl -sSL %s", conn.CONFMAN.GetConfig().Latest)
+	global.LOG.Info("Getting latest version: %s", cmd)
+	latest, err := utils.Exec(cmd)
 	if err != nil {
 		global.LOG.Error("Failed to get latest version: %v", err)
 		return ""
