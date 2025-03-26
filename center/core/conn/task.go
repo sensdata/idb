@@ -9,6 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
+	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/utils"
 )
 
 const (
@@ -34,12 +37,66 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		return errors.New("invalid task ID")
 	}
 
-	reader, err := ls.GetReader(taskID)
+	// 获取任务信息
+	task, err := ls.GetTask(taskID)
+	if err != nil {
+		global.LOG.Error("get task failed: %v", err)
+		return fmt.Errorf("get task failed: %w", err)
+	}
+
+	reader, err := ls.GetReader(task.ID)
 	if err != nil {
 		global.LOG.Error("get reader failed: %v", err)
 		return fmt.Errorf("get reader failed: %w", err)
 	}
 	defer reader.Close()
+
+	// 判断reader是否是 RemoteReader
+	_, ok := reader.(*adapters.RemoteReader)
+	if ok {
+		// 找host
+		id, ok := task.Metadata["host"]
+		if !ok {
+			global.LOG.Error("cannot find host in task metadata")
+			return errors.New("invalid host")
+		}
+		// id 转成uint
+		hostId, ok := id.(uint)
+		if !ok {
+			global.LOG.Error("invalid host id")
+			return errors.New("invalid host id")
+		}
+
+		// 找host
+		host, err := HostRepo.Get(HostRepo.WithByID(hostId))
+		if err != nil {
+			global.LOG.Error("get host failed: %v", err)
+			return fmt.Errorf("get host failed: %w", err)
+		}
+		// 获取agent连接
+		conn, err := CENTER.GetAgentConn(&host)
+		if err != nil {
+			global.LOG.Error("get agent conn failed: %v", err)
+			return fmt.Errorf("get agent conn failed: %w", err)
+		}
+
+		// 发送开始追踪请求
+		startMsg, err := message.CreateLogStreamMessage(
+			utils.GenerateMsgId(),
+			message.LogStreamStart,
+			task.ID,
+			task.LogPath,
+			"",
+			"",
+		)
+		if err != nil {
+			return fmt.Errorf("create start message failed: %w", err)
+		}
+
+		if err := message.SendLogStreamMessage(*conn, startMsg); err != nil {
+			return fmt.Errorf("send start message failed: %w", err)
+		}
+	}
 
 	logCh, err := reader.Follow()
 	if err != nil {

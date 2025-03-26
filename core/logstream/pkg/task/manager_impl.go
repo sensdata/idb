@@ -63,13 +63,22 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 	}
 
 	// 根据任务类型设置日志路径
-	if taskType == types.TaskTypeBuffer {
-		// buffer 类型不需要物理文件路径
+	switch taskType {
+	case types.TaskTypeBuffer:
 		task.LogPath = ""
-		// 初始化 buffer
 		m.buffers[taskID] = bytes.NewBuffer(nil)
-	} else {
+	case types.TaskTypeFile:
 		task.LogPath = filepath.Join(m.basePath, fmt.Sprintf("%s.log", taskID))
+	case types.TaskTypeRemote:
+		// 从 metadata 中获取 log_path
+		logPath, ok := metadata["log_path"]
+		if !ok {
+			return "", fmt.Errorf("log_path not found in metadata")
+		}
+		// 类型断言
+		if logPathStr, ok := logPath.(string); ok {
+			task.LogPath = logPathStr
+		}
 	}
 
 	if err := m.store.Save(task); err != nil {

@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -29,6 +30,9 @@ import (
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
+	logConfig "github.com/sensdata/idb/core/logstream/internal/config"
+	"github.com/sensdata/idb/core/logstream/pkg/reader"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/shell"
@@ -57,6 +61,10 @@ type Agent struct {
 
 	rx float64
 	tx float64
+
+	readers    map[string]reader.Reader // filePath -> reader
+	readerDone map[string]chan struct{} // filePath -> done channel
+	readerMu   sync.RWMutex
 }
 
 //go:embed screen_install.sh
@@ -76,6 +84,8 @@ func NewAgent() IAgent {
 		resetConn: make(chan struct{}, 3),
 		// sessionMap:     make(map[string]*session.Session),
 		sessionManager: terminal.NewManager(),
+		readers:        make(map[string]reader.Reader),
+		readerDone:     make(map[string]chan struct{}),
 	}
 }
 
@@ -397,6 +407,8 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				go a.processFileMessage(conn, m)
 			case *message.SessionMessage:
 				go a.processSessionMessage(conn, m)
+			case *message.LogStreamMessage:
+				go a.processLogStreamMessage(conn, m)
 			default:
 				fmt.Println("Unknown message type")
 			}
@@ -722,6 +734,99 @@ func (a *Agent) cleanScreen() error {
 	}
 
 	return nil
+}
+
+func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMessage) {
+	global.LOG.Info("processLogStreamMessage: %v", msg)
+	switch msg.Type {
+	case message.LogStreamStart:
+		// 检查是否已存在
+		c.readerMu.RLock()
+		if _, exists := c.readers[msg.LogPath]; exists {
+			c.readerMu.RUnlock()
+			errMsg := fmt.Sprintf("file %s is already being monitored", msg.LogPath)
+			global.LOG.Error(errMsg)
+			c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+			return
+		}
+		c.readerMu.RUnlock()
+
+		// 创建Reader
+		r, err := adapters.NewTailReader(msg.LogPath, logConfig.DefaultConfig())
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
+			global.LOG.Error(errMsg)
+			c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+			return
+		}
+
+		// 创建done channel
+		done := make(chan struct{})
+
+		// 保存reader和done channel
+		c.readerMu.Lock()
+		c.readers[msg.LogPath] = r
+		c.readerDone[msg.LogPath] = done
+		c.readerMu.Unlock()
+
+		// 启动日志追踪
+		go c.followLog(conn, msg.TaskID, msg.LogPath, r, done)
+
+	case message.LogStreamStop:
+		c.readerMu.Lock()
+		if r, exists := c.readers[msg.LogPath]; exists {
+			// 关闭done channel，通知followLog退出
+			close(c.readerDone[msg.LogPath])
+			// 关闭reader
+			r.Close()
+			// 删除记录
+			delete(c.readers, msg.LogPath)
+			delete(c.readerDone, msg.LogPath)
+		}
+		c.readerMu.Unlock()
+
+	default:
+		errMsg := "not supported log stream message"
+		global.LOG.Error(errMsg)
+		c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+	}
+}
+
+func (c *Agent) followLog(conn net.Conn, taskId string, filePath string, r reader.Reader, done chan struct{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("[Panic] in followLog: %v", r)
+		}
+		// 清理资源
+		c.readerMu.Lock()
+		delete(c.readers, filePath)
+		delete(c.readerDone, filePath)
+		c.readerMu.Unlock()
+		r.Close()
+	}()
+
+	// 获取日志通道
+	logCh, err := r.Follow()
+	if err != nil {
+		global.LOG.Error("start follow failed: %v", err)
+		c.sendLogStreamResult(conn, taskId, message.LogStreamError, "", err.Error())
+		return
+	}
+
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-done:
+			return
+		case data, ok := <-logCh:
+			if !ok {
+				return
+			}
+			// 发送日志到 center
+			c.sendLogStreamResult(conn, taskId, message.LogStreamData, string(data), "")
+		}
+	}
 }
 
 func (a *Agent) processAction(data string) (*model.Action, error) {
@@ -2321,5 +2426,24 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType string, c
 	if err != nil {
 		global.LOG.Error("Failed to send session rsp : %v", err)
 		a.resetConnection()
+	}
+}
+
+func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, msgType message.LogStreamType, content string, errMsg string) {
+	msg, err := message.CreateLogStreamMessage(
+		utils.GenerateMsgId(),
+		msgType,
+		taskId,
+		"",
+		content,
+		errMsg,
+	)
+	if err != nil {
+		global.LOG.Error("create log message failed: %v", err)
+		return
+	}
+
+	if err := message.SendLogStreamMessage(conn, msg); err != nil {
+		global.LOG.Error("send log message failed: %v", err)
 	}
 }

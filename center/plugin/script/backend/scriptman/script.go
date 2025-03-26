@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -702,6 +703,17 @@ func (s *ScriptMan) execute(hostID uint64, req model.ExecuteScript) (*model.Scri
 		global.LOG.Error("Error unmarshaling data to filetree: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+
+	// 生成任务
+	metadata := map[string]interface{}{
+		"host":     hostID,
+		"log_path": logPath,
+	}
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		return nil, err
+	}
+	result.TaskID = taskId
 
 	return &result, nil
 }

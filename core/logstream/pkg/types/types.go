@@ -20,12 +20,13 @@ const (
 const (
 	TaskTypeBuffer = "buffer" // 内存缓冲日志
 	TaskTypeFile   = "file"   // 文件存储日志
+	TaskTypeRemote = "remote" // 远程存储日志
 )
 
 // Task 任务信息
 type Task struct {
 	ID        string                 `json:"id"`
-	Type      string                 `json:"type"` // buffer/file
+	Type      string                 `json:"type"` // buffer/file/remote
 	Status    TaskStatus             `json:"status"`
 	Metadata  map[string]interface{} `json:"metadata"`
 	LogPath   string                 `json:"log_path"`

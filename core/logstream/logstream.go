@@ -61,6 +61,18 @@ func New(cfg *config.Config) (*LogStream, error) {
 	return ls, nil
 }
 
+func (ls *LogStream) GetTask(taskID string) (*types.Task, error) {
+	task, err := ls.taskMgr.Get(taskID)
+	if err != nil {
+		if err == types.ErrTaskNotFound {
+			return nil, err
+		}
+		ls.metrics.IncrErrorCount()
+		return nil, fmt.Errorf("get task failed: %w", err)
+	}
+	return task, nil
+}
+
 func (ls *LogStream) GetWriter(taskID string) (writer.Writer, error) {
 	ls.mu.Lock()
 	defer ls.mu.Unlock()
@@ -69,13 +81,9 @@ func (ls *LogStream) GetWriter(taskID string) (writer.Writer, error) {
 		return w, nil
 	}
 
-	task, err := ls.taskMgr.Get(taskID)
+	task, err := ls.GetTask(taskID)
 	if err != nil {
-		if err == types.ErrTaskNotFound {
-			return nil, err
-		}
-		ls.metrics.IncrErrorCount()
-		return nil, fmt.Errorf("get task failed: %w", err)
+		return nil, err
 	}
 
 	w, err := factory.NewWriter(task, ls.taskMgr, ls.config)
@@ -97,13 +105,9 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 		return r, nil
 	}
 
-	task, err := ls.taskMgr.Get(taskID)
+	task, err := ls.GetTask(taskID)
 	if err != nil {
-		if err == types.ErrTaskNotFound {
-			return nil, err
-		}
-		ls.metrics.IncrErrorCount()
-		return nil, fmt.Errorf("get task failed: %w", err)
+		return nil, err
 	}
 
 	r, err := factory.NewReader(task, ls.taskMgr, ls.config)
@@ -114,6 +118,17 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 
 	ls.readers[taskID] = r
 	ls.metrics.IncrReadOps()
+	return r, nil
+}
+
+func (ls *LogStream) GetExistingReader(taskID string) (reader.Reader, error) {
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+
+	r, exists := ls.readers[taskID]
+	if !exists {
+		return nil, fmt.Errorf("reader not found for task: %s", taskID)
+	}
 	return r, nil
 }
 
@@ -157,13 +172,9 @@ func (ls *LogStream) UpdateTaskStatus(taskID string, status types.TaskStatus) er
 		return fmt.Errorf("invalid task status: %w", err)
 	}
 
-	task, err := ls.taskMgr.Get(taskID)
+	task, err := ls.GetTask(taskID)
 	if err != nil {
-		if err == types.ErrTaskNotFound {
-			return err
-		}
-		ls.metrics.IncrErrorCount()
-		return fmt.Errorf("get task failed: %w", err)
+		return err
 	}
 
 	// 验证状态转换
@@ -194,13 +205,9 @@ func (ls *LogStream) DeleteTask(taskID string) error {
 	defer ls.mu.Unlock()
 
 	// 获取任务信息并检查状态
-	task, err := ls.taskMgr.Get(taskID)
+	task, err := ls.GetTask(taskID)
 	if err != nil {
-		if err == types.ErrTaskNotFound {
-			return err
-		}
-		ls.metrics.IncrErrorCount()
-		return fmt.Errorf("get task failed: %w", err)
+		return err
 	}
 
 	// 只允许删除已完成或失败的任务
@@ -248,7 +255,7 @@ func (ls *LogStream) GetLogSize(taskID string) (int64, error) {
 
 // IsTaskExpired 检查任务是否过期
 func (ls *LogStream) IsTaskExpired(taskID string) (bool, error) {
-	task, err := ls.taskMgr.Get(taskID)
+	task, err := ls.GetTask(taskID)
 	if err != nil {
 		return false, err
 	}

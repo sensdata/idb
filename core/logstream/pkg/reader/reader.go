@@ -1,6 +1,8 @@
 package reader
 
-import "github.com/sensdata/idb/core/logstream/pkg/types"
+import (
+	"github.com/sensdata/idb/core/logstream/pkg/types"
+)
 
 // Reader 日志读取器接口
 type Reader interface {

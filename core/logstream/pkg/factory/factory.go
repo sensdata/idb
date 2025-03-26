@@ -26,6 +26,8 @@ func NewReader(task *types.Task, taskMgr task.Manager, cfg *config.Config) (read
 		return readerAdater.NewBufferReader(buffer), nil
 	case types.TaskTypeFile:
 		return readerAdater.NewTailReader(task.LogPath, cfg)
+	case types.TaskTypeRemote:
+		return readerAdater.NewRemoteReader(task.LogPath, cfg), nil
 	default:
 		return nil, fmt.Errorf("unsupported task type: %s", task.Type)
 	}

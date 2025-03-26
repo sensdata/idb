@@ -21,6 +21,7 @@ const (
 	MagicBytes    = "\xAB\xCD\xEF\x01"
 	MagicBytes1   = "\xAB\xCD\xEF\x02"
 	MagicBytes2   = "\xAB\xCD\xEF\x03"
+	MagicBytes3   = "\xAB\xCD\xEF\x04"
 	MagicBytesLen = 4
 	MsgLenBytes   = 4
 )
@@ -28,6 +29,7 @@ const (
 // 消息类型
 type MessageType string
 type FileMessageType string
+type LogStreamType string
 
 const (
 	Heartbeat     MessageType = "hb"
@@ -38,6 +40,13 @@ const (
 const (
 	Upload   FileMessageType = "upload"
 	Download FileMessageType = "download"
+)
+
+const (
+	LogStreamStart LogStreamType = "start" // 开始追踪
+	LogStreamStop  LogStreamType = "stop"  // 停止追踪
+	LogStreamData  LogStreamType = "data"  // 日志内容
+	LogStreamError LogStreamType = "error" // 错误信息
 )
 
 const (
@@ -84,6 +93,21 @@ type FileMessage struct {
 
 func (f *FileMessage) GetType() string {
 	return "FileMessage"
+}
+
+// 日志流消息
+type LogStreamMessage struct {
+	MsgID     string        `json:"msg_id"`
+	Type      LogStreamType `json:"type"`
+	TaskID    string        `json:"task_id"`
+	LogPath   string        `json:"log_path"`
+	Content   string        `json:"content,omitempty"`
+	Error     string        `json:"error,omitempty"`
+	Timestamp int64         `json:"timestamp"`
+}
+
+func (l *LogStreamMessage) GetType() string {
+	return "LogStreamMessage"
 }
 
 // Session 消息
@@ -238,6 +262,65 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	return nil
 }
 
+func CreateLogStreamMessage(msgID string, msgType LogStreamType, taskID string, logPath string, content string, errMsg string) (*LogStreamMessage, error) {
+	// 参数校验
+	if msgID == "" {
+		return nil, errors.New("msgID cannot be empty")
+	}
+	if taskID == "" {
+		return nil, errors.New("taskID cannot be empty")
+	}
+	if logPath == "" {
+		return nil, errors.New("filePath cannot be empty")
+	}
+
+	// 根据消息类型校验必要字段
+	switch msgType {
+	case LogStreamData:
+		if content == "" {
+			return nil, errors.New("content cannot be empty for data message")
+		}
+	case LogStreamError:
+		if errMsg == "" {
+			return nil, errors.New("error message cannot be empty for error type")
+		}
+	case LogStreamStart, LogStreamStop:
+		// start和stop类型只需要filepath
+	default:
+		return nil, fmt.Errorf("unsupported message type: %s", msgType)
+	}
+
+	return &LogStreamMessage{
+		MsgID:     msgID,
+		Type:      msgType,
+		TaskID:    taskID,
+		LogPath:   logPath,
+		Content:   content,
+		Error:     errMsg,
+		Timestamp: time.Now().Unix(),
+	}, nil
+}
+
+func SendLogStreamMessage(conn net.Conn, msg *LogStreamMessage) error {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %v", err)
+	}
+
+	msgLen := make([]byte, MsgLenBytes)
+	binary.BigEndian.PutUint32(msgLen, uint32(len(data)))
+
+	encodedMsg := append([]byte(MagicBytes3), msgLen...)
+	encodedMsg = append(encodedMsg, data...)
+
+	_, err = conn.Write(encodedMsg)
+	if err != nil {
+		return fmt.Errorf("failed to send data: %v", err)
+	}
+
+	return nil
+}
+
 func CreateSessionMessage(msgID string, msgType string, data SessionData, key string, nonce string, version string) (*SessionMessage, error) {
 	// 时间戳
 	timestamp := time.Now().Unix()
@@ -323,6 +406,8 @@ func ExtractCompleteMessagePacket(buffer []byte) (int, []byte, []byte, error) {
 		msgType = 1 // 文件消息
 	} else if bytes.Equal(magicBytes, []byte(MagicBytes2)) {
 		msgType = 2 // 会话消息
+	} else if bytes.Equal(magicBytes, []byte(MagicBytes3)) {
+		msgType = 3 // 日志流消息
 	} else {
 		return msgType, nil, buffer, errors.New("invalid magic bytes")
 	}
@@ -385,6 +470,13 @@ func DecodeMessage(msgType int, data []byte, key string) (MessageInterface, erro
 			return nil, err
 		}
 		if err := verifyMessage(msg.Sign, msg.MsgID, dataJson, msg.Timestamp, msg.Nonce, msg.Version, msg.Checksum, key); err != nil {
+			return nil, err
+		}
+		return &msg, nil
+	// 日志流消息
+	case 3:
+		var msg LogStreamMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
 			return nil, err
 		}
 		return &msg, nil

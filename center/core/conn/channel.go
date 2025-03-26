@@ -22,6 +22,7 @@ import (
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/message"
 	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -384,6 +385,8 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 				c.processFileMessage(m)
 			case *message.SessionMessage:
 				c.processSessionMessage(m)
+			case *message.LogStreamMessage:
+				c.processLogStreamMessage(m)
 			default:
 				fmt.Println("Unknown message type")
 			}
@@ -535,6 +538,57 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		}
 	default: // 不支持的消息
 		global.LOG.Error("Unknown sesssion message type: %s", msg.Type)
+	}
+}
+
+func (c *Center) processLogStreamMessage(msg *message.LogStreamMessage) {
+	if msg == nil {
+		global.LOG.Error("received nil log stream message")
+		return
+	}
+
+	ls := global.LogStream
+
+	switch msg.Type {
+	case message.LogStreamStart:
+		global.LOG.Info("log stream started for file: %s", msg.LogPath)
+		return
+
+	case message.LogStreamStop:
+		global.LOG.Info("log stream stopped for file: %s", msg.LogPath)
+		return
+
+	case message.LogStreamData, message.LogStreamError:
+		// 获取已存在的 reader
+		reader, err := ls.GetExistingReader(msg.TaskID)
+		if err != nil {
+			global.LOG.Error("get existing reader failed for task %s: %v", msg.TaskID, err)
+			return
+		}
+
+		// 类型转换
+		remoteReader, ok := reader.(*adapters.RemoteReader)
+		if !ok {
+			global.LOG.Error("invalid reader type for task %s", msg.TaskID)
+			return
+		}
+
+		// 根据消息类型准备内容
+		var content []byte
+		if msg.Type == message.LogStreamData {
+			content = []byte(msg.Content)
+		} else {
+			content = []byte(fmt.Sprintf("Error: %s", msg.Error))
+		}
+
+		// 发送日志内容
+		if err := remoteReader.SendLog(content); err != nil {
+			global.LOG.Error("send log failed for task %s: %v", msg.TaskID, err)
+			return
+		}
+
+	default:
+		global.LOG.Error("unknown log stream message type: %s", msg.Type)
 	}
 }
 
