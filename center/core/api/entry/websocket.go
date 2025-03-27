@@ -100,12 +100,12 @@ func (b *BaseApi) PruneSessions(c *gin.Context) {
 		return
 	}
 
-	err = terminalService.Prune(uint(hostID))
+	result, err := terminalService.Prune(uint(hostID))
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
-	SuccessWithData(c, "")
+	SuccessWithData(c, result)
 }
 
 // @Tags Terminal
@@ -216,10 +216,10 @@ func (b *BaseApi) InstallTerminal(c *gin.Context) {
 		return
 	}
 
-	err = terminalService.Install(uint(hostID))
+	result, err := terminalService.Install(uint(hostID))
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
-	SuccessWithData(c, "")
+	SuccessWithData(c, result)
 }

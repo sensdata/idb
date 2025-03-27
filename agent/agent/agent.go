@@ -685,7 +685,9 @@ func (a *Agent) isScreenInstalled() bool {
 	return true
 }
 
-func (a *Agent) installScreen() error {
+func (a *Agent) installScreen() (*model.ScriptResult, error) {
+	var result model.ScriptResult
+
 	// 将installScreenShell保存到 /tmp/iDB_screen_timestamp.sh
 	// 生成临时脚本文件名
 	timestamp := time.Now().Unix()
@@ -696,7 +698,7 @@ func (a *Agent) installScreen() error {
 	err := os.WriteFile(scriptPath, installScreenShell, 0755)
 	if err != nil {
 		global.LOG.Error("Failed to prepare installation script, %v", err)
-		return fmt.Errorf("failed to prepare script")
+		return &result, fmt.Errorf("failed to prepare script")
 	}
 	defer os.Remove(scriptPath)
 
@@ -704,13 +706,16 @@ func (a *Agent) installScreen() error {
 	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
 	scriptResult := shell.ExecuteScript(req)
 	if scriptResult.Err != "" {
-		return fmt.Errorf("failed to install")
+		return &result, fmt.Errorf("failed to install")
 	}
 
-	return nil
+	result = *scriptResult
+	return &result, nil
 }
 
-func (a *Agent) cleanScreen() error {
+func (a *Agent) cleanScreen() (*model.ScriptResult, error) {
+	var result model.ScriptResult
+
 	// 将cleanScreenShell保存到 /tmp/iDB_screen_clean_timestamp.sh
 	// 生成临时脚本文件名
 	timestamp := time.Now().Unix()
@@ -721,7 +726,7 @@ func (a *Agent) cleanScreen() error {
 	err := os.WriteFile(scriptPath, cleanScreenShell, 0755)
 	if err != nil {
 		global.LOG.Error("Failed to prepare clean script, %v", err)
-		return fmt.Errorf("failed to prepare script")
+		return &result, fmt.Errorf("failed to prepare script")
 	}
 	defer os.Remove(scriptPath)
 
@@ -729,10 +734,11 @@ func (a *Agent) cleanScreen() error {
 	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
 	scriptResult := shell.ExecuteScript(req)
 	if scriptResult.Err != "" {
-		return fmt.Errorf("failed to install")
+		return &result, fmt.Errorf("failed to install")
 	}
 
-	return nil
+	result = *scriptResult
+	return &result, nil
 }
 
 func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMessage) {
@@ -2290,18 +2296,26 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Terminal_Install:
-		err := a.installScreen()
+		installResult, err := a.installScreen()
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, "")
+		result, err := utils.ToJSONString(installResult)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Terminal_Prune:
-		err := a.cleanScreen()
+		cleanResult, err := a.cleanScreen()
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, "")
+		result, err := utils.ToJSONString(cleanResult)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	default:
 		return nil, nil

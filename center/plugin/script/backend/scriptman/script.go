@@ -660,12 +660,13 @@ func (s *ScriptMan) getScriptDiff(hostID uint64, req model.GitFileDiff) (string,
 	return actionResponse.Data.Action.Data, nil
 }
 
-func (s *ScriptMan) execute(hostID uint64, req model.ExecuteScript) (*model.ScriptResult, error) {
+func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
-		Start: time.Now(),
-		End:   time.Now(),
-		Out:   "",
-		Err:   "",
+		LogPath: "",
+		Start:   time.Now(),
+		End:     time.Now(),
+		Out:     "",
+		Err:     "",
 	}
 
 	logPath := filepath.Join(s.pluginConf.Items.LogDir, "script-run.log")
@@ -681,7 +682,7 @@ func (s *ScriptMan) execute(hostID uint64, req model.ExecuteScript) (*model.Scri
 	}
 
 	actionRequest := model.HostAction{
-		HostID: uint(hostID),
+		HostID: hostID,
 		Action: model.Action{
 			Action: model.Script_Exec,
 			Data:   data,
@@ -700,14 +701,14 @@ func (s *ScriptMan) execute(hostID uint64, req model.ExecuteScript) (*model.Scri
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to filetree: %v", err)
+		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
 
 	// 生成任务
 	metadata := map[string]interface{}{
 		"host":     hostID,
-		"log_path": logPath,
+		"log_path": result.LogPath,
 	}
 	taskId, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
 	if err != nil {

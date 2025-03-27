@@ -65,8 +65,8 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 			global.LOG.Error("cannot find host in task metadata")
 			return errors.New("invalid host")
 		}
-		// id 转成 uint64
-		hostId, ok := id.(uint64)
+		// id 转成 uint
+		hostId, ok := id.(uint)
 		if !ok {
 			global.LOG.Error("invalid host id")
 			return errors.New("invalid host id")

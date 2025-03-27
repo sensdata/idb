@@ -672,7 +672,7 @@ func (s *ScriptMan) Execute(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	result, err := s.execute(hostID, req)
+	result, err := s.execute(uint(hostID), req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

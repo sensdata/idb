@@ -66,10 +66,11 @@ func ExecuteScript(req model.ScriptExec) *model.ScriptResult {
 
 func executeScript(req model.ScriptExec) *model.ScriptResult {
 	result := model.ScriptResult{
-		Start: time.Now(),
-		End:   time.Now(),
-		Out:   "",
-		Err:   "",
+		LogPath: req.LogPath,
+		Start:   time.Now(),
+		End:     time.Now(),
+		Out:     "",
+		Err:     "",
 	}
 
 	// 检查脚本文件是否存在及权限

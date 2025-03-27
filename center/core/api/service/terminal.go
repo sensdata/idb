@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -14,11 +16,11 @@ type TerminalService struct{}
 
 type ITerminalService interface {
 	Sessions(hostID uint) (*model.PageResult, error)
-	Prune(hostID uint) error
+	Prune(hostID uint) (*model.ScriptResult, error)
 	Detach(token string, hostID uint, req model.TerminalRequest) error
 	Quit(token string, hostID uint, req model.TerminalRequest) error
 	Rename(token string, hostID uint, req model.TerminalRequest) error
-	Install(hostID uint) error
+	Install(hostID uint) (*model.ScriptResult, error)
 }
 
 func NewITerminalService() ITerminalService {
@@ -59,7 +61,15 @@ func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *TerminalService) Prune(hostID uint) error {
+func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
+	result := model.ScriptResult{
+		LogPath: "",
+		Start:   time.Now(),
+		End:     time.Now(),
+		Out:     "",
+		Err:     "",
+	}
+
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
@@ -70,14 +80,31 @@ func (s *TerminalService) Prune(hostID uint) error {
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action %v", err)
-		return err
+		return &result, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to prune sessions")
+		return &result, fmt.Errorf("failed to prune sessions")
 	}
 
-	return nil
+	err = utils.FromJSONString(actionResponse.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to script result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	// 生成任务
+	metadata := map[string]interface{}{
+		"host":     hostID,
+		"log_path": result.LogPath,
+	}
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		return nil, err
+	}
+	result.TaskID = taskId
+
+	return &result, nil
 }
 
 func (s *TerminalService) Detach(token string, hostID uint, req model.TerminalRequest) error {
@@ -180,7 +207,15 @@ func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRe
 	return nil
 }
 
-func (s *TerminalService) Install(hostID uint) error {
+func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
+	result := model.ScriptResult{
+		LogPath: "",
+		Start:   time.Now(),
+		End:     time.Now(),
+		Out:     "",
+		Err:     "",
+	}
+
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
@@ -191,12 +226,29 @@ func (s *TerminalService) Install(hostID uint) error {
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action %v", err)
-		return err
+		return &result, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to install terminal")
+		return &result, fmt.Errorf("failed to install terminal")
 	}
 
-	return nil
+	err = utils.FromJSONString(actionResponse.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to script result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	// 生成任务
+	metadata := map[string]interface{}{
+		"host":     hostID,
+		"log_path": result.LogPath,
+	}
+	taskId, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		return nil, err
+	}
+	result.TaskID = taskId
+
+	return &result, nil
 }
