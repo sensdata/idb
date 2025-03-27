@@ -10897,10 +10897,16 @@ const docTemplate = `{
                 "err": {
                     "type": "string"
                 },
+                "log_path": {
+                    "type": "string"
+                },
                 "out": {
                     "type": "string"
                 },
                 "start": {
+                    "type": "string"
+                },
+                "task_id": {
                     "type": "string"
                 }
             }
