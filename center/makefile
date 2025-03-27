@@ -38,7 +38,14 @@ KEY_FILE=./global/certs/key.pem
 
 # 构建命令
 build:
-	GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)'" -o $(BINARY_NAME) $(SRC_DIR)
+	# 读取密钥
+	$(eval KEY = $(shell cat ../.build.key 2>/dev/null || echo "default_key"))
+	# 编译
+	GOOS=linux GOARCH=amd64 go build \
+		-ldflags "-s -w \
+		-X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)' \
+		-X 'github.com/sensdata/idb/center/global.DefaultKey=$(KEY)'" \
+		-o $(BINARY_NAME) $(SRC_DIR)
 
 # 安装命令
 install: build
