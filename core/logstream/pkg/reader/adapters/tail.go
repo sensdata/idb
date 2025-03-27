@@ -27,11 +27,18 @@ func NewTailReader(filePath string, cfg *config.Config) (*TailReader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open file failed: %v", err)
 	}
+	// 创建配置的副本
+	var conf config.Config
+	if cfg != nil {
+		conf = *cfg
+	} else {
+		conf = *config.DefaultConfig()
+	}
 
 	return &TailReader{
 		file:     file,
 		filePath: filePath,
-		config:   cfg,
+		config:   &conf,
 	}, nil
 }
 

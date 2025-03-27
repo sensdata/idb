@@ -30,7 +30,6 @@ import (
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
-	logConfig "github.com/sensdata/idb/core/logstream/internal/config"
 	"github.com/sensdata/idb/core/logstream/pkg/reader"
 	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/message"
@@ -752,7 +751,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 		c.readerMu.RUnlock()
 
 		// 创建Reader
-		r, err := adapters.NewTailReader(msg.LogPath, logConfig.DefaultConfig())
+		r, err := adapters.NewTailReader(msg.LogPath, nil)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
 			global.LOG.Error(errMsg)
