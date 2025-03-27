@@ -739,18 +739,18 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	global.LOG.Info("processLogStreamMessage: %v", msg)
 	switch msg.Type {
 	case message.LogStreamStart:
-		// 检查是否已存在
+		// 检查是否已存在，如果存在则复用
 		c.readerMu.RLock()
-		if _, exists := c.readers[msg.LogPath]; exists {
+		if existingReader, exists := c.readers[msg.LogPath]; exists {
 			c.readerMu.RUnlock()
-			errMsg := fmt.Sprintf("file %s is already being monitored", msg.LogPath)
-			global.LOG.Error(errMsg)
-			c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+			// 复用已存在的 reader
+			done := c.readerDone[msg.LogPath]
+			go c.followLog(conn, msg.TaskID, msg.LogPath, existingReader, done)
 			return
 		}
 		c.readerMu.RUnlock()
 
-		// 创建Reader
+		// 创建新的 Reader
 		r, err := adapters.NewTailReader(msg.LogPath, nil)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
@@ -820,6 +820,8 @@ func (c *Agent) followLog(conn net.Conn, taskId string, filePath string, r reade
 			return
 		case data, ok := <-logCh:
 			if !ok {
+				global.LOG.Error("log channel closed")
+				c.sendLogStreamResult(conn, taskId, message.LogStreamError, "", "log channel closed")
 				return
 			}
 			// 发送日志到 center

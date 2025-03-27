@@ -44,6 +44,11 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		return fmt.Errorf("get task failed: %w", err)
 	}
 
+	// 把task的metadata都打印出来
+	for k, v := range task.Metadata {
+		global.LOG.Info("task metadata: %s=%v", k, v)
+	}
+
 	reader, err := ls.GetReader(task.ID)
 	if err != nil {
 		global.LOG.Error("get reader failed: %v", err)
@@ -60,15 +65,15 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 			global.LOG.Error("cannot find host in task metadata")
 			return errors.New("invalid host")
 		}
-		// id 转成uint
-		hostId, ok := id.(uint)
+		// id 转成 uint64
+		hostId, ok := id.(uint64)
 		if !ok {
 			global.LOG.Error("invalid host id")
 			return errors.New("invalid host id")
 		}
 
 		// 找host
-		host, err := HostRepo.Get(HostRepo.WithByID(hostId))
+		host, err := HostRepo.Get(HostRepo.WithByID(uint(hostId)))
 		if err != nil {
 			global.LOG.Error("get host failed: %v", err)
 			return fmt.Errorf("get host failed: %w", err)

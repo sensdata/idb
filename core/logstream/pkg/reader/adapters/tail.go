@@ -71,8 +71,10 @@ func (r *TailReader) Follow() (<-chan []byte, error) {
 		return nil, fmt.Errorf("reader is closed")
 	}
 
+	// 如果已经有tail实例，先停止它
 	if r.tail != nil {
-		return nil, fmt.Errorf("already following")
+		r.tail.Stop()
+		r.tail.Cleanup()
 	}
 
 	config := tail.Config{
