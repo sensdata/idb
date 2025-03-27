@@ -791,7 +791,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	}
 }
 
-func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, r reader.Reader, done chan struct{}) {
+func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, reader reader.Reader, done chan struct{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in followLog: %v", r)
@@ -801,16 +801,45 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, r reader
 		delete(c.readers, logPath)
 		delete(c.readerDone, logPath)
 		c.readerMu.Unlock()
-		r.Close()
+		reader.Close()
 	}()
 
 	// 获取日志通道
-	logCh, err := r.Follow()
+	logCh, err := reader.Follow()
 	if err != nil {
 		global.LOG.Error("start follow failed: %v", err)
 		c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error())
 		return
 	}
+
+	// 创建一个缓冲通道来处理日志
+	bufferCh := make(chan []byte, 100)
+	defer close(bufferCh)
+
+	go func() {
+		for {
+			select {
+			case msg, ok := <-logCh:
+				if !ok {
+					global.LOG.Error("log channel closed")
+					c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed")
+					return
+				}
+
+				select {
+				case bufferCh <- msg:
+				default:
+					// 如果缓冲区满了，丢弃最旧的消息
+					<-bufferCh
+					bufferCh <- msg
+				}
+			case <-c.done:
+				return
+			case <-done:
+				return
+			}
+		}
+	}()
 
 	for {
 		select {
@@ -818,12 +847,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, r reader
 			return
 		case <-done:
 			return
-		case data, ok := <-logCh:
-			if !ok {
-				global.LOG.Error("log channel closed")
-				c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed")
-				return
-			}
+		case data := <-bufferCh:
 			// 发送日志到 center
 			c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamData, string(data), "")
 		}
