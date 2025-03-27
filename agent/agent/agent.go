@@ -755,7 +755,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
 			global.LOG.Error(errMsg)
-			c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+			c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
 			return
 		}
 
@@ -787,19 +787,19 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	default:
 		errMsg := "not supported log stream message"
 		global.LOG.Error(errMsg)
-		c.sendLogStreamResult(conn, msg.TaskID, message.LogStreamError, "", errMsg)
+		c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
 	}
 }
 
-func (c *Agent) followLog(conn net.Conn, taskId string, filePath string, r reader.Reader, done chan struct{}) {
+func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, r reader.Reader, done chan struct{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in followLog: %v", r)
 		}
 		// 清理资源
 		c.readerMu.Lock()
-		delete(c.readers, filePath)
-		delete(c.readerDone, filePath)
+		delete(c.readers, logPath)
+		delete(c.readerDone, logPath)
 		c.readerMu.Unlock()
 		r.Close()
 	}()
@@ -808,7 +808,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, filePath string, r reade
 	logCh, err := r.Follow()
 	if err != nil {
 		global.LOG.Error("start follow failed: %v", err)
-		c.sendLogStreamResult(conn, taskId, message.LogStreamError, "", err.Error())
+		c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error())
 		return
 	}
 
@@ -821,11 +821,11 @@ func (c *Agent) followLog(conn net.Conn, taskId string, filePath string, r reade
 		case data, ok := <-logCh:
 			if !ok {
 				global.LOG.Error("log channel closed")
-				c.sendLogStreamResult(conn, taskId, message.LogStreamError, "", "log channel closed")
+				c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed")
 				return
 			}
 			// 发送日志到 center
-			c.sendLogStreamResult(conn, taskId, message.LogStreamData, string(data), "")
+			c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamData, string(data), "")
 		}
 	}
 }
@@ -2430,12 +2430,12 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType string, c
 	}
 }
 
-func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, msgType message.LogStreamType, content string, errMsg string) {
+func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, logPath string, msgType message.LogStreamType, content string, errMsg string) {
 	msg, err := message.CreateLogStreamMessage(
 		utils.GenerateMsgId(),
 		msgType,
 		taskId,
-		"",
+		logPath,
 		content,
 		errMsg,
 	)
