@@ -144,6 +144,7 @@ type FileBrief struct {
 	Extension string `json:"extension"`
 	Size      int    `json:"size"`
 	IsDir     bool   `json:"is_dir"`
+	IsHidden  bool   `json:"is_hidden"`
 	CreatedAt string `json:"created_at"`
 }
 

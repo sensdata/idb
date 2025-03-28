@@ -87,6 +87,7 @@ func (f *FileService) SearchFiles(op model.FileOption) (*model.PageResult, error
 			Extension: item.Extension,
 			Size:      int(item.Size),
 			IsDir:     item.IsDir,
+			IsHidden:  item.IsHidden,
 			CreatedAt: item.ModTime.Format("2006-01-02 15:04:05"),
 		})
 	}
