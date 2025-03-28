@@ -34,6 +34,7 @@
   <list-render
     v-if="item.is_dir && item.open && item.items?.length"
     :items="item.items"
+    :show-hidden="showHidden"
     :level="level + 1"
   />
 </template>
@@ -48,6 +49,7 @@
 
   const props = defineProps<{
     item: FileTreeItem;
+    showHidden?: boolean;
     level: number;
   }>();
   const selected = inject<Ref<FileTreeItem | undefined | null>>('selected')!;

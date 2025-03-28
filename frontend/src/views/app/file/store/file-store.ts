@@ -32,7 +32,7 @@ const useFileStore = defineStore('file-manage', {
       searchFileListApi({
         page: 1,
         page_size: 100,
-        show_hidden: this.$state.showHidden,
+        show_hidden: true,
         dir: true,
         path: this.pwd,
       }).then((res) => {
@@ -94,7 +94,7 @@ const useFileStore = defineStore('file-manage', {
       const data = await searchFileListApi({
         page: 1,
         page_size: 500,
-        show_hidden: this.$state.showHidden,
+        show_hidden: true,
         path: treeItem.path,
         dir: true,
       });
@@ -146,10 +146,7 @@ const useFileStore = defineStore('file-manage', {
     },
     handleOpen(item: FileItem) {
       const treeItem = this.getItemByPath(item.path);
-      if (!treeItem) {
-        return;
-      }
-      if (treeItem.is_dir) {
+      if (treeItem?.is_dir) {
         if (!treeItem?.items) {
           this.loadTreeChildren(treeItem);
         } else if (!treeItem.open) {
@@ -157,7 +154,9 @@ const useFileStore = defineStore('file-manage', {
           this.$state.tree = [...this.$state.tree];
         }
       }
-      this.handleTreeItemSelect(treeItem || item);
+      if (treeItem?.is_dir || item?.is_dir) {
+        this.handleTreeItemSelect(treeItem || item);
+      }
     },
     async handleGoto(path: string) {
       const item = await getFileDetailApi({
