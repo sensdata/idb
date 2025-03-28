@@ -24,5 +24,5 @@ export interface FileInfoEntity {
 
 export type SimpleFileInfoEntity = Pick<
   FileInfoEntity,
-  'name' | 'path' | 'is_dir' | 'extension' | 'size'
+  'name' | 'path' | 'is_dir' | 'extension' | 'size' | 'is_hidden'
 >;

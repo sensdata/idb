@@ -11,6 +11,7 @@
         <div class="file-sidebar">
           <file-tree
             :items="tree"
+            :show-hidden="showHidden"
             :selected="current"
             :selected-change="store.handleTreeItemSelect"
             :open-change="store.handleTreeItemOpenChange"

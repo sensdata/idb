@@ -1,6 +1,6 @@
 <template>
   <div class="file-tree">
-    <list-render :items="props.items" :level="0" />
+    <list-render :items="props.items" :show-hidden="showHidden" :level="0" />
   </div>
 </template>
 
@@ -11,6 +11,7 @@
 
   const props = defineProps<{
     items: FileTreeItem[];
+    showHidden?: boolean;
     selected?: FileTreeItem | null;
     selectedChange: (item: FileTreeItem) => void;
     openChange: (item: FileTreeItem, open: boolean) => void;

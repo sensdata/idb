@@ -1,9 +1,11 @@
 <template>
   <div class="tree-view">
     <ul class="tree-list">
-      <li v-for="item of props.items" :key="item.path" class="tree-item">
-        <item-render :level="level" :item="item" />
-      </li>
+      <template v-for="item of props.items" :key="item.path">
+        <li v-if="showHidden || !item.is_hidden" class="tree-item">
+          <item-render :level="level" :item="item" :show-hidden="showHidden" />
+        </li>
+      </template>
     </ul>
     <div
       v-if="level > 0"
@@ -19,6 +21,7 @@
 
   const props = defineProps<{
     items: FileTreeItem[];
+    showHidden?: boolean;
     level: number;
   }>();
 </script>
