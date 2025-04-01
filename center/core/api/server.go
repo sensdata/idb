@@ -231,7 +231,7 @@ func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute
 
 	// 设置 git 路由
 	gitGroup := s.router.Group("api/v1/git/" + group)
-	repoPath := fmt.Sprintf("/var/lib/idb/%s/global", group)
+	repoPath := fmt.Sprintf("/var/lib/idb/data/%s/global", group)
 	// 处理 git clone/pull 请求
 	gitGroup.GET("/*path", s.handleGitRoute(repoPath))
 	gitGroup.POST("/*path", s.handleGitRoute(repoPath))
