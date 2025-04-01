@@ -20,32 +20,42 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# 修改或添加相关配置
+update_config() {
+    local key=$1
+    local value=$2
+    
+    if grep -q "^${key}=" "$CONFIG_FILE"; then
+        if ! sed -i "s/^${key}=.*/${key}=${value}/" "$CONFIG_FILE"; then
+            log "错误：更新配置 ${key}=${value} 失败"
+            return 1
+        fi
+        log "更新配置: ${key}=${value}"
+    else
+        if ! echo "${key}=${value}" >> "$CONFIG_FILE"; then
+            log "错误：新增配置 ${key}=${value} 失败"
+            return 1
+        fi
+        log "新增配置: ${key}=${value}"
+    fi
+    return 0
+}
+
 log "Starting configure idb.conf"
 
 # 修改或添加相关配置
-if grep -q "^host=" "$CONFIG_FILE"; then
-    sed -i "s/^host=.*/host=$HOST/" "$CONFIG_FILE"
-    log "更新配置: host=$HOST"
-else
-    echo "host=$HOST" >> "$CONFIG_FILE"
-    log "新增配置: host=$HOST"
+if ! update_config "host" "$HOST" || \
+   ! update_config "port" "$PORT" || \
+   ! update_config "latest" "$LATEST"; then
+    log "配置文件更新失败"
+    exit 1
 fi
 
-if grep -q "^port=" "$CONFIG_FILE"; then
-    sed -i "s/^port=.*/port=$PORT/" "$CONFIG_FILE"
-    log "更新配置: port=$PORT"
-else
-    echo "port=$PORT" >> "$CONFIG_FILE"
-    log "新增配置: port=$PORT"
+# 显示更新后的配置
+if ! cat "$CONFIG_FILE"; then
+    log "读取配置文件失败"
+    exit 1
 fi
-
-if grep -q "^latest=" "$CONFIG_FILE"; then
-    sed -i "s/^latest=.*/latest=$LATEST/" "$CONFIG_FILE"
-    log "更新配置: latest=$LATEST"
-else
-    echo "latest=$LATEST" >> "$CONFIG_FILE"
-    log "新增配置: latest=$LATEST"
-fi 
 
 log "配置文件更新完成，当前配置内容：\n$(cat "$CONFIG_FILE")"
 
