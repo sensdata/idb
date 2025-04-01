@@ -9324,7 +9324,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -9345,7 +9349,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -10767,7 +10775,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -11290,7 +11302,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -11315,7 +11331,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },

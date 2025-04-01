@@ -9321,7 +9321,11 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -9342,7 +9346,11 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -10764,7 +10772,11 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -11287,7 +11299,11 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },
@@ -11312,7 +11328,11 @@
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "global",
+                        "local"
+                    ]
                 }
             }
         },

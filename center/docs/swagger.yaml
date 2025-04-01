@@ -332,6 +332,9 @@ definitions:
       category:
         type: string
       type:
+        enum:
+        - global
+        - local
         type: string
     required:
     - type
@@ -345,6 +348,9 @@ definitions:
       name:
         type: string
       type:
+        enum:
+        - global
+        - local
         type: string
     required:
     - name
@@ -1301,6 +1307,9 @@ definitions:
       name:
         type: string
       type:
+        enum:
+        - global
+        - local
         type: string
     required:
     - commit_hash
@@ -1656,6 +1665,9 @@ definitions:
       new_name:
         type: string
       type:
+        enum:
+        - global
+        - local
         type: string
     required:
     - type
@@ -1671,6 +1683,9 @@ definitions:
       new_name:
         type: string
       type:
+        enum:
+        - global
+        - local
         type: string
     required:
     - content
