@@ -10,8 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sensdata/idb/center/core/api/middleware"
 	"github.com/sensdata/idb/center/core/api/router"
 	"github.com/sensdata/idb/center/db/repo"
@@ -222,6 +226,129 @@ func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute
 			pluginGroup.DELETE(route.Path, route.Handler)
 		case "PUT":
 			pluginGroup.PUT(route.Path, route.Handler)
+		}
+	}
+
+	// 设置 git 路由
+	gitGroup := s.router.Group("api/v1/git/" + group)
+	repoPath := fmt.Sprintf("/var/lib/idb/%s/global", group)
+	// 处理 git clone/pull 请求
+	gitGroup.GET("/*path", s.handleGitRoute(repoPath))
+	gitGroup.POST("/*path", s.handleGitRoute(repoPath))
+}
+
+func (s *ApiServer) handleGitRoute(repoPath string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		r, err := git.PlainOpen(repoPath)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to open repository")
+			return
+		}
+		s.handleGitRequest(c, r)
+	}
+}
+
+func (s *ApiServer) handleGitRequest(c *gin.Context, repo *git.Repository) {
+	path := c.Param("path")
+	global.LOG.Info("Git request: %s %s", c.Request.Method, path)
+
+	switch {
+	case strings.HasSuffix(path, "/info/refs"):
+		global.LOG.Info("Handling info/refs request")
+		s.handleGitInfoRefs(c, repo)
+	case strings.HasSuffix(path, "/git-upload-pack"):
+		global.LOG.Info("Handling git-upload-pack request")
+		s.handleGitUploadPack(c, repo)
+	case strings.HasSuffix(path, "/git-receive-pack"):
+		global.LOG.Info("Push operation not allowed")
+		c.String(http.StatusForbidden, "Push operation not allowed")
+	default:
+		global.LOG.Info("Unknown git operation: %s", path)
+		c.String(http.StatusNotFound, "Not Found")
+	}
+}
+
+func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
+	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
+
+	// 发送服务能力声明
+	c.Writer.Write([]byte("# service=git-upload-pack\n"))
+	c.Writer.Write([]byte("0000")) // 分隔符
+
+	// 获取并发送引用信息
+	refs, err := repo.References()
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Failed to get references")
+		return
+	}
+
+	// 首先发送 HEAD 引用
+	head, err := repo.Head()
+	if err == nil {
+		c.Writer.Write([]byte(fmt.Sprintf("%s HEAD\x00multi_ack thin-pack\n", head.Hash())))
+	}
+
+	// 发送其他引用
+	refs.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Name().IsBranch() || ref.Name().IsTag() {
+			c.Writer.Write([]byte(fmt.Sprintf("%s %s\n", ref.Hash(), ref.Name())))
+		}
+		return nil
+	})
+
+	c.Writer.Write([]byte("0000")) // 结束标记
+}
+
+func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
+	// 读取客户端想要的对象列表
+	wants, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Failed to read request")
+		return
+	}
+
+	// 解析客户端请求的对象
+	wantList := strings.Split(string(wants), "\n")
+	if len(wantList) == 0 {
+		c.String(http.StatusBadRequest, "No wants specified")
+		return
+	}
+
+	c.Header("Content-Type", "application/x-git-upload-pack-result")
+
+	// 遍历客户端请求的对象
+	for _, want := range wantList {
+		if want == "" {
+			continue
+		}
+
+		// 解析对象哈希
+		hash := plumbing.NewHash(strings.TrimSpace(want))
+
+		// 获取对象
+		obj, err := repo.Object(plumbing.AnyObject, hash)
+		if err != nil {
+			global.LOG.Error("Failed to get object %s: %v", hash, err)
+			continue
+		}
+
+		// 如果是提交对象，获取其树
+		if commit, ok := obj.(*object.Commit); ok {
+			tree, err := commit.Tree()
+			if err != nil {
+				global.LOG.Error("Failed to get tree for commit %s: %v", hash, err)
+				continue
+			}
+
+			// 遍历并发送所有文件
+			tree.Files().ForEach(func(f *object.File) error {
+				contents, err := f.Contents()
+				if err != nil {
+					return err
+				}
+				c.Writer.Write([]byte(contents))
+				return nil
+			})
 		}
 	}
 }
