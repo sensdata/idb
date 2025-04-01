@@ -60,6 +60,19 @@ func (s *ScriptMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
+func (s *ScriptMan) handleHostID(reqType string, hostID uint64) (uint, error) {
+	var hid = uint(hostID)
+	// 如果是global, 操作本机
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return 0, err
+		}
+		hid = defaultHost.ID
+	}
+	return hid, nil
+}
+
 func (s *ScriptMan) createCategory(hostID uint64, req model.CreateGitCategory) error {
 	var repoPath string
 	switch req.Type {
@@ -69,8 +82,13 @@ func (s *ScriptMan) createCategory(hostID uint64, req model.CreateGitCategory) e
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
 
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
 	gitCreate := model.GitCreate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Dir:          true,
@@ -78,7 +96,7 @@ func (s *ScriptMan) createCategory(hostID uint64, req model.CreateGitCategory) e
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -118,8 +136,15 @@ func (s *ScriptMan) updateCategory(hostID uint64, req model.UpdateGitCategory) e
 	default:
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitUpdate := model.GitUpdate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Dir:          true,
@@ -127,7 +152,7 @@ func (s *ScriptMan) updateCategory(hostID uint64, req model.UpdateGitCategory) e
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
+	err = s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -167,15 +192,22 @@ func (s *ScriptMan) deleteCategory(hostID uint64, req model.DeleteGitCategory) e
 	default:
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitDelete := model.GitDelete{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Dir:          true,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
+	err = s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -217,8 +249,15 @@ func (s *ScriptMan) getScriptList(hostID uint64, req model.QueryGitFile) (*model
 	default:
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
 	gitQuery := model.GitQuery{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".sh",
@@ -227,7 +266,7 @@ func (s *ScriptMan) getScriptList(hostID uint64, req model.QueryGitFile) (*model
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
+	err = s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
 	if err != nil {
 		return &pageResult, nil
 	}
@@ -279,14 +318,21 @@ func (s *ScriptMan) getScriptDetail(hostID uint64, req model.GetGitFileDetail) (
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return nil, err
+	}
+
 	gitGetFile := model.GitGetFile{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	err = s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -339,8 +385,15 @@ func (s *ScriptMan) create(hostID uint64, req model.CreateGitFile) error {
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitCreate := model.GitCreate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Dir:          false,
@@ -348,7 +401,7 @@ func (s *ScriptMan) create(hostID uint64, req model.CreateGitFile) error {
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -394,8 +447,15 @@ func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitUpdate := model.GitUpdate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Dir:          false,
@@ -403,7 +463,7 @@ func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
+	err = s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -449,15 +509,22 @@ func (s *ScriptMan) delete(hostID uint64, req model.DeleteGitFile) error {
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitDelete := model.GitDelete{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Dir:          false,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
+	err = s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -503,15 +570,22 @@ func (s *ScriptMan) restore(hostID uint64, req model.RestoreGitFile) error {
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitRestore := model.GitRestore{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitRestore.HostID, gitRestore.RepoPath)
+	err = s.checkRepo(gitRestore.HostID, gitRestore.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -559,8 +633,15 @@ func (s *ScriptMan) getScriptLog(hostID uint64, req model.GitFileLog) (*model.Pa
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
 	gitLog := model.GitLog{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -568,7 +649,7 @@ func (s *ScriptMan) getScriptLog(hostID uint64, req model.GitFileLog) (*model.Pa
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitLog.HostID, gitLog.RepoPath)
+	err = s.checkRepo(gitLog.HostID, gitLog.RepoPath)
 	if err != nil {
 		return &pageResult, err
 	}
@@ -620,15 +701,22 @@ func (s *ScriptMan) getScriptDiff(hostID uint64, req model.GitFileDiff) (string,
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return "", err
+	}
+
 	gitDiff := model.GitDiff{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitDiff.HostID, gitDiff.RepoPath)
+	err = s.checkRepo(gitDiff.HostID, gitDiff.RepoPath)
 	if err != nil {
 		return "", err
 	}

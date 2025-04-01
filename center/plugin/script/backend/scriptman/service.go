@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -26,6 +27,7 @@ type ScriptMan struct {
 	plugin      plugin.Plugin
 	pluginConf  plugin.PluginConf
 	restyClient *resty.Client
+	hostRepo    repo.IHostRepo
 }
 
 var LOG *log.Log
@@ -113,6 +115,9 @@ func (s *ScriptMan) Initialize() {
 		}
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
+
+	// 初始化 host 模块
+	s.hostRepo = repo.NewHostRepo()
 
 	api.API.SetUpPluginRouters(
 		"scripts",
