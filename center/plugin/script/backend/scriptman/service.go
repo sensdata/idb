@@ -124,6 +124,7 @@ func (s *ScriptMan) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
 			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
 			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
 			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
@@ -185,6 +186,62 @@ func (s *ScriptMan) getPluginInfo() (plugin.PluginInfo, error) {
 
 func (s *ScriptMan) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
+}
+
+// @Tags Script
+// @Summary List category
+// @Description List category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host}/category [get]
+func (s *ScriptMan) GetCategories(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.QueryGitFile{
+		Type:     scriptType,
+		Category: "",
+		Page:     int(page),
+		PageSize: int(pageSize),
+	}
+
+	categories, err := s.getCategories(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, categories)
 }
 
 // @Tags Script

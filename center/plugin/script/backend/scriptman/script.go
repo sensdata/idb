@@ -73,6 +73,71 @@ func (s *ScriptMan) handleHostID(reqType string, hostID uint64) (uint, error) {
 	return hid, nil
 }
 
+func (s *ScriptMan) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	var pageResult = model.PageResult{Total: 0, Items: nil}
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	gitQuery := model.GitQuery{
+		HostID:       hid,
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Extension:    "directory",
+		Page:         req.Page,
+		PageSize:     req.PageSize,
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
+	if err != nil {
+		return &pageResult, nil
+	}
+
+	// 查询脚本
+	data, err := utils.ToJSONString(gitQuery)
+	if err != nil {
+		return &pageResult, nil
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitQuery.HostID,
+		Action: model.Action{
+			Action: model.Git_File_List,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return &pageResult, fmt.Errorf("failed to get script list")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to script list: %v", err)
+		return &pageResult, fmt.Errorf("json err: %v", err)
+	}
+
+	return &pageResult, nil
+}
+
 func (s *ScriptMan) createCategory(hostID uint64, req model.CreateGitCategory) error {
 	var repoPath string
 	switch req.Type {

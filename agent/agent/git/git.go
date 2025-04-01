@@ -99,9 +99,16 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 			return err
 		}
 
-		// 排除非文件或不符合后缀条件的文件
-		if !info.Mode().IsRegular() || (extension != "" && !isValidExtension(info.Name(), extList)) {
-			return nil
+		// 当 extension 为 "directory" 时，只收集目录
+		if extension == "directory" {
+			if !info.IsDir() {
+				return nil
+			}
+		} else {
+			// 排除非文件或不符合后缀条件的文件
+			if !info.Mode().IsRegular() || (extension != "" && !isValidExtension(info.Name(), extList)) {
+				return nil
+			}
 		}
 
 		// 填充 GitFile 信息
