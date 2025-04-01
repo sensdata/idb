@@ -5924,6 +5924,41 @@ paths:
       summary: Delete category
       tags:
       - Script
+    get:
+      consumes:
+      - application/json
+      description: List category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List category
+      tags:
+      - Script
     post:
       consumes:
       - application/json
