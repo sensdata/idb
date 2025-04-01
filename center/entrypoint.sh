@@ -25,8 +25,12 @@ update_config() {
     local key=$1
     local value=$2
     
-    if grep -q "^${key}=" "$CONFIG_FILE"; then
-        if ! sed -i "s/^${key}=.*/${key}=${value}/" "$CONFIG_FILE"; then
+    # 转义 key 中的特殊字符
+    local escaped_key=$(printf '%s\n' "$key" | sed 's/[][\.*^$/]/\\&/g')
+    
+    # 对于包含斜杠的值，使用 # 作为 sed 的分隔符
+    if grep -q "^${escaped_key}=" "$CONFIG_FILE"; then
+        if ! sed -i "s#^${escaped_key}=.*#${key}=${value}#" "$CONFIG_FILE"; then
             log "错误：更新配置 ${key}=${value} 失败"
             return 1
         fi
