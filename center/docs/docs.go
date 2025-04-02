@@ -8067,6 +8067,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/sysinfo/{host}/action/upd/hostname": {
+            "post": {
+                "description": "Update host name for the specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Sysinfo"
+                ],
+                "summary": "Update host name",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "DNS settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateHostNameReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/sysinfo/{host}/action/upd/settings": {
             "post": {
                 "description": "Update system settings for the specified host",
@@ -11441,6 +11479,18 @@ const docTemplate = `{
                 },
                 "agent_port": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.UpdateHostNameReq": {
+            "type": "object",
+            "required": [
+                "host_name"
+            ],
+            "properties": {
+                "host_name": {
+                    "description": "主机名称",
+                    "type": "string"
                 }
             }
         },

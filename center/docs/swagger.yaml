@@ -1728,6 +1728,14 @@ definitions:
     - agent_mode
     - agent_port
     type: object
+  model.UpdateHostNameReq:
+    properties:
+      host_name:
+        description: 主机名称
+        type: string
+    required:
+    - host_name
+    type: object
   model.UpdateHostSSH:
     properties:
       addr:
@@ -7247,6 +7255,31 @@ paths:
         "200":
           description: OK
       summary: Update DNS settings
+      tags:
+      - Sysinfo
+  /sysinfo/{host}/action/upd/hostname:
+    post:
+      consumes:
+      - application/json
+      description: Update host name for the specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: DNS settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateHostNameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update host name
       tags:
       - Sysinfo
   /sysinfo/{host}/action/upd/settings:
