@@ -368,36 +368,46 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 }
 
 func UpdateHostName(req model.UpdateHostNameReq) error {
+	global.LOG.Info("start update hostname", "hostname", req.HostName)
+
 	// 检查系统类型
 	switch runtime.GOOS {
 	case "linux":
 		// 首先尝试使用 hostnamectl
+		global.LOG.Info("try update with hostnamectl")
 		if err := utils.ExecCmd(fmt.Sprintf("sudo hostnamectl set-hostname %s", req.HostName)); err != nil {
 			// 如果 hostnamectl 失败，尝试使用传统方法
+			global.LOG.Info("hostnamectl failed, try traditional method")
 
 			// 1. 更新当前主机名
+			global.LOG.Info("update current hostname")
 			if err := utils.ExecCmd(fmt.Sprintf("sudo hostname %s", req.HostName)); err != nil {
 				return fmt.Errorf("set current hostname failed: %v", err)
 			}
 
 			// 2. 更新 /etc/hostname
+			global.LOG.Info("update /etc/hostname")
 			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee /etc/hostname", req.HostName)); err != nil {
 				return fmt.Errorf("update /etc/hostname failed: %v", err)
 			}
 
 			// 3. 更新 /etc/hosts 中对应的条目
 			// 备份原文件
+			global.LOG.Info("backup hosts file")
 			if err := utils.ExecCmd("sudo cp /etc/hosts /etc/hosts.backup"); err != nil {
 				return fmt.Errorf("backup hosts file failed: %v", err)
 			}
 
 			// 更新 hosts 文件中的本地主机名条目
+			global.LOG.Info("update /etc/hosts")
 			sedCmd := fmt.Sprintf("sudo sed -i 's/127.0.1.1.*/127.0.1.1\\t%s/g' /etc/hosts", req.HostName)
 			if err := utils.ExecCmd(sedCmd); err != nil {
 				return fmt.Errorf("update /etc/hosts failed: %v", err)
 			}
 		}
+		global.LOG.Info("update hostname success")
 	default:
+		global.LOG.Error("unsupported operating system", "os", runtime.GOOS)
 		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 
