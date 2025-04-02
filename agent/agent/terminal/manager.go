@@ -103,11 +103,11 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionI
 
 	// attach session
 	err := session.Attach()
-	if err.Error() == constant.ErrNotInstalled {
-		return nil, err
-	}
 	if err != nil {
 		global.LOG.Error("failed to attach session, %v", err)
+		if err.Error() == constant.ErrNotInstalled {
+			return nil, err
+		}
 		err = session.Start()
 		if err != nil {
 			global.LOG.Error("failed to start session, %v", err)
