@@ -1,3 +1,3 @@
 conf:
-  work_dir: "/var/lib/idb/data/file"
+  work_dir: "/var/lib/idb/data/files"
   log_dir: "/var/log/idb"
