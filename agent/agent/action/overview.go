@@ -45,7 +45,7 @@ func GetStatus() (*model.HostStatus, error) {
 		global.LOG.Error("failed to get disk: %v", err)
 	}
 	if diskUsage != nil {
-		status.Memory = math.Round(diskUsage.UsedPercent*100) / 100
+		status.Disk = math.Round(diskUsage.UsedPercent*100) / 100
 	}
 
 	return &status, nil
