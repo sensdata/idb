@@ -1006,6 +1006,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 更新hostname
+	case model.Sysinfo_Update_Host_Name:
+		var hostNameReq model.UpdateHostNameReq
+		if err := json.Unmarshal([]byte(actionData.Data), &hostNameReq); err != nil {
+			return nil, err
+		}
+		if err := action.UpdateHostName(hostNameReq); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 获取系统设置
 	case model.Sysinfo_Get_Sys_Setting:
 		sysSetting, err := action.GetSystemSettings()

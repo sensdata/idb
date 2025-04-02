@@ -2,6 +2,7 @@ package sysinfo
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
@@ -200,6 +201,33 @@ func (s *SysInfo) updateDNS(hostID uint, req model.UpdateDnsSettingsReq) error {
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("failed to update dns")
 		return fmt.Errorf("failed to update dns")
+	}
+	return nil
+}
+
+func (s *SysInfo) updateHostName(hostID uint, req model.UpdateHostNameReq) error {
+	if !regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9.-]*$`).MatchString(req.HostName) {
+		return fmt.Errorf("invalid hostname")
+	}
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Sysinfo_Update_Host_Name,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to update host name")
+		return fmt.Errorf("failed to update host name")
 	}
 	return nil
 }

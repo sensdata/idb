@@ -133,6 +133,7 @@ func (s *SysInfo) Initialize() {
 			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
 			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
 			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
+			{Method: "POST", Path: "/:host/action/upd/hostname", Handler: s.UpdateHostName},
 			{Method: "POST", Path: "/:host/action/upd/settings", Handler: s.UpdateSysSetting},
 		},
 	)
@@ -561,6 +562,35 @@ func (s *SysInfo) UpdateDnsSettings(c *gin.Context) {
 	err = s.updateDNS(uint(hostID), req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update dns settings", err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Sysinfo
+// @Summary Update host name
+// @Description Update host name for the specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateHostNameReq true "DNS settings"
+// @Success 200
+// @Router /sysinfo/{host}/action/upd/hostname [post]
+func (s *SysInfo) UpdateHostName(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateHostNameReq
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid params", err)
+		return
+	}
+	err = s.updateHostName(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update host name", err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

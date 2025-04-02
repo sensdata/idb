@@ -37,6 +37,10 @@ type UpdateDnsSettingsReq struct {
 	Retry   int      `json:"retry"`   //重试次数
 }
 
+type UpdateHostNameReq struct {
+	HostName string `json:"host_name" validate:"required"` //主机名称
+}
+
 type UpdateSystemSettingsReq struct {
 	MaxWatchFiles int `json:"max_watch_files" validate:"required,min=8192"` // inotify 监控的最大文件数
 	MaxOpenFiles  int `json:"max_open_files" validate:"required,min=1024"`  // 系统最大打开文件数
