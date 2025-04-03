@@ -136,7 +136,7 @@ func (s *ScriptMan) Initialize() {
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/:host/log", Handler: s.GetScriptLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
-			{Method: "GET", Path: "/:host/sync", Handler: s.SyncGlobal},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
 			{Method: "GET", Path: "/:host/run/log", Handler: s.GetScriptRunLog},
 		},
@@ -732,7 +732,7 @@ func (s *ScriptMan) SyncGlobal(c *gin.Context) {
 
 	err = s.syncGlobal(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

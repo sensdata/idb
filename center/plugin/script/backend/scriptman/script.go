@@ -815,11 +815,15 @@ func (s *ScriptMan) getScriptDiff(hostID uint64, req model.GitFileDiff) (string,
 }
 
 func (s *ScriptMan) syncGlobal(hostID uint) error {
+	LOG.Info("Start syncing global scripts for host %d", hostID)
+
 	defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
 	if err != nil {
+		LOG.Error("Failed to get default host: %v", err)
 		return err
 	}
 	if hostID == defaultHost.ID {
+		LOG.Error("Attempting to sync global scripts on default host (ID: %d)", hostID)
 		return fmt.Errorf("can't sync global script in default host")
 	}
 
@@ -828,13 +832,17 @@ func (s *ScriptMan) syncGlobal(hostID uint) error {
 	scheme := "http"
 	if settingInfo.Https == "yes" {
 		scheme = "https"
+		LOG.Info("Using HTTPS for sync")
 	}
 	host := global.Host
 	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
 		host = settingInfo.BindDomain
+		LOG.Info("Using custom domain: %s", host)
 	}
 	remoteUrl := fmt.Sprintf("%s://%s:%d/api/v1/git/scripts/global", scheme, host, settingInfo.BindPort)
 	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "global")
+
+	LOG.Info("Syncing from %s to %s", remoteUrl, repoPath)
 
 	gitSync := model.GitSync{
 		HostID:    hostID,
@@ -844,8 +852,11 @@ func (s *ScriptMan) syncGlobal(hostID uint) error {
 
 	data, err := utils.ToJSONString(gitSync)
 	if err != nil {
+		LOG.Error("Failed to marshal git sync data: %v", err)
 		return err
 	}
+
+	LOG.Info("Sending sync request to agent")
 	actionRequest := model.HostAction{
 		HostID: gitSync.HostID,
 		Action: model.Action{
@@ -855,12 +866,15 @@ func (s *ScriptMan) syncGlobal(hostID uint) error {
 	}
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
+		LOG.Error("Failed to send sync action: %v", err)
 		return err
 	}
 	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
+		LOG.Error("Sync action failed on agent")
 		return fmt.Errorf("failed to sync global script")
 	}
+
+	LOG.Info("Successfully synced global scripts for host %d", hostID)
 	return nil
 }
 
