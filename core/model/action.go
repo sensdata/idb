@@ -52,6 +52,7 @@ const (
 	Ssh_Log                   string = "ssh_log"
 
 	Git_Init      string = "git_init"
+	Git_Sync      string = "git_sync"
 	Git_File_List string = "git_file_list"
 	Git_File      string = "git_file"
 	Git_Create    string = "git_create"

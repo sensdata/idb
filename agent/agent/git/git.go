@@ -1,6 +1,7 @@
 package git
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,10 +17,14 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+//go:embed git_sync.sh
+var gitSyncShell []byte
+
 type GitService struct{}
 
 type IGitService interface {
 	InitRepo(repoPath string, isBare bool) error
+	SyncRepo(remoteUrl string, repoPath string) error
 	GetFileList(repoPath string, relativePath string, extension string, page int, pageSize int) (*model.PageResult, error)
 	GetFile(repoPath string, relativePath string) (*model.GitFile, error)
 	Create(repoPath string, relativePath string, dir bool, content string) error
@@ -55,6 +60,50 @@ func (s *GitService) InitRepo(repoPath string, isBare bool) error {
 	} else if err != nil {
 		global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 		return err
+	}
+
+	return nil
+}
+
+func (s *GitService) SyncRepo(remoteUrl string, repoPath string) error {
+	global.LOG.Info("sync from %s in %s", remoteUrl, repoPath)
+
+	// 尝试打开已存在的仓库
+	repo, err := git.PlainOpen(repoPath)
+	if err == git.ErrRepositoryNotExists {
+		// 仓库不存在，执行 clone
+		global.LOG.Info("Repo does not exist, cloning from %s", remoteUrl)
+		_, err = git.PlainClone(repoPath, false, &git.CloneOptions{
+			URL:             remoteUrl,
+			Progress:        nil,
+			InsecureSkipTLS: true, // 跳过 SSL 验证
+		})
+		if err != nil {
+			global.LOG.Error("Failed to clone repo: %v", err)
+			return err
+		}
+		global.LOG.Info("Repo cloned successfully")
+	} else if err != nil {
+		global.LOG.Error("Failed to open repo: %v", err)
+		return err
+	} else {
+		// 仓库存在，执行 pull
+		global.LOG.Info("Repo exists, pulling latest changes")
+		w, err := repo.Worktree()
+		if err != nil {
+			global.LOG.Error("Failed to get worktree: %v", err)
+			return err
+		}
+
+		err = w.Pull(&git.PullOptions{
+			Force:           true,
+			InsecureSkipTLS: true, // 跳过 SSL 验证
+		})
+		if err != nil && err != git.NoErrAlreadyUpToDate {
+			global.LOG.Error("Failed to pull repo: %v", err)
+			return err
+		}
+		global.LOG.Info("Repo updated successfully")
 	}
 
 	return nil

@@ -1467,6 +1467,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.Git_Sync:
+		var req model.GitSync
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := GitService.SyncRepo(req.RemoteUrl, req.RepoPath)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// git 文件列表
 	case model.Git_File_List:
 		var req model.GitQuery

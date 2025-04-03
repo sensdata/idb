@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/model"
@@ -811,6 +812,56 @@ func (s *ScriptMan) getScriptDiff(hostID uint64, req model.GitFileDiff) (string,
 	}
 
 	return actionResponse.Data.Action.Data, nil
+}
+
+func (s *ScriptMan) syncGlobal(hostID uint) error {
+	defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+	if err != nil {
+		return err
+	}
+	if hostID == defaultHost.ID {
+		return fmt.Errorf("can't sync global script in default host")
+	}
+
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+	}
+	remoteUrl := fmt.Sprintf("%s://%s:%d/api/v1/git/scripts/global", scheme, host, settingInfo.BindPort)
+	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "global")
+
+	gitSync := model.GitSync{
+		HostID:    hostID,
+		RepoPath:  repoPath,
+		RemoteUrl: remoteUrl,
+	}
+
+	data, err := utils.ToJSONString(gitSync)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: gitSync.HostID,
+		Action: model.Action{
+			Action: model.Git_Sync,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to sync global script")
+	}
+	return nil
 }
 
 func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.ScriptResult, error) {

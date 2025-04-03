@@ -25,6 +25,12 @@ type GitInit struct {
 	IsBare   bool   `json:"is_bare" validate:"required"`
 }
 
+type GitSync struct {
+	HostID    uint   `json:"host_id" validate:"required"`
+	RemoteUrl string `json:"remote_url" validate:"required"`
+	RepoPath  string `json:"repo_path" validate:"required"`
+}
+
 type GitCheck struct {
 	HostID   uint   `json:"host_id" validate:"required"`
 	RepoPath string `json:"repo_path" validate:"required"`
