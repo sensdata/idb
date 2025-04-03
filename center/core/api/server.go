@@ -15,6 +15,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sensdata/idb/center/core/api/middleware"
 	"github.com/sensdata/idb/center/core/api/router"
@@ -241,6 +243,7 @@ func (s *ApiServer) handleGitRoute(repoPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r, err := git.PlainOpen(repoPath)
 		if err != nil {
+			global.LOG.Error("Failed to open repo %s, %v", repoPath, err)
 			c.String(http.StatusInternalServerError, "Failed to open repository")
 			return
 		}
@@ -271,9 +274,11 @@ func (s *ApiServer) handleGitRequest(c *gin.Context, repo *git.Repository) {
 func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
 	c.Header("Content-Type", "application/x-git-upload-pack-advertisement")
 
-	// 发送服务能力声明
-	c.Writer.Write([]byte("# service=git-upload-pack\n"))
-	c.Writer.Write([]byte("0000")) // 分隔符
+	// 按照 Git 协议格式发送服务能力声明
+	serviceLine := "# service=git-upload-pack\n"
+	pktLine := fmt.Sprintf("%04x%s", len(serviceLine)+4, serviceLine)
+	c.Writer.Write([]byte(pktLine))
+	c.Writer.Write([]byte("0000")) // flush-pkt
 
 	// 获取并发送引用信息
 	refs, err := repo.References()
@@ -282,16 +287,19 @@ func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
 		return
 	}
 
-	// 首先发送 HEAD 引用
+	// 首先发送 HEAD 引用，添加 multi_ack_detailed 支持
 	head, err := repo.Head()
 	if err == nil {
-		c.Writer.Write([]byte(fmt.Sprintf("%s HEAD\x00multi_ack thin-pack\n", head.Hash())))
+		capabilities := "multi_ack_detailed multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not allow-tip-sha1-in-want allow-reachable-sha1-in-want no-progress include-tag"
+		line := fmt.Sprintf("%s HEAD\x00%s\n", head.Hash(), capabilities)
+		c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
 	}
 
 	// 发送其他引用
 	refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Name().IsBranch() || ref.Name().IsTag() {
-			c.Writer.Write([]byte(fmt.Sprintf("%s %s\n", ref.Hash(), ref.Name())))
+			line := fmt.Sprintf("%s %s\n", ref.Hash(), ref.Name())
+			c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
 		}
 		return nil
 	})
@@ -300,55 +308,200 @@ func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
 }
 
 func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
-	// 读取客户端想要的对象列表
-	wants, err := io.ReadAll(c.Request.Body)
+	c.Header("Content-Type", "application/x-git-upload-pack-result")
+	global.LOG.Info("Starting git upload-pack process")
+
+	// 读取并解析客户端的请求
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		global.LOG.Error("Failed to read request body: %v", err)
 		c.String(http.StatusBadRequest, "Failed to read request")
 		return
 	}
+	global.LOG.Info("Received request body length: %d bytes", len(body))
 
-	// 解析客户端请求的对象
-	wantList := strings.Split(string(wants), "\n")
-	if len(wantList) == 0 {
-		c.String(http.StatusBadRequest, "No wants specified")
+	// 解析 want/have 行
+	var wantHashes []plumbing.Hash
+	data := string(body)
+	for len(data) > 0 {
+		if len(data) < 4 {
+			break
+		}
+		length, err := strconv.ParseInt(data[:4], 16, 32)
+		if err != nil || length == 0 {
+			data = data[4:]
+			continue
+		}
+		if int(length) > len(data) {
+			break
+		}
+		line := data[4:length]
+		if strings.HasPrefix(line, "want ") {
+			hashStr := strings.TrimPrefix(line, "want ")
+			hashStr = strings.Split(hashStr, " ")[0]
+			hash := plumbing.NewHash(hashStr)
+			wantHashes = append(wantHashes, hash)
+			global.LOG.Info("Parsed want hash: %s", hashStr)
+		}
+		data = data[length:]
+	}
+
+	if len(wantHashes) == 0 {
+		global.LOG.Error("No want lines received in request")
+		c.String(http.StatusBadRequest, "No want lines received")
 		return
 	}
+	global.LOG.Info("Total want hashes: %d", len(wantHashes))
 
-	c.Header("Content-Type", "application/x-git-upload-pack-result")
+	// 首先发送 NAK
+	nakLine := "NAK\n"
+	c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(nakLine)+4, nakLine)))
+	global.LOG.Info("Sent NAK response")
 
-	// 遍历客户端请求的对象
-	for _, want := range wantList {
-		if want == "" {
-			continue
-		}
+	// 使用 side-band 协议包装 writer
+	writer := &bandWriter{
+		w: c.Writer,
+	}
 
-		// 解析对象哈希
-		hash := plumbing.NewHash(strings.TrimSpace(want))
+	// 发送进度信息
+	s.writePktLine(c, "\x02Counting objects\n")
 
-		// 获取对象
-		obj, err := repo.Object(plumbing.AnyObject, hash)
+	// 收集所有需要的对象
+	objectSet := make(map[plumbing.Hash]struct{})
+	for _, hash := range wantHashes {
+		commit, err := repo.CommitObject(hash)
 		if err != nil {
-			global.LOG.Error("Failed to get object %s: %v", hash, err)
+			global.LOG.Error("Failed to get commit object %s: %v", hash, err)
 			continue
 		}
 
-		// 如果是提交对象，获取其树
-		if commit, ok := obj.(*object.Commit); ok {
-			tree, err := commit.Tree()
-			if err != nil {
-				global.LOG.Error("Failed to get tree for commit %s: %v", hash, err)
-				continue
-			}
+		// 添加提交对象
+		objectSet[commit.Hash] = struct{}{}
+		global.LOG.Info("Added commit object: %s", commit.Hash)
 
-			// 遍历并发送所有文件
-			tree.Files().ForEach(func(f *object.File) error {
-				contents, err := f.Contents()
-				if err != nil {
-					return err
+		// 获取提交树
+		tree, err := commit.Tree()
+		if err != nil {
+			global.LOG.Error("Failed to get tree for commit %s: %v", hash, err)
+			continue
+		}
+		objectSet[tree.Hash] = struct{}{}
+		global.LOG.Info("Added tree object: %s", tree.Hash)
+
+		// 遍历所有树对象
+		trees := []*object.Tree{tree}
+		for len(trees) > 0 {
+			currentTree := trees[0]
+			trees = trees[1:]
+
+			for _, entry := range currentTree.Entries {
+				objectSet[entry.Hash] = struct{}{}
+				global.LOG.Info("Added entry object: %s", entry.Hash)
+
+				// 如果是子树，添加到遍历队列
+				if entry.Mode == filemode.Dir {
+					subTree, err := repo.TreeObject(entry.Hash)
+					if err != nil {
+						global.LOG.Error("Failed to get subtree %s: %v", entry.Hash, err)
+						continue
+					}
+					trees = append(trees, subTree)
 				}
-				c.Writer.Write([]byte(contents))
-				return nil
-			})
+			}
 		}
 	}
+
+	// 转换为切片
+	var objects []plumbing.Hash
+	for hash := range objectSet {
+		objects = append(objects, hash)
+	}
+	global.LOG.Info("Total unique objects collected: %d", len(objects))
+
+	// 发送 packfile
+	s.writePktLine(c, "\x02Preparing packfile\n")
+
+	// 创建 packfile encoder
+	encoder := packfile.NewEncoder(writer.DataBand(), repo.Storer, false)
+
+	// 编码所有对象
+	packHash, err := encoder.Encode(objects, 10)
+	if err != nil {
+		global.LOG.Error("Failed to encode packfile: %v", err)
+		s.writePktLine(c, "\x02Error creating packfile\n")
+		return
+	}
+	global.LOG.Info("Successfully created packfile with hash: %s", packHash)
+
+	// 发送完成信息
+	s.writePktLine(c, "\x02Done\n")
+	s.writePktLine(c, "")
+	global.LOG.Info("Git upload-pack process completed successfully")
+}
+
+// writePktLine 写入一个 pkt-line
+func (s *ApiServer) writePktLine(c *gin.Context, data string) {
+	if data == "" {
+		c.Writer.Write([]byte("0000"))
+		return
+	}
+	pktLine := fmt.Sprintf("%04x%s", len(data)+4, data)
+	c.Writer.Write([]byte(pktLine))
+}
+
+// bandWriter 实现 side-band 协议
+type bandWriter struct {
+	w http.ResponseWriter
+}
+
+func (w *bandWriter) DataBand() io.Writer {
+	return &bandWriterBand{w: w.w, band: 1}
+}
+
+type bandWriterBand struct {
+	w    http.ResponseWriter
+	band byte
+}
+
+func (w *bandWriterBand) Write(p []byte) (int, error) {
+	totalWritten := 0
+	originalLen := len(p)
+
+	for len(p) > 0 {
+		chunk := p
+		if len(chunk) > 8192 {
+			chunk = chunk[:8192]
+		}
+
+		// 计算 pkt-line 头部
+		pktLine := fmt.Sprintf("%04x", len(chunk)+5)
+
+		// 写入头部
+		n, err := w.w.Write([]byte(pktLine))
+		if err != nil {
+			global.LOG.Error("Failed to write pkt-line header: %v", err)
+			return totalWritten, err
+		}
+
+		// 写入 band 标识
+		n, err = w.w.Write([]byte{w.band})
+		if err != nil {
+			global.LOG.Error("Failed to write band identifier: %v", err)
+			return totalWritten, err
+		}
+
+		// 写入数据块
+		n, err = w.w.Write(chunk)
+		if err != nil {
+			global.LOG.Error("Failed to write chunk data: %v", err)
+			return totalWritten, err
+		}
+		totalWritten += n
+
+		// 更新剩余数据
+		p = p[len(chunk):]
+	}
+
+	// 返回原始数据长度，表示全部写入成功
+	return originalLen, nil
 }
