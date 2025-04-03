@@ -95,6 +95,17 @@ func (s *GitService) SyncRepo(remoteUrl string, repoPath string) error {
 			return err
 		}
 
+		// 先重置工作区
+		global.LOG.Info("Resetting worktree to HEAD")
+		err = w.Reset(&git.ResetOptions{
+			Mode: git.HardReset,
+		})
+		if err != nil {
+			global.LOG.Error("Failed to reset worktree: %v", err)
+			return err
+		}
+
+		// 执行 pull
 		err = w.Pull(&git.PullOptions{
 			Force:           true,
 			InsecureSkipTLS: true, // 跳过 SSL 验证
