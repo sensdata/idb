@@ -369,43 +369,61 @@ func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
 	// 收集所有需要的对象
 	objectSet := make(map[plumbing.Hash]struct{})
 	for _, hash := range wantHashes {
+		// 获取提交对象
 		commit, err := repo.CommitObject(hash)
 		if err != nil {
 			global.LOG.Error("Failed to get commit object %s: %v", hash, err)
 			continue
 		}
 
-		// 添加提交对象
-		objectSet[commit.Hash] = struct{}{}
-		global.LOG.Info("Added commit object: %s", commit.Hash)
+		// 递归收集所有父提交
+		queue := []*object.Commit{commit}
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
 
-		// 获取提交树
-		tree, err := commit.Tree()
-		if err != nil {
-			global.LOG.Error("Failed to get tree for commit %s: %v", hash, err)
-			continue
-		}
-		objectSet[tree.Hash] = struct{}{}
-		global.LOG.Info("Added tree object: %s", tree.Hash)
+			// 添加当前提交
+			objectSet[current.Hash] = struct{}{}
+			global.LOG.Info("Added commit object: %s", current.Hash)
 
-		// 遍历所有树对象
-		trees := []*object.Tree{tree}
-		for len(trees) > 0 {
-			currentTree := trees[0]
-			trees = trees[1:]
+			// 添加父提交到队列
+			for _, parent := range current.ParentHashes {
+				parentCommit, err := repo.CommitObject(parent)
+				if err != nil {
+					global.LOG.Error("Failed to get parent commit %s: %v", parent, err)
+					continue
+				}
+				queue = append(queue, parentCommit)
+			}
 
-			for _, entry := range currentTree.Entries {
-				objectSet[entry.Hash] = struct{}{}
-				global.LOG.Info("Added entry object: %s", entry.Hash)
+			// 获取并添加树对象
+			tree, err := current.Tree()
+			if err != nil {
+				global.LOG.Error("Failed to get tree for commit %s: %v", current.Hash, err)
+				continue
+			}
+			objectSet[tree.Hash] = struct{}{}
+			global.LOG.Info("Added tree object: %s", tree.Hash)
 
-				// 如果是子树，添加到遍历队列
-				if entry.Mode == filemode.Dir {
-					subTree, err := repo.TreeObject(entry.Hash)
-					if err != nil {
-						global.LOG.Error("Failed to get subtree %s: %v", entry.Hash, err)
-						continue
+			// 遍历所有树对象
+			trees := []*object.Tree{tree}
+			for len(trees) > 0 {
+				currentTree := trees[0]
+				trees = trees[1:]
+
+				for _, entry := range currentTree.Entries {
+					objectSet[entry.Hash] = struct{}{}
+					global.LOG.Info("Added entry object: %s", entry.Hash)
+
+					// 如果是子树，添加到遍历队列
+					if entry.Mode == filemode.Dir {
+						subTree, err := repo.TreeObject(entry.Hash)
+						if err != nil {
+							global.LOG.Error("Failed to get subtree %s: %v", entry.Hash, err)
+							continue
+						}
+						trees = append(trees, subTree)
 					}
-					trees = append(trees, subTree)
 				}
 			}
 		}
