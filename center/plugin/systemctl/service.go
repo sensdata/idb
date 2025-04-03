@@ -41,7 +41,7 @@ func (s *SystemCtl) Initialize() {
 		return
 	}
 
-	confPath := filepath.Join(constant.CenterConfDir, "files", "conf.yaml")
+	confPath := filepath.Join(constant.CenterConfDir, "sysctl", "conf.yaml")
 	// 检查配置文件的目录是否存在
 	if err := os.MkdirAll(filepath.Dir(confPath), os.ModePerm); err != nil {
 		global.LOG.Error("Failed to create conf directory: %v \n", err)
