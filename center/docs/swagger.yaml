@@ -6208,6 +6208,25 @@ paths:
       summary: Get run log content
       tags:
       - Script
+  /scripts/{host}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Sync global repository to specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync global repository to specified host
+      tags:
+      - Script
   /scripts/info:
     get:
       consumes:

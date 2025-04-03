@@ -6484,6 +6484,35 @@
                 }
             }
         },
+        "/scripts/{host}/sync": {
+            "post": {
+                "description": "Sync global repository to specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Sync global repository to specified host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/services/info": {
             "get": {
                 "description": "Get plugin information",
