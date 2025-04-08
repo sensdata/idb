@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -28,6 +29,7 @@ type ServiceMan struct {
 	form                model.Form
 	templateServiceForm model.ServiceForm
 	restyClient         *resty.Client
+	hostRepo            repo.IHostRepo
 }
 
 var LOG *log.Log
@@ -137,11 +139,18 @@ func (s *ServiceMan) Initialize() {
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
 
+	// 初始化 host 模块
+	s.hostRepo = repo.NewHostRepo()
+
 	api.API.SetUpPluginRouters(
 		"services",
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
 			{Method: "GET", Path: "/:host", Handler: s.GetServiceList},
 			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
 			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
@@ -153,6 +162,7 @@ func (s *ServiceMan) Initialize() {
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/:host/log", Handler: s.GetServiceLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/action", Handler: s.ServiceAction},
 		},
 	)
@@ -202,6 +212,161 @@ func (s *ServiceMan) getPluginInfo() (plugin.PluginInfo, error) {
 
 func (s *ServiceMan) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
+}
+
+// @Tags Service
+// @Summary List category
+// @Description List category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /services/{host}/category [get]
+func (s *ServiceMan) GetCategories(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.QueryGitFile{
+		Type:     scriptType,
+		Category: "",
+		Page:     int(page),
+		PageSize: int(pageSize),
+	}
+
+	categories, err := s.getCategories(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, categories)
+}
+
+// @Tags Service
+// @Summary Create category
+// @Description Create category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitCategory true "Category creation details"
+// @Success 200
+// @Router /services/{host}/category [post]
+func (s *ServiceMan) CreateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CreateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.createCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Service
+// @Summary Update category
+// @Description Update category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitCategory true "category edit details"
+// @Success 200
+// @Router /services/{host}/category [put]
+func (s *ServiceMan) UpdateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.updateCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Service
+// @Summary Delete category
+// @Description Delete category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Success 200
+// @Router /services/{host}/category [delete]
+func (s *ServiceMan) DeleteCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	req := model.DeleteGitCategory{
+		Type:     scriptType,
+		Category: category,
+	}
+
+	err = s.deleteCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Service
@@ -675,6 +840,29 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, diff)
+}
+
+// @Tags Service
+// @Summary Sync global repository to specified host
+// @Description Sync global repository to specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /services/{host}/sync [post]
+func (s *ServiceMan) SyncGlobal(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.syncGlobal(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Service

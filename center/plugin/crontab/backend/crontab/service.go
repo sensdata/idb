@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -28,6 +29,7 @@ type CronTab struct {
 	form         model.Form
 	templateForm model.ServiceForm
 	restyClient  *resty.Client
+	hostRepo     repo.IHostRepo
 }
 
 var LOG *log.Log
@@ -137,12 +139,18 @@ func (s *CronTab) Initialize() {
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
 
+	// 初始化 host 模块
+	s.hostRepo = repo.NewHostRepo()
+
 	api.API.SetUpPluginRouters(
 		"crontab",
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
 			{Method: "GET", Path: "/:host", Handler: s.GetConfList},
 			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
 			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
@@ -151,10 +159,11 @@ func (s *CronTab) Initialize() {
 			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
 			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
 			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
-			{Method: "PUT", Path: "/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/log", Handler: s.GetConfLog},
-			{Method: "GET", Path: "/diff", Handler: s.GetConfDiff},
-			{Method: "POST", Path: "/action", Handler: s.ConfAction},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
+			{Method: "POST", Path: "/:host/action", Handler: s.ConfAction},
 		},
 	)
 
@@ -203,6 +212,161 @@ func (s *CronTab) getPluginInfo() (plugin.PluginInfo, error) {
 
 func (s *CronTab) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
+}
+
+// @Tags Crontab
+// @Summary List category
+// @Description List category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /crontab/{host}/category [get]
+func (s *CronTab) GetCategories(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.QueryGitFile{
+		Type:     scriptType,
+		Category: "",
+		Page:     int(page),
+		PageSize: int(pageSize),
+	}
+
+	categories, err := s.getCategories(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, categories)
+}
+
+// @Tags Crontab
+// @Summary Create category
+// @Description Create category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitCategory true "Category creation details"
+// @Success 200
+// @Router /crontab/{host}/category [post]
+func (s *CronTab) CreateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CreateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.createCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Crontab
+// @Summary Update category
+// @Description Update category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitCategory true "category edit details"
+// @Success 200
+// @Router /crontab/{host}/category [put]
+func (s *CronTab) UpdateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.updateCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Crontab
+// @Summary Delete category
+// @Description Delete category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Success 200
+// @Router /crontab/{host}/category [delete]
+func (s *CronTab) DeleteCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	req := model.DeleteGitCategory{
+		Type:     scriptType,
+		Category: category,
+	}
+
+	err = s.deleteCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Crontab
@@ -676,6 +840,29 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, diff)
+}
+
+// @Tags Crontab
+// @Summary Sync global repository to specified host
+// @Description Sync global repository to specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /crontab/{host}/sync [post]
+func (s *CronTab) SyncGlobal(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.syncGlobal(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Crontab

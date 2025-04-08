@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jinzhu/copier"
+	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
@@ -198,6 +199,19 @@ func (s *ServiceMan) checkRepo(hostID uint, repoPath string) error {
 	return nil
 }
 
+func (s *ServiceMan) handleHostID(reqType string, hostID uint64) (uint, error) {
+	var hid = uint(hostID)
+	// 如果是global, 操作本机
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return 0, err
+		}
+		hid = defaultHost.ID
+	}
+	return hid, nil
+}
+
 func (s *ServiceMan) createFile(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -252,6 +266,238 @@ func (s *ServiceMan) deleteFile(hostID uint64, op model.FileDelete) error {
 	return nil
 }
 
+func (s *ServiceMan) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	var pageResult = model.PageResult{Total: 0, Items: nil}
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	gitQuery := model.GitQuery{
+		HostID:       hid,
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Extension:    "directory",
+		Page:         req.Page,
+		PageSize:     req.PageSize,
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
+	if err != nil {
+		return &pageResult, nil
+	}
+
+	// 查询脚本
+	data, err := utils.ToJSONString(gitQuery)
+	if err != nil {
+		return &pageResult, nil
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitQuery.HostID,
+		Action: model.Action{
+			Action: model.Git_File_List,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return &pageResult, fmt.Errorf("failed to get conf list")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to conf list: %v", err)
+		return &pageResult, fmt.Errorf("json err: %v", err)
+	}
+
+	return &pageResult, nil
+}
+
+func (s *ServiceMan) createCategory(hostID uint64, req model.CreateGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
+	gitCreate := model.GitCreate{
+		HostID:       hid,
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+		Content:      "",
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 创建
+	data, err := utils.ToJSONString(gitCreate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitCreate.HostID,
+		Action: model.Action{
+			Action: model.Git_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to get create conf file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) updateCategory(hostID uint64, req model.UpdateGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
+	gitUpdate := model.GitUpdate{
+		HostID:       hid,
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+		Content:      "",
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 更新
+	data, err := utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to update conf file")
+	}
+
+	return nil
+}
+
+func (s *ServiceMan) deleteCategory(hostID uint64, req model.DeleteGitCategory) error {
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
+	gitDelete := model.GitDelete{
+		HostID:       hid,
+		RepoPath:     repoPath,
+		RelativePath: req.Category,
+		Dir:          true,
+	}
+
+	// 检查repo
+	err = s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
+	if err != nil {
+		return err
+	}
+
+	// 删除
+	data, err := utils.ToJSONString(gitDelete)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: gitDelete.HostID,
+		Action: model.Action{
+			Action: model.Git_Delete,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to delete conf file")
+	}
+
+	return nil
+}
+
 func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
@@ -262,8 +508,15 @@ func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*mod
 	default:
 		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
 	gitQuery := model.GitQuery{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
 		Extension:    ".service;.linked", //筛选.service和.linked
@@ -272,7 +525,7 @@ func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*mod
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
+	err = s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
 	if err != nil {
 		return &pageResult, nil
 	}
@@ -330,14 +583,21 @@ func (s *ServiceMan) getForm(hostID uint64, req model.GetGitFileDetail) (*model.
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return nil, err
+	}
+
 	gitGetFile := model.GitGetFile{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	err = s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -445,8 +705,15 @@ func (s *ServiceMan) createForm(hostID uint64, req model.CreateServiceForm) erro
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitCreate := model.GitCreate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -539,14 +806,21 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitGetFile := model.GitGetFile{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	err = s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -593,7 +867,7 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      newContent,
@@ -638,15 +912,22 @@ func (s *ServiceMan) create(hostID uint64, req model.CreateGitFile, extension st
 	} else {
 		relativePath = req.Name + extension
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitCreate := model.GitCreate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
+	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -692,14 +973,21 @@ func (s *ServiceMan) getContent(hostID uint64, req model.GetGitFileDetail) (*mod
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return nil, err
+	}
+
 	gitGetFile := model.GitGetFile{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
+	err = s.checkRepo(gitGetFile.HostID, gitGetFile.RepoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -752,15 +1040,22 @@ func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitUpdate := model.GitUpdate{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Content:      req.Content,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
+	err = s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -806,14 +1101,21 @@ func (s *ServiceMan) delete(hostID uint64, req model.DeleteGitFile, extension st
 	} else {
 		relativePath = req.Name + extension
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitDelete := model.GitDelete{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
+	err = s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -859,15 +1161,22 @@ func (s *ServiceMan) restore(hostID uint64, req model.RestoreGitFile) error {
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	gitRestore := model.GitRestore{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitRestore.HostID, gitRestore.RepoPath)
+	err = s.checkRepo(gitRestore.HostID, gitRestore.RepoPath)
 	if err != nil {
 		return err
 	}
@@ -915,8 +1224,15 @@ func (s *ServiceMan) getServiceLog(hostID uint64, req model.GitFileLog) (*model.
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return &pageResult, err
+	}
+
 	gitLog := model.GitLog{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		Page:         req.Page,
@@ -924,7 +1240,7 @@ func (s *ServiceMan) getServiceLog(hostID uint64, req model.GitFileLog) (*model.
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitLog.HostID, gitLog.RepoPath)
+	err = s.checkRepo(gitLog.HostID, gitLog.RepoPath)
 	if err != nil {
 		return &pageResult, err
 	}
@@ -976,15 +1292,22 @@ func (s *ServiceMan) getServiceDiff(hostID uint64, req model.GitFileDiff) (strin
 	} else {
 		relativePath = req.Name + ".service"
 	}
+
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return "", err
+	}
+
 	gitDiff := model.GitDiff{
-		HostID:       uint(hostID),
+		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: relativePath,
 		CommitHash:   req.CommitHash,
 	}
 
 	// 检查repo
-	err := s.checkRepo(gitDiff.HostID, gitDiff.RepoPath)
+	err = s.checkRepo(gitDiff.HostID, gitDiff.RepoPath)
 	if err != nil {
 		return "", err
 	}
@@ -1016,6 +1339,70 @@ func (s *ServiceMan) getServiceDiff(hostID uint64, req model.GitFileDiff) (strin
 	return actionResponse.Data.Action.Data, nil
 }
 
+func (s *ServiceMan) syncGlobal(hostID uint) error {
+	LOG.Info("Start syncing global services for host %d", hostID)
+
+	defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+	if err != nil {
+		LOG.Error("Failed to get default host: %v", err)
+		return err
+	}
+	if hostID == defaultHost.ID {
+		LOG.Error("Attempting to sync global services on default host (ID: %d)", hostID)
+		return fmt.Errorf("can't sync global services in default host")
+	}
+
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+		LOG.Info("Using HTTPS for sync")
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+		LOG.Info("Using custom domain: %s", host)
+	}
+	remoteUrl := fmt.Sprintf("%s://%s:%d/api/v1/git/services/global", scheme, host, settingInfo.BindPort)
+	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "global")
+
+	LOG.Info("Syncing from %s to %s", remoteUrl, repoPath)
+
+	gitSync := model.GitSync{
+		HostID:    hostID,
+		RepoPath:  repoPath,
+		RemoteUrl: remoteUrl,
+	}
+
+	data, err := utils.ToJSONString(gitSync)
+	if err != nil {
+		LOG.Error("Failed to marshal git sync data: %v", err)
+		return err
+	}
+
+	LOG.Info("Sending sync request to agent")
+	actionRequest := model.HostAction{
+		HostID: gitSync.HostID,
+		Action: model.Action{
+			Action: model.Git_Sync,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to send sync action: %v", err)
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("Sync action failed on agent")
+		return fmt.Errorf("failed to sync global services")
+	}
+
+	LOG.Info("Successfully synced global services for host %d", hostID)
+	return nil
+}
+
 func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
@@ -1032,8 +1419,14 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 		relativePath = req.Name + ".service"
 	}
 
+	// global的情况，操作本机
+	hid, err := s.handleHostID(req.Type, hostID)
+	if err != nil {
+		return err
+	}
+
 	// 检查repo
-	err := s.checkRepo(uint(hostID), repoPath)
+	err = s.checkRepo(hid, repoPath)
 	if err != nil {
 		return err
 	}
@@ -1054,7 +1447,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 			IsSymlink: true,
 			LinkPath:  servicePath,
 		}
-		err := s.createFile(hostID, createFile)
+		err := s.createFile(uint64(hid), createFile)
 		if err != nil {
 			LOG.Error("Failed to create symlink")
 			return err
@@ -1067,7 +1460,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(hostID, createGitFile, ".linked")
+		err = s.create(uint64(hid), createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1075,7 +1468,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(uint(hostID), command)
+		_, err = s.sendCommand(hid, command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err
@@ -1086,7 +1479,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 		deleteFile := model.FileDelete{
 			Path: serviceLinkPath,
 		}
-		err := s.deleteFile(hostID, deleteFile)
+		err := s.deleteFile(uint64(hid), deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete symlink")
 			return err
@@ -1098,7 +1491,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(hostID, deleteGitFile, ".linked")
+		err = s.delete(uint64(hid), deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err
@@ -1106,7 +1499,7 @@ func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(uint(hostID), command)
+		_, err = s.sendCommand(hid, command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err

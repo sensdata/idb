@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
@@ -26,6 +27,7 @@ type NFTable struct {
 	plugin      plugin.Plugin
 	pluginConf  plugin.PluginConf
 	restyClient *resty.Client
+	hostRepo    repo.IHostRepo
 }
 
 var LOG *log.Log
@@ -127,6 +129,9 @@ func (s *NFTable) Initialize() {
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
 
+	// 初始化 host 模块
+	s.hostRepo = repo.NewHostRepo()
+
 	api.API.SetUpPluginRouters(
 		"nftables",
 		[]plugin.PluginRoute{
@@ -135,6 +140,10 @@ func (s *NFTable) Initialize() {
 			{Method: "POST", Path: "/:host/install", Handler: s.Install},    // 安装nftables
 			{Method: "POST", Path: "/:host/toggle", Handler: s.Toggle},      // 启停nftables
 			{Method: "POST", Path: "/:host/switch/to", Handler: s.SwitchTo}, // 切换nftables和iptables
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
 			{Method: "GET", Path: "/:host/conf", Handler: s.GetConfList},
 			{Method: "GET", Path: "/:host/conf/raw", Handler: s.GetContent},     // 源文模式获取
 			{Method: "POST", Path: "/:host/conf/raw", Handler: s.CreateContent}, // 源文模式创建
@@ -143,6 +152,7 @@ func (s *NFTable) Initialize() {
 			{Method: "PUT", Path: "/:host/conf/restore", Handler: s.Restore},
 			{Method: "GET", Path: "/:host/conf/log", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/:host/conf/diff", Handler: s.GetConfDiff},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/conf/action", Handler: s.ConfAction},
 		},
 	)
@@ -154,7 +164,7 @@ func (s *NFTable) Release() {
 
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Get plugin info
 // @Description Get plugin information
 // @Accept json
@@ -170,7 +180,7 @@ func (s *NFTable) GetPluginInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "info", "payload": pluginInfo})
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Get plugin menu
 // @Description Get plugin menu items
 // @Accept json
@@ -194,7 +204,7 @@ func (s *NFTable) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Install nftables
 // @Description Install nftables
 // @Accept json
@@ -217,7 +227,7 @@ func (s *NFTable) Install(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Toggle nftables
 // @Description toggle nftables
 // @Accept json
@@ -246,7 +256,7 @@ func (s *NFTable) Toggle(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Switch to nftables or iptables
 // @Description Switch to nftables or iptables
 // @Accept json
@@ -274,7 +284,162 @@ func (s *NFTable) SwitchTo(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
+// @Summary List category
+// @Description List category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /nftables/{host}/category [get]
+func (s *NFTable) GetCategories(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	req := model.QueryGitFile{
+		Type:     scriptType,
+		Category: "",
+		Page:     int(page),
+		PageSize: int(pageSize),
+	}
+
+	categories, err := s.getCategories(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, categories)
+}
+
+// @Tags nftables
+// @Summary Create category
+// @Description Create category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitCategory true "Category creation details"
+// @Success 200
+// @Router /nftables/{host}/category [post]
+func (s *NFTable) CreateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CreateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.createCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Update category
+// @Description Update category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitCategory true "category edit details"
+// @Success 200
+// @Router /nftables/{host}/category [put]
+func (s *NFTable) UpdateCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateGitCategory
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.updateCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Delete category
+// @Description Delete category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Success 200
+// @Router /nftables/{host}/category [delete]
+func (s *NFTable) DeleteCategory(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	scriptType := c.Query("type")
+	if scriptType == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+	if scriptType != "global" && scriptType != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		return
+	}
+
+	category := c.Query("category")
+
+	req := model.DeleteGitCategory{
+		Type:     scriptType,
+		Category: category,
+	}
+
+	err = s.deleteCategory(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
 // @Summary List NFTable conf files
 // @Description Get custom NFTable conf file list in work dir
 // @Accept json
@@ -333,7 +498,7 @@ func (s *NFTable) GetConfList(c *gin.Context) {
 	helper.SuccessWithData(c, services)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Create conf file
 // @Description Create a new conf file
 // @Accept json
@@ -361,7 +526,7 @@ func (s *NFTable) CreateContent(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Get conf file content
 // @Description Get content of a conf file
 // @Accept json
@@ -412,7 +577,7 @@ func (s *NFTable) GetContent(c *gin.Context) {
 	helper.SuccessWithData(c, detail.Content)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Save conf file content
 // @Description Save the content of a conf file
 // @Accept json
@@ -440,7 +605,7 @@ func (s *NFTable) UpdateContent(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Delete conf file
 // @Description Delete a conf file
 // @Accept json
@@ -491,7 +656,7 @@ func (s *NFTable) Delete(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Restore conf file
 // @Description Restore conf file to specified version
 // @Accept json
@@ -519,7 +684,7 @@ func (s *NFTable) Restore(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Get conf histories
 // @Description Get histories of a conf file
 // @Accept json
@@ -586,7 +751,7 @@ func (s *NFTable) GetConfLog(c *gin.Context) {
 	helper.SuccessWithData(c, logs)
 }
 
-// @Tags NFTable
+// @Tags nftables
 // @Summary Get conf diff
 // @Description Get conf diff compare to specfied version
 // @Accept json
@@ -645,7 +810,30 @@ func (s *NFTable) GetConfDiff(c *gin.Context) {
 	helper.SuccessWithData(c, diff)
 }
 
-// @Tags NFTable
+// @Tags nftables
+// @Summary Sync global repository to specified host
+// @Description Sync global repository to specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /nftables/{host}/sync [post]
+func (s *NFTable) SyncGlobal(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	err = s.syncGlobal(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
 // @Summary Execute conf actions
 // @Description Execute conf actions
 // @Accept json
