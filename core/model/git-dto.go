@@ -37,11 +37,12 @@ type CreateGitFile struct {
 }
 
 type UpdateGitFile struct {
-	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
-	Name     string `json:"name" validate:"required"`
-	NewName  string `json:"new_name"`
-	Content  string `json:"content" validate:"required"`
+	Type        string `json:"type" validate:"required,oneof=global local"`
+	Category    string `json:"category" validate:"required"`
+	NewCategory string `json:"new_category"`
+	Name        string `json:"name" validate:"required"`
+	NewName     string `json:"new_name"`
+	Content     string `json:"content" validate:"required"`
 }
 
 type DeleteGitFile struct {

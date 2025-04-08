@@ -210,11 +210,12 @@ func (s *ScriptMan) updateCategory(hostID uint64, req model.UpdateGitCategory) e
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Dir:          true,
-		Content:      "",
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    req.Category,
+		NewRelativePath: req.NewName,
+		Dir:             true,
+		Content:         "",
 	}
 
 	// 检查repo
@@ -513,6 +514,18 @@ func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 	} else {
 		relativePath = req.Name + ".sh"
 	}
+	var newName string
+	if req.NewName != "" {
+		newName = req.NewName
+	} else {
+		newName = req.Name
+	}
+	var newRelativePath string
+	if req.NewCategory != "" {
+		newRelativePath = filepath.Join(req.NewCategory, newName+".sh")
+	} else {
+		newRelativePath = newName + ".sh"
+	}
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -521,11 +534,12 @@ func (s *ScriptMan) update(hostID uint64, req model.UpdateGitFile) error {
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Dir:          false,
-		Content:      req.Content,
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: newRelativePath,
+		Dir:             false,
+		Content:         req.Content,
 	}
 
 	// 检查repo

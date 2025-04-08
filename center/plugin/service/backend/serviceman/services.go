@@ -403,11 +403,12 @@ func (s *ServiceMan) updateCategory(hostID uint64, req model.UpdateGitCategory) 
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Dir:          true,
-		Content:      "",
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    req.Category,
+		NewRelativePath: req.NewName,
+		Dir:             true,
+		Content:         "",
 	}
 
 	// 检查repo
@@ -806,6 +807,18 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 	} else {
 		relativePath = req.Name + ".service"
 	}
+	var newName string
+	if req.NewName != "" {
+		newName = req.NewName
+	} else {
+		newName = req.Name
+	}
+	var newRelativePath string
+	if req.NewCategory != "" {
+		newRelativePath = filepath.Join(req.NewCategory, newName+".service")
+	} else {
+		newRelativePath = newName + ".service"
+	}
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -867,10 +880,12 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Content:      newContent,
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: newRelativePath,
+		Dir:             false,
+		Content:         newContent,
 	}
 	data, err = utils.ToJSONString(gitUpdate)
 	if err != nil {
@@ -1040,6 +1055,18 @@ func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
 	} else {
 		relativePath = req.Name + ".service"
 	}
+	var newName string
+	if req.NewName != "" {
+		newName = req.NewName
+	} else {
+		newName = req.Name
+	}
+	var newRelativePath string
+	if req.NewCategory != "" {
+		newRelativePath = filepath.Join(req.NewCategory, newName+".service")
+	} else {
+		newRelativePath = newName + ".service"
+	}
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -1048,10 +1075,12 @@ func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Content:      req.Content,
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: newRelativePath,
+		Dir:             false,
+		Content:         req.Content,
 	}
 
 	// 检查repo

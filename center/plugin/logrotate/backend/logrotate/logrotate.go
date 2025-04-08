@@ -668,11 +668,12 @@ func (s *LogRotate) updateCategory(hostID uint64, req model.UpdateGitCategory) e
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Dir:          true,
-		Content:      "",
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    req.Category,
+		NewRelativePath: req.NewName,
+		Dir:             true,
+		Content:         "",
 	}
 
 	// 检查repo
@@ -1079,6 +1080,18 @@ func (s *LogRotate) updateForm(hostID uint64, req model.UpdateServiceForm) error
 	} else {
 		relativePath = req.Name + ".logrotate"
 	}
+	var newName string
+	if req.NewName != "" {
+		newName = req.NewName
+	} else {
+		newName = req.Name
+	}
+	var newRelativePath string
+	if req.NewCategory != "" {
+		newRelativePath = filepath.Join(req.NewCategory, newName+".logrotate")
+	} else {
+		newRelativePath = newName + ".logrotate"
+	}
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -1140,10 +1153,12 @@ func (s *LogRotate) updateForm(hostID uint64, req model.UpdateServiceForm) error
 
 	// 更新
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Content:      newContent,
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: newRelativePath,
+		Dir:             false,
+		Content:         newContent,
 	}
 	data, err = utils.ToJSONString(gitUpdate)
 	if err != nil {
@@ -1313,6 +1328,18 @@ func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {
 	} else {
 		relativePath = req.Name + ".logrotate"
 	}
+	var newName string
+	if req.NewName != "" {
+		newName = req.NewName
+	} else {
+		newName = req.Name
+	}
+	var newRelativePath string
+	if req.NewCategory != "" {
+		newRelativePath = filepath.Join(req.NewCategory, newName+".logrotate")
+	} else {
+		newRelativePath = newName + ".logrotate"
+	}
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -1321,10 +1348,12 @@ func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {
 	}
 
 	gitUpdate := model.GitUpdate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-		Content:      req.Content,
+		HostID:          hid,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: newRelativePath,
+		Dir:             false,
+		Content:         req.Content,
 	}
 
 	// 检查repo

@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sensdata/idb/agent/global"
+	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -28,7 +29,7 @@ type IGitService interface {
 	GetFileList(repoPath string, relativePath string, extension string, page int, pageSize int) (*model.PageResult, error)
 	GetFile(repoPath string, relativePath string) (*model.GitFile, error)
 	Create(repoPath string, relativePath string, dir bool, content string) error
-	Update(repoPath string, relativePath string, dir bool, name string, content string) error
+	Update(repoPath string, relativePath string, newRelativePath string, dir bool, content string) error
 	Delete(repoPath string, relativePath string, dir bool) error
 	Restore(repoPath string, relativePath string, commitHash string) error
 	Log(repoPath string, relativePath string, page int, pageSize int) (*model.PageResult, error)
@@ -357,7 +358,7 @@ func (s *GitService) Create(repoPath string, relativePath string, dir bool, cont
 	return nil
 }
 
-func (s *GitService) Update(repoPath string, relativePath string, dir bool, name string, content string) error {
+func (s *GitService) Update(repoPath string, relativePath string, newRelativePath string, dir bool, content string) error {
 	// 打开仓库
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -382,41 +383,56 @@ func (s *GitService) Update(repoPath string, relativePath string, dir bool, name
 		return fmt.Errorf("file %s does not exist", realPath)
 	}
 
-	var oldPath, newPath string
-	if name != "" {
-		oldPath = relativePath
-		if dir {
-			newPath = filepath.Join(filepath.Dir(relativePath), name)
-		} else {
-			newPath = filepath.Join(filepath.Dir(relativePath), name)
+	if newRelativePath != "" && newRelativePath != relativePath {
+		global.LOG.Info("Moving from %s to %s", relativePath, newRelativePath)
+
+		oldRealPath := filepath.Join(rootPath, relativePath)
+		newRealPath := filepath.Join(rootPath, newRelativePath)
+
+		// 检查源路径是否存在
+		fo := files.NewFileOp()
+		if !fo.Stat(oldRealPath) {
+			global.LOG.Error("Source path %s does not exist", oldRealPath)
+			return fmt.Errorf("source path %s does not exist", oldRealPath)
 		}
 
-		// 执行重命名
-		oldRealPath := filepath.Join(rootPath, oldPath)
-		newRealPath := filepath.Join(rootPath, newPath)
-		if err := os.Rename(oldRealPath, newRealPath); err != nil {
-			global.LOG.Error("Failed to rename %s to %s, %v", oldRealPath, newRealPath, err)
+		// 检查目标路径是否合法
+		if oldRealPath == newRealPath || strings.Contains(newRealPath, filepath.Clean(oldRealPath)+"/") {
+			global.LOG.Error("Invalid move operation from %s to %s", oldRealPath, newRealPath)
+			return fmt.Errorf("invalid move operation")
+		}
+
+		// 使用 FileService 的 MvFile 来处理移动
+		fo = files.NewFileOp()
+		moveReq := model.FileMove{
+			Sources: []string{oldRealPath},
+			Dest:    filepath.Dir(newRealPath),
+			Name:    filepath.Base(newRealPath),
+			Type:    "cut",
+			Cover:   true,
+		}
+
+		if err := fo.Cut(moveReq.Sources, moveReq.Dest, moveReq.Name, moveReq.Cover); err != nil {
+			global.LOG.Error("Failed to move file: %v", err)
 			return err
 		}
 
 		// 从 Git 索引中移除旧路径
-		if _, err = worktree.Remove(oldPath); err != nil {
-			global.LOG.Error("Failed to remove old path %s from index: %v", oldPath, err)
+		if _, err = worktree.Remove(relativePath); err != nil {
+			global.LOG.Error("Failed to remove old path %s from index: %v", relativePath, err)
 			return err
 		}
 
 		// 将新路径添加到 Git 索引
-		if _, err = worktree.Add(newPath); err != nil {
-			global.LOG.Error("Failed to add new path %s to index: %v", newPath, err)
+		if _, err = worktree.Add(newRelativePath); err != nil {
+			global.LOG.Error("Failed to add new path %s to index: %v", newRelativePath, err)
 			return err
 		}
-
-		relativePath = newPath // 更新相对路径，用于后续操作
 	}
 
 	// 如果是文件且需要更新内容
 	if !dir && content != "" {
-		targetPath := filepath.Join(rootPath, relativePath)
+		targetPath := filepath.Join(rootPath, newRelativePath)
 		if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
 			global.LOG.Error("Failed to write to file %s, %v", targetPath, err)
 			return err
@@ -431,8 +447,8 @@ func (s *GitService) Update(repoPath string, relativePath string, dir bool, name
 
 	// 提交更改
 	commitMsg := fmt.Sprintf("Update %s", relativePath)
-	if name != "" {
-		commitMsg = fmt.Sprintf("Rename %s to %s", oldPath, newPath)
+	if newRelativePath != relativePath {
+		commitMsg = fmt.Sprintf("Rename %s to %s", relativePath, newRelativePath)
 	}
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{

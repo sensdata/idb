@@ -1528,7 +1528,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := GitService.Update(req.RepoPath, req.RelativePath, req.Dir, req.NewName, req.Content)
+		err := GitService.Update(req.RepoPath, req.RelativePath, req.NewRelativePath, req.Dir, req.Content)
 		if err != nil {
 			return nil, err
 		}

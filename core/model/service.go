@@ -25,10 +25,12 @@ type CreateServiceForm struct {
 }
 
 type UpdateServiceForm struct {
-	Type     string     `json:"type" validate:"required"`
-	Category string     `json:"category"`
-	Name     string     `json:"name" validate:"required"`
-	Form     []KeyValue `json:"form" validate:"dive,required"`
+	Type        string     `json:"type" validate:"required"`
+	Category    string     `json:"category"`
+	NewCategory string     `json:"new_category"`
+	Name        string     `json:"name" validate:"required"`
+	NewName     string     `json:"new_name" validate:"required"`
+	Form        []KeyValue `json:"form" validate:"dive,required"`
 }
 
 type ServiceAction struct {
