@@ -412,6 +412,11 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 			return fmt.Errorf("invalid move operation")
 		}
 
+		// 先尝试从 Git 索引中移除旧路径，如果失败也继续执行
+		if _, err = worktree.Remove(relativePath); err != nil {
+			global.LOG.Warn("Failed to remove old path %s from index: %v, continuing...", relativePath, err)
+		}
+
 		// 使用 FileService 的 MvFile 来处理移动
 		fo = files.NewFileOp()
 		moveReq := model.FileMove{
@@ -424,12 +429,6 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 
 		if err := fo.Cut(moveReq.Sources, moveReq.Dest, moveReq.Name, moveReq.Cover); err != nil {
 			global.LOG.Error("Failed to move file: %v", err)
-			return err
-		}
-
-		// 从 Git 索引中移除旧路径
-		if _, err = worktree.Remove(relativePath); err != nil {
-			global.LOG.Error("Failed to remove old path %s from index: %v", relativePath, err)
 			return err
 		}
 
