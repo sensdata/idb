@@ -390,13 +390,20 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 		global.LOG.Info("Moving from %s to %s", oldRealPath, newRealPath)
 
 		// 检查源路径是否存在
-		if _, err := os.Stat(oldRealPath); os.IsNotExist(err) {
+		srcInfo, err := os.Stat(oldRealPath)
+		if os.IsNotExist(err) {
 			global.LOG.Error("Source path %s does not exist", oldRealPath)
 			return fmt.Errorf("source path %s does not exist", oldRealPath)
 		}
 
+		// 检查目标路径是否已存在
+		if _, err := os.Stat(newRealPath); err == nil {
+			global.LOG.Error("Target path %s already exists", newRealPath)
+			return fmt.Errorf("target path %s already exists", newRealPath)
+		}
+
 		// 检查目标路径是否合法
-		if oldRealPath == newRealPath || strings.Contains(newRealPath, filepath.Clean(oldRealPath)+"/") {
+		if oldRealPath == newRealPath || strings.Contains(newRealPath, filepath.Clean(oldRealPath)+string(os.PathSeparator)) {
 			global.LOG.Error("Invalid move operation from %s to %s", oldRealPath, newRealPath)
 			return fmt.Errorf("invalid move operation")
 		}
@@ -407,21 +414,43 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 			return err
 		}
 
-		// 使用 os.Rename 移动文件/目录
+		if srcInfo.IsDir() {
+			// 如果是目录，需要处理目录下的所有文件
+			status, err := worktree.Status()
+			if err != nil {
+				global.LOG.Error("Failed to get worktree status: %v", err)
+				return err
+			}
+
+			// 获取所有需要移动的文件
+			for filePath := range status {
+				if strings.HasPrefix(filePath, relativePath+"/") || filePath == relativePath {
+					newPath := strings.Replace(filePath, relativePath, newRelativePath, 1)
+					if _, err = worktree.Move(filePath, newPath); err != nil {
+						global.LOG.Error("Failed to move %s to %s in git index: %v", filePath, newPath, err)
+						// 如果移动失败，恢复已经移动的文件
+						if revertErr := worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); revertErr != nil {
+							global.LOG.Error("Failed to reset git index: %v", revertErr)
+						}
+						return err
+					}
+				}
+			}
+		} else {
+			// 如果是单个文件，直接移动
+			if _, err = worktree.Move(relativePath, newRelativePath); err != nil {
+				global.LOG.Error("Failed to move %s to %s in git index: %v", relativePath, newRelativePath, err)
+				return err
+			}
+		}
+
+		// 执行文件系统移动
 		if err := os.Rename(oldRealPath, newRealPath); err != nil {
 			global.LOG.Error("Failed to move from %s to %s: %v", oldRealPath, newRealPath, err)
-			return err
-		}
-
-		// 从 Git 索引中移除旧路径
-		if _, err = worktree.Remove(relativePath); err != nil {
-			global.LOG.Error("Failed to remove old path %s from index: %v, continuing...", relativePath, err)
-			return err
-		}
-
-		// 将新路径添加到 Git 索引
-		if _, err = worktree.Add(newRelativePath); err != nil {
-			global.LOG.Error("Failed to add new path %s to index: %v", newRelativePath, err)
+			// 如果文件系统移动失败，恢复 Git 索引
+			if revertErr := worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); revertErr != nil {
+				global.LOG.Error("Failed to reset git index: %v", revertErr)
+			}
 			return err
 		}
 	}
