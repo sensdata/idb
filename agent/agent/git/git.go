@@ -160,9 +160,19 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 			return err
 		}
 
+		// 排除 .git 目录及其内容
+		if info.Name() == ".git" || strings.Contains(path, "/.git/") {
+			return filepath.SkipDir
+		}
+
 		// 当 extension 为 "directory" 时，只收集目录
 		if extension == "directory" {
+			// 非目录
 			if !info.IsDir() {
+				return nil
+			}
+			// 排除根目录本身
+			if path == dirPath {
 				return nil
 			}
 		} else {
