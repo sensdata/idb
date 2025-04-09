@@ -401,11 +401,6 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 			return fmt.Errorf("invalid move operation")
 		}
 
-		// 先尝试从 Git 索引中移除旧路径，如果失败也继续执行
-		if _, err = worktree.Remove(relativePath); err != nil {
-			global.LOG.Warn("Failed to remove old path %s from index: %v, continuing...", relativePath, err)
-		}
-
 		// 确保目标目录的父目录存在
 		if err := os.MkdirAll(filepath.Dir(newRealPath), os.ModePerm); err != nil {
 			global.LOG.Error("Failed to create parent directory for %s: %v", newRealPath, err)
@@ -415,6 +410,12 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 		// 使用 os.Rename 移动文件/目录
 		if err := os.Rename(oldRealPath, newRealPath); err != nil {
 			global.LOG.Error("Failed to move from %s to %s: %v", oldRealPath, newRealPath, err)
+			return err
+		}
+
+		// 从 Git 索引中移除旧路径
+		if _, err = worktree.Remove(relativePath); err != nil {
+			global.LOG.Error("Failed to remove old path %s from index: %v, continuing...", relativePath, err)
 			return err
 		}
 
