@@ -418,7 +418,6 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 		}
 
 		// 使用 FileService 的 MvFile 来处理移动
-		fo = files.NewFileOp()
 		moveReq := model.FileMove{
 			Sources: []string{oldRealPath},
 			Dest:    filepath.Dir(newRealPath),
