@@ -3,6 +3,7 @@ package scriptman
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sensdata/idb/center/core/api/service"
@@ -901,7 +902,10 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 		Err:     "",
 	}
 
-	logPath := filepath.Join(s.pluginConf.Items.LogDir, "script-run.log")
+	scriptName := filepath.Base(req.ScriptPath)
+	scriptName = strings.TrimSuffix(scriptName, filepath.Ext(scriptName))
+	timestamp := time.Now().Format("20060102_150405")
+	logPath := filepath.Join(s.pluginConf.Items.LogDir, scriptName, timestamp+".log")
 
 	scriptExec := model.ScriptExec{
 		ScriptPath: req.ScriptPath,

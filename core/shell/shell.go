@@ -123,6 +123,12 @@ func executeScript(req model.ScriptExec) *model.ScriptResult {
 }
 
 func scriptLog(logPath string, tag string, result *model.ScriptResult) error {
+	// 确保日志目录存在
+	logDir := filepath.Dir(logPath)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
 	// 创建日志文件
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
