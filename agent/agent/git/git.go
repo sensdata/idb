@@ -12,7 +12,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sensdata/idb/agent/global"
-	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -384,24 +383,14 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 	}
 	rootPath := worktree.Filesystem.Root()
 
-	// 确定目标文件的完整路径
-	realPath := filepath.Join(rootPath, relativePath)
-
-	// 检查文件是否存在
-	if _, err := os.Stat(realPath); os.IsNotExist(err) {
-		global.LOG.Error("File %s does not exists, %v", realPath, err)
-		return fmt.Errorf("file %s does not exist", realPath)
-	}
-
 	if newRelativePath != "" && newRelativePath != relativePath {
-		global.LOG.Info("Moving from %s to %s", relativePath, newRelativePath)
-
 		oldRealPath := filepath.Join(rootPath, relativePath)
 		newRealPath := filepath.Join(rootPath, newRelativePath)
 
+		global.LOG.Info("Moving from %s to %s", oldRealPath, newRealPath)
+
 		// 检查源路径是否存在
-		fo := files.NewFileOp()
-		if !fo.Stat(oldRealPath) {
+		if _, err := os.Stat(oldRealPath); os.IsNotExist(err) {
 			global.LOG.Error("Source path %s does not exist", oldRealPath)
 			return fmt.Errorf("source path %s does not exist", oldRealPath)
 		}
@@ -417,17 +406,9 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 			global.LOG.Warn("Failed to remove old path %s from index: %v, continuing...", relativePath, err)
 		}
 
-		// 使用 FileService 的 MvFile 来处理移动
-		moveReq := model.FileMove{
-			Sources: []string{oldRealPath},
-			Dest:    filepath.Dir(newRealPath),
-			Name:    filepath.Base(newRealPath),
-			Type:    "cut",
-			Cover:   true,
-		}
-
-		if err := fo.Cut(moveReq.Sources, moveReq.Dest, moveReq.Name, moveReq.Cover); err != nil {
-			global.LOG.Error("Failed to move file: %v", err)
+		// 使用 os.Rename 移动文件/目录
+		if err := os.Rename(oldRealPath, newRealPath); err != nil {
+			global.LOG.Error("Failed to move from %s to %s: %v", oldRealPath, newRealPath, err)
 			return err
 		}
 
