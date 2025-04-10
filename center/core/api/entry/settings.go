@@ -39,6 +39,30 @@ func (b *BaseApi) IPs(c *gin.Context) {
 }
 
 // @Tags Settings
+// @Summary Get avaiable timezones
+// @Description Get avaiable timezones
+// @Accept json
+// @Produce json
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /settings/timezones [get]
+func (b *BaseApi) Timezones(c *gin.Context) {
+
+	var req model.SearchPageInfo
+	if err := CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := settingsService.Timezones(req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeSuccess, constant.ErrNoRecords.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}
+
+// @Tags Settings
 // @Summary Get server settings
 // @Description Get server settings
 // @Accept json

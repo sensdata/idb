@@ -15,4 +15,5 @@ var (
 	AppRepo        = repo.NewAppRepo()
 	AppVersionRepo = repo.NewAppVersionRepo()
 	SettingsRepo   = repo.NewSettingsRepo()
+	TimezoneRepo   = repo.NewTimezonesRepo()
 )

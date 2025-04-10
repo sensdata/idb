@@ -1,12 +1,19 @@
 package migration
 
 import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/utils"
 	"gorm.io/gorm"
 )
+
+//go:embed timezones.json
+var timezonesData []byte
 
 func Init() {
 	global.LOG.Info("db init begin")
@@ -17,12 +24,51 @@ func Init() {
 		AddFieldGroupIDToUser,
 		AddTableHost,
 		AddTableSettings,
+		AddTableTimezone,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
 		panic(err)
 	}
 	global.LOG.Info("db init end")
+}
+
+func getTimezones() ([]model.Timezone, error) {
+	timezones := make([]model.Timezone, 0)
+
+	// 定义临时结构用于解析JSON
+	type rawTimezone struct {
+		Value  string   `json:"value"`
+		Abbr   string   `json:"abbr"`
+		Offset int      `json:"offset"`
+		IsDst  bool     `json:"isdst"`
+		Text   string   `json:"text"`
+		UTC    []string `json:"utc"`
+	}
+
+	// 解析JSON数据
+	var rawTimezones []rawTimezone
+	if err := json.Unmarshal(timezonesData, &rawTimezones); err != nil {
+		return nil, fmt.Errorf("failed to parse timezones data: %v", err)
+	}
+
+	// 遍历原始时区数据，将每个UTC值创建为独立的Timezone
+	for _, raw := range rawTimezones {
+		// 为每个UTC值创建一个新的Timezone实例
+		for _, utc := range raw.UTC {
+			timezone := model.Timezone{
+				Value:  raw.Value,
+				Abbr:   raw.Abbr,
+				Offset: raw.Offset,
+				IsDst:  raw.IsDst,
+				Text:   raw.Text,
+				UTC:    utc,
+			}
+			timezones = append(timezones, timezone)
+		}
+	}
+
+	return timezones, nil
 }
 
 var AddTableRole = &gormigrate.Migration{
@@ -207,6 +253,33 @@ var AddTableSettings = &gormigrate.Migration{
 		}
 
 		global.LOG.Info("Table Settings added successfully")
+		return nil
+	},
+}
+
+var AddTableTimezone = &gormigrate.Migration{
+	ID: "20250410-add-table-timezone",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Adding table Timezone")
+		if err := db.AutoMigrate(&model.Timezone{}); err != nil {
+			return err
+		}
+
+		timezones, err := getTimezones()
+		if err != nil {
+			return err
+		}
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			for _, timezone := range timezones {
+				if err := tx.Create(&timezone).Error; err != nil {
+					global.LOG.Error("Failed to insert timezone %s: %v", timezone.Value, err)
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		global.LOG.Info("Table Timezone added successfully")
 		return nil
 	},
 }

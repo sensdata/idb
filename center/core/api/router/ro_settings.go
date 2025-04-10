@@ -15,6 +15,7 @@ func (s *SettingsRouter) InitRouter(Router *gin.RouterGroup) {
 	{
 		settingsRouter.GET("/about", baseApi.About)
 		settingsRouter.GET("/ips", baseApi.IPs)
+		settingsRouter.GET("/timezones", baseApi.Timezones)
 		settingsRouter.GET("", baseApi.Settings)
 		settingsRouter.POST("", baseApi.UpdateSettings)
 		settingsRouter.POST("/upgrade", baseApi.Upgrade)

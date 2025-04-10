@@ -1,6 +1,7 @@
 package service
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/sensdata/idb/center/core/conn"
+	db "github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
@@ -22,6 +24,7 @@ type SettingsService struct{}
 type ISettingsService interface {
 	About() (*model.About, error)
 	IPs() (*model.AvailableIps, error)
+	Timezones(req model.SearchPageInfo) (*model.PageResult, error)
 	Settings() (*model.SettingInfo, error)
 	Update(req model.UpdateSettingRequest) (*model.UpdateSettingResponse, error)
 	Upgrade() error
@@ -97,6 +100,33 @@ func (s *SettingsService) IPs() (*model.AvailableIps, error) {
 	return &availableIps, nil
 }
 
+func (s *SettingsService) Timezones(req model.SearchPageInfo) (*model.PageResult, error) {
+	var (
+		result    model.PageResult
+		backDatas []db.Timezone
+	)
+
+	// 获取所有时区
+	timezones, err := TimezoneRepo.GetList()
+	if err != nil {
+		return &result, err
+	}
+	// 分页
+	total, start, end := len(timezones), (req.Page-1)*req.PageSize, req.Page*req.PageSize
+	if start > total {
+		backDatas = make([]db.Timezone, 0)
+	} else {
+		if end >= total {
+			end = total
+		}
+		backDatas = timezones[start:end]
+	}
+
+	result.Total = int64(total)
+	result.Items = backDatas
+
+	return &result, nil
+}
 func (s *SettingsService) Settings() (*model.SettingInfo, error) {
 	bindIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindIP"))
 	if err != nil {
