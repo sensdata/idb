@@ -318,36 +318,36 @@ func (s *GitService) Create(repoPath string, relativePath string, dir bool, cont
 		return fmt.Errorf("file %s already exists", realPath)
 	}
 
-	// 创建目录
 	if dir {
-		// 创建目录
+		// 目录操作只需要在文件系统层面处理
 		if err := os.MkdirAll(realPath, os.ModePerm); err != nil {
 			global.LOG.Error("Failed to create directory %s, %v", realPath, err)
 			return err
 		}
 		global.LOG.Info("Created directory %s", realPath)
-	} else {
-		// 确保父目录存在
-		dirPath := filepath.Dir(realPath)
-		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
-			global.LOG.Error("Failed to create parent directory for %s, %v", realPath, err)
-			return err
-		}
-
-		// 创建并写入文件
-		if err := os.WriteFile(realPath, []byte(content), 0644); err != nil {
-			global.LOG.Error("Failed to write file %s, %v", realPath, err)
-			return err
-		}
-		global.LOG.Info("Created file %s", realPath)
+		return nil
 	}
 
-	// 将新创建的改动添加到 Git 索引
-	_, err = worktree.Add(relativePath)
-	if err != nil {
+	// 确保父目录存在
+	dirPath := filepath.Dir(realPath)
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		global.LOG.Error("Failed to create parent directory for %s, %v", realPath, err)
+		return err
+	}
+
+	// 创建并写入文件
+	if err := os.WriteFile(realPath, []byte(content), 0644); err != nil {
+		global.LOG.Error("Failed to write file %s, %v", realPath, err)
+		return err
+	}
+	global.LOG.Info("Created file %s", realPath)
+
+	// 只有文件才需要添加到 Git 索引
+	if _, err = worktree.Add(relativePath); err != nil {
 		global.LOG.Error("Failed to add %s to repo %s, %v", relativePath, repoPath, err)
 		return err
 	}
+	global.LOG.Info("Added %s to repo %s", relativePath, repoPath)
 
 	// 提交更改
 	commitMsg := fmt.Sprintf("Add %s", relativePath)
@@ -390,7 +390,7 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 		global.LOG.Info("Moving from %s to %s", oldRealPath, newRealPath)
 
 		// 检查源路径是否存在
-		srcInfo, err := os.Stat(oldRealPath)
+		_, err := os.Stat(oldRealPath)
 		if os.IsNotExist(err) {
 			global.LOG.Error("Source path %s does not exist", oldRealPath)
 			return fmt.Errorf("source path %s does not exist", oldRealPath)
@@ -414,66 +414,83 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 			return err
 		}
 
-		if srcInfo.IsDir() {
-			// 如果是目录，需要处理目录下的所有文件
-			status, err := worktree.Status()
+		if dir {
+			// 检查目录是否为空
+			files, err := os.ReadDir(oldRealPath)
 			if err != nil {
-				global.LOG.Error("Failed to get worktree status: %v", err)
-				return err
+				return fmt.Errorf("failed to read directory: %w", err)
 			}
 
-			// 获取所有需要移动的文件
+			if len(files) == 0 {
+				// 空目录只需要文件系统操作
+				if err := os.Rename(oldRealPath, newRealPath); err != nil {
+					return fmt.Errorf("failed to move directory: %w", err)
+				}
+				return nil
+			}
+
+			// 非空目录
+			// 目录移动
+			if err := os.Rename(oldRealPath, newRealPath); err != nil {
+				return fmt.Errorf("failed to move directory: %w", err)
+			}
+
+			// 处理目录下的所有文件的 Git 索引
+			status, err := worktree.Status()
+			if err != nil {
+				return fmt.Errorf("failed to get worktree status: %w", err)
+			}
+
 			for filePath := range status {
-				if strings.HasPrefix(filePath, relativePath+"/") || filePath == relativePath {
+				if strings.HasPrefix(filePath, relativePath+"/") {
 					newPath := strings.Replace(filePath, relativePath, newRelativePath, 1)
-					if _, err = worktree.Move(filePath, newPath); err != nil {
-						global.LOG.Error("Failed to move %s to %s in git index: %v", filePath, newPath, err)
-						// 如果移动失败，恢复已经移动的文件
-						if revertErr := worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); revertErr != nil {
-							global.LOG.Error("Failed to reset git index: %v", revertErr)
-						}
-						return err
+					if _, err = worktree.Remove(filePath); err != nil {
+						global.LOG.Warn("Failed to remove old path %s from index: %v", filePath, err)
+					}
+					if _, err = worktree.Add(newPath); err != nil {
+						return fmt.Errorf("failed to add new path %s to index: %w", newPath, err)
 					}
 				}
 			}
 		} else {
-			// 如果是单个文件，直接移动
-			if _, err = worktree.Move(relativePath, newRelativePath); err != nil {
-				global.LOG.Error("Failed to move %s to %s in git index: %v", relativePath, newRelativePath, err)
+			// 如果是单个文件，先修改内容（如果需要）再移动
+			if content != "" {
+				if err := os.WriteFile(oldRealPath, []byte(content), 0644); err != nil {
+					global.LOG.Error("Failed to write to file %s, %v", oldRealPath, err)
+					return err
+				}
+			}
+
+			// 执行文件系统移动
+			if err := os.Rename(oldRealPath, newRealPath); err != nil {
+				global.LOG.Error("Failed to move from %s to %s: %v", oldRealPath, newRealPath, err)
 				return err
 			}
-		}
 
-		// 执行文件系统移动
-		if err := os.Rename(oldRealPath, newRealPath); err != nil {
-			global.LOG.Error("Failed to move from %s to %s: %v", oldRealPath, newRealPath, err)
-			// 如果文件系统移动失败，恢复 Git 索引
-			if revertErr := worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); revertErr != nil {
-				global.LOG.Error("Failed to reset git index: %v", revertErr)
+			// 更新 Git 索引
+			if _, err = worktree.Remove(relativePath); err != nil {
+				global.LOG.Warn("Failed to remove old path %s from index: %v", relativePath, err)
 			}
-			return err
+			if _, err = worktree.Add(newRelativePath); err != nil {
+				return fmt.Errorf("failed to add new path to index: %w", err)
+			}
 		}
-	}
-
-	// 如果是文件且需要更新内容
-	if !dir && content != "" {
-		targetPath := filepath.Join(rootPath, newRelativePath)
+	} else if !dir && content != "" {
+		// 仅更新文件内容
+		targetPath := filepath.Join(rootPath, relativePath)
 		if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
-			global.LOG.Error("Failed to write to file %s, %v", targetPath, err)
-			return err
+			return fmt.Errorf("failed to update file content: %w", err)
 		}
 
-		// 将更新的内容添加到 Git 索引
 		if _, err = worktree.Add(relativePath); err != nil {
-			global.LOG.Error("Failed to add updated content %s to index: %v", relativePath, err)
-			return err
+			return fmt.Errorf("failed to add updated content to index: %w", err)
 		}
 	}
 
 	// 提交更改
 	commitMsg := fmt.Sprintf("Update %s", relativePath)
 	if newRelativePath != relativePath {
-		commitMsg = fmt.Sprintf("Rename %s to %s", relativePath, newRelativePath)
+		commitMsg = fmt.Sprintf("Move %s to %s", relativePath, newRelativePath)
 	}
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
@@ -511,54 +528,91 @@ func (s *GitService) Delete(repoPath string, relativePath string, dir bool) erro
 	realPath := filepath.Join(rootPath, relativePath)
 
 	// 检查文件是否存在
-	if _, err := os.Stat(realPath); os.IsNotExist(err) {
+	_, err = os.Stat(realPath)
+	if os.IsNotExist(err) {
 		global.LOG.Error("File does not exist %s: %v", realPath, err)
 		return fmt.Errorf("file %s does not exist", realPath)
 	}
 
-	// 从文件系统中删除文件或目录
+	// 处理目录的情况
 	if dir {
+		// 先检查目录内容
+		files, err := os.ReadDir(realPath)
+		if err != nil {
+			global.LOG.Error("Failed to read directory %s: %v", realPath, err)
+			return fmt.Errorf("failed to read directory: %w", err)
+		}
+
+		if len(files) == 0 {
+			// 空目录直接删除
+			if err := os.RemoveAll(realPath); err != nil {
+				global.LOG.Error("Failed to remove empty directory %s: %v", realPath, err)
+				return fmt.Errorf("failed to remove empty directory: %w", err)
+			}
+			global.LOG.Info("Empty directory %s removed", relativePath)
+			return nil
+		}
+
+		// 非空目录
+		// 删除文件系统中的目录
 		if err := os.RemoveAll(realPath); err != nil {
 			global.LOG.Error("Failed to remove directory %s: %v", realPath, err)
 			return fmt.Errorf("failed to remove directory: %w", err)
 		}
+
+		// 从 Git 索引中删除文件
+		status, err := worktree.Status()
+		if err != nil {
+			return fmt.Errorf("failed to get worktree status: %w", err)
+		}
+		for filePath := range status {
+			if strings.HasPrefix(filePath, relativePath+"/") {
+				if _, err = worktree.Remove(filePath); err != nil {
+					global.LOG.Warn("Failed to remove %s from index: %v", filePath, err)
+				}
+			}
+		}
+
+		// 提交更改
+		commitMsg := fmt.Sprintf("Delete directory %s and its contents", relativePath)
+		_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  "IDB",
+				Email: "idb@sensdata.com",
+				When:  time.Now(),
+			},
+			AllowEmptyCommits: true,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to commit changes: %w", err)
+		}
 	} else {
-		if err := os.Remove(realPath); err != nil {
+		// 删除单个文件
+		// 从文件系统中删除
+		if err := os.Remove(realPath); err != nil && !os.IsNotExist(err) {
 			global.LOG.Error("Failed to remove file %s: %v", realPath, err)
 			return fmt.Errorf("failed to remove file: %w", err)
 		}
-	}
+		// 再从 Git 索引中删除
+		if _, err = worktree.Remove(relativePath); err != nil {
+			global.LOG.Error("Failed to remove %s from index: %v", relativePath, err)
+			return fmt.Errorf("failed to remove file from index: %w", err)
+		}
 
-	// 将删除的文件从 Git 索引中删除
-	if _, err = worktree.Remove(relativePath); err != nil {
-		global.LOG.Error("Failed to remove %s from index: %v", relativePath, err)
-		return fmt.Errorf("failed to remove file from index: %w", err)
-	}
-
-	// 检查工作区状态，确保删除操作生效
-	status, err := worktree.Status()
-	if err != nil {
-		global.LOG.Error("Failed to get worktree status: %v", err)
-		return fmt.Errorf("failed to get worktree status: %w", err)
-	}
-	if status.IsClean() {
-		global.LOG.Error("No changes to commit for  %s", relativePath)
-		return fmt.Errorf("no changes to commit for %s", relativePath)
-	}
-
-	// 提交更改
-	commitMsg := fmt.Sprintf("Delete %s", relativePath)
-	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "IDB",
-			Email: "idb@sensdata.com",
-			When:  time.Now(),
-		},
-		AllowEmptyCommits: true,
-	})
-	if err != nil {
-		global.LOG.Error("Failed to commit %s/%s, %v", repoPath, relativePath, err)
-		return fmt.Errorf("failed to commit changes: %w", err)
+		// 提交更改
+		commitMsg := fmt.Sprintf("Delete %s", relativePath)
+		_, err = worktree.Commit(commitMsg, &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  "IDB",
+				Email: "idb@sensdata.com",
+				When:  time.Now(),
+			},
+			AllowEmptyCommits: true,
+		})
+		if err != nil {
+			global.LOG.Error("Failed to commit %s/%s, %v", repoPath, relativePath, err)
+			return fmt.Errorf("failed to commit changes: %w", err)
+		}
 	}
 
 	return nil
