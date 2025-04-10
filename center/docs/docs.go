@@ -655,7 +655,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -712,7 +713,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -767,6 +769,172 @@ const docTemplate = `{
                 }
             }
         },
+        "/crontab/{host}/category": {
+            "get": {
+                "description": "List category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "List category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Update category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "category edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Create category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Delete category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/crontab/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
@@ -799,7 +967,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -858,7 +1027,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -981,7 +1151,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -1047,7 +1218,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -1168,6 +1340,35 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.RestoreGitFile"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/crontab/{host}/sync": {
+            "post": {
+                "description": "Sync global repository to specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Crontab"
+                ],
+                "summary": "Sync global repository to specified host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -4700,7 +4901,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -4757,7 +4959,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -4812,6 +5015,172 @@ const docTemplate = `{
                 }
             }
         },
+        "/logrotate/{host}/category": {
+            "get": {
+                "description": "List category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "List category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Update category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "category edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Create category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Delete category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/logrotate/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
@@ -4844,7 +5213,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -4903,7 +5273,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5026,7 +5397,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5092,7 +5464,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5222,6 +5595,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/logrotate/{host}/sync": {
+            "post": {
+                "description": "Sync global repository to specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Sync global repository to specified host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/info": {
             "get": {
                 "description": "Get plugin information",
@@ -5232,7 +5634,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Get plugin info",
                 "responses": {
@@ -5255,7 +5657,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Get plugin menu",
                 "responses": {
@@ -5271,6 +5673,172 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/category": {
+            "get": {
+                "description": "List category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "List category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Update category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "category edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Create category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Delete category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/conf": {
             "get": {
                 "description": "Get custom NFTable conf file list in work dir",
@@ -5281,7 +5849,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "List NFTable conf files",
                 "parameters": [
@@ -5303,7 +5871,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -5338,7 +5907,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Delete conf file",
                 "parameters": [
@@ -5360,7 +5929,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5387,7 +5957,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Execute conf actions",
                 "parameters": [
@@ -5425,7 +5995,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Get conf diff",
                 "parameters": [
@@ -5447,7 +6017,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5484,7 +6055,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Get conf histories",
                 "parameters": [
@@ -5506,7 +6077,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5550,7 +6122,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Get conf file content",
                 "parameters": [
@@ -5572,7 +6144,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -5600,7 +6173,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Save conf file content",
                 "parameters": [
@@ -5636,7 +6209,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Create conf file",
                 "parameters": [
@@ -5674,7 +6247,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Restore conf file",
                 "parameters": [
@@ -5712,7 +6285,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Install nftables",
                 "parameters": [
@@ -5741,7 +6314,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Switch to nftables or iptables",
                 "parameters": [
@@ -5769,6 +6342,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/sync": {
+            "post": {
+                "description": "Sync global repository to specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Sync global repository to specified host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/toggle": {
             "post": {
                 "description": "toggle nftables",
@@ -5779,7 +6381,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "NFTable"
+                    "nftables"
                 ],
                 "summary": "Toggle nftables",
                 "parameters": [
@@ -5888,7 +6490,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -6017,7 +6620,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6189,7 +6793,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -6231,7 +6836,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6283,7 +6889,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6342,7 +6949,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6597,7 +7205,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -6654,7 +7263,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6709,6 +7319,172 @@ const docTemplate = `{
                 }
             }
         },
+        "/services/{host}/category": {
+            "get": {
+                "description": "List category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "List category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Update category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "category edit details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "description": "Create category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Create category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Category creation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateGitCategory"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete category",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Delete category",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/services/{host}/diff": {
             "get": {
                 "description": "Get service diff compare to specfied version",
@@ -6741,7 +7517,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6800,7 +7577,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6923,7 +7701,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -6989,7 +7768,8 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Category (directory under 'global' or 'local')",
                         "name": "category",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -7110,6 +7890,35 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.RestoreGitFile"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/services/{host}/sync": {
+            "post": {
+                "description": "Sync global repository to specified host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Sync global repository to specified host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -9435,6 +10244,7 @@ const docTemplate = `{
         "model.CreateGitCategory": {
             "type": "object",
             "required": [
+                "category",
                 "type"
             ],
             "properties": {
@@ -9453,6 +10263,7 @@ const docTemplate = `{
         "model.CreateGitFile": {
             "type": "object",
             "required": [
+                "category",
                 "name",
                 "type"
             ],
@@ -10878,6 +11689,7 @@ const docTemplate = `{
         "model.RestoreGitFile": {
             "type": "object",
             "required": [
+                "category",
                 "commit_hash",
                 "name",
                 "type"
@@ -11410,6 +12222,7 @@ const docTemplate = `{
         "model.UpdateGitCategory": {
             "type": "object",
             "required": [
+                "category",
                 "type"
             ],
             "properties": {
@@ -11431,6 +12244,7 @@ const docTemplate = `{
         "model.UpdateGitFile": {
             "type": "object",
             "required": [
+                "category",
                 "content",
                 "name",
                 "type"
@@ -11443,6 +12257,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "new_category": {
                     "type": "string"
                 },
                 "new_name": {
@@ -11560,6 +12377,7 @@ const docTemplate = `{
             "required": [
                 "form",
                 "name",
+                "new_name",
                 "type"
             ],
             "properties": {
@@ -11573,6 +12391,12 @@ const docTemplate = `{
                     }
                 },
                 "name": {
+                    "type": "string"
+                },
+                "new_category": {
+                    "type": "string"
+                },
+                "new_name": {
                     "type": "string"
                 },
                 "type": {

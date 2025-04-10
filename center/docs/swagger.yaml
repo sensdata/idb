@@ -337,6 +337,7 @@ definitions:
         - local
         type: string
     required:
+    - category
     - type
     type: object
   model.CreateGitFile:
@@ -353,6 +354,7 @@ definitions:
         - local
         type: string
     required:
+    - category
     - name
     - type
     type: object
@@ -1312,6 +1314,7 @@ definitions:
         - local
         type: string
     required:
+    - category
     - commit_hash
     - name
     - type
@@ -1670,6 +1673,7 @@ definitions:
         - local
         type: string
     required:
+    - category
     - type
     type: object
   model.UpdateGitFile:
@@ -1680,6 +1684,8 @@ definitions:
         type: string
       name:
         type: string
+      new_category:
+        type: string
       new_name:
         type: string
       type:
@@ -1688,6 +1694,7 @@ definitions:
         - local
         type: string
     required:
+    - category
     - content
     - name
     - type
@@ -1768,11 +1775,16 @@ definitions:
         type: array
       name:
         type: string
+      new_category:
+        type: string
+      new_name:
+        type: string
       type:
         type: string
     required:
     - form
     - name
+    - new_name
     - type
     type: object
   model.UpdateSettingRequest:
@@ -2314,6 +2326,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: File name
         in: query
@@ -2346,6 +2359,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Page
         in: query
@@ -2392,6 +2406,118 @@ paths:
       summary: Execute conf actions
       tags:
       - Crontab
+  /crontab/{host}/category:
+    delete:
+      consumes:
+      - application/json
+      description: Delete category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete category
+      tags:
+      - Crontab
+    get:
+      consumes:
+      - application/json
+      description: List category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List category
+      tags:
+      - Crontab
+    post:
+      consumes:
+      - application/json
+      description: Create category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Category creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create category
+      tags:
+      - Crontab
+    put:
+      consumes:
+      - application/json
+      description: Update category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: category edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update category
+      tags:
+      - Crontab
   /crontab/{host}/diff:
     get:
       consumes:
@@ -2411,6 +2537,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -2451,6 +2578,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name. If this parameter is left empty, return template
           data.
@@ -2535,6 +2663,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -2580,6 +2709,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -2667,6 +2797,25 @@ paths:
         "200":
           description: OK
       summary: Restore conf file
+      tags:
+      - Crontab
+  /crontab/{host}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Sync global repository to specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync global repository to specified host
       tags:
       - Crontab
   /crontab/info:
@@ -5007,6 +5156,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: File name
         in: query
@@ -5039,6 +5189,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Page
         in: query
@@ -5085,6 +5236,118 @@ paths:
       summary: Execute conf actions
       tags:
       - Logrotate
+  /logrotate/{host}/category:
+    delete:
+      consumes:
+      - application/json
+      description: Delete category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete category
+      tags:
+      - Logrotate
+    get:
+      consumes:
+      - application/json
+      description: List category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List category
+      tags:
+      - Logrotate
+    post:
+      consumes:
+      - application/json
+      description: Create category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Category creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create category
+      tags:
+      - Logrotate
+    put:
+      consumes:
+      - application/json
+      description: Update category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: category edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update category
+      tags:
+      - Logrotate
   /logrotate/{host}/diff:
     get:
       consumes:
@@ -5104,6 +5367,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5144,6 +5408,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name. If this parameter is left empty, return template
           data.
@@ -5227,6 +5492,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5272,6 +5538,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5361,6 +5628,25 @@ paths:
       summary: Restore conf file
       tags:
       - Logrotate
+  /logrotate/{host}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Sync global repository to specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync global repository to specified host
+      tags:
+      - Logrotate
   /logrotate/info:
     get:
       consumes:
@@ -5393,6 +5679,118 @@ paths:
       summary: Get plugin menu
       tags:
       - Logrotate
+  /nftables/{host}/category:
+    delete:
+      consumes:
+      - application/json
+      description: Delete category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete category
+      tags:
+      - nftables
+    get:
+      consumes:
+      - application/json
+      description: List category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List category
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Create category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Category creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create category
+      tags:
+      - nftables
+    put:
+      consumes:
+      - application/json
+      description: Update category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: category edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update category
+      tags:
+      - nftables
   /nftables/{host}/conf:
     delete:
       consumes:
@@ -5412,6 +5810,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: File name
         in: query
@@ -5425,7 +5824,7 @@ paths:
           description: OK
       summary: Delete conf file
       tags:
-      - NFTable
+      - nftables
     get:
       consumes:
       - application/json
@@ -5444,6 +5843,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Page
         in: query
@@ -5464,7 +5864,7 @@ paths:
             $ref: '#/definitions/model.PageResult'
       summary: List NFTable conf files
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/conf/action:
     post:
       consumes:
@@ -5489,7 +5889,7 @@ paths:
           description: OK
       summary: Execute conf actions
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/conf/diff:
     get:
       consumes:
@@ -5509,6 +5909,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5529,7 +5930,7 @@ paths:
             type: string
       summary: Get conf diff
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/conf/log:
     get:
       consumes:
@@ -5549,6 +5950,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5574,7 +5976,7 @@ paths:
             $ref: '#/definitions/model.PageResult'
       summary: Get conf histories
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/conf/raw:
     get:
       consumes:
@@ -5594,6 +5996,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Conf file name
         in: query
@@ -5609,7 +6012,7 @@ paths:
             type: string
       summary: Get conf file content
       tags:
-      - NFTable
+      - nftables
     post:
       consumes:
       - application/json
@@ -5633,7 +6036,7 @@ paths:
           description: OK
       summary: Create conf file
       tags:
-      - NFTable
+      - nftables
     put:
       consumes:
       - application/json
@@ -5657,7 +6060,7 @@ paths:
           description: OK
       summary: Save conf file content
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/conf/restore:
     put:
       consumes:
@@ -5682,7 +6085,7 @@ paths:
           description: OK
       summary: Restore conf file
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/install:
     post:
       consumes:
@@ -5701,7 +6104,7 @@ paths:
           description: OK
       summary: Install nftables
       tags:
-      - NFTable
+      - nftables
   /nftables/{host}/switch/to:
     post:
       consumes:
@@ -5726,7 +6129,26 @@ paths:
           description: OK
       summary: Switch to nftables or iptables
       tags:
-      - NFTable
+      - nftables
+  /nftables/{host}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Sync global repository to specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync global repository to specified host
+      tags:
+      - nftables
   /nftables/{host}/toggle:
     post:
       consumes:
@@ -5751,7 +6173,7 @@ paths:
           description: OK
       summary: Toggle nftables
       tags:
-      - NFTable
+      - nftables
   /nftables/info:
     get:
       consumes:
@@ -5766,7 +6188,7 @@ paths:
             $ref: '#/definitions/plugin.PluginInfo'
       summary: Get plugin info
       tags:
-      - NFTable
+      - nftables
   /nftables/menu:
     get:
       consumes:
@@ -5783,7 +6205,7 @@ paths:
             type: array
       summary: Get plugin menu
       tags:
-      - NFTable
+      - nftables
   /scripts/{host}:
     delete:
       consumes:
@@ -5803,6 +6225,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: File name
         in: query
@@ -5835,6 +6258,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Page
         in: query
@@ -5923,6 +6347,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       produces:
       - application/json
@@ -6034,6 +6459,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Script file name
         in: query
@@ -6069,6 +6495,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Script file name
         in: query
@@ -6109,6 +6536,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Script file name
         in: query
@@ -6278,6 +6706,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: File name
         in: query
@@ -6310,6 +6739,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Page
         in: query
@@ -6356,6 +6786,118 @@ paths:
       summary: Execute service actions
       tags:
       - Service
+  /services/{host}/category:
+    delete:
+      consumes:
+      - application/json
+      description: Delete category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete category
+      tags:
+      - Service
+    get:
+      consumes:
+      - application/json
+      description: List category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List category
+      tags:
+      - Service
+    post:
+      consumes:
+      - application/json
+      description: Create category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Category creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create category
+      tags:
+      - Service
+    put:
+      consumes:
+      - application/json
+      description: Update category
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: category edit details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateGitCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update category
+      tags:
+      - Service
   /services/{host}/diff:
     get:
       consumes:
@@ -6375,6 +6917,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Service file name
         in: query
@@ -6415,6 +6958,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Service file name. If this parameter is left empty, return template
           data.
@@ -6498,6 +7042,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Service file name
         in: query
@@ -6543,6 +7088,7 @@ paths:
       - description: Category (directory under 'global' or 'local')
         in: query
         name: category
+        required: true
         type: string
       - description: Service file name
         in: query
@@ -6630,6 +7176,25 @@ paths:
         "200":
           description: OK
       summary: Restore service file
+      tags:
+      - Service
+  /services/{host}/sync:
+    post:
+      consumes:
+      - application/json
+      description: Sync global repository to specified host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Sync global repository to specified host
       tags:
       - Service
   /services/info:
