@@ -403,7 +403,7 @@ func (s *NFTable) UpdateCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Success 200
 // @Router /nftables/{host}/category [delete]
 func (s *NFTable) DeleteCategory(c *gin.Context) {
@@ -424,6 +424,10 @@ func (s *NFTable) DeleteCategory(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	req := model.DeleteGitCategory{
 		Type:     scriptType,
@@ -446,7 +450,7 @@ func (s *NFTable) DeleteCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
@@ -469,6 +473,10 @@ func (s *NFTable) GetConfList(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
@@ -533,7 +541,7 @@ func (s *NFTable) CreateContent(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Success 200 {string} string
 // @Router /nftables/{host}/conf/raw [get]
@@ -555,6 +563,10 @@ func (s *NFTable) GetContent(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -612,7 +624,7 @@ func (s *NFTable) UpdateContent(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
 // @Router /nftables/{host}/conf [delete]
@@ -634,6 +646,10 @@ func (s *NFTable) Delete(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -691,7 +707,7 @@ func (s *NFTable) Restore(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
@@ -715,6 +731,10 @@ func (s *NFTable) GetConfLog(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -758,7 +778,7 @@ func (s *NFTable) GetConfLog(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
@@ -781,6 +801,10 @@ func (s *NFTable) GetConfDiff(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {

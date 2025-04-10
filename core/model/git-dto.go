@@ -2,36 +2,36 @@ package model
 
 type QueryGitFile struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
 }
 
 type GetGitFileDetail struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	Name     string `json:"name" validate:"required"`
 }
 
 type CreateGitCategory struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 }
 
 type UpdateGitCategory struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	NewName  string `json:"new_name"`
 }
 
 type DeleteGitCategory struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 }
 
 type CreateGitFile struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	Name     string `json:"name" validate:"required"`
 	Content  string `json:"content"`
 }
@@ -47,20 +47,20 @@ type UpdateGitFile struct {
 
 type DeleteGitFile struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	Name     string `json:"name" validate:"required"`
 }
 
 type RestoreGitFile struct {
 	Type       string `json:"type" validate:"required,oneof=global local"`
-	Category   string `json:"category"`
+	Category   string `json:"category" validate:"required"`
 	Name       string `json:"name" validate:"required"`
 	CommitHash string `json:"commit_hash" validate:"required"`
 }
 
 type GitFileLog struct {
 	Type     string `json:"type" validate:"required,oneof=global local"`
-	Category string `json:"category"`
+	Category string `json:"category" validate:"required"`
 	Name     string `json:"name" validate:"required"`
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
@@ -68,7 +68,7 @@ type GitFileLog struct {
 
 type GitFileDiff struct {
 	Type       string `json:"type" validate:"required,oneof=global local"`
-	Category   string `json:"category"`
+	Category   string `json:"category" validate:"required"`
 	Name       string `json:"name" validate:"required"`
 	CommitHash string `json:"commit_hash" validate:"required"`
 }

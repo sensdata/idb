@@ -308,7 +308,7 @@ func (s *ScriptMan) UpdateCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Success 200
 // @Router /scripts/{host}/category [delete]
 func (s *ScriptMan) DeleteCategory(c *gin.Context) {
@@ -329,6 +329,10 @@ func (s *ScriptMan) DeleteCategory(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	req := model.DeleteGitCategory{
 		Type:     scriptType,
@@ -351,7 +355,7 @@ func (s *ScriptMan) DeleteCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
@@ -374,6 +378,10 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
@@ -410,7 +418,7 @@ func (s *ScriptMan) GetScriptList(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Success 200 {object} model.GitFile
 // @Router /scripts/{host}/detail [get]
@@ -432,6 +440,10 @@ func (s *ScriptMan) GetScriptDetail(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -517,7 +529,7 @@ func (s *ScriptMan) Update(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
 // @Router /scripts/{host} [delete]
@@ -539,6 +551,10 @@ func (s *ScriptMan) Delete(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -596,7 +612,7 @@ func (s *ScriptMan) Restore(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
@@ -620,6 +636,10 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -663,7 +683,7 @@ func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Script file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
@@ -686,6 +706,10 @@ func (s *ScriptMan) GetScriptDiff(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {

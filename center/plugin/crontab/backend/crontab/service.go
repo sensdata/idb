@@ -333,7 +333,7 @@ func (s *CronTab) UpdateCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Success 200
 // @Router /crontab/{host}/category [delete]
 func (s *CronTab) DeleteCategory(c *gin.Context) {
@@ -354,6 +354,10 @@ func (s *CronTab) DeleteCategory(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	req := model.DeleteGitCategory{
 		Type:     scriptType,
@@ -376,7 +380,7 @@ func (s *CronTab) DeleteCategory(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
@@ -399,6 +403,10 @@ func (s *CronTab) GetConfList(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
@@ -463,7 +471,7 @@ func (s *CronTab) CreateContent(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Success 200 {string} string
 // @Router /crontab/{host}/raw [get]
@@ -485,6 +493,10 @@ func (s *CronTab) GetContent(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -542,7 +554,7 @@ func (s *CronTab) UpdateContent(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string false "Conf file name. If this parameter is left empty, return template data."
 // @Success 200 {object} model.ServiceForm
 // @Router /crontab/{host}/form [get]
@@ -564,6 +576,11 @@ func (s *CronTab) GetForm(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
+
 	name := c.Query("name")
 
 	req := model.GetGitFileDetail{
@@ -644,7 +661,7 @@ func (s *CronTab) UpdateForm(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
 // @Router /crontab/{host} [delete]
@@ -666,6 +683,10 @@ func (s *CronTab) Delete(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -723,7 +744,7 @@ func (s *CronTab) Restore(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
@@ -747,6 +768,10 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
@@ -790,7 +815,7 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param type query string true "Type (options: 'global', 'local')"
-// @Param category query string false "Category (directory under 'global' or 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
@@ -813,6 +838,10 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 	}
 
 	category := c.Query("category")
+	if category == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		return
+	}
 
 	name := c.Query("name")
 	if name == "" {
