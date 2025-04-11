@@ -40,7 +40,7 @@ func getTimezones() ([]model.Timezone, error) {
 	type rawTimezone struct {
 		Value  string   `json:"value"`
 		Abbr   string   `json:"abbr"`
-		Offset int      `json:"offset"`
+		Offset float64  `json:"offset"`
 		IsDst  bool     `json:"isdst"`
 		Text   string   `json:"text"`
 		UTC    []string `json:"utc"`
