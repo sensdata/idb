@@ -7295,6 +7295,32 @@ paths:
       summary: Get avaiable ips
       tags:
       - Settings
+  /settings/timezones:
+    get:
+      consumes:
+      - application/json
+      description: Get avaiable timezones
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get avaiable timezones
+      tags:
+      - Settings
   /settings/upgrade:
     post:
       consumes:
