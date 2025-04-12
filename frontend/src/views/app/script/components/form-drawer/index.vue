@@ -21,7 +21,11 @@
             :placeholder="$t('app.script.form.name.placeholder')"
           />
         </a-form-item>
-        <a-form-item field="type" :label="$t('app.script.form.type.label')">
+        <a-form-item
+          v-if="!isEdit"
+          field="type"
+          :label="$t('app.script.form.type.label')"
+        >
           <a-radio-group v-model="formState.type" :options="typeOptions" />
         </a-form-item>
         <a-form-item
@@ -49,29 +53,34 @@
             width="100%"
           />
         </a-form-item>
-        <a-form-item field="mark" :label="$t('app.script.form.mark.label')">
+        <!-- <a-form-item field="mark" :label="$t('app.script.form.mark.label')">
           <a-textarea
             v-model="formState.mark"
             :placeholder="$t('app.script.form.mark.placeholder')"
             :auto-size="{ minRows: 5 }"
           />
-        </a-form-item>
+        </a-form-item> -->
       </a-form>
     </a-spin>
   </a-drawer>
 </template>
 
 <script lang="ts" setup>
-  import { computed, reactive, ref, toRaw, watch } from 'vue';
+  import { computed, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message, SelectOption } from '@arco-design/web-vue';
   import {
     createScriptApi,
     getScriptCategoryListApi,
     getScriptDetailApi,
+    updateScriptApi,
   } from '@/api/script';
   import { SCRIPT_TYPE } from '@/config/enum';
   import { RadioOption } from '@arco-design/web-vue/es/radio/interface';
+
+  const props = defineProps<{
+    type: SCRIPT_TYPE;
+  }>();
 
   const emit = defineEmits(['ok']);
 
@@ -80,10 +89,10 @@
   const formRef = ref();
   const formState = reactive({
     name: '',
-    type: SCRIPT_TYPE.Local,
+    type: props.type,
     category: undefined as string | undefined,
     content: '',
-    mark: '',
+    // mark: '',
   });
 
   const rules = {};
@@ -110,8 +119,8 @@
       });
       categoryOptions.value = [
         ...ret.items.map((cat) => ({
-          label: cat,
-          value: cat,
+          label: cat.name,
+          value: cat.name,
         })),
       ];
     } catch (err: any) {
@@ -127,16 +136,20 @@
     }
   );
 
-  const paramsRef = ref<{ id: number }>();
-  const isEdit = computed(() => !!paramsRef.value?.id);
-  const setParams = (params: { id: number }) => {
+  const paramsRef = ref<{ name: string; category: string }>();
+  const isEdit = computed(() => !!paramsRef.value?.name);
+  const setParams = (params: { name: string; category: string }) => {
     paramsRef.value = params;
   };
   const loading = ref(false);
   async function load() {
     loading.value = true;
     try {
-      const data = await getScriptDetailApi(toRaw(paramsRef.value!));
+      const data = await getScriptDetailApi({
+        name: paramsRef.value!.name,
+        category: paramsRef.value!.category,
+        type: props.type,
+      });
       Object.assign(formState, data);
     } finally {
       loading.value = false;
@@ -161,13 +174,22 @@
 
     submitLoading.value = true;
     try {
-      await createScriptApi({
-        name: formState.name,
-        type: formState.type,
-        category: formState.category,
-        content: formState.content,
-        mark: formState.mark,
-      });
+      if (isEdit.value) {
+        await updateScriptApi({
+          type: props.type,
+          ...paramsRef.value!,
+          new_name: formState.name,
+          new_category: formState.category!,
+          content: formState.content,
+        });
+      } else {
+        await createScriptApi({
+          name: formState.name,
+          type: formState.type,
+          category: formState.category,
+          content: formState.content,
+        });
+      }
       visible.value = false;
       Message.success(t('app.script.form.success'));
       emit('ok');
