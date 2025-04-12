@@ -43,3 +43,7 @@ export function quitTerminalSessionApi(
 export function pruneTerminalSessionApi(host: number) {
   return request.post(`/terminals/${host}/sessions/prune`);
 }
+
+export function installTerminalApi(host: number) {
+  return request.post(`/terminals/${host}/install`);
+}

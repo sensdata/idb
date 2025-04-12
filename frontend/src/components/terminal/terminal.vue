@@ -4,13 +4,18 @@
 
 <script lang="ts" setup>
   import { ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { API_BASE_URL } from '@/helper/api-helper';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
+  import { useConfirm } from '@/hooks/confirm';
+  import { installTerminalApi } from '@/api/terminal';
   import { debounce } from 'lodash';
   import { serializeQueryParams } from '@/utils';
   import { MsgType, ReceiveMsgDo, SendMsgDo } from './type';
   import '@xterm/xterm/css/xterm.css';
+
+  const { t } = useI18n();
 
   const props = defineProps<{
     path?: string;
@@ -31,6 +36,7 @@
   const fitRef = shallowRef<FitAddon>();
   const timerRef = shallowRef<number>();
   const sessionIdRef = ref<string>();
+  const { confirm } = useConfirm();
 
   function isWsOpen() {
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
@@ -73,10 +79,18 @@
     window.removeEventListener('resize', onResizeDebounce);
   }
 
-  function onWsMsgReceived(ev: MessageEvent) {
+  async function onWsMsgReceived(ev: MessageEvent) {
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
     if (msg.code != null && msg.code !== 200) {
       termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
+      if (msg.msg === 'ErrNotInstalled') {
+        if (await confirm(t('components.terminal.session.confirmInstall'))) {
+          termRef.value?.write('installing...\r\n');
+          await installTerminalApi(props.hostId);
+          termRef.value?.write('install success\r\n');
+          return;
+        }
+      }
       return;
     }
 
