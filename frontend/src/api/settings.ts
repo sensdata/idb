@@ -28,3 +28,22 @@ export function getAvailableIpsApi() {
     }>;
   }>('/settings/ips');
 }
+
+export interface TimezoneOption {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  value: string;
+  abbr: string;
+  offset: number;
+  isdst: boolean;
+  text: string;
+  utc: string;
+}
+
+export function getTimezonesApi(params: { page: number; page_size: number }) {
+  return request.get<{
+    items: TimezoneOption[];
+    total: number;
+  }>('/settings/timezones', params);
+}

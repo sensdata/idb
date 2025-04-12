@@ -18,25 +18,30 @@
           },
         ]"
       >
-        <a-input
+        <a-select
           v-model="formState.timezone"
           :placeholder="$t('app.sysinfo.timezoneModify.placeholder')"
+          :loading="timezoneLoading"
+          :options="timezoneOptions"
+          allow-search
+          allow-clear
         />
       </a-form-item>
-      <a-form-item>
+      <!-- <a-form-item>
         <p class="text-gray-500 text-sm">
           {{ $t('app.sysinfo.timezoneModify.example') }}
         </p>
-      </a-form-item>
+      </a-form-item> -->
     </a-form>
   </a-modal>
 </template>
 
 <script lang="ts" setup>
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { Message } from '@arco-design/web-vue';
+  import { Message, SelectOptionData } from '@arco-design/web-vue';
   import { updateTimeZoneApi } from '@/api/sysinfo';
+  import { getTimezonesApi } from '@/api/settings';
   import useVisible from '@/hooks/visible';
   import useLoading from '@/hooks/loading';
 
@@ -48,6 +53,27 @@
   const formRef = ref();
   const formState = reactive({
     timezone: '',
+  });
+
+  const timezoneOptions = ref<SelectOptionData[]>([]);
+  const timezoneLoading = ref(false);
+  const getTimeZoneOptions = async () => {
+    timezoneLoading.value = true;
+    try {
+      const res = await getTimezonesApi({
+        page: 1,
+        page_size: 1000,
+      });
+      timezoneOptions.value = res.items.map((item) => ({
+        label: item.utc,
+        value: item.utc,
+      }));
+    } finally {
+      timezoneLoading.value = false;
+    }
+  };
+  onMounted(() => {
+    getTimeZoneOptions();
   });
 
   const handleOk = async () => {
