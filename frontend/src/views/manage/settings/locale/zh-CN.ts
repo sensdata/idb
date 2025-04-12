@@ -14,6 +14,7 @@ export default {
   'manage.settings.save': '保存',
   'manage.settings.saveSuccess': '保存成功',
   'manage.settings.saveFailed': '保存失败',
+  'manage.settings.successRedirect': '保存成功，3秒后将跳转至新域名',
   'manage.settings.loadFailed': '加载设置失败',
   'manage.settings.loadIpsFailed': '加载IP列表失败',
   'manage.settings.selectIp': '请选择监听IP',

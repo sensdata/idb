@@ -15,7 +15,9 @@ export function getSettingsApi() {
 }
 
 export function updateSettingsApi(data: SettingsForm) {
-  return request.post<SettingsForm>('/settings', data);
+  return request.post<{
+    redirect_url: string;
+  }>('/settings', data);
 }
 
 export function getAvailableIpsApi() {
