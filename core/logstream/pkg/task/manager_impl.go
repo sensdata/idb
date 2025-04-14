@@ -51,7 +51,7 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 	defer m.mu.Unlock()
 
 	taskID := uuid.New().String()
-	now := time.Now()
+	now := time.Now().Local()
 
 	task := &types.Task{
 		ID:        taskID,
