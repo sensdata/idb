@@ -904,8 +904,10 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 
 	scriptName := filepath.Base(req.ScriptPath)
 	scriptName = strings.TrimSuffix(scriptName, filepath.Ext(scriptName))
+	// 根据脚本路径创建同名日志目录
 	timestamp := time.Now().Format("20060102_150405")
-	logPath := filepath.Join(s.pluginConf.Items.LogDir, scriptName, timestamp+".log")
+	scriptDir := filepath.Dir(req.ScriptPath)
+	logPath := filepath.Join(scriptDir, scriptName, timestamp+".log")
 
 	scriptExec := model.ScriptExec{
 		ScriptPath: req.ScriptPath,
@@ -955,8 +957,10 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 	return &result, nil
 }
 
-func (s *ScriptMan) getScriptRunLog(hostID uint64) (string, error) {
+func (s *ScriptMan) getScriptRunLogs(hostID uint64) (*model.PageResult, error) {
 
+	// 枚举所有运行日志
+	runLogDir := filepath.Join(s.pluginConf.Items.LogDir, scriptName)
 	logPath := filepath.Join(s.pluginConf.Items.LogDir, "script-run.log")
 	req := model.FileContentReq{
 		Path: logPath,
