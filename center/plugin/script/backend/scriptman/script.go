@@ -912,7 +912,7 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 	scriptName := filepath.Base(req.ScriptPath)
 	scriptName = strings.TrimSuffix(scriptName, filepath.Ext(scriptName))
 	// 根据脚本路径创建同名日志目录
-	timestamp := time.Now().Format("20060102_150405")
+	timestamp := time.Now().Local().Format("20060102_150405")
 	scriptDir := filepath.Dir(req.ScriptPath)
 	logPath := filepath.Join(scriptDir, scriptName, timestamp+".log")
 
