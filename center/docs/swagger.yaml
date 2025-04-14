@@ -538,12 +538,9 @@ definitions:
     type: object
   model.ExecuteScript:
     properties:
-      host_id:
-        type: integer
       script_path:
         type: string
     required:
-    - host_id
     - script_path
     type: object
   model.Favorite:
@@ -6615,15 +6612,29 @@ paths:
       summary: Execute script
       tags:
       - Script
-  /scripts/{host}/run/log:
+  /scripts/{host}/run/logs:
     get:
       consumes:
       - application/json
-      description: Get content of run log
+      description: Get run logs of script
       parameters:
       - description: Host ID
         in: path
         name: host
+        required: true
+        type: integer
+      - description: Script path
+        in: query
+        name: path
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
         required: true
         type: integer
       produces:
@@ -6632,8 +6643,34 @@ paths:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get run logs of script
+      tags:
+      - Script
+  /scripts/{host}/run/logs/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get run log detail
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Log path
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
             $ref: '#/definitions/model.GitFile'
-      summary: Get run log content
+      summary: Get run log detail
       tags:
       - Script
   /scripts/{host}/sync:

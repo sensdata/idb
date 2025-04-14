@@ -7063,9 +7063,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/{host}/run/log": {
+        "/scripts/{host}/run/logs": {
             "get": {
-                "description": "Get content of run log",
+                "description": "Get run logs of script",
                 "consumes": [
                     "application/json"
                 ],
@@ -7075,13 +7075,72 @@ const docTemplate = `{
                 "tags": [
                     "Script"
                 ],
-                "summary": "Get run log content",
+                "summary": "Get run logs of script",
                 "parameters": [
                     {
                         "type": "integer",
                         "description": "Host ID",
                         "name": "host",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Script path",
+                        "name": "path",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/scripts/{host}/run/logs/detail": {
+            "get": {
+                "description": "Get run log detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Script"
+                ],
+                "summary": "Get run log detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Log path",
+                        "name": "path",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -10589,13 +10648,9 @@ const docTemplate = `{
         "model.ExecuteScript": {
             "type": "object",
             "required": [
-                "host_id",
                 "script_path"
             ],
             "properties": {
-                "host_id": {
-                    "type": "integer"
-                },
                 "script_path": {
                     "type": "string"
                 }
