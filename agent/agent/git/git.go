@@ -184,7 +184,7 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 		// 填充 GitFile 信息
 		file := model.GitFile{
 			Source:    path,
-			Name:      info.Name(),
+			Name:      strings.TrimSuffix(info.Name(), filepath.Ext(info.Name())),
 			Extension: filepath.Ext(info.Name()),
 			Content:   "",
 			Size:      info.Size(),
@@ -283,8 +283,8 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 	// 填充到结果
 	gitFile := &model.GitFile{
 		Source:    realPath,
-		Name:      filepath.Base(relativePath),
-		Extension: filepath.Ext(relativePath),
+		Name:      strings.TrimSuffix(fileInfo.Name(), filepath.Ext(fileInfo.Name())),
+		Extension: filepath.Ext(fileInfo.Name()),
 		Content:   string(content), // 将内容转换为字符串
 		Size:      fileInfo.Size(),
 		ModTime:   fileInfo.ModTime(),
