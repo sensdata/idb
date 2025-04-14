@@ -3,7 +3,6 @@ package model
 import "time"
 
 type ExecuteScript struct {
-	HostID     uint   `json:"host_id" validate:"required"`
 	ScriptPath string `json:"script_path" validate:"required"`
 }
 

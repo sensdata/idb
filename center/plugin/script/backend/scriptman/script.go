@@ -8,6 +8,7 @@ import (
 
 	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -957,44 +958,56 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 	return &result, nil
 }
 
-func (s *ScriptMan) getScriptRunLogs(hostID uint64) (*model.PageResult, error) {
+func (s *ScriptMan) getScriptRunLogs(hostID uint, scriptPath string, page int, pageSize int) (*model.PageResult, error) {
+	var result = model.PageResult{Total: 0, Items: nil}
 
 	// 枚举所有运行日志
-	runLogDir := filepath.Join(s.pluginConf.Items.LogDir, scriptName)
-	logPath := filepath.Join(s.pluginConf.Items.LogDir, "script-run.log")
-	req := model.FileContentReq{
-		Path: logPath,
+	scriptName := filepath.Base(scriptPath)
+	scriptName = strings.TrimSuffix(scriptName, filepath.Ext(scriptName))
+	// 根据脚本路径创建同名日志目录
+	scriptDir := filepath.Dir(scriptPath)
+	logDir := filepath.Join(scriptDir, scriptName)
+
+	req := model.FileOption{
+		FileOption: files.FileOption{
+			Path:       logDir,
+			Search:     "",
+			Expand:     true,
+			ShowHidden: false,
+			Dir:        false,
+			Page:       page,
+			PageSize:   pageSize,
+		},
 	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
-		return "", err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
-		HostID: uint(hostID),
+		HostID: hostID,
 		Action: model.Action{
-			Action: model.File_Content,
+			Action: model.File_Search,
 			Data:   data,
 		},
 	}
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return "", err
+		return &result, err
 	}
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return "", fmt.Errorf("failed to get file content")
+		return &result, fmt.Errorf("failed to search file")
 	}
 
-	var fileInfo model.FileInfo
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to file content: %v", err)
-		return "", fmt.Errorf("json err: %v", err)
+		global.LOG.Error("Error unmarshaling data to file list: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
 	}
 
-	return fileInfo.Content, nil
+	return &result, nil
 }

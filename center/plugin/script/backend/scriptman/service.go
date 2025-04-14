@@ -138,7 +138,7 @@ func (s *ScriptMan) Initialize() {
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
-			{Method: "GET", Path: "/:host/run/log", Handler: s.GetScriptRunLog},
+			{Method: "GET", Path: "/:host/run/logs", Handler: s.GetScriptRunLogs},
 		},
 	)
 
@@ -791,25 +791,45 @@ func (s *ScriptMan) Execute(c *gin.Context) {
 }
 
 // @Tags Script
-// @Summary Get run log content
-// @Description Get content of run log
+// @Summary Get run logs of script
+// @Description Get run logs of script
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Success 200 {object} model.GitFile
-// @Router /scripts/{host}/run/log [get]
-func (s *ScriptMan) GetScriptRunLog(c *gin.Context) {
+// @Param path query string false "Script path"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host}/run/logs [get]
+func (s *ScriptMan) GetScriptRunLogs(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
-	content, err := s.getScriptRunLog(hostID)
+	path := c.Query("path")
+	if path == "" {
+		path = "/"
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		return
+	}
+
+	result, err := s.getScriptRunLogs(uint(hostID), path, int(page), int(pageSize))
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, content)
+	helper.SuccessWithData(c, result)
 }
