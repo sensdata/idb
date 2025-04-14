@@ -53,6 +53,7 @@
   import { useI18n } from 'vue-i18n';
   import { formatTime } from '@/utils/format';
   import { getCrontabRecordsApi, getCrontabRunLogApi } from '@/api/crontab';
+  import LogsView from '@/components/logs-view/index.vue';
 
   const { t } = useI18n();
   const visible = ref(false);

@@ -135,7 +135,7 @@ export default {
 
   'app.sysinfo.timezoneModify.title': 'Modify System Timezone',
   'app.sysinfo.timezoneModify.label': 'Timezone:',
-  'app.sysinfo.timezoneModify.placeholder': 'e.g. Asia/Shanghai',
+  'app.sysinfo.timezoneModify.placeholder': 'Please select timezone',
   'app.sysinfo.timezoneModify.example':
     'Common timezones: Asia/Shanghai (China), America/New_York (US Eastern), Europe/London (UK)',
   'app.sysinfo.timezoneModify.required': 'Please enter timezone',

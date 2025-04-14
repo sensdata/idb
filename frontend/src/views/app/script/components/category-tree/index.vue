@@ -1,43 +1,93 @@
 <template>
   <div class="category-tree">
-    <div
-      v-for="cat of items"
-      :key="cat || 'all'"
-      class="item"
-      :class="{ selected: selected === cat }"
-      @click="handleClick(cat)"
-    >
-      <div class="item-icon">
-        <folder-icon />
-      </div>
-      <div class="item-text truncate">
-        {{ cat == null ? $t('app.script.category.all') : cat }}
-      </div>
+    <div v-if="items.length === 0" class="empty-text">
+      {{ $t('app.script.category.tree.empty') }}
+      <span class="color-primary" @click="handleCreate">
+        {{ $t('app.script.category.tree.create') }}
+      </span>
     </div>
+    <template v-else>
+      <div
+        v-for="cat of items"
+        :key="cat || 'all'"
+        class="item"
+        :class="{ selected: selected === cat }"
+        @click="handleClick(cat)"
+      >
+        <div class="item-icon">
+          <folder-icon />
+        </div>
+        <div class="item-text truncate">{{ cat }}</div>
+      </div>
+    </template>
   </div>
+  <category-form-modal ref="formRef" :type="props.type" @ok="handleCreateOk" />
 </template>
 
 <script lang="ts" setup>
+  import { onMounted, ref } from 'vue';
+  import { getScriptCategoryListApi } from '@/api/script';
   import FolderIcon from '@/assets/icons/color-folder.svg';
-  import { PropType } from 'vue';
+  import { SCRIPT_TYPE } from '@/config/enum';
+  import { Message } from '@arco-design/web-vue';
+  import CategoryFormModal from '../category-manage/form-modal.vue';
 
-  defineProps<{
-    items: Array<string | null>;
+  const props = defineProps<{
+    type: SCRIPT_TYPE;
   }>();
 
   const selected = defineModel('selected', {
-    type: [String, null] as PropType<string | null>,
-    required: true,
+    type: String,
+    required: false,
   });
 
-  function handleClick(cat: string | null) {
+  const items = ref<string[]>([]);
+  const loadCategories = async () => {
+    try {
+      const ret = await getScriptCategoryListApi({
+        page: 1,
+        page_size: 1000,
+        type: props.type,
+      });
+      items.value = [...ret.items.map((item) => item.name)];
+      if (items.value.length > 0) {
+        selected.value = items.value[0];
+      } else {
+        selected.value = '';
+      }
+    } catch (err: any) {
+      Message.error(err?.message);
+    }
+  };
+  onMounted(() => {
+    loadCategories();
+  });
+
+  function handleClick(cat: string) {
     selected.value = cat;
   }
+
+  const formRef = ref<InstanceType<typeof CategoryFormModal>>();
+  function handleCreate() {
+    formRef.value?.show();
+  }
+
+  function handleCreateOk() {
+    loadCategories();
+  }
+
+  defineExpose({
+    reload: loadCategories,
+  });
 </script>
 
 <style scoped>
   .category-tree {
     padding-left: 8px;
+  }
+
+  .empty-text {
+    padding: 10px 0;
   }
 
   .item {

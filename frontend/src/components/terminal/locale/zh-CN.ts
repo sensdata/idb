@@ -14,4 +14,5 @@ export default {
   'components.terminal.session.add': '添加',
   'components.terminal.session.quit': '关闭',
   'components.terminal.session.detach': '挂起',
+  'components.terminal.session.confirmInstall': '还未安装端受控端, 现在安装？',
 };

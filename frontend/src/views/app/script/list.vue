@@ -1,7 +1,11 @@
 <template>
   <div class="script-layout">
     <div class="script-sidebar">
-      <category-tree v-model:selected="selectedCat" :items="cats" />
+      <category-tree
+        ref="categoryTreeRef"
+        v-model:selected="selectedCat"
+        :type="type"
+      />
     </div>
     <div class="script-main">
       <idb-table
@@ -11,6 +15,7 @@
         :params="params"
         :columns="columns"
         :fetch="getScriptListApi"
+        :auto-load="false"
       >
         <template #leftActions>
           <a-button type="primary" @click="handleCreate">
@@ -18,6 +23,12 @@
               <icon-plus />
             </template>
             {{ $t('app.script.list.action.create') }}
+          </a-button>
+          <a-button type="outline" @click="handleGroupManage">
+            <template #icon>
+              <icon-list />
+            </template>
+            {{ $t('app.script.list.action.group_manage') }}
           </a-button>
         </template>
         <template #history_version="{ record }: { record: ScriptEntity }">
@@ -52,13 +63,22 @@
         </template>
       </idb-table>
     </div>
-    <form-drawer ref="formRef" @ok="reload" />
+    <form-drawer ref="formRef" :type="type" @ok="reload" />
     <logs-drawer ref="logsRef" />
+    <logs-view-modal
+      ref="runResultModalRef"
+      :title="$t('app.script.run.result.title')"
+    />
+    <category-manage
+      ref="categoryManageRef"
+      :type="type"
+      @ok="handleCategoryManageOk"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { GlobalComponents, PropType, ref } from 'vue';
+  import { GlobalComponents, PropType, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { SCRIPT_TYPE } from '@/config/enum';
@@ -71,9 +91,12 @@
   } from '@/api/script';
   import useLoading from '@/hooks/loading';
   import { useConfirm } from '@/hooks/confirm';
+  import usetCurrentHost from '@/hooks/current-host';
+  import LogsViewModal from '@/components/logs-view/modal.vue';
   import CategoryTree from './components/category-tree/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
+  import CategoryManage from './components/category-manage/index.vue';
 
   const props = defineProps({
     type: {
@@ -83,18 +106,28 @@
   });
 
   const { t } = useI18n();
+  const { currentHostId } = usetCurrentHost();
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref<InstanceType<typeof FormDrawer>>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
-  const selectedCat = ref(null);
+  const runResultModalRef = ref<InstanceType<typeof LogsViewModal>>();
+  const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
+  const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
+  const selectedCat = ref();
+  watch(selectedCat, (val) => {
+    if (val) {
+      gridRef.value?.load({
+        category: val,
+      });
+    }
+  });
   const { loading, setLoading } = useLoading();
   const { confirm } = useConfirm();
-  const params = ref({
+  const params = reactive({
     type: props.type,
     category: selectedCat.value,
   });
-  const cats = [null, '分类1', '分类2', '分类3'];
 
   const columns = [
     {
@@ -103,7 +136,6 @@
       width: 150,
       slotName: 'name',
     },
-
     {
       dataIndex: 'mod_time',
       title: t('app.script.list.column.mod_time'),
@@ -118,14 +150,6 @@
       width: 125,
       render: ({ record }: { record: ScriptEntity }) => {
         return formatTime(record.create_time);
-      },
-    },
-    {
-      dataIndex: 'category',
-      title: t('app.script.list.column.category'),
-      width: 125,
-      render: ({ record }: { record: ScriptEntity }) => {
-        return record.category ? record.category : t('app.script.category.all');
       },
     },
     {
@@ -150,12 +174,23 @@
   const handleCreate = () => {
     formRef.value?.show();
   };
+
+  const handleGroupManage = () => {
+    categoryManageRef.value?.show();
+  };
+
+  const handleCategoryManageOk = () => {
+    categoryTreeRef.value?.reload();
+  };
+
   const handleHistoryVersion = (record: ScriptEntity) => {
     console.log('handleHistoryVersion', record);
   };
+
   const handleEdit = (record: ScriptEntity) => {
     formRef.value?.setParams({
-      id: record.id,
+      name: record.name,
+      category: selectedCat.value,
     });
     formRef.value?.load();
     formRef.value?.show();
@@ -163,14 +198,27 @@
   const handleRun = async (record: ScriptEntity) => {
     setLoading(true);
     try {
-      await runScriptApi(record);
-      Message.success(t('app.script.list.message.run_success'));
+      const result = await runScriptApi({
+        host_id: currentHostId.value!,
+        script_path: record.source,
+      });
+      if (!result.err) {
+        runResultModalRef.value?.setContent(result.out);
+        runResultModalRef.value?.show();
+        // Message.success(t('app.script.list.message.run_success'));
+      } else {
+        Message.error(result.err);
+      }
     } finally {
       setLoading(false);
     }
   };
   const handleLog = (record: ScriptEntity) => {
-    logsRef.value?.show(record.id);
+    logsRef.value?.show({
+      type: props.type,
+      category: selectedCat.value,
+      name: record.name,
+    });
   };
   const handleDelete = async (record: ScriptEntity) => {
     if (

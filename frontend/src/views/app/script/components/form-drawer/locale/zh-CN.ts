@@ -1,5 +1,6 @@
 export default {
   'app.script.form.title.add': '创建脚本',
+  'app.script.form.title.edit': '编辑脚本',
   'app.script.form.name.label': '脚本名称',
   'app.script.form.name.placeholder': '请输入脚本名称',
   'app.script.form.type.label': '类型',

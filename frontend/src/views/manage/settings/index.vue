@@ -190,8 +190,15 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      await updateSettingsApi(form.value);
-      Message.success(t('manage.settings.saveSuccess'));
+      const ret = await updateSettingsApi(form.value);
+      if (form.value.bind_domain) {
+        Message.success(t('manage.settings.successRedirect'));
+        setTimeout(() => {
+          window.location.href = ret.redirect_url;
+        }, 3e3);
+      } else {
+        Message.success(t('manage.settings.saveSuccess'));
+      }
     } catch (error) {
       Message.error(t('manage.settings.saveFailed'));
     } finally {

@@ -15,7 +15,9 @@ export function getSettingsApi() {
 }
 
 export function updateSettingsApi(data: SettingsForm) {
-  return request.post<SettingsForm>('/settings', data);
+  return request.post<{
+    redirect_url: string;
+  }>('/settings', data);
 }
 
 export function getAvailableIpsApi() {
@@ -25,4 +27,23 @@ export function getAvailableIpsApi() {
       name: string;
     }>;
   }>('/settings/ips');
+}
+
+export interface TimezoneOption {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  value: string;
+  abbr: string;
+  offset: number;
+  isdst: boolean;
+  text: string;
+  utc: string;
+}
+
+export function getTimezonesApi(params: { page: number; page_size: number }) {
+  return request.get<{
+    items: TimezoneOption[];
+    total: number;
+  }>('/settings/timezones', params);
 }

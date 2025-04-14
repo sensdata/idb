@@ -53,14 +53,17 @@
   import { useI18n } from 'vue-i18n';
   import { formatTime } from '@/utils/format';
   import { getScriptRecordsApi, getScriptRunLogApi } from '@/api/script';
+  import LogsView from '@/components/logs-view/index.vue';
+  import { SCRIPT_TYPE } from '@/config/enum';
 
   const { t } = useI18n();
   const visible = ref(false);
-  const scriptId = ref<number>();
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
 
-  const params = ref({
-    id: undefined as number | undefined,
+  const params = reactive({
+    type: SCRIPT_TYPE.Local,
+    category: '',
+    name: '',
   });
 
   const columns = [
@@ -106,7 +109,9 @@
     }
     try {
       const res = await getScriptRunLogApi({
-        id: scriptId.value!,
+        type: params.type,
+        category: params.category,
+        name: params.name,
         record_id: recordId,
       });
       if (expandable.expandedRowKeys.includes(recordId)) {
@@ -139,9 +144,12 @@
     }
   };
 
-  const show = (id: number) => {
-    scriptId.value = id;
-    params.value.id = id;
+  const show = (newParams: {
+    type: SCRIPT_TYPE;
+    category: string;
+    name: string;
+  }) => {
+    Object.assign(params, newParams);
     visible.value = true;
   };
 

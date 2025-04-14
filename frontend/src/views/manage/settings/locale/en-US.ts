@@ -15,6 +15,8 @@ export default {
   'manage.settings.save': 'Save',
   'manage.settings.saveSuccess': 'Settings saved successfully',
   'manage.settings.saveFailed': 'Failed to save settings',
+  'manage.settings.successRedirect':
+    'Save successfully, 3 seconds later will redirect to the new domain',
   'manage.settings.loadFailed': 'Failed to load settings',
   'manage.settings.loadIpsFailed': 'Failed to load IP list',
   'manage.settings.selectIp': 'Please select listen IP',
