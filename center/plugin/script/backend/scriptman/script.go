@@ -1048,8 +1048,7 @@ func (s *ScriptMan) getScriptRunLogsDetail(hostID uint, logPath string) (*model.
 		return &info, fmt.Errorf("failed to get file content")
 	}
 
-	var fileInfo model.FileInfo
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &info)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to file content: %v", err)
 		return &info, fmt.Errorf("json err: %v", err)
