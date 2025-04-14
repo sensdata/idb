@@ -851,10 +851,16 @@ func (s *NFTable) update(hostID uint64, req model.UpdateGitFile) error {
 		newName = req.Name
 	}
 	var newRelativePath string
+	var newCategory string
 	if req.NewCategory != "" {
-		newRelativePath = filepath.Join(req.NewCategory, newName+".sh")
+		newCategory = req.NewCategory
 	} else {
-		newRelativePath = newName + ".sh"
+		newCategory = req.Category
+	}
+	if newCategory != "" {
+		newRelativePath = filepath.Join(newCategory, newName+".nftable")
+	} else {
+		newRelativePath = newName + ".nftable"
 	}
 
 	// global的情况，操作本机

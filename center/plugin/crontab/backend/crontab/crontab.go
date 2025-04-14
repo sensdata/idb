@@ -767,8 +767,14 @@ func (s *CronTab) updateForm(hostID uint64, req model.UpdateServiceForm) error {
 		newName = req.Name
 	}
 	var newRelativePath string
+	var newCategory string
 	if req.NewCategory != "" {
-		newRelativePath = filepath.Join(req.NewCategory, newName+".crontab")
+		newCategory = req.NewCategory
+	} else {
+		newCategory = req.Category
+	}
+	if newCategory != "" {
+		newRelativePath = filepath.Join(newCategory, newName+".crontab")
 	} else {
 		newRelativePath = newName + ".crontab"
 	}
@@ -1013,8 +1019,14 @@ func (s *CronTab) update(hostID uint64, req model.UpdateGitFile) error {
 		newName = req.Name
 	}
 	var newRelativePath string
+	var newCategory string
 	if req.NewCategory != "" {
-		newRelativePath = filepath.Join(req.NewCategory, newName+".crontab")
+		newCategory = req.NewCategory
+	} else {
+		newCategory = req.Category
+	}
+	if newCategory != "" {
+		newRelativePath = filepath.Join(newCategory, newName+".crontab")
 	} else {
 		newRelativePath = newName + ".crontab"
 	}
