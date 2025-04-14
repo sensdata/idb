@@ -139,6 +139,7 @@ func (s *ScriptMan) Initialize() {
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
 			{Method: "GET", Path: "/:host/run/logs", Handler: s.GetScriptRunLogs},
+			{Method: "GET", Path: "/:host/run/logs/detail", Handler: s.GetScriptRunLogsDetail},
 		},
 	)
 
@@ -831,5 +832,32 @@ func (s *ScriptMan) GetScriptRunLogs(c *gin.Context) {
 		return
 	}
 
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Script
+// @Summary Get run log detail
+// @Description Get run log detail
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string true "Log path"
+// @Success 200 {object} model.GitFile
+// @Router /scripts/{host}/run/logs/detail [get]
+func (s *ScriptMan) GetScriptRunLogsDetail(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid path", err)
+	}
+	result, err := s.getScriptRunLogsDetail(uint(hostID), path)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
 	helper.SuccessWithData(c, result)
 }

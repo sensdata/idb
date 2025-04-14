@@ -1017,3 +1017,43 @@ func (s *ScriptMan) getScriptRunLogs(hostID uint, scriptPath string, page int, p
 
 	return &result, nil
 }
+
+func (s *ScriptMan) getScriptRunLogsDetail(hostID uint, logPath string) (*model.FileInfo, error) {
+	var info model.FileInfo
+	// 读取文件内容
+	req := model.FileContentReq{
+		Path:   logPath,
+		Expand: true,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &info, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &info, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &info, fmt.Errorf("failed to get file content")
+	}
+
+	var fileInfo model.FileInfo
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileInfo)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return &info, fmt.Errorf("json err: %v", err)
+	}
+
+	return &info, nil
+}
