@@ -967,6 +967,11 @@ definitions:
     - source_id
     - target_name
     type: object
+  model.InstallAgent:
+    properties:
+      upgrade:
+        type: boolean
+    type: object
   model.Ipv6Option:
     properties:
       experimental:
@@ -4863,6 +4868,12 @@ paths:
         name: host
         required: true
         type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.InstallAgent'
       produces:
       - application/json
       responses:
@@ -6203,6 +6214,21 @@ paths:
       summary: Get plugin menu
       tags:
       - nftables
+  /public/version:
+    get:
+      consumes:
+      - application/json
+      description: Get server descriptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.About'
+      summary: Get server descriptions
+      tags:
+      - Settings
   /scripts/{host}:
     delete:
       consumes:

@@ -4569,6 +4569,15 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.InstallAgent"
+                        }
                     }
                 ],
                 "responses": {
@@ -6405,6 +6414,29 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/public/version": {
+            "get": {
+                "description": "Get server descriptions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get server descriptions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.About"
+                        }
                     }
                 }
             }
@@ -11282,6 +11314,14 @@ const docTemplate = `{
                 },
                 "target_name": {
                     "type": "string"
+                }
+            }
+        },
+        "model.InstallAgent": {
+            "type": "object",
+            "properties": {
+                "upgrade": {
+                    "type": "boolean"
                 }
             }
         },
