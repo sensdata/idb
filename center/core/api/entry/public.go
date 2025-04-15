@@ -5,9 +5,9 @@ import (
 	"github.com/sensdata/idb/core/constant"
 )
 
-// @Tags Settings
-// @Summary Get server descriptions
-// @Description Get server descriptions
+// @Tags Public
+// @Summary Get current server version
+// @Description Get current server version
 // @Accept json
 // @Produce json
 // @Success 200 {object} model.About
