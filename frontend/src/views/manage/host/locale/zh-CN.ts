@@ -18,6 +18,7 @@ export default {
   'manage.host.list.operation.setting': '节点设置',
   'manage.host.list.operation.sshTerminal': 'SSH终端',
   'manage.host.list.operation.installAgent': '安装受控端',
+  'manage.host.list.operation.upgradeAgent': '升级受控端',
   'manage.host.list.operation.uninstallAgent': '卸载受控端',
   'manage.host.list.operation.restart': '重启',
   'manage.host.list.operation.delete': '删除',
@@ -70,10 +71,13 @@ export default {
 
   'manage.host.installAgent.installing': '正在安装受控端...',
   'manage.host.installAgent.installSuccess': '安装成功',
-  'manage.host.installAgent.installFailed': '安装代理失败',
-  'manage.host.installAgent.installTimeout': '安装代理超时',
+  'manage.host.installAgent.installFailed': '安装受控端失败',
+  'manage.host.installAgent.installTimeout': '安装受控端超时',
+  'manage.host.installAgent.upgradeFailed': '升级受控端失败',
+  'manage.host.installAgent.upgradeTimeout': '升级受控端超时',
   'manage.host.installAgent.notInstalled': '未检测到受控端，是否立即安装？',
   'manage.host.installAgent.title': '安装受控端',
+  'manage.host.installAgent.titleUpgrade': '升级受控端',
   'manage.host.installAgent.statusInstalling': '安装中',
   'manage.host.installAgent.statusCompleted': '安装完成',
   'manage.host.installAgent.statusFailed': '安装失败',
@@ -84,6 +88,9 @@ export default {
   'manage.host.list.uninstallAgent.confirm': '确定卸载当前节点的受控端吗？',
   'manage.host.list.uninstallAgent.success': '卸载成功',
   'manage.host.list.uninstallAgent.failed': '卸载失败',
+
+  'manage.host.list.operation.upgradeAgent.confirm':
+    '确定升级当前节点的受控端吗？',
 
   'manage.host.group.form.title.create': '添加分组',
   'manage.host.group.form.title.edit': '编辑分组',

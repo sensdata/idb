@@ -101,6 +101,7 @@
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
   import { formatTransferSpeed } from '@/utils/format';
+  import { compareVersion } from '@/helper/utils';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
   import HostCreate from './components/create.vue';
@@ -222,6 +223,14 @@
         visible: record.agent_status?.status !== 'installed',
         click: () => {
           installAgentRef.value?.startInstall(record.id);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.upgradeAgent'),
+        visible: compareVersion(record.agent_latest, record.agent_version) > 0,
+        confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
+        click: () => {
+          installAgentRef.value?.startUpgrade(record.id);
         },
       },
       {

@@ -74,8 +74,11 @@ export default {
   'manage.host.installAgent.installSuccess': 'Agent installed successfully',
   'manage.host.installAgent.installFailed': 'Failed to install agent',
   'manage.host.installAgent.installTimeout': 'Agent installation timeout',
+  'manage.host.installAgent.upgradeFailed': 'Failed to upgrade agent',
+  'manage.host.installAgent.upgradeTimeout': 'Agent upgrade timeout',
   'manage.host.installAgent.notInstalled': 'Agent not detected, install now?',
   'manage.host.installAgent.title': 'Install Agent',
+  'manage.host.installAgent.titleUpgrade': 'Upgrade Agent',
   'manage.host.installAgent.statusInstalling': 'Installing',
   'manage.host.installAgent.statusCompleted': 'Completed',
   'manage.host.installAgent.statusFailed': 'Failed',
@@ -87,6 +90,9 @@ export default {
     'Are you sure to uninstall the agent of the current host?',
   'manage.host.list.uninstallAgent.success': 'Uninstall successfully',
   'manage.host.list.uninstallAgent.failed': 'Uninstall failed',
+
+  'manage.host.list.operation.upgradeAgent.confirm':
+    'Are you sure to upgrade the agent of the current host?',
 
   'manage.host.group.form.title.create': 'Add Group',
   'manage.host.group.form.title.edit': 'Edit Group',

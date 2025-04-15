@@ -39,5 +39,8 @@ export interface HostEntity extends BaseEntity, HostStatusDo {
     connected: 'online' | 'offline';
   };
 
+  agent_version: string;
+  agent_latest: string;
+
   default?: boolean;
 }

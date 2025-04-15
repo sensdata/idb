@@ -1,7 +1,11 @@
 <template>
   <a-modal
     v-model:visible="visible"
-    :title="$t('manage.host.installAgent.title')"
+    :title="
+      isUpgrade
+        ? $t('manage.host.installAgent.titleUpgrade')
+        : $t('manage.host.installAgent.title')
+    "
     :footer="false"
     :mask-closable="false"
     :closable="true"
@@ -49,7 +53,11 @@
   import { Message } from '@arco-design/web-vue';
   import { TASK_STATUS } from '@/config/enum';
   import { resolveApiUrl } from '@/helper/api-helper';
-  import { installHostAgentApi, testHostAgentApi } from '@/api/host';
+  import {
+    installHostAgentApi,
+    testHostAgentApi,
+    upgradeHostAgentApi,
+  } from '@/api/host';
   import { useConfirm } from '@/hooks/confirm';
 
   const emit = defineEmits(['ok', 'cancel']);
@@ -64,6 +72,7 @@
 
   const { confirm } = useConfirm();
 
+  const isUpgrade = ref(false);
   const logs = ref<LogItem[]>([]);
   const status = ref<'installing' | 'completed' | 'failed' | 'timeout'>(
     'installing'
@@ -242,6 +251,7 @@
     try {
       const result = await installHostAgentApi(hostId);
       if (result.task_id) {
+        isUpgrade.value = false;
         logTaskMsgs(result.task_id);
       } else {
         Message.error(t('manage.host.installAgent.installFailed'));
@@ -249,6 +259,21 @@
     } catch (error) {
       Message.error(t('manage.host.installAgent.installFailed'));
       console.error('Failed to install agent:', error);
+    }
+  };
+
+  const startUpgrade = async (hostId: number) => {
+    try {
+      const result = await upgradeHostAgentApi(hostId);
+      if (result.task_id) {
+        isUpgrade.value = true;
+        logTaskMsgs(result.task_id);
+      } else {
+        Message.error(t('manage.host.installAgent.upgradeFailed'));
+      }
+    } catch (error) {
+      Message.error(t('manage.host.installAgent.upgradeFailed'));
+      console.error('Failed to upgrade agent:', error);
     }
   };
 
@@ -290,6 +315,7 @@
     setStatus,
     logTaskMsgs,
     startInstall,
+    startUpgrade,
     confirmInstall,
     checkInstall,
   });

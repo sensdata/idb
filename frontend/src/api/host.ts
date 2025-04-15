@@ -84,6 +84,14 @@ export const installHostAgentApi = (
   return axios.post(`hosts/${hostId}/agent/install`);
 };
 
+export const upgradeHostAgentApi = (
+  hostId: number
+): Promise<InstallAgentResult> => {
+  return axios.post(`hosts/${hostId}/agent/install`, {
+    upgrade: true,
+  });
+};
+
 export interface UninstallAgentResult {
   task_id: string;
 }
