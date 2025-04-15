@@ -2,7 +2,14 @@
   <a-layout-footer class="footer">
     <div class="left">
       <span class="color-primary">Powered by iDB</span>
-      <span class="ml-2.5">{{ $t('footer.currentVersion', { version }) }}</span>
+      <span class="ml-2.5">{{ $t('footer.currentVersion') }}</span>
+      <span
+        class="ml-1 color-primary"
+        :class="{ 'cursor-pointer': !isCheckingUpdate }"
+        @click="checkUpdate"
+        >{{ version }}</span
+      >
+      <a-spin v-if="isCheckingUpdate" class="ml-1 scale-75" />
     </div>
     <div class="right">
       <a-space size="small">
@@ -35,13 +42,82 @@
 </template>
 
 <script lang="ts" setup>
-  import LanguageIcon from '@/assets/icons/language-1.svg';
+  import { onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import useLocale from '@/hooks/locale';
   import { getLocaleLabel, LOCALE_OPTIONS } from '@/locale';
+  import LanguageIcon from '@/assets/icons/language-1.svg';
+  import { getPublicVersionApi } from '@/api/public';
+  import { isLogin } from '@/helper/auth';
+  import { getSettingsAboutApi, upgradeApi } from '@/api/settings';
+  import { useConfirm } from '@/hooks/confirm';
+  import { compareVersion } from '@/helper/utils';
+  import { Message } from '@arco-design/web-vue';
 
-  const version = import.meta.env.VITE_APP_VERSION as string;
+  const { t } = useI18n();
+  const version = ref('');
   const { changeLocale, currentLocale } = useLocale();
   const locales = [...LOCALE_OPTIONS];
+  const { confirm } = useConfirm();
+  const count = ref(100);
+  const isCheckingUpdate = ref(false);
+  const checkUpdate = async () => {
+    if (!isLogin()) {
+      return;
+    }
+    if (isCheckingUpdate.value) {
+      return;
+    }
+
+    isCheckingUpdate.value = true;
+    try {
+      const data = await getSettingsAboutApi();
+      // 版本大小对比
+      if (compareVersion(data.new_version, data.version) > 0) {
+        if (
+          await confirm({
+            title: t('footer.checkUpdate'),
+            content: t('footer.checkUpdateContent'),
+          })
+        ) {
+          upgradeApi();
+          // 倒数100秒，然后刷新
+          count.value = 100;
+          const countdown = () => {
+            count.value--;
+            if (count.value <= 0) {
+              return;
+            }
+            Message.info({
+              id: 'check-update-countdown',
+              content: t('footer.checkUpdateCountdown', {
+                count: count.value,
+              }),
+              duration: 2000,
+            });
+          };
+          countdown();
+
+          const timer = setInterval(() => {
+            countdown();
+            if (count.value <= 0) {
+              clearInterval(timer);
+              window.location.reload();
+            }
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      isCheckingUpdate.value = false;
+    }
+  };
+
+  onMounted(async () => {
+    const data = await getPublicVersionApi();
+    version.value = data.version;
+  });
 </script>
 
 <style scoped lang="less">
@@ -58,14 +134,16 @@
 
   .left {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100%;
   }
 
   .right {
     display: flex;
-    align-items: flex-end;
-    justify-content: center;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
   }
 
   .language-icon {

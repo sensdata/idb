@@ -20,6 +20,17 @@ export function updateSettingsApi(data: SettingsForm) {
   }>('/settings', data);
 }
 
+export function getSettingsAboutApi() {
+  return request.get<{
+    version: string;
+    new_version: string;
+  }>('/settings/about');
+}
+
+export function upgradeApi() {
+  return request.post('/settings/upgrade');
+}
+
 export function getAvailableIpsApi() {
   return request.get<{
     ips: Array<{
