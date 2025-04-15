@@ -381,7 +381,12 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 		return
 	}
 
-	taskInfo, err := hostService.InstallAgent(uint(hostID))
+	var req model.InstallAgent
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	taskInfo, err := hostService.InstallAgent(uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return

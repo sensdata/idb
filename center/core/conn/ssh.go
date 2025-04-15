@@ -31,7 +31,7 @@ type ISSHService interface {
 	Start() error
 	Stop()
 	TestConnection(host model.Host) error
-	InstallAgent(host model.Host, taskId string) error
+	InstallAgent(host model.Host, taskId string, upgrade bool) error
 	UninstallAgent(host model.Host, taskId string) error
 	AgentInstalled(host model.Host) (string, error)
 	RestartAgent(host model.Host) error
@@ -165,7 +165,7 @@ func taskStatus(taskId string, status types.TaskStatus) {
 	}
 }
 
-func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
+func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) error {
 	taskStatus(taskId, types.TaskStatusRunning)
 
 	var writer *writer.Writer
@@ -218,7 +218,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string) error {
 		return fmt.Errorf("failed to check agent installation status: %v", err)
 	}
 
-	if strings.TrimSpace(output) == "installed" {
+	if !upgrade && strings.TrimSpace(output) == "installed" {
 		global.LOG.Info("Agent is already installed on host %s", host.Addr)
 		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Agent is already installed on host %s", host.Addr))
 		taskStatus(taskId, types.TaskStatusCanceled)

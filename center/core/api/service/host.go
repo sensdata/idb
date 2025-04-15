@@ -35,7 +35,7 @@ type IHostService interface {
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
-	InstallAgent(id uint) (*core.TaskInfo, error)
+	InstallAgent(id uint, req core.InstallAgent) (*core.TaskInfo, error)
 	UninstallAgent(id uint) (*core.TaskInfo, error)
 	AgentStatus(id uint) (*core.AgentStatus, error)
 	RestartAgent(id uint) error
@@ -381,7 +381,7 @@ func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
 	return nil
 }
 
-func (s *HostService) InstallAgent(id uint) (*core.TaskInfo, error) {
+func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.TaskInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
@@ -395,7 +395,7 @@ func (s *HostService) InstallAgent(id uint) (*core.TaskInfo, error) {
 	}
 
 	// 异步安装
-	go conn.SSH.InstallAgent(host, taskId)
+	go conn.SSH.InstallAgent(host, taskId, req.Upgrade)
 
 	// 先返回task信息
 	return &core.TaskInfo{TaskID: taskId}, nil

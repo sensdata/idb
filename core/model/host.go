@@ -83,6 +83,10 @@ type TestAgent struct {
 	AgentKey  string `json:"agent_key"`
 }
 
+type InstallAgent struct {
+	Upgrade bool `json:"upgrade"`
+}
+
 type AgentStatus struct {
 	Status    string `json:"status"`
 	Connected string `json:"connected"`
