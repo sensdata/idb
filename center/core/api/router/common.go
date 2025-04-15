@@ -20,5 +20,6 @@ func commonGroups() []CommonRouter {
 		&AppRouter{},
 		&SettingsRouter{},
 		&TaskRouter{},
+		&PublicRouter{},
 	}
 }

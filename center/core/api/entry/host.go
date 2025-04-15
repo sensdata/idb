@@ -372,6 +372,7 @@ func (b *BaseApi) AgentStatus(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param request body model.InstallAgent true "request"
 // @Success 200 {object} model.TaskInfo
 // @Router /hosts/{host}/agent/install [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {

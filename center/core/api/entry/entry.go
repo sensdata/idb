@@ -16,4 +16,5 @@ var (
 	appService      = service.NewIAppService()
 	terminalService = service.NewITerminalService()
 	settingsService = service.NewISettingsService()
+	publicService   = service.NewIPublicService()
 )
