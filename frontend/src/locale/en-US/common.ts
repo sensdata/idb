@@ -26,4 +26,7 @@ export default {
   'common.yes': 'Yes',
   'common.no': 'No',
   'common.all': 'All',
+
+  'common.message.saveSuccess': 'handle success',
+  'common.message.saveError': 'handle failed',
 };

@@ -60,7 +60,7 @@ axios.interceptors.request.use(
 // add response interceptors
 axios.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
-    if (response.config.responseType === 'blob') {
+    if (response.config?.responseType === 'blob') {
       // 如果是文件流，直接过
       return response;
     }

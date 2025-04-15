@@ -8,6 +8,7 @@
     @cancel="handleClose"
   >
     <idb-table
+      v-if="visible"
       ref="gridRef"
       :columns="columns"
       :params="{ type: props.type }"

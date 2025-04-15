@@ -98,6 +98,7 @@
     :size="size"
     :row-selection="hasBatch ? rowSelection : undefined"
     v-bind="$attrs"
+    @expand="onExpand"
     @change="onChange"
     @page-change="onPageChange"
     @page-size-change="onPageSizeChange"
@@ -149,6 +150,10 @@
   import Sortable from 'sortablejs';
   import TableFilters from './table-filters.vue';
   import { Props, Column, SizeProps } from './types';
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   defineSlots<{
     // 左侧操作按钮插槽

@@ -129,12 +129,6 @@
       categoryLoading.value = false;
     }
   };
-  watch(
-    () => formState.type,
-    () => {
-      loadGroupOptions();
-    }
-  );
 
   const paramsRef = ref<{ name: string; category: string }>();
   const isEdit = computed(() => !!paramsRef.value?.name);
@@ -208,6 +202,15 @@
   const hide = () => {
     visible.value = false;
   };
+
+  watch(
+    () => [formState.type, visible.value],
+    () => {
+      if (visible.value) {
+        loadGroupOptions();
+      }
+    }
+  );
 
   defineExpose({
     setParams,

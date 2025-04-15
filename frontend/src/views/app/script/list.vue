@@ -74,6 +74,7 @@
       :type="type"
       @ok="handleCategoryManageOk"
     />
+    <history-version ref="historyRef" :type="type" @ok="reload" />
   </div>
 </template>
 
@@ -97,6 +98,7 @@
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import CategoryManage from './components/category-manage/index.vue';
+  import HistoryVersion from './components/history-version/index.vue';
 
   const props = defineProps({
     type: {
@@ -114,6 +116,7 @@
   const runResultModalRef = ref<InstanceType<typeof LogsViewModal>>();
   const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
+  const historyRef = ref<InstanceType<typeof HistoryVersion>>();
   const selectedCat = ref();
   watch(selectedCat, (val) => {
     if (val) {
@@ -184,7 +187,11 @@
   };
 
   const handleHistoryVersion = (record: ScriptEntity) => {
-    console.log('handleHistoryVersion', record);
+    historyRef.value?.setParams({
+      category: selectedCat.value,
+      name: record.name,
+    });
+    historyRef.value?.show();
   };
 
   const handleEdit = (record: ScriptEntity) => {
@@ -215,9 +222,7 @@
   };
   const handleLog = (record: ScriptEntity) => {
     logsRef.value?.show({
-      type: props.type,
-      category: selectedCat.value,
-      name: record.name,
+      path: record.source,
     });
   };
   const handleDelete = async (record: ScriptEntity) => {

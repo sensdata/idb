@@ -79,10 +79,24 @@ export function updateScriptApi(data: UpdateScriptApiParams) {
 }
 
 export interface ScriptVersionsApiParams extends ApiListParams {
-  id: number;
+  name: string;
+  type: SCRIPT_TYPE;
+  category: string;
 }
 export function getScriptVersionListApi(params: ScriptVersionsApiParams) {
-  return request.get('scripts/{host}/versions', params);
+  return request.get('scripts/{host}/log', params);
+}
+
+export interface RestoreScriptVersionsApiParams {
+  name: string;
+  type: SCRIPT_TYPE;
+  category: string;
+  commit_hash: string;
+}
+export function restoreScriptVersionApi(
+  params: RestoreScriptVersionsApiParams
+) {
+  return request.put('scripts/{host}/log', params);
 }
 
 export function runScriptApi(params: { host_id: number; script_path: string }) {
@@ -97,22 +111,17 @@ export function runScriptApi(params: { host_id: number; script_path: string }) {
 }
 
 export interface ScriptRunRecordsApiParams extends ApiListParams {
-  type: SCRIPT_TYPE;
-  category: string;
-  name: string;
+  path: string;
 }
 export function getScriptRecordsApi(params: ScriptRunRecordsApiParams) {
-  return request.get('scripts/{host}/log', params);
+  return request.get('scripts/{host}/run/logs', params);
 }
 
 export interface ScriptRunLogApiParams extends ApiListParams {
-  type: SCRIPT_TYPE;
-  category: string;
-  name: string;
-  record_id: number;
+  path: string;
 }
 export function getScriptRunLogApi(params: ScriptRunLogApiParams) {
-  return request.get('scripts/{host}/run/log', params);
+  return request.get('scripts/{host}/run/logs/detail', params);
 }
 
 export function deleteScriptApi(params: { id: number }) {

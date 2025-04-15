@@ -32,4 +32,7 @@ export default {
   'common.no': '否',
   'common.all': '全部',
   'common.seconds': '秒',
+
+  'common.message.saveSuccess': '操作成功',
+  'common.message.saveError': '操作失败',
 };

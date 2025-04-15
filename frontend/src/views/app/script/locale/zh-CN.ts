@@ -14,7 +14,7 @@ export default {
   'app.script.list.action.group_manage': '分组管理',
   'app.script.list.operation.view_history': '查看',
   'app.script.list.operation.run': '执行',
-  'app.script.list.operation.log': '执行日志',
+  'app.script.list.operation.log': '执行记录',
 
   'app.script.list.delete.confirm': '确认删除脚本 {name} 吗？',
   'app.script.list.message.run_success': '执行成功',
