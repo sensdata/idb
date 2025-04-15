@@ -478,7 +478,7 @@ func (s *SSHService) ensureConnections() {
 		if err != nil {
 			continue
 		} else {
-			go s.InstallAgent(host, "")
+			go s.InstallAgent(host, "", false)
 		}
 	}
 }
