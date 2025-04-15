@@ -6218,7 +6218,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get server descriptions
+      description: Get current server version
       produces:
       - application/json
       responses:
@@ -6226,9 +6226,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/model.About'
-      summary: Get server descriptions
+      summary: Get current server version
       tags:
-      - Settings
+      - Public
   /scripts/{host}:
     delete:
       consumes:

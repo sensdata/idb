@@ -6420,7 +6420,7 @@ const docTemplate = `{
         },
         "/public/version": {
             "get": {
-                "description": "Get server descriptions",
+                "description": "Get current server version",
                 "consumes": [
                     "application/json"
                 ],
@@ -6428,9 +6428,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Settings"
+                    "Public"
                 ],
-                "summary": "Get server descriptions",
+                "summary": "Get current server version",
                 "responses": {
                     "200": {
                         "description": "OK",
