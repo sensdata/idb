@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -162,7 +163,7 @@ func getAgentLatest() string {
 		global.LOG.Error("Failed to read latest version: %v", err)
 		latestVersion = ""
 	} else {
-		latestVersion = string(version)
+		latestVersion = strings.TrimSpace(string(version))
 	}
 	return latestVersion
 }
