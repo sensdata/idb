@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -20,12 +21,14 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/sensdata/idb/center/db/model"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/message"
 	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+	"github.com/sensdata/idb/core/utils/common"
 )
 
 type Center struct {
@@ -107,10 +110,10 @@ func (c *Center) Stop() error {
 	return nil
 }
 
-func (a *Center) listenToUnix() error {
+func (c *Center) listenToUnix() error {
 	//先关闭
-	if a.unixListener != nil {
-		a.unixListener.Close()
+	if c.unixListener != nil {
+		c.unixListener.Close()
 	}
 
 	// 检查sock文件
@@ -132,29 +135,29 @@ func (a *Center) listenToUnix() error {
 	}
 
 	var err error
-	a.unixListener, err = net.Listen("unix", sockFile)
+	c.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
 		global.LOG.Error("Failed to start unix listener: %v", err)
 		return err
 	}
 
 	// 处理unix连接
-	go a.acceptUnixConnections()
+	go c.acceptUnixConnections()
 
 	return nil
 }
 
-func (a *Center) acceptUnixConnections() {
+func (c *Center) acceptUnixConnections() {
 	for {
 		select {
-		case <-a.done:
+		case <-c.done:
 			global.LOG.Info("Center is stopping, stop accepting new unix connections.")
 			return
 		default:
-			conn, err := a.unixListener.Accept()
+			conn, err := c.unixListener.Accept()
 			if err != nil {
 				select {
-				case <-a.done:
+				case <-c.done:
 					global.LOG.Info("Center is stopping, stop accepting new unix connections.")
 					return
 				default:
@@ -162,12 +165,12 @@ func (a *Center) acceptUnixConnections() {
 				}
 				continue
 			}
-			go a.handleUnixConnection(conn)
+			go c.handleUnixConnection(conn)
 		}
 	}
 }
 
-func (a *Center) handleUnixConnection(conn net.Conn) {
+func (c *Center) handleUnixConnection(conn net.Conn) {
 	defer conn.Close()
 
 	buf := make([]byte, 1024)
@@ -187,43 +190,50 @@ func (a *Center) handleUnixConnection(conn net.Conn) {
 
 	switch parts[0] {
 	case "status":
-		conn.Write([]byte("Center is running"))
-	case "stop":
-		conn.Write([]byte("Center stopped"))
-		// 发送 SIGTERM 信号以停止 Center
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGTERM)
+		conn.Write([]byte(fmt.Sprintf("iDB Center (pid %d) is running...", os.Getpid())))
 	case "config":
 		switch len(parts) {
 		case 1:
 			// 输出当前的配置信息
-			config, err := CONFMAN.GetConfigString("")
+			settings, err := c.GetSettingsString("")
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
 			} else {
-				conn.Write([]byte(fmt.Sprintf("%v", config)))
+				conn.Write([]byte(fmt.Sprintf("%v", settings)))
 			}
 		case 2:
 			// 输出当前的指定key配置信息
 			key := parts[1]
-			value, err := CONFMAN.GetConfigString(key)
+			value, err := c.GetSettingsString(key)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 			} else {
-				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+				conn.Write([]byte(fmt.Sprintf("%v", value)))
 			}
 		case 3:
 			// 修改指定key的配置
 			key := parts[1]
 			value := parts[2]
-			err := CONFMAN.SetConfig(key, value)
+			err := c.UpdateSetting(key, value)
 			if err != nil {
 				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 			} else {
-				conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+				value, err := c.GetSettingsString(key)
+				if err != nil {
+					conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+				} else {
+					conn.Write([]byte(fmt.Sprintf("%v", value)))
+				}
 			}
 		default:
 			conn.Write([]byte("Unknown config command format"))
+		}
+	case "update":
+		err := c.Upgrade()
+		if err != nil {
+			conn.Write([]byte(fmt.Sprintf("Failed to update: %v", err)))
+		} else {
+			conn.Write([]byte("Upgrade success"))
 		}
 	default:
 		conn.Write([]byte("Unknown command"))
@@ -1078,4 +1088,347 @@ func (c *Center) ReleaseAgentConn(host model.Host) error {
 	}
 
 	return nil
+}
+
+func (c *Center) GetSettingsString(item string) (string, error) {
+	settings, err := c.getServerSettings()
+	if err != nil {
+		return "", err
+	}
+	var result strings.Builder
+
+	if item == "" {
+		result.WriteString(fmt.Sprintf("bind_ip         : %s\n", settings.BindIP))
+		result.WriteString(fmt.Sprintf("bind_port       : %d\n", settings.BindPort))
+		result.WriteString(fmt.Sprintf("bind_domain     : %s\n", settings.BindDomain))
+
+		protocal := "http"
+		if settings.Https == "yes" {
+			protocal = "https"
+		}
+		result.WriteString(fmt.Sprintf("protocal        : %s\n", protocal))
+		result.WriteString(fmt.Sprintf("https_cert_type : %s\n", settings.HttpsCertType))
+		result.WriteString(fmt.Sprintf("https_cert_path : %s\n", settings.HttpsCertPath))
+		result.WriteString(fmt.Sprintf("https_key_path  : %s\n", settings.HttpsKeyPath))
+	} else {
+		switch item {
+		case "bind_ip":
+			result.WriteString(fmt.Sprintf("bind_ip         : %s\n", settings.BindIP))
+		case "bind_port":
+			result.WriteString(fmt.Sprintf("bind_port       : %d\n", settings.BindPort))
+		case "bind_domain":
+			result.WriteString(fmt.Sprintf("bind_domain     : %s\n", settings.BindDomain))
+		case "protocal":
+			protocal := "http"
+			if settings.Https == "yes" {
+				protocal = "https"
+			}
+			result.WriteString(fmt.Sprintf("protocal        : %s\n", protocal))
+		case "https_cert_type":
+			result.WriteString(fmt.Sprintf("https_cert_type : %s\n", settings.HttpsCertType))
+		case "https_cert_path":
+			result.WriteString(fmt.Sprintf("https_cert_path : %s\n", settings.HttpsCertPath))
+		case "https_key_path":
+			result.WriteString(fmt.Sprintf("https_key_path  : %s\n", settings.HttpsKeyPath))
+		}
+	}
+
+	return result.String(), nil
+}
+
+func (c *Center) getServerSettings() (*core.SettingInfo, error) {
+	settingRepo := repo.NewSettingsRepo()
+	bindIP, err := settingRepo.Get(settingRepo.WithByKey("BindIP"))
+	if err != nil {
+		return nil, err
+	}
+	bindPort, err := settingRepo.Get(settingRepo.WithByKey("BindPort"))
+	if err != nil {
+		return nil, err
+	}
+	bindPortValue, err := strconv.Atoi(bindPort.Value)
+	if err != nil {
+		return nil, err
+	}
+	https, err := settingRepo.Get(settingRepo.WithByKey("Https"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertType, err := settingRepo.Get(settingRepo.WithByKey("HttpsCertType"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertPath, err := settingRepo.Get(settingRepo.WithByKey("HttpsCertPath"))
+	if err != nil {
+		return nil, err
+	}
+	httpsKeyPath, err := settingRepo.Get(settingRepo.WithByKey("HttpsKeyPath"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &core.SettingInfo{
+		BindIP:        bindIP.Value,
+		BindPort:      bindPortValue,
+		Https:         https.Value,
+		HttpsCertType: httpsCertType.Value,
+		HttpsCertPath: httpsCertPath.Value,
+		HttpsKeyPath:  httpsKeyPath.Value,
+	}, nil
+}
+
+func (c *Center) UpdateSetting(key string, value string) error {
+	return c.updateServerSetting(key, value)
+}
+
+func (c *Center) updateServerSetting(key string, value string) error {
+
+	// 开始事务
+	var err error
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			global.LOG.Error("Transaction failed: %v  - rollback", r)
+		} else if err != nil {
+			tx.Rollback() // 如果发生错误，回滚事务
+			global.LOG.Error("Error Happend - rollback")
+		}
+	}()
+
+	switch key {
+	case "bind_ip":
+		err = c.updateBindIP(value)
+		if err != nil {
+			return err
+		}
+	case "bind_port":
+		port, err := strconv.Atoi(value)
+		if err != nil {
+			return err
+		}
+		err = c.updateBindPort(port)
+		if err != nil {
+			return err
+		}
+	case "bind_domain":
+		err = c.updateBindDomain(value)
+		if err != nil {
+			return err
+		}
+	case "protocal":
+		https := "no"
+		if value == "https" {
+			https = "yes"
+		}
+		err = c.updateHttps(https)
+		if err != nil {
+			return err
+		}
+	case "https_cert_type":
+		err = c.updateHttpsCertType(value)
+		if err != nil {
+			return err
+		}
+	case "https_cert_path":
+		err = c.updateHttpsCertPath(value)
+		if err != nil {
+			return err
+		}
+	case "https_key_path":
+		err = c.updateHttpsKeyPath(value)
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("invalid key")
+	}
+
+	// 提交事务
+	tx.Commit()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		// 发送 SIGTERM 信号给主进程，触发容器重启
+		if err := syscall.Kill(1, syscall.SIGTERM); err != nil {
+			global.LOG.Error("Failed to send termination signal: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+func (c *Center) updateBindIP(newIP string) error {
+	if len(newIP) == 0 {
+		return errors.New("invalid bind ip")
+	}
+
+	settingsRepo := repo.NewSettingsRepo()
+	oldIP, err := settingsRepo.Get(settingsRepo.WithByKey("BindIP"))
+	if err != nil {
+		return err
+	}
+	if newIP == oldIP.Value {
+		return nil
+	}
+
+	return settingsRepo.Update("BindIP", newIP)
+}
+
+func (c *Center) updateBindPort(newPort int) error {
+	if newPort <= 0 || newPort > 65535 {
+		return errors.New("server port must between 1 - 65535")
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldPort, err := settingsRepo.Get(settingsRepo.WithByKey("BindPort"))
+	if err != nil {
+		return err
+	}
+	newPortStr := strconv.Itoa(newPort)
+	if newPortStr == oldPort.Value {
+		return nil
+	}
+
+	if common.ScanPort(newPort) {
+		return errors.New(constant.ErrPortInUsed)
+	}
+
+	// TODO: 处理port的更换（调用nftables）
+
+	return settingsRepo.Update("BindPort", newPortStr)
+}
+
+func (c *Center) updateBindDomain(newDomain string) error {
+	if len(newDomain) == 0 {
+		return nil
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldDomain, err := settingsRepo.Get(settingsRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return err
+	}
+	if newDomain == oldDomain.Value {
+		return nil
+	}
+	return settingsRepo.Update("BindDomain", newDomain)
+}
+
+func (c *Center) updateHttps(https string) error {
+	if len(https) == 0 {
+		return nil
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldHttps, err := settingsRepo.Get(settingsRepo.WithByKey("Https"))
+	if err != nil {
+		return err
+	}
+	if https == oldHttps.Value {
+		return nil
+	}
+	return settingsRepo.Update("Https", https)
+}
+
+func (c *Center) updateHttpsCertType(certType string) error {
+	if len(certType) == 0 {
+		return nil
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldCertType, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsCertType"))
+	if err != nil {
+		return err
+	}
+	if certType == oldCertType.Value {
+		return nil
+	}
+	return settingsRepo.Update("HttpsCertType", certType)
+}
+
+func (c *Center) updateHttpsCertPath(certPath string) error {
+	if len(certPath) == 0 {
+		return nil
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldCertPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsCertPath"))
+	if err != nil {
+		return err
+	}
+	if certPath == oldCertPath.Value {
+		return nil
+	}
+	return settingsRepo.Update("HttpsCertPath", certPath)
+}
+
+func (c *Center) updateHttpsKeyPath(keyPath string) error {
+	if len(keyPath) == 0 {
+		return nil
+	}
+	settingsRepo := repo.NewSettingsRepo()
+	oldKeyPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsKeyPath"))
+	if err != nil {
+		return err
+	}
+	if keyPath == oldKeyPath.Value {
+		return nil
+	}
+	return settingsRepo.Update("HttpsKeyPath", keyPath)
+}
+
+func (c *Center) Upgrade() error {
+	return c.upgrade()
+}
+
+func (c *Center) upgrade() error {
+	newVersion := c.getLatestVersion()
+	if len(newVersion) == 0 {
+		return errors.New("failed to get latest version")
+	}
+
+	if global.Version == newVersion {
+		return errors.New("already up to date")
+	}
+
+	// 找宿主机host
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Error("Failed to get default host")
+		return errors.New("failed to get default host")
+	}
+
+	agentConn, err := c.getAgentConn(&host)
+	if err != nil {
+		global.LOG.Error("Failed to get agent connection")
+		return errors.New("failed to get agent connection")
+	}
+
+	// 创建消息
+	cmd := fmt.Sprintf("curl -sSL https://static.sensdata.com/idb/release/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", newVersion)
+
+	msgID := utils.GenerateMsgId()
+	msg, err := message.CreateMessage(
+		msgID,
+		cmd,
+		host.AgentKey,
+		utils.GenerateNonce(16),
+		global.Version,
+		message.CmdMessage,
+	)
+	err = message.SendMessage(*agentConn, msg)
+	if err != nil {
+		global.LOG.Error("Failed to send command message: %v", err)
+		return errors.New("failed to notify agent")
+	}
+
+	return nil
+}
+
+func (c *Center) getLatestVersion() string {
+	cmd := fmt.Sprintf("curl -sSL %s", CONFMAN.GetConfig().Latest)
+	global.LOG.Info("Getting latest version: %s", cmd)
+	latest, err := utils.Exec(cmd)
+	if err != nil {
+		global.LOG.Error("Failed to get latest version: %v", err)
+		return ""
+	}
+	global.LOG.Info("Got latest version: %s", latest)
+	return strings.TrimSpace(latest)
 }

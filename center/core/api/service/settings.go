@@ -178,7 +178,7 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateS
 		// 检查type和path
 		switch req.HttpsCertType {
 		case "default":
-		case "path":
+		case "custom":
 			if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
 				return &response, errors.New("invalid cert path or key path")
 			}
@@ -311,7 +311,7 @@ func (s *SettingsService) updateHttps(req model.UpdateSettingRequest) error {
 			return err
 		}
 
-		if req.HttpsCertType == "path" {
+		if req.HttpsCertType == "custom" {
 			if err := SettingsRepo.Update("HttpsCertPath", req.HttpsCertPath); err != nil {
 				return err
 			}

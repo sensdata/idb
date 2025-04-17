@@ -38,12 +38,18 @@ import (
 )
 
 var app = &cli.App{
-	Name:  "idbcenter",
-	Usage: "idb center command line tools",
+	Name:  "idb-center - idb center command line tools",
+	Usage: "idb-center command [command options] [arguments...]",
+	Authors: []cli.Author{
+		{
+			Name:  "iDB Dev Team",
+			Email: "idb@sensdata.com",
+		},
+	},
 	Commands: []cli.Command{
-		*command.StopCommand,
-		*command.RestartCommand,
+		*command.StatusCommand,
 		*command.ConfigCommand,
+		*command.UpdateCommand,
 	},
 }
 

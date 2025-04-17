@@ -3,16 +3,15 @@ package command
 import (
 	"fmt"
 	"net"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/sensdata/idb/core/constant"
 	"github.com/urfave/cli"
 )
 
-var StopCommand = &cli.Command{
-	Name:  "stop",
-	Usage: "stop idb",
+var StatusCommand = &cli.Command{
+	Name:  "status",
+	Usage: "show idb center status",
 	Action: func(c *cli.Context) error {
 		// 检查sock文件
 		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
@@ -21,39 +20,23 @@ var StopCommand = &cli.Command{
 			return fmt.Errorf("failed to connect to center: %w", err)
 		}
 		defer conn.Close()
-
-		_, err = conn.Write([]byte("stop"))
+		_, err = conn.Write([]byte("status"))
 		if err != nil {
 			return fmt.Errorf("failed to send command: %w", err)
 		}
-
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
 			return fmt.Errorf("failed to read response: %w", err)
 		}
-
 		fmt.Println(string(buf[:n]))
-		return nil
-	},
-}
-
-var RestartCommand = &cli.Command{
-	Name:  "restart",
-	Usage: "restart idb",
-	Action: func(c *cli.Context) error {
-		err := exec.Command("systemctl", "restart", constant.CenterService).Run()
-		if err != nil {
-			return fmt.Errorf("failed to restart service: %w", err)
-		}
-
 		return nil
 	},
 }
 
 var ConfigCommand = &cli.Command{
 	Name:  "config",
-	Usage: "configure idb",
+	Usage: "configure idb center",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "key",
@@ -104,6 +87,31 @@ var ConfigCommand = &cli.Command{
 			return fmt.Errorf("failed to read response: %w", err)
 		}
 
+		fmt.Println(string(buf[:n]))
+		return nil
+	},
+}
+
+var UpdateCommand = &cli.Command{
+	Name:  "update",
+	Usage: "update idb center",
+	Action: func(c *cli.Context) error {
+		// 检查sock文件
+		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+		conn, err := net.Dial("unix", sockFile)
+		if err != nil {
+			return fmt.Errorf("failed to connect to center: %w", err)
+		}
+		defer conn.Close()
+		_, err = conn.Write([]byte("update"))
+		if err != nil {
+			return fmt.Errorf("failed to send command: %w", err)
+		}
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
 		fmt.Println(string(buf[:n]))
 		return nil
 	},
