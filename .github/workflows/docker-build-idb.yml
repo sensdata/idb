@@ -100,6 +100,7 @@ jobs:
       - name: Upload scripts
         run: |
           scp ./scripts/install.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
+          scp ./scripts/uninstall.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
           scp ./scripts/upgrade.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
 
       # 创建临时 .env 文件并替换 iDB_image_version
