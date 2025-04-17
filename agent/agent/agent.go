@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	gonet "github.com/shirou/gopsutil/v4/net"
@@ -54,8 +53,10 @@ type Agent struct {
 	unixListener net.Listener
 	done         chan struct{}
 	resetConn    chan struct{}
-	// mu             sync.Mutex // 保护centerConn的互斥锁
-	// sessionMap     map[string]*session.Session
+
+	centerConn net.Conn     // center 连接对象
+	centerMu   sync.RWMutex // 保护 centerConn 的互斥锁
+
 	sessionManager terminal.Manager
 
 	rx float64
@@ -109,6 +110,14 @@ func (a *Agent) Start() error {
 
 func (a *Agent) Stop() error {
 	close(a.done)
+
+	// 关闭 center 连接
+	a.centerMu.Lock()
+	if a.centerConn != nil {
+		a.centerConn.Close()
+		a.centerConn = nil
+	}
+	a.centerMu.Unlock()
 
 	// 关闭监听
 	if a.unixListener != nil {
@@ -187,12 +196,7 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 
 	switch parts[0] {
 	case "status":
-		conn.Write([]byte("Agent is running"))
-	case "stop":
-		conn.Write([]byte("Agent stopped"))
-		// 发送 SIGTERM 信号以停止 Agent
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGTERM)
+		conn.Write([]byte(fmt.Sprintf("iDB Agent (pid %d) is running...", os.Getpid())))
 	case "config":
 		switch len(parts) {
 		case 1:
@@ -225,6 +229,26 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 			}
 		default:
 			conn.Write([]byte("Unknown config command format"))
+		}
+	case "update":
+		// 检查center连接是否存在
+		centerConn := a.getCenterConn()
+		if centerConn == nil {
+			conn.Write([]byte("No center connection"))
+		} else {
+			conn.Write([]byte("Notify center for version check and update"))
+			// 通过心跳消息的data标识，通知center进行agent版本检测和升级
+			go a.sendHeartbeat(centerConn, "Update")
+		}
+	case "remove":
+		// 检查center连接是否存在
+		centerConn := a.getCenterConn()
+		if centerConn == nil {
+			conn.Write([]byte("No center connection"))
+		} else {
+			conn.Write([]byte("Notify center for remove agent"))
+			// 通过心跳消息的data标识，通知center进行agent版本检测和升级
+			go a.sendHeartbeat(centerConn, "Remove")
 		}
 	default:
 		conn.Write([]byte("Unknown command"))
@@ -323,6 +347,14 @@ func (a *Agent) listenToTcp() {
 				continue
 			}
 
+			// 记录 center 连接
+			a.centerMu.Lock()
+			if a.centerConn != nil {
+				a.centerConn.Close()
+			}
+			a.centerConn = conn
+			a.centerMu.Unlock()
+
 			// 成功接受连接后记录日志
 			now := time.Now().Format(time.RFC3339)
 			connAddr := conn.RemoteAddr().String()
@@ -418,6 +450,13 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	}
 }
 
+// 添加获取 center 连接的方法
+func (a *Agent) getCenterConn() net.Conn {
+	a.centerMu.RLock()
+	defer a.centerMu.RUnlock()
+	return a.centerConn
+}
+
 func (a *Agent) resetConnection() {
 	a.resetConn <- struct{}{}
 }
@@ -428,7 +467,7 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 回复心跳
 		global.LOG.Info("Heartbeat from %s", conn.RemoteAddr().String())
-		a.sendHeartbeat(conn)
+		a.sendHeartbeat(conn, "Heartbeat")
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
@@ -512,30 +551,6 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 		a.sendDownloadResult(conn, msg)
 	}
 }
-
-// func (a *Agent) registerSession(session *session.Session) {
-// 	a.mu.Lock()
-// 	defer a.mu.Unlock()
-
-// 	a.sessionMap[session.ID] = session
-// 	global.LOG.Info("Session %s registered", session.ID)
-// }
-
-// func (a *Agent) unregisterSession(sessionID string) {
-// 	a.mu.Lock()
-// 	defer a.mu.Unlock()
-
-// 	delete(a.sessionMap, sessionID)
-// 	global.LOG.Info("Session %s unregistered", sessionID)
-// }
-
-// func (a *Agent) getSession(sessionID string) (*session.Session, bool) {
-// 	a.mu.Lock()
-// 	defer a.mu.Unlock()
-
-// 	session, exists := a.sessionMap[sessionID]
-// 	return session, exists
-// }
 
 func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
 	defer func() {
@@ -2352,12 +2367,12 @@ func actionSuccessResult(action string, data string) (*model.Action, error) {
 	}, nil
 }
 
-func (a *Agent) sendHeartbeat(conn net.Conn) {
+func (a *Agent) sendHeartbeat(conn net.Conn, data string) {
 	config := CONFMAN.GetConfig()
 
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
-		"Heartbeat",
+		data,
 		config.SecretKey,
 		utils.GenerateNonce(16),
 		global.Version,

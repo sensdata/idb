@@ -23,7 +23,10 @@ var app = &cli.App{
 	Commands: []cli.Command{
 		*agent.StopCommand,
 		*agent.RestartCommand,
+		*agent.StatusCommand,
 		*agent.ConfigCommand,
+		*agent.UpdateCommand,
+		*agent.RemoveCommand,
 	},
 }
 

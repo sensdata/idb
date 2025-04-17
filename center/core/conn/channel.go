@@ -409,6 +409,30 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
+func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
+	global.LOG.Info("Check agent update for host %s", host.AgentAddr)
+	// latestVersion 通过读取文件 /var/lib/idb/agent/idb-agent.version 来获得
+	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
+	var latestVersion string
+	version, err := os.ReadFile(latestPath)
+	if err != nil {
+		global.LOG.Error("Failed to read latest version: %v", err)
+		latestVersion = ""
+	} else {
+		latestVersion = strings.TrimSpace(string(version))
+	}
+	if agentVersion == latestVersion {
+		global.LOG.Info("Agent is up to date")
+		return
+	}
+	SSH.InstallAgent(*host, "", true)
+}
+
+func (c *Center) removeAgent(host *model.Host) {
+	global.LOG.Info("Remove agent %s", host.AgentAddr)
+	SSH.UninstallAgent(*host, "")
+}
+
 func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 收到心跳
@@ -418,6 +442,16 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		if err := HostRepo.Update(host.ID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
 			global.LOG.Error("Failed to update agent version: %v", err)
 		}
+		// 看是不是需要检查升级
+		switch msg.Data {
+		case "Update":
+			// 检查升级
+			go c.checkAgentUpdate(host, msg.Version)
+		case "Remove":
+			// 移除agent
+			go c.removeAgent(host)
+		}
+
 	case message.CmdMessage: // 收到Cmd 类型的回复
 		global.LOG.Info("Processing cmd message: %s", msg.Data)
 		// 获取响应通道
@@ -429,6 +463,7 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 			delete(c.responseChMap, msg.MsgID)
 		}
 		c.mu.Unlock()
+
 	case message.ActionMessage: // 处理 Action 类型的消息
 		global.LOG.Info("Processing action message: %s", msg.Data)
 		//获取响应通道
@@ -440,6 +475,7 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 			delete(c.responseChMap, msg.MsgID)
 		}
 		c.mu.Unlock()
+
 	default: // 不支持的消息
 		global.LOG.Error("Unknown message type: %s", msg.Type)
 	}
