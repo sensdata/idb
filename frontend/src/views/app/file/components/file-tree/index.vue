@@ -1,6 +1,10 @@
 <template>
   <div class="file-tree">
-    <list-render :items="props.items" :show-hidden="showHidden" :level="0" />
+    <list-render
+      :items="props.items"
+      :show-hidden="props.showHidden"
+      :level="0"
+    />
   </div>
 </template>
 
@@ -9,22 +13,30 @@
   import ListRender from './list-render.vue';
   import { FileTreeItem } from './type';
 
+  /**
+   * 组件属性定义
+   */
   const props = defineProps<{
-    items: FileTreeItem[];
-    showHidden?: boolean;
-    selected?: FileTreeItem | null;
-    selectedChange: (item: FileTreeItem) => void;
-    openChange: (item: FileTreeItem, open: boolean) => void;
+    items: FileTreeItem[]; // 文件树顶层项目列表
+    showHidden?: boolean; // 是否显示隐藏文件
+    selected?: FileTreeItem | null; // 当前选中的项目
+    selectedChange: (item: FileTreeItem) => void; // 选中项变化回调
+    openChange: (item: FileTreeItem, open: boolean) => void; // 展开状态变化回调
   }>();
 
-  const selected = ref(props.selected);
+  // 创建响应式选中项引用
+  const selectedItem = ref(props.selected);
+
+  // 监听外部传入的selected变化
   watch(
     () => props.selected,
     (value) => {
-      selected.value = value;
+      selectedItem.value = value;
     }
   );
-  provide('selected', selected);
+
+  // 向子组件提供状态和回调函数
+  provide('selected', selectedItem);
   provide('selectedChange', props.selectedChange);
   provide('openChange', props.openChange);
 </script>
@@ -34,6 +46,7 @@
     padding-left: 8px;
   }
 
+  /* 鼠标悬停时显示层级连接线 */
   .file-tree:hover :deep(.tree-level-line) {
     background-color: var(--color-border-2);
   }
