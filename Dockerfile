@@ -108,6 +108,9 @@ COPY --from=builder /app/idb-agent.version /var/lib/idb/agent/idb-agent.version
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
+# 创建软链接到 /usr/local/bin
+ln -sf /var/lib/idb/idb /usr/local/bin/idb
+
 # 设置执行权限
 RUN chmod +x /var/lib/idb/entrypoint.sh /var/lib/idb/idb
 

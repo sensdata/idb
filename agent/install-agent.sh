@@ -32,6 +32,9 @@ cp -f ./idb-agent /var/lib/idb-agent/idb-agent
 cp -f ./idb-agent.conf /etc/idb-agent/idb-agent.conf
 cp -f ./idb-agent.service /etc/systemd/system/idb-agent.service
 
+# 创建软链接到 /usr/local/bin
+ln -sf /var/lib/idb-agent/idb-agent /usr/local/bin/idb-agent
+
 # 设置正确的权限
 chmod +x /var/lib/idb-agent/idb-agent
 touch /var/log/idb-agent/idb-agent.log
