@@ -265,7 +265,30 @@ const useFileStore = defineStore('file-manage', {
       if (!this.current || this.pwd === '/') {
         return;
       }
-      this.current = this.getParent(this.current);
+
+      // 获取当前路径
+      const currentPath = this.pwd;
+
+      // 如果当前路径是根路径，则不执行任何操作
+      if (currentPath === '/') {
+        return;
+      }
+
+      // 移除尾随斜杠（如果有）
+      const normalizedPath =
+        currentPath.endsWith('/') && currentPath !== '/'
+          ? currentPath.slice(0, -1)
+          : currentPath;
+
+      // 找到最后一个斜杠的位置
+      const lastSlashIndex = normalizedPath.lastIndexOf('/');
+
+      // 如果没有找到斜杠或者斜杠在开头（即路径是根目录下的文件/文件夹），则导航到根目录
+      const parentPath =
+        lastSlashIndex <= 0 ? '/' : normalizedPath.slice(0, lastSlashIndex);
+
+      // 导航到父级路径
+      this.handleGoto(parentPath);
     },
 
     /**

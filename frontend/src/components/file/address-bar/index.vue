@@ -1,5 +1,6 @@
 <template>
   <a-dropdown
+    ref="dropdownRef"
     :popup-visible="computedPopupVisible"
     trigger="focus"
     auto-fit-popup-width
@@ -7,162 +8,295 @@
     :click-to-close="false"
     :popup-offset="4"
     @popup-visible-change="handlePopupVisibleChange"
-    @select="handleSelect"
   >
-    <a-input
-      ref="inputRef"
-      v-model="value"
-      :placeholder="$t('components.file.addressBar.input.placeholder')"
-      class="address-bar"
-      allow-clear
-      @clear="handleClear"
-      @input="handleInputValueChange"
-      @keydown.tab.prevent="handleTab"
-      @press-enter="handleGo"
-    >
-      <template #prefix>
-        <div class="before" @click="handleHome" @mousedown.stop>
-          <icon-home />
-        </div>
-        <a-breadcrumb :max-count="4" class="breadcrumb" @mousedown.stop>
-          <a-breadcrumb-item
-            v-for="bc of breadcrumbItems"
-            :key="bc.path"
-            :class="bc.class"
-            @click="emit('goto', bc.path)"
+    <div class="address-bar-container">
+      <div class="root-symbol" @click="handleHome">
+        <icon-home />
+        <span class="root-slash">/</span>
+      </div>
+      <a-input
+        ref="inputRef"
+        v-model="value"
+        :placeholder="$t('components.file.addressBar.input.placeholder')"
+        class="address-bar"
+        allow-clear
+        @clear="handleClear"
+        @input="handleInputValueChange"
+        @keydown.tab.prevent="handleTab"
+        @keydown.up.prevent="handleKeyUp"
+        @keydown.down.prevent="handleKeyDown"
+        @keydown.enter.prevent="handleKeyEnter"
+        @focus="handleInputFocus"
+        @blur="() => handleBlur(removeRootSlash(props.path))"
+      >
+        <template #suffix>
+          <div
+            class="after"
+            :class="{ 'after-highlight': pathChanged }"
+            @mousedown.stop
+            @click="handleGoButtonClick"
           >
-            {{ bc.name }}
-          </a-breadcrumb-item>
-        </a-breadcrumb>
-      </template>
-      <template #suffix>
-        <div class="after" @mousedown.stop @click="handleGo">
-          <icon-arrow-right />
-        </div>
-      </template>
-    </a-input>
+            <icon-arrow-right />
+          </div>
+        </template>
+      </a-input>
+    </div>
     <template #content>
-      <a-doption v-for="item of validOptions" :key="item.value" :value="item">
-        {{ item.label }}
-      </a-doption>
+      <dropdown-content
+        ref="dropdownContentRef"
+        :options="allOptions"
+        :selected-index="currentSelectedIndex"
+        :is-searching="isSearching"
+        :is-loading="isLoading"
+        @scroll="handleScroll"
+        @option-mouse-enter="handleOptionMouseEnter"
+        @option-click="handleOptionClick"
+      />
     </template>
   </a-dropdown>
 </template>
 
 <script lang="ts" setup>
+  import { computed, ref, watch, onMounted, nextTick } from 'vue';
+  import { IconHome, IconArrowRight } from '@arco-design/web-vue/es/icon';
   import { FileInfoEntity } from '@/entity/FileInfo';
-  import { debounce } from 'lodash';
-  import { computed, ref, watch } from 'vue';
+
+  import DropdownContent, { DropdownOption } from './drop-down-content.vue';
+  import useDropdownNavigation from './hooks/use-dropdown-navigation';
+  import useAddressBarSearch from './hooks/use-address-bar-search';
+  import usePathNavigation from './hooks/use-path-navigation';
+  import { removeRootSlash, addRootSlash } from './utils';
+  import { EmitFn } from './types';
 
   const props = defineProps<{
     path: string;
     items?: FileInfoEntity[];
   }>();
 
-  const emit = defineEmits(['goto', 'search', 'clear']);
+  const emit = defineEmits<EmitFn>();
 
   const inputRef = ref();
-  const breadcrumbItems = computed(() => {
-    const arr = props.path.split('/').filter((item) => !!item);
-    const bcItems = arr.map((item, index) => {
-      return {
-        name: item,
-        path: arr.slice(0, index + 1).join('/'),
-        class: index === arr.length - 1 ? '' : 'link',
-      };
-    });
-    bcItems.push({
-      name: '',
-      path: '',
-      class: 'hidden',
-    });
-
-    return bcItems;
-  });
-
+  const dropdownRef = ref();
+  const dropdownContentRef = ref();
   const value = ref('');
-
-  const validOptions = computed(() => {
-    return (props.items || []).map((item) => ({
-      value: item.name,
-      label: item.name,
-    }));
-  });
-
-  const handleClear = () => {
-    value.value = '';
-    emit('clear');
-    emit('search', {
-      path: props.path,
-      word: '',
-    });
-  };
-
+  const allOptions = ref<any[]>([]);
   const popupVisible = ref(false);
-  const computedPopupVisible = computed(
-    () => popupVisible.value && validOptions.value.length > 0
+  const pathChanged = ref(false);
+
+  const {
+    currentSelectedIndex,
+    hoverItem,
+    preloadTimeoutId,
+    handleKeyUp,
+    handleKeyDown,
+  } = useDropdownNavigation(allOptions, popupVisible, dropdownContentRef);
+
+  const {
+    isLoading,
+    isSearching,
+    searchWord,
+    triggerByTab,
+    computedPopupVisible,
+    handleInputValueChange: originalHandleInputValueChange,
+    handleScroll,
+  } = useAddressBarSearch(
+    value,
+    emit,
+    allOptions,
+    popupVisible,
+    dropdownContentRef
   );
+
+  function handleInputValueChange() {
+    pathChanged.value = addRootSlash(value.value) !== props.path;
+    originalHandleInputValueChange();
+  }
+
+  const {
+    userTyping,
+    handleGo: originalHandleGo,
+    handleHome,
+    handleClear,
+    handleTab: originalHandleTab,
+    handleKeyEnter: originalHandleKeyEnter,
+    handleBlur: originalHandleBlur,
+  } = usePathNavigation(
+    value,
+    inputRef,
+    emit,
+    allOptions,
+    popupVisible,
+    isSearching,
+    triggerByTab
+  );
+
+  function handleTab() {
+    originalHandleTab();
+    pathChanged.value = false;
+    nextTick(() => {
+      if (inputRef.value) {
+        inputRef.value.focus();
+      }
+    });
+  }
 
   function handlePopupVisibleChange(visible: boolean) {
     popupVisible.value = visible;
   }
 
-  function handleHome() {
-    emit('goto', '/');
-  }
+  function handleOptionMouseEnter(item: DropdownOption, index: number) {
+    currentSelectedIndex.value = index;
+    inputRef.value = item.value;
 
-  function handleGo() {
-    const v = value.value.trim();
-    if (!v) {
-      return;
-    }
+    if (item.isDir) {
+      hoverItem.value = item;
 
-    // if (!(props.items || []).some((item) => item.name === v)) {
-    //   return;
-    // }
-
-    value.value = '';
-    emit('goto', [props.path, v].join('/'));
-  }
-
-  function handleSelect(item: any) {
-    inputRef.value?.blur();
-    value.value = item.value;
-    handleGo();
-  }
-
-  const triggerByTab = ref(false);
-  const handleInputValueChange = debounce(() => {
-    triggerByTab.value = false;
-    emit('search', {
-      path: props.path,
-      word: value.value,
-    });
-  }, 300);
-  const handleTab = () => {
-    if (validOptions.value.length === 1) {
-      handleSelect(validOptions.value[0]);
+      if (preloadTimeoutId.value) {
+        clearTimeout(preloadTimeoutId.value);
+      }
     } else {
-      triggerByTab.value = true;
-      emit('search', {
-        path: props.path,
-        word: value.value,
+      hoverItem.value = null;
+      if (preloadTimeoutId.value) {
+        clearTimeout(preloadTimeoutId.value);
+        preloadTimeoutId.value = null;
+      }
+    }
+  }
+
+  function handleOptionClick() {
+    if (
+      popupVisible.value &&
+      currentSelectedIndex.value >= 0 &&
+      currentSelectedIndex.value < allOptions.value.length
+    ) {
+      originalHandleKeyEnter(null, currentSelectedIndex);
+    } else {
+      originalHandleGo();
+    }
+    pathChanged.value = false;
+    nextTick(() => {
+      if (inputRef.value) {
+        inputRef.value.focus();
+      }
+    });
+  }
+
+  function handleKeyEnter(e: KeyboardEvent) {
+    if (
+      popupVisible.value &&
+      currentSelectedIndex.value >= 0 &&
+      currentSelectedIndex.value < allOptions.value.length
+    ) {
+      originalHandleKeyEnter(e, currentSelectedIndex);
+    } else {
+      originalHandleGo();
+    }
+    pathChanged.value = false;
+    nextTick(() => {
+      if (inputRef.value) {
+        inputRef.value.focus();
+      }
+    });
+  }
+
+  function handleGoButtonClick() {
+    originalHandleGo();
+    pathChanged.value = false;
+    nextTick(() => {
+      if (inputRef.value) {
+        inputRef.value.focus();
+      }
+    });
+  }
+
+  function handleBlur(path: string) {
+    originalHandleBlur(path);
+  }
+
+  function handleInputFocus() {
+    if (!value.value) {
+      value.value = removeRootSlash(props.path);
+      nextTick(() => {
+        if (inputRef.value) {
+          inputRef.value.focus();
+          inputRef.value.select(value.value.length, value.value.length);
+        }
       });
     }
-  };
+  }
 
-  watch(validOptions, () => {
-    if (validOptions.value.length === 1 && triggerByTab.value) {
-      triggerByTab.value = false;
-      handleSelect(validOptions.value[0]);
+  const validOptions = computed(() => {
+    return (props.items || []).map((item) => ({
+      value: item.name,
+      label: item.name,
+      isDir: item.is_dir,
+      displayValue: item.is_dir ? `${item.name}/` : item.name,
+    }));
+  });
+
+  watch(validOptions, (newOptions) => {
+    if (isSearching.value) {
+      const searchTerm = searchWord.value.toLowerCase();
+
+      if (searchTerm) {
+        const filteredOptions = newOptions.filter((option) =>
+          option.value.toLowerCase().startsWith(searchTerm)
+        );
+
+        allOptions.value = [...filteredOptions];
+      } else {
+        allOptions.value = [...newOptions];
+      }
+
+      currentSelectedIndex.value = allOptions.value.length > 0 ? 0 : -1;
     }
+    isSearching.value = false;
+  });
+
+  watch(
+    () => props.path,
+    (newPath) => {
+      if (addRootSlash(value.value) !== newPath) {
+        userTyping.value = false;
+        value.value = removeRootSlash(newPath);
+      }
+    },
+    { immediate: true }
+  );
+
+  watch(computedPopupVisible, (visible) => {
+    if (visible && allOptions.value.length > 0) {
+      currentSelectedIndex.value = 0;
+    } else {
+      currentSelectedIndex.value = -1;
+    }
+  });
+
+  onMounted(() => {
+    nextTick(() => {
+      if (dropdownContentRef.value?.contentRef) {
+        const contentElement = dropdownContentRef.value.contentRef;
+        contentElement.addEventListener('scroll', handleScroll);
+      }
+    });
   });
 </script>
 
 <style scoped>
+  .address-bar-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background-color: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
+  }
+
   .address-bar {
+    flex: 1;
     padding-right: 0;
     padding-left: 0;
+    border: none;
   }
 
   .address-bar :deep(.arco-input-prefix) {
@@ -173,15 +307,22 @@
     padding: 0;
   }
 
-  .before {
+  .root-symbol {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
     height: 32px;
+    padding: 0 8px;
     background-color: var(--color-fill-2);
     border-right: 1px solid var(--color-border-2);
     cursor: pointer;
+  }
+
+  .root-slash {
+    margin-left: 4px;
+    color: var(--color-text-1);
+    font-weight: bold;
+    user-select: none;
   }
 
   .after {
@@ -192,6 +333,46 @@
     height: 32px;
     border-left: 1px solid var(--color-border-2);
     cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .after-highlight {
+    z-index: 10;
+    color: white;
+    background-color: #6e41e2;
+    border: none;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgb(110 65 226 / 50%);
+    transform: scale(1.05);
+    animation: purple-pulse 1.2s infinite;
+  }
+
+  .after-highlight:hover {
+    background-color: #7a50e7;
+  }
+
+  .after-highlight:active {
+    background-color: #5f38c3;
+  }
+
+  .after-highlight :deep(svg) {
+    color: white;
+    font-weight: bold;
+  }
+
+  @keyframes purple-pulse {
+    0% {
+      background-color: #6e41e2;
+      box-shadow: 0 0 8px rgb(110 65 226 / 50%);
+    }
+    50% {
+      background-color: #8257ef;
+      box-shadow: 0 0 15px rgb(130 87 239 / 70%);
+    }
+    100% {
+      background-color: #6e41e2;
+      box-shadow: 0 0 8px rgb(110 65 226 / 50%);
+    }
   }
 
   .address-bar :deep(.arco-input-clear-btn) {
@@ -200,18 +381,5 @@
 
   .address-bar :deep(.arco-input) {
     margin-right: 8px;
-  }
-
-  .breadcrumb {
-    margin-left: 4px;
-  }
-
-  .breadcrumb :deep(.arco-breadcrumb-item.link) {
-    color: rgb(var(--link-6));
-    cursor: pointer;
-  }
-
-  .breadcrumb :deep(.arco-breadcrumb-item-separator) {
-    margin: 0;
   }
 </style>
