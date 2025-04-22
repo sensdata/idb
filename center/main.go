@@ -52,6 +52,14 @@ var app = &cli.App{
 	The idb command line tool provides the following features:
 	- Config idb server
 	- Update idb server`,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "version, v",
+			Usage: "print the version",
+		},
+	},
+	HideHelp:    false,
+	HideVersion: false,
 	Commands: []cli.Command{
 		*command.StatusCommand,
 		*command.ConfigCommand,

@@ -36,6 +36,14 @@ var app = &cli.App{
 	- Config idb agent
 	- Update idb agent
 	- Remove idb agent`,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "version, v",
+			Usage: "print the version",
+		},
+	},
+	HideHelp:    false,
+	HideVersion: false,
 	Commands: []cli.Command{
 		*agent.StopCommand,
 		*agent.RestartCommand,

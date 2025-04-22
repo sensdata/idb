@@ -56,6 +56,7 @@ install: build
 	sudo systemctl daemon-reload; \
 	sudo systemctl enable $(BINARY_NAME).service; \
 	sudo systemctl start $(BINARY_NAME).service; \
+	sudo ln -sf /var/lib/idb-agent/idb-agent /usr/local/bin/idb-agent
 	$(MAKE) clean  # 在安装后调用clean目标
 
 # 卸载命令
