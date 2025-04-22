@@ -13,7 +13,9 @@ import (
 // @Description Connect to task log stream through Server-Sent Events
 // @Accept json
 // @Produce text/event-stream
-// @Param tid path string true "Task ID"
+// @Param taskId path string true "Task ID"
+// @Param offset query int false "Offset"
+// @Param whence query string false "Whence, one of 'start', 'end'"
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
 // @Router /tasks/{taskId}/logs [get]

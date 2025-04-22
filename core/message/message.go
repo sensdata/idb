@@ -101,6 +101,8 @@ type LogStreamMessage struct {
 	Type      LogStreamType `json:"type"`
 	TaskID    string        `json:"task_id"`
 	LogPath   string        `json:"log_path"`
+	Offset    int64         `json:"offset"`
+	Whence    int           `json:"whence"`
 	Content   string        `json:"content,omitempty"`
 	Error     string        `json:"error,omitempty"`
 	Timestamp int64         `json:"timestamp"`
@@ -262,7 +264,7 @@ func SendMessage(conn net.Conn, msg *Message) error {
 	return nil
 }
 
-func CreateLogStreamMessage(msgID string, msgType LogStreamType, taskID string, logPath string, content string, errMsg string) (*LogStreamMessage, error) {
+func CreateLogStreamMessage(msgID string, msgType LogStreamType, taskID string, logPath string, offset int64, whence int, content string, errMsg string) (*LogStreamMessage, error) {
 	// 参数校验
 	if msgID == "" {
 		return nil, errors.New("msgID cannot be empty")
@@ -295,6 +297,8 @@ func CreateLogStreamMessage(msgID string, msgType LogStreamType, taskID string, 
 		Type:      msgType,
 		TaskID:    taskID,
 		LogPath:   logPath,
+		Offset:    offset,
+		Whence:    whence,
 		Content:   content,
 		Error:     errMsg,
 		Timestamp: time.Now().Unix(),

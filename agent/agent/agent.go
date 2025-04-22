@@ -766,7 +766,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 			c.readerMu.RUnlock()
 			// 复用已存在的 reader
 			done := c.readerDone[msg.LogPath]
-			go c.followLog(conn, msg.TaskID, msg.LogPath, existingReader, done)
+			go c.followLog(conn, msg.TaskID, msg.LogPath, msg.Offset, msg.Whence, existingReader, done)
 			return
 		}
 		c.readerMu.RUnlock()
@@ -790,7 +790,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 		c.readerMu.Unlock()
 
 		// 启动日志追踪
-		go c.followLog(conn, msg.TaskID, msg.LogPath, r, done)
+		go c.followLog(conn, msg.TaskID, msg.LogPath, msg.Offset, msg.Whence, r, done)
 
 	case message.LogStreamStop:
 		c.readerMu.Lock()
@@ -812,7 +812,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	}
 }
 
-func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, reader reader.Reader, done chan struct{}) {
+func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset int64, whence int, reader reader.Reader, done chan struct{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in followLog: %v", r)
@@ -826,7 +826,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, reader r
 	}()
 
 	// 获取日志通道
-	logCh, err := reader.Follow()
+	logCh, err := reader.Follow(offset, whence)
 	if err != nil {
 		global.LOG.Error("start follow failed: %v", err)
 		c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error())
@@ -1262,6 +1262,22 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 
 		result, err := utils.ToJSONString(fileInfo)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// 获取部分内容
+	case model.File_Content_Part:
+		var req model.FileContentPartReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		partRsp, err := FileService.GetContentPart(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(partRsp)
 		if err != nil {
 			return nil, err
 		}
@@ -2511,6 +2527,8 @@ func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, logPath string
 		msgType,
 		taskId,
 		logPath,
+		0,
+		0,
 		content,
 		errMsg,
 	)

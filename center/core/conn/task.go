@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +37,29 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	taskID := c.Param("taskId")
 	if taskID == "" {
 		return errors.New("invalid task ID")
+	}
+
+	offset, err := strconv.ParseInt(c.Query("offset"), 10, 32)
+	if err != nil {
+		offset = 0
+	}
+
+	var whence = io.SeekStart
+	w := c.Query("whence")
+	switch w {
+	case "start":
+		whence = io.SeekStart
+		if offset < 0 {
+			offset = 0
+		}
+	case "end":
+		whence = io.SeekEnd
+		if offset >= 0 {
+			offset = -1024
+		}
+	default:
+		whence = io.SeekStart
+		offset = 0
 	}
 
 	// 获取任务信息
@@ -91,6 +116,8 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 			message.LogStreamStart,
 			task.ID,
 			task.LogPath,
+			offset,
+			whence,
 			"",
 			"",
 		)
@@ -103,7 +130,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 		}
 	}
 
-	logCh, err := reader.Follow()
+	logCh, err := reader.Follow(offset, whence)
 	if err != nil {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
