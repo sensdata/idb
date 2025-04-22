@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logCh, _ := reader.Follow()
+	logCh, _ := reader.Follow(0, 0)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 

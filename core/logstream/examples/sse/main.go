@@ -53,7 +53,7 @@ func streamLogs(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 
-	logCh, _ := reader.Follow()
+	logCh, _ := reader.Follow(0, 0)
 	c.Stream(func(w io.Writer) bool {
 		if msg, ok := <-logCh; ok {
 			c.SSEvent("log", string(msg))

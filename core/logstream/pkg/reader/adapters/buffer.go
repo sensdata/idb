@@ -43,7 +43,7 @@ func (r *BufferReader) Read(offset int64) ([]byte, error) {
 	return data, nil
 }
 
-func (r *BufferReader) Follow() (<-chan []byte, error) {
+func (r *BufferReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

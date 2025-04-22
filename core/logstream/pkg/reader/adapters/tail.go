@@ -63,7 +63,7 @@ func (r *TailReader) Read(offset int64) ([]byte, error) {
 	return line, nil
 }
 
-func (r *TailReader) Follow() (<-chan []byte, error) {
+func (r *TailReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -83,8 +83,8 @@ func (r *TailReader) Follow() (<-chan []byte, error) {
 		MustExist: false,
 		Poll:      true,
 		Location: &tail.SeekInfo{
-			Offset: 0,
-			Whence: io.SeekStart,
+			Offset: offset,
+			Whence: whence,
 		},
 	}
 

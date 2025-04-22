@@ -34,7 +34,7 @@ func (r *RemoteReader) Read(offset int64) ([]byte, error) {
 	return []byte{}, nil
 }
 
-func (r *RemoteReader) Follow() (<-chan []byte, error) {
+func (r *RemoteReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

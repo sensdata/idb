@@ -10,7 +10,7 @@ type Reader interface {
 	Read(offset int64) ([]byte, error)
 
 	// Follow 持续读取新日志
-	Follow() (<-chan []byte, error)
+	Follow(offset int64, whence int) (<-chan []byte, error)
 
 	// Follow 日志结构
 	FollowEntry() (<-chan types.LogEntry, error)
