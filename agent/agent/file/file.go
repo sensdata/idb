@@ -32,6 +32,7 @@ type IFileService interface {
 	Compress(c model.FileCompress) error
 	DeCompress(c model.FileDeCompress) error
 	GetContent(op model.FileContentReq) (*model.FileInfo, error)
+	GetContentPart(op model.FileContentPartReq) (*model.FileContentPartRsp, error)
 	SaveContent(edit model.FileEdit) error
 	FileDownload(d model.FileDownload) (string, error)
 	DirSize(req model.DirSizeReq) (*model.DirSizeRes, error)
@@ -273,6 +274,24 @@ func (f *FileService) GetContent(op model.FileContentReq) (*model.FileInfo, erro
 		return &model.FileInfo{}, err
 	}
 	return &model.FileInfo{FileInfo: *info}, nil
+}
+
+func (f *FileService) GetContentPart(op model.FileContentPartReq) (*model.FileContentPartRsp, error) {
+	info, err := files.NewFileInfo(files.FileOption{
+		Path:   op.Path,
+		Expand: false,
+	})
+	if err != nil {
+		return &model.FileContentPartRsp{}, err
+	}
+	content, err := info.Part(op.Offset, op.Whence)
+	if err != nil {
+		return &model.FileContentPartRsp{}, err
+	}
+	return &model.FileContentPartRsp{
+		Path:    op.Path,
+		Content: content,
+	}, nil
 }
 
 func (f *FileService) SaveContent(edit model.FileEdit) error {

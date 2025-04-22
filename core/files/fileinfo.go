@@ -3,6 +3,7 @@ package files
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -316,6 +317,72 @@ func (f *FileInfo) getContent() error {
 	}
 	f.Content = string(cByte)
 	return nil
+}
+
+func (f *FileInfo) Part(offset int64, whence int) (string, error) {
+	return f.getContentPart(offset, whence)
+}
+
+func (f *FileInfo) getContentPart(offset int64, whence int) (string, error) {
+	if IsBlockDevice(f.FileMode) {
+		return "", errors.New(constant.ErrFileCanNotRead)
+	}
+
+	// 打开文件
+	file, err := f.Fs.Open(f.Path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// 根据whence和offset计算实际要读取的长度和起始位置
+	var start, length int64
+	switch whence {
+	case io.SeekStart:
+		if offset <= 0 {
+			return "", errors.New("offset must be positive for SeekStart")
+		}
+		if offset > f.Size {
+			offset = f.Size
+		}
+		start = 0
+		length = offset
+
+	case io.SeekEnd:
+		if offset >= 0 {
+			return "", errors.New("offset must be negative for SeekEnd")
+		}
+		// 将负的offset转为正值用于计算
+		absOffset := -offset
+		if absOffset > f.Size {
+			absOffset = f.Size
+		}
+		start = f.Size - absOffset
+		length = absOffset
+
+	default:
+		return "", errors.New("whence must be either io.SeekStart or io.SeekEnd")
+	}
+
+	// 创建buffer并读取指定部分
+	buffer := make([]byte, length)
+	seeker := file.(io.ReadSeeker)
+	_, err = seeker.Seek(start, io.SeekStart)
+	if err != nil {
+		return "", err
+	}
+
+	n, err := io.ReadFull(file, buffer)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return "", err
+	}
+
+	// 检查是否为二进制文件
+	if n > 0 && DetectBinary(buffer[:n]) {
+		return "", errors.New(constant.ErrFileCanNotRead)
+	}
+
+	return string(buffer[:n]), nil
 }
 
 func DetectBinary(buf []byte) bool {
