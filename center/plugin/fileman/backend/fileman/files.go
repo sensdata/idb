@@ -3,6 +3,7 @@ package fileman
 import (
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -304,6 +306,7 @@ func (s *FileMan) getContent(hostID uint64, op model.FileContentReq) (*model.Fil
 
 	return &fileInfo, nil
 }
+
 func (s *FileMan) saveContent(hostID uint64, op model.FileEdit) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -329,6 +332,92 @@ func (s *FileMan) saveContent(hostID uint64, op model.FileEdit) error {
 	}
 
 	return nil
+}
+
+func (s *FileMan) getHead(hostID uint64, path string) (*model.FileContentPartRsp, error) {
+	var fileContentPartRsp model.FileContentPartRsp
+
+	req := model.FileContentPartReq{
+		Path:   path,
+		Offset: 1024,
+		Whence: io.SeekStart,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Content_Part,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &fileContentPartRsp, fmt.Errorf("failed to get file content part")
+	}
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileContentPartRsp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content part: %v", err)
+		return &fileContentPartRsp, fmt.Errorf("json err: %v", err)
+	}
+	return &fileContentPartRsp, nil
+}
+
+func (s *FileMan) getTail(hostID uint64, path string, follow bool) (*model.FileContentPartRsp, error) {
+	var fileContentPartRsp model.FileContentPartRsp
+
+	// 如果是follow方式，则创建一个follow任务
+	if follow {
+		metadata := map[string]interface{}{
+			"host":     hostID,
+			"log_path": path,
+		}
+		taskId, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+		if err != nil {
+			return &fileContentPartRsp, err
+		}
+		fileContentPartRsp.Path = path
+		fileContentPartRsp.TaskID = taskId
+		return &fileContentPartRsp, nil
+	}
+
+	// 非 follow 方式，直接获取文件部分内容
+	req := model.FileContentPartReq{
+		Path:   path,
+		Offset: -1024,
+		Whence: io.SeekEnd,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Content_Part,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &fileContentPartRsp, fmt.Errorf("failed to get file content part")
+	}
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileContentPartRsp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content part: %v", err)
+		return &fileContentPartRsp, fmt.Errorf("json err: %v", err)
+	}
+	return &fileContentPartRsp, nil
 }
 
 func (s *FileMan) uploadFile(hostID uint, path string, file *multipart.FileHeader) error {

@@ -132,6 +132,8 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/:host/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/:host/decompress", Handler: s.DeCompressFile},
 			{Method: "GET", Path: "/:host/detail", Handler: s.GetDetail},
+			{Method: "GET", Path: "/:host/head", Handler: s.GetHead},
+			{Method: "GET", Path: "/:host/tail", Handler: s.GetTail},
 			{Method: "PUT", Path: "/:host/content", Handler: s.SaveContent},
 			{Method: "POST", Path: "/:host/upload", Handler: s.Upload},
 			{Method: "GET", Path: "/:host/download", Handler: s.Download},
@@ -559,6 +561,69 @@ func (s *FileMan) GetDetail(c *gin.Context) {
 	}
 
 	info, err := s.getContent(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, info)
+}
+
+// @Tags File
+// @Summary Get file detail
+// @Description Get the content of a file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string true "File path"
+// @Success 200 {object} model.FileInfo
+// @Router /files/{host}/head [get]
+func (s *FileMan) GetHead(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	info, err := s.getHead(hostID, path)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, info)
+}
+
+// @Tags File
+// @Summary Get file detail
+// @Description Get the content of a file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string true "File path"
+// @Param follow query bool true "Follow file"
+// @Success 200 {object} model.FileInfo
+// @Router /files/{host}/tail [get]
+func (s *FileMan) GetTail(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
+	}
+
+	follow, _ := strconv.ParseBool(c.Query("force"))
+
+	info, err := s.getTail(hostID, path, follow)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return

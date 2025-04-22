@@ -33,6 +33,7 @@ const (
 	File_Compress           string = "file_compress"
 	File_Decompress         string = "file_decompress"
 	File_Content            string = "file_content"
+	File_Content_Part       string = "file_content_part"
 	File_Content_Modify     string = "file_content_modify"
 	File_Move               string = "file_move"
 	File_Dir_Size           string = "file_dir_size"

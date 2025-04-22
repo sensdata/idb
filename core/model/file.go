@@ -15,6 +15,18 @@ type FileContentReq struct {
 	Expand bool   `json:"expand"`
 }
 
+type FileContentPartReq struct {
+	Path   string `json:"path" validate:"required"`
+	Offset int64  `json:"offset" validate:"required"`
+	Whence int    `json:"whence" validate:"required"`
+}
+
+type FileContentPartRsp struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+	TaskID  string `json:"task_id"`
+}
+
 type FileCreate struct {
 	Source    string `json:"source" validate:"required"`
 	Content   string `json:"content"`
