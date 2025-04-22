@@ -18,8 +18,24 @@ import (
 )
 
 var app = &cli.App{
-	Name:  "idbagent",
-	Usage: "idb agent command line tools",
+	Name:    "idb-agent",
+	Usage:   "idb-agent command line tools",
+	Version: global.Version,
+	Authors: []cli.Author{
+		{
+			Name:  "iDB Dev Team",
+			Email: "idb@sensdata.com",
+		},
+	},
+	Description: `idb-agent is a proxy service running on the local server 
+	that maintains communication with the idb server and accepts instructions and control 
+	from the idb server, such as executing shell commands, running scripts, 
+	performing file operations, etc.
+	The idb-agent command line tool provides the following features:
+	- Control idb agent
+	- Config idb agent
+	- Update idb agent
+	- Remove idb agent`,
 	Commands: []cli.Command{
 		*agent.StopCommand,
 		*agent.RestartCommand,

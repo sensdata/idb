@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/command"
@@ -38,14 +39,19 @@ import (
 )
 
 var app = &cli.App{
-	Name:  "idb-center - idb center command line tools",
-	Usage: "idb-center command [command options] [arguments...]",
+	Name:    "idb",
+	Usage:   "idb command line tools",
+	Version: global.Version,
 	Authors: []cli.Author{
 		{
 			Name:  "iDB Dev Team",
 			Email: "idb@sensdata.com",
 		},
 	},
+	Description: `idb is a centralized management platform for remote servers.
+	The idb command line tool provides the following features:
+	- Config idb server
+	- Update idb server`,
 	Commands: []cli.Command{
 		*command.StatusCommand,
 		*command.ConfigCommand,
@@ -54,6 +60,9 @@ var app = &cli.App{
 }
 
 func main() {
+	// 设置 gin 模式为 release
+	gin.SetMode(gin.ReleaseMode)
+
 	// 检查目录
 	paths := []string{constant.CenterConfDir, constant.CenterDataDir, constant.CenterAgentDir, constant.CenterLogDir, constant.CenterRunDir}
 	if err := utils.EnsurePaths(paths); err != nil {
