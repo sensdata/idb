@@ -334,7 +334,7 @@ func (s *FileMan) saveContent(hostID uint64, op model.FileEdit) error {
 	return nil
 }
 
-func (s *FileMan) getHead(hostID uint64, path string) (*model.FileContentPartRsp, error) {
+func (s *FileMan) getHead(hostID uint, path string) (*model.FileContentPartRsp, error) {
 	var fileContentPartRsp model.FileContentPartRsp
 
 	req := model.FileContentPartReq{
@@ -347,7 +347,7 @@ func (s *FileMan) getHead(hostID uint64, path string) (*model.FileContentPartRsp
 		return &fileContentPartRsp, err
 	}
 	actionRequest := model.HostAction{
-		HostID: uint(hostID),
+		HostID: hostID,
 		Action: model.Action{
 			Action: model.File_Content_Part,
 			Data:   data,
@@ -369,7 +369,7 @@ func (s *FileMan) getHead(hostID uint64, path string) (*model.FileContentPartRsp
 	return &fileContentPartRsp, nil
 }
 
-func (s *FileMan) getTail(hostID uint64, path string, follow bool) (*model.FileContentPartRsp, error) {
+func (s *FileMan) getTail(hostID uint, path string, follow bool) (*model.FileContentPartRsp, error) {
 	var fileContentPartRsp model.FileContentPartRsp
 
 	// 如果是follow方式，则创建一个follow任务
@@ -398,7 +398,7 @@ func (s *FileMan) getTail(hostID uint64, path string, follow bool) (*model.FileC
 		return &fileContentPartRsp, err
 	}
 	actionRequest := model.HostAction{
-		HostID: uint(hostID),
+		HostID: hostID,
 		Action: model.Action{
 			Action: model.File_Content_Part,
 			Data:   data,

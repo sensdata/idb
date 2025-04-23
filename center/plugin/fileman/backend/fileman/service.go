@@ -590,7 +590,7 @@ func (s *FileMan) GetHead(c *gin.Context) {
 		return
 	}
 
-	info, err := s.getHead(hostID, path)
+	info, err := s.getHead(uint(hostID), path)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -623,7 +623,7 @@ func (s *FileMan) GetTail(c *gin.Context) {
 
 	follow, _ := strconv.ParseBool(c.Query("follow"))
 
-	info, err := s.getTail(hostID, path, follow)
+	info, err := s.getTail(uint(hostID), path, follow)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
