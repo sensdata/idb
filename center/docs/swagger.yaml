@@ -4382,6 +4382,32 @@ paths:
       summary: Collect a favorite file
       tags:
       - File
+  /files/{host}/head:
+    get:
+      consumes:
+      - application/json
+      description: Get the content of a file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FileInfo'
+      summary: Get file detail
+      tags:
+      - File
   /files/{host}/mode:
     put:
       consumes:
@@ -4555,6 +4581,37 @@ paths:
           schema:
             $ref: '#/definitions/model.DirSizeRes'
       summary: Get directory size
+      tags:
+      - File
+  /files/{host}/tail:
+    get:
+      consumes:
+      - application/json
+      description: Get the content of a file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: Follow file
+        in: query
+        name: follow
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FileInfo'
+      summary: Get file detail
       tags:
       - File
   /files/{host}/trees:
@@ -8176,8 +8233,16 @@ paths:
       parameters:
       - description: Task ID
         in: path
-        name: tid
+        name: taskId
         required: true
+        type: string
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Whence, one of 'start', 'end'
+        in: query
+        name: whence
         type: string
       produces:
       - text/event-stream

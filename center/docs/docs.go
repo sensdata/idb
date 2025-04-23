@@ -3724,6 +3724,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/files/{host}/head": {
+            "get": {
+                "description": "Get the content of a file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get file detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileInfo"
+                        }
+                    }
+                }
+            }
+        },
         "/files/{host}/mode": {
             "put": {
                 "description": "Change file mode",
@@ -3983,6 +4022,52 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.DirSizeRes"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{host}/tail": {
+            "get": {
+                "description": "Get the content of a file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get file detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Follow file",
+                        "name": "follow",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileInfo"
                         }
                     }
                 }
@@ -9365,9 +9450,21 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Task ID",
-                        "name": "tid",
+                        "name": "taskId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Whence, one of 'start', 'end'",
+                        "name": "whence",
+                        "in": "query"
                     }
                 ],
                 "responses": {
