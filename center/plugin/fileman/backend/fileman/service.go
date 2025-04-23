@@ -569,13 +569,13 @@ func (s *FileMan) GetDetail(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file detail
-// @Description Get the content of a file
+// @Summary Get file head content
+// @Description Get the first few lines of a file's content
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
-// @Success 200 {object} model.FileInfo
+// @Success 200 {object} model.FileContentPartRsp
 // @Router /files/{host}/head [get]
 func (s *FileMan) GetHead(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -599,14 +599,14 @@ func (s *FileMan) GetHead(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file detail
-// @Description Get the content of a file
+// @Summary Get file tail content
+// @Description Retrieve the last few lines of a file's content. If `follow` is true, the response will include a task_id for continuously streaming the file content in real-time.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
 // @Param follow query bool true "Follow file"
-// @Success 200 {object} model.FileInfo
+// @Success 200 {object} model.FileContentPartRsp
 // @Router /files/{host}/tail [get]
 func (s *FileMan) GetTail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
