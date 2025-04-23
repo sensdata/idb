@@ -621,7 +621,7 @@ func (s *FileMan) GetTail(c *gin.Context) {
 		return
 	}
 
-	follow, _ := strconv.ParseBool(c.Query("force"))
+	follow, _ := strconv.ParseBool(c.Query("follow"))
 
 	info, err := s.getTail(hostID, path, follow)
 	if err != nil {
