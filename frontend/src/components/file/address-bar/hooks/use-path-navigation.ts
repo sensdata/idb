@@ -27,14 +27,12 @@ export default function usePathNavigation(
     const v = value.value.trim();
 
     if (!v) {
-      // emit('loading', true); // 已移除，父组件未监听此事件
       emit('goto', '/');
       return;
     }
 
     const targetPath = addRootSlash(v);
 
-    // emit('loading', true); // 已移除，父组件未监听此事件
     emit('goto', targetPath);
   }
 
@@ -75,17 +73,19 @@ export default function usePathNavigation(
       // Reset search state when entering a directory
       isSearching.value = false;
       triggerByTab.value = false;
-    }
 
-    // Navigate to the path
-    emit('goto', targetPath);
+      // Navigate to the directory path
+      emit('goto', targetPath);
 
-    if (item.isDir) {
       // Request fresh directory contents
       emit('search', {
         path: targetPath,
         word: '',
       });
+    } else {
+      // When a file is selected, navigate to its path
+      // This will trigger the file to be opened in the file viewer
+      emit('goto', targetPath);
     }
 
     inputRef.value?.blur();

@@ -1,4 +1,17 @@
 export default {
+  'app.file.title': '文件管理',
+  'app.file.upload.title': '上传文件',
+  'app.file.upload.drag': '点击或拖拽文件到此处上传',
+  'app.file.upload.success': '上传成功',
+  'app.file.upload.failed': '上传失败',
+  'app.file.delete.title': '删除文件',
+  'app.file.delete.content': '确定要删除选中的文件吗？',
+  'app.file.delete.success': '删除成功',
+  'app.file.delete.failed': '删除失败',
+  'app.file.download.success': '下载成功',
+  'app.file.download.failed': '下载失败',
+  'app.file.preview.title': '预览',
+  'app.file.preview.notSupported': '暂不支持预览此类型文件',
   'app.file.list.action.back': '返回',
   'app.file.list.action.create': '创建',
   'app.file.list.action.createFolder': '创建文件夹',
@@ -30,4 +43,6 @@ export default {
 
   'app.file.list.message.copyPathSuccess': '复制成功',
   'app.file.list.message.copyPathFailed': '复制失败',
+  'app.file.list.message.largeFileDownload':
+    '文件大于1MB，正在下载而不是打开编辑器',
 };

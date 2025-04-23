@@ -10,6 +10,7 @@
     }"
     :style="{ paddingLeft: level * 8 + 'px' }"
     @click="handleClick"
+    @dblclick="handleDoubleClick"
   >
     <!-- 展开/折叠控制按钮区域 -->
     <div class="tree-item-toggle">
@@ -67,6 +68,13 @@
   const selectedChange = inject<(item: FileTreeItem) => void>('selectedChange');
   const openChange =
     inject<(item: FileTreeItem, open: boolean) => void>('openChange');
+  const doubleClickChange = inject<(item: FileTreeItem) => void>(
+    'doubleClickChange',
+    () => {
+      // 默认空操作实现
+      // 如果需要，这将被父组件覆盖
+    }
+  );
 
   // 计算是否显示子项列表
   const showChildren = computed(
@@ -95,6 +103,13 @@
 
     // 更新选中项（无论是文件还是文件夹）
     selectedChange?.(item);
+  }
+
+  /**
+   * 处理项目双击事件
+   */
+  function handleDoubleClick() {
+    doubleClickChange?.(item);
   }
 </script>
 

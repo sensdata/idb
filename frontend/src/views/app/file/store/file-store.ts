@@ -138,7 +138,38 @@ const useFileStore = defineStore('file-manage', {
      */
     handleTreeItemSelect(treeItem: FileTreeItem) {
       if (this.$state.current?.path !== treeItem?.path) {
+        // 更新当前选中项
         this.$state.current = treeItem;
+
+        // 如果选择的是文件，只需导航到其所在的文件夹，但不自动打开文件
+        if (!treeItem.is_dir) {
+          // 获取父目录路径
+          const parentPath = treeItem.path.substring(
+            0,
+            treeItem.path.lastIndexOf('/')
+          );
+          const normalizedParentPath = parentPath || '/';
+
+          // 检查当前是否已经在父目录
+          if (this.pwd === normalizedParentPath) {
+            // 如果已经在正确的目录，只需更新选中的文件
+            getFileDetailApi({ path: treeItem.path }).then((fileItem) => {
+              if (fileItem) {
+                this.$state.selected = [fileItem];
+              }
+            });
+          } else {
+            // 导航到父目录
+            this.handleGoto(normalizedParentPath);
+
+            // 更新选中的文件（用于在文件列表中高亮显示）
+            getFileDetailApi({ path: treeItem.path }).then((fileItem) => {
+              if (fileItem) {
+                this.$state.selected = [fileItem];
+              }
+            });
+          }
+        }
       }
     },
 
@@ -196,7 +227,6 @@ const useFileStore = defineStore('file-manage', {
         page_size: 100,
         show_hidden: this.$state.showHidden,
         path: payload.path,
-        dir: true,
         search: payload.word,
       });
       this.$state.addressItems = data.items || [];
@@ -212,10 +242,8 @@ const useFileStore = defineStore('file-manage', {
 
       // 如果项目不存在于树中
       if (!treeItem) {
-        // 只处理目录项目
-        if (item.is_dir) {
-          this.handleTreeItemSelect(item);
-        }
+        // 处理目录或文件项目
+        this.handleTreeItemSelect(item);
         return;
       }
 
@@ -256,6 +284,7 @@ const useFileStore = defineStore('file-manage', {
         this.$state.current = item;
         this.$state.addressItems = [];
       }
+      this.$state.selected = [item];
     },
 
     /**

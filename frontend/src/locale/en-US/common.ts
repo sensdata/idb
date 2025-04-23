@@ -22,6 +22,7 @@ export default {
   'common.view': 'View',
   'common.modify': 'Modify',
   'common.save': 'Save',
+  'common.discard': 'Discard',
 
   'common.yes': 'Yes',
   'common.no': 'No',

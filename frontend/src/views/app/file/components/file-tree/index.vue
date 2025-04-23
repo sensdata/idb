@@ -22,6 +22,7 @@
     selected?: FileTreeItem | null; // 当前选中的项目
     selectedChange: (item: FileTreeItem) => void; // 选中项变化回调
     openChange: (item: FileTreeItem, open: boolean) => void; // 展开状态变化回调
+    doubleClickChange?: (item: FileTreeItem) => void; // 双击项目回调
   }>();
 
   // 创建响应式选中项引用
@@ -39,6 +40,7 @@
   provide('selected', selectedItem);
   provide('selectedChange', props.selectedChange);
   provide('openChange', props.openChange);
+  provide('doubleClickChange', props.doubleClickChange);
 </script>
 
 <style scoped>

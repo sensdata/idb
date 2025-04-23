@@ -460,6 +460,7 @@
     setLoading,
     clearSelected: cancelSelected,
     getSelectedRows: () => selectedRows.value,
+    getData: () => renderData.value,
   });
 </script>
 
