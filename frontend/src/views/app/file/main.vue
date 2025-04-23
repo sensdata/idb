@@ -10,7 +10,7 @@
       <div class="file-layout">
         <div class="file-sidebar">
           <file-tree
-            :items="tree"
+            :items="foldersOnlyTree"
             :show-hidden="showHidden"
             :selected="current"
             :selected-change="handleTreeItemSelect"
@@ -779,6 +779,36 @@
     clearSelected();
     reload();
   };
+
+  // Create a computed property that filters the tree based on configuration
+  const foldersOnlyTree = computed(() => {
+    if (!tree.value) return [];
+
+    // Get the showFilesInTree value from the store
+    const showFiles = store.showFilesInTree;
+
+    // If showFilesInTree is true, return the complete tree
+    if (showFiles) {
+      return tree.value;
+    }
+
+    // Otherwise, recursive function to filter out files from the tree
+    const filterFolders = (items: FileTreeItem[]): FileTreeItem[] => {
+      return items
+        .filter((item) => item.is_dir)
+        .map((item) => {
+          if (item.items && item.items.length > 0) {
+            return {
+              ...item,
+              items: filterFolders(item.items),
+            };
+          }
+          return item;
+        });
+    };
+
+    return filterFolders(tree.value);
+  });
 
   onMounted(() => {
     store.initTree();

@@ -10,6 +10,7 @@ const useFileStore = defineStore('file-manage', {
     tree: [] as FileTreeItem[],
     addressItems: [] as FileItem[],
     showHidden: false,
+    showFilesInTree: false,
     selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
@@ -38,7 +39,10 @@ const useFileStore = defineStore('file-manage', {
         show_hidden: true,
         path: this.pwd,
       }).then((res) => {
-        this.$state.tree = res.items;
+        // 根据配置决定是否显示文件
+        this.$state.tree = this.$state.showFilesInTree
+          ? res.items || []
+          : (res.items || []).filter((item) => item.is_dir);
       });
     },
 
@@ -125,7 +129,10 @@ const useFileStore = defineStore('file-manage', {
         path: treeItem.path,
       });
 
-      treeItem.items = data.items || [];
+      // 根据配置决定是否显示文件
+      treeItem.items = this.$state.showFilesInTree
+        ? data.items || []
+        : (data.items || []).filter((item) => item.is_dir);
       treeItem.open = true;
       treeItem.loading = false;
       // 触发视图更新
