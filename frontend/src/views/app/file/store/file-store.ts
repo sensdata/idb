@@ -323,6 +323,20 @@ const useFileStore = defineStore('file-manage', {
       const parentPath =
         lastSlashIndex <= 0 ? '/' : normalizedPath.slice(0, lastSlashIndex);
 
+      // 找到对应的树节点
+      const treeItem = this.getItemByPath(parentPath);
+      // 如果找到了树节点且它是文件夹，检查其加载状态
+      if (treeItem && treeItem.is_dir) {
+        // 如果正在加载中，不执行任何操作
+        if (treeItem.loading) {
+          return;
+        }
+        // 如果需要加载子项
+        if (!treeItem.items || treeItem.items.length === 0) {
+          this.loadTreeChildren(treeItem);
+        }
+      }
+
       // 导航到父级路径
       this.handleGoto(parentPath);
     },
