@@ -596,6 +596,15 @@ definitions:
     - name
     - type
     type: object
+  model.FileContentPartRsp:
+    properties:
+      content:
+        type: string
+      path:
+        type: string
+      task_id:
+        type: string
+    type: object
   model.FileCreate:
     properties:
       content:
@@ -4386,7 +4395,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get the content of a file
+      description: Get the first few lines of a file's content
       parameters:
       - description: Host ID
         in: path
@@ -4404,8 +4413,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.FileInfo'
-      summary: Get file detail
+            $ref: '#/definitions/model.FileContentPartRsp'
+      summary: Get file head content
       tags:
       - File
   /files/{host}/mode:
@@ -4587,7 +4596,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get the content of a file
+      description: Retrieve the last few lines of a file's content. If `follow` is
+        true, the response will include a task_id for continuously streaming the file
+        content in real-time.
       parameters:
       - description: Host ID
         in: path
@@ -4610,8 +4621,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.FileInfo'
-      summary: Get file detail
+            $ref: '#/definitions/model.FileContentPartRsp'
+      summary: Get file tail content
       tags:
       - File
   /files/{host}/trees:

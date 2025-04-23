@@ -3726,7 +3726,7 @@ const docTemplate = `{
         },
         "/files/{host}/head": {
             "get": {
-                "description": "Get the content of a file",
+                "description": "Get the first few lines of a file's content",
                 "consumes": [
                     "application/json"
                 ],
@@ -3736,7 +3736,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Get file detail",
+                "summary": "Get file head content",
                 "parameters": [
                     {
                         "type": "integer",
@@ -3757,7 +3757,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.FileInfo"
+                            "$ref": "#/definitions/model.FileContentPartRsp"
                         }
                     }
                 }
@@ -4029,7 +4029,7 @@ const docTemplate = `{
         },
         "/files/{host}/tail": {
             "get": {
-                "description": "Get the content of a file",
+                "description": "Retrieve the last few lines of a file's content. If ` + "`" + `follow` + "`" + ` is true, the response will include a task_id for continuously streaming the file content in real-time.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4039,7 +4039,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Get file detail",
+                "summary": "Get file tail content",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4067,7 +4067,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.FileInfo"
+                            "$ref": "#/definitions/model.FileContentPartRsp"
                         }
                     }
                 }
@@ -10859,6 +10859,20 @@ const docTemplate = `{
                         "bz2",
                         "xz"
                     ]
+                }
+            }
+        },
+        "model.FileContentPartRsp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "string"
                 }
             }
         },
