@@ -159,10 +159,6 @@ func StartServices() error {
 	global.LOG.Info("Init ws")
 	conn.WEBSOCKET = conn.NewWebSocketService()
 
-	// 初始化TaskService
-	global.LOG.Info("Init task service")
-	conn.TASK = conn.NewTaskService()
-
 	// 启动center服务
 	global.LOG.Info("Init center")
 	center := conn.NewCenter()

@@ -17,4 +17,5 @@ var (
 	terminalService = service.NewITerminalService()
 	settingsService = service.NewISettingsService()
 	publicService   = service.NewIPublicService()
+	logManService   = service.NewILogManService()
 )

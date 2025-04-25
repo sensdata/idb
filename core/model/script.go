@@ -12,7 +12,6 @@ type ScriptExec struct {
 }
 
 type ScriptResult struct {
-	TaskID  string    `json:"task_id"`
 	LogPath string    `json:"log_path"`
 	Start   time.Time `json:"start"`
 	End     time.Time `json:"end"`

@@ -19,7 +19,7 @@ func commonGroups() []CommonRouter {
 		&TerminalRouter{},
 		&AppRouter{},
 		&SettingsRouter{},
-		&TaskRouter{},
+		&LogManRouter{},
 		&PublicRouter{},
 	}
 }

@@ -1,4 +1,4 @@
-package conn
+package service
 
 import (
 	"context"
@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -22,48 +24,67 @@ const (
 	maxBufferSize     = 1024 * 1024      // 日志缓冲区大小限制（1MB）
 )
 
-type ITaskService interface {
-	HandleTaskLogStream(c *gin.Context) error
+type ILogManService interface {
+	HandleLogStream(c *gin.Context) error
 }
 
-type TaskService struct{}
+type LogManService struct{}
 
-func NewTaskService() *TaskService {
-	return &TaskService{}
+func NewILogManService() ILogManService {
+	return &LogManService{}
 }
 
-func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
-	ls := global.LogStream
-	taskID := c.Param("taskId")
-	if taskID == "" {
-		return errors.New("invalid task ID")
-	}
-
-	offset, err := strconv.ParseInt(c.Query("offset"), 10, 32)
+func (s *LogManService) HandleLogStream(c *gin.Context) error {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		offset = 0
+		return errors.New("invalid host")
 	}
 
-	var whence = io.SeekStart
+	path := c.Query("path")
+	if path == "" {
+		return errors.New("invalid path")
+	}
+
+	var offset int64
+	var whence int
 	w := c.Query("whence")
 	switch w {
-	case "start":
-		whence = io.SeekStart
-		if offset < 0 {
-			offset = 0
-		}
 	case "end":
 		whence = io.SeekEnd
-		if offset >= 0 {
-			offset = -1024
-		}
+		offset = 0
 	default:
 		whence = io.SeekStart
 		offset = 0
 	}
 
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		global.LOG.Error("get host failed: %v", err)
+		return fmt.Errorf("get host failed: %w", err)
+	}
+
+	// 创建任务
+	ls := global.LogStream
+	metadata := map[string]interface{}{
+		"log_path": path,
+	}
+	var taskId string
+	// 本机
+	if host.IsDefault {
+		taskId, err = ls.CreateTask(types.TaskTypeFile, metadata)
+		if err != nil {
+			return errors.New("failed to create tail task")
+		}
+	} else {
+		taskId, err = ls.CreateTask(types.TaskTypeRemote, metadata)
+		if err != nil {
+			return errors.New("failed to create tail task")
+		}
+	}
+
 	// 获取任务信息
-	task, err := ls.GetTask(taskID)
+	task, err := ls.GetTask(taskId)
 	if err != nil {
 		global.LOG.Error("get task failed: %v", err)
 		return fmt.Errorf("get task failed: %w", err)
@@ -84,27 +105,8 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	// 判断reader是否是 RemoteReader
 	_, ok := reader.(*adapters.RemoteReader)
 	if ok {
-		// 找host
-		id, ok := task.Metadata["host"]
-		if !ok {
-			global.LOG.Error("cannot find host in task metadata")
-			return errors.New("invalid host")
-		}
-		// id 转成 uint
-		hostId, ok := id.(uint)
-		if !ok {
-			global.LOG.Error("invalid host id")
-			return errors.New("invalid host id")
-		}
-
-		// 找host
-		host, err := HostRepo.Get(HostRepo.WithByID(uint(hostId)))
-		if err != nil {
-			global.LOG.Error("get host failed: %v", err)
-			return fmt.Errorf("get host failed: %w", err)
-		}
 		// 获取agent连接
-		conn, err := CENTER.GetAgentConn(&host)
+		conn, err := conn.CENTER.GetAgentConn(&host)
 		if err != nil {
 			global.LOG.Error("get agent conn failed: %v", err)
 			return fmt.Errorf("get agent conn failed: %w", err)
@@ -137,7 +139,7 @@ func (s *TaskService) HandleTaskLogStream(c *gin.Context) error {
 	}
 
 	// 获取任务状态监听器
-	watcher, err := ls.GetTaskWatcher(taskID)
+	watcher, err := ls.GetTaskWatcher(taskId)
 	if err != nil {
 		global.LOG.Error("get task watcher failed: %v", err)
 		return fmt.Errorf("get task watcher failed: %w", err)
