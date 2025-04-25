@@ -23,14 +23,14 @@ export default function useFileEditor() {
     try {
       setLoading(true);
 
-      // If file size is 0, just set empty content without downloading the file
+      // 如果文件大小为0，则直接设置为空内容，不下载文件
       if (fileItem.size === 0) {
         content.value = '';
         originalContent.value = '';
         return;
       }
 
-      // Use fetch to directly call the download API to get file content
+      // 使用fetch直接调用下载API获取文件内容
       const apiUrl = resolveApiUrl('/files/{host}/download', {
         source: fileItem.path,
       });

@@ -32,7 +32,7 @@ export default function useDropdownNavigation(
 
       if (!selectedOptionEl) return;
 
-      // Get the actual DOM element (whether from ComponentPublicInstance or directly)
+      // 获取实际的DOM元素（无论是从ComponentPublicInstance还是直接获取）
       const selectedOption =
         (selectedOptionEl as ComponentPublicInstance)?.$el ||
         (selectedOptionEl as Element);

@@ -65,26 +65,22 @@ export default function usePathNavigation(
 
     const targetPath = addRootSlash(value.value);
 
-    // Clear navigation state before navigating
+    /**
+     * 导航前清理状态
+     */
     if (item.isDir) {
-      // Clear options to prevent stale entries
       allOptions.value = [];
 
-      // Reset search state when entering a directory
       isSearching.value = false;
       triggerByTab.value = false;
 
-      // Navigate to the directory path
       emit('goto', targetPath);
 
-      // Request fresh directory contents
       emit('search', {
         path: targetPath,
         word: '',
       });
     } else {
-      // When a file is selected, navigate to its path
-      // This will trigger the file to be opened in the file viewer
       emit('goto', targetPath);
     }
 
@@ -99,7 +95,9 @@ export default function usePathNavigation(
     const isDoubleTab = currentTime - lastTabTime.value < 300;
     lastTabTime.value = currentTime;
 
-    // Check if path ends with a slash - this means we're inside a directory and should list contents
+    /**
+     * 路径以斜杠结尾表示在目录内，应列出内容
+     */
     const endsWithSlash = value.value.endsWith('/');
 
     if (allOptions.value.length === 0) {
@@ -117,39 +115,40 @@ export default function usePathNavigation(
     }
 
     if (allOptions.value.length === 1) {
-      // Immediately select the only option - this could be a directory
+      /**
+       * 选择唯一选项（可能是目录）
+       */
       const selectedOption = allOptions.value[0];
 
-      // Clear options before navigating to prevent stale entries
       if (selectedOption.isDir) {
         allOptions.value = [];
       }
 
       handleOptionClick(selectedOption);
 
-      // Reset search state when selecting with tab
       isSearching.value = false;
       triggerByTab.value = false;
       return;
     }
 
-    // On double tab, just show all options
+    /**
+     * 双击Tab显示所有选项
+     */
     if (isDoubleTab) {
       popupVisible.value = true;
       return;
     }
 
-    // If we're in a directory (path ends with slash), just show dropdown
+    /**
+     * 在目录中时显示下拉菜单
+     */
     if (endsWithSlash) {
-      // When in a directory, request fresh directory contents
       allOptions.value = [];
       popupVisible.value = true;
 
-      // Reset the search state when showing directory contents
       isSearching.value = false;
       triggerByTab.value = false;
 
-      // Force refresh of directory contents
       const searchPath = getSearchPath(value.value);
       emit('search', {
         path: searchPath,
@@ -158,7 +157,9 @@ export default function usePathNavigation(
       return;
     }
 
-    // Find the longest common prefix for auto-completion
+    /**
+     * 查找最长公共前缀进行自动补全
+     */
     const prefix = findCommonPrefix(allOptions.value);
     if (!prefix) {
       popupVisible.value = true;
@@ -172,7 +173,9 @@ export default function usePathNavigation(
       const basePath = currentPath.substring(0, lastSlashIndex + 1);
       const currentTerm = currentPath.substring(lastSlashIndex + 1);
 
-      // Only update if we found a longer match than what's already typed
+      /**
+       * 仅在找到比已输入更长的匹配项时更新
+       */
       if (
         prefix &&
         prefix.length > currentTerm.length &&
@@ -180,13 +183,11 @@ export default function usePathNavigation(
       ) {
         value.value = basePath + prefix;
 
-        // Trigger search with the new prefix
         emit('search', {
           path: addRootSlash(basePath),
           word: prefix,
         });
       } else if (allOptions.value.length > 1) {
-        // If no better completion found but multiple options exist, show dropdown
         popupVisible.value = true;
       }
     } else if (
@@ -201,11 +202,12 @@ export default function usePathNavigation(
         word: prefix,
       });
     } else if (allOptions.value.length > 1) {
-      // If no better completion found but multiple options exist, show dropdown
       popupVisible.value = true;
     }
 
-    // Always show options if there are multiple matches
+    /**
+     * 当有多个匹配项时始终显示选项
+     */
     if (allOptions.value.length > 1) {
       popupVisible.value = true;
     }
@@ -243,14 +245,12 @@ export default function usePathNavigation(
       const v = value.value.trim();
 
       if (!v) {
-        // emit('loading', true); // 已移除，父组件未监听此事件
         emit('goto', '/');
         return;
       }
 
       const targetPath = addRootSlash(v);
 
-      // emit('loading', true); // 已移除，父组件未监听此事件
       emit('goto', targetPath);
     }, 200);
   }

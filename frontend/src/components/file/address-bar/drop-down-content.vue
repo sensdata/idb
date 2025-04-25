@@ -68,7 +68,7 @@
   const contentRef = ref<HTMLElement | null>(null);
   const optionRefs = ref<(ComponentPublicInstance | Element | null)[]>([]);
 
-  // Reset optionRefs array when options change
+  // 当选项变化时重置 optionRefs 数组
   watch(
     () => props.options.length,
     () => {
