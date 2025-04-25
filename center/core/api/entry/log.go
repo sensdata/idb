@@ -12,6 +12,7 @@ import (
 // @Description Connect to log stream through Server-Sent Events
 // @Accept json
 // @Produce text/event-stream
+// @Param host path uint true "Host ID"
 // @Param path query string true "File path"
 // @Param whence query string false "Whence, one of 'start', 'end'"
 // @Success 200 {string} string "SSE stream started"

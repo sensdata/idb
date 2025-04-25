@@ -46,7 +46,7 @@ func NewFileTaskManager(cfg *config.Config) (Manager, error) {
 	}, nil
 }
 
-func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{}) (string, error) {
+func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{}) (*types.Task, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -73,7 +73,7 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 		// 从 metadata 中获取 log_path
 		logPath, ok := metadata["log_path"]
 		if !ok {
-			return "", fmt.Errorf("log_path not found in metadata")
+			return nil, fmt.Errorf("log_path not found in metadata")
 		}
 		// 类型断言
 		if logPathStr, ok := logPath.(string); ok {
@@ -83,11 +83,11 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 
 	if err := m.store.Save(task); err != nil {
 		delete(m.buffers, taskID) // 如果保存失败，清理已创建的 buffer
-		return "", fmt.Errorf("save task failed: %v", err)
+		return nil, fmt.Errorf("save task failed: %v", err)
 	}
 
 	m.tasks[taskID] = task
-	return taskID, nil
+	return task, nil
 }
 
 func (m *FileTaskManager) Get(taskID string) (*types.Task, error) {

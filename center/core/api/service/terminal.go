@@ -62,6 +62,7 @@ func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
 
 func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
+		LogHost: hostID,
 		LogPath: "",
 		Start:   time.Now(),
 		End:     time.Now(),
@@ -91,7 +92,7 @@ func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
 		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
-
+	result.LogHost = hostID
 	return &result, nil
 }
 
@@ -197,6 +198,7 @@ func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRe
 
 func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
+		LogHost: hostID,
 		LogPath: "",
 		Start:   time.Now(),
 		End:     time.Now(),
@@ -226,6 +228,6 @@ func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
 		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
-
+	result.LogHost = hostID
 	return &result, nil
 }

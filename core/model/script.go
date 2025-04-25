@@ -12,6 +12,7 @@ type ScriptExec struct {
 }
 
 type ScriptResult struct {
+	LogHost uint      `json:"log_host"`
 	LogPath string    `json:"log_path"`
 	Start   time.Time `json:"start"`
 	End     time.Time `json:"end"`

@@ -901,6 +901,7 @@ func (s *ScriptMan) syncGlobal(hostID uint) error {
 
 func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
+		LogHost: hostID,
 		LogPath: "",
 		Start:   time.Now(),
 		End:     time.Now(),
@@ -948,7 +949,7 @@ func (s *ScriptMan) execute(hostID uint, req model.ExecuteScript) (*model.Script
 		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
-
+	result.LogHost = hostID
 	return &result, nil
 }
 

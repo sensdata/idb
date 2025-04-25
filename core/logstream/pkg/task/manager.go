@@ -10,7 +10,7 @@ import (
 // Manager 任务管理器接口
 type Manager interface {
 	// Create 创建新任务
-	Create(taskType string, metadata map[string]interface{}) (string, error)
+	Create(taskType string, metadata map[string]interface{}) (*types.Task, error)
 
 	// Get 获取任务信息
 	Get(taskID string) (*types.Task, error)

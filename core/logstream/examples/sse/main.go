@@ -28,17 +28,17 @@ func main() {
 }
 
 func createTask(c *gin.Context) {
-	taskID, err := ls.CreateTask("demo", nil)
+	task, err := ls.CreateTask("demo", nil)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	// 模拟写入一些初始日志
-	writer, _ := ls.GetWriter(taskID)
+	writer, _ := ls.GetWriter(task.ID)
 	writer.Write(types.LogLevelInfo, "任务已创建", nil)
 
-	c.JSON(200, gin.H{"task_id": taskID})
+	c.JSON(200, gin.H{"task_id": task.ID})
 }
 
 func streamLogs(c *gin.Context) {

@@ -419,25 +419,18 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	metadata := map[string]interface{}{
 		"log_path": path,
 	}
-	var taskId string
+	var task *types.Task
 	// 本机
 	if host.IsDefault {
-		taskId, err = ls.CreateTask(types.TaskTypeFile, metadata)
+		task, err = ls.CreateTask(types.TaskTypeFile, metadata)
 		if err != nil {
 			return errors.New("failed to create tail task")
 		}
 	} else {
-		taskId, err = ls.CreateTask(types.TaskTypeRemote, metadata)
+		task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
 		if err != nil {
 			return errors.New("failed to create tail task")
 		}
-	}
-
-	// 获取任务信息
-	task, err := ls.GetTask(taskId)
-	if err != nil {
-		global.LOG.Error("get task failed: %v", err)
-		return fmt.Errorf("get task failed: %w", err)
 	}
 
 	// 把task的metadata都打印出来
@@ -489,7 +482,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	}
 
 	// 获取任务状态监听器
-	watcher, err := ls.GetTaskWatcher(taskId)
+	watcher, err := ls.GetTaskWatcher(task.ID)
 	if err != nil {
 		global.LOG.Error("get task watcher failed: %v", err)
 		return fmt.Errorf("get task watcher failed: %w", err)

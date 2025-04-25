@@ -36,8 +36,8 @@ type IHostService interface {
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(req core.TestSSH) error
 	TestAgent(id uint, req core.TestAgent) error
-	InstallAgent(id uint, req core.InstallAgent) (*core.TaskInfo, error)
-	UninstallAgent(id uint) (*core.TaskInfo, error)
+	InstallAgent(id uint, req core.InstallAgent) (*core.LogInfo, error)
+	UninstallAgent(id uint) (*core.LogInfo, error)
 	AgentStatus(id uint) (*core.AgentStatus, error)
 	RestartAgent(id uint) error
 }
@@ -382,7 +382,7 @@ func (s *HostService) TestAgent(id uint, req core.TestAgent) error {
 	return nil
 }
 
-func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.TaskInfo, error) {
+func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.LogInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
@@ -390,19 +390,19 @@ func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.TaskIn
 	}
 
 	// 生成任务
-	taskId, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
+	task, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// 异步安装
-	go conn.SSH.InstallAgent(host, taskId, req.Upgrade)
+	go conn.SSH.InstallAgent(host, task.ID, req.Upgrade)
 
 	// 先返回task信息
-	return &core.TaskInfo{TaskID: taskId}, nil
+	return &core.LogInfo{LogHost: host.ID, LogPath: task.LogPath}, nil
 }
 
-func (s *HostService) UninstallAgent(id uint) (*core.TaskInfo, error) {
+func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
@@ -410,16 +410,16 @@ func (s *HostService) UninstallAgent(id uint) (*core.TaskInfo, error) {
 	}
 
 	// 生成任务
-	taskId, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
+	task, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// 异步卸载
-	go conn.SSH.UninstallAgent(host, taskId)
+	go conn.SSH.UninstallAgent(host, task.ID)
 
 	// 先返回task信息
-	return &core.TaskInfo{TaskID: taskId}, nil
+	return &core.LogInfo{LogHost: host.ID, LogPath: task.LogPath}, nil
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {

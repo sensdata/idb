@@ -141,10 +141,10 @@ func (ls *LogStream) GetTaskWatcher(taskID string) (task.TaskWatcher, error) {
 	return watcher, nil
 }
 
-func (ls *LogStream) CreateTask(taskType string, metadata map[string]interface{}) (string, error) {
+func (ls *LogStream) CreateTask(taskType string, metadata map[string]interface{}) (*types.Task, error) {
 	// 验证任务类型
 	if taskType == "" {
-		return "", fmt.Errorf("task type cannot be empty")
+		return nil, fmt.Errorf("task type cannot be empty")
 	}
 
 	// 验证元数据
@@ -152,18 +152,18 @@ func (ls *LogStream) CreateTask(taskType string, metadata map[string]interface{}
 		metadata = make(map[string]interface{})
 	}
 
-	taskID, err := ls.taskMgr.Create(taskType, metadata)
+	task, err := ls.taskMgr.Create(taskType, metadata)
 	if err != nil {
 		if err == types.ErrTaskExists {
-			return "", err
+			return nil, err
 		}
 		ls.metrics.IncrErrorCount()
-		return "", fmt.Errorf("create task failed: %w", err)
+		return nil, fmt.Errorf("create task failed: %w", err)
 	}
 
 	ls.metrics.IncrTaskCount()
 	ls.metrics.IncrActiveTasks()
-	return taskID, nil
+	return task, nil
 }
 
 func (ls *LogStream) UpdateTaskStatus(taskID string, status types.TaskStatus) error {
