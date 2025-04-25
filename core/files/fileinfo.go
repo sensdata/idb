@@ -319,70 +319,108 @@ func (f *FileInfo) getContent() error {
 	return nil
 }
 
-func (f *FileInfo) Part(offset int64, whence int) (string, error) {
-	return f.getContentPart(offset, whence)
+func (f *FileInfo) Part(lines int64, whence int) (string, error) {
+	return f.getContentPart(lines, whence)
 }
 
-func (f *FileInfo) getContentPart(offset int64, whence int) (string, error) {
+func (f *FileInfo) getContentPart(lines int64, whence int) (string, error) {
 	if IsBlockDevice(f.FileMode) {
 		return "", errors.New(constant.ErrFileCanNotRead)
 	}
 
-	// 打开文件
 	file, err := f.Fs.Open(f.Path)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
-	// 根据whence和offset计算实际要读取的长度和起始位置
-	var start, length int64
 	switch whence {
 	case io.SeekStart:
-		if offset <= 0 {
-			return "", errors.New("offset must be positive for SeekStart")
+		if lines <= 0 {
+			return "", errors.New("offsetLines must be positive for SeekStart")
 		}
-		if offset > f.Size {
-			offset = f.Size
+		// 从头读取指定行数
+		scanner := bufio.NewScanner(file)
+		var result []string
+		for lineCount := int64(0); lineCount < lines && scanner.Scan(); lineCount++ {
+			result = append(result, scanner.Text())
 		}
-		start = 0
-		length = offset
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		content := strings.Join(result, "\n")
+		if DetectBinary([]byte(content)) {
+			return "", errors.New(constant.ErrFileCanNotRead)
+		}
+		return content, nil
 
 	case io.SeekEnd:
-		if offset >= 0 {
-			return "", errors.New("offset must be negative for SeekEnd")
+		if lines >= 0 {
+			return "", errors.New("offsetLines must be negative for SeekEnd")
 		}
-		// 将负的offset转为正值用于计算
-		absOffset := -offset
-		if absOffset > f.Size {
-			absOffset = f.Size
+		absLines := -lines
+
+		// 使用4KB的缓冲区
+		const bufSize = 4 * 1024
+		buf := make([]byte, bufSize)
+		lines := make([]string, 0, absLines)
+		lineCount := int64(0)
+		pos := f.Size
+
+		// 从文件末尾开始，向前读取
+		for pos > 0 && lineCount < absLines {
+			readSize := bufSize
+			if pos < int64(bufSize) {
+				readSize = int(pos)
+			}
+			pos -= int64(readSize)
+
+			// 设置读取位置
+			if _, err := file.(io.ReadSeeker).Seek(pos, io.SeekStart); err != nil {
+				return "", err
+			}
+
+			// 读取数据块
+			n, err := file.Read(buf[:readSize])
+			if err != nil && err != io.EOF {
+				return "", err
+			}
+
+			// 处理当前数据块中的行
+			chunk := buf[:n]
+			for i := len(chunk) - 1; i >= 0 && lineCount < absLines; i-- {
+				if chunk[i] == '\n' || i == 0 {
+					start := i
+					if chunk[i] == '\n' {
+						start++
+					}
+					if start < len(chunk) {
+						line := string(chunk[start:])
+						if len(line) > 0 {
+							lines = append([]string{line}, lines...)
+							lineCount++
+						}
+					}
+					chunk = chunk[:i]
+				}
+			}
+
+			// 处理跨缓冲区的行
+			if len(chunk) > 0 && lineCount < absLines {
+				lines = append([]string{string(chunk)}, lines...)
+				lineCount++
+			}
 		}
-		start = f.Size - absOffset
-		length = absOffset
+
+		content := strings.Join(lines, "\n")
+		if DetectBinary([]byte(content)) {
+			return "", errors.New(constant.ErrFileCanNotRead)
+		}
+		return content, nil
 
 	default:
 		return "", errors.New("whence must be either io.SeekStart or io.SeekEnd")
 	}
-
-	// 创建buffer并读取指定部分
-	buffer := make([]byte, length)
-	seeker := file.(io.ReadSeeker)
-	_, err = seeker.Seek(start, io.SeekStart)
-	if err != nil {
-		return "", err
-	}
-
-	n, err := io.ReadFull(file, buffer)
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return "", err
-	}
-
-	// 检查是否为二进制文件
-	if n > 0 && DetectBinary(buffer[:n]) {
-		return "", errors.New(constant.ErrFileCanNotRead)
-	}
-
-	return string(buffer[:n]), nil
 }
 
 func DetectBinary(buf []byte) bool {

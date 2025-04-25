@@ -284,7 +284,7 @@ func (f *FileService) GetContentPart(op model.FileContentPartReq) (*model.FileCo
 	if err != nil {
 		return &model.FileContentPartRsp{}, err
 	}
-	content, err := info.Part(op.Offset, op.Whence)
+	content, err := info.Part(op.Lines, op.Whence)
 	if err != nil {
 		return &model.FileContentPartRsp{}, err
 	}

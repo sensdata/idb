@@ -17,7 +17,7 @@ type FileContentReq struct {
 
 type FileContentPartReq struct {
 	Path   string `json:"path" validate:"required"`
-	Offset int64  `json:"offset" validate:"required"`
+	Lines  int64  `json:"lines" validate:"required"`
 	Whence int    `json:"whence" validate:"required"`
 }
 

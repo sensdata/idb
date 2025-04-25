@@ -3,6 +3,7 @@ package fileman
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -132,8 +133,8 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/:host/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/:host/decompress", Handler: s.DeCompressFile},
 			{Method: "GET", Path: "/:host/detail", Handler: s.GetDetail},
-			{Method: "GET", Path: "/:host/head", Handler: s.GetHead},
-			{Method: "GET", Path: "/:host/tail", Handler: s.GetTail},
+			{Method: "GET", Path: "/:host/slice", Handler: s.GetSlice},
+			{Method: "GET", Path: "/:host/tail", Handler: s.TailContent},
 			{Method: "PUT", Path: "/:host/content", Handler: s.SaveContent},
 			{Method: "POST", Path: "/:host/upload", Handler: s.Upload},
 			{Method: "GET", Path: "/:host/download", Handler: s.Download},
@@ -569,15 +570,17 @@ func (s *FileMan) GetDetail(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file head content
-// @Description Get the first few lines of a file's content
+// @Summary Get slice of file content
+// @Description Get the first or last few lines of a file's content
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
+// @Param lines query int false "Number of lines"
+// @Param whence query string false "Whence, one of 'start', 'end'"
 // @Success 200 {object} model.FileContentPartRsp
-// @Router /files/{host}/head [get]
-func (s *FileMan) GetHead(c *gin.Context) {
+// @Router /files/{host}/slice [get]
+func (s *FileMan) GetSlice(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -590,7 +593,34 @@ func (s *FileMan) GetHead(c *gin.Context) {
 		return
 	}
 
-	info, err := s.getHead(uint(hostID), path)
+	lines, err := strconv.ParseInt(c.Query("lines"), 10, 32)
+	if err != nil {
+		lines = 20
+	}
+
+	var whence = io.SeekStart
+	w := c.Query("whence")
+	switch w {
+	case "start":
+		whence = io.SeekStart
+		if lines < 0 {
+			lines = -lines
+		} else if lines == 0 {
+			lines = 20
+		}
+	case "end":
+		whence = io.SeekEnd
+		if lines > 0 {
+			lines = -lines
+		} else if lines == 0 {
+			lines = -20
+		}
+	default:
+		whence = io.SeekStart
+		lines = 20
+	}
+
+	info, err := s.getContentPart(uint(hostID), path, lines, whence)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -599,36 +629,23 @@ func (s *FileMan) GetHead(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get file tail content
-// @Description Retrieve the last few lines of a file's content. If `follow` is true, the response will include a task_id for continuously streaming the file content in real-time.
+// @Summary Connect to file content stream
+// @Description Connect to a file's content stream through SSE (Server-Sent Events)
 // @Accept json
-// @Produce json
+// @Produce text/event-stream
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
-// @Param follow query bool true "Follow file"
-// @Success 200 {object} model.FileContentPartRsp
+// @Param whence query string false "Whence, one of 'start', 'end'"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
 // @Router /files/{host}/tail [get]
-func (s *FileMan) GetTail(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+func (s *FileMan) TailContent(c *gin.Context) {
+	err := s.tailContentStream(c)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		global.LOG.Error("Handle file content stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
 		return
 	}
-
-	path := c.Query("path")
-	if path == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
-		return
-	}
-
-	follow, _ := strconv.ParseBool(c.Query("follow"))
-
-	info, err := s.getTail(uint(hostID), path, follow)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
-		return
-	}
-	helper.SuccessWithData(c, info)
 }
 
 // @Tags File
