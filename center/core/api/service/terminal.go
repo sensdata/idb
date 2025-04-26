@@ -6,6 +6,7 @@ import (
 
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
@@ -92,6 +93,16 @@ func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
 		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+
+	// 生成任务
+	metadata := map[string]interface{}{
+		"log_path": result.LogPath,
+	}
+	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		return nil, err
+	}
+	result.LogPath = task.LogPath
 	result.LogHost = hostID
 	return &result, nil
 }
@@ -228,6 +239,15 @@ func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
 		global.LOG.Error("Error unmarshaling data to script result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+	// 生成任务
+	metadata := map[string]interface{}{
+		"log_path": result.LogPath,
+	}
+	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		return nil, err
+	}
+	result.LogPath = task.LogPath
 	result.LogHost = hostID
 	return &result, nil
 }

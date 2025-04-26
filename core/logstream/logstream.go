@@ -73,6 +73,18 @@ func (ls *LogStream) GetTask(taskID string) (*types.Task, error) {
 	return task, nil
 }
 
+func (ls *LogStream) GetTaskByLog(logPath string) (*types.Task, error) {
+	task, err := ls.taskMgr.GetByLog(logPath)
+	if err != nil {
+		if err == types.ErrTaskNotFound {
+			return nil, err
+		}
+		ls.metrics.IncrErrorCount()
+		return nil, fmt.Errorf("get task failed: %w", err)
+	}
+	return task, nil
+}
+
 func (ls *LogStream) GetWriter(taskID string) (writer.Writer, error) {
 	ls.mu.Lock()
 	defer ls.mu.Unlock()

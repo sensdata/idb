@@ -15,6 +15,9 @@ type Manager interface {
 	// Get 获取任务信息
 	Get(taskID string) (*types.Task, error)
 
+	// GetByLog 根据日志路径获取任务信息
+	GetByLog(logPath string) (*types.Task, error)
+
 	// GetBuffer 获取任务缓冲区
 	GetBuffer(taskID string) (*bytes.Buffer, error)
 

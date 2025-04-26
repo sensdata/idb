@@ -414,22 +414,31 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		return fmt.Errorf("get host failed: %w", err)
 	}
 
-	// 创建任务
 	ls := global.LogStream
-	metadata := map[string]interface{}{
-		"log_path": path,
-	}
+
+	// 查找任务
 	var task *types.Task
-	// 本机
-	if host.IsDefault {
-		task, err = ls.CreateTask(types.TaskTypeFile, metadata)
-		if err != nil {
-			return errors.New("failed to create tail task")
+	task, err = ls.GetTaskByLog(path)
+	if err != nil {
+		global.LOG.Error("get task failed: %v", err)
+	}
+	if task == nil {
+		global.LOG.Info("task not found, creating new task")
+		// 创建任务
+		metadata := map[string]interface{}{
+			"log_path": path,
 		}
-	} else {
-		task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
-		if err != nil {
-			return errors.New("failed to create tail task")
+		// 本机
+		if host.IsDefault {
+			task, err = ls.CreateTask(types.TaskTypeFile, metadata)
+			if err != nil {
+				return errors.New("failed to create tail task")
+			}
+		} else {
+			task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
+			if err != nil {
+				return errors.New("failed to create tail task")
+			}
 		}
 	}
 

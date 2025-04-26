@@ -101,6 +101,17 @@ func (m *FileTaskManager) Get(taskID string) (*types.Task, error) {
 	return task, nil
 }
 
+func (m *FileTaskManager) GetByLog(logPath string) (*types.Task, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, task := range m.tasks {
+		if task.LogPath == logPath {
+			return task, nil
+		}
+	}
+	return nil, types.ErrTaskNotFound
+}
+
 func (m *FileTaskManager) GetBuffer(taskID string) (*bytes.Buffer, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

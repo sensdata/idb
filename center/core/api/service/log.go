@@ -64,22 +64,31 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		return fmt.Errorf("get host failed: %w", err)
 	}
 
-	// 创建任务
 	ls := global.LogStream
-	metadata := map[string]interface{}{
-		"log_path": path,
-	}
+
+	// 查找任务
 	var task *types.Task
-	// 本机
-	if host.IsDefault {
-		task, err = ls.CreateTask(types.TaskTypeFile, metadata)
-		if err != nil {
-			return errors.New("failed to create tail task")
+	task, err = ls.GetTaskByLog(path)
+	if err != nil {
+		global.LOG.Error("get task failed: %v", err)
+	}
+	if task == nil {
+		global.LOG.Info("task not found, creating new task")
+		// 创建任务
+		metadata := map[string]interface{}{
+			"log_path": path,
 		}
-	} else {
-		task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
-		if err != nil {
-			return errors.New("failed to create tail task")
+		// 本机
+		if host.IsDefault {
+			task, err = ls.CreateTask(types.TaskTypeFile, metadata)
+			if err != nil {
+				return errors.New("failed to create tail task")
+			}
+		} else {
+			task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
+			if err != nil {
+				return errors.New("failed to create tail task")
+			}
 		}
 	}
 
@@ -98,6 +107,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	// 判断reader是否是 RemoteReader
 	_, ok := reader.(*adapters.RemoteReader)
 	if ok {
+		global.LOG.Info("reader is RemoteReader")
 		// 获取agent连接
 		conn, err := conn.CENTER.GetAgentConn(&host)
 		if err != nil {
@@ -130,6 +140,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
 	}
+	global.LOG.Info("follow log success")
 
 	// 获取任务状态监听器
 	watcher, err := ls.GetTaskWatcher(task.ID)
