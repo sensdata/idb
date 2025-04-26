@@ -373,7 +373,7 @@ func (b *BaseApi) AgentStatus(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.InstallAgent true "request"
-// @Success 200 {object} model.TaskInfo
+// @Success 200 {object} model.LogInfo
 // @Router /hosts/{host}/agent/install [post]
 func (b *BaseApi) InstallAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -401,7 +401,7 @@ func (b *BaseApi) InstallAgent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200 {object} model.TaskInfo
+// @Success 200 {object} model.LogInfo
 // @Router /hosts/{host}/agent/uninstall [post]
 func (b *BaseApi) UninstallAgent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)

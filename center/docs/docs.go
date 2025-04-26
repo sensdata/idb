@@ -3724,45 +3724,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/{host}/head": {
-            "get": {
-                "description": "Get the first few lines of a file's content",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Get file head content",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "File path",
-                        "name": "path",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.FileContentPartRsp"
-                        }
-                    }
-                }
-            }
-        },
         "/files/{host}/mode": {
             "put": {
                 "description": "Change file mode",
@@ -4027,9 +3988,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/{host}/tail": {
+        "/files/{host}/slice": {
             "get": {
-                "description": "Retrieve the last few lines of a file's content. If ` + "`" + `follow` + "`" + ` is true, the response will include a task_id for continuously streaming the file content in real-time.",
+                "description": "Get the first or last few lines of a file's content",
                 "consumes": [
                     "application/json"
                 ],
@@ -4039,7 +4000,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Get file tail content",
+                "summary": "Get slice of file content",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4056,11 +4017,16 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "boolean",
-                        "description": "Follow file",
-                        "name": "follow",
-                        "in": "query",
-                        "required": true
+                        "type": "integer",
+                        "description": "Number of lines",
+                        "name": "lines",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Whence, one of 'start', 'end'",
+                        "name": "whence",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4068,6 +4034,57 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.FileContentPartRsp"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{host}/tail": {
+            "get": {
+                "description": "Connect to a file's content stream through SSE (Server-Sent Events)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Connect to file content stream",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Whence, one of 'start', 'end'",
+                        "name": "whence",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
                         }
                     }
                 }
@@ -4669,7 +4686,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.TaskInfo"
+                            "$ref": "#/definitions/model.LogInfo"
                         }
                     }
                 }
@@ -4762,7 +4779,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.TaskInfo"
+                            "$ref": "#/definitions/model.LogInfo"
                         }
                     }
                 }
@@ -5714,6 +5731,57 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/logs/{host}/tail": {
+            "get": {
+                "description": "Connect to log stream through Server-Sent Events",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Log"
+                ],
+                "summary": "Connect to log stream",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Whence, one of 'start', 'end'",
+                        "name": "whence",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
                     }
                 }
             }
@@ -9433,56 +9501,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/tasks/{taskId}/logs": {
-            "get": {
-                "description": "Connect to task log stream through Server-Sent Events",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "text/event-stream"
-                ],
-                "tags": [
-                    "Task"
-                ],
-                "summary": "Connect to task log stream",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "taskId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Whence, one of 'start', 'end'",
-                        "name": "whence",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "SSE stream started",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/model.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/terminals/{host}/install": {
             "post": {
                 "description": "Install terminal",
@@ -11504,6 +11522,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.LogInfo": {
+            "type": "object",
+            "properties": {
+                "log_host": {
+                    "type": "integer"
+                },
+                "log_path": {
+                    "type": "string"
+                }
+            }
+        },
         "model.LogOption": {
             "type": "object",
             "properties": {
@@ -12084,6 +12113,9 @@ const docTemplate = `{
                 "err": {
                     "type": "string"
                 },
+                "log_host": {
+                    "type": "integer"
+                },
                 "log_path": {
                     "type": "string"
                 },
@@ -12091,9 +12123,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "start": {
-                    "type": "string"
-                },
-                "task_id": {
                     "type": "string"
                 }
             }
@@ -12321,14 +12350,6 @@ const docTemplate = `{
                 "max_watch_files": {
                     "description": "inotify 监控的最大文件数",
                     "type": "integer"
-                }
-            }
-        },
-        "model.TaskInfo": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
                 }
             }
         },

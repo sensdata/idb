@@ -1027,6 +1027,13 @@ definitions:
         description: 15分钟进程数
         type: string
     type: object
+  model.LogInfo:
+    properties:
+      log_host:
+        type: integer
+      log_path:
+        type: string
+    type: object
   model.LogOption:
     properties:
       log_max_file:
@@ -1412,13 +1419,13 @@ definitions:
         type: string
       err:
         type: string
+      log_host:
+        type: integer
       log_path:
         type: string
       out:
         type: string
       start:
-        type: string
-      task_id:
         type: string
     type: object
   model.SelfSignedRequest:
@@ -1575,11 +1582,6 @@ definitions:
       max_watch_files:
         description: inotify 监控的最大文件数
         type: integer
-    type: object
-  model.TaskInfo:
-    properties:
-      task_id:
-        type: string
     type: object
   model.TerminalRequest:
     properties:
@@ -4391,32 +4393,6 @@ paths:
       summary: Collect a favorite file
       tags:
       - File
-  /files/{host}/head:
-    get:
-      consumes:
-      - application/json
-      description: Get the first few lines of a file's content
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: File path
-        in: query
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.FileContentPartRsp'
-      summary: Get file head content
-      tags:
-      - File
   /files/{host}/mode:
     put:
       consumes:
@@ -4592,13 +4568,11 @@ paths:
       summary: Get directory size
       tags:
       - File
-  /files/{host}/tail:
+  /files/{host}/slice:
     get:
       consumes:
       - application/json
-      description: Retrieve the last few lines of a file's content. If `follow` is
-        true, the response will include a task_id for continuously streaming the file
-        content in real-time.
+      description: Get the first or last few lines of a file's content
       parameters:
       - description: Host ID
         in: path
@@ -4610,11 +4584,14 @@ paths:
         name: path
         required: true
         type: string
-      - description: Follow file
+      - description: Number of lines
         in: query
-        name: follow
-        required: true
-        type: boolean
+        name: lines
+        type: integer
+      - description: Whence, one of 'start', 'end'
+        in: query
+        name: whence
+        type: string
       produces:
       - application/json
       responses:
@@ -4622,7 +4599,41 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/model.FileContentPartRsp'
-      summary: Get file tail content
+      summary: Get slice of file content
+      tags:
+      - File
+  /files/{host}/tail:
+    get:
+      consumes:
+      - application/json
+      description: Connect to a file's content stream through SSE (Server-Sent Events)
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: Whence, one of 'start', 'end'
+        in: query
+        name: whence
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to file content stream
       tags:
       - File
   /files/{host}/trees:
@@ -4948,7 +4959,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.TaskInfo'
+            $ref: '#/definitions/model.LogInfo'
       summary: Install agent in host
       tags:
       - Host
@@ -5009,7 +5020,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.TaskInfo'
+            $ref: '#/definitions/model.LogInfo'
       summary: Uninstall agent in host
       tags:
       - Host
@@ -5755,6 +5766,40 @@ paths:
       summary: Get plugin menu
       tags:
       - Logrotate
+  /logs/{host}/tail:
+    get:
+      consumes:
+      - application/json
+      description: Connect to log stream through Server-Sent Events
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: Whence, one of 'start', 'end'
+        in: query
+        name: whence
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to log stream
+      tags:
+      - Log
   /nftables/{host}/category:
     delete:
       consumes:
@@ -8236,39 +8281,6 @@ paths:
       summary: Get plugin menu
       tags:
       - Sysinfo
-  /tasks/{taskId}/logs:
-    get:
-      consumes:
-      - application/json
-      description: Connect to task log stream through Server-Sent Events
-      parameters:
-      - description: Task ID
-        in: path
-        name: taskId
-        required: true
-        type: string
-      - description: Offset
-        in: query
-        name: offset
-        type: integer
-      - description: Whence, one of 'start', 'end'
-        in: query
-        name: whence
-        type: string
-      produces:
-      - text/event-stream
-      responses:
-        "200":
-          description: SSE stream started
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/model.Response'
-      summary: Connect to task log stream
-      tags:
-      - Task
   /terminals/{host}/install:
     post:
       consumes:
