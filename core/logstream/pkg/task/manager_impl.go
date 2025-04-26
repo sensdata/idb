@@ -68,16 +68,26 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 		task.LogPath = ""
 		m.buffers[taskID] = bytes.NewBuffer(nil)
 	case types.TaskTypeFile:
-		task.LogPath = filepath.Join(m.basePath, fmt.Sprintf("%s.log", taskID))
+		// 从 metadata 中获取 log_path
+		logPath, ok := metadata["log_path"]
+		if !ok {
+			// 如果没有设置log_path，则在默认目录下创建
+			task.LogPath = filepath.Join(m.basePath, fmt.Sprintf("%s.log", taskID))
+		} else {
+			if logPathStr, ok := logPath.(string); ok {
+				task.LogPath = logPathStr
+			}
+		}
+
 	case types.TaskTypeRemote:
 		// 从 metadata 中获取 log_path
 		logPath, ok := metadata["log_path"]
 		if !ok {
 			return nil, fmt.Errorf("log_path not found in metadata")
-		}
-		// 类型断言
-		if logPathStr, ok := logPath.(string); ok {
-			task.LogPath = logPathStr
+		} else {
+			if logPathStr, ok := logPath.(string); ok {
+				task.LogPath = logPathStr
+			}
 		}
 	}
 
