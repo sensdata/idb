@@ -41,7 +41,11 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import type { FileItem, FileSelectProps, FileSelectEmits } from './types';
+  import type {
+    FileSelectorItem as FileItem,
+    FileSelectProps,
+    FileSelectEmits,
+  } from './types';
   import { FileSelectType } from './types';
   import FileBrowser from './file-browser.vue';
 
