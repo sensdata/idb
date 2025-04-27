@@ -18,7 +18,7 @@ import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
 import RenameDrawer from '@/components/file/rename-drawer/index.vue';
 import PropertyDrawer from '@/components/file/property-drawer/index.vue';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
-import { FileItem } from '../types/file-item';
+import { FileItem } from '@/components/file/file-editor-drawer/types';
 
 interface FileStore {
   pwd: string;

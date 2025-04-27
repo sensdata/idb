@@ -1,5 +1,5 @@
 import { FileInfoEntity } from '@/entity/FileInfo';
-import request from '@/helper/api-helper';
+import request, { resolveApiUrl } from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export interface FileListApiParams extends ApiListParams {
@@ -199,4 +199,29 @@ export interface RenameFileParams {
 }
 export function renameFileApi(data: RenameFileParams) {
   return request.put('files/{host}/rename', data);
+}
+
+export interface ContentPartParams {
+  path: string;
+  numbers?: number;
+}
+
+export interface TailFileParams extends ContentPartParams {
+  follow?: boolean;
+}
+
+export function getFileTailApi(data: TailFileParams) {
+  return request.get('files/{host}/tail', data);
+}
+
+export function connectFileTailFollowApi(
+  hostId: number,
+  path: string
+): EventSource {
+  const url = resolveApiUrl(`files/${hostId}/tail/follow`, { path });
+  return new EventSource(url);
+}
+
+export function getFileHeadApi(data: ContentPartParams) {
+  return request.get('files/{host}/head', data);
 }

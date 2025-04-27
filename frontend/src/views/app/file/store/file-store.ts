@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { getFileDetailApi, searchFileListApi } from '@/api/file';
 import { SimpleFileInfoEntity } from '@/entity/FileInfo';
-import { FileItem } from '../types/file-item';
+import { FileItem } from '@/components/file/file-editor-drawer/types';
 import { FileTreeItem } from '../components/file-tree/type';
 
 const useFileStore = defineStore('file-manage', {

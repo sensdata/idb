@@ -1,11 +1,14 @@
 import { Ref, watch, nextTick } from 'vue';
 import { debounce } from 'lodash';
-import { getFileListApi, getFileDetailApi } from '@/api/file';
+import { getFileListApi, getFileDetailApi, getFileTailApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
 import { resolveApiUrl } from '@/helper/api-helper';
 import { openWindow } from '@/utils';
-import { FileItem } from '../types/file-item';
+import {
+  ContentViewMode,
+  FileItem,
+} from '@/components/file/file-editor-drawer/types';
 import useFileStore from '../store/file-store';
 import FileMainView from '../components/file-main-view.vue';
 
@@ -24,6 +27,42 @@ export const useFileSelection = (params: FileSelectionParams) => {
       const filePath =
         typeof fileOrPath === 'string' ? fileOrPath : fileOrPath.path;
 
+      // 先获取基本信息以确定文件名
+      const fileName =
+        typeof fileOrPath === 'string'
+          ? filePath.substring(filePath.lastIndexOf('/') + 1)
+          : fileOrPath.name;
+
+      // 立即打开编辑器，先显示加载状态
+      const initialFileInfo: Partial<FileItem> = {
+        path: filePath,
+        name: fileName,
+        content: '',
+        loading: true,
+        content_view_mode: 'loading',
+        // 添加必要的基本信息
+        size: 0,
+        is_dir: false,
+        mode: '',
+        user: '',
+        group: '',
+        mod_time: '',
+        extension: '',
+        favorite_id: 0,
+        gid: '',
+        is_hidden: false,
+        is_symlink: false,
+        item_total: 0,
+        link_path: '',
+        mime_type: '',
+        type: '',
+        uid: '',
+        update_time: '',
+      };
+
+      fileEditorDrawerRef.value?.setFile(initialFileInfo as FileItem);
+      fileEditorDrawerRef.value?.show();
+
       // 提取目录路径
       const lastSlashIndex = filePath.lastIndexOf('/');
       const dirPath =
@@ -34,6 +73,11 @@ export const useFileSelection = (params: FileSelectionParams) => {
         store.handleGoto(dirPath);
       }
 
+      // 延迟500ms，确保能看到loading效果
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
+
       // 获取文件详情 - 直接使用API而不是store方法
       const fileDetail = await getFileDetailApi({
         path: filePath,
@@ -42,6 +86,9 @@ export const useFileSelection = (params: FileSelectionParams) => {
 
       if (!fileDetail) return;
 
+      // 默认显示行数
+      const defaultLineCount = 1000;
+
       // 根据文件大小决定打开方式
       if (fileDetail.size > 1048576) {
         // 大文件下载 - 使用openWindow工具函数而不是DOM操作
@@ -49,13 +96,40 @@ export const useFileSelection = (params: FileSelectionParams) => {
           source: fileDetail.path,
         });
         openWindow(downloadUrl, { download: fileDetail.name });
+
+        // 关闭编辑器，因为我们正在下载文件
+        fileEditorDrawerRef.value?.hide();
+      } else if (fileDetail.size > 100000) {
+        // 文件大于100K但小于1MB，使用tail API获取最后1000行
+        const tailData = await getFileTailApi({
+          path: filePath,
+          numbers: defaultLineCount,
+        });
+
+        // 创建一个包含尾部内容的文件详情对象
+        const fileWithPartialContent = {
+          ...fileDetail,
+          content: tailData.content,
+          is_tail: true, // 保留向后兼容
+          content_view_mode: 'tail' as ContentViewMode,
+          line_count: defaultLineCount,
+          loading: false,
+        };
+
+        // 更新编辑器内容
+        fileEditorDrawerRef.value?.setFile(fileWithPartialContent);
       } else {
-        // 小文件打开编辑器
-        fileEditorDrawerRef.value?.setFile(fileDetail);
-        fileEditorDrawerRef.value?.show();
+        // 小文件完整打开编辑器，但仍然允许使用实时追踪模式
+        fileEditorDrawerRef.value?.setFile({
+          ...fileDetail,
+          content_view_mode: 'full',
+          loading: false,
+        });
       }
     } catch (error) {
       console.error('File open error:', error);
+      // 发生错误时关闭编辑器
+      fileEditorDrawerRef.value?.hide();
     }
   };
 
@@ -68,26 +142,18 @@ export const useFileSelection = (params: FileSelectionParams) => {
       store.handleSelected([record]);
       store.handleOpen(record);
     } else {
-      // 文件则打开
-      const filePath = record.path;
-      const lastSlashIndex = filePath.lastIndexOf('/');
-      const parentDir =
-        lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
+      // 文件进行选择
+      store.handleSelected([record]);
 
-      // 如果不在当前目录，则导航
-      if (store.pwd !== parentDir) {
-        store.handleGoto(parentDir);
-      }
-
-      // 打开文件
+      // 直接打开文件，不再依赖导航状态
       openFileInEditor(record);
     }
   };
 
-  // 使用debounce函数处理单击事件，防止与双击事件冲突
+  // 降低debounce延迟，确保单击响应更快速，同时仍然能够与双击区分开
   const handleItemSelect = debounce((record: FileItem) => {
     handleSingleClickAction(record);
-  }, 250);
+  }, 150);
 
   /**
    * 双击处理：导航并打开
@@ -100,18 +166,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
       // 打开目录
       store.handleOpen(record);
     } else {
-      // 文件则打开
-      const filePath = record.path;
-      const lastSlashIndex = filePath.lastIndexOf('/');
-      const parentDir =
-        lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
-
-      // 如果不在当前目录，则导航
-      if (store.pwd !== parentDir) {
-        store.handleGoto(parentDir);
-      }
-
-      // 打开文件
+      // 直接打开文件，不需要额外的导航检查
       openFileInEditor(record);
     }
   };

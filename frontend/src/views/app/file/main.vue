@@ -80,6 +80,10 @@
   import DecompressDrawer from '@/components/file/decompress-drawer/index.vue';
   import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
 
+  // Type imports
+  import { FileItem } from '@/components/file/file-editor-drawer/types';
+  import { FileTreeItem } from './components/file-tree/type';
+
   // Import refactored components
   import FileSidebar from './components/file-sidebar.vue';
   import FileMainView from './components/file-main-view.vue';
@@ -90,10 +94,6 @@
   import { useFileNavigation } from './hooks/use-file-navigation';
   import { useFileSelection } from './hooks/use-file-selection';
   import { useFileColumns } from './hooks/use-file-columns';
-
-  // Type imports
-  import { FileItem } from './types/file-item';
-  import { FileTreeItem } from './components/file-tree/type';
 
   const { t } = useI18n();
   const openTerminal = inject<() => void>('openTerminal');

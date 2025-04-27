@@ -3,7 +3,7 @@ import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import { getFileDetailApi } from '@/api/file';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
-import { FileItem } from '../types/file-item';
+import { FileItem } from '@/components/file/file-editor-drawer/types';
 import { FileTreeItem } from '../components/file-tree/type';
 import useFileStore from '../store/file-store';
 

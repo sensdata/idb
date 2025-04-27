@@ -178,14 +178,14 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, defineProps, defineEmits, GlobalComponents } from 'vue';
+  import { ref, GlobalComponents } from 'vue';
   import { debounce } from 'lodash';
   import { getFileListApi } from '@/api/file';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
   import CompressionIcon from '@/assets/icons/compression.svg';
   import DecompressionIcon from '@/assets/icons/decompression.svg';
-  import { FileItem } from '../types/file-item';
+  import { FileItem } from '@/components/file/file-editor-drawer/types';
 
   interface TableColumn {
     dataIndex: string;
@@ -197,7 +197,7 @@
     align?: 'left' | 'center' | 'right';
   }
 
-  defineProps({
+  const props = defineProps({
     params: {
       type: Object,
       required: true,
@@ -255,7 +255,7 @@
   // Handle item selection with debounce to avoid conflicts with double-click
   const handleItemSelect = debounce((record: FileItem) => {
     emit('itemSelect', record);
-  }, 250);
+  }, 150);
 
   // Handle double click on a file/folder
   const handleItemDoubleClick = (record: FileItem) => {
