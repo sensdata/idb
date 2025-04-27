@@ -17,7 +17,7 @@ import (
 // @Param whence query string false "Whence, one of 'start', 'end'"
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
-// @Router /logs/{host}/tail [get]
+// @Router /logs/{host}/follow [get]
 func (b *BaseApi) HandleLogStream(c *gin.Context) {
 	err := logManService.HandleLogStream(c)
 	if err != nil {

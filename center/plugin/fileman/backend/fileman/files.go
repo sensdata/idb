@@ -394,17 +394,8 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		return errors.New("invalid path")
 	}
 
-	var offset int64
-	var whence int
-	w := c.Query("whence")
-	switch w {
-	case "end":
-		whence = io.SeekEnd
-		offset = 0
-	default:
-		whence = io.SeekStart
-		offset = 0
-	}
+	var offset int64 = 0
+	var whence int = io.SeekEnd
 
 	// 找host
 	hostRepo := repo.NewHostRepo()

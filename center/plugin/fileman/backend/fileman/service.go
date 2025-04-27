@@ -133,8 +133,9 @@ func (s *FileMan) Initialize() {
 			{Method: "POST", Path: "/:host/compress", Handler: s.CompressFile},
 			{Method: "POST", Path: "/:host/decompress", Handler: s.DeCompressFile},
 			{Method: "GET", Path: "/:host/detail", Handler: s.GetDetail},
-			{Method: "GET", Path: "/:host/slice", Handler: s.GetSlice},
-			{Method: "GET", Path: "/:host/tail", Handler: s.TailContent},
+			{Method: "GET", Path: "/:host/head", Handler: s.Head},
+			{Method: "GET", Path: "/:host/tail", Handler: s.Tail},
+			{Method: "GET", Path: "/:host/tail/follow", Handler: s.Follow},
 			{Method: "PUT", Path: "/:host/content", Handler: s.SaveContent},
 			{Method: "POST", Path: "/:host/upload", Handler: s.Upload},
 			{Method: "GET", Path: "/:host/download", Handler: s.Download},
@@ -570,17 +571,16 @@ func (s *FileMan) GetDetail(c *gin.Context) {
 }
 
 // @Tags File
-// @Summary Get slice of file content
-// @Description Get the first or last few lines of a file's content
+// @Summary Get head of file content
+// @Description Get the first few lines of a file's content
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
-// @Param lines query int false "Number of lines"
-// @Param whence query string false "Whence, one of 'start', 'end'"
+// @Param numbers query int false "Number of lines"
 // @Success 200 {object} model.FileContentPartRsp
-// @Router /files/{host}/slice [get]
-func (s *FileMan) GetSlice(c *gin.Context) {
+// @Router /files/{host}/head [get]
+func (s *FileMan) Head(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -593,34 +593,50 @@ func (s *FileMan) GetSlice(c *gin.Context) {
 		return
 	}
 
-	lines, err := strconv.ParseInt(c.Query("lines"), 10, 32)
+	numbers, err := strconv.ParseInt(c.Query("numbers"), 10, 32)
+	if err != nil || numbers <= 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid numbers", nil)
+		return
+	}
+
+	info, err := s.getContentPart(uint(hostID), path, numbers, io.SeekStart)
 	if err != nil {
-		lines = 20
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, info)
+}
+
+// @Tags File
+// @Summary Get tail of file content
+// @Description Get the last few lines of a file's content
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string true "File path"
+// @Param numbers query int false "Number of lines"
+// @Success 200 {object} model.FileContentPartRsp
+// @Router /files/{host}/tail [get]
+func (s *FileMan) Tail(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
 	}
 
-	var whence = io.SeekStart
-	w := c.Query("whence")
-	switch w {
-	case "start":
-		whence = io.SeekStart
-		if lines < 0 {
-			lines = -lines
-		} else if lines == 0 {
-			lines = 20
-		}
-	case "end":
-		whence = io.SeekEnd
-		if lines > 0 {
-			lines = -lines
-		} else if lines == 0 {
-			lines = -20
-		}
-	default:
-		whence = io.SeekStart
-		lines = 20
+	path := c.Query("path")
+	if path == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Path is required", nil)
+		return
 	}
 
-	info, err := s.getContentPart(uint(hostID), path, lines, whence)
+	numbers, err := strconv.ParseInt(c.Query("numbers"), 10, 32)
+	if err != nil || numbers <= 0 {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid numbers", nil)
+		return
+	}
+
+	info, err := s.getContentPart(uint(hostID), path, -numbers, io.SeekEnd)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -635,11 +651,10 @@ func (s *FileMan) GetSlice(c *gin.Context) {
 // @Produce text/event-stream
 // @Param host path uint true "Host ID"
 // @Param path query string true "File path"
-// @Param whence query string false "Whence, one of 'start', 'end'"
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
-// @Router /files/{host}/tail [get]
-func (s *FileMan) TailContent(c *gin.Context) {
+// @Router /files/{host}/tail/follow [get]
+func (s *FileMan) Follow(c *gin.Context) {
 	err := s.tailContentStream(c)
 	if err != nil {
 		global.LOG.Error("Handle file content stream failed: %v", err)

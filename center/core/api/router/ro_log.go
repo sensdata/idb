@@ -12,6 +12,6 @@ func (s *LogManRouter) InitRouter(Router *gin.RouterGroup) {
 	taskRouter := Router.Group("logs")
 	baseApi := entry.ApiGroup
 	{
-		taskRouter.GET("/:host/tail", middleware.NewJWT().JWTAuth(), baseApi.HandleLogStream) // 连接到日志流
+		taskRouter.GET("/:host/follow", middleware.NewJWT().JWTAuth(), baseApi.HandleLogStream) // 连接到日志流
 	}
 }
