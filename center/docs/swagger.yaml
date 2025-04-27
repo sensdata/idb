@@ -4393,6 +4393,36 @@ paths:
       summary: Collect a favorite file
       tags:
       - File
+  /files/{host}/head:
+    get:
+      consumes:
+      - application/json
+      description: Get the first few lines of a file's content
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: File path
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: Number of lines
+        in: query
+        name: numbers
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FileContentPartRsp'
+      summary: Get head of file content
+      tags:
+      - File
   /files/{host}/mode:
     put:
       consumes:
@@ -4568,11 +4598,11 @@ paths:
       summary: Get directory size
       tags:
       - File
-  /files/{host}/slice:
+  /files/{host}/tail:
     get:
       consumes:
       - application/json
-      description: Get the first or last few lines of a file's content
+      description: Get the last few lines of a file's content
       parameters:
       - description: Host ID
         in: path
@@ -4586,12 +4616,8 @@ paths:
         type: string
       - description: Number of lines
         in: query
-        name: lines
+        name: numbers
         type: integer
-      - description: Whence, one of 'start', 'end'
-        in: query
-        name: whence
-        type: string
       produces:
       - application/json
       responses:
@@ -4599,10 +4625,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/model.FileContentPartRsp'
-      summary: Get slice of file content
+      summary: Get tail of file content
       tags:
       - File
-  /files/{host}/tail:
+  /files/{host}/tail/follow:
     get:
       consumes:
       - application/json
@@ -4617,10 +4643,6 @@ paths:
         in: query
         name: path
         required: true
-        type: string
-      - description: Whence, one of 'start', 'end'
-        in: query
-        name: whence
         type: string
       produces:
       - text/event-stream
@@ -5766,7 +5788,7 @@ paths:
       summary: Get plugin menu
       tags:
       - Logrotate
-  /logs/{host}/tail:
+  /logs/{host}/follow:
     get:
       consumes:
       - application/json

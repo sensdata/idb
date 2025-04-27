@@ -3724,6 +3724,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/files/{host}/head": {
+            "get": {
+                "description": "Get the first few lines of a file's content",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "File"
+                ],
+                "summary": "Get head of file content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File path",
+                        "name": "path",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of lines",
+                        "name": "numbers",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FileContentPartRsp"
+                        }
+                    }
+                }
+            }
+        },
         "/files/{host}/mode": {
             "put": {
                 "description": "Change file mode",
@@ -3988,9 +4033,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/{host}/slice": {
+        "/files/{host}/tail": {
             "get": {
-                "description": "Get the first or last few lines of a file's content",
+                "description": "Get the last few lines of a file's content",
                 "consumes": [
                     "application/json"
                 ],
@@ -4000,7 +4045,7 @@ const docTemplate = `{
                 "tags": [
                     "File"
                 ],
-                "summary": "Get slice of file content",
+                "summary": "Get tail of file content",
                 "parameters": [
                     {
                         "type": "integer",
@@ -4019,13 +4064,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Number of lines",
-                        "name": "lines",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Whence, one of 'start', 'end'",
-                        "name": "whence",
+                        "name": "numbers",
                         "in": "query"
                     }
                 ],
@@ -4039,7 +4078,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/files/{host}/tail": {
+        "/files/{host}/tail/follow": {
             "get": {
                 "description": "Connect to a file's content stream through SSE (Server-Sent Events)",
                 "consumes": [
@@ -4066,12 +4105,6 @@ const docTemplate = `{
                         "name": "path",
                         "in": "query",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Whence, one of 'start', 'end'",
-                        "name": "whence",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5735,7 +5768,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logs/{host}/tail": {
+        "/logs/{host}/follow": {
             "get": {
                 "description": "Connect to log stream through Server-Sent Events",
                 "consumes": [
