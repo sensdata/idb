@@ -26,7 +26,6 @@ import (
 const (
 	heartbeatInterval = 30 * time.Second // 心跳间隔
 	connectionTimeout = 2 * time.Hour    // 连接超时时间
-	maxBufferSize     = 1024 * 1024      // 日志缓冲区大小限制（1MB）
 )
 
 func (s *FileMan) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
@@ -383,7 +382,6 @@ func (s *FileMan) getContentPart(hostID uint, path string, lines int64, whence i
 }
 
 func (s *FileMan) tailContentStream(c *gin.Context) error {
-
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		return errors.New("invalid host")
@@ -432,6 +430,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 			}
 		}
 	}
+	global.LOG.Info("task: %s", task.ID)
 
 	// 把task的metadata都打印出来
 	for k, v := range task.Metadata {
@@ -448,8 +447,9 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	// 判断reader是否是 RemoteReader
 	_, ok := reader.(*adapters.RemoteReader)
 	if ok {
+		global.LOG.Info("reader is RemoteReader")
 		// 获取agent连接
-		conn, err := conn.CENTER.GetAgentConn(&host)
+		agentConn, err := conn.CENTER.GetAgentConn(&host)
 		if err != nil {
 			global.LOG.Error("get agent conn failed: %v", err)
 			return fmt.Errorf("get agent conn failed: %w", err)
@@ -470,7 +470,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 			return fmt.Errorf("create start message failed: %w", err)
 		}
 
-		if err := message.SendLogStreamMessage(*conn, startMsg); err != nil {
+		if err := message.SendLogStreamMessage(*agentConn, startMsg); err != nil {
 			return fmt.Errorf("send start message failed: %w", err)
 		}
 	}
@@ -480,6 +480,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
 	}
+	global.LOG.Info("follow log success for task %s, path: %s", task.ID, path)
 
 	// 获取任务状态监听器
 	watcher, err := ls.GetTaskWatcher(task.ID)
@@ -503,19 +504,15 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	heartbeat := time.NewTicker(heartbeatInterval)
 	defer heartbeat.Stop()
 
-	// 添加一个 done 通道用于控制 goroutine 退出
-	done := make(chan struct{})
-	defer close(done)
+	// 创建一个缓冲通道来处理日志
+	bufferCh := make(chan []byte, 100)
+	defer close(bufferCh)
 
 	// 设置 SSE 响应头
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
 	c.Writer.Header().Set("Transfer-Encoding", "chunked")
-
-	// 创建一个缓冲通道来处理日志
-	bufferCh := make(chan []byte, 100)
-	defer close(bufferCh)
 
 	// 启动一个 goroutine 来处理日志缓冲
 	go func() {
@@ -560,6 +557,40 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 				c.SSEvent("error", "Connection closed")
 			}
 			flusher.Flush()
+
+			// 如果是远程读取器，发送停止消息
+			if _, ok := reader.(*adapters.RemoteReader); ok {
+				global.LOG.Info("remote reader, sending stop message")
+
+				// 获取agent连接
+				agentConn, err := conn.CENTER.GetAgentConn(&host)
+				if err != nil {
+					global.LOG.Error("get agent conn failed: %v", err)
+					return fmt.Errorf("get agent conn failed: %w", err)
+				}
+
+				stopMsg, err := message.CreateLogStreamMessage(
+					utils.GenerateMsgId(),
+					message.LogStreamStop,
+					task.ID,
+					task.LogPath,
+					0,
+					0,
+					"",
+					"",
+				)
+				if err == nil {
+					// 尝试发送停止消息
+					message.SendLogStreamMessage(*agentConn, stopMsg)
+				}
+			}
+
+			// 删除task
+			if err := ls.DeleteTask(task.ID); err != nil {
+				global.LOG.Error("delete task %s failed: %v", task.ID, err)
+			} else {
+				global.LOG.Info("delete task %s success", task.ID)
+			}
 			return nil
 		}
 	}
