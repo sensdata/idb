@@ -20,7 +20,17 @@ function Backup_Data() {
     
     if docker ps -q -f name=idb >/dev/null 2>&1; then
         log "停止 IDB 容器..."
-        docker stop idb
+        # 添加超时参数
+        if ! docker stop -t 30 idb; then
+            log "容器停止超时，尝试强制停止..."
+            docker kill idb
+        fi
+        
+        # 等待容器完全停止
+        while docker ps -q -f name=idb >/dev/null 2>&1; do
+            log "等待容器完全停止..."
+            sleep 1
+        done
     fi
     
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then
@@ -50,7 +60,10 @@ function Backup_Data() {
         fi
         
         log "删除旧容器..."
-        docker rm idb
+        if ! docker rm idb; then
+            log "删除容器失败，尝试强制删除..."
+            docker rm -f idb
+        fi
         
         return 0
     fi
