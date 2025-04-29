@@ -79,10 +79,12 @@ func (c *Center) Start() error {
 	// 启动 Unix 域套接字监听器
 	err := c.listenToUnix()
 	if err != nil {
+		global.LOG.Error("Failed to listen to unix: %v", err)
 		return err
 	}
 
 	// 保障连接和心跳
+	global.LOG.Info("Start heartbeat")
 	go c.ensureConnections()
 
 	return nil
@@ -113,33 +115,38 @@ func (c *Center) Stop() error {
 func (c *Center) listenToUnix() error {
 	//先关闭
 	if c.unixListener != nil {
+		global.LOG.Info("Closing existing listener")
 		c.unixListener.Close()
 	}
 
 	// 检查sock文件
 	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+	global.LOG.Info("Using sock file: %s", sockFile)
 
 	// 确保目录存在
 	if err := os.MkdirAll(constant.CenterRunDir, 0755); err != nil {
 		global.LOG.Error("Failed to create directory: %v", err)
 		return err
 	}
+	global.LOG.Info("Directory created/verified")
 
 	// 如果sock文件存在，尝试删除
 	if _, err := os.Stat(sockFile); err == nil {
+		global.LOG.Info("Removing existing sock file")
 		if err := os.Remove(sockFile); err != nil {
 			global.LOG.Error("Failed to remove existing sock file: %v", err)
 			return err
 		}
-		global.LOG.Info("Removed existing sock file")
 	}
 
 	var err error
+	global.LOG.Info("Creating new unix listener")
 	c.unixListener, err = net.Listen("unix", sockFile)
 	if err != nil {
-		global.LOG.Error("Failed to start unix listener: %v", err)
+		global.LOG.Error("Failed to create listener: %v", err)
 		return err
 	}
+	global.LOG.Info("Unix listener created successfully")
 
 	// 处理unix连接
 	go c.acceptUnixConnections()
