@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { getFileDetailApi, searchFileListApi } from '@/api/file';
 import { SimpleFileInfoEntity } from '@/entity/FileInfo';
-import { FileItem } from '../types/file-item';
+import { FileItem } from '@/components/file/file-editor-drawer/types';
 import { FileTreeItem } from '../components/file-tree/type';
 
 const useFileStore = defineStore('file-manage', {
@@ -10,6 +10,7 @@ const useFileStore = defineStore('file-manage', {
     tree: [] as FileTreeItem[],
     addressItems: [] as FileItem[],
     showHidden: false,
+    showFilesInTree: false,
     selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
@@ -38,7 +39,10 @@ const useFileStore = defineStore('file-manage', {
         show_hidden: true,
         path: this.pwd,
       }).then((res) => {
-        this.$state.tree = res.items;
+        // 根据配置决定是否显示文件
+        this.$state.tree = this.$state.showFilesInTree
+          ? res.items || []
+          : (res.items || []).filter((item) => item.is_dir);
       });
     },
 
@@ -125,7 +129,10 @@ const useFileStore = defineStore('file-manage', {
         path: treeItem.path,
       });
 
-      treeItem.items = data.items || [];
+      // 根据配置决定是否显示文件
+      treeItem.items = this.$state.showFilesInTree
+        ? data.items || []
+        : (data.items || []).filter((item) => item.is_dir);
       treeItem.open = true;
       treeItem.loading = false;
       // 触发视图更新
@@ -315,6 +322,20 @@ const useFileStore = defineStore('file-manage', {
       // 如果没有找到斜杠或者斜杠在开头（即路径是根目录下的文件/文件夹），则导航到根目录
       const parentPath =
         lastSlashIndex <= 0 ? '/' : normalizedPath.slice(0, lastSlashIndex);
+
+      // 找到对应的树节点
+      const treeItem = this.getItemByPath(parentPath);
+      // 如果找到了树节点且它是文件夹，检查其加载状态
+      if (treeItem && treeItem.is_dir) {
+        // 如果正在加载中，不执行任何操作
+        if (treeItem.loading) {
+          return;
+        }
+        // 如果需要加载子项
+        if (!treeItem.items || treeItem.items.length === 0) {
+          this.loadTreeChildren(treeItem);
+        }
+      }
 
       // 导航到父级路径
       this.handleGoto(parentPath);

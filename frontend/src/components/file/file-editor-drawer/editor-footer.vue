@@ -7,7 +7,12 @@
       <a-button @click="$emit('cancel')">{{
         t('common.form.cancelText')
       }}</a-button>
-      <a-button type="primary" :disabled="!isEdited" @click="$emit('save')">
+      <a-button
+        type="primary"
+        :disabled="!isEdited || isPartialView"
+        :tooltip="isPartialView ? t('app.file.editor.partialViewNoSave') : ''"
+        @click="$emit('save')"
+      >
         {{ t('common.save') }}
       </a-button>
     </div>
@@ -16,7 +21,7 @@
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { FileItem } from '@/views/app/file/types/file-item';
+  import { FileItem } from '@/components/file/file-editor-drawer/types';
 
   const { t } = useI18n();
 
@@ -28,6 +33,10 @@
     isEdited: {
       type: Boolean,
       required: true,
+    },
+    isPartialView: {
+      type: Boolean,
+      default: false,
     },
   });
 

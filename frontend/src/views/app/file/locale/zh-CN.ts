@@ -26,6 +26,7 @@ export default {
   'app.file.list.action.delete': '删除',
   'app.file.list.action.terminal': '终端',
   'app.file.list.filter.showHidden': '显示隐藏文件和系统文件',
+  'app.file.list.filter.showFilesInTree': '在目录树中显示文件',
 
   'app.file.list.column.name': '文件名',
   'app.file.list.column.size': '大小',

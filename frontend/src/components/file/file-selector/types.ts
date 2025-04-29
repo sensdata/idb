@@ -6,7 +6,7 @@ export enum FileSelectType {
   ALL = 'all',
 }
 
-export type FileItem = Pick<FileInfoEntity, 'name' | 'path' | 'is_dir'>;
+export type FileSelectorItem = Pick<FileInfoEntity, 'name' | 'path' | 'is_dir'>;
 
 export interface FileSelectProps {
   modelValue?: string;

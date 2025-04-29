@@ -11,7 +11,7 @@ import { properties } from '@codemirror/legacy-modes/mode/properties';
 import { nginx } from '@codemirror/legacy-modes/mode/nginx';
 import { toml } from '@codemirror/legacy-modes/mode/toml';
 import { simpleMode } from '@codemirror/legacy-modes/mode/simple-mode';
-import { FileItem } from '@/views/app/file/types/file-item';
+import { FileItem } from '../types';
 
 // 定义日志文件的高亮规则
 const logSyntax = {

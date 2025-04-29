@@ -119,7 +119,7 @@
   import { useHostStore } from '@/store';
   import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
   import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
-  import { FileItem, FileSelectType } from './types';
+  import { FileSelectorItem as FileItem, FileSelectType } from './types';
 
   interface Props {
     initialPath?: string;
