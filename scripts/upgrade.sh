@@ -18,19 +18,10 @@ function Backup_Data() {
     rm -rf "$BACKUP_DIR"
     mkdir -p "$BACKUP_DIR"
     
-    if docker ps -q -f name=idb >/dev/null 2>&1; then
+    # 检查容器是否存在并运行
+    if docker ps -q -f name="^idb$" > /dev/null 2>&1; then
         log "停止 IDB 容器..."
-        # 添加超时参数
-        if ! docker stop -t 30 idb; then
-            log "容器停止超时，尝试强制停止..."
-            docker kill idb
-        fi
-        
-        # 等待容器完全停止
-        while docker ps -q -f name=idb >/dev/null 2>&1; do
-            log "等待容器完全停止..."
-            sleep 1
-        done
+        docker stop -t 30 idb || docker kill idb
     fi
     
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then

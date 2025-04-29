@@ -187,8 +187,15 @@ func StopServices() error {
 		global.LogStream.Close()
 	}
 
+	// 停止 API 服务器
+	if err := api.API.Stop(); err != nil {
+		global.LOG.Error("停止 API 服务器失败: %v", err)
+	}
+
 	// 停止Agent服务
-	conn.CENTER.Stop()
+	if err := conn.CENTER.Stop(); err != nil {
+		global.LOG.Error("停止Agent服务失败: %v", err)
+	}
 
 	// 停止SSH
 	conn.SSH.Stop()

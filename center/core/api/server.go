@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-git/go-git/v5"
@@ -36,6 +38,8 @@ var API ApiServer = ApiServer{
 
 type ApiServer struct {
 	router *gin.Engine
+	server *http.Server
+	ln     net.Listener
 }
 
 type tcpKeepAliveListener struct {
@@ -71,6 +75,9 @@ func (s *ApiServer) Start() error {
 		global.LOG.Error("Failed to listen to %s", server.Addr)
 		return err
 	}
+
+	s.server = server
+	s.ln = ln
 
 	if settings.Https == "yes" {
 		var cert tls.Certificate
@@ -121,6 +128,33 @@ func (s *ApiServer) Start() error {
 			}
 		}()
 	}
+	return nil
+}
+
+func (s *ApiServer) Stop() error {
+	global.LOG.Info("正在停止 API 服务器...")
+
+	// 创建一个带超时的上下文
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 优雅关闭 HTTP 服务器
+	if s.server != nil {
+		if err := s.server.Shutdown(ctx); err != nil {
+			global.LOG.Error("HTTP 服务器关闭失败: %v", err)
+			return err
+		}
+	}
+
+	// 关闭监听器
+	if s.ln != nil {
+		if err := s.ln.Close(); err != nil {
+			global.LOG.Error("监听器关闭失败: %v", err)
+			return err
+		}
+	}
+
+	global.LOG.Info("API 服务器已停止")
 	return nil
 }
 
