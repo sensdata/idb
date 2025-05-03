@@ -63,7 +63,12 @@
         </template>
       </idb-table>
     </div>
-    <form-drawer ref="formRef" :type="type" @ok="reload" />
+    <form-drawer
+      ref="formRef"
+      :type="type"
+      @ok="reload"
+      @category-change="handleCategoryChange"
+    />
     <logs-drawer ref="logsRef" />
     <logs-view-modal
       ref="runResultModalRef"
@@ -175,6 +180,7 @@
   };
 
   const handleCreate = () => {
+    formRef.value?.clearParams();
     formRef.value?.show();
   };
 
@@ -240,6 +246,11 @@
         reload();
       }
     }
+  };
+
+  const handleCategoryChange = () => {
+    categoryTreeRef.value?.reload();
+    gridRef.value?.reload();
   };
 </script>
 

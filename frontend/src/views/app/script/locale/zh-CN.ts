@@ -21,4 +21,7 @@ export default {
   'app.script.list.message.delete_success': '删除成功',
 
   'app.script.run.result.title': '执行结果',
+
+  'app.script.form.name.required': '请输入脚本名称',
+  'app.script.form.category.required': '请选择或输入分类',
 };
