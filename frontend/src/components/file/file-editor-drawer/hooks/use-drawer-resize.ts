@@ -1,4 +1,4 @@
-import { ref, onMounted, computed, Ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export default function useDrawerResize() {
   const drawerWidth = ref(1200);
