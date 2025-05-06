@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream"
+	"github.com/sensdata/idb/core/logstream/pkg/reader"
 	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/message"
@@ -509,7 +512,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 
 	// 更新一下任务状态
 	if task.Status == types.TaskStatusCreated {
-		if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
+		if err := ls.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
 			global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
 			return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
 		}
@@ -538,6 +541,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		}
 	}()
 
+	notify := c.Writer.CloseNotify()
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
 		return fmt.Errorf("streaming not supported")
@@ -562,13 +566,10 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 			global.LOG.Info("SSE HEARTBEAT")
 			c.SSEvent("heartbeat", time.Now().Unix())
 			flusher.Flush()
-		case <-ctx.Done():
-			global.LOG.Info("SSE DONE")
-
+		case <-notify:
+			global.LOG.Info("SSE NOTIFY")
 			// 如果是远程读取器，发送停止消息
 			if _, ok := reader.(*adapters.RemoteReader); ok {
-				global.LOG.Info("remote reader, sending stop message")
-
 				// 获取agent连接
 				agentConn, err := conn.CENTER.GetAgentConn(&host)
 				if err != nil {
@@ -576,33 +577,56 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				stopMsg, err := message.CreateLogStreamMessage(
-					utils.GenerateMsgId(),
-					message.LogStreamStop,
-					task.ID,
-					task.LogPath,
-					0,
-					0,
-					"",
-					"",
-				)
-				if err == nil {
-					// 尝试发送停止消息
-					message.SendLogStreamMessage(*agentConn, stopMsg)
+				s.clearTaskStuff(agentConn, ls, reader, task)
+			}
+			return nil
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			// 如果是远程读取器，发送停止消息
+			if _, ok := reader.(*adapters.RemoteReader); ok {
+				// 获取agent连接
+				agentConn, err := conn.CENTER.GetAgentConn(&host)
+				if err != nil {
+					global.LOG.Error("get agent conn failed: %v", err)
+					return fmt.Errorf("get agent conn failed: %w", err)
 				}
-			}
 
-			// 删除task
-			if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusCanceled); err != nil {
-				global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
-			}
-			if err := ls.DeleteTask(task.ID); err != nil {
-				global.LOG.Error("delete task %s failed: %v", task.ID, err)
-			} else {
-				global.LOG.Info("delete task %s success", task.ID)
+				s.clearTaskStuff(agentConn, ls, reader, task)
 			}
 			return nil
 		}
+	}
+}
+
+func (s *FileMan) clearTaskStuff(conn *net.Conn, ls *logstream.LogStream, r reader.Reader, task *types.Task) {
+	// 如果是远程读取器，发送停止消息
+	if _, ok := r.(*adapters.RemoteReader); ok {
+		global.LOG.Info("remote reader, sending stop message")
+
+		stopMsg, err := message.CreateLogStreamMessage(
+			utils.GenerateMsgId(),
+			message.LogStreamStop,
+			task.ID,
+			task.LogPath,
+			0,
+			0,
+			"",
+			"",
+		)
+		if err == nil {
+			// 尝试发送停止消息
+			message.SendLogStreamMessage(*conn, stopMsg)
+		}
+	}
+
+	// 删除task
+	if err := ls.UpdateTaskStatus(task.ID, types.TaskStatusCanceled); err != nil {
+		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
+	}
+	if err := ls.DeleteTask(task.ID); err != nil {
+		global.LOG.Error("delete task %s failed: %v", task.ID, err)
+	} else {
+		global.LOG.Info("delete task %s success", task.ID)
 	}
 }
 
