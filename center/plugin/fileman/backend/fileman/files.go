@@ -577,8 +577,10 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				s.clearTaskStuff(agentConn, ls, reader, task)
+				s.stopRemote(agentConn, reader, task.ID, task.LogPath)
 			}
+			// 清理任务相关的资源
+			s.clearTaskStuff(ls, task.ID)
 			return nil
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
@@ -591,42 +593,42 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				s.clearTaskStuff(agentConn, ls, reader, task)
+				s.stopRemote(agentConn, reader, task.ID, task.LogPath)
 			}
+			// 清理任务相关的资源
+			s.clearTaskStuff(ls, task.ID)
 			return nil
 		}
 	}
 }
 
-func (s *FileMan) clearTaskStuff(conn *net.Conn, ls *logstream.LogStream, r reader.Reader, task *types.Task) {
-	// 如果是远程读取器，发送停止消息
-	if _, ok := r.(*adapters.RemoteReader); ok {
-		global.LOG.Info("remote reader, sending stop message")
-
-		stopMsg, err := message.CreateLogStreamMessage(
-			utils.GenerateMsgId(),
-			message.LogStreamStop,
-			task.ID,
-			task.LogPath,
-			0,
-			0,
-			"",
-			"",
-		)
-		if err == nil {
-			// 尝试发送停止消息
-			message.SendLogStreamMessage(*conn, stopMsg)
-		}
+func (s *FileMan) stopRemote(conn *net.Conn, r reader.Reader, taskId string, logPath string) error {
+	global.LOG.Info("remote reader, sending stop message")
+	stopMsg, err := message.CreateLogStreamMessage(
+		utils.GenerateMsgId(),
+		message.LogStreamStop,
+		taskId,
+		logPath,
+		0,
+		0,
+		"",
+		"",
+	)
+	if err == nil {
+		message.SendLogStreamMessage(*conn, stopMsg)
 	}
+	return nil
+}
 
-	// 删除task
-	if err := ls.UpdateTaskStatus(task.ID, types.TaskStatusCanceled); err != nil {
+func (s *FileMan) clearTaskStuff(ls *logstream.LogStream, taskId string) {
+	// 更新状态后删除task
+	if err := ls.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
 		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
 	}
-	if err := ls.DeleteTask(task.ID); err != nil {
-		global.LOG.Error("delete task %s failed: %v", task.ID, err)
+	if err := ls.DeleteTask(taskId); err != nil {
+		global.LOG.Error("delete task %s failed: %v", taskId, err)
 	} else {
-		global.LOG.Info("delete task %s success", task.ID)
+		global.LOG.Info("delete task %s success", taskId)
 	}
 }
 
