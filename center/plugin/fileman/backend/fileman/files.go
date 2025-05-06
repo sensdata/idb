@@ -509,9 +509,11 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	defer close(bufferCh)
 
 	// 更新一下任务状态
-	if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
-		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
-		return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
+	if task.Status == types.TaskStatusCreated {
+		if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
+			global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
+			return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
+		}
 	}
 
 	// 设置 SSE 响应头
