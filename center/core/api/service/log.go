@@ -19,8 +19,7 @@ import (
 )
 
 const (
-	heartbeatInterval = 30 * time.Second // 心跳间隔
-	connectionTimeout = 2 * time.Hour    // 连接超时时间
+	heartbeatInterval = 10 * time.Second // 心跳间隔
 )
 
 type ILogManService interface {
@@ -158,7 +157,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	}
 
 	// 使用 context 来控制超时和客户端断开
-	ctx, cancel := context.WithTimeout(c.Request.Context(), connectionTimeout)
+	ctx, cancel := context.WithCancel(c.Request.Context())
 	defer cancel()
 
 	heartbeat := time.NewTicker(heartbeatInterval)
@@ -168,11 +167,18 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	bufferCh := make(chan []byte, 100)
 	defer close(bufferCh)
 
+	// 更新一下任务状态
+	if task.Status == types.TaskStatusCreated {
+		if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
+			global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
+			return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
+		}
+	}
+
 	// 设置 SSE 响应头
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("Transfer-Encoding", "chunked")
 
 	// 启动一个 goroutine 来处理日志缓冲
 	go func() {
@@ -197,6 +203,12 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		return fmt.Errorf("streaming not supported")
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
 	for {
 		select {
 		case msg := <-bufferCh:
@@ -211,12 +223,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 			c.SSEvent("heartbeat", time.Now().Unix())
 			flusher.Flush()
 		case <-ctx.Done():
-			if ctx.Err() == context.DeadlineExceeded {
-				c.SSEvent("error", "Connection timeout")
-			} else {
-				c.SSEvent("error", "Connection closed")
-			}
-			flusher.Flush()
+			global.LOG.Info("SSE DONE")
 
 			// 如果是远程读取器，发送停止消息
 			if _, ok := reader.(*adapters.RemoteReader); ok {
@@ -246,6 +253,9 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 			}
 
 			// 删除task
+			if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusCanceled); err != nil {
+				global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
+			}
 			if err := ls.DeleteTask(task.ID); err != nil {
 				global.LOG.Error("delete task %s failed: %v", task.ID, err)
 			} else {
