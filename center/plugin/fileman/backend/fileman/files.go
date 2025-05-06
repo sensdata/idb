@@ -562,7 +562,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 			}
 			// 清理任务相关的资源
-			go s.clearTaskStuff(task.ID)
+			s.clearTaskStuff(task.ID)
 			return nil
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
@@ -578,7 +578,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 			}
 			// 清理任务相关的资源
-			go s.clearTaskStuff(task.ID)
+			s.clearTaskStuff(task.ID)
 			return nil
 		}
 	}
