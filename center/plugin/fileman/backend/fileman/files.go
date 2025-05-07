@@ -1,7 +1,6 @@
 package fileman
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -415,17 +414,9 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		metadata := map[string]interface{}{
 			"log_path": path,
 		}
-		// 本机
-		if host.IsDefault {
-			task, err = global.LogStream.CreateTask(types.TaskTypeFile, metadata)
-			if err != nil {
-				return errors.New("failed to create tail task")
-			}
-		} else {
-			task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
-			if err != nil {
-				return errors.New("failed to create tail task")
-			}
+		task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+		if err != nil {
+			return errors.New("failed to create tail task")
 		}
 	}
 	global.LOG.Info("task: %s", task.ID)
@@ -482,8 +473,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	}
 
 	// 使用 context 来控制超时和客户端断开
-	ctx, cancel := context.WithCancel(c.Request.Context())
-	defer cancel()
+	ctx := c.Request.Context()
 
 	heartbeat := time.NewTicker(heartbeatInterval)
 	defer heartbeat.Stop()
@@ -504,6 +494,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
 
 	// 启动一个 goroutine 来处理日志缓冲
 	go func() {
@@ -523,7 +514,6 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		}
 	}()
 
-	notify := c.Writer.CloseNotify()
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
 		return fmt.Errorf("streaming not supported")
@@ -548,22 +538,6 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 			global.LOG.Info("SSE HEARTBEAT")
 			c.SSEvent("heartbeat", time.Now().Unix())
 			flusher.Flush()
-		case <-notify:
-			global.LOG.Info("SSE NOTIFY")
-			// 如果是远程读取器，发送停止消息
-			if _, ok := reader.(*adapters.RemoteReader); ok {
-				// 获取agent连接
-				agentConn, err := conn.CENTER.GetAgentConn(&host)
-				if err != nil {
-					global.LOG.Error("get agent conn failed: %v", err)
-					return fmt.Errorf("get agent conn failed: %w", err)
-				}
-
-				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
-			}
-			// 清理任务相关的资源
-			s.clearTaskStuff(task.ID)
-			return nil
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
 			// 如果是远程读取器，发送停止消息

@@ -1,12 +1,13 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -62,11 +63,9 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		return fmt.Errorf("get host failed: %w", err)
 	}
 
-	ls := global.LogStream
-
 	// 查找任务
 	var task *types.Task
-	task, err = ls.GetTaskByLog(path)
+	task, err = global.LogStream.GetTaskByLog(path)
 	if err != nil {
 		global.LOG.Error("get task failed: %v", err)
 	}
@@ -76,14 +75,14 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		metadata := map[string]interface{}{
 			"log_path": path,
 		}
-		// 本机
-		if host.IsDefault {
-			task, err = ls.CreateTask(types.TaskTypeFile, metadata)
+		// 本机（一些非依赖agent的系统交互过程日志，）
+		if strings.Contains(path, "/idb/data/logstream/logs") {
+			task, err = global.LogStream.CreateTask(types.TaskTypeFile, metadata)
 			if err != nil {
 				return errors.New("failed to create tail task")
 			}
 		} else {
-			task, err = ls.CreateTask(types.TaskTypeRemote, metadata)
+			task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
 			if err != nil {
 				return errors.New("failed to create tail task")
 			}
@@ -96,7 +95,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		global.LOG.Info("task metadata: %s=%v", k, v)
 	}
 
-	reader, err := ls.GetReader(task.ID)
+	reader, err := global.LogStream.GetReader(task.ID)
 	if err != nil {
 		global.LOG.Error("get reader failed: %v", err)
 		return fmt.Errorf("get reader failed: %w", err)
@@ -114,23 +113,9 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 			return fmt.Errorf("get agent conn failed: %w", err)
 		}
 
-		// 发送开始追踪请求
-		startMsg, err := message.CreateLogStreamMessage(
-			utils.GenerateMsgId(),
-			message.LogStreamStart,
-			task.ID,
-			task.LogPath,
-			offset,
-			whence,
-			"",
-			"",
-		)
+		err = s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStart, offset, whence)
 		if err != nil {
-			return fmt.Errorf("create start message failed: %w", err)
-		}
-
-		if err := message.SendLogStreamMessage(*agentConn, startMsg); err != nil {
-			return fmt.Errorf("send start message failed: %w", err)
+			return fmt.Errorf("failed to start stream : %w", err)
 		}
 	}
 
@@ -142,7 +127,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	global.LOG.Info("follow log success for task %s, path: %s", task.ID, path)
 
 	// 获取任务状态监听器
-	watcher, err := ls.GetTaskWatcher(task.ID)
+	watcher, err := global.LogStream.GetTaskWatcher(task.ID)
 	if err != nil {
 		global.LOG.Error("get task watcher failed: %v", err)
 		return fmt.Errorf("get task watcher failed: %w", err)
@@ -157,8 +142,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	}
 
 	// 使用 context 来控制超时和客户端断开
-	ctx, cancel := context.WithCancel(c.Request.Context())
-	defer cancel()
+	ctx := c.Request.Context()
 
 	heartbeat := time.NewTicker(heartbeatInterval)
 	defer heartbeat.Stop()
@@ -179,6 +163,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
 
 	// 启动一个 goroutine 来处理日志缓冲
 	go func() {
@@ -224,11 +209,8 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 			flusher.Flush()
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
-
 			// 如果是远程读取器，发送停止消息
 			if _, ok := reader.(*adapters.RemoteReader); ok {
-				global.LOG.Info("remote reader, sending stop message")
-
 				// 获取agent连接
 				agentConn, err := conn.CENTER.GetAgentConn(&host)
 				if err != nil {
@@ -236,32 +218,43 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				stopMsg, err := message.CreateLogStreamMessage(
-					utils.GenerateMsgId(),
-					message.LogStreamStop,
-					task.ID,
-					task.LogPath,
-					0,
-					0,
-					"",
-					"",
-				)
-				if err == nil {
-					// 尝试发送停止消息
-					message.SendLogStreamMessage(*agentConn, stopMsg)
-				}
+				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 			}
 
-			// 删除task
-			if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusCanceled); err != nil {
-				global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
-			}
-			if err := ls.DeleteTask(task.ID); err != nil {
-				global.LOG.Error("delete task %s failed: %v", task.ID, err)
-			} else {
-				global.LOG.Info("delete task %s success", task.ID)
-			}
+			// 清理任务相关的资源
+			s.clearTaskStuff(task.ID)
 			return nil
 		}
+	}
+}
+
+func (s *LogManService) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int) error {
+	global.LOG.Info("notify remote logstream message %s", msgType)
+	stopMsg, err := message.CreateLogStreamMessage(
+		utils.GenerateMsgId(),
+		msgType,
+		taskId,
+		logPath,
+		offset,
+		whence,
+		"",
+		"",
+	)
+	if err == nil {
+		message.SendLogStreamMessage(*conn, stopMsg)
+	}
+	return nil
+}
+
+func (s *LogManService) clearTaskStuff(taskId string) {
+	global.LOG.Info("clear task stuff")
+	// 更新状态后删除task
+	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
+		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
+	}
+	if err := global.LogStream.DeleteTask(taskId); err != nil {
+		global.LOG.Error("delete task %s failed: %v", taskId, err)
+	} else {
+		global.LOG.Info("delete task %s success", taskId)
 	}
 }
