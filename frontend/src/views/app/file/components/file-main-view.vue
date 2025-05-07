@@ -111,11 +111,18 @@
           @click="handleItemSelect(record)"
           @dblclick="handleItemDoubleClick(record)"
         >
-          <folder-icon v-if="record.is_dir" />
-          <file-icon v-else />
-          <span class="color-primary cursor-pointer min-w-0 flex-1 truncate">{{
-            record.name
-          }}</span>
+          <folder-icon v-if="record.is_dir && !record.is_symlink" />
+          <file-icon v-if="!record.is_dir && !record.is_symlink" />
+          <icon-link v-if="record.is_symlink" style="color: #1890ff" />
+          <span class="color-primary cursor-pointer min-w-0 flex-1 truncate">
+            {{ record.name }}
+            <template v-if="record.is_symlink">
+              <span class="text-gray-500 ml-1">→</span>
+              <span class="text-gray-500 ml-1 italic">{{
+                record.link_path
+              }}</span>
+            </template>
+          </span>
         </div>
       </template>
       <template #mode="{ record }">
@@ -197,7 +204,14 @@
     align?: 'left' | 'center' | 'right';
   }
 
-  const props = defineProps({
+  const {
+    params,
+    columns,
+    showHidden,
+    selected,
+    pasteVisible,
+    decompressVisible,
+  } = defineProps({
     params: {
       type: Object,
       required: true,
@@ -275,8 +289,8 @@
   };
 
   // Public methods exposed for parent component
-  const load = (params: any) => {
-    gridRef.value?.load(params);
+  const load = (loadParams: any) => {
+    gridRef.value?.load(loadParams);
   };
 
   const reload = () => {

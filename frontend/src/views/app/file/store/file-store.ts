@@ -37,12 +37,10 @@ const useFileStore = defineStore('file-manage', {
         page: 1,
         page_size: 100,
         show_hidden: true,
-        path: this.pwd,
+        path: '/',
       }).then((res) => {
-        // 根据配置决定是否显示文件
-        this.$state.tree = this.$state.showFilesInTree
-          ? res.items || []
-          : (res.items || []).filter((item) => item.is_dir);
+        // 简化版本：只需加载根目录的文件夹
+        this.$state.tree = (res.items || []).filter((item) => item.is_dir);
       });
     },
 

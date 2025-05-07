@@ -8,15 +8,12 @@
         @goto="handleGotoWrapper"
       />
       <div class="file-layout">
-        <file-sidebar
-          :folders-only-tree="foldersOnlyTree"
+        <simplified-file-sidebar
+          :items="tree"
           :show-hidden="showHidden"
           :current="current"
-          @tree-item-select="handleTreeItemSelect"
-          @tree-item-open-change="
-            (item, open) => store.handleTreeItemOpenChange(item, open)
-          "
-          @tree-item-double-click="handleTreeItemDoubleClick"
+          @item-select="handleTreeItemSelect"
+          @item-double-click="handleTreeItemDoubleClick"
         />
         <file-main-view
           ref="fileMainViewRef"
@@ -80,15 +77,14 @@
   import DecompressDrawer from '@/components/file/decompress-drawer/index.vue';
   import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
 
-  // Type imports
+  // 类型导入
   import { FileItem } from '@/components/file/file-editor-drawer/types';
-  import { FileTreeItem } from './components/file-tree/type';
 
-  // Import refactored components
-  import FileSidebar from './components/file-sidebar.vue';
+  // 导入重构的组件
+  import SimplifiedFileSidebar from './components/simplified-file-sidebar.vue';
   import FileMainView from './components/file-main-view.vue';
 
-  // Import composition functions
+  // 导入组合函数
   import useFileStore from './store/file-store';
   import { useFileOperations } from './hooks/use-file-operations';
   import { useFileNavigation } from './hooks/use-file-navigation';
@@ -99,7 +95,7 @@
   const openTerminal = inject<() => void>('openTerminal');
   const { loading, setLoading } = useLoading(false);
 
-  // Component refs
+  // 组件引用
   const fileMainViewRef = ref<InstanceType<typeof FileMainView>>();
   const modeDrawerRef = ref<InstanceType<typeof ModeDrawer>>();
   const ownerDrawerRef = ref<InstanceType<typeof OwnerDrawer>>();
@@ -113,12 +109,12 @@
   const decompressDrawerRef = ref<InstanceType<typeof DecompressDrawer>>();
   const fileEditorDrawerRef = ref<InstanceType<typeof FileEditorDrawer>>();
 
-  // Store setup
+  // 存储设置
   const store = useFileStore();
   const { current, tree, pasteVisible, decompressVisible, selected } =
     storeToRefs(store);
 
-  // Computed properties
+  // 计算属性
   const showHidden = computed(() => store.showHidden);
   const updateShowHidden = (val: boolean) => {
     store.$patch({
@@ -126,7 +122,7 @@
     });
   };
 
-  // Composition functions setup
+  // 组合函数设置
   const {
     handleModifyMode,
     handleModifyOwner,
@@ -169,7 +165,7 @@
 
   const { columns } = useFileColumns(t);
 
-  // Table params
+  // 表格参数
   const params = computed(() => {
     return {
       show_hidden: showHidden.value,
@@ -179,32 +175,7 @@
     } as const;
   });
 
-  // Computed property for folders-only tree
-  const foldersOnlyTree = computed(() => {
-    if (!tree.value) return [];
-
-    if (store.showFilesInTree) {
-      return tree.value;
-    }
-
-    const filterFolders = (items: FileTreeItem[]): FileTreeItem[] => {
-      return items
-        .filter((item) => item.is_dir)
-        .map((item) => {
-          if (item.items && item.items.length > 0) {
-            return {
-              ...item,
-              items: filterFolders(item.items),
-            };
-          }
-          return item;
-        });
-    };
-
-    return filterFolders(tree.value);
-  });
-
-  // Watchers
+  // 侦听器
   watch(
     () => store.current,
     (newValue) => {
@@ -219,7 +190,7 @@
     fileMainViewRef.value?.load(params.value);
   });
 
-  // Methods
+  // 方法
   const reload = () => {
     fileMainViewRef.value?.reload();
   };

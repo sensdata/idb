@@ -39,8 +39,10 @@
       <EditorToolbar
         :drawer-width="drawerWidth"
         :is-full-screen="isFullScreen"
+        :read-only="readOnly"
         @update:drawer-width="setDrawerWidth"
         @toggle-full-screen="toggleFullScreen"
+        @toggle-edit-mode="toggleEditMode"
       />
 
       <!-- 编辑器内容 -->
@@ -49,6 +51,7 @@
         :loading="loading"
         :extensions="extensions"
         :is-partial-view="isPartialView"
+        :read-only="readOnly"
         @editor-ready="handleEditorReady"
       />
 
@@ -77,6 +80,7 @@
         :file="file"
         :is-edited="isEdited"
         :is-partial-view="isPartialView"
+        :read-only="readOnly"
         @cancel="handleCancel"
         @save="handleSave"
       />
@@ -181,6 +185,7 @@
   const drawerRef = ref<HTMLElement | null>(null);
   const resizeHandleRef = ref<HTMLElement | null>(null);
   const drawerBodyRef = ref<HTMLElement | null>(null);
+  const readOnly = ref(true); // 默认为只读模式
 
   // 拖拽状态变量
   const isResizing = ref(false);
@@ -221,6 +226,11 @@
   const emit = defineEmits<{
     (e: 'ok'): void;
   }>();
+
+  // 切换编辑模式
+  const toggleEditMode = () => {
+    readOnly.value = !readOnly.value;
+  };
 
   // ----- 拖拽调整大小相关函数 -----
   const handleResizeStart = (e: MouseEvent) => {
@@ -286,35 +296,35 @@
   };
 
   // ----- 弹窗控制函数 -----
-  const show = () => {
-    visible.value = true;
-  };
-
-  const hide = () => {
-    visible.value = false;
-    content.value = '';
-  };
-
   const handleCancel = async () => {
+    // 如果文件已编辑但未保存，提示用户
     if (isEdited.value) {
-      const confirmed = await confirm({
-        title: t('app.file.editor.confirmTitle'),
-        content: t('app.file.editor.confirmContent'),
-        okText: t('common.discard'),
+      const result = await confirm({
+        title: t('app.file.editor.unsavedChanges'),
+        content: t('app.file.editor.confirmClose'),
+        okText: t('common.form.okText'),
         cancelText: t('common.form.cancelText'),
       });
-      if (confirmed) {
-        hide();
+      if (!result) {
+        return;
       }
-    } else {
-      hide();
     }
+
+    // 重置编辑模式为只读
+    readOnly.value = true;
+
+    // 关闭抽屉，但不触发ok事件，从而不会导致页面刷新
+    visible.value = false;
   };
 
   const handleSave = async () => {
-    const success = await saveFile();
-    if (success) {
+    if (readOnly.value) return; // 只读模式不允许保存
+
+    try {
+      await saveFile();
       emit('ok');
+    } catch (error) {
+      console.error('保存文件失败:', error);
     }
   };
 
@@ -367,10 +377,15 @@
     }
   );
 
+  // 文件编辑器 API
   defineExpose({
-    show,
-    hide,
     setFile: loadFile,
+    show: () => {
+      visible.value = true;
+    },
+    hide: () => {
+      visible.value = false;
+    },
   });
 </script>
 
