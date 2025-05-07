@@ -20,14 +20,14 @@ export const useFileColumns = (
     {
       dataIndex: 'name',
       title: t('app.file.list.column.name'),
-      width: 200,
+      width: 400,
       ellipsis: true,
       slotName: 'name',
     },
     {
       dataIndex: 'size',
       title: t('app.file.list.column.size'),
-      width: 100,
+      width: 80,
       render: ({ record }: { record: FileInfoEntity }) => {
         return formatFileSize(record.size);
       },
@@ -35,7 +35,7 @@ export const useFileColumns = (
     {
       dataIndex: 'mod_time',
       title: t('app.file.list.column.mod_time'),
-      width: 180,
+      width: 140,
       render: ({ record }: { record: FileInfoEntity }) => {
         return formatTime(record.mod_time);
       },
@@ -43,25 +43,25 @@ export const useFileColumns = (
     {
       dataIndex: 'mode',
       title: t('app.file.list.column.mode'),
-      width: 100,
+      width: 80,
       slotName: 'mode',
     },
     {
       dataIndex: 'user',
       title: t('app.file.list.column.user'),
-      width: 100,
+      width: 80,
       slotName: 'user',
     },
     {
       dataIndex: 'group',
       title: t('app.file.list.column.group'),
-      width: 100,
+      width: 80,
       slotName: 'group',
     },
     {
       dataIndex: 'operation',
       title: t('common.table.operation'),
-      width: 100,
+      width: 80,
       align: 'center' as const,
       slotName: 'operation',
     },
