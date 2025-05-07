@@ -10,12 +10,28 @@
             : t('app.file.editor.fullScreen')
         }}
       </a-button>
+
+      <a-button type="outline" size="small" @click="$emit('toggleEditMode')">
+        <icon-edit v-if="readOnly" />
+        <icon-eye v-else />
+        {{
+          readOnly
+            ? t('app.file.editor.enableEdit')
+            : t('app.file.editor.viewOnly')
+        }}
+      </a-button>
     </a-space>
   </div>
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+  import {
+    IconFullscreen,
+    IconFullscreenExit,
+    IconEdit,
+    IconEye,
+  } from '@arco-design/web-vue/es/icon';
 
   const { t } = useI18n();
 
@@ -28,11 +44,16 @@
       type: Boolean,
       required: true,
     },
+    readOnly: {
+      type: Boolean,
+      default: true,
+    },
   });
 
   const emit = defineEmits<{
     (e: 'update:drawer-width', width: number): void;
     (e: 'toggleFullScreen'): void;
+    (e: 'toggleEditMode'): void;
   }>();
 
   const toggleFullScreen = () => {

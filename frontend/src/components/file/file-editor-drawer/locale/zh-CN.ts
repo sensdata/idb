@@ -14,6 +14,9 @@ export default {
   'app.file.editor.headView': '显示大文件的前 {lines} 行 ({size}KB)',
   'app.file.editor.partialViewNoSave':
     '只查看部分文件内容时无法保存。请切换到完整视图模式进行编辑。',
+  'app.file.editor.readOnlyNoSave': '只读模式下无法保存。请先切换到编辑模式。',
+  'app.file.editor.enableEdit': '编辑',
+  'app.file.editor.viewOnly': '只读',
   'app.file.editor.viewFull': '完整视图',
   'app.file.editor.viewHead': '查看开头',
   'app.file.editor.viewTail': '查看末尾',
@@ -38,4 +41,6 @@ export default {
   'app.file.editor.showing': '显示中',
   'app.file.editor.lines': '行',
   'app.file.editor.mode': '模式',
+  'app.file.editor.unsavedChanges': '未保存的更改',
+  'app.file.editor.confirmClose': '您有未保存的更改。确定要关闭吗？',
 };

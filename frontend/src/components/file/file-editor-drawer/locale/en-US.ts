@@ -17,6 +17,10 @@ export default {
     'Displaying the first {lines} lines of this large file ({size}KB)',
   'app.file.editor.partialViewNoSave':
     'Cannot save when viewing only a portion of the file. Please switch to full view mode to edit.',
+  'app.file.editor.readOnlyNoSave':
+    'Cannot save in read-only mode. Switch to edit mode first.',
+  'app.file.editor.enableEdit': 'Edit',
+  'app.file.editor.viewOnly': 'Read Only',
   'app.file.editor.viewFull': 'Full View',
   'app.file.editor.viewHead': 'Head View',
   'app.file.editor.viewTail': 'Tail View',
@@ -41,4 +45,7 @@ export default {
   'app.file.editor.showing': 'showing',
   'app.file.editor.lines': 'lines',
   'app.file.editor.mode': 'Mode',
+  'app.file.editor.unsavedChanges': 'Unsaved Changes',
+  'app.file.editor.confirmClose':
+    'You have unsaved changes. Are you sure you want to close?',
 };

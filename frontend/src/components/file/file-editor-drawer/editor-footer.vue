@@ -9,8 +9,8 @@
       }}</a-button>
       <a-button
         type="primary"
-        :disabled="!isEdited || isPartialView"
-        :tooltip="isPartialView ? t('app.file.editor.partialViewNoSave') : ''"
+        :disabled="!isEdited || isPartialView || readOnly"
+        :tooltip="getTooltip"
         @click="$emit('save')"
       >
         {{ t('common.save') }}
@@ -21,11 +21,12 @@
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+  import { computed } from 'vue';
   import { FileItem } from '@/components/file/file-editor-drawer/types';
 
   const { t } = useI18n();
 
-  defineProps({
+  const props = defineProps({
     file: {
       type: Object as () => FileItem | null,
       default: null,
@@ -38,6 +39,20 @@
       type: Boolean,
       default: false,
     },
+    readOnly: {
+      type: Boolean,
+      default: true,
+    },
+  });
+
+  const getTooltip = computed(() => {
+    if (props.isPartialView) {
+      return t('app.file.editor.partialViewNoSave');
+    }
+    if (props.readOnly) {
+      return t('app.file.editor.readOnlyNoSave');
+    }
+    return '';
   });
 
   defineEmits(['cancel', 'save']);

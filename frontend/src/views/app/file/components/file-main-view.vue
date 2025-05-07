@@ -197,7 +197,14 @@
     align?: 'left' | 'center' | 'right';
   }
 
-  const props = defineProps({
+  const {
+    params,
+    columns,
+    showHidden,
+    selected,
+    pasteVisible,
+    decompressVisible,
+  } = defineProps({
     params: {
       type: Object,
       required: true,
@@ -275,8 +282,8 @@
   };
 
   // Public methods exposed for parent component
-  const load = (params: any) => {
-    gridRef.value?.load(params);
+  const load = (loadParams: any) => {
+    gridRef.value?.load(loadParams);
   };
 
   const reload = () => {

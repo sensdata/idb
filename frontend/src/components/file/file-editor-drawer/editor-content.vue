@@ -7,6 +7,7 @@
         :indent-with-tab="true"
         :tab-size="2"
         :extensions="extensions"
+        :disabled="readOnly"
         @update:model-value="$emit('update:modelValue', $event)"
         @ready="handleReady"
       />
@@ -48,6 +49,10 @@
     isPartialView: {
       type: Boolean,
       default: false,
+    },
+    readOnly: {
+      type: Boolean,
+      default: true,
     },
   });
 

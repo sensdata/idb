@@ -35,24 +35,24 @@
   import { FileTreeItem } from './file-tree/type';
 
   const props = defineProps<{
-    // The complete tree
+    // 完整文件树
     items: FileTreeItem[];
-    // If showHidden is true, hidden files/folders will be displayed
+    // 是否显示隐藏文件/文件夹
     showHidden: boolean;
-    // Currently selected item
+    // 当前选中的项目
     current: SimpleFileInfoEntity | null;
   }>();
 
   const emit = defineEmits(['itemSelect', 'itemDoubleClick']);
 
-  // Only show root directories
+  // 只显示根目录
   const rootItems = computed(() => {
     return props.items.filter(
       (item) => item.is_dir && (props.showHidden || !item.is_hidden)
     );
   });
 
-  // Check if an item is selected by comparing paths
+  // 检查项目是否被选中（通过比较路径）
   const isSelected = (item: FileTreeItem) => {
     if (!props.current) return false;
 
@@ -76,12 +76,12 @@
     return false;
   };
 
-  // Handle item click - emit selection event
+  // 处理点击事件 - 发出选择事件
   const handleItemClick = (item: FileTreeItem) => {
     emit('itemSelect', item);
   };
 
-  // Handle double click - emit double click event
+  // 处理双击事件 - 发出双击事件
   const handleItemDoubleClick = (item: FileTreeItem) => {
     emit('itemDoubleClick', item);
   };

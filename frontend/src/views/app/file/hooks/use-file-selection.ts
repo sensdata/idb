@@ -3,8 +3,6 @@ import { debounce } from 'lodash';
 import { getFileListApi, getFileDetailApi, getFileTailApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
-import { resolveApiUrl } from '@/helper/api-helper';
-import { openWindow } from '@/utils';
 import {
   ContentViewMode,
   FileItem,
@@ -90,17 +88,8 @@ export const useFileSelection = (params: FileSelectionParams) => {
       const defaultLineCount = 1000;
 
       // 根据文件大小决定打开方式
-      if (fileDetail.size > 1048576) {
-        // 大文件下载 - 使用openWindow工具函数而不是DOM操作
-        const downloadUrl = resolveApiUrl('/files/{host}/download', {
-          source: fileDetail.path,
-        });
-        openWindow(downloadUrl, { download: fileDetail.name });
-
-        // 关闭编辑器，因为我们正在下载文件
-        fileEditorDrawerRef.value?.hide();
-      } else if (fileDetail.size > 100000) {
-        // 文件大于100K但小于1MB，使用tail API获取最后1000行
+      if (fileDetail.size > 100000) {
+        // 文件大于100K，使用tail API获取最后1000行
         const tailData = await getFileTailApi({
           path: filePath,
           numbers: defaultLineCount,
