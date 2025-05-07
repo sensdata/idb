@@ -78,6 +78,11 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 				task.LogPath = logPathStr
 			}
 		}
+		// 查找现成的任务
+		t, _ := m.GetByLog(task.LogPath)
+		if t != nil {
+			return t, nil
+		}
 
 	case types.TaskTypeRemote:
 		// 从 metadata 中获取 log_path
@@ -88,6 +93,11 @@ func (m *FileTaskManager) Create(taskType string, metadata map[string]interface{
 			if logPathStr, ok := logPath.(string); ok {
 				task.LogPath = logPathStr
 			}
+		}
+		// 查找现成的任务
+		t, _ := m.GetByLog(task.LogPath)
+		if t != nil {
+			return t, nil
 		}
 	}
 
@@ -112,8 +122,6 @@ func (m *FileTaskManager) Get(taskID string) (*types.Task, error) {
 }
 
 func (m *FileTaskManager) GetByLog(logPath string) (*types.Task, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	for _, task := range m.tasks {
 		if task.LogPath == logPath {
 			return task, nil

@@ -109,3 +109,19 @@ func (r *BufferReader) Close() error {
 
 	return nil
 }
+
+func (r *BufferReader) Open() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if !r.closed {
+		return nil
+	}
+
+	if r.buffer == nil {
+		r.buffer = bytes.NewBuffer(nil)
+	}
+	r.subs = make([]chan []byte, 0)
+	r.closed = false
+	return nil
+}

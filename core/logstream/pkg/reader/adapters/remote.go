@@ -83,6 +83,21 @@ func (r *RemoteReader) Close() error {
 	return nil
 }
 
+func (r *RemoteReader) Open() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if !r.closed {
+		return nil
+	}
+
+	r.logCh = make(chan []byte, r.config.MaxFollowBuffer)
+	r.done = make(chan struct{})
+	r.closed = false
+
+	return nil
+}
+
 func (r *RemoteReader) SendLog(data []byte) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

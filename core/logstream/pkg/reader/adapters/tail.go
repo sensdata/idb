@@ -198,3 +198,21 @@ func (r *TailReader) Close() error {
 	}
 	return nil
 }
+
+func (r *TailReader) Open() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if !r.closed {
+		return nil
+	}
+
+	file, err := os.OpenFile(r.filePath, os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("open file failed: %v", err)
+	}
+
+	r.file = file
+	r.closed = false
+	return nil
+}

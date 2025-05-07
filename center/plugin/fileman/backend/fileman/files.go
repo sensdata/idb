@@ -381,13 +381,22 @@ func (s *FileMan) getContentPart(hostID uint, path string, lines int64, whence i
 }
 
 func (s *FileMan) tailContentStream(c *gin.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("Panic in tailContentStream: %v", r)
+		}
+	}()
+	global.LOG.Info("tail start")
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
+		global.LOG.Info("invalid host")
 		return errors.New("invalid host")
 	}
 
 	path := c.Query("path")
 	if path == "" {
+		global.LOG.Info("invalid path")
 		return errors.New("invalid path")
 	}
 
@@ -402,24 +411,17 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 		return fmt.Errorf("get host failed: %w", err)
 	}
 
-	// 查找任务
-	var task *types.Task
-	task, err = global.LogStream.GetTaskByLog(path)
-	if err != nil {
-		global.LOG.Error("get task failed: %v", err)
+	// 创建任务
+	metadata := map[string]interface{}{
+		"log_path": path,
 	}
-	if task == nil {
-		global.LOG.Info("task not found, creating new task")
-		// 创建任务
-		metadata := map[string]interface{}{
-			"log_path": path,
-		}
-		task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
-		if err != nil {
-			return errors.New("failed to create tail task")
-		}
+	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		global.LOG.Info("failed to create task")
+		return errors.New("failed to create tail task")
 	}
 	global.LOG.Info("task: %s", task.ID)
+
 
 	// 把task的metadata都打印出来
 	for k, v := range task.Metadata {
@@ -483,12 +485,12 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	defer close(bufferCh)
 
 	// 更新一下任务状态
-	if task.Status == types.TaskStatusCreated {
-		if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
-			global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
-			return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
-		}
-	}
+	//if task.Status == types.TaskStatusCreated {
+	//	if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
+	//		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
+	//		return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
+	//	}
+	//}
 
 	// 设置 SSE 响应头
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -552,7 +554,7 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 			}
 			// 清理任务相关的资源
-			s.clearTaskStuff(task.ID)
+			//s.clearTaskStuff(task.ID)
 			return nil
 		}
 	}

@@ -114,6 +114,7 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 	defer ls.mu.Unlock()
 
 	if r, exists := ls.readers[taskID]; exists {
+		r.Open()
 		return r, nil
 	}
 
@@ -217,17 +218,17 @@ func (ls *LogStream) DeleteTask(taskID string) error {
 	defer ls.mu.Unlock()
 
 	// 获取任务信息并检查状态
-	task, err := ls.GetTask(taskID)
+	_, err := ls.GetTask(taskID)
 	if err != nil {
 		return err
 	}
 
 	// 只允许删除已完成或失败的任务
-	if task.Status != types.TaskStatusSuccess &&
-		task.Status != types.TaskStatusFailed &&
-		task.Status != types.TaskStatusCanceled {
-		return fmt.Errorf("cannot delete task in %s status", task.Status)
-	}
+	//if task.Status != types.TaskStatusSuccess &&
+	//	task.Status != types.TaskStatusFailed &&
+	//	task.Status != types.TaskStatusCanceled {
+	//	return fmt.Errorf("cannot delete task in %s status", task.Status)
+	//}
 
 	// 关闭并删除相关的读写器
 	if w, exists := ls.writers[taskID]; exists {

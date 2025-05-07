@@ -76,9 +76,9 @@ func ValidateStatusTransition(current, new TaskStatus) error {
 	}
 
 	// 新建任务只能转为运行状态
-	if current == TaskStatusCreated && new != TaskStatusRunning {
-		return fmt.Errorf("%w: created task can only transition to running", ErrInvalidStatus)
-	}
+	//if current == TaskStatusCreated && new != TaskStatusRunning {
+	//	return fmt.Errorf("%w: created task can only transition to running", ErrInvalidStatus)
+	//}
 
 	// 运行中的任务只能转为完成、失败或取消状态
 	if current == TaskStatusRunning {

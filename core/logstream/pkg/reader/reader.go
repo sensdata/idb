@@ -17,4 +17,7 @@ type Reader interface {
 
 	// Close 关闭读取器
 	Close() error
+
+	// Open 
+	Open() error
 }
