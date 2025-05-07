@@ -63,29 +63,21 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 		return fmt.Errorf("get host failed: %w", err)
 	}
 
-	// 查找任务
+	// 创建任务
 	var task *types.Task
-	task, err = global.LogStream.GetTaskByLog(path)
-	if err != nil {
-		global.LOG.Error("get task failed: %v", err)
+	metadata := map[string]interface{}{
+		"log_path": path,
 	}
-	if task == nil {
-		global.LOG.Info("task not found, creating new task")
-		// 创建任务
-		metadata := map[string]interface{}{
-			"log_path": path,
+	// 本机（一些非依赖agent的系统交互过程日志，）
+	if strings.Contains(path, "/idb/data/logstream/logs") {
+		task, err = global.LogStream.CreateTask(types.TaskTypeFile, metadata)
+		if err != nil {
+			return errors.New("failed to create tail task")
 		}
-		// 本机（一些非依赖agent的系统交互过程日志，）
-		if strings.Contains(path, "/idb/data/logstream/logs") {
-			task, err = global.LogStream.CreateTask(types.TaskTypeFile, metadata)
-			if err != nil {
-				return errors.New("failed to create tail task")
-			}
-		} else {
-			task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
-			if err != nil {
-				return errors.New("failed to create tail task")
-			}
+	} else {
+		task, err = global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+		if err != nil {
+			return errors.New("failed to create tail task")
 		}
 	}
 	global.LOG.Info("task: %s", task.ID)
@@ -152,12 +144,12 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 	defer close(bufferCh)
 
 	// 更新一下任务状态
-	if task.Status == types.TaskStatusCreated {
-		if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
-			global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
-			return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
-		}
-	}
+	// if task.Status == types.TaskStatusCreated {
+	// 	if err := global.LogStream.UpdateTaskStatus(task.ID, types.TaskStatusRunning); err != nil {
+	// 		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusRunning, err)
+	// 		return fmt.Errorf("Failed to update task status to %s : %w", types.TaskStatusRunning, err)
+	// 	}
+	// }
 
 	// 设置 SSE 响应头
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
@@ -222,7 +214,7 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 			}
 
 			// 清理任务相关的资源
-			s.clearTaskStuff(task.ID)
+			// s.clearTaskStuff(task.ID)
 			return nil
 		}
 	}
