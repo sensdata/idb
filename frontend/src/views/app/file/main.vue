@@ -8,15 +8,12 @@
         @goto="handleGotoWrapper"
       />
       <div class="file-layout">
-        <file-sidebar
-          :folders-only-tree="foldersOnlyTree"
+        <simplified-file-sidebar
+          :items="tree"
           :show-hidden="showHidden"
           :current="current"
-          @tree-item-select="handleTreeItemSelect"
-          @tree-item-open-change="
-            (item, open) => store.handleTreeItemOpenChange(item, open)
-          "
-          @tree-item-double-click="handleTreeItemDoubleClick"
+          @item-select="handleTreeItemSelect"
+          @item-double-click="handleTreeItemDoubleClick"
         />
         <file-main-view
           ref="fileMainViewRef"
@@ -85,7 +82,7 @@
   import { FileTreeItem } from './components/file-tree/type';
 
   // Import refactored components
-  import FileSidebar from './components/file-sidebar.vue';
+  import SimplifiedFileSidebar from './components/simplified-file-sidebar.vue';
   import FileMainView from './components/file-main-view.vue';
 
   // Import composition functions
@@ -177,31 +174,6 @@
       order_by: 'name',
       order: 'asc',
     } as const;
-  });
-
-  // Computed property for folders-only tree
-  const foldersOnlyTree = computed(() => {
-    if (!tree.value) return [];
-
-    if (store.showFilesInTree) {
-      return tree.value;
-    }
-
-    const filterFolders = (items: FileTreeItem[]): FileTreeItem[] => {
-      return items
-        .filter((item) => item.is_dir)
-        .map((item) => {
-          if (item.items && item.items.length > 0) {
-            return {
-              ...item,
-              items: filterFolders(item.items),
-            };
-          }
-          return item;
-        });
-    };
-
-    return filterFolders(tree.value);
   });
 
   // Watchers

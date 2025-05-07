@@ -83,7 +83,24 @@ export const useFileNavigation = (params: FileNavigationParams) => {
    */
   const handleTreeItemSelect = (record: FileTreeItem) => {
     if (!record) return;
-    store.handleTreeItemSelect(record);
+    // For simplified tree, selecting a root folder should navigate to it directly
+    if (record.is_dir) {
+      // 优化性能：直接设置当前目录而不发起网络请求
+      // 这是针对简化版目录树的优化，因为根目录文件夹已经加载过
+
+      // 直接更新状态，避免网络请求导致的延迟
+      // 重要：确保设置current以更新pwd，触发params变化，进而刷新右侧文件列表
+      store.$patch({
+        current: record,
+        selected: [record as unknown as FileItem],
+        addressItems: [],
+      });
+
+      // 通过修改current触发params变化，会自动刷新右侧文件列表
+      // 无需手动调用reload()
+    } else {
+      store.handleTreeItemSelect(record);
+    }
   };
 
   /**
