@@ -85,7 +85,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
       if (!fileDetail) return;
 
       // 默认显示行数
-      const defaultLineCount = 1000;
+      const defaultLineCount = 100;
 
       // 根据文件大小决定打开方式
       if (fileDetail.size > 100000) {

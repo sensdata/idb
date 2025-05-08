@@ -38,7 +38,7 @@
             :type="viewMode === 'head' ? 'primary' : 'outline'"
             :disabled="viewMode === 'head'"
             :loading="loadingButton === 'head'"
-            @click="handleViewModeChange('head', lineCount)"
+            @click="handleViewModeChange('head', batchSize)"
           >
             {{ t('app.file.editor.viewHead') }}
           </a-button>
@@ -46,7 +46,7 @@
             :type="viewMode === 'tail' ? 'primary' : 'outline'"
             :disabled="viewMode === 'tail'"
             :loading="loadingButton === 'tail'"
-            @click="handleViewModeChange('tail', lineCount)"
+            @click="handleViewModeChange('tail', batchSize)"
           >
             {{ t('app.file.editor.viewTail') }}
           </a-button>
@@ -82,6 +82,10 @@
     },
     isLargeFile: {
       type: Boolean,
+      required: true,
+    },
+    batchSize: {
+      type: Number,
       required: true,
     },
   });

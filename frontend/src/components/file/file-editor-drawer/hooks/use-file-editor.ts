@@ -22,12 +22,12 @@ export default function useFileEditor() {
   const file = ref<FileItem | null>(null);
   const content = ref('');
   const originalContent = ref('');
-  const lineCount = ref(1000); // Default line count
+  const lineCount = ref(100); // Default line count
   const viewMode = ref<ContentViewMode>('full');
   const isLoadingMore = ref(false);
   const canLoadMore = ref(true);
   const currentOffset = ref(0);
-  const batchSize = ref(1000); // 每次加载的行数, 从500改为1000
+  const batchSize = ref(100); // 每次加载的行数, 从1000改为100
   const editorInstance = ref<any>(null);
   const eventSource = shallowRef<EventSource | null>(null);
   const isFollowMode = ref(false);
@@ -103,11 +103,11 @@ export default function useFileEditor() {
       }
 
       // 行反转处理
-      const contentLines = tailData.content.split('\n');
-      contentLines.reverse();
+      // const contentLines = tailData.content.split('\n');
+      // contentLines.reverse();
 
       // 更新内容
-      content.value = contentLines.join('\n');
+      content.value = tailData.content;
       originalContent.value = content.value;
 
       // 更新行数
@@ -240,6 +240,10 @@ export default function useFileEditor() {
     isFollowMode.value = true;
     viewMode.value = 'follow' as ContentViewMode;
 
+    // 清空原有日志内容
+    content.value = '';
+    originalContent.value = '';
+
     try {
       // 创建 SSE 连接
       eventSource.value = connectFileTailFollowApi(hostId, filePath);
@@ -247,15 +251,14 @@ export default function useFileEditor() {
       // 处理日志事件
       eventSource.value.addEventListener('log', (event: Event) => {
         if (event instanceof MessageEvent) {
-          // 追加新的内容到编辑器
+          // 将新内容添加到编辑器的顶部
           content.value += event.data;
           originalContent.value = content.value;
 
-          // 自动滚动到底部
+          // 自动保持在顶部位置
           if (editorInstance.value && editorInstance.value.scrollDOM) {
             setTimeout(() => {
-              editorInstance.value.scrollDOM.scrollTop =
-                editorInstance.value.scrollDOM.scrollHeight;
+              editorInstance.value.scrollDOM.scrollTop = 0;
             }, 100);
           }
         }
@@ -269,6 +272,11 @@ export default function useFileEditor() {
       // 处理状态事件
       eventSource.value.addEventListener('status', () => {
         // Status event received
+      });
+
+      // 处理连接关闭事件
+      eventSource.value.addEventListener('close', () => {
+        // Empty listener
       });
 
       // 处理错误
@@ -320,7 +328,7 @@ export default function useFileEditor() {
     }
 
     // Set the line count from the file item or use default
-    lineCount.value = fileItem.line_count || 1000;
+    lineCount.value = fileItem.line_count || 100;
     currentOffset.value = lineCount.value;
 
     try {
@@ -334,11 +342,9 @@ export default function useFileEditor() {
       // 处理部分内容视图（head/tail）
       if (isPartialView.value && fileItem.content) {
         if (viewMode.value === 'tail' && fileItem.content) {
-          // 反转行顺序，使最新的行显示在顶部
-          const contentLines = fileItem.content.split('\n');
-          contentLines.reverse();
-          content.value = contentLines.join('\n');
-          originalContent.value = content.value;
+          // 不再需要反转行顺序
+          content.value = fileItem.content;
+          originalContent.value = fileItem.content;
 
           // 确保重新加载文件后立即重置滚动位置到顶部
           if (editorInstance.value && editorInstance.value.scrollDOM) {
@@ -443,12 +449,12 @@ export default function useFileEditor() {
         });
 
         // 反转行顺序，使最新的行显示在顶部
-        const contentLines = tailData.content.split('\n');
-        contentLines.reverse();
-        const reversedContent = contentLines.join('\n');
+        // const contentLines = tailData.content.split('\n');
+        // contentLines.reverse();
+        // const reversedContent = contentLines.join('\n');
 
-        content.value = reversedContent;
-        originalContent.value = reversedContent;
+        content.value = tailData.content;
+        originalContent.value = tailData.content;
         viewMode.value = 'tail';
         lineCount.value = newLineCount;
 
@@ -521,6 +527,7 @@ export default function useFileEditor() {
     isLoadingMore,
     canLoadMore,
     isFollowMode,
+    batchSize,
     loadMoreContent,
     changeViewMode,
     setFile,

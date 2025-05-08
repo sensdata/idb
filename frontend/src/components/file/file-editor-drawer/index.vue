@@ -7,6 +7,7 @@
     :unmount-on-close="false"
     class="file-editor-drawer"
     @cancel="handleCancel"
+    @close="handleClose"
   >
     <template #title>
       <div class="drawer-title">
@@ -61,6 +62,7 @@
         ref="viewModeControlRef"
         :view-mode="viewMode"
         :line-count="lineCount"
+        :batch-size="batchSize"
         :is-large-file="isLargeFile === true"
         @change-view-mode="handleViewModeChange"
       />
@@ -208,6 +210,7 @@
     changeViewMode,
     setEditorInstance,
     cleanup,
+    batchSize,
   } = useFileEditor();
 
   const {
@@ -310,11 +313,22 @@
       }
     }
 
+    // 确保停止实时追踪连接
+    cleanup();
+
     // 重置编辑模式为只读
     readOnly.value = true;
 
     // 关闭抽屉，但不触发ok事件，从而不会导致页面刷新
     visible.value = false;
+  };
+
+  // 处理点击抽屉外部关闭的事件
+  const handleClose = () => {
+    // 确保停止实时追踪连接
+    cleanup();
+    // 重置编辑模式为只读
+    readOnly.value = true;
   };
 
   const handleSave = async () => {
@@ -384,6 +398,8 @@
       visible.value = true;
     },
     hide: () => {
+      // 确保停止实时追踪连接
+      cleanup();
       visible.value = false;
     },
   });
