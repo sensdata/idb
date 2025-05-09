@@ -389,6 +389,11 @@ func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.LogInf
 		return nil, constant.ErrHostNotFound
 	}
 
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		return nil, err
+	}
+
 	// 生成任务
 	task, err := global.LogStream.CreateTask(types.TaskTypeFile, nil)
 	if err != nil {
@@ -399,7 +404,7 @@ func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.LogInf
 	go conn.SSH.InstallAgent(host, task.ID, req.Upgrade)
 
 	// 先返回task信息
-	return &core.LogInfo{LogHost: host.ID, LogPath: task.LogPath}, nil
+	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
 }
 
 func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
@@ -407,6 +412,11 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
 		return nil, constant.ErrHostNotFound
+	}
+
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		return nil, err
 	}
 
 	// 生成任务
@@ -419,7 +429,7 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 	go conn.SSH.UninstallAgent(host, task.ID)
 
 	// 先返回task信息
-	return &core.LogInfo{LogHost: host.ID, LogPath: task.LogPath}, nil
+	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
