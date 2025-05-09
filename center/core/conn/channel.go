@@ -32,7 +32,6 @@ import (
 )
 
 type Center struct {
-	unixListener      net.Listener
 	agentConns        map[string]net.Conn // 存储Agent端连接的映射
 	done              chan struct{}
 	mu                sync.Mutex             // 保护agentConns的互斥锁
@@ -77,14 +76,9 @@ func (c *Center) Start() error {
 	global.LOG.Info("Center Starting")
 
 	// 启动 Unix 域套接字监听器
-	err := c.listenToUnix()
-	if err != nil {
-		global.LOG.Error("Failed to listen to unix: %v", err)
-		return err
-	}
+	go c.listenToUnix()
 
 	// 保障连接和心跳
-	global.LOG.Info("Start heartbeat")
 	go c.ensureConnections()
 
 	return nil
@@ -100,171 +94,159 @@ func (c *Center) Stop() error {
 	}
 	c.mu.Unlock()
 
-	//关闭监听
-	if c.unixListener != nil {
-		c.unixListener.Close()
-	}
-
-	//删除sock文件
-	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
-	os.Remove(sockFile)
-
 	return nil
 }
 
-func (c *Center) listenToUnix() error {
-	defer func() {
-		if r := recover(); r != nil {
-			// 捕获 panic 后，打印详细的错误信息
-			global.LOG.Error("Recovered from panic in listenToUnix: %v", r)
-		}
-	}()
-
-	//先关闭
-	if c.unixListener != nil {
-		global.LOG.Info("Closing existing listener")
-		if err := c.unixListener.Close(); err != nil {
-			global.LOG.Error("Failed to close existing listener: %v", err)
-			return err
-		}
-	}
+func (c *Center) listenToUnix() {
+	global.LOG.Info("Start listening to unix")
 
 	// 检查sock文件
 	sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
-	global.LOG.Info("Using sock file: %s", sockFile)
-
-	// 确保目录存在
-	if err := os.MkdirAll(constant.CenterRunDir, 0755); err != nil {
-		global.LOG.Error("Failed to create directory: %v", err)
-		return err
-	}
-	global.LOG.Info("Directory created/verified")
 
 	// 如果sock文件存在，尝试删除
 	if _, err := os.Stat(sockFile); err == nil {
 		global.LOG.Info("Removing existing sock file")
 		if err := os.Remove(sockFile); err != nil {
 			global.LOG.Error("Failed to remove existing sock file: %v", err)
-			return err
+			return
 		}
 	}
 
 	var err error
-	global.LOG.Info("Creating new unix listener")
-	c.unixListener, err = net.Listen("unix", sockFile)
+	listener, err := net.Listen("unix", sockFile)
 	if err != nil {
 		global.LOG.Error("Failed to create listener: %v", err)
-		return err
+		return
 	}
-	global.LOG.Info("Unix listener created successfully")
+	global.LOG.Info("Unix listener created on sock file: %s", sockFile)
 
-	// 处理unix连接
-	go c.acceptUnixConnections()
+	defer func() {
+		global.LOG.Info("Unix listener closing")
+		listener.Close()
+	}()
 
-	return nil
-}
-
-func (c *Center) acceptUnixConnections() {
 	for {
 		select {
 		case <-c.done:
-			global.LOG.Info("Center is stopping, stop accepting new unix connections.")
+			global.LOG.Info("Stop accepting new unix connections")
 			return
 		default:
-			conn, err := c.unixListener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
-				select {
-				case <-c.done:
-					global.LOG.Info("Center is stopping, stop accepting new unix connections.")
-					return
-				default:
-					global.LOG.Error("failed to accept unix connection: %v", err)
-				}
+				global.LOG.Error("failed to accept unix connection: %v", err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
+
+			// 处理连接
 			go c.handleUnixConnection(conn)
 		}
 	}
 }
 
 func (c *Center) handleUnixConnection(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		// 断连
+		global.LOG.Info("Close unix conn")
+		conn.Close()
+
+		//删除sock文件
+		global.LOG.Info("Removing existing sock file")
+		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+		if err := os.Remove(sockFile); err != nil {
+			global.LOG.Error("Failed to remove existing sock file: %v", err)
+		}
+
+		if r := recover(); r != nil {
+			global.LOG.Error("[Panic] in handleUnixConnection: %v", r)
+		}
+	}()
 
 	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		global.LOG.Error("failed to read from unix connection: %v", err)
-		return
-	}
-
-	command := string(buf[:n])
-	parts := strings.Fields(command)
-
-	if len(parts) == 0 {
-		conn.Write([]byte("Unknown command"))
-		return
-	}
-
-	switch parts[0] {
-	case "status":
-		conn.Write([]byte(fmt.Sprintf("iDB Center (pid %d) is running...", os.Getpid())))
-	case "config":
-		switch len(parts) {
-		case 1:
-			// 输出当前的配置信息
-			settings, err := c.GetSettingsString("")
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
-			} else {
-				conn.Write([]byte(fmt.Sprintf("%v", settings)))
-			}
-		case 2:
-			// 输出当前的指定key配置信息
-			key := parts[1]
-			value, err := c.GetSettingsString(key)
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
-			} else {
-				conn.Write([]byte(fmt.Sprintf("%v", value)))
-			}
-		case 3:
-			// 修改指定key的配置
-			key := parts[1]
-			value := parts[2]
-			err := c.UpdateSetting(key, value)
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
-			} else {
-				value, err := c.GetSettingsString(key)
-				if err != nil {
-					conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
-				} else {
-					conn.Write([]byte(fmt.Sprintf("%v", value)))
-				}
-			}
+	for {
+		select {
+		case <-c.done:
+			global.LOG.Info("Stop handle unix connection")
+			return
 		default:
-			conn.Write([]byte("Unknown config command format"))
+			n, err := conn.Read(buf)
+			if err != nil {
+				global.LOG.Error("failed to read from unix connection: %v", err)
+				return
+			}
+
+			command := string(buf[:n])
+			parts := strings.Fields(command)
+
+			if len(parts) == 0 {
+				conn.Write([]byte("Unknown command"))
+				return
+			}
+
+			switch parts[0] {
+			case "status":
+				conn.Write([]byte(fmt.Sprintf("iDB Center (pid %d) is running...", os.Getpid())))
+			case "config":
+				switch len(parts) {
+				case 1:
+					// 输出当前的配置信息
+					settings, err := c.GetSettingsString("")
+					if err != nil {
+						conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
+					} else {
+						conn.Write([]byte(fmt.Sprintf("%v", settings)))
+					}
+				case 2:
+					// 输出当前的指定key配置信息
+					key := parts[1]
+					value, err := c.GetSettingsString(key)
+					if err != nil {
+						conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+					} else {
+						conn.Write([]byte(fmt.Sprintf("%v", value)))
+					}
+				case 3:
+					// 修改指定key的配置
+					key := parts[1]
+					value := parts[2]
+					err := c.UpdateSetting(key, value)
+					if err != nil {
+						conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
+					} else {
+						value, err := c.GetSettingsString(key)
+						if err != nil {
+							conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+						} else {
+							conn.Write([]byte(fmt.Sprintf("%v", value)))
+						}
+					}
+				default:
+					conn.Write([]byte("Unknown config command format"))
+				}
+			case "update":
+				err := c.Upgrade()
+				if err != nil {
+					conn.Write([]byte(fmt.Sprintf("Failed to update: %v", err)))
+				} else {
+					conn.Write([]byte("Upgrade success"))
+				}
+			default:
+				conn.Write([]byte("Unknown command"))
+			}
 		}
-	case "update":
-		err := c.Upgrade()
-		if err != nil {
-			conn.Write([]byte(fmt.Sprintf("Failed to update: %v", err)))
-		} else {
-			conn.Write([]byte("Upgrade success"))
-		}
-	default:
-		conn.Write([]byte("Unknown command"))
 	}
 }
 
 func (c *Center) ensureConnections() {
+	global.LOG.Info("Ensure connections")
+
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-c.done:
-			global.LOG.Info("Stopping heartbeat")
+			global.LOG.Info("Stop ensure connections")
 			return
 		case <-ticker.C:
 			//获取所有的host
@@ -322,9 +304,6 @@ func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
 }
 
 func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	global.LOG.Info("try connect to agent %s:%d", host.AgentAddr, host.AgentPort)
 	// conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort))
 
@@ -349,7 +328,9 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 
 	// 记录连接
 	agentID := conn.RemoteAddr().String()
+	c.mu.Lock()
 	c.agentConns[agentID] = conn
+	c.mu.Unlock()
 
 	global.LOG.Info("Successfully connected to Agent %s", agentID)
 	resultCh <- nil
@@ -359,71 +340,76 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
-	defer func() {
-		agentID := conn.RemoteAddr().String()
-		global.LOG.Info("close conn %s for err", agentID)
+	agentID := conn.RemoteAddr().String()
 
-		c.mu.Lock()
-		delete(c.agentConns, agentID)
-		c.mu.Unlock()
+	defer func() {
+		// 在defer中关闭连接
+		global.LOG.Info("Close agent conn %s", agentID)
 		conn.Close()
+
+		if r := recover(); r != nil {
+			global.LOG.Error("[Panic] in handleUnixConnection: %v", r)
+		}
 	}()
 
 	// 缓存区：用来缓存从 conn.Read 读取的数据
 	dataBuffer := make([]byte, 0)
-
+	tmpBuffer := make([]byte, 1024)
 	for {
-		// 读取数据
-		tmpBuffer := make([]byte, 1024)
-		n, err := conn.Read(tmpBuffer)
-		if err != nil {
-			if err != io.EOF {
-				global.LOG.Error("Error read from conn: %v", err)
-			}
-			break
-		}
-		// 将数据拼接到缓存区
-		dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
-
-		// 尝试解析消息
-		for {
-			// 提取完整消息
-			msgType, packet, remainingBuffer, err := message.ExtractCompleteMessagePacket(dataBuffer)
+		select {
+		case <-c.done:
+			global.LOG.Info("Stop handle connection %s", agentID)
+			return
+		default:
+			// 读取数据
+			n, err := conn.Read(tmpBuffer)
 			if err != nil {
-				if err == message.ErrIncompleteMessage {
-					// 数据不完整，继续读取
-					break
-				} else {
-					global.LOG.Error("Error extract complete message: %v", err)
-					break
+				if err != io.EOF {
+					global.LOG.Error("Error read from conn: %v", err)
 				}
+				return
 			}
+			// 将数据拼接到缓存区
+			dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
 
-			// 处理解析后的消息
-			msgData := packet[message.MagicBytesLen+message.MsgLenBytes:]
-			msg, err := message.DecodeMessage(msgType, msgData, host.AgentKey)
-			if err != nil {
-				global.LOG.Error("Error decode message: %v", err)
-			}
-			switch m := msg.(type) {
-			case *message.Message:
-				c.processMessage(host, m)
-			case *message.FileMessage:
-				c.processFileMessage(m)
-			case *message.SessionMessage:
-				c.processSessionMessage(m)
-			case *message.LogStreamMessage:
-				c.processLogStreamMessage(m)
-			default:
-				fmt.Println("Unknown message type")
-			}
+			// 尝试解析消息
+			for {
+				// 提取完整消息
+				msgType, packet, remainingBuffer, err := message.ExtractCompleteMessagePacket(dataBuffer)
+				if err != nil {
+					if err == message.ErrIncompleteMessage {
+						// 数据不完整，继续读取
+						break
+					} else {
+						global.LOG.Error("Error extract complete message: %v", err)
+						break
+					}
+				}
 
-			// 更新缓存，移除已处理的部分
-			dataBuffer = remainingBuffer
+				// 处理解析后的消息
+				msgData := packet[message.MagicBytesLen+message.MsgLenBytes:]
+				msg, err := message.DecodeMessage(msgType, msgData, host.AgentKey)
+				if err != nil {
+					global.LOG.Error("Error decode message: %v", err)
+				}
+				switch m := msg.(type) {
+				case *message.Message:
+					c.processMessage(host, m)
+				case *message.FileMessage:
+					c.processFileMessage(m)
+				case *message.SessionMessage:
+					c.processSessionMessage(m)
+				case *message.LogStreamMessage:
+					c.processLogStreamMessage(m)
+				default:
+					fmt.Println("Unknown message type")
+				}
+
+				// 更新缓存，移除已处理的部分
+				dataBuffer = remainingBuffer
+			}
 		}
 	}
-
-	global.LOG.Info("Connection closed: %s", conn.RemoteAddr().String())
 }
 
 func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
