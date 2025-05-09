@@ -138,18 +138,17 @@ func (s *ApiServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// 优雅关闭 HTTP 服务器
-	if s.server != nil {
-		if err := s.server.Shutdown(ctx); err != nil {
-			global.LOG.Error("HTTP 服务器关闭失败: %v", err)
-			return err
-		}
-	}
-
 	// 关闭监听器
 	if s.ln != nil {
 		if err := s.ln.Close(); err != nil {
 			global.LOG.Error("监听器关闭失败: %v", err)
+		}
+	}
+
+	// 优雅关闭 HTTP 服务器
+	if s.server != nil {
+		if err := s.server.Shutdown(ctx); err != nil {
+			global.LOG.Error("HTTP 服务器关闭失败: %v", err)
 			return err
 		}
 	}
