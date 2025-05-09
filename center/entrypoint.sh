@@ -10,14 +10,31 @@ CONFIG_FILE=/etc/idb/idb.conf
 LOG_FILE=/var/log/idb/idb.log
 IDB_EXECUTABLE="$1"
 
-if [ -z "$IDB_EXECUTABLE" ]; then
-    echo "Error: IDB executable path not provided"
-    exit 1
-fi
-
 # 创建日志函数
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+# 确保必要目录存在
+ensure_directories() {
+    REQUIRED_DIRS=(
+        /etc/idb
+        /var/log/idb
+        /var/lib/idb
+        /var/lib/idb/data
+        /var/lib/idb/agent
+        /run/idb
+    )
+
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            mkdir -p "$dir"
+            log "创建目录: $dir"
+        fi
+    done
+
+    # 设置 /run/idb 权限
+    chmod 755 /run/idb
 }
 
 # 修改或添加相关配置
@@ -45,29 +62,34 @@ update_config() {
     return 0
 }
 
-log "Starting configure idb.conf"
+# 启动逻辑
+main() {
+    if [ -z "$IDB_EXECUTABLE" ]; then
+        echo "Error: IDB executable path not provided"
+        exit 1
+    fi
 
-# 修改或添加相关配置
-if ! update_config "host" "$HOST" || \
-   ! update_config "port" "$PORT" || \
-   ! update_config "latest" "$LATEST"; then
-    log "配置文件更新失败"
-    exit 1
-fi
+    log "ensure directories"
+    ensure_directories
 
-# 显示更新后的配置
-if ! cat "$CONFIG_FILE"; then
-    log "读取配置文件失败"
-    exit 1
-fi
+    log "configure $CONFIG_FILE"
+    update_config "host" "$HOST"
+    update_config "port" "$PORT"
+    update_config "latest" "$LATEST"
 
-log "配置文件更新完成，当前配置内容：\n$(cat "$CONFIG_FILE")"
+    log "配置文件内容："
+    cat "$CONFIG_FILE" || {
+        log "读取配置文件失败"
+        exit 1
+    }
 
-# 设置文件描述符限制
-ulimit -n 1048576
-ulimit -u 1048576
-ulimit -c 1048576
+    # 设置资源限制
+    ulimit -n 1048576
+    ulimit -u 1048576
+    ulimit -c 1048576
 
-# 启动应用
-log "Starting IDB service..."
-exec "$IDB_EXECUTABLE" start
+    log "Starting IDB service..."
+    exec "$IDB_EXECUTABLE" start
+}
+
+main
