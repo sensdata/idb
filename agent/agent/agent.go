@@ -377,7 +377,6 @@ func (a *Agent) listenToTcp() {
 
 			// 处理连接
 			go a.handleConnection(conn)
-			return
 		}
 	}
 }
