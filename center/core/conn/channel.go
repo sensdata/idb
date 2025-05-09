@@ -112,7 +112,6 @@ func (c *Center) listenToUnix() {
 		}
 	}
 
-	var err error
 	listener, err := net.Listen("unix", sockFile)
 	if err != nil {
 		global.LOG.Error("Failed to create listener: %v", err)
