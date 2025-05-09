@@ -113,10 +113,20 @@ func (c *Center) Stop() error {
 }
 
 func (c *Center) listenToUnix() error {
+	defer func() {
+		if r := recover(); r != nil {
+			// 捕获 panic 后，打印详细的错误信息
+			global.LOG.Error("Recovered from panic in listenToUnix: %v", r)
+		}
+	}()
+
 	//先关闭
 	if c.unixListener != nil {
 		global.LOG.Info("Closing existing listener")
-		c.unixListener.Close()
+		if err := c.unixListener.Close(); err != nil {
+			global.LOG.Error("Failed to close existing listener: %v", err)
+			return err
+		}
 	}
 
 	// 检查sock文件
