@@ -23,11 +23,11 @@
             <div class="info-item-content"> {{ state.cpu_usage }} </div>
           </div>
           <div class="info-item">
-            <div class="info-item-label">内存: </div>
+            <div class="info-item-label">{{ $t('host.info.memory') }}: </div>
             <div class="info-item-content"> {{ state.memory_usage }} </div>
           </div>
           <div class="info-item">
-            <div class="info-item-label">网络: </div>
+            <div class="info-item-label">{{ $t('host.info.network') }}: </div>
             <div class="info-item-content">
               <up-stream-icon class="info-item-content-icon" />
               <span>{{ state.network_up }}</span>
@@ -46,7 +46,7 @@
       </div>
     </div>
     <div class="app-list">
-      <div class="app-list-title">应用列表</div>
+      <div class="app-list-title">{{ $t('host.info.applist') }}</div>
       <div class="actions">
         <span class="refresh" @click="refreshStatus">
           <icon-refresh :spin="isLoading" />
@@ -61,6 +61,7 @@
 <script lang="ts" setup>
   import { inject, reactive, ref, onMounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
+  import { useI18n } from 'vue-i18n';
   import router from '@/router';
   import { useHostStore } from '@/store';
   import { SELECT_HOST } from '@/router/constants';
@@ -74,6 +75,7 @@
   }>();
 
   const hostStore = useHostStore();
+  const { t } = useI18n();
 
   const state = reactive({
     cpu_usage: '0%',
@@ -95,7 +97,7 @@
       state.network_up = formatTransferSpeed(result.tx);
       state.network_down = formatTransferSpeed(result.rx);
     } catch (error) {
-      Message.error('获取状态失败');
+      Message.error(t('host.info.status.failed'));
     } finally {
       isLoading.value = false;
     }

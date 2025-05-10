@@ -6,6 +6,7 @@ export default {
   'app.file.editor.saveSuccess': 'File saved successfully',
   'app.file.editor.saveFailed': 'Failed to save file',
   'app.file.editor.loadFailed': 'Failed to load file content',
+  'app.file.editor.loadingContent': 'Loading file content...',
   'app.file.editor.size.small': 'Small',
   'app.file.editor.size.medium': 'Medium',
   'app.file.editor.size.large': 'Large',

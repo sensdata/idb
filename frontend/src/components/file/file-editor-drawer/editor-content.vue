@@ -20,7 +20,9 @@
           <icon-loading />
         </template>
         <template #tip>
-          <span class="loading-text">加载文件内容中...</span>
+          <span class="loading-text">{{
+            $t('app.file.editor.loadingContent')
+          }}</span>
         </template>
       </a-spin>
     </div>

@@ -5,6 +5,7 @@ export default {
   'app.file.editor.saveSuccess': '文件保存成功',
   'app.file.editor.saveFailed': '文件保存失败',
   'app.file.editor.loadFailed': '加载文件内容失败',
+  'app.file.editor.loadingContent': '加载文件内容中...',
   'app.file.editor.size.small': '小',
   'app.file.editor.size.medium': '中',
   'app.file.editor.size.large': '大',

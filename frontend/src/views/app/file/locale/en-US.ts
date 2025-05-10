@@ -27,6 +27,7 @@ export default {
   'app.file.list.action.delete': 'Delete',
   'app.file.list.action.terminal': 'Terminal',
   'app.file.list.filter.showHidden': 'Show hidden files and system files',
+  'app.file.list.filter.showFilesInTree': 'Show files in directory tree',
 
   'app.file.list.column.name': 'Name',
   'app.file.list.column.size': 'Size',
