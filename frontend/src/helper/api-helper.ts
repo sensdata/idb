@@ -79,7 +79,10 @@ axios.interceptors.response.use(
       if (window.location.pathname.startsWith('/login')) {
         window.location.reload();
       } else {
-        window.location.href = '/login';
+        // 保存当前URL，以便登录后返回
+        const currentPath = window.location.pathname + window.location.search;
+        const redirect = encodeURIComponent(currentPath.substring(1)); // 去除前导/并编码
+        window.location.href = `/login?redirect=${redirect}`;
       }
       return Promise.reject(new Error(t('common.request.unauthorized')));
     }

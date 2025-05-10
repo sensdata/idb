@@ -128,12 +128,24 @@
       try {
         await userStore.login(values as LoginDataDo);
         const { redirect, ...othersQuery } = router.currentRoute.value.query;
-        router.push({
-          name: (redirect as string) || DEFAULT_ROUTE_NAME,
-          query: {
-            ...othersQuery,
-          },
-        });
+
+        if (redirect) {
+          if (typeof redirect === 'string' && redirect.includes('/')) {
+            router.push(redirect);
+          } else {
+            router.push({
+              name: redirect as string,
+              query: {
+                ...othersQuery,
+              },
+            });
+          }
+        } else {
+          router.push({
+            name: DEFAULT_ROUTE_NAME,
+          });
+        }
+
         Message.success(t('login.form.login.success'));
         const { rememberPassword } = loginConfig.value;
         const { name, password } = values;
