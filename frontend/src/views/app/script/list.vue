@@ -239,7 +239,12 @@
     ) {
       setLoading(true);
       try {
-        await deleteScriptApi(record);
+        await deleteScriptApi({
+          host: currentHostId.value!,
+          type: props.type,
+          category: selectedCat.value || '',
+          name: record.name,
+        });
         Message.success(t('app.script.list.message.delete_success'));
       } finally {
         setLoading(false);

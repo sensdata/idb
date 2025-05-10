@@ -124,7 +124,12 @@ export function getScriptRunLogApi(params: ScriptRunLogApiParams) {
   return request.get('scripts/{host}/run/logs/detail', params);
 }
 
-export function deleteScriptApi(params: { id: number }) {
+export function deleteScriptApi(params: {
+  host: number;
+  type: string;
+  category: string;
+  name: string;
+}) {
   return request.delete('scripts/{host}', params);
 }
 
