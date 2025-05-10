@@ -33,6 +33,7 @@ export default {
   'app.file.editor.noHostSelected': 'No host selected',
   'app.file.editor.lineCount': 'Line Count',
   'app.file.editor.apply': 'Apply',
+  'app.file.editor.jump': 'Jump',
   'app.file.editor.scrollToLoadMore': 'Scroll down to load more content',
   'app.file.editor.loadingMore': 'Loading more content...',
   'app.file.editor.clickToLoadMore': 'Click to load more content',
@@ -48,4 +49,5 @@ export default {
   'app.file.editor.unsavedChanges': 'Unsaved Changes',
   'app.file.editor.confirmClose':
     'You have unsaved changes. Are you sure you want to close?',
+  'app.file.editor.lineCountDescription': 'Enter the number of lines to view:',
 };

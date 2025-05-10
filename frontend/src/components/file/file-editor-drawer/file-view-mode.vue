@@ -6,11 +6,32 @@
         :color="getViewModeColor(viewMode)"
         :text="getViewModeText(viewMode)"
       />
-      <span v-if="viewMode === 'head' || viewMode === 'tail'" class="line-info">
-        ({{ lineCount }} {{ t('app.file.editor.lines') }})
-      </span>
     </div>
+
     <div class="actions-section">
+      <!-- 行数输入框 - 直接在工具栏上显示 -->
+      <div v-if="isLargeFile" class="line-input-section">
+        <a-input-number
+          v-model="tempLineCount"
+          :min="1"
+          :max="10000"
+          size="small"
+          style="width: 80px"
+          @input="handleLineCountInput"
+          @keyup.enter="handleJumpAction"
+        />
+        <span class="lines-label">{{ t('app.file.editor.lines') }}</span>
+        <!-- 跳转按钮 - 只有当行数改变时才可点击 -->
+        <a-button
+          type="primary"
+          size="small"
+          :disabled="!lineCountChanged"
+          @click="handleJumpAction"
+        >
+          {{ t('app.file.editor.jump') }}
+        </a-button>
+      </div>
+
       <a-button-group size="small">
         <!-- 小文件(<100KB)只显示完整视图和实时追踪按钮 -->
         <template v-if="!isLargeFile">
@@ -38,7 +59,7 @@
             :type="viewMode === 'head' ? 'primary' : 'outline'"
             :disabled="viewMode === 'head'"
             :loading="loadingButton === 'head'"
-            @click="handleViewModeChange('head', batchSize)"
+            @click="() => handleViewModeChange('head')"
           >
             {{ t('app.file.editor.viewHead') }}
           </a-button>
@@ -46,7 +67,7 @@
             :type="viewMode === 'tail' ? 'primary' : 'outline'"
             :disabled="viewMode === 'tail'"
             :loading="loadingButton === 'tail'"
-            @click="handleViewModeChange('tail', batchSize)"
+            @click="() => handleViewModeChange('tail')"
           >
             {{ t('app.file.editor.viewTail') }}
           </a-button>
@@ -65,13 +86,13 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue';
+  import { ref, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ContentViewMode } from '@/components/file/file-editor-drawer/types';
 
   const { t } = useI18n();
 
-  defineProps({
+  const props = defineProps({
     viewMode: {
       type: String as () => ContentViewMode,
       required: true,
@@ -90,12 +111,28 @@
     },
   });
 
-  const loadingButton = ref<ContentViewMode | null>(null);
-
   const emit = defineEmits<{
     (e: 'changeViewMode', mode: ContentViewMode, lines?: number): void;
   }>();
 
+  const loadingButton = ref<ContentViewMode | null>(null);
+  const tempLineCount = ref(100); // 默认显示100行
+  const originalLineCount = ref(props.lineCount); // 记录原始行数
+
+  // 检查行数是否发生了变化
+  const lineCountChanged = computed(() => {
+    return tempLineCount.value !== originalLineCount.value;
+  });
+
+  // 处理输入框值变化 - 这是新增的函数，用于实时响应输入
+  const handleLineCountInput = (value: number | undefined) => {
+    // 输入时立即更新tempLineCount值
+    if (value !== undefined) {
+      tempLineCount.value = value;
+    }
+  };
+
+  // 视图模式切换函数 - 先定义这个函数，避免被使用前未定义错误
   const handleViewModeChange = (mode: ContentViewMode, lines?: number) => {
     // 设置点击的按钮为加载状态
     loadingButton.value = mode;
@@ -103,6 +140,30 @@
     // 触发模式变更事件
     emit('changeViewMode', mode, lines);
   };
+
+  // 处理跳转按钮点击或Enter按键事件
+  const handleJumpAction = () => {
+    // 如果行数没有变化，不做任何操作
+    if (!lineCountChanged.value) return;
+
+    // 触发当前模式下的行数跳转
+    handleViewModeChange(props.viewMode, tempLineCount.value);
+
+    // 更新originalLineCount以便重新计算lineCountChanged状态
+    originalLineCount.value = tempLineCount.value;
+  };
+
+  // 当lineCount变化时，更新tempLineCount和originalLineCount
+  watch(
+    () => props.lineCount,
+    (newValue) => {
+      if (newValue > 0) {
+        tempLineCount.value = newValue;
+        originalLineCount.value = newValue;
+      }
+    },
+    { immediate: true }
+  );
 
   // 暴露加载按钮状态更新方法
   const clearLoadingState = () => {
@@ -179,6 +240,18 @@
 
   .actions-section {
     display: flex;
+    gap: 8px;
     align-items: center;
+  }
+
+  .line-input-section {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .lines-label {
+    color: var(--color-text-3);
+    font-size: 12px;
   }
 </style>

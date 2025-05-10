@@ -29,6 +29,7 @@ export default {
   'app.file.editor.noHostSelected': '未选择主机',
   'app.file.editor.lineCount': '行数',
   'app.file.editor.apply': '应用',
+  'app.file.editor.jump': '跳转',
   'app.file.editor.scrollToLoadMore': '下拉滚动加载更多内容',
   'app.file.editor.loadingMore': '正在加载更多内容...',
   'app.file.editor.clickToLoadMore': '点击加载更多内容',
@@ -43,4 +44,5 @@ export default {
   'app.file.editor.mode': '模式',
   'app.file.editor.unsavedChanges': '未保存的更改',
   'app.file.editor.confirmClose': '您有未保存的更改。确定要关闭吗？',
+  'app.file.editor.lineCountDescription': '请输入要查看的行数：',
 };

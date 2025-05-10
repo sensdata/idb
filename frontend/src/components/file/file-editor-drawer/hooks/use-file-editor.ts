@@ -24,9 +24,6 @@ export default function useFileEditor() {
   const originalContent = ref('');
   const lineCount = ref(100); // Default line count
   const viewMode = ref<ContentViewMode>('full');
-  const isLoadingMore = ref(false);
-  const canLoadMore = ref(true);
-  const currentOffset = ref(0);
   const batchSize = ref(100); // 每次加载的行数, 从1000改为100
   const editorInstance = ref<any>(null);
   const eventSource = shallowRef<EventSource | null>(null);
@@ -40,156 +37,6 @@ export default function useFileEditor() {
     return viewMode.value !== 'full';
   });
 
-  // 检查是否需要加载更多内容
-  const checkNeedLoadMore = (): void => {
-    if (!file.value || !isPartialView.value) return;
-
-    // 根据文件大小和当前已加载行数判断是否还有更多内容可加载
-    const totalSize = file.value.size;
-    const avgLineSize = 100; // 假设平均每行100字节
-    const estimatedTotalLines = Math.ceil(totalSize / avgLineSize);
-
-    // 如果当前行数接近预估总行数，则认为无法加载更多
-    if (currentOffset.value >= estimatedTotalLines) {
-      canLoadMore.value = false;
-    } else {
-      canLoadMore.value = true;
-    }
-  };
-
-  // 加载更多尾部内容
-  const loadMoreTail = async (): Promise<void> => {
-    if (!file.value || isLoadingMore.value || !canLoadMore.value) return;
-
-    try {
-      isLoadingMore.value = true;
-
-      // 计算新的起始偏移量
-      const newOffset = currentOffset.value + batchSize.value;
-
-      // 获取更多内容
-      const tailData = await getFileTailApi({
-        path: file.value.path,
-        numbers: newOffset,
-      });
-
-      // 更新当前偏移量
-      currentOffset.value = newOffset;
-
-      // 从新内容中提取更多的行
-      const currentLines = content.value.split('\n');
-      const newLines = tailData.content.split('\n');
-
-      // 检查是否还有更多内容可加载
-      if (
-        newLines.length <= currentLines.length ||
-        newLines.length - currentLines.length < 10
-      ) {
-        canLoadMore.value = false;
-        Message.info({
-          content: t('app.file.editor.reachedStart'),
-          duration: 2000,
-        });
-      } else {
-        canLoadMore.value = true;
-
-        // 如果成功加载了更多内容，显示提示
-        Message.success({
-          content: t('app.file.editor.loadedMore', {
-            count: newLines.length - currentLines.length,
-          }),
-          duration: 1000,
-        });
-      }
-
-      // 行反转处理
-      // const contentLines = tailData.content.split('\n');
-      // contentLines.reverse();
-
-      // 更新内容
-      content.value = tailData.content;
-      originalContent.value = content.value;
-
-      // 更新行数
-      lineCount.value = newOffset;
-    } catch (error) {
-      console.error('Failed to load more content:', error);
-      Message.error(t('app.file.editor.loadMoreFailed'));
-    } finally {
-      // 500ms后再设置isLoadingMore为false，避免太快看不到loading效果
-      setTimeout(() => {
-        isLoadingMore.value = false;
-      }, 500);
-    }
-  };
-
-  // 加载更多头部内容
-  const loadMoreHead = async (): Promise<void> => {
-    if (!file.value || isLoadingMore.value || !canLoadMore.value) return;
-
-    try {
-      isLoadingMore.value = true;
-
-      // 计算新的起始偏移量
-      const newOffset = currentOffset.value + batchSize.value;
-
-      // 获取更多内容
-      const headData = await getFileHeadApi({
-        path: file.value.path,
-        numbers: newOffset,
-      });
-
-      // 更新当前偏移量
-      currentOffset.value = newOffset;
-
-      // 检查是否还有更多内容可加载
-      const currentLines = content.value.split('\n').length;
-      const newLines = headData.content.split('\n').length;
-
-      if (newLines <= currentLines || newLines - currentLines < 10) {
-        canLoadMore.value = false;
-        Message.info({
-          content: t('app.file.editor.reachedEnd'),
-          duration: 2000,
-        });
-      } else {
-        canLoadMore.value = true;
-
-        // 如果成功加载了更多内容，显示提示
-        Message.success({
-          content: t('app.file.editor.loadedMore', {
-            count: newLines - currentLines,
-          }),
-          duration: 1000,
-        });
-      }
-
-      // 更新内容
-      content.value = headData.content;
-      originalContent.value = headData.content;
-
-      // 更新行数
-      lineCount.value = newOffset;
-    } catch (error) {
-      console.error('Failed to load more content:', error);
-      Message.error(t('app.file.editor.loadMoreFailed'));
-    } finally {
-      // 500ms后再设置isLoadingMore为false，避免太快看不到loading效果
-      setTimeout(() => {
-        isLoadingMore.value = false;
-      }, 500);
-    }
-  };
-
-  // 统一加载更多内容的函数，根据当前视图模式决定调用哪个具体函数
-  const loadMoreContent = () => {
-    if (viewMode.value === 'tail') {
-      loadMoreTail();
-    } else if (viewMode.value === 'head') {
-      loadMoreHead();
-    }
-  };
-
   // 设置编辑器实例
   const setEditorInstance = (instance: any) => {
     editorInstance.value = instance;
@@ -202,9 +49,6 @@ export default function useFileEditor() {
           instance.scrollDOM.scrollTop = 0;
         }, 100);
       }
-
-      // 检查是否需要展示"加载更多"按钮
-      checkNeedLoadMore();
     }
   };
 
@@ -301,10 +145,6 @@ export default function useFileEditor() {
   const setFile = async (fileItem: FileItem) => {
     file.value = fileItem;
 
-    // 重置状态
-    canLoadMore.value = true;
-    currentOffset.value = 0;
-
     // 始终先设置加载状态
     setLoading(true);
 
@@ -329,7 +169,6 @@ export default function useFileEditor() {
 
     // Set the line count from the file item or use default
     lineCount.value = fileItem.line_count || 100;
-    currentOffset.value = lineCount.value;
 
     try {
       // 如果文件大小为0，则直接设置为空内容，不下载文件
@@ -356,10 +195,6 @@ export default function useFileEditor() {
           content.value = fileItem.content;
           originalContent.value = fileItem.content;
         }
-
-        // 检查是否需要显示加载更多按钮
-        checkNeedLoadMore();
-
         return;
       }
 
@@ -386,7 +221,7 @@ export default function useFileEditor() {
     }
   };
 
-  // 更新视图模式
+  // 更新视图模式 - 修改为支持单独切换模式和单独设置行数
   const changeViewMode = async (mode: ContentViewMode, lines?: number) => {
     if (!file.value) return;
 
@@ -395,7 +230,7 @@ export default function useFileEditor() {
       stopFollowMode();
     }
 
-    // If switching to follow mode
+    // 如果切换到跟踪模式
     if (mode === 'follow') {
       if (file.value) {
         startFollowMode(file.value.path);
@@ -403,14 +238,17 @@ export default function useFileEditor() {
       return;
     }
 
-    // 重置状态
-    canLoadMore.value = true;
-
-    const newLineCount = lines || lineCount.value;
-    currentOffset.value = newLineCount;
-
     try {
+      // 即使是相同模式下改变行数，也始终显示加载状态
       setLoading(true);
+
+      // 清空编辑器内容，以便显示加载状态
+      content.value = '';
+
+      // 如果提供了行数，更新行数
+      if (lines !== undefined) {
+        lineCount.value = lines;
+      }
 
       if (mode === 'full') {
         // Load full file content
@@ -428,38 +266,25 @@ export default function useFileEditor() {
         originalContent.value = fileContent;
         viewMode.value = 'full';
       } else if (mode === 'head') {
-        // Load head content
+        // Load head content with specified line count
         const headData = await getFileHeadApi({
           path: file.value.path,
-          numbers: newLineCount,
+          numbers: lineCount.value,
         });
 
         content.value = headData.content;
         originalContent.value = headData.content;
         viewMode.value = 'head';
-        lineCount.value = newLineCount;
-
-        // 检查是否需要显示加载更多按钮
-        checkNeedLoadMore();
       } else if (mode === 'tail') {
-        // Load tail content
+        // Load tail content with specified line count
         const tailData = await getFileTailApi({
           path: file.value.path,
-          numbers: newLineCount,
+          numbers: lineCount.value,
         });
-
-        // 反转行顺序，使最新的行显示在顶部
-        // const contentLines = tailData.content.split('\n');
-        // contentLines.reverse();
-        // const reversedContent = contentLines.join('\n');
 
         content.value = tailData.content;
         originalContent.value = tailData.content;
         viewMode.value = 'tail';
-        lineCount.value = newLineCount;
-
-        // 检查是否需要显示加载更多按钮
-        checkNeedLoadMore();
       }
 
       // 确保滚动到顶部
@@ -524,11 +349,8 @@ export default function useFileEditor() {
     viewMode,
     lineCount,
     isPartialView,
-    isLoadingMore,
-    canLoadMore,
     isFollowMode,
     batchSize,
-    loadMoreContent,
     changeViewMode,
     setFile,
     saveFile,

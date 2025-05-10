@@ -2,16 +2,16 @@
   <a-drawer
     ref="drawerRef"
     :visible="visible"
-    :width="drawerWidth"
     :closable="true"
     :unmount-on-close="false"
+    :width="drawerWidth"
     class="file-editor-drawer"
     @cancel="handleCancel"
     @close="handleClose"
   >
     <template #title>
       <div class="drawer-title">
-        <span>{{ file ? file.name : t('app.file.editor.title') }}</span>
+        <span>{{ file ? file.path : t('app.file.editor.title') }}</span>
       </div>
     </template>
 
@@ -66,15 +66,6 @@
         :is-large-file="isLargeFile === true"
         @change-view-mode="handleViewModeChange"
       />
-
-      <!-- 加载更多控制 -->
-      <LoadMoreControls
-        v-if="isLargeFile && ['head', 'tail'].includes(viewMode as string)"
-        :view-mode="viewMode"
-        :is-loading-more="isLoadingMore"
-        :can-load-more="canLoadMore"
-        @load-more="handleLoadMore"
-      />
     </a-spin>
 
     <template #footer>
@@ -93,29 +84,25 @@
 <script lang="ts" setup>
   import {
     ref,
-    shallowRef,
-    watch,
     computed,
-    nextTick,
+    shallowRef,
     onUnmounted,
+    watch,
+    nextTick,
     onMounted,
-    type Ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useConfirm } from '@/hooks/confirm';
-  import { IconLoading } from '@arco-design/web-vue/es/icon';
-  import { ContentViewMode } from '@/components/file/file-editor-drawer/types';
   import { EditorView } from '@codemirror/view';
-
+  import { IconLoading } from '@arco-design/web-vue/es/icon';
+  import { useConfirm } from '@/hooks/confirm';
   import useFileEditor from './hooks/use-file-editor';
-  import useEditorConfig from './hooks/use-editor-config';
   import useDrawerResize from './hooks/use-drawer-resize';
-
+  import useEditorConfig from './hooks/use-editor-config';
+  import { ContentViewMode } from './types';
+  import FileViewMode from './file-view-mode.vue';
   import EditorToolbar from './editor-toolbar.vue';
   import EditorFooter from './editor-footer.vue';
   import EditorContent from './editor-content.vue';
-  import FileViewMode from './file-view-mode.vue';
-  import LoadMoreControls from './load-more-controls.vue';
 
   // 事件监听器组合式函数
   const useEventListener = (
@@ -134,7 +121,7 @@
 
   // 滚动监听组合式函数
   const useScrollListener = (
-    elRef: Ref<HTMLElement | null>,
+    elRef: any,
     callback: (scrollTop: number) => void
   ) => {
     let scrollableElement: HTMLElement | null = null;
@@ -202,9 +189,6 @@
     viewMode,
     lineCount,
     isPartialView,
-    isLoadingMore,
-    canLoadMore,
-    loadMoreContent,
     setFile: loadFile,
     saveFile,
     changeViewMode,
@@ -277,9 +261,10 @@
   });
 
   // ----- 编辑器相关函数 -----
-  const handleEditorReady = (editor: EditorView) => {
-    editorView.value = editor;
-    setEditorInstance(editor);
+  const handleEditorReady = (payload: { view: EditorView }) => {
+    // 设置编辑器实例，从payload中获取view实例
+    editorView.value = payload.view;
+    setEditorInstance(payload.view);
 
     // 使用nextTick确保DOM更新完成
     nextTick(() => {
@@ -290,10 +275,6 @@
   };
 
   // ----- 内容管理相关函数 -----
-  const handleLoadMore = () => {
-    loadMoreContent();
-  };
-
   const handleViewModeChange = (mode: ContentViewMode, lines?: number) => {
     changeViewMode(mode, lines);
   };
@@ -305,8 +286,8 @@
       const result = await confirm({
         title: t('app.file.editor.unsavedChanges'),
         content: t('app.file.editor.confirmClose'),
-        okText: t('common.form.okText'),
-        cancelText: t('common.form.cancelText'),
+        okText: t('common.confirm.okText'),
+        cancelText: t('common.confirm.cancelText'),
       });
       if (!result) {
         return;
