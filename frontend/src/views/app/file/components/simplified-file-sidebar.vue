@@ -47,10 +47,42 @@
     top: 0;
     bottom: 0;
     left: 0;
+    z-index: 5;
     width: 240px;
     height: 100%;
     padding: 4px 8px;
     overflow: auto;
     border-right: 1px solid var(--color-border-2);
+    transition: width 0.3s ease;
+  }
+
+  /* 平板设备 */
+  @media screen and (width <= 991px) {
+    .simplified-file-sidebar {
+      width: 200px;
+    }
+  }
+
+  /* 小型平板 */
+  @media screen and (width <= 768px) {
+    .simplified-file-sidebar {
+      width: 180px;
+    }
+  }
+
+  /* 手机设备 */
+  @media screen and (width <= 576px) {
+    .simplified-file-sidebar {
+      width: 150px;
+      padding: 4px 4px;
+    }
+  }
+
+  /* 小型手机 */
+  @media screen and (width <= 480px) {
+    .simplified-file-sidebar {
+      width: 120px;
+      padding: 4px 2px;
+    }
   }
 </style>

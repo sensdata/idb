@@ -316,9 +316,12 @@
 
 <style scoped>
   .file-main {
+    flex: 1;
+    width: 100%;
     min-width: 0;
     height: 100%;
     padding: 20px;
+    overflow: auto;
   }
 
   .name-cell svg {
@@ -326,5 +329,46 @@
     height: 14px;
     margin-right: 8px;
     vertical-align: top;
+  }
+
+  /* 响应式按钮组样式 */
+  .action-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  /* 小屏幕按钮文本显示调整 */
+  @media screen and (width <= 768px) {
+    .file-main {
+      padding: 15px;
+    }
+    .idb-button-group :deep(.arco-btn) span {
+      max-width: 80px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+
+  /* 超小屏幕隐藏按钮文本 */
+  @media screen and (width <= 576px) {
+    .file-main {
+      padding: 10px;
+    }
+    .idb-button-group :deep(.arco-btn) span {
+      display: none;
+    }
+    .idb-button-group :deep(.arco-btn) svg {
+      margin: 0;
+    }
+  }
+
+  /* 极小屏幕 */
+  @media screen and (width <= 480px) {
+    .file-main {
+      padding: 8px;
+    }
   }
 </style>

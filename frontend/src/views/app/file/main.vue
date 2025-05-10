@@ -1,12 +1,14 @@
 <template>
   <div class="file-page">
     <a-spin :spinning="loading">
-      <address-bar
-        :path="store.pwd"
-        :items="store.addressItems"
-        @search="store.handleAddressSearch"
-        @goto="handleGotoWrapper"
-      />
+      <div class="address-bar-wrapper">
+        <address-bar
+          :path="store.pwd"
+          :items="store.addressItems"
+          @search="store.handleAddressSearch"
+          @goto="handleGotoWrapper"
+        />
+      </div>
       <div class="file-layout">
         <simplified-file-sidebar
           :items="tree"
@@ -206,12 +208,58 @@
 </script>
 
 <style scoped>
+  .file-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .address-bar-wrapper {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
   .file-layout {
     position: relative;
+    display: flex;
     min-height: calc(100vh - 240px);
-    margin-top: 20px;
-    padding-left: 240px;
+    overflow: hidden;
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
+  }
+
+  /* 桌面布局 */
+  @media screen and (width >= 992px) {
+    .file-layout {
+      padding-left: 240px;
+    }
+  }
+
+  /* 平板设备 */
+  @media screen and (width <= 991px) {
+    .file-layout {
+      padding-left: 200px;
+    }
+  }
+
+  /* 小型平板 */
+  @media screen and (width <= 768px) {
+    .file-layout {
+      padding-left: 180px;
+    }
+  }
+
+  /* 手机设备 */
+  @media screen and (width <= 576px) {
+    .file-layout {
+      padding-left: 150px;
+    }
+  }
+
+  /* 小型手机 */
+  @media screen and (width <= 480px) {
+    .file-layout {
+      padding-left: 120px;
+    }
   }
 </style>

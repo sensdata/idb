@@ -14,32 +14,34 @@
         <icon-home />
         <span class="root-slash">/</span>
       </div>
-      <a-input
-        ref="inputRef"
-        v-model="value"
-        :placeholder="$t('components.file.addressBar.input.placeholder')"
-        class="address-bar"
-        allow-clear
-        @clear="handleClear"
-        @input="handleInputValueChange"
-        @keydown.tab.prevent="handleTab"
-        @keydown.up.prevent="handleKeyUp"
-        @keydown.down.prevent="handleKeyDown"
-        @keydown.enter.prevent="handleKeyEnter"
-        @focus="handleInputFocus"
-        @blur="() => handleBlur(removeRootSlash(props.path))"
-      >
-        <template #suffix>
-          <div
-            class="after"
-            :class="{ 'after-highlight': pathChanged }"
-            @mousedown.stop
-            @click="handleGoButtonClick"
-          >
-            <icon-arrow-right />
-          </div>
-        </template>
-      </a-input>
+      <div class="input-wrapper">
+        <a-input
+          ref="inputRef"
+          v-model="value"
+          :placeholder="$t('components.file.addressBar.input.placeholder')"
+          class="address-bar"
+          allow-clear
+          @clear="handleClear"
+          @input="handleInputValueChange"
+          @keydown.tab.prevent="handleTab"
+          @keydown.up.prevent="handleKeyUp"
+          @keydown.down.prevent="handleKeyDown"
+          @keydown.enter.prevent="handleKeyEnter"
+          @focus="handleInputFocus"
+          @blur="() => handleBlur(removeRootSlash(props.path))"
+        >
+          <template #suffix>
+            <div
+              class="after"
+              :class="{ 'after-highlight': pathChanged }"
+              @mousedown.stop
+              @click="handleGoButtonClick"
+            >
+              <icon-arrow-right />
+            </div>
+          </template>
+        </a-input>
+      </div>
     </div>
     <template #content>
       <dropdown-content
@@ -285,18 +287,37 @@
 <style scoped>
   .address-bar-container {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
     background-color: var(--color-bg-2);
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
   }
 
-  .address-bar {
+  .input-wrapper {
+    position: relative;
+    display: flex;
     flex: 1;
-    padding-right: 0;
-    padding-left: 0;
+    min-width: 0;
+  }
+
+  .address-bar {
+    width: 100%;
     border: none;
+  }
+
+  .address-bar :deep(.arco-input-wrapper) {
+    border: none;
+  }
+
+  .address-bar :deep(.arco-input) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .address-bar :deep(.arco-input-inner-wrapper) {
+    padding-right: 0;
   }
 
   .address-bar :deep(.arco-input-prefix) {
@@ -307,11 +328,16 @@
     padding: 0;
   }
 
+  .address-bar :deep(.arco-input-clear-btn) {
+    margin-right: 10px;
+  }
+
   .root-symbol {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    height: 32px;
+    min-width: 36px;
     padding: 0 8px;
     background-color: var(--color-fill-2);
     border-right: 1px solid var(--color-border-2);
@@ -327,10 +353,12 @@
 
   .after {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     width: 36px;
-    height: 32px;
+    height: 100%;
+    min-height: 32px;
     border-left: 1px solid var(--color-border-2);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -375,11 +403,27 @@
     }
   }
 
-  .address-bar :deep(.arco-input-clear-btn) {
-    margin-right: 10px;
+  /* 平板和移动设备适配 */
+  @media screen and (width <= 768px) {
+    .root-symbol {
+      min-width: 28px;
+      padding: 0 6px;
+    }
+    .root-slash {
+      display: none;
+    }
+    .after {
+      width: 32px;
+    }
   }
 
-  .address-bar :deep(.arco-input) {
-    margin-right: 8px;
+  @media screen and (width <= 576px) {
+    .root-symbol {
+      min-width: 24px;
+      padding: 0 4px;
+    }
+    .after {
+      width: 28px;
+    }
   }
 </style>
