@@ -1,0 +1,16 @@
+export default {
+  'app.crontab.form.title.add': 'Create Scheduled Task',
+  'app.crontab.form.name.label': 'Task Name',
+  'app.crontab.form.name.placeholder': 'Please enter task name',
+  'app.crontab.form.type.label': 'Type',
+  'app.crontab.form.period.label': 'Execution Period',
+  'app.crontab.form.content.label': 'Script Content',
+  'app.crontab.form.content.placeholder': 'Please enter script content',
+  'app.crontab.form.mark.label': 'Notes',
+  'app.crontab.form.mark.placeholder': 'Please enter notes',
+  'app.crontab.form.name.required': 'Please enter task name',
+  'app.crontab.form.type.required': 'Please select type',
+  'app.crontab.form.content.required': 'Please enter script content',
+  'app.crontab.form.period.required': 'Please select execution period',
+  'app.crontab.form.success': 'Scheduled task created successfully',
+};

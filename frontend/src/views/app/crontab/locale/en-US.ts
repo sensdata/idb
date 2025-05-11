@@ -1,0 +1,37 @@
+export default {
+  'app.crontab.enum.type.local': 'Local',
+  'app.crontab.enum.type.global': 'Global',
+  'app.crontab.enum.periodType.monthly': 'Monthly',
+  'app.crontab.enum.periodType.weekly': 'Weekly',
+  'app.crontab.enum.periodType.daily': 'Daily',
+  'app.crontab.enum.periodType.hourly': 'Hourly',
+  'app.crontab.enum.periodType.every_n_days': 'Every N Days',
+  'app.crontab.enum.periodType.every_n_hours': 'Every N Hours',
+  'app.crontab.enum.periodType.every_n_minutes': 'Every N Minutes',
+  'app.crontab.enum.periodType.every_n_seconds': 'Every N Seconds',
+  'app.crontab.enum.week.monday': 'Monday',
+  'app.crontab.enum.week.tuesday': 'Tuesday',
+  'app.crontab.enum.week.wednesday': 'Wednesday',
+  'app.crontab.enum.week.thursday': 'Thursday',
+  'app.crontab.enum.week.friday': 'Friday',
+  'app.crontab.enum.week.saturday': 'Saturday',
+  'app.crontab.enum.week.sunday': 'Sunday',
+
+  'app.crontab.list.column.name': 'Name',
+  'app.crontab.list.column.status': 'Status',
+  'app.crontab.list.column.period': 'Execution Period',
+  'app.crontab.list.column.last_run_time': 'Last Run Time',
+  'app.crontab.list.column.mod_time': 'Modified Time',
+  'app.crontab.list.column.create_time': 'Created Time',
+  'app.crontab.list.column.history_version': 'History Version',
+
+  'app.crontab.list.action.create': 'Create Scheduled Task',
+  'app.crontab.list.operation.view_history': 'View',
+  'app.crontab.list.operation.run': 'Execute',
+  'app.crontab.list.operation.log': 'Execution Logs',
+
+  'app.crontab.list.delete.confirm':
+    'Are you sure you want to delete the scheduled task {name}?',
+  'app.crontab.list.message.run_success': 'Execution successful',
+  'app.crontab.list.message.delete_success': 'Deleted successfully',
+};
