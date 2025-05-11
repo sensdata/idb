@@ -35,8 +35,8 @@ export interface HostEntity extends BaseEntity, HostStatusDo {
   agent_key: string;
 
   agent_status: {
-    status: 'installed' | 'unknown';
-    connected: 'online' | 'offline';
+    status: string;
+    connected: string;
   };
 
   agent_version: string;

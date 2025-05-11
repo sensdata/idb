@@ -74,36 +74,42 @@ export const testHostAgentApi = (hostId: number): Promise<TestAgentResult> => {
   return axios.get(`hosts/${hostId}/test/agent`);
 };
 
-export interface InstallAgentResult {
-  task_id: string;
+export interface LogInfoResult {
+  log_host: number;
+  log_path: string;
 }
 
-export const installHostAgentApi = (
-  hostId: number
-): Promise<InstallAgentResult> => {
-  return axios.post(`hosts/${hostId}/agent/install`);
+export const installHostAgentApi = (hostId: number): Promise<LogInfoResult> => {
+  return axios.post(`hosts/${hostId}/agent/install`, {
+    upgrade: false,
+  });
 };
 
-export const upgradeHostAgentApi = (
-  hostId: number
-): Promise<InstallAgentResult> => {
+export const upgradeHostAgentApi = (hostId: number): Promise<LogInfoResult> => {
   return axios.post(`hosts/${hostId}/agent/install`, {
     upgrade: true,
   });
 };
 
-export interface UninstallAgentResult {
-  task_id: string;
-}
-
 export const uninstallHostAgentApi = (
   hostId: number
-): Promise<UninstallAgentResult> => {
+): Promise<LogInfoResult> => {
   return axios.post(`hosts/${hostId}/agent/uninstall`);
 };
 
 export const getHostStatusApi = (hostId: number): Promise<HostStatusDo> => {
   return request.get(`hosts/${hostId}/status`);
+};
+
+export interface AgentStatusDo {
+  status: string;
+  connected: string;
+}
+
+export const getHostAgentStatusApi = (
+  hostId: number
+): Promise<AgentStatusDo> => {
+  return request.get(`hosts/${hostId}/agent/status`);
 };
 
 export const restartHostAgentApi = (hostId: number): Promise<void> => {

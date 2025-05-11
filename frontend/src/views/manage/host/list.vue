@@ -87,7 +87,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { onUnmounted, ref } from 'vue';
+  import { onUnmounted, ref, nextTick, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
@@ -97,6 +97,7 @@
     getHostListApi,
     getHostStatusApi,
     restartHostAgentApi,
+    getHostAgentStatusApi,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
@@ -269,47 +270,160 @@
   };
 
   const gridRef = ref();
-  const reload = () => {
-    gridRef.value?.reload();
-  };
-
   const dataRef = ref<ApiListResult<HostItem>>();
-
-  const fetchListStatus = async () => {
-    if (!dataRef.value?.items) {
-      return;
-    }
-    await Promise.all(
-      dataRef.value?.items
-        .filter((item) => item.agent_status?.status === 'installed')
-        .map((item) =>
-          getHostStatusApi(item.id).then((statusData) => {
-            Object.assign(item, statusData, {
-              statusReady: true,
-            });
-          })
-        )
-    );
-    gridRef.value?.setData(dataRef.value);
-  };
-
+  const isLoading = ref(false);
+  const dataChanged = ref(false);
   const timerRef = ref<number>();
+
   const stopAutoFetchStatus = () => {
     if (timerRef.value) {
       clearInterval(timerRef.value);
+      timerRef.value = undefined;
     }
   };
+
+  const fetchListStatus = async () => {
+    if (!dataRef.value?.items || isLoading.value) {
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      // 处理所有节点，每个节点只发送一个请求
+      const requests = dataRef.value.items.map(async (item) => {
+        // 根据节点的安装状态选择不同的API
+        if (item.agent_status?.status === 'installed') {
+          // 已安装代理的节点：获取监控数据
+          try {
+            const statusData = await getHostStatusApi(item.id);
+            if (statusData) {
+              // 更新监控数据
+              item.cpu = statusData.cpu;
+              item.disk = statusData.disk;
+              item.mem = statusData.mem;
+              item.mem_total = statusData.mem_total;
+              item.mem_used = statusData.mem_used;
+              item.rx = statusData.rx;
+              item.tx = statusData.tx;
+              item.statusReady = true;
+
+              // 成功获取数据意味着代理在线
+              if (item.agent_status) {
+                item.agent_status.connected = 'online';
+              }
+            }
+          } catch (error) {
+            console.error('获取节点状态数据失败', item.id);
+            // 如果请求失败，将代理标记为离线，但保持已安装状态
+            if (item.agent_status) {
+              item.agent_status.connected = 'offline';
+            }
+          }
+        } else {
+          // 未安装代理的节点：只更新代理状态
+          try {
+            const agentStatus = await getHostAgentStatusApi(item.id);
+            if (agentStatus) {
+              item.agent_status = {
+                status: agentStatus.status || 'unknown',
+                connected: agentStatus.connected || 'offline',
+              };
+            }
+          } catch (error) {
+            // 出错时设置默认状态
+            item.agent_status = {
+              status: 'unknown',
+              connected: 'offline',
+            };
+          }
+        }
+      });
+
+      // 等待所有请求完成
+      await Promise.all(requests);
+
+      // 使用深拷贝创建全新对象，以确保响应式更新
+      if (dataRef.value) {
+        const newData = JSON.parse(JSON.stringify(dataRef.value));
+        dataRef.value = newData;
+      }
+
+      // 强制更新表格数据
+      if (gridRef.value) {
+        gridRef.value.setData(JSON.parse(JSON.stringify(dataRef.value)));
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // 使用 watch 监听 dataRef 变化，当有数据时自动获取状态
+  // 但不主动触发状态刷新，只标记数据已变化
+  watch(
+    () => dataRef.value?.items,
+    (newItems) => {
+      if (newItems?.length) {
+        dataChanged.value = true;
+      }
+    }
+  );
+
+  // 添加专用的状态更新控制器
+  const statusUpdateController = {
+    pending: false,
+
+    // 手动触发数据刷新，不创建定时器
+    triggerUpdate() {
+      if (this.pending || isLoading.value) return;
+
+      this.pending = true;
+      nextTick(() => {
+        fetchListStatus().finally(() => {
+          this.pending = false;
+          dataChanged.value = false;
+        });
+      });
+    },
+
+    // 在组件挂载完成后初始化定时更新
+    initAutoUpdate() {
+      // 确保之前的定时器被清除
+      stopAutoFetchStatus();
+
+      // 首次立即获取状态
+      this.triggerUpdate();
+
+      // 设置新的定时器
+      timerRef.value = window.setInterval(() => {
+        // Remove console.log to fix linting warning
+        // console.log('Timer triggered at:', new Date().toISOString());
+        this.triggerUpdate();
+      }, 10000);
+    },
+  };
+
+  const reload = () => {
+    // 只重新加载表格数据，状态更新会由 dataRef 变化触发
+    gridRef.value?.reload();
+  };
+
+  // 简化后的启动函数，只负责启动定时器，不再直接触发状态更新
   const startAutoFetchStatus = () => {
-    stopAutoFetchStatus();
-    fetchListStatus();
-    timerRef.value = window.setInterval(() => {
-      fetchListStatus();
-    }, 5000);
+    statusUpdateController.initAutoUpdate();
   };
 
   const afterFetchHook = (data: ApiListResult<HostItem>) => {
     dataRef.value = data;
-    startAutoFetchStatus();
+
+    // 如果定时器不存在，则初始化自动更新
+    if (!timerRef.value) {
+      startAutoFetchStatus();
+    } else if (dataChanged.value) {
+      // 如果数据已更改但定时器存在，则手动触发一次更新
+      statusUpdateController.triggerUpdate();
+    }
+
     return data;
   };
 

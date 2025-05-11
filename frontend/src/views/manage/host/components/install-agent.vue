@@ -51,7 +51,6 @@
   import { formatTime } from '@/utils/format';
   import useVisible from '@/hooks/visible';
   import { Message } from '@arco-design/web-vue';
-  import { TASK_STATUS } from '@/config/enum';
   import { resolveApiUrl } from '@/helper/api-helper';
   import {
     installHostAgentApi,
@@ -143,47 +142,84 @@
     setStatus('installing');
   };
 
-  const logTaskMsgs = (taskId: string) => {
-    const url = resolveApiUrl(`tasks/${taskId}/logs`);
+  const processLogData = (data: string): LogItem => {
+    let logMessage = data;
+    let logTime = Date.now();
+    let logLevel: 'info' | 'error' | 'warn' | 'debug' = 'info';
+
+    if (data.trim().startsWith('{') && data.trim().endsWith('}')) {
+      try {
+        const logData = JSON.parse(data);
+        if (logData && typeof logData === 'object') {
+          if (logData.message) {
+            logMessage = logData.message;
+          }
+
+          if (logData.timestamp) {
+            logTime =
+              typeof logData.timestamp === 'number'
+                ? logData.timestamp
+                : new Date(logData.timestamp).getTime() || Date.now();
+          } else if (logData.time) {
+            logTime =
+              typeof logData.time === 'number'
+                ? logData.time
+                : new Date(logData.time).getTime() || Date.now();
+          }
+
+          if (logData.level) {
+            const level = String(logData.level).toLowerCase();
+            if (['error', 'warn', 'debug', 'info'].includes(level)) {
+              logLevel = level as 'info' | 'error' | 'warn' | 'debug';
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse log JSON:', error);
+      }
+    } else if (data.includes('Status:')) {
+      logMessage = data.trim();
+    }
+
+    return {
+      time: logTime,
+      message: logMessage,
+      level: logLevel,
+    };
+  };
+
+  const logFileLogs = (hostId: number, logPath: string) => {
+    const url = resolveApiUrl(
+      `logs/${hostId}/follow?path=${encodeURIComponent(logPath)}&whence=end`
+    );
     reset();
     show();
 
     let heartbeat = Date.now();
     const eventSource = new EventSource(url);
+    let timer: number;
 
-    // 处理日志事件
     eventSource.addEventListener('log', (event: Event) => {
-      try {
-        if (event instanceof MessageEvent) {
-          const logData = JSON.parse(event.data);
-          if (
-            logData &&
-            typeof logData === 'object' &&
-            logData.level &&
-            logData.message
-          ) {
-            // 如果日志数据包含级别和消息
-            const level = logData.level.toLowerCase();
-            // 将level映射到组件支持的级别
-            let mappedLevel: 'info' | 'error' | 'warn' | 'debug' = 'info';
+      if (event instanceof MessageEvent) {
+        if (event.data) {
+          try {
+            const rawData = event.data.trim();
 
-            if (level === 'debug') {
-              mappedLevel = 'debug';
-            } else if (level === 'info') {
-              mappedLevel = 'info';
-            } else if (level === 'warn') {
-              mappedLevel = 'warn';
-            } else if (level === 'error') {
-              mappedLevel = 'error';
+            if (rawData.startsWith('{') && rawData.endsWith('}')) {
+              addLog(processLogData(rawData));
+            } else {
+              const jsonMatch = rawData.match(/(\{.*\})/);
+              if (jsonMatch && jsonMatch[1]) {
+                addLog(processLogData(jsonMatch[1]));
+              } else {
+                addLog({
+                  time: Date.now(),
+                  message: rawData,
+                  level: 'info',
+                });
+              }
             }
-
-            addLog({
-              time: logData.timestamp,
-              message: logData.message,
-              level: mappedLevel,
-            });
-          } else {
-            // 如果是普通字符串，默认为info级别
+          } catch (error) {
             addLog({
               time: Date.now(),
               message: event.data,
@@ -191,9 +227,91 @@
             });
           }
         }
-      } catch (e) {
-        // 如果解析JSON失败，则按原样显示为info级别
-        if (event instanceof MessageEvent) {
+      }
+    });
+
+    eventSource.addEventListener('data', (event: Event) => {
+      if (event instanceof MessageEvent) {
+        if (event.data) {
+          try {
+            const rawData = event.data.trim();
+
+            if (rawData.startsWith('{') && rawData.endsWith('}')) {
+              addLog(processLogData(rawData));
+            } else {
+              const jsonMatch = rawData.match(/(\{.*\})/);
+              if (jsonMatch && jsonMatch[1]) {
+                addLog(processLogData(jsonMatch[1]));
+              } else {
+                addLog({
+                  time: Date.now(),
+                  message: rawData,
+                  level: 'info',
+                });
+              }
+            }
+          } catch (error) {
+            addLog({
+              time: Date.now(),
+              message: event.data,
+              level: 'info',
+            });
+          }
+        }
+      }
+    });
+
+    eventSource.addEventListener('status', (event: Event) => {
+      if (event instanceof MessageEvent) {
+        const statusValue = event.data;
+
+        if (statusValue === 'success') {
+          clearInterval(timer);
+          eventSource.close();
+          setStatus('completed');
+          Message.success(t('manage.host.installAgent.installSuccess'));
+          emit('ok');
+        } else if (statusValue === 'failed' || statusValue === 'canceled') {
+          clearInterval(timer);
+          eventSource.close();
+          setStatus('failed');
+          Message.error(t('manage.host.installAgent.installFailed'));
+        } else if (statusValue === 'running') {
+          addLog({
+            time: Date.now(),
+            message: t('manage.host.installAgent.installing'),
+            level: 'info',
+          });
+        } else {
+          addLog({
+            time: Date.now(),
+            message: `Status: ${statusValue}`,
+            level: 'info',
+          });
+        }
+      }
+    });
+
+    eventSource.onmessage = (event) => {
+      if (event.data) {
+        try {
+          const rawData = event.data.trim();
+
+          if (rawData.startsWith('{') && rawData.endsWith('}')) {
+            addLog(processLogData(rawData));
+          } else {
+            const jsonMatch = rawData.match(/(\{.*\})/);
+            if (jsonMatch && jsonMatch[1]) {
+              addLog(processLogData(jsonMatch[1]));
+            } else {
+              addLog({
+                time: Date.now(),
+                message: rawData,
+                level: 'info',
+              });
+            }
+          }
+        } catch (error) {
           addLog({
             time: Date.now(),
             message: event.data,
@@ -201,13 +319,30 @@
           });
         }
       }
-    });
+    };
 
     eventSource.addEventListener('heartbeat', () => {
       heartbeat = Date.now();
     });
 
-    const timer = window.setInterval(() => {
+    eventSource.addEventListener('close', () => {
+      clearInterval(timer);
+      eventSource.close();
+      setStatus('completed');
+      Message.success(t('manage.host.installAgent.installSuccess'));
+      emit('ok');
+    });
+
+    eventSource.addEventListener('error', (event) => {
+      if (event.type === 'error') {
+        clearInterval(timer);
+        eventSource.close();
+        setStatus('failed');
+        Message.error(t('manage.host.installAgent.installFailed'));
+      }
+    });
+
+    timer = window.setInterval(() => {
       if (Date.now() - heartbeat > 60e3) {
         clearInterval(timer);
         eventSource.close();
@@ -216,64 +351,56 @@
       }
     }, 1000);
 
-    eventSource.addEventListener('status', (event: Event) => {
-      if (event instanceof MessageEvent) {
-        switch (event.data) {
-          case TASK_STATUS.Success:
-            clearInterval(timer);
-            eventSource.close();
-            setStatus('completed');
-            Message.success(t('manage.host.installAgent.installSuccess'));
-            break;
-          case TASK_STATUS.Failed:
-          case TASK_STATUS.Canceled:
-            clearInterval(timer);
-            eventSource.close();
-            setStatus('failed');
-            Message.error(t('manage.host.installAgent.installFailed'));
-            break;
-          default:
-            break;
-        }
-      }
-    });
+    eventSource.onopen = () => {
+      addLog({
+        time: Date.now(),
+        message: t('manage.host.installAgent.logConnected'),
+        level: 'info',
+      });
+    };
 
-    // 全局错误处理
-    eventSource.addEventListener('error', () => {
+    eventSource.onerror = () => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        clearInterval(timer);
+        setStatus('failed');
+        Message.error(t('manage.host.installAgent.logConnectionFailed'));
+      }
+    };
+
+    eventSource.addEventListener('end', () => {
       clearInterval(timer);
       eventSource.close();
-      setStatus('failed');
-      Message.error(t('manage.host.installAgent.installFailed'));
+      setStatus('completed');
+      Message.success(t('manage.host.installAgent.installSuccess'));
+      emit('ok');
     });
   };
 
   const startInstall = async (hostId: number) => {
     try {
       const result = await installHostAgentApi(hostId);
-      if (result.task_id) {
+      if (result.log_path) {
         isUpgrade.value = false;
-        logTaskMsgs(result.task_id);
+        logFileLogs(result.log_host, result.log_path);
       } else {
         Message.error(t('manage.host.installAgent.installFailed'));
       }
     } catch (error) {
       Message.error(t('manage.host.installAgent.installFailed'));
-      console.error('Failed to install agent:', error);
     }
   };
 
   const startUpgrade = async (hostId: number) => {
     try {
       const result = await upgradeHostAgentApi(hostId);
-      if (result.task_id) {
+      if (result.log_path) {
         isUpgrade.value = true;
-        logTaskMsgs(result.task_id);
+        logFileLogs(result.log_host, result.log_path);
       } else {
         Message.error(t('manage.host.installAgent.upgradeFailed'));
       }
     } catch (error) {
       Message.error(t('manage.host.installAgent.upgradeFailed'));
-      console.error('Failed to upgrade agent:', error);
     }
   };
 
@@ -294,10 +421,8 @@
       }
       return result.installed;
     } catch (error) {
-      console.error('Failed to check agent:', error);
+      return false;
     }
-
-    return false;
   };
 
   const handleCancel = () => {
@@ -313,7 +438,7 @@
     reset,
     addLog,
     setStatus,
-    logTaskMsgs,
+    logFileLogs,
     startInstall,
     startUpgrade,
     confirmInstall,
