@@ -31,6 +31,7 @@ type SSHOperate struct {
 }
 
 type GenerateKey struct {
+	KeyName        string `json:"key_name" validate:"required"`
 	KeyBits        uint   `json:"key_bits" validate:"required,oneof=1024 2048"`
 	Enabled        bool   `json:"enabled"`
 	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
@@ -63,12 +64,13 @@ type UpdateKeyPassword struct {
 }
 
 type KeyInfo struct {
-	FileName       string
-	Fingerprint    string
-	User           string
-	Status         string
-	KeyBits        int
-	PrivateKeyPath string
+	KeyName        string `json:"key_name"`
+	Fingerprint    string `json:"fingerprint"`
+	User           string `json:"user"`
+	Status         string `json:"status"`
+	KeyBits        int    `json:"key_bits"`
+	HasPrivateKey  bool   `json:"has_private_key"`
+	PrivateKeyPath string `json:"private_key_path"`
 }
 
 type GenerateLoad struct {

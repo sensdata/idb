@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -251,7 +252,7 @@ func (u *SSHService) OperateSSH(req model.SSHOperate) error {
 
 func (u *SSHService) CreateKey(req model.GenerateKey) error {
 	// 检查输入是否合法
-	if utils.CheckIllegal(req.EncryptionMode, req.Password) {
+	if utils.CheckIllegal(req.KeyName, req.EncryptionMode, req.Password) {
 		return errors.New(constant.ErrCmdIllegal)
 	}
 
@@ -260,17 +261,36 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 		return fmt.Errorf("load current user failed, err: %v", err)
 	}
 
+	// 检查目标文件是否已存在
+	targetPrivateKey := fmt.Sprintf("%s/.ssh/%s", currentUser.HomeDir, req.KeyName)
+	targetPublicKey := fmt.Sprintf("%s/.ssh/%s.pub", currentUser.HomeDir, req.KeyName)
+
+	if _, err := os.Stat(targetPrivateKey); err == nil {
+		return fmt.Errorf("private key file already exists: %s", req.KeyName)
+	}
+	if _, err := os.Stat(targetPublicKey); err == nil {
+		return fmt.Errorf("public key file already exists: %s.pub", req.KeyName)
+	}
+
 	// 定义文件路径
-	secretFile := fmt.Sprintf("%s/.ssh/id_item_%s", currentUser.HomeDir, req.EncryptionMode)
-	secretPubFile := fmt.Sprintf("%s/.ssh/id_item_%s.pub", currentUser.HomeDir, req.EncryptionMode)
+	timestamp := time.Now().Format("20060102150405")
+	secretFile := fmt.Sprintf("%s/.ssh/tmp_%s_%s", currentUser.HomeDir, req.EncryptionMode, timestamp)
+	secretPubFile := fmt.Sprintf("%s/.ssh/tmp_%s_%s.pub", currentUser.HomeDir, req.EncryptionMode, timestamp)
 	authFile := currentUser.HomeDir + "/.ssh/authorized_keys"
+
+	// 构造注释信息（用户@主机名）
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+	comment := fmt.Sprintf("%s@%s", currentUser.Username, hostname)
 
 	// 构造 ssh-keygen 命令
 	var command []string
 	if len(req.Password) != 0 {
-		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-N", req.Password, "-f", secretFile}
+		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-N", req.Password, "-C", comment, "-f", secretFile}
 	} else {
-		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-f", secretFile}
+		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-C", comment, "-f", secretFile}
 	}
 
 	// 使用 exec.Command 执行 ssh-keygen 命令
@@ -314,11 +334,13 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 
 	// 重命名文件到用户指定的路径（无论是否启用密钥）
 	fileOp := files.NewFileOp()
-	if err := fileOp.Rename(secretFile, fmt.Sprintf("%s/.ssh/id_%s", currentUser.HomeDir, req.EncryptionMode)); err != nil {
-		return err
+	if err := fileOp.Rename(secretFile, targetPrivateKey); err != nil {
+		return fmt.Errorf("failed to rename private key file: %v", err)
 	}
-	if err := fileOp.Rename(secretPubFile, fmt.Sprintf("%s/.ssh/id_%s.pub", currentUser.HomeDir, req.EncryptionMode)); err != nil {
-		return err
+	if err := fileOp.Rename(secretPubFile, targetPublicKey); err != nil {
+		// 如果公钥重命名失败，尝试回滚私钥的重命名
+		_ = fileOp.Rename(targetPrivateKey, secretFile)
+		return fmt.Errorf("failed to rename public key file: %v", err)
 	}
 
 	return nil
@@ -344,46 +366,115 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 		if info.IsDir() {
 			return nil
 		}
-		// 仅处理以 id_ 开头的私钥文件（根据创建密钥时的命名约定）
-		if strings.Contains(info.Name(), req.Keyword) && strings.HasPrefix(info.Name(), "id_") && !strings.HasSuffix(info.Name(), ".pub") {
-			// 读取文件内容
-			fileData, err := os.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("read file failed, err: %v", err)
-			}
 
-			// 计算 SHA256 指纹
-			hash := sha256.Sum256(fileData)
-			fingerprint := fmt.Sprintf("%x", hash[:])
-
-			// 获取加密位数
-			keyBits, err := getKeyBits(fileData)
-			if err != nil {
-				return fmt.Errorf("get key bits failed, err: %v", err)
-			}
-
-			// 获取用户
-			user := currentUser.Username // 使用当前用户名
-
-			// 获取状态
-			status, err := getKeyStatus(authFile, path)
-			if err != nil {
-				return fmt.Errorf("get key status failed, err: %v", err)
-			}
-
-			keys = append(keys, model.KeyInfo{
-				FileName:       info.Name(),
-				Fingerprint:    fingerprint,
-				User:           user,
-				Status:         status,
-				KeyBits:        keyBits,
-				PrivateKeyPath: path,
-			})
+		// 只处理 .pub 结尾的公钥文件
+		if !strings.HasSuffix(info.Name(), ".pub") {
+			return nil
 		}
+
+		// 查看是否包含keyword
+		if req.Keyword != "" && !strings.Contains(info.Name(), req.Keyword) {
+			return nil
+		}
+
+		// 读取公钥文件内容
+		pubKeyData, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read public key file failed, err: %v", err)
+		}
+
+		// 计算公钥的 SHA256 指纹
+		hash := sha256.Sum256(pubKeyData)
+		fingerprint := fmt.Sprintf("%x", hash[:])
+
+		// 检查是否存在对应的私钥文件
+		privateKeyPath := strings.TrimSuffix(path, ".pub")
+		hasPrivateKey := false
+		if _, err := os.Stat(privateKeyPath); err == nil {
+			hasPrivateKey = true
+		}
+
+		// 获取密钥位数
+		keyBits := 0
+		// 从公钥文件获取位数
+		pubKeyParts := strings.Fields(string(pubKeyData))
+		if len(pubKeyParts) >= 2 {
+			switch pubKeyParts[0] {
+			case "ssh-rsa":
+				// 解析 base64 编码的公钥数据
+				decoded, err := base64.StdEncoding.DecodeString(pubKeyParts[1])
+				if err == nil {
+					// RSA 公钥的位数可以从解码后的数据中获取
+					keyBits = len(decoded) * 8
+				}
+			case "ssh-ed25519":
+				keyBits = 256 // ED25519 总是 256 位
+			case "ecdsa-sha2-nistp256":
+				keyBits = 256
+			case "ecdsa-sha2-nistp384":
+				keyBits = 384
+			case "ecdsa-sha2-nistp521":
+				keyBits = 521
+			}
+		}
+
+		// 如果从公钥无法获取位数，且存在私钥，则尝试从私钥获取
+		if keyBits == 0 && hasPrivateKey {
+			privateKeyData, err := os.ReadFile(privateKeyPath)
+			if err == nil {
+				keyBits, _ = getKeyBits(privateKeyData)
+			}
+		}
+
+		// 获取用户信息
+		user := ""
+		// 1. 尝试从公钥注释中获取用户信息
+		if len(pubKeyParts) > 2 {
+			comment := strings.Join(pubKeyParts[2:], " ")
+			if strings.Contains(comment, "@") {
+				user = strings.Split(comment, "@")[0]
+			}
+		}
+
+		// 2. 如果公钥中没有用户信息，且存在私钥，尝试从私钥文件中获取
+		if user == "" && hasPrivateKey {
+			privateKeyData, err := os.ReadFile(privateKeyPath)
+			if err == nil {
+				// 解析私钥文件
+				block, _ := pem.Decode(privateKeyData)
+				if block != nil && strings.Contains(block.Headers["Comment"], "@") {
+					user = strings.Split(block.Headers["Comment"], "@")[0]
+				}
+			}
+		}
+
+		// 3. 如果都没有获取到，使用当前系统用户
+		if user == "" {
+			user = currentUser.Username
+		}
+
+		// 获取状态
+		status, err := getKeyStatus(authFile, path)
+		if err != nil {
+			return fmt.Errorf("get key status failed, err: %v", err)
+		}
+
+		// 构造密钥信息
+		keys = append(keys, model.KeyInfo{
+			KeyName:        strings.TrimSuffix(info.Name(), ".pub"),
+			Fingerprint:    fingerprint,
+			User:           user,
+			Status:         status,
+			KeyBits:        keyBits,
+			HasPrivateKey:  hasPrivateKey,
+			PrivateKeyPath: privateKeyPath,
+		})
+
 		return nil
 	}); err != nil {
 		return nil, err
 	}
+
 	pageResult.Total = int64(len(keys))
 	pageResult.Items = keys
 
