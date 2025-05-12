@@ -56,6 +56,9 @@ const (
 	Ssh_Update_Password       string = "ssh_update_password"
 	Ssh_Clear_Password        string = "ssh_clear_password"
 	Ssh_Log                   string = "ssh_log"
+	Ssh_Auth_Key_List         string = "ssh_auth_key_list"
+	Ssh_Auth_Key_Add          string = "ssh_auth_key_add"
+	Ssh_Auth_Key_Remove       string = "ssh_auth_key_remove"
 
 	Git_Init      string = "git_init"
 	Git_Sync      string = "git_sync"

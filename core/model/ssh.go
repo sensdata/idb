@@ -98,3 +98,17 @@ type SSHHistory struct {
 	Status   string    `json:"status"`
 	Message  string    `json:"message"`
 }
+
+type AddAuthKey struct {
+	Content string `json:"content" validate:"required"`
+}
+
+type RemoveAuthKey struct {
+	Content string `json:"content" validate:"required"`
+}
+
+type AuthKeyInfo struct {
+	Algorithm string `json:"algorithm"`
+	Key       string `json:"key"`
+	Comment   string `json:"comment"`
+}

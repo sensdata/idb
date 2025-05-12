@@ -45,6 +45,9 @@ type ISSHService interface {
 	SetKeyPassword(req model.SetKeyPassword) error
 	ChangeKeyPassword(req model.UpdateKeyPassword) error
 	ClearKeyPassword(req model.SetKeyPassword) error
+	ListAuthKeys() (*model.PageResult, error)
+	AddAuthKey(req model.AddAuthKey) error
+	RemoveAuthKey(req model.RemoveAuthKey) error
 
 	LoadLog(req model.SearchSSHLog) (*model.SSHLog, error)
 }
@@ -583,6 +586,158 @@ func (u *SSHService) ClearKeyPassword(req model.SetKeyPassword) error {
 		OldPassword: req.Password,
 		NewPassword: "", // 清除密码就是将新密码设置为空
 	})
+}
+
+// ListAuthKeys 列出authorized_keys中的所有公钥
+func (u *SSHService) ListAuthKeys() (*model.PageResult, error) {
+	var pageResult = model.PageResult{Total: 0, Items: nil}
+	var keys []model.AuthKeyInfo
+
+	// 获取当前用户的目录
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, fmt.Errorf("load current user failed, err: %v", err)
+	}
+
+	// 读取authorized_keys文件
+	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+	content, err := os.ReadFile(authFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// 如果文件不存在，返回空结果
+			return &pageResult, nil
+		}
+		return nil, fmt.Errorf("read authorized_keys failed, err: %v", err)
+	}
+
+	// 按行解析公钥
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// 解析公钥行
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			keyInfo := model.AuthKeyInfo{
+				Algorithm: parts[0], // 算法类型
+				Key:       parts[1], // 密钥内容
+				Comment:   "",       // 描述/注释
+			}
+
+			// 如果有注释部分
+			if len(parts) > 2 {
+				keyInfo.Comment = strings.Join(parts[2:], " ")
+			}
+
+			keys = append(keys, keyInfo)
+		}
+	}
+
+	pageResult.Total = int64(len(keys))
+	pageResult.Items = keys
+	return &pageResult, nil
+}
+
+// AddAuthKey 添加公钥到authorized_keys
+func (u *SSHService) AddAuthKey(req model.AddAuthKey) error {
+	// 获取当前用户的目录
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+
+	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+
+	// 确保.ssh目录存在
+	sshDir := filepath.Join(currentUser.HomeDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		return fmt.Errorf("create .ssh directory failed, err: %v", err)
+	}
+
+	// 构造公钥行
+	keyLine := fmt.Sprintf("%s\n", strings.TrimSpace(req.Content))
+
+	// 如果文件不存在，创建新文件
+	if _, err := os.Stat(authFile); os.IsNotExist(err) {
+		if err := os.WriteFile(authFile, []byte(keyLine), 0600); err != nil {
+			return fmt.Errorf("create authorized_keys failed, err: %v", err)
+		}
+		return nil
+	}
+
+	// 检查是否已存在相同的密钥
+	content, err := os.ReadFile(authFile)
+	if err != nil {
+		return fmt.Errorf("read authorized_keys failed, err: %v", err)
+	}
+
+	if strings.Contains(string(content), req.Content) {
+		return fmt.Errorf("public key already exists")
+	}
+
+	// 追加新的公钥
+	f, err := os.OpenFile(authFile, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("open authorized_keys failed, err: %v", err)
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(keyLine); err != nil {
+		return fmt.Errorf("append public key failed, err: %v", err)
+	}
+
+	return nil
+}
+
+// RemoveAuthKey 从authorized_keys中删除公钥
+func (u *SSHService) RemoveAuthKey(req model.RemoveAuthKey) error {
+	// 获取当前用户的目录
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+
+	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+
+	// 读取authorized_keys文件
+	content, err := os.ReadFile(authFile)
+	if err != nil {
+		return fmt.Errorf("read authorized_keys failed, err: %v", err)
+	}
+
+	// 按行处理，排除要删除的公钥
+	lines := strings.Split(string(content), "\n")
+	var newLines []string
+	keyFound := false
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// 如果该行不包含要删除的公钥，保留该行
+		if !strings.Contains(line, req.Content) {
+			newLines = append(newLines, line)
+		} else {
+			keyFound = true
+		}
+	}
+
+	if !keyFound {
+		return fmt.Errorf("public key not found")
+	}
+
+	// 写回文件
+	newContent := strings.Join(newLines, "\n") + "\n"
+	if err := os.WriteFile(authFile, []byte(newContent), 0600); err != nil {
+		return fmt.Errorf("write authorized_keys failed, err: %v", err)
+	}
+
+	return nil
 }
 
 // getKeyStatus 检查密钥是否存在于 authorized_keys 文件中

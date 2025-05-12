@@ -371,6 +371,81 @@ func (s *SSHMan) clearKeyPassword(hostID uint64, req model.SetKeyPassword) error
 	return nil
 }
 
+func (s *SSHMan) listAuthKeys(hostID uint64) (*model.PageResult, error) {
+	var pageResult model.PageResult
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Auth_Key_List,
+			Data:   "",
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &pageResult, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return &pageResult, fmt.Errorf("failed to get ssh auth keys")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to ssh auth keys: %v", err)
+		return &pageResult, fmt.Errorf("json err: %v", err)
+	}
+
+	return &pageResult, nil
+}
+
+func (s *SSHMan) addAuthKey(hostID uint64, req model.AddAuthKey) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Auth_Key_Add,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to add ssh auth key")
+	}
+	return nil
+}
+
+func (s *SSHMan) removeAuthKey(hostID uint64, req model.RemoveAuthKey) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Auth_Key_Remove,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to remove ssh auth key")
+	}
+	return nil
+}
+
 func (s *SSHMan) loadLog(hostID uint64, req model.SearchSSHLog) (*model.SSHLog, error) {
 	var sshLog model.SSHLog
 	data, err := utils.ToJSONString(req)

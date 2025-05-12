@@ -122,15 +122,17 @@ func (s *SSHMan) Initialize() {
 			{Method: "GET", Path: "/:host/config/content", Handler: s.GetSSHConfigContent},
 			{Method: "PUT", Path: "/:host/config/content", Handler: s.UpdateSSHConfigContent},
 			{Method: "POST", Path: "/:host/operate", Handler: s.OperateSSH},
+			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
 			{Method: "POST", Path: "/:host/keys", Handler: s.CreateKey},
+			{Method: "DELETE", Path: "/:host/keys", Handler: s.RemoveKey},
 			{Method: "POST", Path: "/:host/keys/enable", Handler: s.EnableKey},
-			{Method: "POST", Path: "/:host/keys/remove", Handler: s.RemoveKey},
 			{Method: "GET", Path: "/:host/keys/download", Handler: s.DownloadPrivateKey},
 			{Method: "POST", Path: "/:host/keys/password/set", Handler: s.SetKeyPassword},
 			{Method: "POST", Path: "/:host/keys/password/update", Handler: s.UpdateKeyPassword},
 			{Method: "POST", Path: "/:host/keys/password/clear", Handler: s.ClearKeyPassword},
-
-			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
+			{Method: "GET", Path: "/:host/auth/keys", Handler: s.ListAuthKey},
+			{Method: "POST", Path: "/:host/auth/keys", Handler: s.AddAuthKey},
+			{Method: "DELETE", Path: "/:host/auth/keys/remove", Handler: s.RemoveAuthKey},
 			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
 		},
 	)
@@ -345,7 +347,7 @@ func (s *SSHMan) CreateKey(c *gin.Context) {
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param keyword query string false "Keyword"
-// @Success 200
+// @Success 200 {object} model.PageResult
 // @Router /ssh/{host}/keys [get]
 func (s *SSHMan) ListKey(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -402,9 +404,11 @@ func (s *SSHMan) EnableKey(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
+// @Param key_name query string true "Key Name"
+// @Param only_private_key query bool false "Only Private Key"
 // @Param request body model.RemoveKey true "request"
 // @Success 200
-// @Router /ssh/{host}/keys/enable [post]
+// @Router /ssh/{host}/keys [delete]
 func (s *SSHMan) RemoveKey(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -412,9 +416,17 @@ func (s *SSHMan) RemoveKey(c *gin.Context) {
 		return
 	}
 
-	var req model.RemoveKey
-	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+	name := c.Query("key_name")
+	if name == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid key name", nil)
 		return
+	}
+
+	only, _ := strconv.ParseBool(c.Query("only_private_key"))
+
+	req := model.RemoveKey{
+		KeyName:        name,
+		OnlyPrivateKey: only,
 	}
 
 	if err := s.removeKey(hostID, req); err != nil {
@@ -529,6 +541,90 @@ func (s *SSHMan) ClearKeyPassword(c *gin.Context) {
 	}
 
 	if err := s.clearKeyPassword(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Get authorized keys on host
+// @Description Get authorized keys on host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /ssh/{host}/auth/keys [get]
+func (s *SSHMan) ListAuthKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	data, err := s.listAuthKeys(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, data)
+}
+
+// @Tags SSH
+// @Summary Add key to authorized keys
+// @Description Add key to authorized keys
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.AddAuthKey true "request"
+// @Success 200
+// @Router /ssh/{host}/auth/keys [post]
+func (s *SSHMan) AddAuthKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.AddAuthKey
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.addAuthKey(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Remove key in authorized keys
+// @Description Remove key in authorized keys
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param content query string true "Key Content"
+// @Success 200
+// @Router /ssh/{host}/auth/keys [delete]
+func (s *SSHMan) RemoveAuthKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	content := c.Query("content")
+	if content == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid key content", nil)
+		return
+	}
+
+	req := model.RemoveAuthKey{
+		Content: content,
+	}
+
+	if err := s.removeAuthKey(hostID, req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}

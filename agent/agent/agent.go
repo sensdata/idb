@@ -1558,6 +1558,42 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+		// auth keys
+	case model.Ssh_Auth_Key_List:
+		keys, err := SshService.ListAuthKeys()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(keys)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// add auth key
+	case model.Ssh_Auth_Key_Add:
+		var req model.AddAuthKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.AddAuthKey(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// remove auth key
+	case model.Ssh_Auth_Key_Remove:
+		var req model.RemoveAuthKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.RemoveAuthKey(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// git 初始化
 	case model.Git_Init:
 		var req model.GitInit
