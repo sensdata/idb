@@ -50,6 +50,11 @@ const (
 	Ssh_Operate               string = "ssh_operate"
 	Ssh_Secret                string = "ssh_secret"
 	Ssh_Secret_Create         string = "ssh_secret_create"
+	Ssh_Secret_Enable         string = "ssh_secret_enable"
+	Ssh_Secret_Remove         string = "ssh_secret_remove"
+	Ssh_Set_Password          string = "ssh_set_password"
+	Ssh_Update_Password       string = "ssh_update_password"
+	Ssh_Clear_Password        string = "ssh_clear_password"
 	Ssh_Log                   string = "ssh_log"
 
 	Git_Init      string = "git_init"

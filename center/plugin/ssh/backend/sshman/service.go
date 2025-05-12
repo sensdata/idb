@@ -123,6 +123,13 @@ func (s *SSHMan) Initialize() {
 			{Method: "PUT", Path: "/:host/config/content", Handler: s.UpdateSSHConfigContent},
 			{Method: "POST", Path: "/:host/operate", Handler: s.OperateSSH},
 			{Method: "POST", Path: "/:host/keys", Handler: s.CreateKey},
+			{Method: "POST", Path: "/:host/keys/enable", Handler: s.EnableKey},
+			{Method: "POST", Path: "/:host/keys/remove", Handler: s.RemoveKey},
+			{Method: "GET", Path: "/:host/keys/download", Handler: s.DownloadPrivateKey},
+			{Method: "POST", Path: "/:host/keys/password/set", Handler: s.SetKeyPassword},
+			{Method: "POST", Path: "/:host/keys/password/update", Handler: s.UpdateKeyPassword},
+			{Method: "POST", Path: "/:host/keys/password/clear", Handler: s.ClearKeyPassword},
+
 			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
 			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
 		},
@@ -214,7 +221,7 @@ func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 	}
 
 	var req model.SSHUpdate
-	if err := helper.CheckBind(&req, c); err != nil {
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -263,14 +270,9 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 		return
 	}
 
-	var content string
-	if err := c.ShouldBindJSON(&content); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid content", err)
+	var req model.ContentUpdate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
-	}
-
-	req := model.ContentUpdate{
-		Content: content,
 	}
 
 	if err := s.updateSSHContent(hostID, req); err != nil {
@@ -286,7 +288,7 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param operation body string true "Operation, can be 'enable' or 'disable'"
+// @Param request body model.SSHOperate true "Operation request"
 // @Success 200 "No Content"
 // @Router /ssh/{host}/operate [post]
 func (s *SSHMan) OperateSSH(c *gin.Context) {
@@ -296,14 +298,9 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 		return
 	}
 
-	var operation string
-	if err := c.ShouldBindJSON(&operation); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid operation", err)
+	var req model.SSHOperate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
-	}
-
-	req := model.SSHOperate{
-		Operation: operation,
 	}
 
 	if err := s.operateSSH(hostID, req); err != nil {
@@ -369,6 +366,173 @@ func (s *SSHMan) ListKey(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, data)
+}
+
+// @Tags SSH
+// @Summary Enable secret on host
+// @Description Enable secret on host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.EnableKey true "request"
+// @Success 200
+// @Router /ssh/{host}/keys/enable [post]
+func (s *SSHMan) EnableKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.EnableKey
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.enableKey(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Enable secret on host
+// @Description Enable secret on host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.RemoveKey true "request"
+// @Success 200
+// @Router /ssh/{host}/keys/enable [post]
+func (s *SSHMan) RemoveKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.RemoveKey
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.removeKey(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Download private key
+// @Description Download private key
+// @Produce octet-stream
+// @Param host path uint true "Host ID"
+// @Param source query string true "Source file path"
+// @Success 200 {file} binary
+// @Router /ssh/{host}/keys/download [get]
+func (s *SSHMan) DownloadPrivateKey(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	source := c.Query("source")
+	if source == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Source is required", nil)
+		return
+	}
+
+	if err := s.downloadFile(c, uint(hostID), source); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+}
+
+// @Tags SSH
+// @Summary Set secret password
+// @Description Set secret password
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.SetKeyPassword true "request"
+// @Success 200
+// @Router /ssh/{host}/keys/password/set [post]
+func (s *SSHMan) SetKeyPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetKeyPassword
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.setKeyPassword(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Update secret password
+// @Description Update secret password
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateKeyPassword true "request"
+// @Success 200
+// @Router /ssh/{host}/keys/password/update [post]
+func (s *SSHMan) UpdateKeyPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.UpdateKeyPassword
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.updateKeyPassword(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags SSH
+// @Summary Clear secret password
+// @Description Clear secret password
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.SetKeyPassword true "request"
+// @Success 200
+// @Router /ssh/{host}/keys/password/clear [post]
+func (s *SSHMan) ClearKeyPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetKeyPassword
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	if err := s.clearKeyPassword(hostID, req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags SSH

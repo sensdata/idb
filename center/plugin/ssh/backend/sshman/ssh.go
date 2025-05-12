@@ -3,6 +3,8 @@ package sshman
 import (
 	"fmt"
 
+	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -228,6 +230,145 @@ func (s *SSHMan) listKeys(hostID uint64, req model.ListKey) (*model.PageResult, 
 	}
 
 	return &pageResult, nil
+}
+
+func (s *SSHMan) enableKey(hostID uint64, req model.EnableKey) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Secret_Enable,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to enable ssh key")
+	}
+
+	return nil
+}
+
+func (s *SSHMan) removeKey(hostID uint64, req model.RemoveKey) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Secret_Remove,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to remove ssh key")
+	}
+
+	return nil
+}
+
+func (s *SSHMan) downloadFile(c *gin.Context, hostID uint, path string) error {
+	return conn.CENTER.DownloadFile(c, hostID, path)
+}
+
+func (s *SSHMan) setKeyPassword(hostID uint64, req model.SetKeyPassword) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Set_Password,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to set key password")
+	}
+
+	return nil
+}
+
+func (s *SSHMan) updateKeyPassword(hostID uint64, req model.UpdateKeyPassword) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Update_Password,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to update key password")
+	}
+
+	return nil
+}
+
+func (s *SSHMan) clearKeyPassword(hostID uint64, req model.SetKeyPassword) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Ssh_Clear_Password,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return fmt.Errorf("failed to clear key password")
+	}
+
+	return nil
 }
 
 func (s *SSHMan) loadLog(hostID uint64, req model.SearchSSHLog) (*model.SSHLog, error) {

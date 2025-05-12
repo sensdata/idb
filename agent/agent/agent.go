@@ -1487,6 +1487,63 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+		// 启用/禁用秘钥
+	case model.Ssh_Secret_Enable:
+		var req model.EnableKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.EnableKey(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+		// 删除秘钥
+	case model.Ssh_Secret_Remove:
+		var req model.RemoveKey
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.RemoveKey(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Ssh_Set_Password:
+		var req model.SetKeyPassword
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.SetKeyPassword(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Ssh_Update_Password:
+		var req model.UpdateKeyPassword
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.ChangeKeyPassword(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Ssh_Clear_Password:
+		var req model.SetKeyPassword
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := SshService.ClearKeyPassword(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	// ssh日志
 	case model.Ssh_Log:
 		var req model.SearchSSHLog

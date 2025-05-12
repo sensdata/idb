@@ -40,6 +40,11 @@ type ISSHService interface {
 
 	CreateKey(req model.GenerateKey) error
 	ListKeys(req model.ListKey) (*model.PageResult, error)
+	EnableKey(req model.EnableKey) error
+	RemoveKey(req model.RemoveKey) error
+	SetKeyPassword(req model.SetKeyPassword) error
+	ChangeKeyPassword(req model.UpdateKeyPassword) error
+	ClearKeyPassword(req model.SetKeyPassword) error
 
 	LoadLog(req model.SearchSSHLog) (*model.SSHLog, error)
 }
@@ -218,9 +223,16 @@ func (u *SSHService) OperateSSH(req model.SSHOperate) error {
 		return err
 	}
 	sudo := utils.SudoHandleCmd()
-	if req.Operation == "enable" || req.Operation == "disable" {
+
+	switch req.Operation {
+	case "enable", "disable":
 		serviceName += ".service"
+	case "stop", "reload", "restart":
+		// do nothing
+	default:
+		return fmt.Errorf("unsupported operation: %s", req.Operation)
 	}
+
 	stdout, err := utils.Execf("%s systemctl %s %s", sudo, req.Operation, serviceName)
 	if err != nil {
 		if strings.Contains(stdout, "alias name or linked unit file") {
@@ -357,11 +369,12 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 			}
 
 			keys = append(keys, model.KeyInfo{
-				FileName:    info.Name(),
-				Fingerprint: fingerprint,
-				User:        user,
-				Status:      status,
-				KeyBits:     keyBits,
+				FileName:       info.Name(),
+				Fingerprint:    fingerprint,
+				User:           user,
+				Status:         status,
+				KeyBits:        keyBits,
+				PrivateKeyPath: path,
 			})
 		}
 		return nil
@@ -372,6 +385,204 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 	pageResult.Items = keys
 
 	return &pageResult, nil
+}
+
+// EnableKey 操作SSH密钥的启用/禁用状态
+func (u *SSHService) EnableKey(req model.EnableKey) error {
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+
+	// 构造文件路径
+	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+	pubKeyFile := filepath.Join(currentUser.HomeDir, ".ssh", req.KeyName+".pub")
+
+	// 读取公钥文件
+	pubKeyData, err := os.ReadFile(pubKeyFile)
+	if err != nil {
+		return fmt.Errorf("read public key file failed, err: %v", err)
+	}
+
+	// 读取 authorized_keys 文件
+	authData, err := os.ReadFile(authFile)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("read authorized_keys failed, err: %v", err)
+	}
+
+	pubKeyStr := string(pubKeyData)
+	authStr := string(authData)
+	keyExists := strings.Contains(authStr, pubKeyStr)
+
+	if req.Enable && !keyExists {
+		// 启用密钥：将公钥追加到 authorized_keys
+		authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+
+		// 如果文件不存在，创建它
+		if _, err := os.Stat(authFile); os.IsNotExist(err) {
+			if err := os.WriteFile(authFile, []byte(""), 0600); err != nil {
+				return fmt.Errorf("create authorized_keys failed, err: %v", err)
+			}
+		}
+
+		// 追加公钥
+		f, err := os.OpenFile(authFile, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			return fmt.Errorf("open authorized_keys failed, err: %v", err)
+		}
+		defer f.Close()
+
+		if _, err := f.Write(pubKeyData); err != nil {
+			return fmt.Errorf("append public key to authorized_keys failed, err: %v", err)
+		}
+	} else if !req.Enable && keyExists {
+		// 禁用密钥：从 authorized_keys 中移除公钥
+		lines := strings.Split(authStr, "\n")
+		var newLines []string
+
+		for _, line := range lines {
+			if !strings.Contains(line, pubKeyStr) {
+				newLines = append(newLines, line)
+			}
+		}
+
+		// 写回文件
+		newContent := strings.Join(newLines, "\n")
+		if err := os.WriteFile(authFile, []byte(newContent), 0600); err != nil {
+			return fmt.Errorf("write authorized_keys failed, err: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// DeleteKey 删除SSH密钥
+func (u *SSHService) RemoveKey(req model.RemoveKey) error {
+	// 确定私钥文件路径
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+
+	// 构造文件路径
+	privateKeyFile := filepath.Join(currentUser.HomeDir, ".ssh", req.KeyName)
+	publicKeyFile := privateKeyFile + ".pub"
+	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
+
+	// 1. 如果不是只删除私钥,则需要清理authorized_keys中的公钥
+	if !req.OnlyPrivateKey {
+		// 首先读取公钥文件
+		pubKeyData, err := os.ReadFile(publicKeyFile)
+		if err == nil { // 只有在能读取公钥文件的情况下才进行清理
+			// 读取 authorized_keys 文件
+			authData, err := os.ReadFile(authFile)
+			if err == nil {
+				// 从 authorized_keys 中移除对应的公钥
+				lines := strings.Split(string(authData), "\n")
+				var newLines []string
+				pubKeyStr := string(pubKeyData)
+
+				for _, line := range lines {
+					if !strings.Contains(line, pubKeyStr) {
+						newLines = append(newLines, line)
+					}
+				}
+
+				// 写回文件
+				newContent := strings.Join(newLines, "\n")
+				if err := os.WriteFile(authFile, []byte(newContent), 0600); err != nil {
+					return fmt.Errorf("write authorized_keys failed, err: %v", err)
+				}
+			}
+		}
+	}
+
+	// 2. 删除私钥文件
+	if err := os.Remove(privateKeyFile); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove private key file failed, err: %v", err)
+	}
+
+	// 3. 如果不是只删除私钥,则删除公钥文件
+	if !req.OnlyPrivateKey {
+		if err := os.Remove(publicKeyFile); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove public key file failed, err: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// SetKeyPassword 设置私钥密码（仅当私钥未设置密码时可用）
+func (u *SSHService) SetKeyPassword(req model.SetKeyPassword) error {
+	// 确定私钥文件路径
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+	privateKeyFile := filepath.Join(currentUser.HomeDir, ".ssh", req.KeyName)
+
+	// 读取私钥文件
+	privateKeyData, err := os.ReadFile(privateKeyFile)
+	if err != nil {
+		return fmt.Errorf("read private key file failed: %v", err)
+	}
+
+	// 尝试不带密码解析私钥
+	_, err = ssh.ParsePrivateKey(privateKeyData)
+	if err != nil {
+		if strings.Contains(err.Error(), "private key is passphrase protected") {
+			return fmt.Errorf("private key already has a password")
+		}
+		return fmt.Errorf("parse private key failed: %v", err)
+	}
+
+	// 使用ssh-keygen更改密码
+	cmd := exec.Command("ssh-keygen", "-p", "-f", privateKeyFile, "-N", req.Password)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("set password failed: %s, %v", output, err)
+	}
+
+	return nil
+}
+
+// ChangeKeyPassword 修改私钥密码
+func (u *SSHService) ChangeKeyPassword(req model.UpdateKeyPassword) error {
+	// 确定私钥文件路径
+	currentUser, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("load current user failed, err: %v", err)
+	}
+	privateKeyFile := filepath.Join(currentUser.HomeDir, ".ssh", req.KeyName)
+
+	// 读取私钥文件
+	privateKeyData, err := os.ReadFile(privateKeyFile)
+	if err != nil {
+		return fmt.Errorf("read private key file failed: %v", err)
+	}
+
+	// 尝试使用旧密码解析私钥以验证密码
+	_, err = ssh.ParsePrivateKeyWithPassphrase(privateKeyData, []byte(req.OldPassword))
+	if err != nil {
+		return fmt.Errorf("invalid old password: %v", err)
+	}
+
+	// 使用ssh-keygen更改密码
+	cmd := exec.Command("ssh-keygen", "-p", "-f", privateKeyFile, "-P", req.OldPassword, "-N", req.NewPassword)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("change password failed: %s, %v", output, err)
+	}
+
+	return nil
+}
+
+// ClearKeyPassword 清除私钥密码
+func (u *SSHService) ClearKeyPassword(req model.SetKeyPassword) error {
+	// 直接调用 ChangeKeyPassword，将新密码设置为空字符串
+	return u.ChangeKeyPassword(model.UpdateKeyPassword{
+		KeyName:     req.KeyName,
+		OldPassword: req.Password,
+		NewPassword: "", // 清除密码就是将新密码设置为空
+	})
 }
 
 // getKeyStatus 检查密钥是否存在于 authorized_keys 文件中

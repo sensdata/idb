@@ -27,7 +27,7 @@ type ContentUpdate struct {
 }
 
 type SSHOperate struct {
-	Operation string `json:"operation"`
+	Operation string `json:"operation" validate:"required,oneof=enable disable stop reload restart"`
 }
 
 type GenerateKey struct {
@@ -41,12 +41,34 @@ type ListKey struct {
 	Keyword string `json:"keyword"`
 }
 
+type EnableKey struct {
+	KeyName string `json:"key_name" validate:"required"`
+	Enable  bool   `json:"enable"`
+}
+
+type RemoveKey struct {
+	KeyName        string `json:"key_name" validate:"required"`
+	OnlyPrivateKey bool   `json:"only_private_key" validate:"required"`
+}
+
+type SetKeyPassword struct {
+	KeyName  string `json:"key_name" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type UpdateKeyPassword struct {
+	KeyName     string `json:"key_name" validate:"required"`
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required"`
+}
+
 type KeyInfo struct {
-	FileName    string
-	Fingerprint string
-	User        string
-	Status      string
-	KeyBits     int
+	FileName       string
+	Fingerprint    string
+	User           string
+	Status         string
+	KeyBits        int
+	PrivateKeyPath string
 }
 
 type GenerateLoad struct {
