@@ -54,6 +54,13 @@ definitions:
       version:
         type: string
     type: object
+  model.AddAuthKey:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
   model.AddressInfo:
     properties:
       gate:
@@ -535,6 +542,15 @@ definitions:
     properties:
       status:
         type: string
+    type: object
+  model.EnableKey:
+    properties:
+      enable:
+        type: boolean
+      key_name:
+        type: string
+    required:
+    - key_name
     type: object
   model.ExecuteScript:
     properties:
@@ -1300,6 +1316,16 @@ definitions:
       space_reclaimed:
         type: integer
     type: object
+  model.RemoveKey:
+    properties:
+      key_name:
+        type: string
+      only_private_key:
+        type: boolean
+    required:
+    - key_name
+    - only_private_key
+    type: object
   model.Rename:
     properties:
       name:
@@ -1406,6 +1432,19 @@ definitions:
       total_count:
         type: integer
     type: object
+  model.SSHOperate:
+    properties:
+      operation:
+        enum:
+        - enable
+        - disable
+        - stop
+        - reload
+        - restart
+        type: string
+    required:
+    - operation
+    type: object
   model.SSHUpdate:
     properties:
       values:
@@ -1498,6 +1537,16 @@ definitions:
         $ref: '#/definitions/model.Validation'
       value:
         type: string
+    type: object
+  model.SetKeyPassword:
+    properties:
+      key_name:
+        type: string
+      password:
+        type: string
+    required:
+    - key_name
+    - password
     type: object
   model.SetTimeReq:
     properties:
@@ -1777,6 +1826,19 @@ definitions:
     - auth_mode
     - port
     - user
+    type: object
+  model.UpdateKeyPassword:
+    properties:
+      key_name:
+        type: string
+      new_password:
+        type: string
+      old_password:
+        type: string
+    required:
+    - key_name
+    - new_password
+    - old_password
     type: object
   model.UpdateServiceForm:
     properties:
@@ -7532,6 +7594,74 @@ paths:
       summary: Upgrade server
       tags:
       - Settings
+  /ssh/{host}/auth/keys:
+    delete:
+      consumes:
+      - application/json
+      description: Remove key in authorized keys
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Key Content
+        in: query
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Remove key in authorized keys
+      tags:
+      - SSH
+    get:
+      consumes:
+      - application/json
+      description: Get authorized keys on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get authorized keys on host
+      tags:
+      - SSH
+    post:
+      consumes:
+      - application/json
+      description: Add key to authorized keys
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.AddAuthKey'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Add key to authorized keys
+      tags:
+      - SSH
   /ssh/{host}/config:
     get:
       consumes:
@@ -7621,6 +7751,39 @@ paths:
       tags:
       - SSH
   /ssh/{host}/keys:
+    delete:
+      consumes:
+      - application/json
+      description: Enable secret on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Key Name
+        in: query
+        name: key_name
+        required: true
+        type: string
+      - description: Only Private Key
+        in: query
+        name: only_private_key
+        type: boolean
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RemoveKey'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Enable secret on host
+      tags:
+      - SSH
     get:
       consumes:
       - application/json
@@ -7640,6 +7803,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
       summary: Get SSH secrets on host
       tags:
       - SSH
@@ -7665,6 +7830,130 @@ paths:
         "200":
           description: OK
       summary: Generate host SSH secret
+      tags:
+      - SSH
+  /ssh/{host}/keys/download:
+    get:
+      description: Download private key
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Source file path
+        in: query
+        name: source
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Download private key
+      tags:
+      - SSH
+  /ssh/{host}/keys/enable:
+    post:
+      consumes:
+      - application/json
+      description: Enable secret on host
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.EnableKey'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Enable secret on host
+      tags:
+      - SSH
+  /ssh/{host}/keys/password/clear:
+    post:
+      consumes:
+      - application/json
+      description: Clear secret password
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetKeyPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Clear secret password
+      tags:
+      - SSH
+  /ssh/{host}/keys/password/set:
+    post:
+      consumes:
+      - application/json
+      description: Set secret password
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetKeyPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set secret password
+      tags:
+      - SSH
+  /ssh/{host}/keys/password/update:
+    post:
+      consumes:
+      - application/json
+      description: Update secret password
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateKeyPassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update secret password
       tags:
       - SSH
   /ssh/{host}/logs:
@@ -7718,12 +8007,12 @@ paths:
         name: host
         required: true
         type: integer
-      - description: Operation, can be 'enable' or 'disable'
+      - description: Operation request
         in: body
-        name: operation
+        name: request
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/model.SSHOperate'
       produces:
       - application/json
       responses:

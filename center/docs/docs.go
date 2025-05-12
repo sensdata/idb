@@ -8414,6 +8414,108 @@ const docTemplate = `{
                 }
             }
         },
+        "/ssh/{host}/auth/keys": {
+            "get": {
+                "description": "Get authorized keys on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Get authorized keys on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add key to authorized keys",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Add key to authorized keys",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AddAuthKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove key in authorized keys",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Remove key in authorized keys",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key Content",
+                        "name": "content",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/ssh/{host}/config": {
             "get": {
                 "description": "Get SSH configurations on host",
@@ -8577,7 +8679,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
                     }
                 }
             },
@@ -8608,6 +8713,243 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.GenerateKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Enable secret on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Enable secret on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key Name",
+                        "name": "key_name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Only Private Key",
+                        "name": "only_private_key",
+                        "in": "query"
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RemoveKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys/download": {
+            "get": {
+                "description": "Download private key",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Download private key",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Source file path",
+                        "name": "source",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys/enable": {
+            "post": {
+                "description": "Enable secret on host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Enable secret on host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.EnableKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys/password/clear": {
+            "post": {
+                "description": "Clear secret password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Clear secret password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetKeyPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys/password/set": {
+            "post": {
+                "description": "Set secret password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Set secret password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetKeyPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ssh/{host}/keys/password/update": {
+            "post": {
+                "description": "Update secret password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Update secret password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateKeyPassword"
                         }
                     }
                 ],
@@ -8699,12 +9041,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Operation, can be 'enable' or 'disable'",
-                        "name": "operation",
+                        "description": "Operation request",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.SSHOperate"
                         }
                     }
                 ],
@@ -10110,6 +10452,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.AddAuthKey": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AddressInfo": {
             "type": "object",
             "properties": {
@@ -10821,6 +11174,20 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.EnableKey": {
+            "type": "object",
+            "required": [
+                "key_name"
+            ],
+            "properties": {
+                "enable": {
+                    "type": "boolean"
+                },
+                "key_name": {
                     "type": "string"
                 }
             }
@@ -11966,6 +12333,21 @@ const docTemplate = `{
                 }
             }
         },
+        "model.RemoveKey": {
+            "type": "object",
+            "required": [
+                "key_name",
+                "only_private_key"
+            ],
+            "properties": {
+                "key_name": {
+                    "type": "string"
+                },
+                "only_private_key": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.Rename": {
             "type": "object",
             "required": [
@@ -12126,6 +12508,24 @@ const docTemplate = `{
                 }
             }
         },
+        "model.SSHOperate": {
+            "type": "object",
+            "required": [
+                "operation"
+            ],
+            "properties": {
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "enable",
+                        "disable",
+                        "stop",
+                        "reload",
+                        "restart"
+                    ]
+                }
+            }
+        },
         "model.SSHUpdate": {
             "type": "object",
             "properties": {
@@ -12260,6 +12660,21 @@ const docTemplate = `{
                     "$ref": "#/definitions/model.Validation"
                 },
                 "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SetKeyPassword": {
+            "type": "object",
+            "required": [
+                "key_name",
+                "password"
+            ],
+            "properties": {
+                "key_name": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -12667,6 +13082,25 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UpdateKeyPassword": {
+            "type": "object",
+            "required": [
+                "key_name",
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "key_name": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                },
+                "old_password": {
                     "type": "string"
                 }
             }
