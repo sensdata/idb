@@ -816,11 +816,14 @@ definitions:
         - 1024
         - 2048
         type: integer
+      key_name:
+        type: string
       password:
         type: string
     required:
     - encryption_mode
     - key_bits
+    - key_name
     type: object
   model.GitFile:
     properties:

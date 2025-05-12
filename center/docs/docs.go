@@ -11566,7 +11566,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "encryption_mode",
-                "key_bits"
+                "key_bits",
+                "key_name"
             ],
             "properties": {
                 "enabled": {
@@ -11587,6 +11588,9 @@ const docTemplate = `{
                         1024,
                         2048
                     ]
+                },
+                "key_name": {
+                    "type": "string"
                 },
                 "password": {
                     "type": "string"
