@@ -132,7 +132,7 @@ func (s *SSHMan) Initialize() {
 			{Method: "POST", Path: "/:host/keys/password/clear", Handler: s.ClearKeyPassword},
 			{Method: "GET", Path: "/:host/auth/keys", Handler: s.ListAuthKey},
 			{Method: "POST", Path: "/:host/auth/keys", Handler: s.AddAuthKey},
-			{Method: "DELETE", Path: "/:host/auth/keys/remove", Handler: s.RemoveAuthKey},
+			{Method: "DELETE", Path: "/:host/auth/keys", Handler: s.RemoveAuthKey},
 			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
 		},
 	)
