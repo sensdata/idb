@@ -35,6 +35,7 @@ type IAppService interface {
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
+	AppUninstall(hostID uint64, req core.UninstallApp) error
 }
 
 func NewIAppService() IAppService {
@@ -680,4 +681,42 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	}
 
 	return &result, nil
+}
+
+func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
+
+	// 查找应用
+	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
+	if err != nil {
+		global.LOG.Error("App %d not found", req.ID)
+		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	appName := app.Name
+
+	composeRemove := core.ComposeRemove{
+		Name:    appName,
+		WorkDir: s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeRemove)
+	if err != nil {
+		return err
+	}
+	actionRequest := core.HostAction{
+		HostID: uint(hostID),
+		Action: core.Action{
+			Action: core.Docker_Compose_Remove,
+			Data:   data,
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to remove compose")
+	}
+	return nil
 }

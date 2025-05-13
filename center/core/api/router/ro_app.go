@@ -18,5 +18,6 @@ func (s *AppRouter) InitRouter(Router *gin.RouterGroup) {
 		appRouter.GET("/apps/detail", baseApi.AppDetail)                 // 获取应用详情
 		appRouter.GET("/:host/apps/installed", baseApi.InstalledAppPage) //获取已安装应用列表
 		appRouter.POST("/:host/apps/install", baseApi.InstallApp)        // 安装应用
+		appRouter.POST("/:host/apps/uninstall", baseApi.UninstallApp)    // 卸载应用
 	}
 }

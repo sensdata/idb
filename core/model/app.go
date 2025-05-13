@@ -44,3 +44,7 @@ type InstallApp struct {
 	FormParams     []KeyValue `json:"form_params"`
 	ExtraParams    []KeyValue `json:"extra_params"`
 }
+
+type UninstallApp struct {
+	ID uint `json:"id"`
+}

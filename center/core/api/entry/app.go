@@ -99,8 +99,8 @@ func (b *BaseApi) InstalledAppPage(c *gin.Context) {
 // @Summary Install app
 // @Description Install app
 // @Param host path int true "Host ID"
-// @Param request body model.ComposeCreate true "request"
-// @Success 200 {object} model.ComposeCreateResult
+// @Param request body model.InstallApp true "request"
+// @Success 200 {object} model.LogInfo
 // @Router /store/{host}/apps/install [post]
 func (b *BaseApi) InstallApp(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -119,5 +119,32 @@ func (b *BaseApi) InstallApp(c *gin.Context) {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	SuccessWithData(c, result)
+	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
+}
+
+// @Tags App
+// @Summary Uninstall app
+// @Description Uninstall app
+// @Param host path int true "Host ID"
+// @Param request body model.UninstallApp true "request"
+// @Success 200
+// @Router /store/{host}/apps/uninstall [post]
+func (b *BaseApi) UninstallApp(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.UninstallApp
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = appService.AppUninstall(uint64(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, "")
 }
