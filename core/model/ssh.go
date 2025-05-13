@@ -33,7 +33,7 @@ type SSHOperate struct {
 type GenerateKey struct {
 	KeyName        string `json:"key_name" validate:"required"`
 	KeyBits        uint   `json:"key_bits" validate:"required,oneof=1024 2048"`
-	Enabled        bool   `json:"enabled"`
+	Enable         bool   `json:"enable"`
 	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
 	Password       string `json:"password"`
 }

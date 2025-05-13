@@ -507,7 +507,7 @@ func (u *SSHService) EnableKey(req model.EnableKey) error {
 		return fmt.Errorf("read authorized_keys failed, err: %v", err)
 	}
 
-	pubKeyStr := string(pubKeyData)
+	pubKeyStr := strings.TrimSpace(string(pubKeyData))
 	authStr := string(authData)
 	keyExists := strings.Contains(authStr, pubKeyStr)
 
@@ -538,7 +538,7 @@ func (u *SSHService) EnableKey(req model.EnableKey) error {
 		var newLines []string
 
 		for _, line := range lines {
-			if !strings.Contains(line, pubKeyStr) {
+			if strings.TrimSpace(line) != pubKeyStr {
 				newLines = append(newLines, line)
 			}
 		}
