@@ -277,7 +277,6 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 	timestamp := time.Now().Format("20060102150405")
 	secretFile := fmt.Sprintf("%s/.ssh/tmp_%s_%s", currentUser.HomeDir, req.EncryptionMode, timestamp)
 	secretPubFile := fmt.Sprintf("%s/.ssh/tmp_%s_%s.pub", currentUser.HomeDir, req.EncryptionMode, timestamp)
-	authFile := currentUser.HomeDir + "/.ssh/authorized_keys"
 
 	// 构造注释信息（用户@主机名）
 	hostname, err := os.Hostname()
@@ -307,28 +306,14 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 		_ = os.Remove(secretPubFile)
 	}()
 
-	// 如果 authorized_keys 文件不存在，则创建它
-	if _, err := os.Stat(authFile); os.IsNotExist(err) {
-		file, err := os.Create(authFile)
-		if err != nil {
-			return fmt.Errorf("create authorized_keys failed, err: %v", err)
-		}
-		defer file.Close()
-	}
-
 	// 如果启用密钥，将公钥追加到 authorized_keys 文件
-	if req.Enabled {
+	if req.Enable {
 		pubKey, err := os.ReadFile(secretPubFile)
 		if err != nil {
 			return fmt.Errorf("read public key file failed, err: %v", err)
 		}
-		// 使用os.OpenFile打开文件以支持追加模式
-		authFileHandle, err := os.OpenFile(authFile, os.O_WRONLY|os.O_APPEND, 0600)
-		if err != nil {
-			return fmt.Errorf("open authorized_keys failed, err: %v", err)
-		}
-		defer authFileHandle.Close()
-		if _, err := authFileHandle.Write(pubKey); err != nil {
+		pubKeyStr := strings.TrimSpace(string(pubKey))
+		if err := u.AddAuthKey(model.AddAuthKey{Content: pubKeyStr}); err != nil {
 			return fmt.Errorf("append public key to authorized_keys failed, err: %v", err)
 		}
 	}
@@ -492,7 +477,6 @@ func (u *SSHService) EnableKey(req model.EnableKey) error {
 	}
 
 	// 构造文件路径
-	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
 	pubKeyFile := filepath.Join(currentUser.HomeDir, ".ssh", req.KeyName+".pub")
 
 	// 读取公钥文件
@@ -500,57 +484,16 @@ func (u *SSHService) EnableKey(req model.EnableKey) error {
 	if err != nil {
 		return fmt.Errorf("read public key file failed, err: %v", err)
 	}
+	pubKeyContent := strings.TrimSpace(string(pubKeyData))
 
-	// 读取 authorized_keys 文件
-	authData, err := os.ReadFile(authFile)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("read authorized_keys failed, err: %v", err)
+	switch req.Enable {
+	case true:
+		return u.AddAuthKey(model.AddAuthKey{Content: pubKeyContent})
+	case false:
+		return u.RemoveAuthKey(model.RemoveAuthKey{Content: pubKeyContent})
+	default:
+		return fmt.Errorf("invalid enable value: %v", req.Enable)
 	}
-
-	pubKeyStr := strings.TrimSpace(string(pubKeyData))
-	authStr := string(authData)
-	keyExists := strings.Contains(authStr, pubKeyStr)
-
-	if req.Enable && !keyExists {
-		// 启用密钥：将公钥追加到 authorized_keys
-		authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
-
-		// 如果文件不存在，创建它
-		if _, err := os.Stat(authFile); os.IsNotExist(err) {
-			if err := os.WriteFile(authFile, []byte(""), 0600); err != nil {
-				return fmt.Errorf("create authorized_keys failed, err: %v", err)
-			}
-		}
-
-		// 追加公钥
-		f, err := os.OpenFile(authFile, os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			return fmt.Errorf("open authorized_keys failed, err: %v", err)
-		}
-		defer f.Close()
-
-		if _, err := f.Write(pubKeyData); err != nil {
-			return fmt.Errorf("append public key to authorized_keys failed, err: %v", err)
-		}
-	} else if !req.Enable && keyExists {
-		// 禁用密钥：从 authorized_keys 中移除公钥
-		lines := strings.Split(authStr, "\n")
-		var newLines []string
-
-		for _, line := range lines {
-			if strings.TrimSpace(line) != pubKeyStr {
-				newLines = append(newLines, line)
-			}
-		}
-
-		// 写回文件
-		newContent := strings.Join(newLines, "\n")
-		if err := os.WriteFile(authFile, []byte(newContent), 0600); err != nil {
-			return fmt.Errorf("write authorized_keys failed, err: %v", err)
-		}
-	}
-
-	return nil
 }
 
 // DeleteKey 删除SSH密钥
@@ -743,6 +686,10 @@ func (u *SSHService) AddAuthKey(req model.AddAuthKey) error {
 		return fmt.Errorf("load current user failed, err: %v", err)
 	}
 
+	// 构造公钥行
+	pubKeyContent := strings.TrimSpace(req.Content)
+	keyLine := fmt.Sprintf("%s\n", pubKeyContent)
+
 	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
 
 	// 确保.ssh目录存在
@@ -750,9 +697,6 @@ func (u *SSHService) AddAuthKey(req model.AddAuthKey) error {
 	if err := os.MkdirAll(sshDir, 0700); err != nil {
 		return fmt.Errorf("create .ssh directory failed, err: %v", err)
 	}
-
-	// 构造公钥行
-	keyLine := fmt.Sprintf("%s\n", strings.TrimSpace(req.Content))
 
 	// 如果文件不存在，创建新文件
 	if _, err := os.Stat(authFile); os.IsNotExist(err) {
@@ -763,12 +707,12 @@ func (u *SSHService) AddAuthKey(req model.AddAuthKey) error {
 	}
 
 	// 检查是否已存在相同的密钥
-	content, err := os.ReadFile(authFile)
+	authData, err := os.ReadFile(authFile)
 	if err != nil {
 		return fmt.Errorf("read authorized_keys failed, err: %v", err)
 	}
 
-	if strings.Contains(string(content), req.Content) {
+	if strings.Contains(string(authData), pubKeyContent) {
 		return fmt.Errorf("public key already exists")
 	}
 
@@ -794,19 +738,20 @@ func (u *SSHService) RemoveAuthKey(req model.RemoveAuthKey) error {
 		return fmt.Errorf("load current user failed, err: %v", err)
 	}
 
+	pubKeyContent := strings.TrimSpace(req.Content)
+
 	authFile := filepath.Join(currentUser.HomeDir, ".ssh", "authorized_keys")
 
 	// 读取authorized_keys文件
-	content, err := os.ReadFile(authFile)
+	authData, err := os.ReadFile(authFile)
 	if err != nil {
 		return fmt.Errorf("read authorized_keys failed, err: %v", err)
 	}
 
 	// 按行处理，排除要删除的公钥
-	lines := strings.Split(string(content), "\n")
+	lines := strings.Split(string(authData), "\n")
 	var newLines []string
 	keyFound := false
-
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -814,7 +759,7 @@ func (u *SSHService) RemoveAuthKey(req model.RemoveAuthKey) error {
 		}
 
 		// 如果该行不包含要删除的公钥，保留该行
-		if !strings.Contains(line, req.Content) {
+		if line != pubKeyContent {
 			newLines = append(newLines, line)
 		} else {
 			keyFound = true
