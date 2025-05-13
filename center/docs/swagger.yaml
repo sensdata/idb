@@ -802,7 +802,7 @@ definitions:
     type: object
   model.GenerateKey:
     properties:
-      enabled:
+      enable:
         type: boolean
       encryption_mode:
         enum:

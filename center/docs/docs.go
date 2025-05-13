@@ -11570,7 +11570,7 @@ const docTemplate = `{
                 "key_name"
             ],
             "properties": {
-                "enabled": {
+                "enable": {
                     "type": "boolean"
                 },
                 "encryption_mode": {
