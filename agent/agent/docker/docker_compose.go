@@ -32,6 +32,15 @@ func (s *DockerService) ComposeCreate(req model.ComposeCreate) (*model.ComposeCr
 	return client.ComposeCreate(req)
 }
 
+func (s *DockerService) ComposeRemove(req model.ComposeRemove) error {
+	client, err := client.NewClient()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	return client.ComposeRemove(req)
+}
+
 func (s *DockerService) ComposeOperation(req model.ComposeOperation) error {
 	client, err := client.NewClient()
 	if err != nil {

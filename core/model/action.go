@@ -114,6 +114,7 @@ const (
 	Docker_Network_Create           string = "docker_network_create"
 	Docker_Compose_Page             string = "docker_compose_page"
 	Docker_Compose_Create           string = "docker_compose_create"
+	Docker_Compose_Remove           string = "docker_compose_remove"
 	Docker_Compose_Operation        string = "docker_compose_operation"
 	Docker_Compose_Test             string = "docker_compose_test"
 	Docker_Compose_Update           string = "docker_compose_update"

@@ -347,6 +347,22 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	return &result, nil
 }
 
+func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
+	if utils.CheckIllegal(req.Name, req.WorkDir) {
+		return errors.New(constant.ErrCmdIllegal)
+	}
+	composePath := fmt.Sprintf("%s/%s/compose.yml", req.WorkDir, req.Name)
+	if _, err := os.Stat(composePath); err != nil {
+		global.LOG.Error("Failed to load compose file %s", composePath)
+		return fmt.Errorf("load compose file failed, %v", err)
+	}
+	if stdout, err := down(composePath); err != nil {
+		return errors.New(string(stdout))
+	}
+	global.LOG.Info("docker-compose down %s successful", req.Name)
+	return nil
+}
+
 func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 	if utils.CheckIllegal(req.Name, req.Operation, req.WorkDir) {
 		return errors.New(constant.ErrCmdIllegal)

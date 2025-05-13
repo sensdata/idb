@@ -48,6 +48,7 @@ type IDockerService interface {
 	ComposePage(req model.QueryCompose) (*model.PageResult, error)
 	ComposeTest(req model.ComposeCreate) (*model.ComposeTestResult, error)
 	ComposeCreate(req model.ComposeCreate) (*model.ComposeCreateResult, error)
+	ComposeRemove(req model.ComposeRemove) error
 	ComposeOperation(req model.ComposeOperation) error
 	ComposeUpdate(req model.ComposeUpdate) error
 

@@ -235,6 +235,11 @@ type ComposeCreate struct {
 	WorkDir        string `json:"work_dir"`
 }
 
+type ComposeRemove struct {
+	Name    string `json:"name" validate:"required"`
+	WorkDir string `json:"work_dir"`
+}
+
 type ComposeOperation struct {
 	Name      string `json:"name" validate:"required"`
 	Operation string `json:"operation" validate:"required,oneof=start stop down"`

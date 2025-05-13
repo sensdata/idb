@@ -2264,6 +2264,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+	case model.Docker_Compose_Remove:
+		var req model.ComposeRemove
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := DockerService.ComposeRemove(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	case model.Docker_Compose_Operation:
 		var req model.ComposeOperation
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
