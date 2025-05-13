@@ -393,6 +393,8 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 		hasPrivateKey := false
 		if _, err := os.Stat(privateKeyPath); err == nil {
 			hasPrivateKey = true
+		} else {
+			privateKeyPath = ""
 		}
 
 		// 获取密钥位数
@@ -420,7 +422,7 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 		}
 
 		// 如果从公钥无法获取位数，且存在私钥，则尝试从私钥获取
-		if keyBits == 0 && hasPrivateKey {
+		if keyBits == 0 && hasPrivateKey && privateKeyPath != "" {
 			privateKeyData, err := os.ReadFile(privateKeyPath)
 			if err == nil {
 				keyBits, _ = getKeyBits(privateKeyData)
@@ -438,7 +440,7 @@ func (u *SSHService) ListKeys(req model.ListKey) (*model.PageResult, error) {
 		}
 
 		// 2. 如果公钥中没有用户信息，且存在私钥，尝试从私钥文件中获取
-		if user == "" && hasPrivateKey {
+		if user == "" && hasPrivateKey && privateKeyPath != "" {
 			privateKeyData, err := os.ReadFile(privateKeyPath)
 			if err == nil {
 				// 解析私钥文件
@@ -841,7 +843,7 @@ func getKeyStatus(authFile, keyFile string) (string, error) {
 	}
 
 	// 读取密钥文件内容
-	keyData, err := os.ReadFile(keyFile + ".pub")
+	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return "", fmt.Errorf("read public key file failed, err: %v", err)
 	}
