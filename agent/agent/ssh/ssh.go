@@ -335,10 +335,10 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 
 	// 重命名文件到用户指定的路径（无论是否启用密钥）
 	fileOp := files.NewFileOp()
-	if err := fileOp.Rename(secretFile, targetPrivateKey); err != nil {
+	if err := fileOp.Rename(secretFile, req.KeyName); err != nil {
 		return fmt.Errorf("failed to rename private key file: %v", err)
 	}
-	if err := fileOp.Rename(secretPubFile, targetPublicKey); err != nil {
+	if err := fileOp.Rename(secretPubFile, req.KeyName+".pub"); err != nil {
 		// 如果公钥重命名失败，尝试回滚私钥的重命名
 		_ = fileOp.Rename(targetPrivateKey, secretFile)
 		return fmt.Errorf("failed to rename public key file: %v", err)
