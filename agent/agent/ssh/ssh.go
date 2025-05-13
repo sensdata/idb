@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
@@ -875,30 +876,21 @@ func getKeyBits(fileData []byte) (int, error) {
 		return key.Params().BitSize, nil
 
 	case "OPENSSH PRIVATE KEY":
-		signer, err := ssh.ParsePrivateKey(fileData)
+		// 尝试解析 OpenSSH 格式的私钥
+		key, err := ssh.ParseRawPrivateKey(fileData)
 		if err != nil {
 			return 0, fmt.Errorf("parse OpenSSH private key failed: %v", err)
 		}
 
-		pubKey := signer.PublicKey()
-		switch pubKey.Type() {
-		case "ssh-rsa":
-			// 通过 Marshal 方法获取字节数组并解析为 x509 格式
-			rsaPubKey, err := x509.ParsePKIXPublicKey(pubKey.Marshal())
-			if err != nil {
-				return 0, fmt.Errorf("parse RSA public key failed: %v", err)
-			}
-
-			if rsaKey, ok := rsaPubKey.(*rsa.PublicKey); ok {
-				return rsaKey.N.BitLen(), nil
-			}
-			return 0, fmt.Errorf("unsupported RSA public key type")
-		case "ecdsa-sha2-nistp256":
-			// 返回 ECDSA 固定位数
-			return 256, nil
+		// 根据具体类型返回位数
+		switch k := key.(type) {
+		case *rsa.PrivateKey:
+			return k.Size() * 8, nil
+		case *ed25519.PrivateKey:
+			return 256, nil // Ed25519 总是 256 位
+		default:
+			return 0, fmt.Errorf("unsupported OpenSSH key type")
 		}
-
-		return 0, fmt.Errorf("unsupported OpenSSH key type")
 
 	default:
 		return 0, fmt.Errorf("unsupported key type: %s", block.Type)
