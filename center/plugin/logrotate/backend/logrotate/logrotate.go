@@ -785,7 +785,7 @@ func (s *LogRotate) getConfList(hostID uint64, req model.QueryGitFile) (*model.P
 		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
-		Extension:    ".logrotate;.linked", //筛选.logrotate.linked
+		Extension:    ".logrotate", //筛选.logrotate
 		Page:         req.Page,
 		PageSize:     req.PageSize,
 	}

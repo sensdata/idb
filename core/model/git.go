@@ -9,6 +9,7 @@ type GitFile struct {
 	Content   string    `json:"content"`
 	Size      int64     `json:"size"`
 	ModTime   time.Time `json:"mod_time"`
+	Linked    bool      `json:"linked"`
 }
 
 type GitCommit struct {

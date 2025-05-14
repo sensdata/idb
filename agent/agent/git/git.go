@@ -181,14 +181,37 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 			}
 		}
 
+		// 文件名和后缀
+		ext := filepath.Ext(info.Name())
+		name := strings.TrimSuffix(info.Name(), ext)
+
+		// 读取文件内容
+		var content string
+		if !info.IsDir() {
+			fileContent, err := os.ReadFile(path)
+			if err != nil {
+				global.LOG.Error("Failed to read file %s, %v", path, err)
+				return err
+			}
+			content = string(fileContent)
+		}
+
+		// 查看同目录下，是否存在.linked 文件(name.linked)
+		var linked bool
+		linkedFilePath := strings.TrimSuffix(path, ext) + ".linked"
+		if _, err := os.Stat(linkedFilePath); err == nil {
+			linked = true
+		}
+
 		// 填充 GitFile 信息
 		file := model.GitFile{
 			Source:    path,
-			Name:      strings.TrimSuffix(info.Name(), filepath.Ext(info.Name())),
-			Extension: filepath.Ext(info.Name()),
-			Content:   "",
+			Name:      name,
+			Extension: ext,
+			Content:   content,
 			Size:      info.Size(),
 			ModTime:   info.ModTime(),
+			Linked:    linked,
 		}
 		files = append(files, file)
 		return nil
@@ -280,14 +303,24 @@ func (s *GitService) GetFile(repoPath string, relativePath string) (*model.GitFi
 		return nil, err
 	}
 
+	ext := filepath.Ext(fileInfo.Name())
+
+	// 查看同目录下，是否存在.linked 文件(name.linked)
+	var linked bool
+	linkedFilePath := strings.TrimSuffix(realPath, ext) + ".linked"
+	if _, err := os.Stat(linkedFilePath); err == nil {
+		linked = true
+	}
+
 	// 填充到结果
 	gitFile := &model.GitFile{
 		Source:    realPath,
-		Name:      strings.TrimSuffix(fileInfo.Name(), filepath.Ext(fileInfo.Name())),
-		Extension: filepath.Ext(fileInfo.Name()),
-		Content:   string(content), // 将内容转换为字符串
+		Name:      strings.TrimSuffix(fileInfo.Name(), ext),
+		Extension: ext,
+		Content:   string(content),
 		Size:      fileInfo.Size(),
 		ModTime:   fileInfo.ModTime(),
+		Linked:    linked,
 	}
 
 	return gitFile, nil

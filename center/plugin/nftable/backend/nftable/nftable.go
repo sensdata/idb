@@ -658,7 +658,7 @@ func (s *NFTable) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
-		Extension:    ".nftable;.linked", //筛选.nftable.linked
+		Extension:    ".nftable", //筛选.nftable
 		Page:         req.Page,
 		PageSize:     req.PageSize,
 	}

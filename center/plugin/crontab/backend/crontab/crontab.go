@@ -467,7 +467,7 @@ func (s *CronTab) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
-		Extension:    ".crontab;.linked", //筛选.crontab.linked
+		Extension:    ".crontab", //筛选.crontab
 		Page:         req.Page,
 		PageSize:     req.PageSize,
 	}

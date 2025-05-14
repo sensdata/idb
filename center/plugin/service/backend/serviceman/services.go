@@ -520,7 +520,7 @@ func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*mod
 		HostID:       hid,
 		RepoPath:     repoPath,
 		RelativePath: req.Category,
-		Extension:    ".service;.linked", //筛选.service和.linked
+		Extension:    ".service", //筛选.service
 		Page:         req.Page,
 		PageSize:     req.PageSize,
 	}
