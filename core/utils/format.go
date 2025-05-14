@@ -5,6 +5,22 @@ import (
 	"time"
 )
 
+func FormatContainerLogTimeFilter(minutes int) string {
+	// 将分钟数转换为几个选项：all, 24h, 4h, 1h, 10m
+	switch {
+	case minutes <= 24*60:
+		return "24h"
+	case minutes <= 4*60:
+		return "4h"
+	case minutes <= 60:
+		return "1h"
+	case minutes <= 10*60:
+		return "10m"
+	default:
+		return "all"
+	}
+}
+
 func FormatDuration(sec int64) string {
 	// 将秒转换为天、小时、分钟、秒
 	duration := time.Duration(sec) * time.Second

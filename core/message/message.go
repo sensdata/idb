@@ -100,9 +100,9 @@ type LogStreamMessage struct {
 	MsgID     string        `json:"msg_id"`
 	Type      LogStreamType `json:"type"`
 	TaskID    string        `json:"task_id"`
-	LogPath   string        `json:"log_path"`
-	Offset    int64         `json:"offset"`
-	Whence    int           `json:"whence"`
+	LogPath   string        `json:"log_path"` // 无前缀标识为普通文件；有前缀标识为特殊目的，比如 container:*** 标识为容器日志
+	Offset    int64         `json:"offset"`   // 当为容器日志时，表示tail条数；其他情况为文件偏移量
+	Whence    int           `json:"whence"`   // 当为容器日志时，表示since时间选项，具体值在逻辑中确定；其他情况io的whence
 	Content   string        `json:"content,omitempty"`
 	Error     string        `json:"error,omitempty"`
 	Timestamp int64         `json:"timestamp"`

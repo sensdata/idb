@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -786,13 +787,55 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 		}
 		c.readerMu.RUnlock()
 
-		// 创建新的 Reader
-		r, err := adapters.NewTailReader(msg.LogPath, nil)
-		if err != nil {
-			errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
-			global.LOG.Error(errMsg)
-			c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
-			return
+		// 创建新的 Reader, 根据logPath判断用那种reader
+		var (
+			rType   string
+			r       reader.Reader
+			logPath string
+			err     error
+		)
+		if strings.HasPrefix(msg.LogPath, "docker:") {
+			rType = "docker"
+			logPath = strings.TrimPrefix(msg.LogPath, "docker:")
+		} else if strings.HasPrefix(msg.LogPath, "compose:") {
+			rType = "compose"
+			logPath = strings.TrimPrefix(msg.LogPath, "compose:")
+		} else {
+			rType = "file"
+			logPath = msg.LogPath
+		}
+
+		switch rType {
+		case "docker", "compose":
+			// 根据 msg.Whence 确定 since
+			since := utils.FormatContainerLogTimeFilter(msg.Whence)
+
+			// 根据 msg.Offset 确定 tail
+			var tail string
+			switch msg.Offset {
+			// 全部
+			case 0:
+				tail = "all"
+			// 行数
+			default:
+				tail = strconv.Itoa(int(msg.Offset))
+			}
+
+			r, err = adapters.NewContainerLogReader(
+				rType,
+				logPath,
+				since,
+				tail,
+				true,
+			)
+		default:
+			r, err = adapters.NewTailReader(msg.LogPath, nil)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
+				global.LOG.Error(errMsg)
+				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				return
+			}
 		}
 
 		// 创建done channel
