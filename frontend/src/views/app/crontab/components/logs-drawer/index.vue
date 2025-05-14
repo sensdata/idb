@@ -14,7 +14,7 @@
       :expandable="expandable"
       @expand="expand"
     >
-      <template #expand-row="{ record }: { record: any }">
+      <template #expand-row="{ record }: { record: CrontabRecord }">
         <template v-if="expandData[record.id]">
           <a-spin :loading="expandData[record.id].loading">
             <div
@@ -51,20 +51,38 @@
 <script setup lang="ts">
   import { GlobalComponents, nextTick, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { formatTime } from '@/utils/format';
+  import { formatTimeWithoutSeconds } from '@/utils/format';
   import { getCrontabRecordsApi, getCrontabRunLogApi } from '@/api/crontab';
   import LogsView from '@/components/logs-view/index.vue';
+  import { Column } from '@/components/idb-table/types';
+
+  // Define types for crontab records
+  interface CrontabRecord {
+    id: number;
+    status: 'success' | 'failed';
+    start_time: string;
+    end_time: string;
+    cost_time: string;
+  }
+
+  interface ExpandData {
+    logs: string;
+    loading: boolean;
+    el?: any;
+  }
 
   const { t } = useI18n();
   const visible = ref(false);
   const crontabId = ref<number>();
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
 
-  const params = ref({
-    id: undefined as number | undefined,
+  const params = ref<{
+    id: number | undefined;
+  }>({
+    id: undefined,
   });
 
-  const columns = [
+  const columns: Column<CrontabRecord>[] = [
     {
       dataIndex: 'status',
       title: t('app.crontab.logs.column.status'),
@@ -73,12 +91,14 @@
     {
       dataIndex: 'start_time',
       title: t('app.crontab.logs.column.start_time'),
-      render: ({ record }: { record: any }) => formatTime(record.start_time),
+      render: ({ record }: { record: CrontabRecord }) =>
+        formatTimeWithoutSeconds(record.start_time),
     },
     {
       dataIndex: 'end_time',
       title: t('app.crontab.logs.column.end_time'),
-      render: ({ record }: { record: any }) => formatTime(record.end_time),
+      render: ({ record }: { record: CrontabRecord }) =>
+        formatTimeWithoutSeconds(record.end_time),
     },
     {
       dataIndex: 'cost_time',
@@ -91,13 +111,7 @@
     width: 80,
     expandedRowKeys: [] as number[],
   });
-  const expandData = reactive<{
-    [key: number]: {
-      logs: string;
-      loading: boolean;
-      el?: any;
-    };
-  }>({});
+  const expandData = reactive<Record<number, ExpandData>>({});
   const loadLogs = async (recordId: number) => {
     if (!expandData[recordId]) {
       expandData[recordId] = {

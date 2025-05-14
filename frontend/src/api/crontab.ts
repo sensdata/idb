@@ -1,10 +1,11 @@
-import { CRONTAB_TYPE } from '@/config/enum';
 import { CrontabEntity } from '@/entity/Crontab';
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
+import { CRONTAB_TYPE } from '@/config/enum';
 
 export interface CrontabListApiParams extends ApiListParams {
-  type?: CRONTAB_TYPE;
+  type: CRONTAB_TYPE;
+  category: string;
 }
 export function getCrontabListApi(params: CrontabListApiParams) {
   return request.get<ApiListResult<CrontabEntity>>('crontab/{host}', params);
@@ -22,6 +23,18 @@ export function updateCrontabApi(data: Partial<CrontabEntity>) {
   return request.put('crontab/{host}', data);
 }
 
+export interface CreateUpdateCrontabRawParams {
+  type: CRONTAB_TYPE;
+  category: string;
+  name: string;
+  content: string;
+}
+export function createUpdateCrontabRawApi(
+  params: CreateUpdateCrontabRawParams
+) {
+  return request.post('crontab/{host}/raw', params);
+}
+
 export interface CrontabVersionsApiParams extends ApiListParams {
   id: number;
 }
@@ -29,7 +42,14 @@ export function getCrontabVersionListApi(params: CrontabVersionsApiParams) {
   return request.get('crontab/{host}/versions', params);
 }
 
-export function runCrontabApi(params: { id: number }) {
+export interface RunCrontabParams {
+  id: number;
+  type: CRONTAB_TYPE;
+  category: string;
+  name: string;
+}
+
+export function runCrontabApi(params: RunCrontabParams) {
   return request.post('crontab/{host}/run', params);
 }
 
@@ -48,6 +68,12 @@ export function getCrontabRunLogApi(params: CrontabRunLogApiParams) {
   return request.get('crontab/{host}/run/log', params);
 }
 
-export function deleteCrontabApi(params: { id: number }) {
+export interface DeleteCrontabParams {
+  type: CRONTAB_TYPE;
+  category: string;
+  name: string;
+}
+
+export function deleteCrontabApi(params: DeleteCrontabParams) {
   return request.delete('crontab/{host}', params);
 }

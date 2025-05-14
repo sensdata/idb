@@ -45,8 +45,8 @@
   import { GlobalComponents, PropType, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { SCRIPT_TYPE } from '@/config/enum';
-  import { formatTime } from '@/utils/format';
+  import { CRONTAB_TYPE, SCRIPT_TYPE } from '@/config/enum';
+  import { formatTimeWithoutSeconds } from '@/utils/format';
   import { CrontabEntity } from '@/entity/Crontab';
   import {
     deleteCrontabApi,
@@ -68,14 +68,30 @@
   const { t } = useI18n();
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
-  const formRef = ref<InstanceType<typeof FormDrawer>>();
+  const formRef = ref<
+    InstanceType<typeof FormDrawer> & {
+      setParams: (params: any) => void;
+      load: () => void;
+      show: (params?: any) => void;
+    }
+  >();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
-  const selectedCat = ref(null);
   const { loading, setLoading } = useLoading();
   const { confirm } = useConfirm();
-  const params = ref({
-    type: props.type,
-    category: selectedCat.value,
+  // Define params with correct types
+  const params = ref<{
+    type: CRONTAB_TYPE;
+    category: string;
+    page: number;
+    page_size: number;
+  }>({
+    type:
+      props.type === SCRIPT_TYPE.Global
+        ? CRONTAB_TYPE.Global
+        : CRONTAB_TYPE.Local,
+    category: 'crontab', // Always use 'crontab' as the category
+    page: 1,
+    page_size: 20,
   });
 
   const columns = [
@@ -97,27 +113,11 @@
       width: 120,
     },
     {
-      dataIndex: 'last_run_time',
-      title: t('app.crontab.list.column.last_run_time'),
-      width: 160,
-      render: ({ record }: { record: CrontabEntity }) => {
-        return formatTime(record.last_run_time);
-      },
-    },
-    {
       dataIndex: 'mod_time',
       title: t('app.crontab.list.column.mod_time'),
       width: 160,
       render: ({ record }: { record: CrontabEntity }) => {
-        return formatTime(record.mod_time);
-      },
-    },
-    {
-      dataIndex: 'create_time',
-      title: t('app.crontab.list.column.create_time'),
-      width: 125,
-      render: ({ record }: { record: CrontabEntity }) => {
-        return formatTime(record.create_time);
+        return formatTimeWithoutSeconds(record.mod_time);
       },
     },
     {
@@ -146,7 +146,12 @@
   const handleRun = async (record: CrontabEntity) => {
     setLoading(true);
     try {
-      await runCrontabApi(record);
+      await runCrontabApi({
+        id: record.id,
+        type: params.value.type,
+        category: 'crontab',
+        name: record.name,
+      });
       Message.success(t('app.crontab.list.message.run_success'));
     } finally {
       setLoading(false);
@@ -163,7 +168,11 @@
     ) {
       setLoading(true);
       try {
-        await deleteCrontabApi(record);
+        await deleteCrontabApi({
+          type: params.value.type,
+          category: 'crontab',
+          name: record.name,
+        });
         Message.success(t('app.crontab.list.message.delete_success'));
       } finally {
         setLoading(false);

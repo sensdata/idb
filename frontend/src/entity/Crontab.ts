@@ -17,6 +17,7 @@ export interface CrontabEntity extends BaseEntity {
   type: CRONTAB_TYPE;
   kind: CRONTAB_KIND;
   content: string;
+  content_mode?: 'direct' | 'script';
   disabled: boolean;
   mark: string;
   period_expression: string;
