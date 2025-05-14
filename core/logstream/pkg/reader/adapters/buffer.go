@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-
-	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
 type BufferReader struct {
@@ -59,14 +57,6 @@ func (r *BufferReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 		ch <- r.buffer.Bytes()
 	}
 
-	return ch, nil
-}
-
-func (r *BufferReader) FollowEntry() (<-chan types.LogEntry, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	ch := make(chan types.LogEntry)
 	return ch, nil
 }
 

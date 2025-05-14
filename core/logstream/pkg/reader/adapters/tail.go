@@ -2,7 +2,6 @@ package adapters
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/nxadm/tail"
 	"github.com/sensdata/idb/core/logstream/internal/config"
-	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
 type TailReader struct {
@@ -104,61 +102,6 @@ func (r *TailReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 			}
 			select {
 			case ch <- []byte(line.Text + "\n"):
-			default:
-				// 如果通道已满，丢弃日志
-			}
-		}
-	}()
-
-	return ch, nil
-}
-
-func (r *TailReader) FollowEntry() (<-chan types.LogEntry, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.closed {
-		return nil, fmt.Errorf("reader is closed")
-	}
-
-	if r.tail != nil {
-		return nil, fmt.Errorf("already following")
-	}
-
-	config := tail.Config{
-		Follow:    true,
-		ReOpen:    true,
-		MustExist: false,
-		Poll:      true,
-		Location: &tail.SeekInfo{
-			Offset: 0,
-			Whence: io.SeekStart,
-		},
-	}
-
-	t, err := tail.TailFile(r.filePath, config)
-	if err != nil {
-		return nil, fmt.Errorf("tail file failed: %v", err)
-	}
-
-	r.tail = t
-	ch := make(chan types.LogEntry, r.config.MaxFollowBuffer)
-
-	go func() {
-		defer close(ch)
-		for line := range t.Lines {
-			if line.Err != nil {
-				continue
-			}
-
-			var entry types.LogEntry
-			if err := json.Unmarshal([]byte(line.Text), &entry); err != nil {
-				// 如果解析失败，跳过这一行
-				continue
-			}
-
-			select {
-			case ch <- entry:
 			default:
 				// 如果通道已满，丢弃日志
 			}

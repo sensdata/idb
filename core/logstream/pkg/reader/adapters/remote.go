@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/sensdata/idb/core/logstream/internal/config"
-	"github.com/sensdata/idb/core/logstream/pkg/types"
 )
 
 type RemoteReader struct {
@@ -45,17 +44,6 @@ func (r *RemoteReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 	return r.logCh, nil
 }
 
-func (r *RemoteReader) FollowEntry() (<-chan types.LogEntry, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.closed {
-		return nil, fmt.Errorf("reader is closed")
-	}
-	ch := make(chan types.LogEntry, r.config.MaxFollowBuffer)
-	return ch, nil
-}
-
 func (r *RemoteReader) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -66,19 +54,6 @@ func (r *RemoteReader) Close() error {
 
 	r.closed = true
 	close(r.done)
-
-	// 发送停止追踪请求
-	// stopMsg, err := message.CreateLogStreamMessage(
-	// 	utils.GenerateMsgId(),
-	// 	message.LogStreamStop,
-	// 	r.taskID,
-	// 	r.filePath,
-	// 	"",
-	// 	"",
-	// )
-	// if err != nil {
-	// 	return fmt.Errorf("create stop message failed: %w", err)
-	// }
 
 	return nil
 }
