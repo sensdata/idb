@@ -360,6 +360,14 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
 		return errors.New(string(stdout))
 	}
 	global.LOG.Info("docker-compose down %s successful", req.Name)
+
+	// 删除工作目录
+	dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
+	err := os.RemoveAll(dir)
+	if err != nil {
+		return fmt.Errorf("failed to remove directory %s: %v", dir, err)
+	}
+
 	return nil
 }
 
