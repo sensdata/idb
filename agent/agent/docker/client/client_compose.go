@@ -380,8 +380,29 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 		global.LOG.Error("Failed to load compose file %s", composePath)
 		return fmt.Errorf("load compose file failed, %v", err)
 	}
-	if stdout, err := operate(composePath, req.Operation); err != nil {
-		return errors.New(string(stdout))
+	switch req.Operation {
+	case "start":
+		if stdout, err := start(composePath); err != nil {
+			return errors.New(string(stdout))
+		}
+	case "stop":
+		if stdout, err := stop(composePath); err != nil {
+			return errors.New(string(stdout))
+		}
+	case "restart":
+		if stdout, err := restart(composePath); err != nil {
+			return errors.New(string(stdout))
+		}
+	case "up":
+		if stdout, err := up(composePath); err != nil {
+			return errors.New(string(stdout))
+		}
+	case "down":
+		if stdout, err := down(composePath); err != nil {
+			return errors.New(string(stdout))
+		}
+	default:
+		return errors.New("invalid operation")
 	}
 	global.LOG.Info("docker-compose %s %s successful", req.Operation, req.Name)
 	return nil

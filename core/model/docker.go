@@ -223,7 +223,7 @@ type CreateCompose struct {
 
 type OperateCompose struct {
 	Name      string `json:"name" validate:"required"`
-	Operation string `json:"operation" validate:"required,oneof=start stop down"`
+	Operation string `json:"operation" validate:"required,oneof=start stop restart up down"`
 }
 
 type ComposeCreate struct {
