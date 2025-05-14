@@ -24,28 +24,108 @@
         <a-form-item field="type" :label="$t('app.crontab.form.type.label')">
           <a-radio-group v-model="formState.type" :options="typeOptions" />
         </a-form-item>
+        <a-form-item :label="$t('app.crontab.form.content_mode.label')">
+          <a-radio-group
+            v-model="formState.content_mode"
+            :options="[
+              {
+                label: $t('app.crontab.form.content_mode.direct'),
+                value: 'direct',
+              },
+              {
+                label: $t('app.crontab.form.content_mode.script'),
+                value: 'script',
+              },
+            ]"
+            @change="handleContentModeChange"
+          />
+        </a-form-item>
+
+        <template v-if="formState.content_mode === 'script'">
+          <a-form-item :label="$t('app.crontab.form.script_source.label')">
+            <a-select
+              v-model="selectedCategory"
+              class="w-[368px]"
+              :loading="categoryLoading"
+              :placeholder="$t('app.crontab.form.script_category.placeholder')"
+              :options="categoryOptions"
+              @change="handleCategoryChange"
+            />
+          </a-form-item>
+          <a-form-item v-if="selectedCategory">
+            <a-select
+              v-model="selectedScript"
+              class="w-[368px]"
+              :loading="scriptsLoading"
+              :placeholder="$t('app.crontab.form.script_name.placeholder')"
+              :options="scriptOptions"
+              :disabled="scriptOptions.length === 0"
+              @change="handleScriptChange"
+            />
+            <div v-if="scriptsLoading" class="text-sm mt-1 text-gray-500">
+              {{ $t('app.crontab.form.script_name.loading') }}
+            </div>
+            <div
+              v-else-if="scriptOptions.length === 0 && selectedCategory"
+              class="text-sm mt-1 text-gray-500"
+            >
+              {{ $t('app.crontab.form.script_name.no_scripts') }}
+            </div>
+          </a-form-item>
+          <a-form-item
+            v-if="selectedScript"
+            :label="$t('app.crontab.form.script_params.label')"
+          >
+            <a-input
+              v-model="scriptParams"
+              class="w-[368px]"
+              :placeholder="$t('app.crontab.form.script_params.placeholder')"
+              @change="
+                () => {
+                  if (selectedCategory && selectedScript && scriptParams) {
+                    updateContentWithParams(
+                      formState,
+                      selections.selectedCategory,
+                      selections.selectedScript,
+                      selections.scriptParams
+                    );
+                  }
+                }
+              "
+            />
+          </a-form-item>
+        </template>
+
         <a-form-item
-          field="period"
+          field="period_details"
           :label="$t('app.crontab.form.period.label')"
         >
-          <period-input v-model="formState.period_details" />
+          <PeriodInput
+            v-model="formState.period_details"
+            @update:model-value="handlePeriodChange"
+          />
         </a-form-item>
+
         <a-form-item
           field="content"
           :label="$t('app.crontab.form.content.label')"
         >
-          <a-textarea
+          <ShellEditor
             v-model="formState.content"
-            :placeholder="$t('app.crontab.form.content.placeholder')"
-            :auto-size="{ minRows: 10 }"
-            width="100%"
+            :readonly="formState.content_mode === 'script'"
+            @update:model-value="handleContentChange"
+            @blur="handleContentBlur"
           />
         </a-form-item>
+
         <a-form-item field="mark" :label="$t('app.crontab.form.mark.label')">
           <a-textarea
             v-model="formState.mark"
             :placeholder="$t('app.crontab.form.mark.placeholder')"
-            :auto-size="{ minRows: 5 }"
+            @update:model-value="handleMarkValueChange"
+            @change="handleMarkValueChange"
+            @blur="handleMarkBlur"
+            @input="handleMarkInput"
           />
         </a-form-item>
       </a-form>
@@ -54,102 +134,220 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, reactive, ref, toRaw } from 'vue';
+  import { computed, nextTick, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { Message } from '@arco-design/web-vue';
-  import { createCrontabApi, getCrontabDetailApi } from '@/api/crontab';
-  import { CRONTAB_KIND, CRONTAB_TYPE } from '@/config/enum';
-  import { RadioOption } from '@arco-design/web-vue/es/radio/interface';
+  import usetCurrentHost from '@/hooks/current-host';
+  import ShellEditor from '@/components/shell-editor/index.vue';
   import PeriodInput from '../period-input/index.vue';
+
+  import { useFormState } from './hooks/use-form-state';
+  import { useContentHandler } from './hooks/use-content-handler';
+  import { useScriptHandler } from './hooks/use-script-handler';
+  import { useEventHandlers } from './hooks/use-event-handlers';
+  import { useDataLoader } from './hooks/use-data-loader';
+  import { useFormSubmit } from './hooks/use-form-submit';
 
   const emit = defineEmits(['ok']);
 
-  const { t } = useI18n();
-
+  const loading = ref(false);
+  const visible = ref(false);
   const formRef = ref();
-  const formState = reactive({
-    name: '',
-    type: CRONTAB_TYPE.Local,
-    kind: CRONTAB_KIND.Shell,
-    content: '',
-    period_details: [],
-    mark: '',
-  });
 
-  const rules = {
-    name: [{ required: true, message: t('app.crontab.form.name.required') }],
-    type: [{ required: true, message: t('app.crontab.form.type.required') }],
-    period: [
-      {
-        required: true,
-        message: t('app.crontab.form.period.required'),
-        type: 'array' as const,
-      },
-    ],
-    content: [
-      { required: true, message: t('app.crontab.form.content.required') },
-    ],
+  // We still need useI18n() for template translations but don't need to use 't' directly in script
+  useI18n();
+
+  const { currentHostId } = usetCurrentHost();
+
+  const { formState, createRules, getTypeOptions, flags } = useFormState();
+
+  const rules = createRules();
+  const typeOptions = ref(getTypeOptions());
+
+  const {
+    updateContentWithPeriod,
+    updateContentWithParams,
+    updateMarkInScriptMode,
+  } = useContentHandler();
+
+  const scriptHandler = useScriptHandler(formState, flags, currentHostId);
+
+  const {
+    categoryLoading,
+    scriptsLoading,
+    categoryOptions,
+    scriptOptions,
+    fetchCategories,
+    fetchScripts,
+    handleCategoryChange,
+    handleScriptChange,
+    selectedCategory,
+    selectedScript,
+    scriptParams,
+  } = scriptHandler;
+
+  const selections = {
+    selectedCategory,
+    selectedScript,
+    scriptParams,
   };
 
-  const typeOptions = ref<RadioOption[]>([
-    {
-      label: t('app.crontab.enum.type.local'),
-      value: CRONTAB_TYPE.Local,
-    },
-    {
-      label: t('app.crontab.enum.type.global'),
-      value: CRONTAB_TYPE.Global,
-    },
-  ]);
+  const {
+    handleContentChange,
+    handleMarkInput,
+    handleMarkBlur,
+    handleMarkValueChange,
+    handleContentBlur,
+    handlePeriodChange,
+    initializePeriodDetails,
+    handleContentModeChange: initializeContentModeChange,
+  } = useEventHandlers(formState, flags, selections);
+
+  const handleContentModeChange = () => {
+    initializeContentModeChange(fetchCategories);
+  };
+
+  const dataLoader = useDataLoader(formState, flags, selections, fetchScripts);
+
+  const formSubmit = useFormSubmit(formState, flags, selections);
+
+  const { submitLoading } = formSubmit;
 
   const paramsRef = ref<{ id: number }>();
   const isEdit = computed(() => !!paramsRef.value?.id);
+
+  watch(
+    () => visible.value,
+    (val) => {
+      if (val) {
+        fetchCategories();
+        if (!isEdit.value) {
+          initializePeriodDetails();
+
+          formState.content = '';
+
+          if (formState.content_mode === 'script' && selectedScript.value) {
+            updateContentWithParams(
+              formState,
+              selections.selectedCategory,
+              selections.selectedScript,
+              selections.scriptParams
+            );
+          } else {
+            updateContentWithPeriod(formState, flags, true);
+          }
+        }
+      }
+    }
+  );
+
+  watch(
+    () => formState.type,
+    () => {
+      if (formState.content_mode === 'script') {
+        selectedCategory.value = undefined;
+        selectedScript.value = undefined;
+        scriptParams.value = '';
+        formState.content = '';
+
+        fetchCategories();
+      }
+    }
+  );
+
+  watch(
+    () => formState.content,
+    (newContent) => {
+      if (
+        formState.content_mode === 'direct' &&
+        !flags.isUpdatingFromPeriod.value &&
+        !flags.isInitialLoad.value
+      ) {
+        handleContentChange(newContent);
+      }
+    }
+  );
+
+  watch(
+    () => formState.mark,
+    (newMark) => {
+      flags.isInitialLoad.value = false;
+
+      const wasUpdating = flags.isUpdatingFromPeriod.value;
+
+      if (!wasUpdating) {
+        flags.isUpdatingFromPeriod.value = true;
+      }
+
+      try {
+        if (
+          formState.content_mode === 'script' &&
+          selectedScript.value &&
+          selectedCategory.value
+        ) {
+          updateMarkInScriptMode(
+            formState,
+            newMark,
+            selections.selectedCategory,
+            selections.selectedScript,
+            selections.scriptParams
+          );
+        } else {
+          updateContentWithPeriod(formState, flags, true);
+        }
+      } finally {
+        if (!wasUpdating) {
+          nextTick(() => {
+            flags.isUpdatingFromPeriod.value = false;
+          });
+        }
+      }
+    },
+    { immediate: false }
+  );
+
+  watch(
+    () => formState.period_details,
+    () => {
+      if (flags.userEditingContent.value || flags.isUpdatingFromPeriod.value) {
+        return;
+      }
+
+      if (formState.content_mode === 'script') {
+        if (selectedScript.value && selectedCategory.value) {
+          updateContentWithParams(
+            formState,
+            selections.selectedCategory,
+            selections.selectedScript,
+            selections.scriptParams
+          );
+        } else {
+          updateContentWithPeriod(formState, flags, true);
+        }
+      } else {
+        updateContentWithPeriod(formState, flags, true);
+      }
+    },
+    { deep: true, immediate: true }
+  );
+
   const setParams = (params: { id: number }) => {
     paramsRef.value = params;
   };
-  const loading = ref(false);
+
   async function load() {
     loading.value = true;
+
     try {
-      const data = await getCrontabDetailApi(toRaw(paramsRef.value!));
-      Object.assign(formState, data);
+      await dataLoader.loadData(paramsRef);
     } finally {
       loading.value = false;
     }
   }
 
-  const validate = async () => {
-    return formRef.value?.validate().then((errors: any) => {
-      return !errors;
-    });
-  };
-
-  const visible = ref(false);
-  const submitLoading = ref(false);
   const handleOk = async () => {
-    if (!(await validate())) {
-      return;
-    }
-
-    if (submitLoading.value) {
-      return;
-    }
-
-    submitLoading.value = true;
-    try {
-      await createCrontabApi({
-        name: formState.name,
-        type: formState.type,
-        content: formState.content,
-        mark: formState.mark,
-      });
-      visible.value = false;
-      Message.success(t('app.crontab.form.success'));
-      emit('ok');
-    } finally {
-      submitLoading.value = false;
-    }
+    await formSubmit.handleSubmit(formRef.value, () => emit('ok'), visible);
   };
+
   const handleCancel = () => {
     visible.value = false;
   };
@@ -157,6 +355,7 @@
   const show = () => {
     visible.value = true;
   };
+
   const hide = () => {
     visible.value = false;
   };

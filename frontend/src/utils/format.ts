@@ -81,6 +81,31 @@ export function formatTime(time?: string | number): string {
   return date.toLocaleString();
 }
 
+export function formatTimeWithoutSeconds(time?: string | number): string {
+  if (!time) {
+    return '-';
+  }
+  if (
+    typeof time === 'number' &&
+    time.toString().length <= 11 &&
+    time.toString().length >= 10
+  ) {
+    time *= 1e3;
+  }
+  const date = new Date(time);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function formatSeconds(seconds?: number) {
   if (seconds == null) {
     return '-';

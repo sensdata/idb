@@ -1,5 +1,5 @@
 export default {
-  'app.crontab.enum.type.local': '本机',
+  'app.crontab.enum.type.local': '本地',
   'app.crontab.enum.type.global': '全局',
   'app.crontab.enum.periodType.monthly': '每月',
   'app.crontab.enum.periodType.weekly': '每周',
@@ -17,20 +17,33 @@ export default {
   'app.crontab.enum.week.saturday': '周六',
   'app.crontab.enum.week.sunday': '周日',
 
+  'app.crontab.period.description.monthly': '每月 {day} 号 {time}',
+  'app.crontab.period.description.weekly': '每周{weekday} {time}',
+  'app.crontab.period.description.daily': '每天 {time}',
+  'app.crontab.period.description.hourly': '每小时的 {minute} 分钟',
+  'app.crontab.period.description.every_n_days': '每 {day} 天的 {time}',
+  'app.crontab.period.description.every_n_hours':
+    '每 {hour} 小时的 {minute} 分钟',
+  'app.crontab.period.description.every_n_minutes': '每 {minute} 分钟',
+  'app.crontab.period.description.every_n_seconds': '每 {second} 秒',
+  'app.crontab.period.execution_period': '执行周期',
+
   'app.crontab.list.column.name': '名称',
   'app.crontab.list.column.status': '状态',
   'app.crontab.list.column.period': '执行周期',
-  'app.crontab.list.column.last_run_time': '上次执行时间',
+  'app.crontab.list.column.last_run_time': '最近执行时间',
   'app.crontab.list.column.mod_time': '修改时间',
   'app.crontab.list.column.create_time': '创建时间',
   'app.crontab.list.column.history_version': '历史版本',
 
-  'app.crontab.list.action.create': '新建计划任务',
+  'app.crontab.list.action.create': '创建',
   'app.crontab.list.operation.view_history': '查看',
   'app.crontab.list.operation.run': '执行',
-  'app.crontab.list.operation.log': '执行日志',
+  'app.crontab.list.operation.log': '日志',
 
-  'app.crontab.list.delete.confirm': '确认删除计划任务 {name} 吗？',
+  'app.crontab.list.delete.confirm': '确定删除【{name}】吗？',
   'app.crontab.list.message.run_success': '执行成功',
   'app.crontab.list.message.delete_success': '删除成功',
+  'app.crontab.list.status.normal': '正常',
+  'app.crontab.list.status.disabled': '已禁用',
 };

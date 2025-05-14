@@ -16,6 +16,11 @@ export default {
   'common.timeFormat.minutes': '{minutes} minutes ',
   'common.timeFormat.seconds': '{seconds} seconds ',
 
+  'common.timeUnit.day': 'day',
+  'common.timeUnit.hour': 'hour',
+  'common.timeUnit.minute': 'minute',
+  'common.timeUnit.second': 'second',
+
   'common.edit': 'Edit',
   'common.add': 'Add',
   'common.delete': 'Delete',
@@ -27,6 +32,7 @@ export default {
   'common.yes': 'Yes',
   'common.no': 'No',
   'common.all': 'All',
+  'common.seconds': 'seconds',
 
   'common.message.saveSuccess': 'handle success',
   'common.message.saveError': 'handle failed',

@@ -1,7 +1,10 @@
 import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
-export function getProcessListApi(params: ApiListParams) {
+export function getProcessListApi(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  params: ApiListParams
+) {
   // return request.get('process/{host}', params);
   return new Promise<ApiListResult<any>>((resolve) => {
     setTimeout(() => {
@@ -38,7 +41,10 @@ export function getProcessListApi(params: ApiListParams) {
   });
 }
 
-export function getProcessDetailApi(params: { pid: string }) {
+export function getProcessDetailApi(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  params: { pid: string }
+) {
   // return request.get('process/{host}/detail', params);
   return new Promise((resolve) => {
     setTimeout(() => {

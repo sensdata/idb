@@ -17,21 +17,30 @@ export default {
   'app.crontab.enum.week.saturday': 'Saturday',
   'app.crontab.enum.week.sunday': 'Sunday',
 
+  // Period description translations
+  'app.crontab.period.description.monthly': 'on day {day} at {time}',
+  'app.crontab.period.description.weekly': 'every {weekday} at {time}',
+  'app.crontab.period.description.daily': 'daily at {time}',
+  'app.crontab.period.description.hourly': 'at minute {minute} of every hour',
+  'app.crontab.period.description.every_n_days': 'every {day} days at {time}',
+  'app.crontab.period.description.every_n_hours':
+    'every {hour} hours at minute {minute}',
+  'app.crontab.period.description.every_n_minutes': 'every {minute} minutes',
+  'app.crontab.period.description.every_n_seconds': 'every {second} seconds',
+  'app.crontab.period.execution_period': 'Execution Period',
+
+  'app.crontab.list.action.create': 'Create',
   'app.crontab.list.column.name': 'Name',
   'app.crontab.list.column.status': 'Status',
   'app.crontab.list.column.period': 'Execution Period',
   'app.crontab.list.column.last_run_time': 'Last Run Time',
-  'app.crontab.list.column.mod_time': 'Modified Time',
-  'app.crontab.list.column.create_time': 'Created Time',
-  'app.crontab.list.column.history_version': 'History Version',
-
-  'app.crontab.list.action.create': 'Create Scheduled Task',
-  'app.crontab.list.operation.view_history': 'View',
-  'app.crontab.list.operation.run': 'Execute',
-  'app.crontab.list.operation.log': 'Execution Logs',
-
-  'app.crontab.list.delete.confirm':
-    'Are you sure you want to delete the scheduled task {name}?',
-  'app.crontab.list.message.run_success': 'Execution successful',
-  'app.crontab.list.message.delete_success': 'Deleted successfully',
+  'app.crontab.list.column.mod_time': 'Last Modified',
+  'app.crontab.list.column.create_time': 'Creation Time',
+  'app.crontab.list.delete.confirm': 'Are you sure to delete [{name}]?',
+  'app.crontab.list.operation.run': 'Run',
+  'app.crontab.list.operation.log': 'Logs',
+  'app.crontab.list.message.run_success': 'Run success',
+  'app.crontab.list.message.delete_success': 'Delete success',
+  'app.crontab.list.status.normal': 'Normal',
+  'app.crontab.list.status.disabled': 'Disabled',
 };
