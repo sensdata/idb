@@ -14,7 +14,7 @@ func FormatContainerLogTimeFilter(minutes int) string {
 		return "4h"
 	case minutes <= 60:
 		return "1h"
-	case minutes <= 10*60:
+	case minutes <= 10:
 		return "10m"
 	default:
 		return "all"

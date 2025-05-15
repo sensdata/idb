@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,7 +40,18 @@ func (r *ContainerLogReader) buildCmd(follow bool) *exec.Cmd {
 	var args []string
 	if r.containerType == "compose" {
 		cmdName = "docker-compose"
-		args = []string{"-f", r.container, "logs"}
+		// 这里的 container 是 compose.yml路径，但有可能是多个路径以,分隔
+		// 因此需要将 compose.yml路径按,分隔，然后逐个传入-f命令
+		if strings.Contains(r.container, ",") {
+			// 将 compose.yml路径按,分隔，然后逐个传入-f命令
+			composeFiles := strings.Split(r.container, ",")
+			for _, composeFile := range composeFiles {
+				args = append(args, "-f", composeFile)
+			}
+		} else {
+			args = []string{"-f", r.container}
+		}
+		args = append(args, "logs")
 	} else {
 		cmdName = "docker"
 		args = []string{"logs", r.container}
