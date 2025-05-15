@@ -328,7 +328,7 @@ func (c DockerClient) ContainerInfo(containerID string) (*model.ContainerOperate
 	data.Env = oldContainer.Config.Env
 	data.CPUShares = oldContainer.HostConfig.CPUShares
 	for key, val := range oldContainer.Config.Labels {
-		data.Labels = append(data.Labels, fmt.Sprintf("%s=%s", key, val))
+		data.Labels[key] = val
 	}
 	for key, val := range oldContainer.HostConfig.PortBindings {
 		var itemPort model.PortHelper

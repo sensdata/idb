@@ -110,28 +110,28 @@ type PortHelper struct {
 }
 
 type ContainerOperate struct {
-	ContainerID     string         `json:"container_id"`
-	ForcePull       bool           `json:"force_pull"`
-	Name            string         `json:"name" validate:"required"`
-	Image           string         `json:"image" validate:"required"`
-	Network         string         `json:"network"`
-	Ipv4            string         `json:"ipv4"`
-	Ipv6            string         `json:"ipv6"`
-	PublishAllPorts bool           `json:"publish_all_ports"`
-	ExposedPorts    []PortHelper   `json:"exposed_ports"`
-	Tty             bool           `json:"tty"`
-	OpenStdin       bool           `json:"open_stdin"`
-	Cmd             []string       `json:"cmd"`
-	Entrypoint      []string       `json:"entry_point"`
-	CPUShares       int64          `json:"cpu_shares"`
-	NanoCPUs        float64        `json:"nano_cpus"`
-	Memory          float64        `json:"memory"`
-	Privileged      bool           `json:"privileged"`
-	AutoRemove      bool           `json:"auto_remove"`
-	Volumes         []VolumeHelper `json:"volumes"`
-	Labels          []string       `json:"labels"`
-	Env             []string       `json:"env"`
-	RestartPolicy   string         `json:"restart_policy"`
+	ContainerID     string            `json:"container_id"`
+	ForcePull       bool              `json:"force_pull"`
+	Name            string            `json:"name" validate:"required"`
+	Image           string            `json:"image" validate:"required"`
+	Network         string            `json:"network"`
+	Ipv4            string            `json:"ipv4"`
+	Ipv6            string            `json:"ipv6"`
+	PublishAllPorts bool              `json:"publish_all_ports"`
+	ExposedPorts    []PortHelper      `json:"exposed_ports"`
+	Tty             bool              `json:"tty"`
+	OpenStdin       bool              `json:"open_stdin"`
+	Cmd             []string          `json:"cmd"`
+	Entrypoint      []string          `json:"entry_point"`
+	CPUShares       int64             `json:"cpu_shares"`
+	NanoCPUs        float64           `json:"nano_cpus"`
+	Memory          float64           `json:"memory"`
+	Privileged      bool              `json:"privileged"`
+	AutoRemove      bool              `json:"auto_remove"`
+	Volumes         []VolumeHelper    `json:"volumes"`
+	Labels          map[string]string `json:"labels"`
+	Env             []string          `json:"env"`
+	RestartPolicy   string            `json:"restart_policy"`
 }
 
 type ContainerUpgrade struct {
