@@ -1,11 +1,28 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
+	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+)
+
+const (
+	heartbeatInterval = 10 * time.Second // 心跳间隔
 )
 
 func (s *DockerMan) containerQuery(hostID uint64, req model.QueryContainer) (*model.PageResult, error) {
@@ -355,9 +372,271 @@ func (s *DockerMan) deleteContainer(hostID uint64, containerID string) error {
 	return nil
 }
 
-// func (s *DockerMan) getContainerLog(hostID uint64, containerID string) (*model.ContainerLog, error) {
-// 	return nil, nil
-// }
+func (s *DockerMan) followContainerLogs(c *gin.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("Panic in tailContentStream: %v", r)
+		}
+	}()
+	global.LOG.Info("tail start")
+
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		global.LOG.Info("Invalid host")
+		return errors.New("Invalid host")
+	}
+
+	containerID := c.Query("id")
+	if containerID == "" {
+		global.LOG.Info("Invalid container id")
+		return errors.New("Invalid container id")
+	}
+
+	// 通过 containerInfo 获取容器详情
+	containerInfo, err := s.containerInfo(hostID, containerID)
+	if err != nil {
+		global.LOG.Error("get container info failed: %v", err)
+		return fmt.Errorf("get container info failed: %w", err)
+	}
+
+	// 判断 containerType
+	containerType := "docker"
+	configFilePaths := ""
+	if _, ok := containerInfo.Labels["com.docker.compose.project"]; ok {
+		containerType = "compose"
+	}
+
+	// compose 场景下，需要处理 workingDir和config_files
+	if containerType == "compose" {
+		var workingDir, configFiles string
+		workingDir, ok := containerInfo.Labels["com.docker.compose.project.working_dir"]
+		if !ok {
+			global.LOG.Error("get compose working dir failed")
+			return fmt.Errorf("get compose working dir failed")
+		}
+		configFiles, ok = containerInfo.Labels["com.docker.compose.project.config_files"]
+		if !ok {
+			global.LOG.Error("get compose config files failed")
+			return fmt.Errorf("get compose config files failed")
+		}
+
+		var result []string
+		files := strings.Split(configFiles, ",")
+
+		for _, file := range files {
+			file = strings.TrimSpace(file)
+			if file == "" {
+				continue
+			}
+			if filepath.IsAbs(file) {
+				// 已经是绝对路径，直接使用
+				result = append(result, file)
+			} else {
+				// 相对路径，需要基于 workDir 拼接
+				result = append(result, filepath.Join(workingDir, file))
+			}
+		}
+
+		// 拼接成字符串(可能有多个配置文件)
+		configFilePaths = strings.Join(result, ",")
+	}
+
+	// 构造容器参数 docker:containerID 或者 compose:config_files
+	var containerParam string
+	if containerType == "docker" {
+		containerParam = fmt.Sprint("%s:%s", containerType, containerID)
+	} else {
+		containerParam = fmt.Sprint("%s:%s", containerType, configFilePaths)
+	}
+
+	var offset int64
+	tail, err := strconv.ParseUint(c.Param("tail"), 10, 32)
+	if err != nil {
+		offset = 0
+	} else {
+		offset = int64(tail)
+	}
+
+	var whence int
+	since := c.Query("since")
+	switch since {
+	case "24h":
+		whence = 24 * 60
+	case "4h":
+		whence = 4 * 60
+	case "1h":
+		whence = 60
+	case "10m":
+		whence = 10
+	default:
+		whence = 0
+	}
+
+	// 找host
+	hostRepo := repo.NewHostRepo()
+	host, err := hostRepo.Get(hostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		global.LOG.Error("get host failed: %v", err)
+		return fmt.Errorf("get host failed: %w", err)
+	}
+
+	// 创建任务
+	metadata := map[string]interface{}{
+		"log_path": containerParam, // 容器参数 containerID 或者 containerID:config_files
+	}
+	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		global.LOG.Info("failed to create task")
+		return errors.New("failed to create tail task")
+	}
+	global.LOG.Info("task: %s", task.ID)
+
+	// 把task的metadata都打印出来
+	for k, v := range task.Metadata {
+		global.LOG.Info("task metadata: %s=%v", k, v)
+	}
+
+	reader, err := global.LogStream.GetReader(task.ID)
+	if err != nil {
+		global.LOG.Error("get reader failed: %v", err)
+		return fmt.Errorf("get reader failed: %w", err)
+	}
+	defer reader.Close()
+
+	// 判断reader是否是 RemoteReader
+	_, ok := reader.(*adapters.RemoteReader)
+	if ok {
+		global.LOG.Info("reader is RemoteReader")
+		// 获取agent连接
+		agentConn, err := conn.CENTER.GetAgentConn(&host)
+		if err != nil {
+			global.LOG.Error("get agent conn failed: %v", err)
+			return fmt.Errorf("get agent conn failed: %w", err)
+		}
+
+		err = s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStart, offset, whence)
+		if err != nil {
+			return fmt.Errorf("failed to start stream : %w", err)
+		}
+	}
+
+	logCh, err := reader.Follow(offset, whence)
+	if err != nil {
+		global.LOG.Error("follow log failed: %v", err)
+		return fmt.Errorf("follow log failed: %w", err)
+	}
+	global.LOG.Info("follow log success for task %s, path: %s", task.ID, containerParam)
+
+	// 获取任务状态监听器
+	watcher, err := global.LogStream.GetTaskWatcher(task.ID)
+	if err != nil {
+		global.LOG.Error("get task watcher failed: %v", err)
+		return fmt.Errorf("get task watcher failed: %w", err)
+	}
+	defer watcher.Close()
+
+	// 获取状态监听通道
+	statusCh, err := watcher.WatchStatus()
+	if err != nil {
+		global.LOG.Error("watch status failed: %v", err)
+		return fmt.Errorf("watch status failed: %w", err)
+	}
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+
+	heartbeat := time.NewTicker(heartbeatInterval)
+	defer heartbeat.Stop()
+
+	// 创建一个缓冲通道来处理日志
+	bufferCh := make(chan []byte, 100)
+	defer close(bufferCh)
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 启动一个 goroutine 来处理日志缓冲
+	go func() {
+		for {
+			select {
+			case msg := <-logCh:
+				select {
+				case bufferCh <- msg:
+				default:
+					// 如果缓冲区满了，丢弃最旧的消息
+					<-bufferCh
+					bufferCh <- msg
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case msg := <-bufferCh:
+			c.SSEvent("log", string(msg))
+			flusher.Flush()
+		case status := <-statusCh:
+			global.LOG.Info("SSE STATUS: %s", status)
+			c.SSEvent("status", status)
+			flusher.Flush()
+		case <-heartbeat.C:
+			global.LOG.Info("SSE HEARTBEAT")
+			c.SSEvent("heartbeat", time.Now().Unix())
+			flusher.Flush()
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			// 如果是远程读取器，发送停止消息
+			if _, ok := reader.(*adapters.RemoteReader); ok {
+				// 获取agent连接
+				agentConn, err := conn.CENTER.GetAgentConn(&host)
+				if err != nil {
+					global.LOG.Error("get agent conn failed: %v", err)
+					return fmt.Errorf("get agent conn failed: %w", err)
+				}
+
+				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
+			}
+			// 清理任务相关的资源
+			//s.clearTaskStuff(task.ID)
+			return nil
+		}
+	}
+}
+
+func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int) error {
+	global.LOG.Info("notify remote logstream message %s", msgType)
+	stopMsg, err := message.CreateLogStreamMessage(
+		utils.GenerateMsgId(),
+		msgType,
+		taskId,
+		logPath,
+		offset,
+		whence,
+		"",
+		"",
+	)
+	if err == nil {
+		message.SendLogStreamMessage(*conn, stopMsg)
+	}
+	return nil
+}
 
 func (s *DockerMan) getContainerStatus(hostID uint64, containerID string) (*model.ContainerStats, error) {
 	return nil, nil

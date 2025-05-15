@@ -167,10 +167,11 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},         // 重命名容器
 			{Method: "POST", Path: "/:host/containers/operatetion", Handler: s.ContainerOperation}, // 操作容器
 
-			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},     // 获取容器详情
-			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},     // 获取容器监控数据
-			{Method: "DELETE", Path: "/:host/containers/log", Handler: s.ContainerLogClean}, // 清理容器日志
-			{Method: "GET", Path: "/:host/containers/log", Handler: s.ContainerLogs},        // 获取容器日志
+			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},      // 获取容器详情
+			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},      // 获取容器监控数据
+			{Method: "DELETE", Path: "/:host/containers/logs", Handler: s.ContainerLogClean}, // 清理容器日志
+			// {Method: "GET", Path: "/:host/containers/logs/tail", Handler: s.TailContainerLogs},     // tail容器日志
+			{Method: "GET", Path: "/:host/containers/logs/follow", Handler: s.FollowContainerLogs}, // 追踪容器日志
 
 			// images
 			{Method: "GET", Path: "/:host/images", Handler: s.ImagePage},         // 获取镜像列表
@@ -952,7 +953,7 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id query int true "Container ID"
+// @Param id query string true "Container ID"
 // @Success 200 {object} model.ContainerOperate
 // @Router /docker/{host}/containers/detail [get]
 func (s *DockerMan) ContainerInfo(c *gin.Context) {
@@ -983,7 +984,7 @@ func (s *DockerMan) ContainerInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id query int true "Container ID"
+// @Param id query string true "Container ID"
 // @Success 200 {object} model.ContainerStats
 // @Router /docker/{host}/containers/stats [get]
 func (s *DockerMan) ContainerStats(c *gin.Context) {
@@ -1009,14 +1010,14 @@ func (s *DockerMan) ContainerStats(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Clean Container log
-// @Description Clean container log
+// @Summary Clean Container logs
+// @Description Clean container logs
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param id query int true "Container ID"
+// @Param id query string true "Container ID"
 // @Success 200
-// @Router /docker/{host}/containers/log [delete]
+// @Router /docker/{host}/containers/logs [delete]
 func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -1039,34 +1040,25 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 	helper.SuccessWithData(c, nil)
 }
 
-// @Deprecated
 // @Tags Docker
-// @Summary Get container log
-// @Description Get container log
+// @Summary Connect to  container log stream
+// @Description Connect to a container log stream through SSE
 // @Accept json
-// @Produce json
+// @Produce text/event-stream
 // @Param host path int true "Host ID"
-// @Param id query int true "Container ID"
-// @Success 200
-// @Router /docker/{host}/containers/log [get]
-func (s *DockerMan) ContainerLogs(c *gin.Context) {
-	// hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	// if err != nil {
-	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
-	// 	return
-	// }
-
-	// containerID := c.Query("id")
-	// if containerID == "" {
-	// 	helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-	// 	return
-	// }
-
-	// result, err := s.getContainerLog(hostID, containerID)
-	// if err != nil {
-	// 	helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-	// 	return
-	// }
+// @Param id query string true "Container ID"
+// @Param tail query int false "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown."
+// @Param since query string false Show logs since a certain time, options: 24h, 4h, 1h, 10m. If not specified, all logs will be shown.
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /docker/{host}/containers/logs/follow [get]
+func (s *DockerMan) FollowContainerLogs(c *gin.Context) {
+	err := s.followContainerLogs(c)
+	if err != nil {
+		global.LOG.Error("Handle container log stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
 
 	helper.SuccessWithData(c, nil)
 }
