@@ -505,7 +505,7 @@ func (c DockerClient) loadConfigInfo(isCreate bool, req model.ContainerOperate, 
 	config.Cmd = req.Cmd
 	config.Entrypoint = req.Entrypoint
 	config.Env = req.Env
-	config.Labels = common.StringsToMap(req.Labels)
+	config.Labels = req.Labels
 	config.ExposedPorts = exposed
 	config.OpenStdin = req.OpenStdin
 	config.Tty = req.Tty
