@@ -449,9 +449,9 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	// 构造容器参数 docker:containerID 或者 compose:config_files
 	var containerParam string
 	if containerType == "docker" {
-		containerParam = fmt.Sprint("%s:%s", containerType, containerID)
+		containerParam = fmt.Sprintf("%s:%s", containerType, containerID)
 	} else {
-		containerParam = fmt.Sprint("%s:%s", containerType, configFilePaths)
+		containerParam = fmt.Sprintf("%s:%s", containerType, configFilePaths)
 	}
 
 	var offset int64
