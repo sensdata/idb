@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -48,9 +47,9 @@ func (c DockerClient) NetworkPage(req model.SearchPageInfo) (*model.PageResult, 
 	}
 
 	for _, item := range records {
-		tag := make([]string, 0)
+		var labels []model.KeyValue
 		for key, val := range item.Labels {
-			tag = append(tag, fmt.Sprintf("%s=%s", key, val))
+			labels = append(labels, model.KeyValue{Key: key, Value: val})
 		}
 		var ipam network.IPAMConfig
 		if len(item.IPAM.Config) > 0 {
@@ -65,7 +64,7 @@ func (c DockerClient) NetworkPage(req model.SearchPageInfo) (*model.PageResult, 
 			Subnet:     ipam.Subnet,
 			Gateway:    ipam.Gateway,
 			Attachable: item.Attachable,
-			Labels:     tag,
+			Labels:     labels,
 		})
 	}
 
@@ -148,11 +147,16 @@ func (c DockerClient) NetworkCreate(req model.NetworkCreate) error {
 		ipams = append(ipams, itemIpam)
 	}
 
+	labelsMap := make(map[string]string)
+	for _, kv := range req.Labels {
+		labelsMap[kv.Key] = kv.Value
+	}
+
 	options := network.CreateOptions{
 		EnableIPv6: &enableV6,
 		Driver:     req.Driver,
 		Options:    common.StringsToMap(req.Options),
-		Labels:     common.StringsToMap(req.Labels),
+		Labels:     labelsMap,
 	}
 	if len(ipams) != 0 {
 		options.IPAM = &network.IPAM{Config: ipams}

@@ -50,9 +50,9 @@ func (c DockerClient) VolumePage(req model.SearchPageInfo) (*model.PageResult, e
 
 	nyc, _ := time.LoadLocation(common.LoadTimeZone())
 	for _, item := range records {
-		tag := make([]string, 0)
-		for _, val := range item.Labels {
-			tag = append(tag, val)
+		var labels []model.KeyValue
+		for key, val := range item.Labels {
+			labels = append(labels, model.KeyValue{Key: key, Value: val})
 		}
 		var createTime time.Time
 		if strings.Contains(item.CreatedAt, "Z") {
@@ -67,7 +67,7 @@ func (c DockerClient) VolumePage(req model.SearchPageInfo) (*model.PageResult, e
 			Name:       item.Name,
 			Driver:     item.Driver,
 			Mountpoint: item.Mountpoint,
-			Labels:     tag,
+			Labels:     labels,
 		})
 	}
 
@@ -119,11 +119,16 @@ func (c DockerClient) VolumeCreate(req model.VolumeCreate) error {
 			}
 		}
 	}
+
+	labelsMap := make(map[string]string)
+	for _, kv := range req.Labels {
+		labelsMap[kv.Key] = kv.Value
+	}
 	options := volume.CreateOptions{
 		Name:       req.Name,
 		Driver:     req.Driver,
 		DriverOpts: common.StringsToMap(req.Options),
-		Labels:     common.StringsToMap(req.Labels),
+		Labels:     labelsMap,
 	}
 	if _, err := c.cli.VolumeCreate(context.TODO(), options); err != nil {
 		return err

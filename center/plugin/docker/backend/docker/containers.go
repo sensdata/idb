@@ -402,22 +402,27 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	// 判断 containerType
 	containerType := "docker"
 	configFilePaths := ""
-	if _, ok := containerInfo.Labels["com.docker.compose.project"]; ok {
-		containerType = "compose"
+	for _, label := range containerInfo.Labels {
+		if label.Key == "com.docker.compose.project" {
+			containerType = "compose"
+			break
+		}
 	}
 
 	// compose 场景下，需要处理 workingDir和config_files
 	if containerType == "compose" {
 		var workingDir, configFiles string
-		workingDir, ok := containerInfo.Labels["com.docker.compose.project.working_dir"]
-		if !ok {
-			global.LOG.Error("get compose working dir failed")
-			return fmt.Errorf("get compose working dir failed")
+		for _, label := range containerInfo.Labels {
+			if label.Key == "com.docker.compose.project.working_dir" {
+				workingDir = label.Value
+			}
+			if label.Key == "com.docker.compose.project.config_files" {
+				configFiles = label.Value
+			}
 		}
-		configFiles, ok = containerInfo.Labels["com.docker.compose.project.config_files"]
-		if !ok {
-			global.LOG.Error("get compose config files failed")
-			return fmt.Errorf("get compose config files failed")
+		if workingDir == "" || configFiles == "" {
+			global.LOG.Error("workingDir or configFiles is empty")
+			return errors.New("config files not found")
 		}
 
 		var result []string

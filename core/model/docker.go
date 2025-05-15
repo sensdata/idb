@@ -110,28 +110,28 @@ type PortHelper struct {
 }
 
 type ContainerOperate struct {
-	ContainerID     string            `json:"container_id"`
-	ForcePull       bool              `json:"force_pull"`
-	Name            string            `json:"name" validate:"required"`
-	Image           string            `json:"image" validate:"required"`
-	Network         string            `json:"network"`
-	Ipv4            string            `json:"ipv4"`
-	Ipv6            string            `json:"ipv6"`
-	PublishAllPorts bool              `json:"publish_all_ports"`
-	ExposedPorts    []PortHelper      `json:"exposed_ports"`
-	Tty             bool              `json:"tty"`
-	OpenStdin       bool              `json:"open_stdin"`
-	Cmd             []string          `json:"cmd"`
-	Entrypoint      []string          `json:"entry_point"`
-	CPUShares       int64             `json:"cpu_shares"`
-	NanoCPUs        float64           `json:"nano_cpus"`
-	Memory          float64           `json:"memory"`
-	Privileged      bool              `json:"privileged"`
-	AutoRemove      bool              `json:"auto_remove"`
-	Volumes         []VolumeHelper    `json:"volumes"`
-	Labels          map[string]string `json:"labels"`
-	Env             []string          `json:"env"`
-	RestartPolicy   string            `json:"restart_policy"`
+	ContainerID     string         `json:"container_id"`
+	ForcePull       bool           `json:"force_pull"`
+	Name            string         `json:"name" validate:"required"`
+	Image           string         `json:"image" validate:"required"`
+	Network         string         `json:"network"`
+	Ipv4            string         `json:"ipv4"`
+	Ipv6            string         `json:"ipv6"`
+	PublishAllPorts bool           `json:"publish_all_ports"`
+	ExposedPorts    []PortHelper   `json:"exposed_ports"`
+	Tty             bool           `json:"tty"`
+	OpenStdin       bool           `json:"open_stdin"`
+	Cmd             []string       `json:"cmd"`
+	Entrypoint      []string       `json:"entry_point"`
+	CPUShares       int64          `json:"cpu_shares"`
+	NanoCPUs        float64        `json:"nano_cpus"`
+	Memory          float64        `json:"memory"`
+	Privileged      bool           `json:"privileged"`
+	AutoRemove      bool           `json:"auto_remove"`
+	Volumes         []VolumeHelper `json:"volumes"`
+	Labels          []KeyValue     `json:"labels"`
+	Env             []string       `json:"env"`
+	RestartPolicy   string         `json:"restart_policy"`
 }
 
 type ContainerUpgrade struct {
@@ -299,31 +299,31 @@ type ImageSave struct {
 
 // volume
 type Volume struct {
-	Name       string    `json:"name"`
-	Labels     []string  `json:"labels"`
-	Driver     string    `json:"driver"`
-	Mountpoint string    `json:"mount_point"`
-	CreatedAt  time.Time `json:"created_at"`
+	Name       string     `json:"name"`
+	Labels     []KeyValue `json:"labels"`
+	Driver     string     `json:"driver"`
+	Mountpoint string     `json:"mount_point"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type VolumeCreate struct {
-	Name    string   `json:"name" validate:"required"`
-	Driver  string   `json:"driver" validate:"required"`
-	Options []string `json:"options"`
-	Labels  []string `json:"labels"`
+	Name    string     `json:"name" validate:"required"`
+	Driver  string     `json:"driver" validate:"required"`
+	Options []string   `json:"options"`
+	Labels  []KeyValue `json:"labels"`
 }
 
 // network
 type Network struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Labels     []string  `json:"labels"`
-	Driver     string    `json:"driver"`
-	IPAMDriver string    `json:"ipam_driver"`
-	Subnet     string    `json:"subnet"`
-	Gateway    string    `json:"gateway"`
-	CreatedAt  time.Time `json:"created_at"`
-	Attachable bool      `json:"attachable"`
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	Labels     []KeyValue `json:"labels"`
+	Driver     string     `json:"driver"`
+	IPAMDriver string     `json:"ipam_driver"`
+	Subnet     string     `json:"subnet"`
+	Gateway    string     `json:"gateway"`
+	CreatedAt  time.Time  `json:"created_at"`
+	Attachable bool       `json:"attachable"`
 }
 
 type NetworkCreate struct {
@@ -341,5 +341,5 @@ type NetworkCreate struct {
 	GatewayV6    string     `json:"gateway_v6"`
 	IPRangeV6    string     `json:"ip_range_v6"`
 	AuxAddressV6 []KeyValue `json:"aux_address_v6"`
-	Labels       []string   `json:"labels"`
+	Labels       []KeyValue `json:"labels"`
 }
