@@ -885,6 +885,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			global.LOG.Error("[Panic] in followLog: %v", r)
 		}
 		// 清理资源
+		global.LOG.Info("done following and cleaning up resources")
 		c.readerMu.Lock()
 		delete(c.readers, logPath)
 		delete(c.readerDone, logPath)
@@ -937,7 +938,10 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			return
 		case data := <-bufferCh:
 			// 发送日志到 center
-			c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamData, string(data), "")
+			if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamData, string(data), ""); err != nil {
+				global.LOG.Error("send log stream result failed, finish follow log stream")
+				return
+			}
 		}
 	}
 }
@@ -2696,7 +2700,7 @@ func (a *Agent) sendSessionResult(conn net.Conn, msgID string, msgType string, c
 	}
 }
 
-func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, logPath string, msgType message.LogStreamType, content string, errMsg string) {
+func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, logPath string, msgType message.LogStreamType, content string, errMsg string) error {
 	msg, err := message.CreateLogStreamMessage(
 		utils.GenerateMsgId(),
 		msgType,
@@ -2709,10 +2713,12 @@ func (c *Agent) sendLogStreamResult(conn net.Conn, taskId string, logPath string
 	)
 	if err != nil {
 		global.LOG.Error("create log message failed: %v", err)
-		return
+		return fmt.Errorf("failed to create log message")
 	}
 
 	if err := message.SendLogStreamMessage(conn, msg); err != nil {
 		global.LOG.Error("send log message failed: %v", err)
+		return fmt.Errorf("failed to send log message")
 	}
+	return nil
 }
