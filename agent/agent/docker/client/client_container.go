@@ -555,7 +555,7 @@ func (c DockerClient) ContainerLogs(req model.FileContentPartReq) (*model.FileCo
 		container,
 		since,
 		tail,
-		true,
+		false,
 	)
 	if err != nil {
 		return &rsp, err
