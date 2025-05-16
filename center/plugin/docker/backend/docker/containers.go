@@ -485,6 +485,13 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 		containerParam = fmt.Sprintf("%s:%s", containerType, configFilePaths)
 	}
 
+	// follow
+	follow := ""
+	f, _ := strconv.ParseBool(c.Query("follow"))
+	if f {
+		follow = "follow"
+	}
+
 	var offset int64
 	tail, err := strconv.ParseUint(c.Query("tail"), 10, 32)
 	if err != nil {
@@ -550,7 +557,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 			return fmt.Errorf("get agent conn failed: %w", err)
 		}
 
-		err = s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStart, offset, whence)
+		err = s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStart, offset, whence, follow)
 		if err != nil {
 			return fmt.Errorf("failed to start stream : %w", err)
 		}
@@ -647,7 +654,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
+				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
 			}
 			// 清理任务相关的资源
 			//s.clearTaskStuff(task.ID)
@@ -656,7 +663,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	}
 }
 
-func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int) error {
+func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int, content string) error {
 	global.LOG.Info("notify remote logstream message %s", msgType)
 	stopMsg, err := message.CreateLogStreamMessage(
 		utils.GenerateMsgId(),
@@ -665,7 +672,7 @@ func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, 
 		logPath,
 		offset,
 		whence,
-		"",
+		content,
 		"",
 	)
 	if err == nil {

@@ -807,6 +807,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 
 		switch rType {
 		case "docker", "compose":
+			// 根据 msg.content 确定follow
+			follow := msg.Content == "follow"
+
 			// 根据 msg.Whence 确定 since
 			since := utils.FormatContainerLogTimeFilter(msg.Whence)
 
@@ -826,7 +829,7 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 				logPath,
 				since,
 				tail,
-				true,
+				follow,
 			)
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to create container log reader: %v", err)

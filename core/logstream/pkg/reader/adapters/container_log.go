@@ -35,7 +35,7 @@ func NewContainerLogReader(containerType, container, since, tail string, follow 
 }
 
 // 构建命令
-func (r *ContainerLogReader) buildCmd(follow bool) *exec.Cmd {
+func (r *ContainerLogReader) buildCmd() *exec.Cmd {
 	var cmdName string
 	var args []string
 	if r.containerType == "compose" {
@@ -62,7 +62,7 @@ func (r *ContainerLogReader) buildCmd(follow bool) *exec.Cmd {
 	if r.since != "" && r.since != "all" {
 		args = append(args, "--since", r.since)
 	}
-	if follow {
+	if r.follow {
 		args = append(args, "-f")
 	}
 	return exec.Command(cmdName, args...)
@@ -75,7 +75,7 @@ func (r *ContainerLogReader) Read(offset int64) ([]byte, error) {
 	if r.closed {
 		return nil, fmt.Errorf("reader is closed")
 	}
-	cmd := r.buildCmd(false)
+	cmd := r.buildCmd()
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -92,7 +92,7 @@ func (r *ContainerLogReader) Follow(offset int64, whence int) (<-chan []byte, er
 	if r.closed {
 		return nil, fmt.Errorf("reader is closed")
 	}
-	cmd := r.buildCmd(true)
+	cmd := r.buildCmd()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("get stdout pipe failed: %v", err)
@@ -161,7 +161,7 @@ func (r *ContainerLogReader) Open() error {
 	if !r.closed {
 		return nil
 	}
-	cmd := r.buildCmd(r.follow)
+	cmd := r.buildCmd()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("get stdout pipe failed: %v", err)

@@ -167,11 +167,10 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},         // 重命名容器
 			{Method: "POST", Path: "/:host/containers/operatetion", Handler: s.ContainerOperation}, // 操作容器
 
-			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},                 // 获取容器详情
-			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},                 // 获取容器监控数据
-			{Method: "DELETE", Path: "/:host/containers/logs", Handler: s.ContainerLogClean},            // 清理容器日志
-			{Method: "GET", Path: "/:host/containers/logs/tail", Handler: s.TailContainerLogs},          // tail容器日志
-			{Method: "GET", Path: "/:host/containers/logs/tail/follow", Handler: s.FollowContainerLogs}, // 追踪容器日志
+			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},          // 获取容器详情
+			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},          // 获取容器监控数据
+			{Method: "DELETE", Path: "/:host/containers/logs", Handler: s.ContainerLogClean},     // 清理容器日志
+			{Method: "GET", Path: "/:host/containers/logs/tail", Handler: s.FollowContainerLogs}, // 追踪容器日志
 
 			// images
 			{Method: "GET", Path: "/:host/images", Handler: s.ImagePage},         // 获取镜像列表
@@ -1041,73 +1040,18 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 }
 
 // @Tags Docker
-// @Summary Get tail of  container logs
-// @Description Get the last few lines of logs for the specified container
-// @Accept json
-// @Produce json
-// @Param host path int true "Host ID"
-// @Param id query string true "Container ID"
-// @Param tail query int false "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown."
-// @Param since query string false Show logs since a certain time, options: 24h, 4h, 1h, 10m. If not specified, all logs will be shown.
-// @Success 200 {string} string "SSE stream started"
-// @Failure 400 {object} model.Response "Bad Request"
-// @Router /docker/{host}/containers/logs/tail [get]
-func (s *DockerMan) TailContainerLogs(c *gin.Context) {
-	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
-		return
-	}
-
-	containerID := c.Query("id")
-	if containerID == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
-		return
-	}
-
-	var offset int64
-	tail, err := strconv.ParseUint(c.Query("tail"), 10, 32)
-	if err != nil {
-		offset = 0
-	} else {
-		offset = int64(tail)
-	}
-
-	var whence int
-	since := c.Query("since")
-	switch since {
-	case "24h":
-		whence = 24 * 60
-	case "4h":
-		whence = 4 * 60
-	case "1h":
-		whence = 60
-	case "10m":
-		whence = 10
-	default:
-		whence = 0
-	}
-
-	info, err := s.tailContainerLogs(uint(hostID), containerID, offset, whence)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
-		return
-	}
-	helper.SuccessWithData(c, info)
-}
-
-// @Tags Docker
 // @Summary Connect to  container log stream
 // @Description Connect to a container log stream through SSE
 // @Accept json
 // @Produce text/event-stream
 // @Param host path int true "Host ID"
 // @Param id query string true "Container ID"
+// @Param follow query bool false "Follow the log stream"
 // @Param tail query int false "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown."
 // @Param since query string false Show logs since a certain time, options: 24h, 4h, 1h, 10m. If not specified, all logs will be shown.
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
-// @Router /docker/{host}/containers/logs/tail/follow [get]
+// @Router /docker/{host}/containers/logs/tail [get]
 func (s *DockerMan) FollowContainerLogs(c *gin.Context) {
 	err := s.followContainerLogs(c)
 	if err != nil {
