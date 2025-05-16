@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/log"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/model"
+	"github.com/sensdata/idb/core/utils"
 )
 
 func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResult, error) {
@@ -470,4 +473,98 @@ func (c DockerClient) ContainerOperation(req model.ContainerOperation) error {
 		}
 	}
 	return err
+}
+
+func (c DockerClient) ContainerLogs(req model.FileContentPartReq) (*model.FileContentPartRsp, error) {
+	var rsp model.FileContentPartRsp
+	containerID := req.Path
+	containerInfo, err := c.ContainerInfo(containerID)
+	if err != nil {
+		return &rsp, err
+	}
+	// 判断 containerType
+	containerType := "docker"
+	configFilePaths := ""
+	for _, label := range containerInfo.Labels {
+		if label.Key == "com.docker.compose.project" {
+			containerType = "compose"
+			break
+		}
+	}
+
+	// compose 场景下，需要处理 workingDir和config_files
+	if containerType == "compose" {
+		var workingDir, configFiles string
+		for _, label := range containerInfo.Labels {
+			if label.Key == "com.docker.compose.project.working_dir" {
+				workingDir = label.Value
+			}
+			if label.Key == "com.docker.compose.project.config_files" {
+				configFiles = label.Value
+			}
+		}
+		if workingDir == "" || configFiles == "" {
+			return &rsp, errors.New("config files not found")
+		}
+
+		var result []string
+		files := strings.Split(configFiles, ",")
+
+		for _, file := range files {
+			file = strings.TrimSpace(file)
+			if file == "" {
+				continue
+			}
+			if filepath.IsAbs(file) {
+				// 已经是绝对路径，直接使用
+				result = append(result, file)
+			} else {
+				// 相对路径，需要基于 workDir 拼接
+				result = append(result, filepath.Join(workingDir, file))
+			}
+		}
+
+		// 拼接成字符串(可能有多个配置文件)
+		configFilePaths = strings.Join(result, ",")
+	}
+
+	// 根据 containerType 确定 container
+	var container string
+	if containerType == "docker" {
+		container = containerID
+	} else {
+		container = configFilePaths
+	}
+
+	// 根据 msg.Whence 确定 since
+	since := utils.FormatContainerLogTimeFilter(req.Whence)
+
+	// 根据 msg.Offset 确定 tail
+	var tail string
+	switch req.Lines {
+	// 全部
+	case 0:
+		tail = "all"
+	// 行数
+	default:
+		tail = strconv.Itoa(int(req.Lines))
+	}
+
+	r, err := adapters.NewContainerLogReader(
+		containerType,
+		container,
+		since,
+		tail,
+		true,
+	)
+	if err != nil {
+		return &rsp, err
+	}
+	logBytes, err := r.Read(0)
+	if err != nil {
+		return &rsp, err
+	}
+	rsp.Path = containerID
+	rsp.Content = string(logBytes)
+	return &rsp, nil
 }

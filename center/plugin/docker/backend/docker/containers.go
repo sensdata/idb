@@ -368,8 +368,39 @@ func (s *DockerMan) containerLogClean(hostID uint64, containerID string) error {
 	return nil
 }
 
-func (s *DockerMan) deleteContainer(hostID uint64, containerID string) error {
-	return nil
+func (s *DockerMan) tailContainerLogs(hostID uint, containerID string, offset int64, whence int) (*model.FileContentPartRsp, error) {
+	var fileContentPartRsp model.FileContentPartRsp
+
+	req := model.FileContentPartReq{
+		Path:   containerID,
+		Lines:  offset,
+		Whence: whence,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.Docker_Container_Logs,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &fileContentPartRsp, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to get container logs part")
+		return &fileContentPartRsp, fmt.Errorf("failed to get container logs part")
+	}
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileContentPartRsp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to container logs part: %v", err)
+		return &fileContentPartRsp, fmt.Errorf("json err: %v", err)
+	}
+	return &fileContentPartRsp, nil
 }
 
 func (s *DockerMan) followContainerLogs(c *gin.Context) error {
@@ -640,29 +671,5 @@ func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, 
 	if err == nil {
 		message.SendLogStreamMessage(*conn, stopMsg)
 	}
-	return nil
-}
-
-func (s *DockerMan) getContainerStatus(hostID uint64, containerID string) (*model.ContainerStats, error) {
-	return nil, nil
-}
-
-func (s *DockerMan) startContainer(hostID uint64, containerID string) error {
-	return nil
-}
-
-func (s *DockerMan) stopContainer(hostID uint64, containerID string, force bool) error {
-	return nil
-}
-
-func (s *DockerMan) rebootContainer(hostID uint64, containerID string) error {
-	return nil
-}
-
-func (s *DockerMan) pauseContainer(hostID uint64, containerID string) error {
-	return nil
-}
-
-func (s *DockerMan) resumeContainer(hostID uint64, containerID string) error {
 	return nil
 }

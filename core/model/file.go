@@ -24,7 +24,6 @@ type FileContentPartReq struct {
 type FileContentPartRsp struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
-	TaskID  string `json:"task_id"`
 }
 
 type FileCreate struct {

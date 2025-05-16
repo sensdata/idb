@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gorilla/websocket"
 	"github.com/sensdata/idb/agent/agent/docker/client"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
@@ -43,7 +42,7 @@ type IDockerService interface {
 	ContainerRename(req model.Rename) error
 	ContainerLogClean(containerID string) error
 	ContainerOperation(req model.ContainerOperation) error
-	ContainerLogs(wsConn *websocket.Conn, containerType, container, since, tail string, follow bool) error
+	ContainerLogs(req model.FileContentPartReq) (*model.FileContentPartRsp, error)
 
 	ComposePage(req model.QueryCompose) (*model.PageResult, error)
 	ComposeTest(req model.ComposeCreate) (*model.ComposeTestResult, error)

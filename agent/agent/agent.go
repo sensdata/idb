@@ -828,6 +828,12 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 				tail,
 				true,
 			)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to create container log reader: %v", err)
+				global.LOG.Error(errMsg)
+				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				return
+			}
 		default:
 			r, err = adapters.NewTailReader(msg.LogPath, nil)
 			if err != nil {
@@ -2037,15 +2043,19 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Docker_Container_Logs:
-		// var req model.ContainerOperation
-		// if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
-		// 	return nil, err
-		// }
-		// err := DockerService.ContainerLogs(req)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		return actionSuccessResult(actionData.Action, "")
+		var req model.FileContentPartReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ContainerLogs(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Docker_Image_Page:
 		var req model.SearchPageInfo

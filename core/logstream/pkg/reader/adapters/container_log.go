@@ -56,7 +56,7 @@ func (r *ContainerLogReader) buildCmd(follow bool) *exec.Cmd {
 		cmdName = "docker"
 		args = []string{"logs", r.container}
 	}
-	if r.tail != "" && r.tail != "0" {
+	if r.tail != "" && r.tail != "all" {
 		args = append(args, "--tail", r.tail)
 	}
 	if r.since != "" && r.since != "all" {
