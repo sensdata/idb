@@ -14,6 +14,9 @@ export interface FormState {
   content_mode: 'direct' | 'script';
   period_details: PeriodDetailDo[];
   mark: string;
+  command: string;
+  category: string;
+  id?: number;
 }
 
 // 状态标志接口
@@ -23,25 +26,50 @@ export interface StateFlags {
   userEditingContent: Ref<boolean>;
 }
 
+// 创建默认表单状态
+const createDefaultFormState = (): FormState => ({
+  name: '',
+  type: CRONTAB_TYPE.Local,
+  kind: CRONTAB_KIND.Shell,
+  content: '',
+  content_mode: 'direct',
+  period_details: [],
+  mark: '',
+  command: '',
+  category: '',
+});
+
 export const useFormState = () => {
   const { t } = useI18n();
 
   // 表单状态
-  const formState = reactive<FormState>({
-    name: '',
-    type: CRONTAB_TYPE.Local,
-    kind: CRONTAB_KIND.Shell,
-    content: '',
-    content_mode: 'direct' as 'direct' | 'script',
-    period_details: [],
-    mark: '',
-  });
+  const formState = reactive<FormState>(createDefaultFormState());
+
+  // 重置表单状态的方法
+  const resetFormState = () => {
+    const defaultState = createDefaultFormState();
+    Object.keys(formState).forEach((key) => {
+      // @ts-ignore
+      formState[key] = defaultState[key];
+    });
+  };
 
   // 表单验证规则
   const createRules = () => {
-    return {
+    // Define a type for the rules object
+    type ValidationRules = {
+      [key: string]: {
+        required: boolean;
+        message: string;
+        type?: 'array' | 'string' | 'number' | 'boolean' | 'object';
+      }[];
+    };
+
+    const rules: ValidationRules = {
       name: [{ required: true, message: t('app.crontab.form.name.required') }],
-      type: [{ required: true, message: t('app.crontab.form.type.required') }],
+      category: [
+        { required: true, message: t('app.crontab.form.category.required') },
+      ],
       period_details: [
         {
           required: true,
@@ -53,6 +81,8 @@ export const useFormState = () => {
         { required: true, message: t('app.crontab.form.content.required') },
       ],
     };
+
+    return rules;
   };
 
   // 类型选项
@@ -107,5 +137,6 @@ export const useFormState = () => {
     isInitialLoad,
     isUpdatingFromPeriod,
     userEditingContent,
+    resetFormState,
   };
 };

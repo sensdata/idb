@@ -1,5 +1,6 @@
 export default {
   'app.crontab.form.title.add': '创建计划任务',
+  'app.crontab.form.title.edit': '编辑计划任务',
   'app.crontab.form.name.label': '计划任务名称',
   'app.crontab.form.name.placeholder': '请输入计划任务名称',
   'app.crontab.form.type.label': '类型',
@@ -23,7 +24,9 @@ export default {
   'app.crontab.form.script_name.invalid_response': '获取脚本列表响应格式无效',
   'app.crontab.form.script_content.invalid_response':
     '获取脚本内容响应格式无效',
-  'app.crontab.form.content.label': '命令内容',
+  'app.crontab.form.command.label': '命令内容',
+  'app.crontab.form.command.placeholder': '请输入要执行的命令',
+  'app.crontab.form.content.label': '文件预览',
   'app.crontab.form.content.placeholder': '请输入命令内容',
   'app.crontab.form.mark.label': '计划任务备注',
   'app.crontab.form.mark.placeholder': '请输入计划任务备注',

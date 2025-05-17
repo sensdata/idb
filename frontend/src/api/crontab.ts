@@ -11,8 +11,14 @@ export function getCrontabListApi(params: CrontabListApiParams) {
   return request.get<ApiListResult<CrontabEntity>>('crontab/{host}', params);
 }
 
-export function getCrontabDetailApi(params: { id: number }) {
-  return request.get<CrontabEntity>('crontab/{host}/detail', params);
+export interface CrontabDetailApiParams {
+  type: CRONTAB_TYPE;
+  category: string;
+  name: string;
+}
+
+export function getCrontabDetailApi(params: CrontabDetailApiParams) {
+  return request.get<CrontabEntity>('crontab/{host}/raw', params);
 }
 
 export function createCrontabApi(data: Partial<CrontabEntity>) {
@@ -28,11 +34,53 @@ export interface CreateUpdateCrontabRawParams {
   category: string;
   name: string;
   content: string;
+  isEdit?: boolean;
 }
 export function createUpdateCrontabRawApi(
   params: CreateUpdateCrontabRawParams
 ) {
-  return request.post('crontab/{host}/raw', params);
+  const { isEdit, ...requestParams } = params;
+  return isEdit
+    ? request.put('crontab/{host}/raw', requestParams)
+    : request.post('crontab/{host}/raw', requestParams);
+}
+
+export interface CrontabCategoryListApiParams extends ApiListParams {
+  type: CRONTAB_TYPE;
+}
+export function getCrontabCategoryListApi(
+  params: CrontabCategoryListApiParams
+) {
+  return request.get<
+    ApiListResult<{
+      mod_time: string;
+      name: string;
+      size: number;
+      source: string;
+    }>
+  >('crontab/{host}/category', params);
+}
+
+export function createCrontabCategoryApi(params: {
+  type: CRONTAB_TYPE;
+  category: string;
+}) {
+  return request.post('crontab/{host}/category', params);
+}
+
+export function updateCrontabCategoryApi(params: {
+  type: CRONTAB_TYPE;
+  category: string;
+  new_name: string;
+}) {
+  return request.put('crontab/{host}/category', params);
+}
+
+export function deleteCrontabCategoryApi(params: {
+  type: CRONTAB_TYPE;
+  category: string;
+}) {
+  return request.delete('crontab/{host}/category', params);
 }
 
 export interface CrontabVersionsApiParams extends ApiListParams {

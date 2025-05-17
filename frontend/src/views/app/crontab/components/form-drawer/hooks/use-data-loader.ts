@@ -1,30 +1,39 @@
-import { toRaw, Ref } from 'vue';
+import { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getCrontabDetailApi } from '@/api/crontab';
-import { CRONTAB_TYPE } from '@/config/enum';
+import { getScriptListApi } from '@/api/script';
+import { CRONTAB_TYPE, SCRIPT_TYPE } from '@/config/enum';
+import { CrontabEntity } from '@/entity/Crontab';
+import { ScriptEntity } from '@/entity/Script';
 import { FormState, StateFlags } from './use-form-state';
-
-// 定义常量
-const SCRIPT_PATHS = {
-  LOCAL: '/var/lib/idb/data/scripts/local/',
-  GLOBAL: '/var/lib/idb/data/scripts/global/',
-};
+import { usePeriodUtils } from './use-period-utils';
 
 // 定义类型接口
 interface ScriptSelections {
-  selectedCategory: Ref<string | undefined>;
+  selectedScriptSourceCategory: Ref<string | undefined>;
   selectedScript: Ref<string | undefined>;
   scriptParams: Ref<string>;
+}
+
+// 编辑参数接口
+interface EditParams {
+  name?: string;
+  type?: CRONTAB_TYPE;
+  category?: string;
+  isEdit?: boolean;
 }
 
 export const useDataLoader = (
   formState: FormState,
   flags: StateFlags,
   selections: ScriptSelections,
-  fetchScripts: () => Promise<void>
+  fetchScripts: () => Promise<void>,
+  currentHostId?: any
 ) => {
   const { t } = useI18n();
+  const { parseCronExpression } = usePeriodUtils();
 
+  // 从内容行中提取标记信息
   const extractMarkFromContent = (contentLines: string[]): string => {
     const hasMarkComment =
       contentLines.length > 1 &&
@@ -53,37 +62,48 @@ export const useDataLoader = (
     return '';
   };
 
-  // 处理脚本路径和相关设置
-  const processScriptPath = (
-    path: string
-  ): { relativePath: string; type: CRONTAB_TYPE } | null => {
-    if (path.startsWith(SCRIPT_PATHS.LOCAL)) {
-      return {
-        relativePath: path.substring(SCRIPT_PATHS.LOCAL.length),
-        type: CRONTAB_TYPE.Local,
-      };
+  // 查找匹配脚本
+  const findMatchingScript = async (
+    sourceType: SCRIPT_TYPE,
+    category: string,
+    fullPath: string
+  ): Promise<ScriptEntity | undefined> => {
+    try {
+      const scriptListResult = await getScriptListApi({
+        type: sourceType,
+        category,
+        page: 1,
+        page_size: 100,
+        host: currentHostId,
+      } as any);
+
+      if (scriptListResult?.items && Array.isArray(scriptListResult.items)) {
+        return scriptListResult.items.find(
+          (script: ScriptEntity) => fullPath === script.source
+        );
+      }
+    } catch (error) {
+      console.error('Error finding script by source:', error);
     }
-    if (path.startsWith(SCRIPT_PATHS.GLOBAL)) {
-      return {
-        relativePath: path.substring(SCRIPT_PATHS.GLOBAL.length),
-        type: CRONTAB_TYPE.Global,
-      };
-    }
-    return null;
+
+    return undefined;
   };
 
-  const parseScriptFromContent = async (content: string): Promise<boolean> => {
-    if (
-      !content ||
-      !(
-        content.includes(SCRIPT_PATHS.LOCAL) ||
-        content.includes(SCRIPT_PATHS.GLOBAL)
-      )
-    ) {
-      return false;
-    }
+  // 从路径获取脚本名称
+  const getScriptNameFromPath = (fullPath: string): string => {
+    const pathSegments = fullPath.split('/').filter(Boolean);
+    return pathSegments.length >= 1
+      ? pathSegments[pathSegments.length - 1]
+      : '';
+  };
 
-    formState.content_mode = 'script';
+  // 从内容解析脚本路径和参数
+  const getScriptInfoFromContent = (
+    content: string
+  ): {
+    fullPath: string;
+    params: string;
+  } => {
     const contentParts = content.split(' ');
 
     // 确定脚本路径
@@ -92,97 +112,240 @@ export const useDataLoader = (
         ? contentParts[1]
         : contentParts[0];
 
-    const pathInfo = processScriptPath(fullPath);
-    if (!pathInfo) {
+    // 处理脚本参数
+    let params = '';
+    if (contentParts[0] === 'sh' && contentParts.length > 2) {
+      params = contentParts.slice(2).join(' ');
+    } else if (contentParts[0] !== 'sh' && contentParts.length > 1) {
+      params = contentParts.slice(1).join(' ');
+    }
+
+    return { fullPath, params };
+  };
+
+  // 从脚本路径解析类别
+  const getCategoryFromPath = (fullPath: string): string | undefined => {
+    const pathSegments = fullPath.split('/').filter(Boolean);
+    if (pathSegments.length < 2) {
+      return undefined;
+    }
+
+    return pathSegments[pathSegments.length - 2];
+  };
+
+  const parseScriptFromContent = async (content: string): Promise<boolean> => {
+    if (!content) {
       return false;
     }
 
-    formState.type = pathInfo.type;
-    const relativePath = pathInfo.relativePath;
+    formState.content_mode = 'script';
 
-    const pathParts = relativePath.split('/');
-    if (pathParts.length >= 2) {
-      selections.selectedCategory.value = pathParts[0];
-      await fetchScripts();
-      selections.selectedScript.value = pathParts[1];
+    // 解析脚本信息
+    const { fullPath, params } = getScriptInfoFromContent(content);
 
-      // 处理脚本参数
-      if (contentParts[0] === 'sh' && contentParts.length > 2) {
-        selections.scriptParams.value = contentParts.slice(2).join(' ');
-      } else if (contentParts[0] !== 'sh' && contentParts.length > 1) {
-        selections.scriptParams.value = contentParts.slice(1).join(' ');
-      }
+    // 从路径中提取类型和相对路径信息
+    const isGlobal = fullPath.includes('/global/');
+    formState.type = isGlobal ? CRONTAB_TYPE.Global : CRONTAB_TYPE.Local;
+
+    // 获取类别
+    const category = getCategoryFromPath(fullPath);
+    if (!category) {
+      return false;
+    }
+
+    selections.selectedScriptSourceCategory.value = category;
+    selections.scriptParams.value = params;
+
+    // 等待脚本加载完成
+    await fetchScripts();
+
+    // 查找匹配的脚本
+    const scriptType =
+      formState.type === CRONTAB_TYPE.Global
+        ? SCRIPT_TYPE.Global
+        : SCRIPT_TYPE.Local;
+
+    const matchingScript = await findMatchingScript(
+      scriptType,
+      selections.selectedScriptSourceCategory.value,
+      fullPath
+    );
+
+    if (matchingScript) {
+      selections.selectedScript.value = matchingScript.name;
+    } else {
+      const scriptName = getScriptNameFromPath(fullPath);
+      selections.selectedScript.value = scriptName;
     }
 
     return true;
   };
 
-  const extractCommandContent = (data: any): string => {
+  // 从内容中提取命令和cron表达式
+  const extractCommandContent = (
+    data: any
+  ): { commandContent: string; cronExpression: string | null } => {
     if (!data.content) {
-      return data.content;
+      return { commandContent: '', cronExpression: null };
     }
 
     const contentLines = data.content.split('\n');
-    const hasPeriodComment = contentLines[0]?.startsWith('# ');
 
     const mark = extractMarkFromContent(contentLines);
     if (mark) {
       formState.mark = mark;
     }
 
-    const cronLineIndex = mark ? 2 : 1;
-    const cronLine =
-      contentLines.length > cronLineIndex ? contentLines[cronLineIndex] : '';
-    const isCronLine = /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)/.test(cronLine);
+    let cronLineIndex = 0;
 
-    if (hasPeriodComment && isCronLine) {
-      const cronParts = cronLine.match(/^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.*)/);
-      if (cronParts && cronParts.length > 2) {
-        return cronParts[2];
-      }
-
-      const startIndex = mark ? 3 : 2;
-      return contentLines.slice(startIndex).join('\n');
+    // 跳过注释行查找crontab表达式
+    while (
+      cronLineIndex < contentLines.length &&
+      contentLines[cronLineIndex]?.startsWith('#')
+    ) {
+      cronLineIndex++;
     }
 
-    const firstLineIsCron = /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)/.test(
-      contentLines[0]
-    );
-    if (firstLineIsCron) {
-      const cronParts = contentLines[0].match(
-        /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.*)/
-      );
-      if (cronParts && cronParts.length > 2) {
-        return cronParts[2];
-      }
+    if (cronLineIndex >= contentLines.length) {
+      return { commandContent: '', cronExpression: null };
     }
 
-    return data.content;
+    const cronLine = contentLines[cronLineIndex];
+
+    // 匹配cron表达式(5个字段)和后面的命令
+    const cronPattern = /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.+)$/;
+    const cronMatches = cronLine.match(cronPattern);
+
+    if (cronMatches && cronMatches.length >= 3) {
+      return {
+        commandContent: cronMatches[2].trim(),
+        cronExpression: cronMatches[1].trim(),
+      };
+    }
+
+    return {
+      commandContent: data.content,
+      cronExpression: null,
+    };
   };
 
-  interface CrontabDetailParams {
-    value?: { id: number };
-  }
+  // 重置表单基本信息
+  const resetBasicFormInfo = (record: CrontabEntity) => {
+    formState.name = record.name || '';
+    formState.type = record.type || CRONTAB_TYPE.Local;
+    formState.mark = record.mark || '';
+    formState.content_mode = record.content_mode || 'direct';
+    formState.command = '';
+  };
 
-  const loadData = async (paramsRef: CrontabDetailParams): Promise<void> => {
+  // 处理周期详情
+  const handlePeriodDetails = async (record: CrontabEntity) => {
+    // 如果有period_details，直接使用
+    if (record.period_details && record.period_details.length > 0) {
+      formState.period_details = record.period_details;
+      return { usedExistingPeriod: true };
+    }
+
+    // 否则尝试从content解析
+    const { commandContent, cronExpression } = extractCommandContent(record);
+
+    // 解析cron表达式
+    if (cronExpression) {
+      const periodDetail = parseCronExpression(cronExpression);
+      if (periodDetail) {
+        formState.period_details = [periodDetail];
+      }
+    }
+
+    // 设置命令字段
+    formState.command = commandContent;
+
+    return {
+      usedExistingPeriod: false,
+      commandContent,
+      cronExpression,
+    };
+  };
+
+  // 处理内容模式
+  const handleContentMode = async (
+    record: CrontabEntity,
+    commandContent: string,
+    hasExplicitMode: boolean
+  ) => {
+    // 如果未指定content_mode，则尝试解析为脚本
+    if (!hasExplicitMode) {
+      const isScript = await parseScriptFromContent(commandContent);
+
+      if (!isScript) {
+        formState.content_mode = 'direct';
+      }
+    }
+  };
+
+  const loadDataFromRecord = async (record: CrontabEntity): Promise<void> => {
     flags.isInitialLoad.value = true;
 
     try {
-      if (!paramsRef.value) {
+      if (!record) {
         return;
       }
 
-      const data = await getCrontabDetailApi(toRaw(paramsRef.value));
-      Object.assign(formState, data);
+      // 重置表单基本信息
+      resetBasicFormInfo(record);
 
-      const extractedContent = extractCommandContent(data);
-      const isScript = await parseScriptFromContent(extractedContent);
+      // 处理周期详情
+      const { usedExistingPeriod, commandContent } = await handlePeriodDetails(
+        record
+      );
 
-      if (!isScript) {
-        formState.content = extractedContent;
+      // 处理内容模式
+      const hasExplicitMode = !!record.content_mode;
+      if (!usedExistingPeriod && commandContent) {
+        await handleContentMode(record, commandContent, hasExplicitMode);
       }
+
+      // 最后设置content，确保模式已经确定
+      formState.content = record.content || '';
     } catch (error) {
-      console.error('Error loading crontab data:', error);
+      console.error('Error loading data from record:', error);
+    } finally {
+      flags.isInitialLoad.value = false;
+    }
+  };
+
+  const loadData = async (
+    paramsRef: Ref<EditParams | undefined>
+  ): Promise<void> => {
+    flags.isInitialLoad.value = true;
+
+    try {
+      if (
+        !paramsRef.value ||
+        !paramsRef.value.name ||
+        !paramsRef.value.type ||
+        !paramsRef.value.category
+      ) {
+        return;
+      }
+
+      // 构造API参数
+      const params = {
+        name: paramsRef.value.name,
+        type: paramsRef.value.type,
+        category: paramsRef.value.category,
+      };
+
+      const data = await getCrontabDetailApi(params);
+
+      if (!data) {
+        return;
+      }
+
+      // 使用相同的加载逻辑处理返回的数据
+      await loadDataFromRecord(data);
+    } catch (error) {
+      console.error('Error loading data:', error);
     } finally {
       flags.isInitialLoad.value = false;
     }
@@ -190,5 +353,6 @@ export const useDataLoader = (
 
   return {
     loadData,
+    loadDataFromRecord,
   };
 };

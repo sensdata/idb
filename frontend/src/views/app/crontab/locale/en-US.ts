@@ -43,4 +43,12 @@ export default {
   'app.crontab.list.message.delete_success': 'Delete success',
   'app.crontab.list.status.normal': 'Normal',
   'app.crontab.list.status.disabled': 'Disabled',
+  'app.crontab.list.status.running': 'Running',
+  'app.crontab.list.status.not_running': 'Not Running',
+
+  // Form fields
+  'app.crontab.form.category.label': 'Category',
+  'app.crontab.form.category.placeholder':
+    'Please select or enter a category, press Enter to create a new category',
+  'app.crontab.form.category.required': 'Please enter category',
 };

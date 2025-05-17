@@ -46,4 +46,12 @@ export default {
   'app.crontab.list.message.delete_success': '删除成功',
   'app.crontab.list.status.normal': '正常',
   'app.crontab.list.status.disabled': '已禁用',
+  'app.crontab.list.status.running': '运行中',
+  'app.crontab.list.status.not_running': '未运行',
+
+  // Form fields
+  'app.crontab.form.category.label': '分类',
+  'app.crontab.form.category.placeholder':
+    '请选择或输入分类，新分类按回车键会自动生成',
+  'app.crontab.form.category.required': '请输入分类',
 };

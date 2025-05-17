@@ -1,5 +1,6 @@
 export default {
   'app.crontab.form.title.add': 'Create Scheduled Task',
+  'app.crontab.form.title.edit': 'Edit Scheduled Task',
   'app.crontab.form.name.label': 'Task Name',
   'app.crontab.form.name.placeholder': 'Please enter task name',
   'app.crontab.form.type.label': 'Type',
@@ -30,7 +31,9 @@ export default {
     'Invalid scripts response format',
   'app.crontab.form.script_content.invalid_response':
     'Invalid script content response',
-  'app.crontab.form.content.label': 'Command Content',
+  'app.crontab.form.command.label': 'Command Content',
+  'app.crontab.form.command.placeholder': 'Please enter the command to execute',
+  'app.crontab.form.content.label': 'File Preview',
   'app.crontab.form.content.placeholder': 'Please enter command content',
   'app.crontab.form.mark.label': 'Notes',
   'app.crontab.form.mark.placeholder': 'Please enter notes',

@@ -1,263 +1,142 @@
-import { Ref, nextTick } from 'vue';
+import { Ref } from 'vue';
 import { CRONTAB_PERIOD_TYPE } from '@/config/enum';
 import type { FormState, StateFlags } from './use-form-state';
-import { usePeriodUtils } from './use-period-utils';
 import { useContentHandler } from './use-content-handler';
 
 interface ScriptSelections {
-  selectedCategory: Ref<string | undefined>;
+  selectedScriptSourceCategory: Ref<string | undefined>;
   selectedScript: Ref<string | undefined>;
   scriptParams: Ref<string>;
 }
+
+const handleOperationError = (operation: string, error: unknown): void => {
+  console.error(`Error ${operation}:`, error);
+};
 
 export const useEventHandlers = (
   formState: FormState,
   flags: StateFlags,
   selections: ScriptSelections
 ) => {
-  const { parseCronExpression } = usePeriodUtils();
   const {
     updateContentWithPeriod,
-    updateMarkInScriptMode,
     updateContentWithParams,
+    updateContentFromMark,
   } = useContentHandler();
 
-  const handleContentChange = (content: string): void => {
-    if (
-      flags.isUpdatingFromPeriod.value ||
-      flags.isInitialLoad.value ||
-      formState.content_mode !== 'direct'
-    ) {
-      return;
-    }
+  const noOp = (): void => {
+    // Intentionally empty - used as a no-operation function
+  };
 
-    flags.userEditingContent.value = true;
-    formState.content = content;
-
-    nextTick(() => {
-      flags.userEditingContent.value = false;
-    });
+  const handleCommandChange = (value: string): void => {
+    formState.command = value;
+    updateContentWithPeriod(formState, flags, true).catch((error) =>
+      handleOperationError('updating content with period', error)
+    );
   };
 
   const handleMarkInput = (): void => {
-    flags.userEditingContent.value = true;
-
-    nextTick(() => {
-      flags.userEditingContent.value = false;
-    });
+    // 当用户输入时，我们不做任何操作，等到失去焦点时再更新
   };
 
-  const handleMarkBlur = (): void => {
-    flags.isInitialLoad.value = false;
-    flags.isUpdatingFromPeriod.value = false;
-    flags.userEditingContent.value = false;
-
-    nextTick(() => {
-      updateContentWithPeriod(formState, flags, true);
-    });
-  };
-
-  const handleMarkValueChange = (value: string): void => {
-    flags.isInitialLoad.value = false;
-    const wasUpdating = flags.isUpdatingFromPeriod.value;
-    flags.isUpdatingFromPeriod.value = true;
-
-    nextTick(() => {
-      try {
-        if (
-          formState.content_mode === 'script' &&
-          selections.selectedScript.value &&
-          selections.selectedCategory.value
-        ) {
-          updateMarkInScriptMode(
-            formState,
-            value,
-            selections.selectedCategory,
-            selections.selectedScript,
-            selections.scriptParams
-          );
-        } else {
-          updateContentWithPeriod(formState, flags, true);
-        }
-      } catch (error) {
-        console.error('Error updating mark value:', error);
-      } finally {
-        if (!wasUpdating) {
-          nextTick(() => {
-            flags.isUpdatingFromPeriod.value = false;
-          });
-        }
-      }
-    });
-  };
-
-  const handleContentBlur = (content: string): void => {
-    if (
-      formState.content_mode !== 'direct' ||
-      flags.isUpdatingFromPeriod.value
-    ) {
-      return;
-    }
-
-    flags.isUpdatingFromPeriod.value = true;
-
+  const handleMarkBlur = async (): Promise<void> => {
     try {
-      const contentLines = content.split('\n');
-      let cronExpression = '';
-
-      if (
-        contentLines.length > 1 &&
-        contentLines[0]?.startsWith('# ') &&
-        /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)/.test(contentLines[1])
-      ) {
-        const matches = contentLines[1].match(
-          /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s*(.*)/
-        );
-        if (matches && matches.length > 1) {
-          cronExpression = matches[1];
-        }
-      }
-      if (/^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)/.test(contentLines[0])) {
-        const matches = contentLines[0].match(
-          /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s*(.*)/
-        );
-        if (matches && matches.length > 1) {
-          cronExpression = matches[1];
-        }
-      }
-
-      if (cronExpression) {
-        const periodDetail = parseCronExpression(cronExpression);
-        if (periodDetail) {
-          flags.userEditingContent.value = true;
-
-          nextTick(() => {
-            formState.period_details = [{ ...periodDetail }];
-
-            nextTick(() => {
-              flags.userEditingContent.value = false;
-            });
-          });
-        }
-      }
+      await updateContentFromMark(formState);
     } catch (error) {
-      console.error('Error processing content blur:', error);
-    } finally {
-      nextTick(() => {
-        flags.isUpdatingFromPeriod.value = false;
-      });
+      handleOperationError('updating content from mark', error);
     }
   };
 
-  const handlePeriodChange = (): void => {
+  const handleMarkValueChange = (): void => {
+    // 值变更时不执行任何操作，等待失去焦点时更新
+  };
+
+  const handleContentBlur = (): void => {
+    // Intentionally empty - content blur handled elsewhere
+  };
+
+  const updateScriptContent = async (): Promise<void> => {
+    try {
+      flags.isUpdatingFromPeriod.value = true;
+      await updateContentWithParams(
+        formState,
+        selections.selectedScriptSourceCategory,
+        selections.selectedScript,
+        selections.scriptParams
+      );
+    } catch (error) {
+      handleOperationError('updating content with params', error);
+    } finally {
+      flags.isUpdatingFromPeriod.value = false;
+    }
+  };
+
+  const updateNormalContent = async (forceUpdate = false): Promise<void> => {
+    try {
+      flags.isUpdatingFromPeriod.value = true;
+      await updateContentWithPeriod(formState, flags, forceUpdate);
+    } catch (error) {
+      handleOperationError('updating content with period', error);
+    } finally {
+      flags.isUpdatingFromPeriod.value = false;
+    }
+  };
+
+  const handlePeriodChange = async (): Promise<void> => {
     flags.userEditingContent.value = false;
     formState.period_details = [...formState.period_details];
 
     if (formState.content_mode === 'script') {
       if (
         selections.selectedScript.value &&
-        selections.selectedCategory.value
+        selections.selectedScriptSourceCategory.value
       ) {
-        flags.isUpdatingFromPeriod.value = true;
-        try {
-          updateContentWithParams(
-            formState,
-            selections.selectedCategory,
-            selections.selectedScript,
-            selections.scriptParams
-          );
-        } catch (error) {
-          console.error('Error updating content with params:', error);
-        } finally {
-          nextTick(() => {
-            flags.isUpdatingFromPeriod.value = false;
-          });
-        }
+        await updateScriptContent();
       } else {
-        flags.isUpdatingFromPeriod.value = true;
-        try {
-          updateContentWithPeriod(formState, flags, true);
-        } catch (error) {
-          console.error('Error updating content with period:', error);
-        } finally {
-          nextTick(() => {
-            flags.isUpdatingFromPeriod.value = false;
-          });
-        }
+        await updateNormalContent(true);
       }
       return;
     }
 
-    if (flags.isUpdatingFromPeriod.value) {
-      nextTick(() => {
-        flags.isUpdatingFromPeriod.value = true;
-        try {
-          updateContentWithPeriod(formState, flags, true);
-        } catch (error) {
-          console.error('Error updating content with period:', error);
-        } finally {
-          nextTick(() => {
-            flags.isUpdatingFromPeriod.value = false;
-          });
-        }
-      });
-      return;
-    }
+    await updateNormalContent(true);
+  };
 
-    flags.isUpdatingFromPeriod.value = true;
+  const switchToScriptMode = async (
+    fetchCategories: () => void
+  ): Promise<void> => {
+    flags.userEditingContent.value = true;
+
     try {
-      updateContentWithPeriod(formState, flags, true);
+      selections.selectedScriptSourceCategory.value = undefined;
+      selections.selectedScript.value = undefined;
+      selections.scriptParams.value = '';
+
+      formState.content = '';
+      formState.command = '';
+
+      fetchCategories();
+
+      await updateNormalContent(true);
     } catch (error) {
-      console.error(
-        'Error updating content with period in normal path:',
-        error
-      );
+      handleOperationError('switching to script mode', error);
     } finally {
-      nextTick(() => {
-        flags.isUpdatingFromPeriod.value = false;
-      });
+      flags.userEditingContent.value = false;
+    }
+  };
+
+  const switchToDirectMode = async (): Promise<void> => {
+    try {
+      await updateNormalContent(true);
+    } catch (error) {
+      handleOperationError('switching to direct mode', error);
     }
   };
 
   const handleContentModeChange = (fetchCategories: () => void): void => {
     if (formState.content_mode === 'script') {
-      flags.userEditingContent.value = true;
-
-      nextTick(() => {
-        try {
-          selections.selectedCategory.value = undefined;
-          selections.selectedScript.value = undefined;
-          selections.scriptParams.value = '';
-
-          formState.content = '';
-
-          fetchCategories();
-
-          updateContentWithPeriod(formState, flags, true);
-        } catch (error) {
-          console.error('Error handling content mode change:', error);
-        } finally {
-          nextTick(() => {
-            flags.userEditingContent.value = false;
-          });
-        }
-      });
+      switchToScriptMode(fetchCategories);
     } else {
-      nextTick(() => {
-        try {
-          flags.isUpdatingFromPeriod.value = true;
-
-          try {
-            updateContentWithPeriod(formState, flags, true);
-          } finally {
-            nextTick(() => {
-              flags.isUpdatingFromPeriod.value = false;
-            });
-          }
-        } catch (error) {
-          console.error('Error switching to direct mode:', error);
-        }
-      });
+      switchToDirectMode();
     }
   };
 
@@ -277,7 +156,8 @@ export const useEventHandlers = (
   };
 
   return {
-    handleContentChange,
+    handleContentChange: noOp,
+    handleCommandChange,
     handleMarkInput,
     handleMarkBlur,
     handleMarkValueChange,
