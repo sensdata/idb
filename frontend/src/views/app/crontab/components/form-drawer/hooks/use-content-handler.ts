@@ -75,7 +75,9 @@ export const useContentHandler = () => {
       } as ScriptDetailApiParams);
 
       if (!scriptDetail || !scriptDetail.source) {
-        console.error('Failed to get script source path');
+        console.error(
+          `Failed to get script source path for "${scriptName}" in category "${scriptCategory}"`
+        );
         return '';
       }
 
@@ -87,7 +89,10 @@ export const useContentHandler = () => {
         ? `sh ${scriptSourcePath}${scriptParams ? ' ' + scriptParams : ''}`
         : `${scriptSourcePath}${scriptParams ? ' ' + scriptParams : ''}`;
     } catch (error) {
-      console.error('Error getting script command:', error);
+      console.error(
+        `Error getting script command for "${scriptName}" in category "${scriptCategory}":`,
+        error
+      );
       return '';
     }
   };

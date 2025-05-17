@@ -296,14 +296,26 @@
   const updateScriptContent = async () => {
     if (!selectedScriptSourceCategory.value || !selectedScript.value) return;
 
-    await updateContentWithParams(
-      formState,
-      selections.selectedScriptSourceCategory,
-      selections.selectedScript,
-      selections.scriptParams,
-      currentHostId.value
-    );
-    refreshContentEditor();
+    // 记录当前的更新状态，防止重复更新
+    flags.isUpdatingFromPeriod.value = true;
+
+    try {
+      await updateContentWithParams(
+        formState,
+        selections.selectedScriptSourceCategory,
+        selections.selectedScript,
+        selections.scriptParams,
+        currentHostId.value
+      );
+      refreshContentEditor();
+    } catch (error) {
+      console.error('Error updating script content:', error);
+    } finally {
+      // 确保状态标志被重置
+      setTimeout(() => {
+        flags.isUpdatingFromPeriod.value = false;
+      }, 100);
+    }
   };
 
   // 加载数据

@@ -4,7 +4,6 @@ import { getCrontabDetailApi } from '@/api/crontab';
 import { getScriptListApi } from '@/api/script';
 import { CRONTAB_TYPE, SCRIPT_TYPE } from '@/config/enum';
 import { CrontabEntity } from '@/entity/Crontab';
-import { ScriptEntity } from '@/entity/Script';
 import { FormState, StateFlags } from './use-form-state';
 import { usePeriodUtils } from './use-period-utils';
 
@@ -62,33 +61,6 @@ export const useDataLoader = (
     return '';
   };
 
-  // 查找匹配脚本
-  const findMatchingScript = async (
-    sourceType: SCRIPT_TYPE,
-    category: string,
-    fullPath: string
-  ): Promise<ScriptEntity | undefined> => {
-    try {
-      const scriptListResult = await getScriptListApi({
-        type: sourceType,
-        category,
-        page: 1,
-        page_size: 100,
-        host: currentHostId,
-      } as any);
-
-      if (scriptListResult?.items && Array.isArray(scriptListResult.items)) {
-        return scriptListResult.items.find(
-          (script: ScriptEntity) => fullPath === script.source
-        );
-      }
-    } catch (error) {
-      console.error('Error finding script by source:', error);
-    }
-
-    return undefined;
-  };
-
   // 从路径获取脚本名称
   const getScriptNameFromPath = (fullPath: string): string => {
     const pathSegments = fullPath.split('/').filter(Boolean);
@@ -123,14 +95,69 @@ export const useDataLoader = (
     return { fullPath, params };
   };
 
-  // 从脚本路径解析类别
-  const getCategoryFromPath = (fullPath: string): string | undefined => {
-    const pathSegments = fullPath.split('/').filter(Boolean);
-    if (pathSegments.length < 2) {
-      return undefined;
-    }
+  // 获取脚本分类列表
+  const getScriptCategoriesWithSource = async (
+    scriptType: SCRIPT_TYPE
+  ): Promise<any[]> => {
+    try {
+      const { getScriptCategoryListApi } = await import('@/api/script');
+      const result = await getScriptCategoryListApi({
+        type: scriptType,
+        page: 1,
+        page_size: 1000,
+        host: currentHostId,
+      } as any);
 
-    return pathSegments[pathSegments.length - 2];
+      if (result?.items && Array.isArray(result.items)) {
+        return result.items;
+      }
+    } catch (error) {
+      console.error('Error getting script categories:', error);
+    }
+    return [];
+  };
+
+  // 根据脚本路径匹配分类
+  const findMatchingCategory = (categories: any[], scriptPath: string): any => {
+    // 首先尝试找到路径包含在脚本路径中的分类
+    for (const category of categories) {
+      if (category.source && scriptPath.includes(category.source)) {
+        return category;
+      }
+    }
+    return null;
+  };
+
+  // 获取特定分类下的所有脚本
+  const getScriptsForCategory = async (
+    scriptType: SCRIPT_TYPE,
+    categoryName: string
+  ): Promise<any[]> => {
+    try {
+      // 使用导入的API而不是重新导入
+      const result = await getScriptListApi({
+        type: scriptType,
+        category: categoryName,
+        page: 1,
+        page_size: 1000,
+        host: currentHostId,
+      } as any);
+
+      if (result?.items && Array.isArray(result.items)) {
+        return result.items;
+      }
+    } catch (error) {
+      console.error('Error getting scripts for category:', error);
+    }
+    return [];
+  };
+
+  // 根据脚本路径匹配脚本
+  const findMatchingScriptBySource = (
+    scripts: any[],
+    scriptPath: string
+  ): any => {
+    return scripts.find((script) => script.source === scriptPath);
   };
 
   const parseScriptFromContent = async (content: string): Promise<boolean> => {
@@ -138,46 +165,64 @@ export const useDataLoader = (
       return false;
     }
 
+    // 设置默认内容模式为脚本
     formState.content_mode = 'script';
 
-    // 解析脚本信息
+    // 解析脚本信息（路径和参数）
     const { fullPath, params } = getScriptInfoFromContent(content);
-
-    // 从路径中提取类型和相对路径信息
-    const isGlobal = fullPath.includes('/global/');
-    formState.type = isGlobal ? CRONTAB_TYPE.Global : CRONTAB_TYPE.Local;
-
-    // 获取类别
-    const category = getCategoryFromPath(fullPath);
-    if (!category) {
+    if (!fullPath) {
       return false;
     }
 
-    selections.selectedScriptSourceCategory.value = category;
-    selections.scriptParams.value = params;
-
-    // 等待脚本加载完成
-    await fetchScripts();
-
-    // 查找匹配的脚本
+    // 根据路径判断脚本类型（全局或本地）
+    const isGlobal = fullPath.includes('/global/');
+    formState.type = isGlobal ? CRONTAB_TYPE.Global : CRONTAB_TYPE.Local;
     const scriptType =
       formState.type === CRONTAB_TYPE.Global
         ? SCRIPT_TYPE.Global
         : SCRIPT_TYPE.Local;
 
-    const matchingScript = await findMatchingScript(
+    // 1. 获取当前类型下所有分类
+    const categories = await getScriptCategoriesWithSource(scriptType);
+    if (!categories || categories.length === 0) {
+      return false;
+    }
+
+    // 2. 查找脚本路径匹配的分类
+    const matchingCategory = findMatchingCategory(categories, fullPath);
+    if (!matchingCategory) {
+      return false;
+    }
+
+    // 设置找到的分类
+    selections.selectedScriptSourceCategory.value = matchingCategory.name;
+    selections.scriptParams.value = params;
+
+    // 3. 获取该分类下的所有脚本
+    const categoryScripts = await getScriptsForCategory(
       scriptType,
-      selections.selectedScriptSourceCategory.value,
+      matchingCategory.name
+    );
+
+    // 4. 查找匹配的脚本
+    const matchingScript = findMatchingScriptBySource(
+      categoryScripts,
       fullPath
     );
 
     if (matchingScript) {
+      // 如果找到完全匹配的脚本，使用它
       selections.selectedScript.value = matchingScript.name;
-    } else {
-      const scriptName = getScriptNameFromPath(fullPath);
-      selections.selectedScript.value = scriptName;
+      return true;
     }
 
+    // 如果没找到完全匹配的脚本，使用路径中的文件名作为脚本名
+    const scriptName = getScriptNameFromPath(fullPath);
+    selections.selectedScript.value = scriptName;
+    // 继续处理，但是可能会因为找不到完全匹配而导致显示问题
+    console.warn(
+      `No exact script match found for ${fullPath}, using filename: ${scriptName}`
+    );
     return true;
   };
 
