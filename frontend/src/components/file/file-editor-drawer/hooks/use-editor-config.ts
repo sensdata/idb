@@ -11,6 +11,7 @@ import { properties } from '@codemirror/legacy-modes/mode/properties';
 import { nginx } from '@codemirror/legacy-modes/mode/nginx';
 import { toml } from '@codemirror/legacy-modes/mode/toml';
 import { simpleMode } from '@codemirror/legacy-modes/mode/simple-mode';
+import { EditorState } from '@codemirror/state';
 import { FileItem } from '../types';
 
 // 定义日志文件的高亮规则
@@ -57,10 +58,13 @@ const logSyntax = {
 // 创建日志语法高亮器
 const logMode = simpleMode({ start: logSyntax.start });
 
+// 添加统一的行分隔符配置，确保一致的换行符处理
+const commonExtensions = [EditorState.lineSeparator.of('\n')];
+
 export default function useEditorConfig(file: Ref<FileItem | null>) {
   const extensions = computed(() => {
     if (!file.value) {
-      return [];
+      return commonExtensions;
     }
 
     const fileName = file.value.name.toLowerCase();
@@ -73,13 +77,13 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
       fileName === '.bash_logout' ||
       fileName === '.profile'
     ) {
-      return [StreamLanguage.define(shell)];
+      return [StreamLanguage.define(shell), ...commonExtensions];
     }
 
     const ext = fileName.split('.').pop();
 
     if (!ext) {
-      return [];
+      return commonExtensions;
     }
 
     switch (ext) {
@@ -87,40 +91,40 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
       case 'jsx':
       case 'ts':
       case 'tsx':
-        return [javascript()];
+        return [javascript(), ...commonExtensions];
       case 'json':
-        return [json()];
+        return [json(), ...commonExtensions];
       case 'html':
       case 'htm':
       case 'vue':
-        return [html()];
+        return [html(), ...commonExtensions];
       case 'css':
       case 'scss':
       case 'less':
-        return [css()];
+        return [css(), ...commonExtensions];
       case 'md':
       case 'markdown':
-        return [markdown()];
+        return [markdown(), ...commonExtensions];
       case 'sh':
       case 'bash':
-        return [StreamLanguage.define(shell)];
+        return [StreamLanguage.define(shell), ...commonExtensions];
       case 'yaml':
       case 'yml':
-        return [StreamLanguage.define(yaml)];
+        return [StreamLanguage.define(yaml), ...commonExtensions];
       case 'properties':
       case 'env':
-        return [StreamLanguage.define(properties)];
+        return [StreamLanguage.define(properties), ...commonExtensions];
       case 'conf':
       case 'nginx':
-        return [StreamLanguage.define(nginx)];
+        return [StreamLanguage.define(nginx), ...commonExtensions];
       case 'toml':
       case 'ini':
-        return [StreamLanguage.define(toml)];
+        return [StreamLanguage.define(toml), ...commonExtensions];
       case 'log':
-        // 使用自定义的日志高亮模式
-        return [StreamLanguage.define(logMode)];
+        // 使用自定义的日志高亮模式，并确保一致的换行符处理
+        return [StreamLanguage.define(logMode), ...commonExtensions];
       default:
-        return [];
+        return commonExtensions;
     }
   });
 
