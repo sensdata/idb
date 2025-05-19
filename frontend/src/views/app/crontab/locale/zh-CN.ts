@@ -38,16 +38,19 @@ export default {
 
   'app.crontab.list.action.create': '创建',
   'app.crontab.list.operation.view_history': '查看',
-  'app.crontab.list.operation.run': '执行',
+  'app.crontab.list.operation.activate': '激活',
+  'app.crontab.list.operation.deactivate': '停用',
   'app.crontab.list.operation.log': '日志',
 
   'app.crontab.list.delete.confirm': '确定删除【{name}】吗？',
-  'app.crontab.list.message.run_success': '执行成功',
+  'app.crontab.list.message.action_success': '操作成功',
+  'app.crontab.list.message.activate_success': '任务已激活',
+  'app.crontab.list.message.deactivate_success': '任务已停用',
   'app.crontab.list.message.delete_success': '删除成功',
   'app.crontab.list.status.normal': '正常',
   'app.crontab.list.status.disabled': '已禁用',
-  'app.crontab.list.status.running': '运行中',
-  'app.crontab.list.status.not_running': '未运行',
+  'app.crontab.list.status.running': '生效中',
+  'app.crontab.list.status.not_running': '未激活',
 
   // Form fields
   'app.crontab.form.category.label': '分类',

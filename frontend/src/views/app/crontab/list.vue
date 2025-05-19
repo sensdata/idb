@@ -50,8 +50,21 @@
               <a-button type="text" size="small" @click="handleEdit(record)">
                 {{ $t('common.edit') }}
               </a-button>
-              <a-button type="text" size="small" @click="handleRun(record)">
-                {{ $t('app.crontab.list.operation.run') }}
+              <a-button
+                type="text"
+                size="small"
+                @click="
+                  handleAction(
+                    record,
+                    record.linked ? 'deactivate' : 'activate'
+                  )
+                "
+              >
+                {{
+                  record.linked
+                    ? $t('app.crontab.list.operation.deactivate')
+                    : $t('app.crontab.list.operation.activate')
+                }}
               </a-button>
               <a-button
                 type="text"
@@ -98,7 +111,7 @@
   import {
     deleteCrontabApi,
     getCrontabListApi,
-    runCrontabApi,
+    actionCrontabApi,
     CrontabListApiParams,
   } from '@/api/crontab';
   import useLoading from '@/hooks/loading';
@@ -365,23 +378,39 @@
       formRef.value.show({
         record,
         isEdit: true,
+        category: params.value.category, // Pass the current category to ensure it's selected in the form
       });
     } catch (error) {
       Message.error(t('app.crontab.list.message.edit_error'));
     }
   };
 
-  // 处理运行定时任务
-  const handleRun = async (record: CrontabEntity) => {
+  // 处理定时任务操作（激活/停用）
+  const handleAction = async (
+    record: CrontabEntity,
+    action: 'activate' | 'deactivate'
+  ) => {
     setLoading(true);
     try {
-      await runCrontabApi({
-        id: record.id,
+      await actionCrontabApi({
         type: params.value.type,
         category: params.value.category,
         name: record.name,
+        action,
       });
-      Message.success(t('app.crontab.list.message.run_success'));
+      // 根据操作类型显示不同的成功消息
+      const messageKey =
+        action === 'activate'
+          ? 'app.crontab.list.message.activate_success'
+          : 'app.crontab.list.message.deactivate_success';
+      Message.success(t(messageKey));
+      reload();
+    } catch (err) {
+      if (err instanceof Error) {
+        Message.error(err.message);
+      } else {
+        Message.error(String(err));
+      }
     } finally {
       setLoading(false);
     }

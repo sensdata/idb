@@ -86,19 +86,22 @@ export function deleteCrontabCategoryApi(params: {
 export interface CrontabVersionsApiParams extends ApiListParams {
   id: number;
 }
-export function getCrontabVersionListApi(params: CrontabVersionsApiParams) {
-  return request.get('crontab/{host}/versions', params);
+export function getCrontabVersionsApi(params: CrontabVersionsApiParams) {
+  return request.get<ApiListResult<CrontabEntity>>(
+    'crontab/{host}/versions',
+    params
+  );
 }
 
-export interface RunCrontabParams {
-  id: number;
+export interface ActionCrontabParams {
   type: CRONTAB_TYPE;
   category: string;
   name: string;
+  action: 'activate' | 'deactivate';
 }
 
-export function runCrontabApi(params: RunCrontabParams) {
-  return request.post('crontab/{host}/run', params);
+export function actionCrontabApi(params: ActionCrontabParams) {
+  return request.post('crontab/{host}/action', params);
 }
 
 export interface CrontabRunRecordsApiParams extends ApiListParams {

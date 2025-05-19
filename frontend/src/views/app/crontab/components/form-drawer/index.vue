@@ -309,7 +309,7 @@
       );
       refreshContentEditor();
     } catch (error) {
-      console.error('Error updating script content:', error);
+      console.error('更新脚本内容时发生错误:', error);
     } finally {
       // 确保状态标志被重置
       setTimeout(() => {
@@ -345,6 +345,8 @@
     if (isEdit.value) {
       if (paramsRef.value?.record) {
         await dataLoader.loadDataFromRecord(paramsRef.value.record);
+        // 优先级：如果从列表视图显式传递了类别，则使用它
+        // 这确保表单使用与列表视图相同的类别
         if (paramsRef.value?.category) {
           formState.category = paramsRef.value.category;
         }
@@ -445,6 +447,7 @@
     record?: CrontabEntity;
   }) => {
     if (params?.record || params?.name) {
+      // 编辑模式：设置参数
       setParams({
         name: params.name || params.record?.name,
         type: params.type || props.type,
@@ -453,6 +456,7 @@
         record: params.record,
       });
     } else {
+      // 添加模式：设置默认参数
       paramsRef.value = {
         type: props.type,
         category: params?.category || '',
