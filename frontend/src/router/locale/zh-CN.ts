@@ -13,6 +13,7 @@ export default {
   'menu.app.terminal': '命令终端',
   'menu.app.script': '脚本管理',
   'menu.app.process': '进程管理',
+  'menu.app.ssh': 'SSH 管理',
   'menu.app.test': '测试',
   'router.guard.hostId.message': '请选择节点',
 };

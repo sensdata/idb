@@ -102,6 +102,16 @@ const appRoutes: RouteRecordRaw[] = [
       icon: 'icon-branch',
     },
   },
+  {
+    path: '/app/ssh',
+    name: 'ssh',
+    component: () => import('@/views/app/ssh/main.vue'),
+    meta: {
+      locale: 'menu.app.ssh',
+      requiresAuth: true,
+      icon: 'icon-command',
+    },
+  },
 ];
 
 export default appRoutes;

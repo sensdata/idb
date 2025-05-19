@@ -1,7 +1,7 @@
 module.exports = {
   extends: [
     'stylelint-config-standard',
-    'stylelint-config-rational-order',
+    'stylelint-config-recess-order',
     'stylelint-config-recommended-less',
     'stylelint-config-recommended-vue',
   ],

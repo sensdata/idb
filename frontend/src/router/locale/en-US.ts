@@ -13,6 +13,7 @@ export default {
   'menu.app.terminal': 'Terminal',
   'menu.app.script': 'Script Manager',
   'menu.app.process': 'Process Manager',
+  'menu.app.ssh': 'SSH Manager',
   'menu.app.test': 'Test',
   'router.guard.hostId.message': 'Please select a host',
 };
