@@ -15,8 +15,8 @@ export default {
   'menu.app.process': '进程管理',
   'menu.app.ssh': 'SSH 管理',
   'menu.app.ssh.config': 'SSH 配置',
-  'menu.app.ssh.password': '密钥对管理',
-  'menu.app.ssh.authkey': '公钥管理',
+  'menu.app.ssh.keyPairs': '密钥对管理',
+  'menu.app.ssh.publicKeys': '公钥管理',
   'menu.app.test': '测试',
   'router.guard.hostId.message': '请选择节点',
 };

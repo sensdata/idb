@@ -6,8 +6,8 @@
     </div>
     <div class="content-container">
       <!-- Auth Key Tab Content-->
-      <div class="auth-key-content">
-        <div class="auth-key-container">
+      <div class="public-keys-content">
+        <div class="public-keys-container">
           <idb-table
             ref="tableRef"
             :loading="loading"
@@ -25,7 +25,7 @@
                 <template #icon>
                   <icon-plus />
                 </template>
-                {{ $t('app.ssh.authKey.add') }}
+                {{ $t('app.ssh.publicKeys.add') }}
               </a-button>
             </template>
 
@@ -36,7 +36,7 @@
                   status="danger"
                   @click="handleRemove(record)"
                 >
-                  {{ $t('app.ssh.authKey.remove') }}
+                  {{ $t('app.ssh.publicKeys.remove') }}
                 </a-button>
               </a-space>
             </template>
@@ -45,7 +45,7 @@
           <!-- 添加密钥弹窗 -->
           <a-modal
             v-model:visible="addKeyModalVisible"
-            :title="$t('app.ssh.authKey.modal.title')"
+            :title="$t('app.ssh.publicKeys.modal.title')"
             role="dialog"
             @ok="handleAddKey"
             @cancel="addKeyModalVisible = false"
@@ -53,12 +53,12 @@
             <div class="modal-form-wrapper">
               <div class="modal-form-item">
                 <div id="key-content-label" class="modal-label">{{
-                  $t('app.ssh.authKey.modal.content')
+                  $t('app.ssh.publicKeys.modal.content')
                 }}</div>
                 <div class="modal-input-wrapper">
                   <a-textarea
                     v-model="addKeyForm.content"
-                    :placeholder="$t('app.ssh.authKey.modal.placeholder')"
+                    :placeholder="$t('app.ssh.publicKeys.modal.placeholder')"
                     :auto-size="{ minRows: 4, maxRows: 8 }"
                     aria-labelledby="key-content-label"
                     :status="
@@ -70,7 +70,7 @@
                   <div id="key-description" class="modal-field-description">
                     {{
                       addKeyForm.error ||
-                      $t('app.ssh.authKey.modal.description')
+                      $t('app.ssh.publicKeys.modal.description')
                     }}
                   </div>
                 </div>
@@ -81,12 +81,12 @@
           <!-- 确认删除弹窗 -->
           <a-modal
             v-model:visible="removeConfirmVisible"
-            :title="$t('app.ssh.authKey.removeModal.title')"
+            :title="$t('app.ssh.publicKeys.removeModal.title')"
             role="dialog"
             @ok="confirmRemove"
             @cancel="removeConfirmVisible = false"
           >
-            <p>{{ $t('app.ssh.authKey.removeModal.content') }}</p>
+            <p>{{ $t('app.ssh.publicKeys.removeModal.content') }}</p>
           </a-modal>
         </div>
       </div>
@@ -125,14 +125,14 @@
 
       // 验证是否为空
       if (!keyForm.content.trim()) {
-        keyForm.error = t('app.ssh.authKey.modal.emptyError');
+        keyForm.error = t('app.ssh.publicKeys.modal.emptyError');
         return false;
       }
 
       // 解析密钥内容
       const parts = keyForm.content.trim().split(' ');
       if (parts.length < 2) {
-        keyForm.error = t('app.ssh.authKey.modal.formatError');
+        keyForm.error = t('app.ssh.publicKeys.modal.formatError');
         return false;
       }
 
@@ -284,22 +284,22 @@
   // 表格列定义
   const columns = ref<Column[]>([
     {
-      title: t('app.ssh.authKey.columns.algorithm'),
+      title: t('app.ssh.publicKeys.columns.algorithm'),
       dataIndex: 'algorithm',
       width: 100,
     },
     {
-      title: t('app.ssh.authKey.columns.key'),
+      title: t('app.ssh.publicKeys.columns.key'),
       dataIndex: 'key',
       ellipsis: true,
     },
     {
-      title: t('app.ssh.authKey.columns.comment'),
+      title: t('app.ssh.publicKeys.columns.comment'),
       dataIndex: 'comment',
       width: 150,
     },
     {
-      title: t('app.ssh.authKey.columns.operations'),
+      title: t('app.ssh.publicKeys.columns.operations'),
       dataIndex: 'operations',
       width: 100,
       slotName: 'operations',
@@ -322,9 +322,9 @@
     try {
       await addKey(addKeyForm.parsed);
       addKeyModalVisible.value = false;
-      Message.success(t('app.ssh.authKey.addSuccess'));
+      Message.success(t('app.ssh.publicKeys.addSuccess'));
     } catch (error) {
-      Message.error(t('app.ssh.authKey.addError'));
+      Message.error(t('app.ssh.publicKeys.addError'));
     }
   };
 
@@ -339,9 +339,9 @@
     if (currentRecord.value) {
       try {
         await removeKey(currentRecord.value.key);
-        Message.success(t('app.ssh.authKey.removeSuccess'));
+        Message.success(t('app.ssh.publicKeys.removeSuccess'));
       } catch (error) {
-        Message.error(t('app.ssh.authKey.removeError'));
+        Message.error(t('app.ssh.publicKeys.removeError'));
       }
     }
     removeConfirmVisible.value = false;
@@ -391,11 +391,11 @@
     margin-bottom: 16px;
   }
 
-  .auth-key-content {
+  .public-keys-content {
     margin-top: 8px;
   }
 
-  .auth-key-container {
+  .public-keys-container {
     padding: 0;
   }
 

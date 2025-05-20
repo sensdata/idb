@@ -1,7 +1,7 @@
 <template>
   <div class="ssh-page-container">
     <div class="header-container">
-      <h2 class="page-title">SSH 配置</h2>
+      <h2 class="page-title">{{ $t('app.ssh.config.title') }}</h2>
       <ssh-status class="ssh-status-container" />
     </div>
     <div class="content-container">

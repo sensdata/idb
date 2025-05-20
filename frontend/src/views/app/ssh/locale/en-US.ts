@@ -1,8 +1,10 @@
 export default {
   'app.ssh.pageTitle': 'SSH Management',
   'app.ssh.tabs.config': 'SSH Config',
-  'app.ssh.tabs.password': 'Key Pair Management',
-  'app.ssh.tabs.authkey': 'Public Key Management',
+  'app.ssh.tabs.keyPairs': 'Key Pairs Management',
+  'app.ssh.tabs.publicKeys': 'Public Keys Management',
+  'app.ssh.config.title': 'SSH Configuration',
+  'app.ssh.keyPairs.title': 'Key Pairs Management',
 
   // Mode switch
   'app.ssh.mode.visual': 'Form Mode',
@@ -66,80 +68,81 @@ export default {
   'app.ssh.rootModal.saveSuccess': 'Root user settings saved successfully',
 
   // Password tab
-  'app.ssh.password.generateKey': 'Generate Key',
-  'app.ssh.password.hasPassword': 'Has Password',
-  'app.ssh.password.noPassword': 'No Password',
-  'app.ssh.password.download': 'Download',
-  'app.ssh.password.set': 'Set Password',
-  'app.ssh.password.update': 'Update Password',
-  'app.ssh.password.clear': 'Clear Password',
-  'app.ssh.password.delete': 'Delete',
+  'app.ssh.keyPairs.generateKey': 'Generate Key',
+  'app.ssh.keyPairs.hasPassword': 'Has Password',
+  'app.ssh.keyPairs.noPassword': 'No Password',
+  'app.ssh.keyPairs.download': 'Download',
+  'app.ssh.keyPairs.set': 'Set Password',
+  'app.ssh.keyPairs.update': 'Update Password',
+  'app.ssh.keyPairs.clear': 'Clear Password',
+  'app.ssh.keyPairs.delete': 'Delete',
 
-  'app.ssh.password.columns.keyName': 'Key Name',
-  'app.ssh.password.columns.encryptionMode': 'Encryption',
-  'app.ssh.password.columns.keyBits': 'Key Bits',
-  'app.ssh.password.columns.password': 'Password',
-  'app.ssh.password.columns.createTime': 'Create Time',
-  'app.ssh.password.columns.enabled': 'Enabled',
+  'app.ssh.keyPairs.columns.keyName': 'Key Name',
+  'app.ssh.keyPairs.columns.encryptionMode': 'Encryption',
+  'app.ssh.keyPairs.columns.keyBits': 'Key Bits',
+  'app.ssh.keyPairs.columns.password': 'Password',
+  'app.ssh.keyPairs.columns.createTime': 'Create Time',
+  'app.ssh.keyPairs.columns.enabled': 'Enabled',
 
-  'app.ssh.password.generateSuccess': 'SSH key generated successfully',
-  'app.ssh.password.enableSuccess': 'SSH key enabled successfully',
-  'app.ssh.password.disableSuccess': 'SSH key disabled successfully',
-  'app.ssh.password.downloadSuccess': 'SSH key downloaded successfully',
-  'app.ssh.password.setSuccess': 'SSH key password set successfully',
-  'app.ssh.password.updateSuccess': 'SSH key password updated successfully',
-  'app.ssh.password.clearSuccess': 'SSH key password cleared successfully',
-  'app.ssh.password.deleteSuccess': 'SSH key deleted successfully',
-  'app.ssh.password.operationFailed': 'Operation failed',
+  'app.ssh.keyPairs.generateSuccess': 'SSH key generated successfully',
+  'app.ssh.keyPairs.enableSuccess': 'SSH key enabled successfully',
+  'app.ssh.keyPairs.disableSuccess': 'SSH key disabled successfully',
+  'app.ssh.keyPairs.downloadSuccess': 'SSH key downloaded successfully',
+  'app.ssh.keyPairs.setSuccess': 'SSH key password set successfully',
+  'app.ssh.keyPairs.updateSuccess': 'SSH key password updated successfully',
+  'app.ssh.keyPairs.clearSuccess': 'SSH key password cleared successfully',
+  'app.ssh.keyPairs.deleteSuccess': 'SSH key deleted successfully',
+  'app.ssh.keyPairs.operationFailed': 'Operation failed',
 
-  'app.ssh.password.clearConfirm':
+  'app.ssh.keyPairs.clearConfirm':
     'Are you sure you want to clear the password for key "{keyName}"?',
-  'app.ssh.password.deleteConfirm':
+  'app.ssh.keyPairs.deleteConfirm':
     'Are you sure you want to delete key "{keyName}"?',
 
   // Generate key modal
-  'app.ssh.password.generateModal.title': 'Generate SSH Key',
-  'app.ssh.password.generateModal.keyName': 'Key Name',
-  'app.ssh.password.generateModal.encryptionMode': 'Encryption Mode',
-  'app.ssh.password.generateModal.keyBits': 'Key Bits',
-  'app.ssh.password.generateModal.password': 'Password',
-  'app.ssh.password.generateModal.enable': 'Enable After Generation',
-  'app.ssh.password.generateModal.keyNameRequired': 'Please enter a key name',
-  'app.ssh.password.generateModal.encryptionModeRequired':
+  'app.ssh.keyPairs.generateModal.title': 'Generate SSH Key',
+  'app.ssh.keyPairs.generateModal.keyName': 'Key Name',
+  'app.ssh.keyPairs.generateModal.encryptionMode': 'Encryption Mode',
+  'app.ssh.keyPairs.generateModal.keyBits': 'Key Bits',
+  'app.ssh.keyPairs.generateModal.password': 'Password',
+  'app.ssh.keyPairs.generateModal.enable': 'Enable After Generation',
+  'app.ssh.keyPairs.generateModal.keyNameRequired': 'Please enter a key name',
+  'app.ssh.keyPairs.generateModal.encryptionModeRequired':
     'Please select an encryption mode',
-  'app.ssh.password.generateModal.keyBitsRequired': 'Please select key bits',
+  'app.ssh.keyPairs.generateModal.keyBitsRequired': 'Please select key bits',
 
   // Set password modal
-  'app.ssh.password.setModal.title': 'Set Key Password',
-  'app.ssh.password.setModal.password': 'Password',
-  'app.ssh.password.setModal.passwordRequired': 'Please enter a password',
+  'app.ssh.keyPairs.setModal.title': 'Set Key Password',
+  'app.ssh.keyPairs.setModal.password': 'Password',
+  'app.ssh.keyPairs.setModal.passwordRequired': 'Please enter a password',
 
   // Update password modal
-  'app.ssh.password.updateModal.title': 'Update Key Password',
-  'app.ssh.password.updateModal.oldPassword': 'Old Password',
-  'app.ssh.password.updateModal.newPassword': 'New Password',
-  'app.ssh.password.updateModal.oldPasswordRequired':
+  'app.ssh.keyPairs.updateModal.title': 'Update Key Password',
+  'app.ssh.keyPairs.updateModal.oldPassword': 'Old Password',
+  'app.ssh.keyPairs.updateModal.newPassword': 'New Password',
+  'app.ssh.keyPairs.updateModal.oldPasswordRequired':
     'Please enter the old password',
-  'app.ssh.password.updateModal.newPasswordRequired':
+  'app.ssh.keyPairs.updateModal.newPasswordRequired':
     'Please enter a new password',
 
   // Auth Key tab
-  'app.ssh.authKey.add': 'Add Key',
-  'app.ssh.authKey.remove': 'Remove',
-  'app.ssh.authKey.addSuccess': 'SSH key added successfully',
-  'app.ssh.authKey.removeSuccess': 'SSH key removed successfully',
-  'app.ssh.authKey.columns.algorithm': 'Algorithm',
-  'app.ssh.authKey.columns.key': 'Key',
-  'app.ssh.authKey.columns.comment': 'Comment',
-  'app.ssh.authKey.columns.operations': 'Operations',
-  'app.ssh.authKey.modal.title': 'Add SSH Key',
-  'app.ssh.authKey.modal.content': 'Key Content',
-  'app.ssh.authKey.modal.placeholder': 'Paste your SSH public key here',
-  'app.ssh.authKey.modal.description': 'Format: ssh-rsa AAAAB3NzaC1... comment',
-  'app.ssh.authKey.modal.emptyError': 'Key content cannot be empty',
-  'app.ssh.authKey.modal.formatError': 'Invalid key format',
-  'app.ssh.authKey.removeModal.title': 'Remove SSH Key',
-  'app.ssh.authKey.removeModal.content':
+  'app.ssh.publicKeys.add': 'Add Key',
+  'app.ssh.publicKeys.remove': 'Remove',
+  'app.ssh.publicKeys.addSuccess': 'SSH key added successfully',
+  'app.ssh.publicKeys.removeSuccess': 'SSH key removed successfully',
+  'app.ssh.publicKeys.columns.algorithm': 'Algorithm',
+  'app.ssh.publicKeys.columns.key': 'Key',
+  'app.ssh.publicKeys.columns.comment': 'Comment',
+  'app.ssh.publicKeys.columns.operations': 'Operations',
+  'app.ssh.publicKeys.modal.title': 'Add SSH Key',
+  'app.ssh.publicKeys.modal.content': 'Key Content',
+  'app.ssh.publicKeys.modal.placeholder': 'Paste your SSH public key here',
+  'app.ssh.publicKeys.modal.description':
+    'Format: ssh-rsa AAAAB3NzaC1... comment',
+  'app.ssh.publicKeys.modal.emptyError': 'Key content cannot be empty',
+  'app.ssh.publicKeys.modal.formatError': 'Invalid key format',
+  'app.ssh.publicKeys.removeModal.title': 'Remove SSH Key',
+  'app.ssh.publicKeys.removeModal.content':
     'Are you sure you want to remove this SSH key?',
 
   // Status component

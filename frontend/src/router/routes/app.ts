@@ -122,20 +122,20 @@ const appRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'password',
-        name: 'sshPassword',
-        component: () => import('@/views/app/ssh/pages/password/main.vue'),
+        path: 'key-pairs',
+        name: 'sshKeyPairs',
+        component: () => import('@/views/app/ssh/pages/key-pairs/main.vue'),
         meta: {
-          locale: 'menu.app.ssh.password',
+          locale: 'menu.app.ssh.keyPairs',
           requiresAuth: true,
         },
       },
       {
-        path: 'authkey',
-        name: 'sshAuthkey',
-        component: () => import('@/views/app/ssh/pages/auth-key/main.vue'),
+        path: 'public-keys',
+        name: 'sshPublicKeys',
+        component: () => import('@/views/app/ssh/pages/public-keys/main.vue'),
         meta: {
-          locale: 'menu.app.ssh.authkey',
+          locale: 'menu.app.ssh.publicKeys',
           requiresAuth: true,
         },
       },

@@ -1,75 +1,85 @@
 <template>
-  <div class="ssh-password-container">
-    <idb-table
-      ref="gridRef"
-      class="ssh-password-table"
-      :loading="loading"
-      :columns="columns"
-      :fetch="getSSHKeysApi"
-      :has-search="true"
-    >
-      <template #leftActions>
-        <a-button type="primary" @click="handleGenerateKey">
-          {{ $t('app.ssh.password.generateKey') }}
-        </a-button>
-      </template>
-      <template #passwordStatus="{ record }">
-        <a-tag v-if="record.password" color="green">
-          {{ $t('app.ssh.password.hasPassword') }}
-        </a-tag>
-        <a-tag v-else color="gray">
-          {{ $t('app.ssh.password.noPassword') }}
-        </a-tag>
-      </template>
-      <template #enabled="{ record }">
-        <a-switch
-          :model-value="!!record.enabled"
-          :disabled="loading"
-          @change="(value) => handleToggleEnable(record, Boolean(value))"
-        />
-      </template>
-      <template #operation="{ record }">
-        <div class="operation">
-          <a-button
-            type="text"
-            size="small"
-            :disabled="!record.enabled"
-            @click="handleDownload(record)"
-          >
-            {{ $t('app.ssh.password.download') }}
+  <div class="ssh-page-container">
+    <div class="header-container">
+      <h2 class="page-title">{{ $t('app.ssh.keyPairs.title') }}</h2>
+      <ssh-status class="ssh-status-container" />
+    </div>
+    <div class="content-container">
+      <idb-table
+        ref="gridRef"
+        class="ssh-password-table"
+        :loading="loading"
+        :columns="columns"
+        :fetch="getSSHKeysApi"
+        :has-search="true"
+      >
+        <template #leftActions>
+          <a-button type="primary" @click="handleGenerateKey">
+            {{ $t('app.ssh.keyPairs.generateKey') }}
           </a-button>
-          <a-button type="text" size="small" @click="handleSetPassword(record)">
-            {{
-              record.password
-                ? $t('app.ssh.password.update')
-                : $t('app.ssh.password.set')
-            }}
-          </a-button>
-          <a-button
-            v-if="record.password"
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleClearPassword(record)"
-          >
-            {{ $t('app.ssh.password.clear') }}
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record)"
-          >
-            {{ $t('app.ssh.password.delete') }}
-          </a-button>
-        </div>
-      </template>
-    </idb-table>
+        </template>
+        <template #passwordStatus="{ record }">
+          <a-tag v-if="record.password" color="green">
+            {{ $t('app.ssh.keyPairs.hasPassword') }}
+          </a-tag>
+          <a-tag v-else color="gray">
+            {{ $t('app.ssh.keyPairs.noPassword') }}
+          </a-tag>
+        </template>
+        <template #enabled="{ record }">
+          <a-switch
+            :model-value="!!record.enabled"
+            :disabled="loading"
+            @change="(value) => handleToggleEnable(record, Boolean(value))"
+          />
+        </template>
+        <template #operation="{ record }">
+          <div class="operation">
+            <a-button
+              type="text"
+              size="small"
+              :disabled="!record.enabled"
+              @click="handleDownload(record)"
+            >
+              {{ $t('app.ssh.keyPairs.download') }}
+            </a-button>
+            <a-button
+              type="text"
+              size="small"
+              @click="handleSetPassword(record)"
+            >
+              {{
+                record.password
+                  ? $t('app.ssh.keyPairs.update')
+                  : $t('app.ssh.keyPairs.set')
+              }}
+            </a-button>
+            <a-button
+              v-if="record.password"
+              type="text"
+              size="small"
+              status="danger"
+              @click="handleClearPassword(record)"
+            >
+              {{ $t('app.ssh.keyPairs.clear') }}
+            </a-button>
+            <a-button
+              type="text"
+              size="small"
+              status="danger"
+              @click="handleDelete(record)"
+            >
+              {{ $t('app.ssh.keyPairs.delete') }}
+            </a-button>
+          </div>
+        </template>
+      </idb-table>
+    </div>
 
     <!-- 生成密钥弹窗 -->
     <a-modal
       v-model:visible="generateModalVisible"
-      :title="$t('app.ssh.password.generateModal.title')"
+      :title="$t('app.ssh.keyPairs.generateModal.title')"
       :ok-loading="modalLoading"
       @ok="handleGenerateConfirm"
       @cancel="generateModalVisible = false"
@@ -84,11 +94,11 @@
         >
           <a-form-item
             field="key_name"
-            :label="$t('app.ssh.password.generateModal.keyName')"
+            :label="$t('app.ssh.keyPairs.generateModal.keyName')"
             :rules="[
               {
                 required: true,
-                message: $t('app.ssh.password.generateModal.keyNameRequired'),
+                message: $t('app.ssh.keyPairs.generateModal.keyNameRequired'),
               },
             ]"
           >
@@ -96,12 +106,12 @@
           </a-form-item>
           <a-form-item
             field="encryption_mode"
-            :label="$t('app.ssh.password.generateModal.encryptionMode')"
+            :label="$t('app.ssh.keyPairs.generateModal.encryptionMode')"
             :rules="[
               {
                 required: true,
                 message: $t(
-                  'app.ssh.password.generateModal.encryptionModeRequired'
+                  'app.ssh.keyPairs.generateModal.encryptionModeRequired'
                 ),
               },
             ]"
@@ -115,11 +125,11 @@
           </a-form-item>
           <a-form-item
             field="key_bits"
-            :label="$t('app.ssh.password.generateModal.keyBits')"
+            :label="$t('app.ssh.keyPairs.generateModal.keyBits')"
             :rules="[
               {
                 required: true,
-                message: $t('app.ssh.password.generateModal.keyBitsRequired'),
+                message: $t('app.ssh.keyPairs.generateModal.keyBitsRequired'),
               },
             ]"
           >
@@ -130,13 +140,13 @@
           </a-form-item>
           <a-form-item
             field="password"
-            :label="$t('app.ssh.password.generateModal.password')"
+            :label="$t('app.ssh.keyPairs.generateModal.password')"
           >
             <a-input-password v-model="generateForm.password" allow-clear />
           </a-form-item>
           <a-form-item
             field="enable"
-            :label="$t('app.ssh.password.generateModal.enable')"
+            :label="$t('app.ssh.keyPairs.generateModal.enable')"
           >
             <a-switch v-model="generateForm.enable" />
           </a-form-item>
@@ -149,8 +159,8 @@
       v-model:visible="passwordModalVisible"
       :title="
         currentRecord && 'password' in currentRecord && currentRecord.password
-          ? $t('app.ssh.password.updateModal.title')
-          : $t('app.ssh.password.setModal.title')
+          ? $t('app.ssh.keyPairs.updateModal.title')
+          : $t('app.ssh.keyPairs.setModal.title')
       "
       :ok-loading="modalLoading"
       @ok="handlePasswordConfirm"
@@ -171,11 +181,11 @@
               currentRecord.password
             "
             field="old_password"
-            :label="$t('app.ssh.password.updateModal.oldPassword')"
+            :label="$t('app.ssh.keyPairs.updateModal.oldPassword')"
             :rules="[
               {
                 required: true,
-                message: $t('app.ssh.password.updateModal.oldPasswordRequired'),
+                message: $t('app.ssh.keyPairs.updateModal.oldPasswordRequired'),
               },
             ]"
           >
@@ -193,8 +203,8 @@
               currentRecord &&
               'password' in currentRecord &&
               currentRecord.password
-                ? $t('app.ssh.password.updateModal.newPassword')
-                : $t('app.ssh.password.setModal.password')
+                ? $t('app.ssh.keyPairs.updateModal.newPassword')
+                : $t('app.ssh.keyPairs.setModal.password')
             "
             :rules="[
               {
@@ -203,8 +213,8 @@
                   currentRecord &&
                   'password' in currentRecord &&
                   currentRecord.password
-                    ? $t('app.ssh.password.updateModal.newPasswordRequired')
-                    : $t('app.ssh.password.setModal.passwordRequired'),
+                    ? $t('app.ssh.keyPairs.updateModal.newPasswordRequired')
+                    : $t('app.ssh.keyPairs.setModal.passwordRequired'),
               },
             ]"
           >
@@ -240,6 +250,7 @@
   import { useConfirm } from '@/hooks/confirm';
   import useHostStore from '@/store/modules/host';
   import { ApiListParams, ApiListResult } from '@/types/global';
+  import SshStatus from '@/views/app/ssh/components/ssh-status/index.vue';
 
   interface SSHKeyRecord {
     key_name: string;
@@ -261,33 +272,33 @@
   // 表格列定义
   const columns = [
     {
-      title: t('app.ssh.password.columns.keyName'),
+      title: t('app.ssh.keyPairs.columns.keyName'),
       dataIndex: 'key_name',
       width: 150,
     },
     {
-      title: t('app.ssh.password.columns.encryptionMode'),
+      title: t('app.ssh.keyPairs.columns.encryptionMode'),
       dataIndex: 'encryption_mode',
       width: 120,
     },
     {
-      title: t('app.ssh.password.columns.keyBits'),
+      title: t('app.ssh.keyPairs.columns.keyBits'),
       dataIndex: 'key_bits',
       width: 100,
     },
     {
-      title: t('app.ssh.password.columns.password'),
+      title: t('app.ssh.keyPairs.columns.password'),
       dataIndex: 'passwordStatus',
       width: 120,
       slotName: 'passwordStatus',
     },
     {
-      title: t('app.ssh.password.columns.createTime'),
+      title: t('app.ssh.keyPairs.columns.createTime'),
       dataIndex: 'created_at',
       width: 180,
     },
     {
-      title: t('app.ssh.password.columns.enabled'),
+      title: t('app.ssh.keyPairs.columns.enabled'),
       dataIndex: 'enabled',
       width: 100,
       slotName: 'enabled',
@@ -399,7 +410,7 @@
         setTimeout(resolve, 800);
       });
 
-      Message.success(t('app.ssh.password.generateSuccess'));
+      Message.success(t('app.ssh.keyPairs.generateSuccess'));
       generateModalVisible.value = false;
       gridRef.value?.reload();
     } catch (error) {
@@ -420,13 +431,13 @@
 
       Message.success(
         enabled
-          ? t('app.ssh.password.enableSuccess')
-          : t('app.ssh.password.disableSuccess')
+          ? t('app.ssh.keyPairs.enableSuccess')
+          : t('app.ssh.keyPairs.disableSuccess')
       );
     } catch (error) {
       // 恢复状态
       record.enabled = !enabled;
-      Message.error(t('app.ssh.password.operationFailed'));
+      Message.error(t('app.ssh.keyPairs.operationFailed'));
     } finally {
       setLoading(false);
     }
@@ -441,9 +452,9 @@
         setTimeout(resolve, 500);
       });
 
-      Message.success(t('app.ssh.password.downloadSuccess'));
+      Message.success(t('app.ssh.keyPairs.downloadSuccess'));
     } catch (error) {
-      Message.error(t('app.ssh.password.operationFailed'));
+      Message.error(t('app.ssh.keyPairs.operationFailed'));
     } finally {
       setLoading(false);
     }
@@ -472,8 +483,8 @@
       const isUpdate = currentRecord.value && currentRecord.value.password;
       Message.success(
         isUpdate
-          ? t('app.ssh.password.updateSuccess')
-          : t('app.ssh.password.setSuccess')
+          ? t('app.ssh.keyPairs.updateSuccess')
+          : t('app.ssh.keyPairs.setSuccess')
       );
       passwordModalVisible.value = false;
       gridRef.value?.reload();
@@ -489,7 +500,7 @@
   const handleClearPassword = async (record: SSHKeyRecord) => {
     if (
       await confirm({
-        content: t('app.ssh.password.clearConfirm', {
+        content: t('app.ssh.keyPairs.clearConfirm', {
           keyName: record.key_name,
         }),
       })
@@ -501,10 +512,10 @@
           setTimeout(resolve, 500);
         });
 
-        Message.success(t('app.ssh.password.clearSuccess'));
+        Message.success(t('app.ssh.keyPairs.clearSuccess'));
         gridRef.value?.reload();
       } catch (error) {
-        Message.error(t('app.ssh.password.operationFailed'));
+        Message.error(t('app.ssh.keyPairs.operationFailed'));
       } finally {
         setLoading(false);
       }
@@ -515,7 +526,7 @@
   const handleDelete = async (record: SSHKeyRecord) => {
     if (
       await confirm({
-        content: t('app.ssh.password.deleteConfirm', {
+        content: t('app.ssh.keyPairs.deleteConfirm', {
           keyName: record.key_name,
         }),
       })
@@ -527,10 +538,10 @@
           setTimeout(resolve, 500);
         });
 
-        Message.success(t('app.ssh.password.deleteSuccess'));
+        Message.success(t('app.ssh.keyPairs.deleteSuccess'));
         gridRef.value?.reload();
       } catch (error) {
-        Message.error(t('app.ssh.password.operationFailed'));
+        Message.error(t('app.ssh.keyPairs.operationFailed'));
       } finally {
         setLoading(false);
       }
@@ -539,17 +550,54 @@
 </script>
 
 <style scoped lang="less">
-  .ssh-password-container {
+  .ssh-page-container {
+    padding: 0 16px;
+    background-color: var(--color-bg-2);
+    border-radius: 6px;
+    position: relative;
+    border: 1px solid var(--color-border-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-1);
+    margin: 0;
+  }
+
+  .ssh-status-container {
+    margin-bottom: 0;
+  }
+
+  .content-container {
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid var(--color-border-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .ssh-password-table {
     width: 100%;
+  }
 
-    .operation {
-      display: flex;
-      justify-content: center;
+  .operation {
+    display: flex;
+    justify-content: center;
 
-      :deep(.arco-btn-size-small) {
-        padding-right: 4px;
-        padding-left: 4px;
-      }
+    :deep(.arco-btn-size-small) {
+      padding-right: 4px;
+      padding-left: 4px;
     }
   }
 

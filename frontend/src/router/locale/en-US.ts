@@ -15,8 +15,8 @@ export default {
   'menu.app.process': 'Process Manager',
   'menu.app.ssh': 'SSH Manager',
   'menu.app.ssh.config': 'SSH Config',
-  'menu.app.ssh.password': 'Key Pair Management',
-  'menu.app.ssh.authkey': 'Public Key Management',
+  'menu.app.ssh.keyPairs': 'Key Pairs Management',
+  'menu.app.ssh.publicKeys': 'Public Keys Management',
   'menu.app.test': 'Test',
   'router.guard.hostId.message': 'Please select a host',
 };
