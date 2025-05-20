@@ -178,21 +178,6 @@ definitions:
     - old_password
     - password
     type: object
-  model.ComposeCreate:
-    properties:
-      compose_content:
-        type: string
-      conf_content:
-        type: string
-      conf_path:
-        type: string
-      env_content:
-        type: string
-      name:
-        type: string
-      work_dir:
-        type: string
-    type: object
   model.ComposeCreateResult:
     properties:
       log:
@@ -239,7 +224,7 @@ definitions:
         type: string
       labels:
         items:
-          type: string
+          $ref: '#/definitions/model.KeyValue'
         type: array
       memory:
         type: number
@@ -618,8 +603,6 @@ definitions:
         type: string
       path:
         type: string
-      task_id:
-        type: string
     type: object
   model.FileCreate:
     properties:
@@ -831,6 +814,8 @@ definitions:
         type: string
       extension:
         type: string
+      linked:
+        type: boolean
       mod_time:
         type: string
       name:
@@ -1000,6 +985,23 @@ definitions:
       upgrade:
         type: boolean
     type: object
+  model.InstallApp:
+    properties:
+      compose_content:
+        type: string
+      extra_params:
+        items:
+          $ref: '#/definitions/model.KeyValue'
+        type: array
+      form_params:
+        items:
+          $ref: '#/definitions/model.KeyValue'
+        type: array
+      id:
+        type: integer
+      version_id:
+        type: integer
+    type: object
   model.Ipv6Option:
     properties:
       experimental:
@@ -1138,7 +1140,7 @@ definitions:
         type: boolean
       labels:
         items:
-          type: string
+          $ref: '#/definitions/model.KeyValue'
         type: array
       name:
         type: string
@@ -1197,6 +1199,8 @@ definitions:
         enum:
         - start
         - stop
+        - restart
+        - up
         - down
         type: string
     required:
@@ -1642,7 +1646,13 @@ definitions:
       session:
         type: string
       type:
+        enum:
+        - screen
+        - tmux
+        - docker
         type: string
+    required:
+    - type
     type: object
   model.TestAgent:
     properties:
@@ -1711,6 +1721,11 @@ definitions:
       tx_speed:
         description: 发送实时速率
         type: string
+    type: object
+  model.UninstallApp:
+    properties:
+      id:
+        type: integer
     type: object
   model.UpdateDnsSettingsReq:
     properties:
@@ -1964,7 +1979,7 @@ definitions:
         type: string
       labels:
         items:
-          type: string
+          $ref: '#/definitions/model.KeyValue'
         type: array
       name:
         type: string
@@ -3218,7 +3233,7 @@ paths:
         in: query
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -3250,11 +3265,11 @@ paths:
       summary: Get container resource usage list
       tags:
       - Docker
-  /docker/{host}/containers/log:
+  /docker/{host}/containers/logs:
     delete:
       consumes:
       - application/json
-      description: Clean container log
+      description: Clean container logs
       parameters:
       - description: Host ID
         in: path
@@ -3265,20 +3280,20 @@ paths:
         in: query
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
-      summary: Clean Container log
+      summary: Clean Container logs
       tags:
       - Docker
+  /docker/{host}/containers/logs/tail:
     get:
       consumes:
       - application/json
-      deprecated: true
-      description: Get container log
+      description: Connect to a container log stream through SSE
       parameters:
       - description: Host ID
         in: path
@@ -3289,13 +3304,33 @@ paths:
         in: query
         name: id
         required: true
+        type: string
+      - description: Follow the log stream
+        in: query
+        name: follow
+        type: boolean
+      - description: How many lines from the end of the logs to show, can be one of
+          100, 200, 500, 1000. If not specified, all logs will be shown.
+        in: query
+        name: tail
         type: integer
+      - description: Show logs since a certain time, can be one of 24h, 4h, 1h, 10m.
+          If not specified, all logs will be shown.
+        in: query
+        name: since
+        type: string
       produces:
-      - application/json
+      - text/event-stream
       responses:
         "200":
-          description: OK
-      summary: Get container log
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to  container log stream
       tags:
       - Docker
   /docker/{host}/containers/names:
@@ -3384,7 +3419,7 @@ paths:
         in: query
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -3393,6 +3428,58 @@ paths:
           schema:
             $ref: '#/definitions/model.ContainerStats'
       summary: Get Container stats
+      tags:
+      - Docker
+  /docker/{host}/containers/terminal:
+    get:
+      consumes:
+      - application/json
+      description: Create or reconnect to a container terminal session through websocket.
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Window cols, default 80
+        in: query
+        name: cols
+        type: integer
+      - description: Window rows, default 40
+        in: query
+        name: rows
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Create or reconnect to a container terminal session through websocket
+      tags:
+      - Docker
+  /docker/{host}/containers/terminal/quit:
+    post:
+      consumes:
+      - application/json
+      description: Quit container terminal session
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Quit container terminal session
       tags:
       - Docker
   /docker/{host}/containers/upgrade:
@@ -8070,12 +8157,12 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ComposeCreate'
+          $ref: '#/definitions/model.InstallApp'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.ComposeCreateResult'
+            $ref: '#/definitions/model.LogInfo'
       summary: Install app
       tags:
       - App
@@ -8106,6 +8193,27 @@ paths:
         "200":
           description: OK
       summary: Get installed app list
+      tags:
+      - App
+  /store/{host}/apps/uninstall:
+    post:
+      description: Uninstall app
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UninstallApp'
+      responses:
+        "200":
+          description: OK
+      summary: Uninstall app
       tags:
       - App
   /store/apps:
@@ -8606,6 +8714,12 @@ paths:
         name: host
         required: true
         type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
       produces:
       - application/json
       responses:
@@ -8625,6 +8739,10 @@ paths:
         name: host
         required: true
         type: integer
+      - description: Session type, one of'screen', 'tmux', default'screen'
+        in: query
+        name: type
+        type: string
       produces:
       - application/json
       responses:
@@ -8669,6 +8787,12 @@ paths:
         name: host
         required: true
         type: integer
+      - description: Request details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.TerminalRequest'
       produces:
       - application/json
       responses:
@@ -8771,6 +8895,18 @@ paths:
         name: host
         required: true
         type: integer
+      - description: Window cols, default 80
+        in: query
+        name: cols
+        type: integer
+      - description: Window rows, default 40
+        in: query
+        name: rows
+        type: integer
+      - description: Session type, one of 'screen', 'tmux', default 'screen'
+        in: query
+        name: type
+        type: string
       produces:
       - application/json
       responses:

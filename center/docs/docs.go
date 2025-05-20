@@ -1860,7 +1860,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Container ID",
                         "name": "id",
                         "in": "query",
@@ -1909,9 +1909,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/{host}/containers/log": {
-            "get": {
-                "description": "Get container log",
+        "/docker/{host}/containers/logs": {
+            "delete": {
+                "description": "Clean container logs",
                 "consumes": [
                     "application/json"
                 ],
@@ -1921,8 +1921,7 @@ const docTemplate = `{
                 "tags": [
                     "Docker"
                 ],
-                "summary": "Get container log",
-                "deprecated": true,
+                "summary": "Clean Container logs",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1932,7 +1931,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Container ID",
                         "name": "id",
                         "in": "query",
@@ -1944,19 +1943,21 @@ const docTemplate = `{
                         "description": "OK"
                     }
                 }
-            },
-            "delete": {
-                "description": "Clean container log",
+            }
+        },
+        "/docker/{host}/containers/logs/tail": {
+            "get": {
+                "description": "Connect to a container log stream through SSE",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
-                    "application/json"
+                    "text/event-stream"
                 ],
                 "tags": [
                     "Docker"
                 ],
-                "summary": "Clean Container log",
+                "summary": "Connect to  container log stream",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1966,16 +1967,43 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Container ID",
                         "name": "id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Follow the log stream",
+                        "name": "follow",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown.",
+                        "name": "tail",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Show logs since a certain time, can be one of 24h, 4h, 1h, 10m. If not specified, all logs will be shown.",
+                        "name": "since",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
                     }
                 }
             }
@@ -2110,7 +2138,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Container ID",
                         "name": "id",
                         "in": "query",
@@ -2123,6 +2151,85 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.ContainerStats"
                         }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/terminal": {
+            "get": {
+                "description": "Create or reconnect to a container terminal session through websocket.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Create or reconnect to a container terminal session through websocket",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window cols, default 80",
+                        "name": "cols",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window rows, default 40",
+                        "name": "rows",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/terminal/quit": {
+            "post": {
+                "description": "Quit container terminal session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Quit container terminal session",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -9157,7 +9264,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeCreate"
+                            "$ref": "#/definitions/model.InstallApp"
                         }
                     }
                 ],
@@ -9165,7 +9272,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.ComposeCreateResult"
+                            "$ref": "#/definitions/model.LogInfo"
                         }
                     }
                 }
@@ -9205,6 +9312,38 @@ const docTemplate = `{
                         "description": "Name",
                         "name": "name",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/{host}/apps/uninstall": {
+            "post": {
+                "description": "Uninstall app",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Uninstall app",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UninstallApp"
+                        }
                     }
                 ],
                 "responses": {
@@ -9896,6 +10035,15 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -9925,6 +10073,12 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Session type, one of'screen', 'tmux', default'screen'",
+                        "name": "type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -9992,6 +10146,15 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Request details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TerminalRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -10147,6 +10310,24 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window cols, default 80",
+                        "name": "cols",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Window rows, default 40",
+                        "name": "rows",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Session type, one of 'screen', 'tmux', default 'screen'",
+                        "name": "type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -10638,29 +10819,6 @@ const docTemplate = `{
                 }
             }
         },
-        "model.ComposeCreate": {
-            "type": "object",
-            "properties": {
-                "compose_content": {
-                    "type": "string"
-                },
-                "conf_content": {
-                    "type": "string"
-                },
-                "conf_path": {
-                    "type": "string"
-                },
-                "env_content": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "work_dir": {
-                    "type": "string"
-                }
-            }
-        },
         "model.ComposeCreateResult": {
             "type": "object",
             "properties": {
@@ -10735,7 +10893,7 @@ const docTemplate = `{
                 "labels": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/model.KeyValue"
                     }
                 },
                 "memory": {
@@ -11288,9 +11446,6 @@ const docTemplate = `{
                 },
                 "path": {
                     "type": "string"
-                },
-                "task_id": {
-                    "type": "string"
                 }
             }
         },
@@ -11606,6 +11761,9 @@ const docTemplate = `{
                 "extension": {
                     "type": "string"
                 },
+                "linked": {
+                    "type": "boolean"
+                },
                 "mod_time": {
                     "type": "string"
                 },
@@ -11858,6 +12016,32 @@ const docTemplate = `{
                 }
             }
         },
+        "model.InstallApp": {
+            "type": "object",
+            "properties": {
+                "compose_content": {
+                    "type": "string"
+                },
+                "extra_params": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
+                },
+                "form_params": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.KeyValue"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "version_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.Ipv6Option": {
             "type": "object",
             "required": [
@@ -12065,7 +12249,7 @@ const docTemplate = `{
                 "labels": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/model.KeyValue"
                     }
                 },
                 "name": {
@@ -12157,6 +12341,8 @@ const docTemplate = `{
                     "enum": [
                         "start",
                         "stop",
+                        "restart",
+                        "up",
                         "down"
                     ]
                 }
@@ -12807,6 +12993,9 @@ const docTemplate = `{
         },
         "model.TerminalRequest": {
             "type": "object",
+            "required": [
+                "type"
+            ],
             "properties": {
                 "data": {
                     "type": "string"
@@ -12815,7 +13004,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "screen",
+                        "tmux",
+                        "docker"
+                    ]
                 }
             }
         },
@@ -12914,6 +13108,14 @@ const docTemplate = `{
                 "tx_speed": {
                     "description": "发送实时速率",
                     "type": "string"
+                }
+            }
+        },
+        "model.UninstallApp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
                 }
             }
         },
@@ -13292,7 +13494,7 @@ const docTemplate = `{
                 "labels": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/model.KeyValue"
                     }
                 },
                 "name": {
