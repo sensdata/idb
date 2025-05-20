@@ -32,4 +32,75 @@ export default {
   'app.ssh.rootModal.allow': '允许SSH登录',
   'app.ssh.rootModal.deny': '禁止SSH登录',
   'app.ssh.rootModal.saveSuccess': 'Root用户设置已保存',
+
+  // 密码管理标签页
+  'app.ssh.password.generateKey': '生成密钥',
+  'app.ssh.password.hasPassword': '已设置密码',
+  'app.ssh.password.noPassword': '未设置密码',
+  'app.ssh.password.download': '下载',
+  'app.ssh.password.set': '设置密码',
+  'app.ssh.password.update': '更新密码',
+  'app.ssh.password.clear': '清除密码',
+  'app.ssh.password.delete': '删除',
+
+  'app.ssh.password.columns.keyName': '密钥名称',
+  'app.ssh.password.columns.encryptionMode': '加密方式',
+  'app.ssh.password.columns.keyBits': '密钥位数',
+  'app.ssh.password.columns.password': '密码',
+  'app.ssh.password.columns.createTime': '创建时间',
+  'app.ssh.password.columns.enabled': '启用状态',
+
+  'app.ssh.password.generateSuccess': 'SSH密钥生成成功',
+  'app.ssh.password.enableSuccess': 'SSH密钥启用成功',
+  'app.ssh.password.disableSuccess': 'SSH密钥禁用成功',
+  'app.ssh.password.downloadSuccess': 'SSH密钥下载成功',
+  'app.ssh.password.setSuccess': 'SSH密钥密码设置成功',
+  'app.ssh.password.updateSuccess': 'SSH密钥密码更新成功',
+  'app.ssh.password.clearSuccess': 'SSH密钥密码清除成功',
+  'app.ssh.password.deleteSuccess': 'SSH密钥删除成功',
+  'app.ssh.password.operationFailed': '操作失败',
+
+  'app.ssh.password.clearConfirm': '确定要清除密钥 "{keyName}" 的密码吗？',
+  'app.ssh.password.deleteConfirm': '确定要删除密钥 "{keyName}" 吗？',
+
+  // 生成密钥弹窗
+  'app.ssh.password.generateModal.title': '生成SSH密钥',
+  'app.ssh.password.generateModal.keyName': '密钥名称',
+  'app.ssh.password.generateModal.encryptionMode': '加密方式',
+  'app.ssh.password.generateModal.keyBits': '密钥位数',
+  'app.ssh.password.generateModal.password': '密码',
+  'app.ssh.password.generateModal.enable': '生成后启用',
+  'app.ssh.password.generateModal.keyNameRequired': '请输入密钥名称',
+  'app.ssh.password.generateModal.encryptionModeRequired': '请选择加密方式',
+  'app.ssh.password.generateModal.keyBitsRequired': '请选择密钥位数',
+
+  // 设置密码弹窗
+  'app.ssh.password.setModal.title': '设置密钥密码',
+  'app.ssh.password.setModal.password': '密码',
+  'app.ssh.password.setModal.passwordRequired': '请输入密码',
+
+  // 更新密码弹窗
+  'app.ssh.password.updateModal.title': '更新密钥密码',
+  'app.ssh.password.updateModal.oldPassword': '旧密码',
+  'app.ssh.password.updateModal.newPassword': '新密码',
+  'app.ssh.password.updateModal.oldPasswordRequired': '请输入旧密码',
+  'app.ssh.password.updateModal.newPasswordRequired': '请输入新密码',
+
+  // 授权密钥标签页
+  'app.ssh.authKey.add': '添加密钥',
+  'app.ssh.authKey.remove': '删除',
+  'app.ssh.authKey.addSuccess': 'SSH 密钥添加成功',
+  'app.ssh.authKey.removeSuccess': 'SSH 密钥删除成功',
+  'app.ssh.authKey.columns.algorithm': '算法',
+  'app.ssh.authKey.columns.key': '密钥',
+  'app.ssh.authKey.columns.comment': '备注',
+  'app.ssh.authKey.columns.operations': '操作',
+  'app.ssh.authKey.modal.title': '添加 SSH 密钥',
+  'app.ssh.authKey.modal.content': '密钥内容',
+  'app.ssh.authKey.modal.placeholder': '在此粘贴您的 SSH 公钥',
+  'app.ssh.authKey.modal.description': '格式: ssh-rsa AAAAB3NzaC1... 备注',
+  'app.ssh.authKey.modal.emptyError': '密钥内容不能为空',
+  'app.ssh.authKey.modal.formatError': '无效的密钥格式',
+  'app.ssh.authKey.removeModal.title': '删除 SSH 密钥',
+  'app.ssh.authKey.removeModal.content': '确定要删除此 SSH 密钥吗？',
 };

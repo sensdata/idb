@@ -127,14 +127,12 @@
           </div>
         </div>
       </a-tab-pane>
-      <a-tab-pane
-        key="password"
-        :title="$t('app.ssh.tabs.password')"
-      ></a-tab-pane>
-      <a-tab-pane
-        key="authkey"
-        :title="$t('app.ssh.tabs.authkey')"
-      ></a-tab-pane>
+      <a-tab-pane key="password" :title="$t('app.ssh.tabs.password')">
+        <password-tab />
+      </a-tab-pane>
+      <a-tab-pane key="authkey" :title="$t('app.ssh.tabs.authkey')">
+        <auth-key-tab />
+      </a-tab-pane>
     </a-tabs>
 
     <!-- 端口设置弹窗 -->
@@ -207,10 +205,12 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue';
+  import { ref, onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { IconSettings } from '@arco-design/web-vue/es/icon';
   import { Message } from '@arco-design/web-vue';
+  import PasswordTab from './components/password-tab/index.vue';
+  import AuthKeyTab from './components/auth-key-tab/index.vue';
 
   const { t } = useI18n();
 
@@ -239,6 +239,17 @@
 
   const rootForm = ref({
     enabled: true,
+  });
+
+  // 初始化数据
+  onMounted(async () => {
+    try {
+      // 在这里可以添加实际的API调用来获取SSH服务配置
+      // 例如: const response = await getSSHConfig();
+      // 然后用获取的数据更新本地状态
+    } catch (error) {
+      // 错误处理
+    }
   });
 
   // 打开设置弹窗函数
@@ -277,13 +288,14 @@
 
 <style scoped lang="less">
   .container {
-    padding: 16px;
+    padding: 0 16px;
     background-color: var(--color-bg-2);
     border-radius: 4px;
+    position: relative;
   }
 
   .ssh-content {
-    margin-top: 16px;
+    margin-top: 8px;
   }
 
   .form-item {

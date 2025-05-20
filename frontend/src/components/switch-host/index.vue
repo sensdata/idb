@@ -1,11 +1,14 @@
 <template>
   <div class="box">
-    <a-tooltip position="bottom" :content="$t('components.switchHost.tips')">
-      <button class="btn color-primary" @click="handleClick">
-        <IconHome />
-        <span>{{ currentHost?.name }}</span>
-      </button>
-    </a-tooltip>
+    <div class="host-switch">
+      <a-tooltip position="bottom" :content="$t('components.switchHost.tips')">
+        <button class="btn color-primary" @click="handleClick">
+          <IconHome />
+          <span>{{ currentHost?.name }}</span>
+        </button>
+      </a-tooltip>
+    </div>
+    <ssh-status v-if="showSshStatus" />
   </div>
   <a-drawer
     :width="640"
@@ -61,17 +64,25 @@
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { HostEntity } from '@/entity/Host';
   import { getHostListApi } from '@/api/host';
   import { useHostStore } from '@/store';
   import usetCurrentHost from '@/hooks/current-host';
+  import SshStatus from '@/components/ssh-status/index.vue';
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const gridRef = ref();
   const hostStore = useHostStore();
   const { switchHost } = usetCurrentHost();
   const currentHost = computed(() => hostStore.current);
+
+  // Show SSH status based on the current route
+  const showSshStatus = computed(() => {
+    return route.path.includes('/app/ssh');
+  });
 
   const drawerVisible = ref(false);
   const handleClick = () => {
@@ -120,20 +131,28 @@
 
 <style scoped>
   .box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 10px 20px;
     border-bottom: 1px solid var(--color-border-2);
+  }
+
+  .host-switch {
+    display: flex;
+    align-items: center;
   }
 
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 20px;
     height: 36px;
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #fff;
     border: 1px solid var(--color-border-2);
     border-radius: 18px;
-    background-color: #fff;
-    cursor: pointer;
   }
 
   .btn:hover {
