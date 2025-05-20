@@ -582,6 +582,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 		global.LOG.Info("session begin")
 		session, err := a.sessionManager.StartSession(
 			msg.Data.Type,
+			msg.Data.Session,
 			msg.Data.Data,
 			msg.Data.Cols,
 			msg.Data.Rows,
@@ -2528,26 +2529,46 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		return actionSuccessResult(actionData.Action, "")
 
 	case model.Terminal_Install:
-		installResult, err := a.installScreen()
-		if err != nil {
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		result, err := utils.ToJSONString(installResult)
-		if err != nil {
-			return nil, err
+
+		switch message.SessionType(req.Type) {
+		case message.SessionTypeScreen:
+			installResult, err := a.installScreen()
+			if err != nil {
+				return nil, err
+			}
+			result, err := utils.ToJSONString(installResult)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, result)
+		default:
+			return nil, fmt.Errorf("unsupported session type")
 		}
-		return actionSuccessResult(actionData.Action, result)
 
 	case model.Terminal_Prune:
-		cleanResult, err := a.cleanScreen()
-		if err != nil {
+		var req model.TerminalRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		result, err := utils.ToJSONString(cleanResult)
-		if err != nil {
-			return nil, err
+
+		switch message.SessionType(req.Type) {
+		case message.SessionTypeScreen:
+			cleanResult, err := a.cleanScreen()
+			if err != nil {
+				return nil, err
+			}
+			result, err := utils.ToJSONString(cleanResult)
+			if err != nil {
+				return nil, err
+			}
+			return actionSuccessResult(actionData.Action, result)
+		default:
+			return nil, fmt.Errorf("unsupported session type")
 		}
-		return actionSuccessResult(actionData.Action, result)
 
 	default:
 		return nil, nil

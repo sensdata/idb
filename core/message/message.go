@@ -130,6 +130,7 @@ const (
 	SessionTypeBash   SessionType = "bash"
 	SessionTypeScreen SessionType = "screen"
 	SessionTypeTmux   SessionType = "tmux"
+	SessionTypeDocker SessionType = "docker"
 )
 
 type SessionData struct {

@@ -30,8 +30,8 @@ func (m *DefaultManager) StoreSession(session Session) {
 }
 
 // Remove session
-func (m *DefaultManager) RemoveSession(session string) {
-	m.sessions.Delete(session)
+func (m *DefaultManager) RemoveSession(id string) {
+	m.sessions.Delete(id)
 }
 
 // Get session
@@ -45,21 +45,25 @@ func (m *DefaultManager) GetSession(id string) (Session, error) {
 }
 
 // Start session
-func (m *DefaultManager) StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error) {
+func (m *DefaultManager) StartSession(sessionType message.SessionType, id string, name string, cols, rows int) (Session, error) {
 
 	var session Session
 	switch sessionType {
 	case message.SessionTypeScreen:
 		session = NewScreenSession(
-			"",
+			id,
 			name,
 			cols,
 			rows,
 		)
 	case message.SessionTypeTmux:
+		// not support
+	case message.SessionTypeDocker:
+		global.LOG.Info("container id: %s, shell: %s", id, name)
+		session = NewContainerSession(id, "", name, cols, rows)
 	default:
 		session = NewBaseSession(
-			"",
+			id,
 			name,
 			cols,
 			rows,
@@ -80,20 +84,23 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, name stri
 }
 
 // Attach session
-func (m *DefaultManager) AttachSession(sessionType message.SessionType, sessionID string, cols, rows int) (Session, error) {
+func (m *DefaultManager) AttachSession(sessionType message.SessionType, id string, cols, rows int) (Session, error) {
 	var session Session
 	switch sessionType {
 	case message.SessionTypeScreen:
 		session = NewScreenSession(
-			sessionID,
+			id,
 			"",
 			cols,
 			rows,
 		)
 	case message.SessionTypeTmux:
+		// not support
+	case message.SessionTypeDocker:
+		// not support
 	default:
 		session = NewBaseSession(
-			sessionID,
+			id,
 			"",
 			cols,
 			rows,
@@ -138,6 +145,9 @@ func (m *DefaultManager) ListSessions(sessionType message.SessionType) (*model.P
 		result.Total = int64(len(sessions))
 		result.Items = sessions
 
+	case message.SessionTypeDocker:
+		// not support
+
 	default:
 		// get all sessions
 		sessions, _ := m.listBaseSessions(false)
@@ -147,34 +157,38 @@ func (m *DefaultManager) ListSessions(sessionType message.SessionType) (*model.P
 	return &result, nil
 }
 
-func (m *DefaultManager) DetachSession(sessionType message.SessionType, session string) error {
+func (m *DefaultManager) DetachSession(sessionType message.SessionType, id string) error {
 	switch sessionType {
 	case message.SessionTypeScreen:
-		return detachScreenSession(session)
+		return detachScreenSession(id)
 	case message.SessionTypeTmux:
-		return detachTmuxSession(session)
+		return detachTmuxSession(id)
+	case message.SessionTypeDocker:
+		return m.quitContainerSession(id)
 	default:
 		return nil
 	}
 }
 
-func (m *DefaultManager) QuitSession(sessionType message.SessionType, session string) error {
+func (m *DefaultManager) QuitSession(sessionType message.SessionType, id string) error {
 	switch sessionType {
 	case message.SessionTypeScreen:
-		return quitScreenSession(session)
+		return quitScreenSession(id)
 	case message.SessionTypeTmux:
-		return quitTmuxSession(session)
+		return quitTmuxSession(id)
+	case message.SessionTypeDocker:
+		return m.quitContainerSession(id)
 	default:
 		return nil
 	}
 }
 
-func (m *DefaultManager) InputSession(sessionType message.SessionType, session string, data string) error {
+func (m *DefaultManager) InputSession(sessionType message.SessionType, id string, data string) error {
 	// find session
-	sessionInterface, ok := m.sessions.Load(session)
+	sessionInterface, ok := m.sessions.Load(id)
 	if !ok {
-		global.LOG.Error("session %s not found", session)
-		return fmt.Errorf("session %s not found", session)
+		global.LOG.Error("session %s not found", id)
+		return fmt.Errorf("session %s not found", id)
 	}
 	sessionInstance := sessionInterface.(Session)
 	// input
@@ -186,12 +200,12 @@ func (m *DefaultManager) InputSession(sessionType message.SessionType, session s
 	return nil
 }
 
-func (m *DefaultManager) ResizeSession(sessionType message.SessionType, session string, cols int, rows int) error {
+func (m *DefaultManager) ResizeSession(sessionType message.SessionType, id string, cols int, rows int) error {
 	// find session
-	sessionInterface, ok := m.sessions.Load(session)
+	sessionInterface, ok := m.sessions.Load(id)
 	if !ok {
-		global.LOG.Error("session %s not found", session)
-		return fmt.Errorf("session %s not found", session)
+		global.LOG.Error("session %s not found", id)
+		return fmt.Errorf("session %s not found", id)
 	}
 	sessionInstance := sessionInterface.(Session)
 	// input
@@ -203,14 +217,17 @@ func (m *DefaultManager) ResizeSession(sessionType message.SessionType, session 
 	return nil
 }
 
-func (m *DefaultManager) RenameSession(sessionType message.SessionType, session string, data string) error {
+func (m *DefaultManager) RenameSession(sessionType message.SessionType, id string, data string) error {
 	switch sessionType {
 	case message.SessionTypeScreen:
-		return renameScreenSession(session, data)
+		return renameScreenSession(id, data)
 	case message.SessionTypeTmux:
-		return renameTmuxSession(session, data)
+		return renameTmuxSession(id, data)
+	case message.SessionTypeDocker:
+		// not support
+		return nil
 	default:
-		return m.renameBaseSession(session, data)
+		return m.renameBaseSession(id, data)
 	}
 }
 
@@ -366,40 +383,53 @@ func listTmuxSession(filterDetached bool) ([]model.SessionInfo, error) {
 	return sessions, nil
 }
 
-func detachScreenSession(session string) error {
-	if err := exec.Command("screen", "-S", session, "-X", "detach").Run(); err != nil {
-		global.LOG.Error("Error detaching screen session %s: %v", session, err)
+func detachScreenSession(id string) error {
+	if err := exec.Command("screen", "-S", id, "-X", "detach").Run(); err != nil {
+		global.LOG.Error("Error detaching screen session %s: %v", id, err)
 		return err
 	}
-	global.LOG.Info("Session %s detached", session)
+	global.LOG.Info("Session %s detached", id)
 	return nil
 }
 
-func detachTmuxSession(session string) error {
-	if err := exec.Command("tmux", "detach-session", "-t", session).Run(); err != nil {
-		global.LOG.Error("Error detaching tmux session %s: %v", session, err)
+func detachTmuxSession(id string) error {
+	if err := exec.Command("tmux", "detach-session", "-t", id).Run(); err != nil {
+		global.LOG.Error("Error detaching tmux session %s: %v", id, err)
 		return err
 	}
-	global.LOG.Info("Tmux session %s detached", session)
+	global.LOG.Info("Tmux session %s detached", id)
 	return nil
 }
 
-func quitScreenSession(session string) error {
-	if err := exec.Command("screen", "-S", session, "-X", "quit").Run(); err != nil {
-		global.LOG.Error("Error quit screen session %s: %v", session, err)
+func quitScreenSession(id string) error {
+	if err := exec.Command("screen", "-S", id, "-X", "quit").Run(); err != nil {
+		global.LOG.Error("Error quit screen session %s: %v", id, err)
 		return err
 	}
-	global.LOG.Info("Session %s quit", session)
+	global.LOG.Info("Session %s quit", id)
 
 	return nil
 }
 
-func quitTmuxSession(session string) error {
-	if err := exec.Command("tmux", "kill-session", "-t", session).Run(); err != nil {
-		global.LOG.Error("Error quitting tmux session %s: %v", session, err)
+func quitTmuxSession(id string) error {
+	if err := exec.Command("tmux", "kill-session", "-t", id).Run(); err != nil {
+		global.LOG.Error("Error quitting tmux session %s: %v", id, err)
 		return err
 	}
-	global.LOG.Info("Tmux session %s quit", session)
+	global.LOG.Info("Tmux session %s quit", id)
+	return nil
+}
+
+func (m *DefaultManager) quitContainerSession(id string) error {
+	session, err := m.GetSession(id)
+	if err != nil {
+		global.LOG.Error("failed to get session: %v", err)
+		return err
+	}
+	if err := session.Close(); err != nil {
+		global.LOG.Error("failed to close session: %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -407,17 +437,17 @@ func (m *DefaultManager) renameBaseSession(_ string, _ string) error {
 	return nil
 }
 
-func renameScreenSession(session string, name string) error {
-	if err := exec.Command("screen", "-S", session, "-X", "sessionname", name).Run(); err != nil {
-		global.LOG.Error("Error renaming screen session %s to %s: %v", session, name, err)
+func renameScreenSession(id string, name string) error {
+	if err := exec.Command("screen", "-S", id, "-X", "sessionname", name).Run(); err != nil {
+		global.LOG.Error("Error renaming screen session %s to %s: %v", id, name, err)
 		return err
 	}
 	return nil
 }
 
-func renameTmuxSession(session string, name string) error {
-	if err := exec.Command("tmux", "rename-session", "-t", session, name).Run(); err != nil {
-		global.LOG.Error("Error renaming tmux session %s to %s: %v", session, name, err)
+func renameTmuxSession(id string, name string) error {
+	if err := exec.Command("tmux", "rename-session", "-t", id, name).Run(); err != nil {
+		global.LOG.Error("Error renaming tmux session %s to %s: %v", id, name, err)
 		return err
 	}
 	return nil

@@ -27,6 +27,8 @@ type Session interface {
 	Input(data string) error
 	// Resize
 	Resize(cols int, rows int) error
+	// Close
+	Close() error
 }
 
 // Manager
@@ -34,23 +36,23 @@ type Manager interface {
 	// Store session
 	StoreSession(session Session)
 	// Remove session
-	RemoveSession(session string)
+	RemoveSession(id string)
 	// Get session
 	GetSession(id string) (Session, error)
 	// Start session
-	StartSession(sessionType message.SessionType, name string, cols, rows int) (Session, error)
+	StartSession(sessionType message.SessionType, id string, name string, cols, rows int) (Session, error)
 	// Attach session
-	AttachSession(sessionType message.SessionType, session string, cols, rows int) (Session, error)
+	AttachSession(sessionType message.SessionType, id string, cols, rows int) (Session, error)
 	// List sessions
 	ListSessions(sessionType message.SessionType) (*model.PageResult, error)
 	// Detach session
-	DetachSession(sessionType message.SessionType, session string) error
+	DetachSession(sessionType message.SessionType, id string) error
 	// Quit session
-	QuitSession(sessionType message.SessionType, session string) error
+	QuitSession(sessionType message.SessionType, id string) error
 	// Write to session
-	InputSession(sessionType message.SessionType, session string, data string) error
+	InputSession(sessionType message.SessionType, id string, data string) error
 	// ResizeSession
-	ResizeSession(sessionType message.SessionType, session string, cols int, rows int) error
+	ResizeSession(sessionType message.SessionType, id string, cols int, rows int) error
 	// RenameSession
-	RenameSession(sessionType message.SessionType, session string, data string) error
+	RenameSession(sessionType message.SessionType, id string, data string) error
 }

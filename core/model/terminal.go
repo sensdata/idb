@@ -5,7 +5,7 @@ import (
 )
 
 type TerminalRequest struct {
-	Type    string `json:"type"`
+	Type    string `json:"type" validate:"required,oneof=screen tmux docker"`
 	Session string `json:"session"`
 	Data    string `json:"data"`
 }

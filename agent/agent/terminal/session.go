@@ -165,6 +165,12 @@ func (s *BaseSession) Release() {
 	}
 }
 
+// close
+func (s *BaseSession) Close() error {
+	close(s.doneChan)
+	return nil
+}
+
 // Track output
 func (s *BaseSession) trackOutput() {
 	defer func() {
