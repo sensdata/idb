@@ -1050,7 +1050,7 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 // @Param id query string true "Container ID"
 // @Param follow query bool false "Follow the log stream"
 // @Param tail query int false "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown."
-// @Param since query string false Show logs since a certain time, options: 24h, 4h, 1h, 10m. If not specified, all logs will be shown.
+// @Param since query string false "Show logs since a certain time, can be one of 24h, 4h, 1h, 10m. If not specified, all logs will be shown."
 // @Success 200 {string} string "SSE stream started"
 // @Failure 400 {object} model.Response "Bad Request"
 // @Router /docker/{host}/containers/logs/tail [get]
