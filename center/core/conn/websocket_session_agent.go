@@ -24,9 +24,10 @@ type AgentWebSocketSession struct {
 	rows               int
 	token              string
 	hostID             uint
+	sessionType        message.SessionType
 }
 
-func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string, hostID uint) (*AgentWebSocketSession, error) {
+func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string, hostID uint, sessionType message.SessionType) (*AgentWebSocketSession, error) {
 	return &AgentWebSocketSession{
 		Session:            utils.GenerateMsgId(),
 		SessionMessageChan: make(chan *message.SessionMessage),
@@ -37,6 +38,7 @@ func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *webso
 		rows:               rows,
 		token:              token,
 		hostID:             hostID,
+		sessionType:        sessionType,
 	}, nil
 }
 
@@ -89,7 +91,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 					message.WsMessageStart,
-					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
+					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 				)
 
 			case message.WsMessageAttach:
@@ -107,7 +109,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 							Data: message.SessionData{
 								Code:    constant.CodeFailed,
 								Msg:     errMsg,
-								Type:    message.SessionTypeScreen,
+								Type:    aws.sessionType,
 								Session: msgObj.Session,
 								Data:    "",
 							},
@@ -118,7 +120,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 					aws.sendToAgent(
 						aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 						message.WsMessageAttach,
-						message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
+						message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 					)
 				}
 
@@ -126,14 +128,14 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageCmd,
-					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data},
+					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data},
 				)
 
 			case message.WsMessageResize:
 				aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageResize,
-					message.SessionData{Type: message.SessionTypeScreen, Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
+					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
 				)
 
 			case message.WsMessageHeartbeat:
@@ -149,7 +151,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 
 func (aws *AgentWebSocketSession) notifyDetach() {
 	req := model.TerminalRequest{
-		Type:    string(message.SessionTypeScreen),
+		Type:    string(aws.sessionType),
 		Session: aws.Session,
 		Data:    "",
 	}

@@ -1,7 +1,8 @@
 package docker
 
 import (
-	"errors"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,9 +12,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
 	"github.com/sensdata/idb/core/logstream/pkg/types"
 	"github.com/sensdata/idb/core/message"
@@ -678,5 +682,136 @@ func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, 
 	if err == nil {
 		message.SendLogStreamMessage(*conn, stopMsg)
 	}
+	return nil
+}
+
+func (s *DockerMan) handleContainerTerminal(c *gin.Context) error {
+	global.LOG.Info("handle container terminal begin")
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024 * 1024 * 10,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		global.LOG.Error("Failed to upgrade to WebSocket: %v\n", err)
+		return errors.Wrap(err, "failed to upgrade to WebSocket")
+	}
+	defer wsConn.Close()
+
+	global.LOG.Info("upgrade successful")
+
+	token, _ := c.Cookie("idb-token")
+
+	cols, err := strconv.Atoi(c.DefaultQuery("cols", "80"))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param cols in request")
+	}
+	rows, err := strconv.Atoi(c.DefaultQuery("rows", "40"))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param rows in request")
+	}
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "invalid param host in request")
+	}
+	// 会话类型，未传默认为screen
+	sessionType := message.SessionTypeDocker
+
+	//找host
+	hostRepo := repo.NewHostRepo()
+	host, err := hostRepo.Get(hostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "no host found")
+	}
+	agentConn, err := conn.CENTER.GetAgentConn(&host)
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "agent disconected")
+	}
+
+	aws, err := conn.NewAgentWebSocketSession(cols, rows, agentConn, wsConn, host.AgentKey, token, uint(hostID), sessionType)
+	if err != nil {
+		wsHandleError(wsConn, err)
+		return errors.Wrap(err, "failed to create Agent WebSocket session")
+	}
+	defer aws.Close()
+
+	quitChan := make(chan bool, 3)
+	// 将 aws 记录到center中
+	conn.CENTER.RegisterAgentSession(aws)
+	conn.CENTER.RegisterSessionToken(aws.Session, token)
+	aws.Start(quitChan)
+	// 等待quitChan
+	<-quitChan
+	// 将 aws 从center中清除
+	conn.CENTER.UnregisterSessionToken(aws.Session)
+	conn.CENTER.UnregisterAgentSession(aws.Session)
+
+	global.LOG.Info("handle container terminal end")
+	return nil
+}
+
+func wsHandleError(ws *websocket.Conn, err error) bool {
+	if err != nil {
+		global.LOG.Error("handler ws failed:, err: %v", err)
+		dt := time.Now().Add(time.Second)
+		if ctlerr := ws.WriteControl(websocket.CloseMessage, []byte(err.Error()), dt); ctlerr != nil {
+			wsData, err := json.Marshal(message.WsMessage{
+				Code: constant.CodeFailed,
+				Msg:  base64.StdEncoding.EncodeToString([]byte(err.Error())),
+				Type: message.WsMessageCmd,
+			})
+			if err != nil {
+				_ = ws.WriteMessage(websocket.TextMessage, []byte("{\"type\":\"cmd\",\"data\":\"failed to encoding to json\"}"))
+			} else {
+				_ = ws.WriteMessage(websocket.TextMessage, wsData)
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (s *DockerMan) quitContainerSession(token string, hostID uint, req model.TerminalRequest) error {
+	// 如果会话已经登记了token，说明正在被使用
+	sessionToken, exist := conn.CENTER.GetSessionToken(req.Session)
+	if exist && token != sessionToken {
+		global.LOG.Error("session %s is being used by another user", req.Session)
+		return fmt.Errorf("session %s is being used by another user", req.Session)
+	}
+
+	if req.Type == "" {
+		req.Type = string(message.SessionTypeDocker)
+	}
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Terminal_Finish,
+			Data:   data,
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action %v", err)
+		return fmt.Errorf("operation failed")
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("failed to quit session, might already been quit")
+	}
+
 	return nil
 }

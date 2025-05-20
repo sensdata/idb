@@ -171,6 +171,8 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},          // 获取容器监控数据
 			{Method: "DELETE", Path: "/:host/containers/logs", Handler: s.ContainerLogClean},     // 清理容器日志
 			{Method: "GET", Path: "/:host/containers/logs/tail", Handler: s.FollowContainerLogs}, // 追踪容器日志
+			{Method: "GET", Path: "/:host/containers/terminal", Handler: s.HandleTerminal},       // 进入容器终端会话
+			{Method: "POST", Path: "/:host/containers/terminal/quit", Handler: s.QuitSession},    // 终止容器终端会话
 
 			// images
 			{Method: "GET", Path: "/:host/images", Handler: s.ImagePage},         // 获取镜像列表
@@ -1061,6 +1063,63 @@ func (s *DockerMan) FollowContainerLogs(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Create or reconnect to a container terminal session through websocket
+// @Description Create or reconnect to a container terminal session through websocket.
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param cols query uint false "Window cols, default 80"
+// @Param rows query uint false "Window rows, default 40"
+// @Success 200
+// @Router /docker/{host}/containers/terminal [get]
+func (s *DockerMan) HandleTerminal(c *gin.Context) {
+	err := s.handleContainerTerminal(c)
+	if err != nil {
+		global.LOG.Error("Handle container terminal failed: %v", err)
+
+		// 检查是否为升级错误
+		if err.Error() == "websocket: the client is not using the websocket protocol: 'upgrade' token not found in 'Connection' header" {
+			helper.ErrorWithDetail(c, http.StatusBadRequest, "Failed to establish WebSocket connection", err)
+		} else {
+			// 对于其他错误，返回一个不同的状态码
+			helper.ErrorWithDetail(c, http.StatusInternalServerError, "Internal server error", err)
+		}
+		return
+	}
+}
+
+// @Tags Docker
+// @Summary Quit container terminal session
+// @Description Quit container terminal session
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.TerminalRequest true "Request details"
+// @Success 200
+// @Router /docker/{host}/containers/terminal/quit [post]
+func (s *DockerMan) QuitSession(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.TerminalRequest
+	if err := helper.CheckBind(&req, c); err != nil {
+		return
+	}
+
+	err = s.quitContainerSession(token, uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, "")
 }
 
 // @Tags Docker

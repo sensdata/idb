@@ -222,6 +222,14 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "invalid param host in request")
 	}
+	// 会话类型，未传默认为screen
+	var sessionType message.SessionType
+	st := c.Query("type")
+	if st == "" {
+		sessionType = message.SessionTypeScreen
+	} else {
+		sessionType = message.SessionType(st)
+	}
 
 	//找host
 	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
@@ -235,7 +243,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 		return errors.Wrap(err, "agent disconected")
 	}
 
-	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, host.AgentKey, token, uint(hostID))
+	aws, err := NewAgentWebSocketSession(cols, rows, agentConn, wsConn, host.AgentKey, token, uint(hostID), sessionType)
 	if err != nil {
 		wsHandleError(wsConn, err)
 		return errors.Wrap(err, "failed to create Agent WebSocket session")
