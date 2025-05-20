@@ -15,22 +15,22 @@ import (
 type TerminalService struct{}
 
 type ITerminalService interface {
-	Sessions(hostID uint) (*model.PageResult, error)
-	Prune(hostID uint) (*model.ScriptResult, error)
+	Sessions(hostID uint, sessionType string) (*model.PageResult, error)
+	Prune(hostID uint, req model.TerminalRequest) (*model.ScriptResult, error)
 	Detach(token string, hostID uint, req model.TerminalRequest) error
 	Quit(token string, hostID uint, req model.TerminalRequest) error
 	Rename(token string, hostID uint, req model.TerminalRequest) error
-	Install(hostID uint) (*model.ScriptResult, error)
+	Install(hostID uint, req model.TerminalRequest) (*model.ScriptResult, error)
 }
 
 func NewITerminalService() ITerminalService {
 	return &TerminalService{}
 }
 
-func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
+func (s *TerminalService) Sessions(hostID uint, sessionType string) (*model.PageResult, error) {
 	var result model.PageResult
 
-	req := model.TerminalRequest{Type: string(message.SessionTypeScreen)}
+	req := model.TerminalRequest{Type: sessionType}
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return &result, err
@@ -61,7 +61,7 @@ func (s *TerminalService) Sessions(hostID uint) (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
+func (s *TerminalService) Prune(hostID uint, req model.TerminalRequest) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
 		LogHost: hostID,
 		LogPath: "",
@@ -71,11 +71,16 @@ func (s *TerminalService) Prune(hostID uint) (*model.ScriptResult, error) {
 		Err:     "",
 	}
 
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
+
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Terminal_Prune,
-			Data:   "",
+			Data:   data,
 		},
 	}
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
@@ -115,7 +120,10 @@ func (s *TerminalService) Detach(token string, hostID uint, req model.TerminalRe
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
-	req.Type = string(message.SessionTypeScreen)
+	if req.Type == "" {
+		req.Type = string(message.SessionTypeScreen)
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -148,7 +156,10 @@ func (s *TerminalService) Quit(token string, hostID uint, req model.TerminalRequ
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
-	req.Type = string(message.SessionTypeScreen)
+	if req.Type == "" {
+		req.Type = string(message.SessionTypeScreen)
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -181,7 +192,10 @@ func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRe
 		return fmt.Errorf("session %s is being used by another user", req.Session)
 	}
 
-	req.Type = string(message.SessionTypeScreen)
+	if req.Type == "" {
+		req.Type = string(message.SessionTypeScreen)
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
 		return err
@@ -207,7 +221,7 @@ func (s *TerminalService) Rename(token string, hostID uint, req model.TerminalRe
 	return nil
 }
 
-func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
+func (s *TerminalService) Install(hostID uint, req model.TerminalRequest) (*model.ScriptResult, error) {
 	result := model.ScriptResult{
 		LogHost: hostID,
 		LogPath: "",
@@ -217,11 +231,19 @@ func (s *TerminalService) Install(hostID uint) (*model.ScriptResult, error) {
 		Err:     "",
 	}
 
+	if req.Type == "" {
+		req.Type = string(message.SessionTypeScreen)
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
+
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Terminal_Install,
-			Data:   "",
+			Data:   data,
 		},
 	}
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)

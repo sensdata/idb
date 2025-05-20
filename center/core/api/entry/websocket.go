@@ -44,6 +44,9 @@ func (b *BaseApi) HandleSshTerminal(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
+// @Param cols query uint false "Window cols, default 80"
+// @Param rows query uint false "Window rows, default 40"
+// @Param type query string false "Session type, one of 'screen', 'tmux', default 'screen'"
 // @Success 200
 // @Router /terminals/{host}/start [get]
 func (b *BaseApi) HandleTerminal(c *gin.Context) {
@@ -68,6 +71,7 @@ func (b *BaseApi) HandleTerminal(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
+// @Param type query string false "Session type, one of'screen', 'tmux', default'screen'"
 // @Success 200
 // @Router /terminals/{host}/sessions [get]
 func (b *BaseApi) TerminalSessions(c *gin.Context) {
@@ -77,7 +81,9 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 		return
 	}
 
-	result, err := terminalService.Sessions(uint(hostID))
+	sessionType := c.DefaultQuery("type", "screen")
+
+	result, err := terminalService.Sessions(uint(hostID), sessionType)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -91,6 +97,7 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
+// @Param request body model.TerminalRequest true "Request details"
 // @Success 200
 // @Router /terminals/{host}/sessions/prune [post]
 func (b *BaseApi) PruneSessions(c *gin.Context) {
@@ -100,7 +107,11 @@ func (b *BaseApi) PruneSessions(c *gin.Context) {
 		return
 	}
 
-	result, err := terminalService.Prune(uint(hostID))
+	var req model.TerminalRequest
+	if err := CheckBind(&req, c); err != nil {
+		return
+	}
+	result, err := terminalService.Prune(uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
@@ -127,7 +138,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	if err := CheckBind(&req, c); err != nil {
 		return
 	}
 
@@ -158,7 +169,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	if err := CheckBind(&req, c); err != nil {
 		return
 	}
 
@@ -189,7 +200,7 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 	}
 
 	var req model.TerminalRequest
-	if err := CheckBindAndValidate(&req, c); err != nil {
+	if err := CheckBind(&req, c); err != nil {
 		return
 	}
 
@@ -207,6 +218,7 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
+// @Param request body model.TerminalRequest true "Request details"
 // @Success 200
 // @Router /terminals/{host}/install [post]
 func (b *BaseApi) InstallTerminal(c *gin.Context) {
@@ -216,7 +228,12 @@ func (b *BaseApi) InstallTerminal(c *gin.Context) {
 		return
 	}
 
-	result, err := terminalService.Install(uint(hostID))
+	var req model.TerminalRequest
+	if err := CheckBind(&req, c); err != nil {
+		return
+	}
+
+	result, err := terminalService.Install(uint(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
 		return
