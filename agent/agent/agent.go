@@ -23,7 +23,6 @@ import (
 	"github.com/sensdata/idb/agent/agent/docker"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
-	"github.com/sensdata/idb/agent/agent/session"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/agent/terminal"
 	"github.com/sensdata/idb/agent/config"
@@ -40,14 +39,13 @@ import (
 )
 
 var (
-	CONFMAN        *config.Manager
-	AGENT          IAgent
-	FileService    = file.NewIFileService()
-	SshService     = ssh.NewISSHService()
-	GitService     = git.NewIGitService()
-	DockerService  = docker.NewIDockerService()
-	CaService      = ca.NewICaService()
-	SessionService = session.NewISessionService()
+	CONFMAN       *config.Manager
+	AGENT         IAgent
+	FileService   = file.NewIFileService()
+	SshService    = ssh.NewISSHService()
+	GitService    = git.NewIGitService()
+	DockerService = docker.NewIDockerService()
+	CaService     = ca.NewICaService()
 )
 
 type Agent struct {
@@ -392,9 +390,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			global.LOG.Error("[Panic] in handleConnection: %v", r)
 		}
 	}()
-
-	// 传递给 SessionService
-	SessionService.Config(&conn, CONFMAN.GetConfig().SecretKey)
 
 	config := CONFMAN.GetConfig()
 
