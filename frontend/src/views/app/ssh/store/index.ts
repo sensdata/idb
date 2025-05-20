@@ -85,7 +85,7 @@ const useSSHStore = defineStore('ssh', {
           this.status = 'error';
         }
       } catch (error) {
-        logError('Failed to fetch SSH status:', error);
+        logError('Failed to fetch SSH status:', error as string);
         this.status = 'error';
       }
     },
@@ -165,7 +165,7 @@ const useSSHStore = defineStore('ssh', {
         // 显示成功消息
         Message.success(t(messages.success));
       } catch (error) {
-        logError(`Failed to ${operation} SSH server:`, error);
+        logError(`Failed to ${operation} SSH server:`, error as string);
         Message.error(t(messages.failure));
         await this.fetchStatus();
       } finally {

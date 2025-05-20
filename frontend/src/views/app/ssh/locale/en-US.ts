@@ -115,4 +115,24 @@ export default {
   'app.ssh.authKey.removeModal.title': 'Remove SSH Key',
   'app.ssh.authKey.removeModal.content':
     'Are you sure you want to remove this SSH key?',
+
+  // Status component
+  'app.ssh.status.running': 'Running',
+  'app.ssh.status.stopped': 'Stopped',
+  'app.ssh.status.starting': 'Starting...',
+  'app.ssh.status.stopping': 'Stopping...',
+  'app.ssh.status.unknown': 'Unknown',
+  'app.ssh.status.error': 'Error',
+  'app.ssh.status.unhealthy': 'Unhealthy',
+  'app.ssh.status.stop': 'Stop',
+  'app.ssh.status.reload': 'Reload',
+  'app.ssh.status.restart': 'Restart',
+  'app.ssh.status.stopSuccess': 'SSH service stopped successfully',
+  'app.ssh.status.stopFailed': 'Failed to stop SSH service',
+  'app.ssh.status.reloadSuccess': 'SSH service reloaded successfully',
+  'app.ssh.status.reloadFailed': 'Failed to reload SSH service',
+  'app.ssh.status.restartSuccess': 'SSH service restarted successfully',
+  'app.ssh.status.restartFailed': 'Failed to restart SSH service',
+  'app.ssh.status.autoStartEnabled': 'Auto-start Enabled',
+  'app.ssh.status.autoStartDisabled': 'Auto-start Disabled',
 };

@@ -8,7 +8,6 @@
         </button>
       </a-tooltip>
     </div>
-    <ssh-status v-if="showSshStatus" />
   </div>
   <a-drawer
     :width="640"
@@ -69,7 +68,6 @@
   import { getHostListApi } from '@/api/host';
   import { useHostStore } from '@/store';
   import usetCurrentHost from '@/hooks/current-host';
-  import SshStatus from '@/components/ssh-status/index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
@@ -78,11 +76,6 @@
   const hostStore = useHostStore();
   const { switchHost } = usetCurrentHost();
   const currentHost = computed(() => hostStore.current);
-
-  // Show SSH status based on the current route
-  const showSshStatus = computed(() => {
-    return route.path.includes('/app/ssh');
-  });
 
   const drawerVisible = ref(false);
   const handleClick = () => {

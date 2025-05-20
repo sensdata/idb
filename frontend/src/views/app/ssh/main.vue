@@ -1,5 +1,6 @@
 <template>
   <div class="container">
+    <ssh-status class="ssh-status-container" />
     <a-tabs default-active-key="config">
       <a-tab-pane key="config" :title="$t('app.ssh.tabs.config')">
         <config-tab />
@@ -15,6 +16,7 @@
 </template>
 
 <script lang="ts" setup>
+  import SshStatus from './components/ssh-status/index.vue';
   import PasswordTab from './components/password-tab/index.vue';
   import AuthKeyTab from './components/auth-key-tab/index.vue';
   import ConfigTab from './components/config-tab/index.vue';
@@ -26,5 +28,10 @@
     background-color: var(--color-bg-2);
     border-radius: 4px;
     position: relative;
+  }
+
+  .ssh-status-container {
+    margin-bottom: 16px;
+    padding: 12px 0;
   }
 </style>

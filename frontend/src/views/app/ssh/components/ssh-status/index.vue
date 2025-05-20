@@ -2,7 +2,7 @@
   <div class="ssh-status">
     <div class="status-display">
       <a-space>
-        <a-badge :status="sshStore.statusBadge" />
+        <a-badge :status="sshStore.statusBadge as BadgeStatus" />
         <a-tag :color="sshStore.statusColor" size="medium">{{
           sshStatusText
         }}</a-tag>
@@ -55,12 +55,14 @@
   import { computed, onMounted, onUnmounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
-  import useSSHStore from '@/store/modules/ssh';
+  import useSSHStore from '@/views/app/ssh/store';
   import { useHostStore } from '@/store';
   import { useLogger } from '@/utils/hooks/use-logger';
-  import { usePolling } from '../../utils/hooks/use-polling';
-  import zhCN from './locale/zh-CN';
-  import enUS from './locale/en-US';
+  import { usePolling } from '@/utils/hooks/use-polling';
+  import zhCN from '../../locale/zh-CN';
+  import enUS from '../../locale/en-US';
+
+  type BadgeStatus = 'success' | 'warning' | 'danger' | 'normal' | 'processing';
 
   const POLLING_INTERVAL = 10000;
   const INITIAL_DELAY = 200;
@@ -113,11 +115,11 @@
 
   // SSH服务控制方法
   const stopSshServer = (): void => {
-    sshStore.stop({ t });
+    sshStore.stop();
   };
 
   const reloadSshServer = (): void => {
-    sshStore.reload({ t });
+    sshStore.reload();
   };
 
   const restartSshServer = async (): Promise<void> => {
@@ -131,7 +133,7 @@
 
     sshStore.setHostId(hostId.value);
     logDebug('Calling sshStore.restart()');
-    await sshStore.restart({ t });
+    await sshStore.restart();
     logDebug('SSH restart completed successfully');
   };
 
