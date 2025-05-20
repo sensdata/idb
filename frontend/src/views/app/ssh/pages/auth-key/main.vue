@@ -1,76 +1,96 @@
 <template>
-  <div class="auth-key-container">
-    <idb-table
-      ref="tableRef"
-      :loading="loading"
-      :dataSource="dataSource"
-      row-key="key"
-      :pagination="false"
-      :columns="columns"
-    >
-      <template #leftActions>
-        <a-button
-          type="primary"
-          class="generate-key-btn"
-          @click="showAddKeyModal"
-        >
-          <template #icon>
-            <icon-plus />
-          </template>
-          {{ $t('app.ssh.authKey.add') }}
-        </a-button>
-      </template>
+  <div class="ssh-page-container">
+    <div class="header-container">
+      <h2 class="page-title">{{ $t('app.ssh.pageTitle') }}</h2>
+      <ssh-status class="ssh-status-container" />
+    </div>
+    <div class="content-container">
+      <!-- Auth Key Tab Content-->
+      <div class="auth-key-content">
+        <div class="auth-key-container">
+          <idb-table
+            ref="tableRef"
+            :loading="loading"
+            :dataSource="dataSource"
+            row-key="key"
+            :pagination="false"
+            :columns="columns"
+          >
+            <template #leftActions>
+              <a-button
+                type="primary"
+                class="generate-key-btn"
+                @click="showAddKeyModal"
+              >
+                <template #icon>
+                  <icon-plus />
+                </template>
+                {{ $t('app.ssh.authKey.add') }}
+              </a-button>
+            </template>
 
-      <template #operations="{ record }">
-        <a-space>
-          <a-button type="text" status="danger" @click="handleRemove(record)">
-            {{ $t('app.ssh.authKey.remove') }}
-          </a-button>
-        </a-space>
-      </template>
-    </idb-table>
+            <template #operations="{ record }">
+              <a-space>
+                <a-button
+                  type="text"
+                  status="danger"
+                  @click="handleRemove(record)"
+                >
+                  {{ $t('app.ssh.authKey.remove') }}
+                </a-button>
+              </a-space>
+            </template>
+          </idb-table>
 
-    <!-- 添加密钥弹窗 -->
-    <a-modal
-      v-model:visible="addKeyModalVisible"
-      :title="$t('app.ssh.authKey.modal.title')"
-      role="dialog"
-      @ok="handleAddKey"
-      @cancel="addKeyModalVisible = false"
-    >
-      <div class="modal-form-wrapper">
-        <div class="modal-form-item">
-          <div id="key-content-label" class="modal-label">{{
-            $t('app.ssh.authKey.modal.content')
-          }}</div>
-          <div class="modal-input-wrapper">
-            <a-textarea
-              v-model="addKeyForm.content"
-              :placeholder="$t('app.ssh.authKey.modal.placeholder')"
-              :auto-size="{ minRows: 4, maxRows: 8 }"
-              aria-labelledby="key-content-label"
-              :status="
-                addKeyForm.validated && addKeyForm.error ? 'error' : undefined
-              "
-            />
-            <div id="key-description" class="modal-field-description">
-              {{ addKeyForm.error || $t('app.ssh.authKey.modal.description') }}
+          <!-- 添加密钥弹窗 -->
+          <a-modal
+            v-model:visible="addKeyModalVisible"
+            :title="$t('app.ssh.authKey.modal.title')"
+            role="dialog"
+            @ok="handleAddKey"
+            @cancel="addKeyModalVisible = false"
+          >
+            <div class="modal-form-wrapper">
+              <div class="modal-form-item">
+                <div id="key-content-label" class="modal-label">{{
+                  $t('app.ssh.authKey.modal.content')
+                }}</div>
+                <div class="modal-input-wrapper">
+                  <a-textarea
+                    v-model="addKeyForm.content"
+                    :placeholder="$t('app.ssh.authKey.modal.placeholder')"
+                    :auto-size="{ minRows: 4, maxRows: 8 }"
+                    aria-labelledby="key-content-label"
+                    :status="
+                      addKeyForm.validated && addKeyForm.error
+                        ? 'error'
+                        : undefined
+                    "
+                  />
+                  <div id="key-description" class="modal-field-description">
+                    {{
+                      addKeyForm.error ||
+                      $t('app.ssh.authKey.modal.description')
+                    }}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </a-modal>
+
+          <!-- 确认删除弹窗 -->
+          <a-modal
+            v-model:visible="removeConfirmVisible"
+            :title="$t('app.ssh.authKey.removeModal.title')"
+            role="dialog"
+            @ok="confirmRemove"
+            @cancel="removeConfirmVisible = false"
+          >
+            <p>{{ $t('app.ssh.authKey.removeModal.content') }}</p>
+          </a-modal>
         </div>
       </div>
-    </a-modal>
-
-    <!-- 确认删除弹窗 -->
-    <a-modal
-      v-model:visible="removeConfirmVisible"
-      :title="$t('app.ssh.authKey.removeModal.title')"
-      role="dialog"
-      @ok="confirmRemove"
-      @cancel="removeConfirmVisible = false"
-    >
-      <p>{{ $t('app.ssh.authKey.removeModal.content') }}</p>
-    </a-modal>
+    </div>
   </div>
 </template>
 
@@ -81,6 +101,7 @@
   import { IconPlus } from '@arco-design/web-vue/es/icon';
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
+  import SshStatus from '@/views/app/ssh/components/ssh-status/index.vue';
 
   const { t } = useI18n();
 
@@ -333,6 +354,47 @@
 </script>
 
 <style scoped lang="less">
+  .ssh-page-container {
+    padding: 0 16px;
+    background-color: var(--color-bg-2);
+    border-radius: 6px;
+    position: relative;
+    border: 1px solid var(--color-border-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-1);
+    margin: 0;
+  }
+
+  .ssh-status-container {
+    margin-bottom: 0;
+  }
+
+  .content-container {
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid var(--color-border-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .auth-key-content {
+    margin-top: 8px;
+  }
+
   .auth-key-container {
     padding: 0;
   }

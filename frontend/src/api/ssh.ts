@@ -9,6 +9,23 @@ export function getSSHConfig(hostId: number) {
 }
 
 /**
+ * 获取SSH配置文件内容
+ * @param hostId - 主机ID
+ */
+export function getSSHConfigContent(hostId: number) {
+  return request.get(`/ssh/${hostId}/config/content`);
+}
+
+/**
+ * 更新SSH配置文件内容
+ * @param hostId - 主机ID
+ * @param content - 配置文件内容
+ */
+export function updateSSHConfigContent(hostId: number, content: string) {
+  return request.put(`/ssh/${hostId}/config/content`, { content });
+}
+
+/**
  * 操作SSH服务
  * @param hostId - 主机ID
  * @param operation - 操作类型: 'enable' | 'disable' | 'stop' | 'reload' | 'restart'

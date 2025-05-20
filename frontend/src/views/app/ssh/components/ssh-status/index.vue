@@ -182,7 +182,6 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding-right: 90px;
 
     .status-display {
       margin-right: 24px;
@@ -198,9 +197,7 @@
       gap: 16px;
 
       .arco-btn {
-        padding: 0 16px;
-        height: 32px;
-        font-size: 14px;
+        min-width: 60px;
       }
     }
   }

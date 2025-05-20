@@ -1,7 +1,33 @@
 export default {
+  'app.ssh.pageTitle': 'SSH Management',
   'app.ssh.tabs.config': 'SSH Config',
-  'app.ssh.tabs.password': 'SSH Password',
-  'app.ssh.tabs.authkey': 'Auth Keys',
+  'app.ssh.tabs.password': 'Key Pair Management',
+  'app.ssh.tabs.authkey': 'Public Key Management',
+
+  // Mode switch
+  'app.ssh.mode.visual': 'Form Mode',
+  'app.ssh.mode.source': 'Source Mode',
+  'app.ssh.mode.switchConfirmTitle': 'Confirm Mode Switch',
+  'app.ssh.mode.switchConfirmContent':
+    'Switching to form mode will parse the current source configuration and update the form. Unsaved changes may be lost. Continue?',
+
+  // Source mode
+  'app.ssh.source.save': 'Save',
+  'app.ssh.source.reset': 'Reset',
+  'app.ssh.source.placeholder': 'Edit SSH configuration file content here',
+  'app.ssh.source.info':
+    'This text editor allows direct editing of the SSH configuration file. After making changes, click the "Save" button to apply them.',
+  'app.ssh.source.saveSuccess': 'Source configuration saved successfully',
+  'app.ssh.source.saveError': 'Failed to save source configuration',
+  'app.ssh.source.resetSuccess': 'Source configuration reset',
+  'app.ssh.source.parseSuccess': 'Source configuration parsed successfully',
+  'app.ssh.source.parseError': 'Failed to parse source configuration',
+  'app.ssh.source.emptyConfig': 'Configuration content is empty',
+  'app.ssh.source.noChanges': 'No valid configuration changes detected',
+
+  // Error messages
+  'app.ssh.error.fetchFailed': 'Failed to fetch SSH configuration',
+
   'app.ssh.port.label': 'Port',
   'app.ssh.port.description':
     'Specify the port number for SSH service, default is 22.',

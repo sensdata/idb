@@ -1,7 +1,33 @@
 export default {
+  'app.ssh.pageTitle': 'SSH 管理',
   'app.ssh.tabs.config': 'SSH 配置',
-  'app.ssh.tabs.password': 'SSH 密码',
-  'app.ssh.tabs.authkey': '授权密钥',
+  'app.ssh.tabs.password': '密钥对管理',
+  'app.ssh.tabs.authkey': '公钥管理',
+
+  // 模式切换
+  'app.ssh.mode.visual': '表单模式',
+  'app.ssh.mode.source': '源文件模式',
+  'app.ssh.mode.switchConfirmTitle': '切换模式确认',
+  'app.ssh.mode.switchConfirmContent':
+    '切换到表单模式将解析当前源文件配置并更新表单。未保存的更改可能会丢失。是否继续？',
+
+  // 源文件模式
+  'app.ssh.source.save': '保存',
+  'app.ssh.source.reset': '重置',
+  'app.ssh.source.placeholder': '在此编辑SSH配置文件内容',
+  'app.ssh.source.info':
+    '此文本编辑器允许直接编辑SSH配置文件。对文件进行修改后，点击"保存"按钮使更改生效。',
+  'app.ssh.source.saveSuccess': '源文件配置已保存',
+  'app.ssh.source.saveError': '保存源文件配置失败',
+  'app.ssh.source.resetSuccess': '源文件配置已重置',
+  'app.ssh.source.parseSuccess': '解析源文件配置成功',
+  'app.ssh.source.parseError': '解析源文件配置失败',
+  'app.ssh.source.emptyConfig': '配置内容为空',
+  'app.ssh.source.noChanges': '未检测到有效的配置更改',
+
+  // 错误提示
+  'app.ssh.error.fetchFailed': '获取SSH配置失败',
+
   'app.ssh.port.label': '端口',
   'app.ssh.port.description': '指定 SSH 服务监听的端口号，默认为 22。',
   'app.ssh.listen.label': '监听地址',
