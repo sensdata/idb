@@ -15,4 +15,6 @@ export default {
   'app.ssh.status.reloadFailed': 'Failed to reload SSH service',
   'app.ssh.status.restartSuccess': 'SSH service restarted successfully',
   'app.ssh.status.restartFailed': 'Failed to restart SSH service',
+  'app.ssh.status.autoStartEnabled': 'Auto-start Enabled',
+  'app.ssh.status.autoStartDisabled': 'Auto-start Disabled',
 };

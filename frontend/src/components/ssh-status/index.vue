@@ -2,15 +2,27 @@
   <div class="ssh-status">
     <div class="status-display">
       <a-space>
-        <a-badge :status="statusBadge" />
-        <a-tag :color="statusColor" size="medium">{{ sshStatusText }}</a-tag>
+        <a-badge :status="sshStore.statusBadge" />
+        <a-tag :color="sshStore.statusColor" size="medium">{{
+          sshStatusText
+        }}</a-tag>
+        <a-tag
+          v-if="sshStore.config"
+          :color="sshStore.config.auto_start ? 'green' : 'gray'"
+          size="medium"
+        >
+          {{ autoStartText }}
+        </a-tag>
       </a-space>
     </div>
     <div class="status-actions">
       <a-button
         type="outline"
         size="small"
-        :disabled="sshStatus !== 'running' && sshStatus !== 'unhealthy'"
+        :disabled="
+          sshStore.status !== 'running' && sshStore.status !== 'unhealthy'
+        "
+        :loading="sshStore.loading === 'stop'"
         @click="stopSshServer"
       >
         {{ $t('app.ssh.status.stop') }}
@@ -18,7 +30,10 @@
       <a-button
         type="outline"
         size="small"
-        :disabled="sshStatus !== 'running' && sshStatus !== 'unhealthy'"
+        :disabled="
+          sshStore.status !== 'running' && sshStore.status !== 'unhealthy'
+        "
+        :loading="sshStore.loading === 'reload'"
         @click="reloadSshServer"
       >
         {{ $t('app.ssh.status.reload') }}
@@ -26,7 +41,8 @@
       <a-button
         type="primary"
         size="small"
-        :disabled="sshStatus === 'starting' || sshStatus === 'stopping'"
+        :disabled="sshStore.isTransitioning"
+        :loading="sshStore.loading === 'restart'"
         @click="restartSshServer"
       >
         {{ $t('app.ssh.status.restart') }}
@@ -36,11 +52,20 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, computed, onMounted } from 'vue';
+  import { computed, onMounted, onUnmounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { Message } from '@arco-design/web-vue';
+  import { useRoute } from 'vue-router';
+  import useSSHStore from '@/store/modules/ssh';
+  import { useHostStore } from '@/store';
+  import { useLogger } from '@/utils/hooks/use-logger';
+  import { usePolling } from '../../utils/hooks/use-polling';
   import zhCN from './locale/zh-CN';
   import enUS from './locale/en-US';
+
+  const POLLING_INTERVAL = 10000;
+  const INITIAL_DELAY = 200;
+
+  const { logDebug, logWarn, logError } = useLogger();
 
   // 注册国际化消息
   const messages = {
@@ -49,19 +74,18 @@
   };
 
   const { t } = useI18n({ messages });
+  const route = useRoute();
+  const sshStore = useSSHStore();
+  const hostStore = useHostStore();
 
-  // SSH 服务状态类型
-  type SshStatusType =
-    | 'running'
-    | 'stopped'
-    | 'starting'
-    | 'stopping'
-    | 'error'
-    | 'unhealthy';
-  const sshStatus = ref<SshStatusType>('stopped');
+  // 主机ID - 使用query.id而不是params.host
+  const hostId = computed<number>(() => {
+    return +(route.query.id || hostStore.currentId || 0);
+  });
 
-  const sshStatusText = computed(() => {
-    switch (sshStatus.value) {
+  // SSH状态文本
+  const sshStatusText = computed<string>(() => {
+    switch (sshStore.status) {
       case 'running':
         return t('app.ssh.status.running');
       case 'stopped':
@@ -79,102 +103,75 @@
     }
   });
 
-  // 状态徽章和颜色
-  const statusBadge = computed(() => {
-    switch (sshStatus.value) {
-      case 'running':
-        return 'success';
-      case 'stopped':
-        return 'danger';
-      case 'starting':
-      case 'stopping':
-        return 'warning';
-      case 'error':
-        return 'danger';
-      case 'unhealthy':
-        return 'warning';
-      default:
-        return 'normal';
+  // 自动启动状态文本
+  const autoStartText = computed<string>(() => {
+    if (!sshStore.config) return '';
+    return sshStore.config.auto_start
+      ? t('app.ssh.status.autoStartEnabled')
+      : t('app.ssh.status.autoStartDisabled');
+  });
+
+  // SSH服务控制方法
+  const stopSshServer = (): void => {
+    sshStore.stop({ t });
+  };
+
+  const reloadSshServer = (): void => {
+    sshStore.reload({ t });
+  };
+
+  const restartSshServer = async (): Promise<void> => {
+    logDebug('Restart button clicked, current status:', sshStore.status);
+    logDebug('Restart button clicked, host ID:', hostId.value);
+
+    if (!hostId.value || hostId.value <= 0) {
+      logError('Cannot restart: Invalid host ID', hostId.value);
+      return;
+    }
+
+    sshStore.setHostId(hostId.value);
+    logDebug('Calling sshStore.restart()');
+    await sshStore.restart({ t });
+    logDebug('SSH restart completed successfully');
+  };
+
+  // 使用自定义轮询组合函数
+  const { startPolling, stopPolling } = usePolling({
+    pollingFunction: () => sshStore.fetchStatus(),
+    interval: POLLING_INTERVAL,
+    immediate: true,
+    initialDelay: INITIAL_DELAY,
+    onBeforeStart: (id: number) => {
+      logDebug('Starting SSH status polling for host ID:', id);
+      sshStore.setHostId(id);
+    },
+    onInvalidId: (id: number) => {
+      logWarn('Cannot start polling: Invalid host ID', id);
+    },
+  });
+
+  // 组件挂载时启动轮询
+  onMounted(() => {
+    logDebug('SSH status component mounted, host ID:', hostId.value);
+    startPolling(hostId.value);
+  });
+
+  // 主机ID变化时更新
+  watch(hostId, (newId, oldId) => {
+    logDebug('Host ID changed from', oldId, 'to', newId);
+    if (newId && newId > 0) {
+      stopPolling();
+      sshStore.setHostId(newId);
+      startPolling(newId);
+    } else {
+      logWarn('Invalid host ID detected:', newId);
+      stopPolling();
     }
   });
 
-  const statusColor = computed(() => {
-    switch (sshStatus.value) {
-      case 'running':
-        return 'green';
-      case 'stopped':
-        return 'red';
-      case 'starting':
-      case 'stopping':
-        return 'orange';
-      case 'error':
-        return 'red';
-      case 'unhealthy':
-        return 'orange';
-      default:
-        return 'gray';
-    }
-  });
-
-  // SSH 服务控制方法
-  const stopSshServer = async () => {
-    try {
-      sshStatus.value = 'stopping';
-      // TODO: 实现停止SSH服务器的实际API调用
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
-      sshStatus.value = 'stopped';
-      Message.success(t('app.ssh.status.stopSuccess'));
-    } catch (error) {
-      Message.error(t('app.ssh.status.stopFailed'));
-      sshStatus.value = 'running';
-    }
-  };
-
-  const reloadSshServer = async () => {
-    try {
-      // TODO: 实现重载SSH服务器的实际API调用
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
-      Message.success(t('app.ssh.status.reloadSuccess'));
-    } catch (error) {
-      Message.error(t('app.ssh.status.reloadFailed'));
-    }
-  };
-
-  const restartSshServer = async () => {
-    try {
-      sshStatus.value = 'stopping';
-      // TODO: 实现重启SSH服务器的实际API调用
-      await new Promise((resolve) => {
-        setTimeout(resolve, 500);
-      });
-      sshStatus.value = 'starting';
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      });
-      sshStatus.value = 'running';
-      Message.success(t('app.ssh.status.restartSuccess'));
-    } catch (error) {
-      Message.error(t('app.ssh.status.restartFailed'));
-      // 尝试确定当前状态或默认为已停止
-      sshStatus.value = 'stopped';
-    }
-  };
-
-  // 组件挂载时检查SSH服务器的初始状态
-  onMounted(async () => {
-    try {
-      // TODO: 实现获取SSH服务器状态的实际API调用
-      await new Promise((resolve) => {
-        setTimeout(resolve, 500);
-      });
-      sshStatus.value = 'running';
-    } catch (error) {
-      sshStatus.value = 'stopped';
-    }
+  // 组件卸载时停止轮询
+  onUnmounted(() => {
+    stopPolling();
   });
 </script>
 
