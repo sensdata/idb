@@ -45,15 +45,10 @@ func NewIAppService() IAppService {
 func (s *AppService) SyncApp() error {
 	global.LOG.Info("SyncApp begin")
 
-	// 先检查应用目录是否存在
-	repoPath := filepath.Join(constant.CenterDataDir, constant.StoreDir)
-	if err := utils.EnsurePaths([]string{repoPath}); err != nil {
-		global.LOG.Error("Failed to create repo dir %s, %v", repoPath, err)
-		return err
-	}
-
-	// 定义仓库路径
+	// 仓库路径
 	repoURL := "https://github.com/sensdata/idb-store.git"
+	// 本地路径
+	repoPath := filepath.Join(constant.CenterDataDir, constant.StoreDir)
 
 	// 检查目录是否已存在
 	var repo *git.Repository
