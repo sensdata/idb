@@ -9,7 +9,6 @@ const (
 	CenterRunDir   = "/run/idb"
 
 	CenterDb       = "idb.db"
-	CenterPid      = "idb.pid"
 	CenterService  = "idb.service"
 	CenterConfig   = "idb.conf"
 	CenterLog      = "idb.log"
@@ -23,7 +22,6 @@ const (
 	AgentDockerDir = "/opt/idb/docker"
 
 	AgentDb      = "idb-agent.db"
-	AgentPid     = "idb-agent.pid"
 	AgentService = "idb-agent.service"
 	AgentConfig  = "idb-agent.conf"
 	AgentLog     = "idb-agent.log"

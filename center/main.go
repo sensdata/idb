@@ -104,10 +104,6 @@ func main() {
 func Run() error {
 	global.LOG.Info("Center ver: %s", global.Version)
 
-	// 直接创建pid文件
-	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
-	utils.CreatePIDFile(pidfile)
-
 	// 启动各项服务
 	if err := StartServices(); err != nil {
 		return StopServices()
@@ -199,10 +195,6 @@ func StopServices() error {
 
 	// 停止SSH
 	conn.SSH.Stop()
-
-	// 删除pid文件
-	pidfile := filepath.Join(constant.CenterRunDir, constant.CenterPid)
-	utils.RemovePIDFile(pidfile)
 
 	return nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -88,22 +87,6 @@ func main() {
 func Run() error {
 	global.LOG.Info("Agent ver: %s", global.Version)
 
-	// 判断pid文件是否存在
-	pidfile := filepath.Join(constant.AgentRunDir, constant.AgentPid)
-	running, err := utils.IsRunning(pidfile)
-	if err != nil {
-		errMsg := fmt.Sprintf("agent error %v", err)
-		global.LOG.Error(errMsg)
-		return errors.New(errMsg)
-	}
-	if running {
-		errMsg := fmt.Sprintf("agent running %v", err)
-		global.LOG.Error(errMsg)
-		return errors.New(errMsg)
-	}
-	// 创建pid文件
-	utils.CreatePIDFile(pidfile)
-
 	// 启动各项服务
 	if err := StartServices(); err != nil {
 		return StopServices()
@@ -145,10 +128,6 @@ func StartServices() error {
 func StopServices() error {
 	// 停止agent服务
 	agent.AGENT.Stop()
-
-	// 删除pid文件
-	pidfile := filepath.Join(constant.AgentRunDir, constant.AgentPid)
-	utils.RemovePIDFile(pidfile)
 
 	return nil
 }
