@@ -6,7 +6,6 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/var/lib/idb-agent/idb-agent start
-ExecStop=/var/lib/idb-agent/idb-agent stop
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
