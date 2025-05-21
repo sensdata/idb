@@ -1,4 +1,4 @@
-import { SSHStatus, SSHFormConfig } from './types';
+import { SSHStatus, SSHFormConfig } from '@/views/app/ssh/types';
 
 // API状态与前端状态的映射
 export const STATUS_MAP: Record<string, SSHStatus> = {
@@ -18,6 +18,7 @@ export const BADGE_STATUS_MAP: Record<SSHStatus, string> = {
   stopping: 'warning',
   error: 'danger',
   unhealthy: 'warning',
+  loading: 'normal',
 };
 
 // 状态对应的颜色
@@ -28,6 +29,7 @@ export const COLOR_MAP: Record<SSHStatus, string> = {
   stopping: 'orange',
   error: 'red',
   unhealthy: 'orange',
+  loading: 'gray',
 };
 
 // 缓存时间（毫秒）

@@ -2,8 +2,8 @@ import { ref, computed } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import { getSSHConfigContent, updateSSHConfigContent } from '@/api/ssh';
-import { useLogger } from '@/utils/hooks/use-logger';
-import type { SSHFormConfig } from '@/views/app/ssh/store/types';
+import { useLogger } from '@/hooks/use-logger';
+import type { SSHFormConfig } from '@/views/app/ssh/types';
 import type { LoadingStates } from '../types';
 
 // 定义Store类型接口，包含所需方法和属性

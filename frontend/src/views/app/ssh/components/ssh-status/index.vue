@@ -1,6 +1,6 @@
 <template>
   <div class="ssh-status">
-    <div class="status-display">
+    <div v-if="sshStore.status !== 'loading'" class="status-display">
       <a-space>
         <a-badge :status="sshStore.statusBadge as BadgeStatus" />
         <a-tag :color="sshStore.statusColor" size="medium">{{
@@ -20,7 +20,8 @@
         type="outline"
         size="small"
         :disabled="
-          sshStore.status !== 'running' && sshStore.status !== 'unhealthy'
+          sshStore.status === 'loading' ||
+          (sshStore.status !== 'running' && sshStore.status !== 'unhealthy')
         "
         :loading="sshStore.loading === 'stop'"
         @click="stopSshServer"
@@ -31,7 +32,8 @@
         type="outline"
         size="small"
         :disabled="
-          sshStore.status !== 'running' && sshStore.status !== 'unhealthy'
+          sshStore.status === 'loading' ||
+          (sshStore.status !== 'running' && sshStore.status !== 'unhealthy')
         "
         :loading="sshStore.loading === 'reload'"
         @click="reloadSshServer"
@@ -57,10 +59,8 @@
   import { useRoute } from 'vue-router';
   import useSSHStore from '@/views/app/ssh/store';
   import { useHostStore } from '@/store';
-  import { useLogger } from '@/utils/hooks/use-logger';
-  import { usePolling } from '@/utils/hooks/use-polling';
-  import zhCN from '../../locale/zh-CN';
-  import enUS from '../../locale/en-US';
+  import { useLogger } from '@/hooks/use-logger';
+  import { usePolling } from '@/hooks/use-polling';
 
   type BadgeStatus = 'success' | 'warning' | 'danger' | 'normal' | 'processing';
 
@@ -69,13 +69,7 @@
 
   const { logDebug, logWarn, logError } = useLogger();
 
-  // 注册国际化消息
-  const messages = {
-    'zh-CN': zhCN,
-    'en-US': enUS,
-  };
-
-  const { t } = useI18n({ messages });
+  const { t } = useI18n();
   const route = useRoute();
   const sshStore = useSSHStore();
   const hostStore = useHostStore();
@@ -100,6 +94,8 @@
         return t('app.ssh.status.error');
       case 'unhealthy':
         return t('app.ssh.status.unhealthy');
+      case 'loading':
+        return '';
       default:
         return t('app.ssh.status.unknown');
     }

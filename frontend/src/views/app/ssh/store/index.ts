@@ -1,9 +1,13 @@
 import { defineStore } from 'pinia';
 import { Message } from '@arco-design/web-vue';
 import { getSSHConfig, operateSSH } from '@/api/ssh';
-import { useLogger } from '@/utils/hooks/use-logger';
+import { useLogger } from '@/hooks/use-logger';
 import { t } from '@/utils/i18n';
-import { SSHState, SSHStatus, SSHConfig, SSHFormConfig } from './types';
+import type {
+  SSHState,
+  SSHStatus,
+  SSHStoreConfig,
+} from '@/views/app/ssh/types';
 import {
   STATUS_MAP,
   BADGE_STATUS_MAP,
@@ -19,7 +23,7 @@ const logger = useLogger('SSHStore');
 const useSSHStore = defineStore('ssh', {
   state: (): SSHState => ({
     config: null,
-    status: 'stopped',
+    status: 'loading',
     loading: null,
     hostId: null,
     lastFetch: 0,
@@ -36,7 +40,11 @@ const useSSHStore = defineStore('ssh', {
       return this.status === 'error';
     },
     isTransitioning(): boolean {
-      return this.status === 'starting' || this.status === 'stopping';
+      return (
+        this.status === 'starting' ||
+        this.status === 'stopping' ||
+        this.status === 'loading'
+      );
     },
     statusBadge(): string {
       return BADGE_STATUS_MAP[this.status] || 'normal';
@@ -119,7 +127,7 @@ const useSSHStore = defineStore('ssh', {
     },
 
     // 将API响应解析为表单配置
-    parseFormConfig(apiConfig: SSHConfig | null) {
+    parseFormConfig(apiConfig: SSHStoreConfig | null) {
       if (!apiConfig) return;
 
       this.formConfig = {

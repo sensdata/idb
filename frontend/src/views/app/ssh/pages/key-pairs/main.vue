@@ -2,7 +2,6 @@
   <div class="ssh-page-container">
     <div class="header-container">
       <h2 class="page-title">{{ $t('app.ssh.keyPairs.title') }}</h2>
-      <ssh-status class="ssh-status-container" />
     </div>
     <div class="content-container">
       <idb-table
@@ -11,274 +10,167 @@
         :loading="loading"
         :columns="columns"
         :fetch="getSSHKeysApi"
-        :has-search="true"
+        :has-search="false"
+        :pagination="false"
       >
         <template #leftActions>
           <a-button type="primary" @click="handleGenerateKey">
             {{ $t('app.ssh.keyPairs.generateKey') }}
           </a-button>
         </template>
-        <template #passwordStatus="{ record }">
-          <a-tag v-if="record.password" color="green">
-            {{ $t('app.ssh.keyPairs.hasPassword') }}
-          </a-tag>
-          <a-tag v-else color="gray">
-            {{ $t('app.ssh.keyPairs.noPassword') }}
-          </a-tag>
-        </template>
         <template #enabled="{ record }">
-          <a-switch
-            :model-value="!!record.enabled"
-            :disabled="loading"
-            @change="(value) => handleToggleEnable(record, Boolean(value))"
-          />
+          <a-tag :color="isEnabled(record) ? 'green' : 'gray'">
+            {{
+              isEnabled(record)
+                ? $t('app.ssh.keyPairs.enabled')
+                : $t('app.ssh.keyPairs.disabled')
+            }}
+          </a-tag>
         </template>
         <template #operation="{ record }">
-          <div class="operation">
-            <a-button
-              type="text"
-              size="small"
-              :disabled="!record.enabled"
-              @click="handleDownload(record)"
-            >
-              {{ $t('app.ssh.keyPairs.download') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              @click="handleSetPassword(record)"
-            >
-              {{
-                record.password
-                  ? $t('app.ssh.keyPairs.update')
-                  : $t('app.ssh.keyPairs.set')
-              }}
-            </a-button>
-            <a-button
-              v-if="record.password"
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleClearPassword(record)"
-            >
-              {{ $t('app.ssh.keyPairs.clear') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDelete(record)"
-            >
-              {{ $t('app.ssh.keyPairs.delete') }}
-            </a-button>
-          </div>
+          <KeyPairsTableActions
+            :record="record"
+            :status="SSHKeyStatus"
+            @download="handleDownload"
+            @toggle="handleToggleEnable"
+            @delete="handleDelete"
+          />
         </template>
       </idb-table>
     </div>
 
-    <!-- 生成密钥弹窗 -->
-    <a-modal
-      v-model:visible="generateModalVisible"
-      :title="$t('app.ssh.keyPairs.generateModal.title')"
-      :ok-loading="modalLoading"
-      @ok="handleGenerateConfirm"
-      @cancel="generateModalVisible = false"
-    >
-      <div class="modal-form-wrapper">
-        <a-form
-          ref="generateFormRef"
-          :model="generateForm"
-          label-align="right"
-          :label-col-props="{ span: 6 }"
-          :wrapper-col-props="{ span: 18 }"
-        >
-          <a-form-item
-            field="key_name"
-            :label="$t('app.ssh.keyPairs.generateModal.keyName')"
-            :rules="[
-              {
-                required: true,
-                message: $t('app.ssh.keyPairs.generateModal.keyNameRequired'),
-              },
-            ]"
-          >
-            <a-input v-model="generateForm.key_name" />
-          </a-form-item>
-          <a-form-item
-            field="encryption_mode"
-            :label="$t('app.ssh.keyPairs.generateModal.encryptionMode')"
-            :rules="[
-              {
-                required: true,
-                message: $t(
-                  'app.ssh.keyPairs.generateModal.encryptionModeRequired'
-                ),
-              },
-            ]"
-          >
-            <a-select v-model="generateForm.encryption_mode">
-              <a-option value="rsa">RSA</a-option>
-              <a-option value="ed25519">ED25519</a-option>
-              <a-option value="ecdsa">ECDSA</a-option>
-              <a-option value="dsa">DSA</a-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item
-            field="key_bits"
-            :label="$t('app.ssh.keyPairs.generateModal.keyBits')"
-            :rules="[
-              {
-                required: true,
-                message: $t('app.ssh.keyPairs.generateModal.keyBitsRequired'),
-              },
-            ]"
-          >
-            <a-select v-model="generateForm.key_bits">
-              <a-option :value="1024">1024</a-option>
-              <a-option :value="2048">2048</a-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item
-            field="password"
-            :label="$t('app.ssh.keyPairs.generateModal.password')"
-          >
-            <a-input-password v-model="generateForm.password" allow-clear />
-          </a-form-item>
-          <a-form-item
-            field="enable"
-            :label="$t('app.ssh.keyPairs.generateModal.enable')"
-          >
-            <a-switch v-model="generateForm.enable" />
-          </a-form-item>
-        </a-form>
-      </div>
-    </a-modal>
-
-    <!-- 设置/更新密码弹窗 -->
-    <a-modal
-      v-model:visible="passwordModalVisible"
-      :title="
-        currentRecord && 'password' in currentRecord && currentRecord.password
-          ? $t('app.ssh.keyPairs.updateModal.title')
-          : $t('app.ssh.keyPairs.setModal.title')
-      "
-      :ok-loading="modalLoading"
-      @ok="handlePasswordConfirm"
-      @cancel="passwordModalVisible = false"
-    >
-      <div class="modal-form-wrapper">
-        <a-form
-          ref="passwordFormRef"
-          :model="passwordForm"
-          label-align="right"
-          :label-col-props="{ span: 6 }"
-          :wrapper-col-props="{ span: 18 }"
-        >
-          <a-form-item
-            v-if="
-              currentRecord &&
-              'password' in currentRecord &&
-              currentRecord.password
-            "
-            field="old_password"
-            :label="$t('app.ssh.keyPairs.updateModal.oldPassword')"
-            :rules="[
-              {
-                required: true,
-                message: $t('app.ssh.keyPairs.updateModal.oldPasswordRequired'),
-              },
-            ]"
-          >
-            <a-input-password v-model="passwordForm.old_password" allow-clear />
-          </a-form-item>
-          <a-form-item
-            :field="
-              currentRecord &&
-              'password' in currentRecord &&
-              currentRecord.password
-                ? 'new_password'
-                : 'password'
-            "
-            :label="
-              currentRecord &&
-              'password' in currentRecord &&
-              currentRecord.password
-                ? $t('app.ssh.keyPairs.updateModal.newPassword')
-                : $t('app.ssh.keyPairs.setModal.password')
-            "
-            :rules="[
-              {
-                required: true,
-                message:
-                  currentRecord &&
-                  'password' in currentRecord &&
-                  currentRecord.password
-                    ? $t('app.ssh.keyPairs.updateModal.newPasswordRequired')
-                    : $t('app.ssh.keyPairs.setModal.passwordRequired'),
-              },
-            ]"
-          >
-            <a-input-password
-              :model-value="
-                currentRecord &&
-                'password' in currentRecord &&
-                currentRecord.password
-                  ? passwordForm.new_password
-                  : passwordForm.password
-              "
-              allow-clear
-              @update:model-value="(val: string) => { 
-                if (currentRecord && 'password' in currentRecord && currentRecord.password) {
-                  passwordForm.new_password = val;
-                } else {
-                  passwordForm.password = val;
-                }
-              }"
-            />
-          </a-form-item>
-        </a-form>
-      </div>
-    </a-modal>
+    <KeyGenerateModal
+      :visible="generateModalVisible"
+      :loading="keyFormLoading"
+      :encryption-options="ENCRYPTION_OPTIONS"
+      :key-bits-options="KEY_BITS_OPTIONS"
+      :form="keyForm.formData"
+      :form-ref="keyForm.formRef"
+      @confirm="handleGenerateConfirm"
+      @update:visible="generateModalVisible = $event"
+      @form-ref-updated="keyForm.setFormRef"
+      @update:form="keyForm.updateForm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, GlobalComponents } from 'vue';
+  import { ref, computed, GlobalComponents } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import useLoading from '@/hooks/loading';
+  import { useForm } from '@/hooks/use-form';
   import { useConfirm } from '@/hooks/confirm';
   import useHostStore from '@/store/modules/host';
   import { ApiListParams, ApiListResult } from '@/types/global';
-  import SshStatus from '@/views/app/ssh/components/ssh-status/index.vue';
+  import {
+    getSSHKeys,
+    generateSSHKey,
+    downloadSSHKey,
+    toggleSSHKeyEnabled,
+    deleteSSHKey,
+  } from '@/api/ssh';
+  import { useApiWithLoading } from '@/hooks/use-api-with-loading';
+  import {
+    SSHKeyRecord,
+    GenerateKeyForm,
+    EncryptionMode,
+    KeyBits,
+    SSHKeyStatus,
+  } from '@/views/app/ssh/types';
+  import KeyPairsTableActions from './components/key-pairs-table-actions.vue';
+  import KeyGenerateModal from './components/key-generate-modal.vue';
 
-  interface SSHKeyRecord {
-    key_name: string;
-    encryption_mode: string;
-    key_bits: number;
-    password: boolean;
-    created_at: string;
-    enabled: boolean;
+  interface EncryptionOption {
+    label: string;
+    value: EncryptionMode;
   }
+
+  interface KeyBitsOption {
+    label: string;
+    value: KeyBits;
+  }
+
+  const ENCRYPTION_OPTIONS: EncryptionOption[] = [
+    { label: 'RSA', value: 'rsa' },
+    { label: 'ED25519', value: 'ed25519' },
+    { label: 'ECDSA', value: 'ecdsa' },
+    { label: 'DSA', value: 'dsa' },
+  ];
+
+  const KEY_BITS_OPTIONS: KeyBitsOption[] = [
+    { label: '1024', value: 1024 },
+    { label: '2048', value: 2048 },
+  ];
 
   const { t } = useI18n();
   const hostStore = useHostStore();
   const { loading, setLoading } = useLoading(false);
-  const modalLoading = ref(false);
+  const generateModalVisible = ref<boolean>(false);
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
-  const generateFormRef = ref();
-  const passwordFormRef = ref();
+
+  // 使用自定义Hook处理API调用的加载状态
+  const { executeApi } = useApiWithLoading(setLoading);
+
+  // 表单默认值
+  const defaultFormState: GenerateKeyForm = {
+    key_name: '',
+    encryption_mode: 'rsa',
+    key_bits: 2048,
+    password: '',
+    enable: true,
+  };
+
+  // 使用表单Hook
+  const keyForm = useForm<GenerateKeyForm>({
+    initialValues: defaultFormState,
+    onSubmit: async (values) => {
+      await generateSSHKey(hostStore.currentId as number, {
+        key_name: values.key_name,
+        encryption_mode: values.encryption_mode,
+        key_bits: values.key_bits,
+        password: values.password || undefined,
+        enable: values.enable,
+      });
+
+      Message.success(t('app.ssh.keyPairs.generateSuccess'));
+      generateModalVisible.value = false;
+      gridRef.value?.reload();
+    },
+    onError: (error) => {
+      Message.error(error.message);
+    },
+    validateMessage: t('app.ssh.keyPairs.generateValidationFailed'),
+  });
+
+  // 将 Ref<boolean> 转换为 boolean，解决类型错误
+  const keyFormLoading = computed(() => keyForm.loading.value);
+
+  // 文件下载工具函数
+  const downloadFile = (data: Blob | any, filename: string): void => {
+    const blob = data instanceof Blob ? data : new Blob([data]);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  // 检查SSH密钥是否启用
+  const isEnabled = (record: SSHKeyRecord): boolean => {
+    return record.status === SSHKeyStatus.ENABLED;
+  };
 
   // 表格列定义
-  const columns = [
+  const columns = computed(() => [
     {
       title: t('app.ssh.keyPairs.columns.keyName'),
       dataIndex: 'key_name',
       width: 150,
     },
     {
-      title: t('app.ssh.keyPairs.columns.encryptionMode'),
-      dataIndex: 'encryption_mode',
+      title: t('app.ssh.keyPairs.columns.user'),
+      dataIndex: 'user',
       width: 120,
     },
     {
@@ -287,19 +179,19 @@
       width: 100,
     },
     {
-      title: t('app.ssh.keyPairs.columns.password'),
-      dataIndex: 'passwordStatus',
-      width: 120,
-      slotName: 'passwordStatus',
+      title: t('app.ssh.keyPairs.columns.keyPath'),
+      dataIndex: 'private_key_path',
+      width: 200,
     },
     {
-      title: t('app.ssh.keyPairs.columns.createTime'),
-      dataIndex: 'created_at',
+      title: t('app.ssh.keyPairs.columns.fingerprint'),
+      dataIndex: 'fingerprint',
       width: 180,
+      ellipsis: true,
     },
     {
-      title: t('app.ssh.keyPairs.columns.enabled'),
-      dataIndex: 'enabled',
+      title: t('app.ssh.keyPairs.columns.status'),
+      dataIndex: 'status',
       width: 100,
       slotName: 'enabled',
     },
@@ -311,219 +203,76 @@
       slotName: 'operation',
       fixed: 'right' as const,
     },
-  ];
+  ]);
 
-  // 生成密钥相关
-  const generateModalVisible = ref(false);
-  const generateForm = reactive({
-    key_name: '',
-    encryption_mode: 'rsa' as 'rsa' | 'ed25519' | 'ecdsa' | 'dsa',
-    key_bits: 2048 as 1024 | 2048,
-    password: '',
-    enable: true,
-  });
-
-  // 设置密码相关
-  const passwordModalVisible = ref(false);
-  const currentRecord = ref<SSHKeyRecord | null>(null);
-  const passwordForm = reactive({
-    key_name: '',
-    password: '',
-    old_password: '',
-    new_password: '',
-  });
-
-  // Mock API 函数
-  // 实际项目中应替换为真实的API调用
+  // 获取SSH密钥列表
   const getSSHKeysApi = async (
     params: ApiListParams
   ): Promise<ApiListResult<SSHKeyRecord>> => {
-    setLoading(true);
-    try {
-      // 模拟API延迟
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 500);
-      });
-
-      // 假数据
-      const mockRecords = [
-        {
-          key_name: 'id_rsa',
-          encryption_mode: 'rsa',
-          key_bits: 2048,
-          password: true,
-          created_at: '2023-06-01 10:30:45',
-          enabled: true,
-        },
-        {
-          key_name: 'gitlab_key',
-          encryption_mode: 'ed25519',
-          key_bits: 1024,
-          password: false,
-          created_at: '2023-05-20 15:22:10',
-          enabled: true,
-        },
-        {
-          key_name: 'backup_key',
-          encryption_mode: 'rsa',
-          key_bits: 2048,
-          password: true,
-          created_at: '2023-04-15 09:12:33',
-          enabled: false,
-        },
-      ];
-
-      const filteredItems = mockRecords.filter(
-        (item) =>
-          !params.keyword ||
-          item.key_name.toLowerCase().includes(params.keyword.toLowerCase())
-      );
-
-      return {
-        total: filteredItems.length,
-        items: filteredItems,
+    return executeApi(() => getSSHKeys(hostStore.currentId as number, params), {
+      errorMessage: t('app.ssh.keyPairs.operationFailed'),
+      defaultValue: {
+        total: 0,
+        items: [],
         page: params.page || 1,
         page_size: params.page_size || 20,
-      };
-    } finally {
-      setLoading(false);
-    }
+      },
+    });
   };
 
-  // 生成密钥
-  const handleGenerateKey = () => {
-    generateForm.key_name = '';
-    generateForm.encryption_mode = 'rsa';
-    generateForm.key_bits = 2048;
-    generateForm.password = '';
-    generateForm.enable = true;
+  // 生成新密钥对
+  const handleGenerateKey = (): void => {
+    keyForm.resetForm();
     generateModalVisible.value = true;
   };
 
-  const handleGenerateConfirm = async () => {
-    try {
-      await generateFormRef.value.validate();
-      modalLoading.value = true;
-
-      // 模拟API调用
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 800);
-      });
-
-      Message.success(t('app.ssh.keyPairs.generateSuccess'));
-      generateModalVisible.value = false;
-      gridRef.value?.reload();
-    } catch (error) {
-      // 表单验证失败
-    } finally {
-      modalLoading.value = false;
-    }
+  const handleGenerateConfirm = async (): Promise<void> => {
+    await keyForm.submitForm();
   };
 
-  // 启用/禁用密钥
-  const handleToggleEnable = async (record: SSHKeyRecord, enabled: boolean) => {
-    setLoading(true);
-    try {
-      // 模拟API调用
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 500);
-      });
-
-      Message.success(
-        enabled
-          ? t('app.ssh.keyPairs.enableSuccess')
-          : t('app.ssh.keyPairs.disableSuccess')
-      );
-    } catch (error) {
-      // 恢复状态
-      record.enabled = !enabled;
-      Message.error(t('app.ssh.keyPairs.operationFailed'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 下载密钥
-  const handleDownload = async (record: SSHKeyRecord) => {
-    setLoading(true);
-    try {
-      // 模拟API调用
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 500);
-      });
-
-      Message.success(t('app.ssh.keyPairs.downloadSuccess'));
-    } catch (error) {
-      Message.error(t('app.ssh.keyPairs.operationFailed'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 设置/更新密码
-  const handleSetPassword = (record: SSHKeyRecord) => {
-    currentRecord.value = record;
-    passwordForm.key_name = record.key_name;
-    passwordForm.password = '';
-    passwordForm.old_password = '';
-    passwordForm.new_password = '';
-    passwordModalVisible.value = true;
-  };
-
-  const handlePasswordConfirm = async () => {
-    try {
-      await passwordFormRef.value.validate();
-      modalLoading.value = true;
-
-      // 模拟API调用
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 800);
-      });
-
-      const isUpdate = currentRecord.value && currentRecord.value.password;
-      Message.success(
-        isUpdate
-          ? t('app.ssh.keyPairs.updateSuccess')
-          : t('app.ssh.keyPairs.setSuccess')
-      );
-      passwordModalVisible.value = false;
-      gridRef.value?.reload();
-    } catch (error) {
-      // 表单验证失败
-    } finally {
-      modalLoading.value = false;
-    }
-  };
-
-  // 清除密码
-  const { confirm } = useConfirm();
-  const handleClearPassword = async (record: SSHKeyRecord) => {
-    if (
-      await confirm({
-        content: t('app.ssh.keyPairs.clearConfirm', {
-          keyName: record.key_name,
-        }),
-      })
-    ) {
-      setLoading(true);
-      try {
-        // 模拟API调用
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 500);
+  // 启用/禁用SSH密钥
+  const handleToggleEnable = async (
+    record: SSHKeyRecord,
+    enabled: boolean
+  ): Promise<void> => {
+    await executeApi(
+      async () => {
+        await toggleSSHKeyEnabled(hostStore.currentId as number, {
+          key_name: record.key_name,
+          enable: enabled,
         });
 
-        Message.success(t('app.ssh.keyPairs.clearSuccess'));
+        // 不直接修改记录，而是重新加载数据
         gridRef.value?.reload();
-      } catch (error) {
-        Message.error(t('app.ssh.keyPairs.operationFailed'));
-      } finally {
-        setLoading(false);
-      }
-    }
+
+        Message.success(
+          enabled
+            ? t('app.ssh.keyPairs.enableSuccess')
+            : t('app.ssh.keyPairs.disableSuccess')
+        );
+      },
+      { errorMessage: t('app.ssh.keyPairs.operationFailed') }
+    );
   };
 
-  // 删除密钥
-  const handleDelete = async (record: SSHKeyRecord) => {
+  // 下载私钥
+  const handleDownload = async (record: SSHKeyRecord): Promise<void> => {
+    await executeApi(
+      async () => {
+        const response = await downloadSSHKey(
+          hostStore.currentId as number,
+          record.private_key_path
+        );
+        downloadFile(response.data, record.key_name);
+        Message.success(t('app.ssh.keyPairs.downloadSuccess'));
+      },
+      { errorMessage: t('app.ssh.keyPairs.operationFailed') }
+    );
+  };
+
+  // 删除SSH密钥
+  const { confirm } = useConfirm();
+  const handleDelete = async (record: SSHKeyRecord): Promise<void> => {
     if (
       await confirm({
         content: t('app.ssh.keyPairs.deleteConfirm', {
@@ -531,20 +280,14 @@
         }),
       })
     ) {
-      setLoading(true);
-      try {
-        // 模拟API调用
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 500);
-        });
-
-        Message.success(t('app.ssh.keyPairs.deleteSuccess'));
-        gridRef.value?.reload();
-      } catch (error) {
-        Message.error(t('app.ssh.keyPairs.operationFailed'));
-      } finally {
-        setLoading(false);
-      }
+      await executeApi(
+        async () => {
+          await deleteSSHKey(hostStore.currentId as number, record.key_name);
+          Message.success(t('app.ssh.keyPairs.deleteSuccess'));
+          gridRef.value?.reload();
+        },
+        { errorMessage: t('app.ssh.keyPairs.operationFailed') }
+      );
     }
   };
 </script>
@@ -562,7 +305,7 @@
   .header-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 12px 0;
     margin-bottom: 16px;
   }
@@ -572,10 +315,6 @@
     font-weight: 500;
     color: var(--color-text-1);
     margin: 0;
-  }
-
-  .ssh-status-container {
-    margin-bottom: 0;
   }
 
   .content-container {
@@ -589,19 +328,5 @@
 
   .ssh-password-table {
     width: 100%;
-  }
-
-  .operation {
-    display: flex;
-    justify-content: center;
-
-    :deep(.arco-btn-size-small) {
-      padding-right: 4px;
-      padding-left: 4px;
-    }
-  }
-
-  .modal-form-wrapper {
-    padding: 20px 0;
   }
 </style>

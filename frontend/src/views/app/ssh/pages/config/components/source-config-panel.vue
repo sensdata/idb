@@ -19,7 +19,7 @@
 
 <script lang="ts" setup>
   import { defineProps, defineEmits, defineExpose, ref, computed } from 'vue';
-  import { useLogger } from '@/utils/hooks/use-logger';
+  import { useLogger } from '@/hooks/use-logger';
   import SourceEditor from './source-editor.vue';
   import { EditorRefType } from '../types';
 
