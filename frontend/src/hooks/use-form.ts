@@ -29,6 +29,7 @@ export function useForm<T extends Record<string, any>>(
   const resetForm = (opt?: ResetOptions) => {
     // 使用深拷贝确保不会影响原始数据
     Object.keys(options.initialValues).forEach((key) => {
+      // @ts-ignore
       formData[key] = options.initialValues[key];
     });
 
