@@ -104,19 +104,10 @@ func (a *Agent) Start() error {
 }
 
 func (a *Agent) Stop() error {
+	// 释放所有的 session
+	a.sessionManager.ReleaseAllSessions()
+
 	close(a.done)
-
-	// 关闭 center 连接
-	a.centerMu.Lock()
-	if a.centerConn != nil {
-		a.centerConn.Close()
-		a.centerConn = nil
-	}
-	a.centerMu.Unlock()
-
-	//删除sock文件
-	sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
-	os.Remove(sockFile)
 
 	return nil
 }
@@ -363,9 +354,6 @@ func (a *Agent) listenToTcp() {
 
 			// 记录 center 连接
 			a.centerMu.Lock()
-			if a.centerConn != nil {
-				a.centerConn.Close()
-			}
 			a.centerConn = conn
 			a.centerMu.Unlock()
 
@@ -671,7 +659,6 @@ func (a *Agent) waitForSessionOutput(conn net.Conn, session terminal.Session) {
 		select {
 		case <-session.GetDoneChan():
 			a.sessionManager.RemoveSession(session.GetSession())
-			session.Release()
 			global.LOG.Info("session end")
 			return
 		case output := <-session.GetOutputChan():

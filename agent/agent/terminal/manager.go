@@ -24,6 +24,20 @@ func NewManager() Manager {
 	return &DefaultManager{}
 }
 
+// Close all sessions
+func (m *DefaultManager) ReleaseAllSessions() error {
+	m.sessions.Range(func(key, value interface{}) bool {
+		if session, ok := value.(Session); ok {
+			if err := session.Release(); err != nil {
+				global.LOG.Error("failed to close session: %v", err)
+			}
+		}
+		return true
+	})
+
+	return nil
+}
+
 // Store session
 func (m *DefaultManager) StoreSession(session Session) {
 	m.sessions.Store(session.GetSession(), session)
@@ -426,7 +440,7 @@ func (m *DefaultManager) quitContainerSession(id string) error {
 		global.LOG.Error("failed to get session: %v", err)
 		return err
 	}
-	if err := session.Close(); err != nil {
+	if err := session.Release(); err != nil {
 		global.LOG.Error("failed to close session: %v", err)
 		return err
 	}

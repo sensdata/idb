@@ -18,7 +18,7 @@ type Session interface {
 	// Get doneChan
 	GetDoneChan() <-chan struct{}
 	// Release
-	Release()
+	Release() error
 	// Start session
 	Start() error
 	// Attach session
@@ -27,12 +27,12 @@ type Session interface {
 	Input(data string) error
 	// Resize
 	Resize(cols int, rows int) error
-	// Close
-	Close() error
 }
 
 // Manager
 type Manager interface {
+	// Release All sessions
+	ReleaseAllSessions() error
 	// Store session
 	StoreSession(session Session)
 	// Remove session

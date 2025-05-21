@@ -149,9 +149,11 @@ func (s *BaseSession) Resize(cols int, rows int) error {
 }
 
 // release
-func (s *BaseSession) Release() {
+func (s *BaseSession) Release() error {
 	// s.mutex.Lock()
 	// defer s.mutex.Unlock()
+
+	close(s.doneChan)
 
 	// 关闭PTY
 	if s.pty != nil {
@@ -163,11 +165,7 @@ func (s *BaseSession) Release() {
 		s.cmd.Process.Kill()
 		s.cmd.Wait()
 	}
-}
 
-// close
-func (s *BaseSession) Close() error {
-	close(s.doneChan)
 	return nil
 }
 
