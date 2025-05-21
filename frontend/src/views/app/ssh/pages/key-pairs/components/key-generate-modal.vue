@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-  import { defineProps, defineEmits, computed, ref } from 'vue';
+  import { defineProps, defineEmits, computed, ref, watch } from 'vue';
   import type { FormInstance } from '@arco-design/web-vue';
   import {
     GenerateKeyForm,
@@ -118,10 +118,21 @@
     (e: 'update:visible', value: boolean): void;
     (e: 'update:loading', value: boolean): void;
     (e: 'update:form', form: GenerateKeyForm): void;
+    (e: 'formRefUpdated', formRef: FormInstance): void;
   }>();
 
   const formRef = ref<FormInstance | null>(null);
   const { logError } = useLogger('KeyGenerateModal');
+
+  watch(
+    formRef,
+    (newVal) => {
+      if (newVal) {
+        emit('formRefUpdated', newVal);
+      }
+    },
+    { immediate: true }
+  );
 
   // 使用计算属性处理表单数据，避免直接修改prop
   const formData = computed({
@@ -132,7 +143,10 @@
   });
 
   const handleConfirm = async () => {
-    if (!formRef.value) return;
+    if (!formRef.value) {
+      logError('Form reference is missing');
+      return;
+    }
 
     try {
       await formRef.value.validate();

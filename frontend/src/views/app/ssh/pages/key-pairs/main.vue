@@ -45,7 +45,6 @@
       :encryption-options="ENCRYPTION_OPTIONS"
       :key-bits-options="KEY_BITS_OPTIONS"
       :form="keyForm.formData"
-      :form-ref="keyForm.formRef"
       @confirm="handleGenerateConfirm"
       @update:visible="generateModalVisible = $event"
       @form-ref-updated="keyForm.setFormRef"
@@ -63,6 +62,7 @@
   import { useConfirm } from '@/hooks/confirm';
   import useHostStore from '@/store/modules/host';
   import { ApiListParams, ApiListResult } from '@/types/global';
+  import { useLogger } from '@/hooks/use-logger';
   import {
     getSSHKeys,
     generateSSHKey,
@@ -108,6 +108,7 @@
   const { loading, setLoading } = useLoading(false);
   const generateModalVisible = ref<boolean>(false);
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
+  const { logError } = useLogger('KeyPairsMain');
 
   // 使用自定义Hook处理API调用的加载状态
   const { executeApi } = useApiWithLoading(setLoading);
@@ -227,7 +228,12 @@
   };
 
   const handleGenerateConfirm = async (): Promise<void> => {
-    await keyForm.submitForm();
+    try {
+      await keyForm.submitForm();
+    } catch (error) {
+      logError('Form submission failed:', error);
+      Message.error(t('app.ssh.keyPairs.generateValidationFailed'));
+    }
   };
 
   // 启用/禁用SSH密钥

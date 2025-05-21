@@ -5,6 +5,7 @@ export default {
   'app.ssh.tabs.publicKeys': '公钥管理',
   'app.ssh.config.title': 'SSH 配置',
   'app.ssh.keyPairs.title': '密钥对管理',
+  'app.ssh.publicKeys.title': '公钥管理',
 
   // 模式切换
   'app.ssh.mode.visual': '表单模式',
@@ -162,19 +163,28 @@ export default {
 
   // 授权密钥标签页
   'app.ssh.publicKeys.add': '添加密钥',
+  'app.ssh.publicKeys.addPublicKey': '添加公钥',
   'app.ssh.publicKeys.remove': '删除',
   'app.ssh.publicKeys.addSuccess': 'SSH 密钥添加成功',
   'app.ssh.publicKeys.removeSuccess': 'SSH 密钥删除成功',
+  'app.ssh.publicKeys.addError': 'SSH 密钥添加失败',
+  'app.ssh.publicKeys.removeError': 'SSH 密钥删除失败',
+  'app.ssh.publicKeys.loadError': 'SSH 密钥加载失败',
   'app.ssh.publicKeys.columns.algorithm': '算法',
   'app.ssh.publicKeys.columns.key': '密钥',
   'app.ssh.publicKeys.columns.comment': '备注',
   'app.ssh.publicKeys.columns.operations': '操作',
   'app.ssh.publicKeys.modal.title': '添加 SSH 密钥',
+  'app.ssh.publicKeys.modal.addPublicKey': '添加公钥',
   'app.ssh.publicKeys.modal.content': '密钥内容',
   'app.ssh.publicKeys.modal.placeholder': '在此粘贴您的 SSH 公钥',
   'app.ssh.publicKeys.modal.description': '格式: ssh-rsa AAAAB3NzaC1... 备注',
   'app.ssh.publicKeys.modal.emptyError': '密钥内容不能为空',
   'app.ssh.publicKeys.modal.formatError': '无效的密钥格式',
+  'app.ssh.publicKeys.modal.invalidAlgorithm': '无效的SSH密钥算法',
+  'app.ssh.publicKeys.modal.invalidKeyFormat':
+    '无效的密钥格式（必须是Base64编码）',
+  'app.ssh.publicKeys.modal.keyTooShort': 'SSH密钥太短',
   'app.ssh.publicKeys.removeModal.title': '删除 SSH 密钥',
   'app.ssh.publicKeys.removeModal.content': '确定要删除此 SSH 密钥吗？',
 

@@ -166,3 +166,32 @@ export function deleteSSHKey(
     only_private_key: onlyPrivateKey,
   });
 }
+
+/**
+ * 获取主机上的授权密钥列表
+ * @param hostId - 主机ID
+ */
+export function getAuthorizedKeys(hostId: number) {
+  return request.get<ApiListResult<any>>(`/ssh/${hostId}/auth/keys`);
+}
+
+/**
+ * 添加授权密钥
+ * @param hostId - 主机ID
+ * @param content - 公钥内容
+ */
+export function addAuthorizedKey(hostId: number, content: string) {
+  return request.post(`/ssh/${hostId}/auth/keys`, { content });
+}
+
+/**
+ * 删除授权密钥
+ * @param hostId - 主机ID
+ * @param content - 公钥内容
+ */
+export function deleteAuthorizedKey(hostId: number, content: string) {
+  return request.delete(`/ssh/${hostId}/auth/keys`, {
+    host_id: hostId,
+    content,
+  });
+}

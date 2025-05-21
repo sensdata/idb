@@ -64,6 +64,25 @@ export enum SSHKeyStatus {
   DISABLED = 'disabled',
 }
 
+// 公钥相关类型定义
+
+export interface AuthKeyInfo {
+  algorithm: string;
+  key: string;
+  comment: string;
+  content?: string;
+}
+
+export interface KeyForm {
+  content: string;
+}
+
+export interface ParsedKey {
+  algorithm: string;
+  key: string;
+  comment: string;
+}
+
 // Store相关类型定义
 
 // 定义SSH状态类型，确保与Arco Design组件兼容

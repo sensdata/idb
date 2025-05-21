@@ -2,6 +2,7 @@ import { ref, reactive } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import type { FormInstance } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
+import { useLogger } from '@/hooks/use-logger';
 
 export interface FormOptions<T> {
   initialValues: T;
@@ -22,6 +23,7 @@ export function useForm<T extends Record<string, any>>(
   const formRef = ref<FormInstance>();
   const formData = reactive<T>({ ...options.initialValues });
   const loading = ref(false);
+  const { logWarn, logError } = useLogger('FormHook');
 
   // 重置表单为初始值
   const resetForm = (opt?: ResetOptions) => {
@@ -37,21 +39,32 @@ export function useForm<T extends Record<string, any>>(
 
   // 设置表单引用
   const setFormRef = (el: FormInstance) => {
-    formRef.value = el;
+    if (el) {
+      formRef.value = el;
+    } else {
+      logWarn('Form reference is invalid');
+    }
   };
 
   // 提交表单
   const submitForm = async () => {
     if (!formRef.value) {
-      return;
+      logError('Form reference is not set');
+      throw new Error('Form reference is not set');
     }
 
     try {
       loading.value = true;
       await formRef.value.validate();
-      await options.onSubmit?.(formData as T);
+
+      if (options.onSubmit) {
+        await options.onSubmit(formData as T);
+      } else {
+        logWarn('No submit handler provided');
+      }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
+      logError('Form validation or submission failed:', err);
       Message.error(options.validateMessage || t('common.form.validateFailed'));
       options.onError?.(err);
       throw err;

@@ -5,6 +5,7 @@ export default {
   'app.ssh.tabs.publicKeys': 'Public Keys Management',
   'app.ssh.config.title': 'SSH Configuration',
   'app.ssh.keyPairs.title': 'Key Pairs Management',
+  'app.ssh.publicKeys.title': 'Public Keys Management',
 
   // Mode switch
   'app.ssh.mode.visual': 'Form Mode',
@@ -174,20 +175,29 @@ export default {
 
   // Auth Key tab
   'app.ssh.publicKeys.add': 'Add Key',
+  'app.ssh.publicKeys.addPublicKey': 'Add Public Key',
   'app.ssh.publicKeys.remove': 'Remove',
   'app.ssh.publicKeys.addSuccess': 'SSH key added successfully',
   'app.ssh.publicKeys.removeSuccess': 'SSH key removed successfully',
+  'app.ssh.publicKeys.addError': 'Failed to add SSH key',
+  'app.ssh.publicKeys.removeError': 'Failed to remove SSH key',
+  'app.ssh.publicKeys.loadError': 'Failed to load SSH keys',
   'app.ssh.publicKeys.columns.algorithm': 'Algorithm',
   'app.ssh.publicKeys.columns.key': 'Key',
   'app.ssh.publicKeys.columns.comment': 'Comment',
   'app.ssh.publicKeys.columns.operations': 'Operations',
   'app.ssh.publicKeys.modal.title': 'Add SSH Key',
+  'app.ssh.publicKeys.modal.addPublicKey': 'Add Public Key',
   'app.ssh.publicKeys.modal.content': 'Key Content',
   'app.ssh.publicKeys.modal.placeholder': 'Paste your SSH public key here',
   'app.ssh.publicKeys.modal.description':
     'Format: ssh-rsa AAAAB3NzaC1... comment',
   'app.ssh.publicKeys.modal.emptyError': 'Key content cannot be empty',
   'app.ssh.publicKeys.modal.formatError': 'Invalid key format',
+  'app.ssh.publicKeys.modal.invalidAlgorithm': 'Invalid SSH key algorithm',
+  'app.ssh.publicKeys.modal.invalidKeyFormat':
+    'Invalid key format (must be Base64 encoded)',
+  'app.ssh.publicKeys.modal.keyTooShort': 'SSH key is too short',
   'app.ssh.publicKeys.removeModal.title': 'Remove SSH Key',
   'app.ssh.publicKeys.removeModal.content':
     'Are you sure you want to remove this SSH key?',
