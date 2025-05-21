@@ -26,9 +26,27 @@ export default {
   'app.ssh.source.parseError': '解析源文件配置失败',
   'app.ssh.source.emptyConfig': '配置内容为空',
   'app.ssh.source.noChanges': '未检测到有效的配置更改',
+  'app.ssh.savingConfig': '正在保存SSH配置...',
+
+  // 未保存更改弹窗
+  'app.ssh.unsavedChanges.title': '未保存的更改',
+  'app.ssh.unsavedChanges.content':
+    '源文件编辑器中有未保存的更改。切换到表单模式将丢弃这些更改。是否继续？',
+  'app.ssh.unsavedChanges.discard': '丢弃更改',
+  'app.ssh.unsavedChanges.cancel': '取消',
+
+  // 配置更新
+  'app.ssh.config.updateSuccess': '配置更新成功',
+  'app.ssh.config.updateError': '配置更新失败',
 
   // 错误提示
   'app.ssh.error.fetchFailed': '获取SSH配置失败',
+  'app.ssh.error.noHost': '未选择主机',
+  'app.ssh.error.emptyConfig': '收到的SSH配置为空',
+
+  // 加载提示
+  'app.ssh.loading': '正在加载SSH配置...',
+  'app.ssh.savingChanges': '正在保存配置更改...',
 
   'app.ssh.port.label': '端口',
   'app.ssh.port.description': '指定 SSH 服务监听的端口号，默认为 22。',
@@ -38,28 +56,48 @@ export default {
   'app.ssh.root.description': 'root 用户 SSH 登录方式，默认允许 SSH 登录。',
   'app.ssh.password.label': '密码认证',
   'app.ssh.password.description': '是否启用密码认证，默认启用。',
-  'app.ssh.key.label': '密钥认证',
-  'app.ssh.key.description': '是否启用密钥认证，默认启用。',
+  'app.ssh.key.label': '公钥认证',
+  'app.ssh.key.description': '是否启用公钥认证，默认启用。',
   'app.ssh.passwordInfo.label': '密码信息',
   'app.ssh.reverse.label': '反向解析',
   'app.ssh.reverse.description':
     '指定 SSH 服务是否对客户端 DNS 解析功能，从而加速连接建立的时间。',
+  'app.ssh.sftp.label': 'SFTP 子系统',
+  'app.ssh.sftp.description':
+    '启用或禁用 SFTP（SSH 文件传输协议）子系统，用于安全文件传输。',
   'app.ssh.autostart.label': '自动启动',
   'app.ssh.btn.setting': '设置',
 
   // 端口设置弹窗
   'app.ssh.portModal.title': '端口设置',
+  'app.ssh.portModal.port': '端口号',
+  'app.ssh.portModal.description': '指定 SSH 服务监听的端口号，默认为 22。',
+  'app.ssh.portModal.save': '保存',
+  'app.ssh.portModal.cancel': '取消',
   'app.ssh.portModal.saveSuccess': '端口设置已保存',
+  'app.ssh.portModal.saveError': '端口设置保存失败',
 
   // 监听地址设置弹窗
   'app.ssh.listenModal.title': '监听地址设置',
+  'app.ssh.listenModal.address': '监听地址',
+  'app.ssh.listenModal.description':
+    '指定 SSH 服务监听的 IP 地址，默认为 0.0.0.0。',
+  'app.ssh.listenModal.save': '保存',
+  'app.ssh.listenModal.cancel': '取消',
   'app.ssh.listenModal.saveSuccess': '监听地址设置已保存',
+  'app.ssh.listenModal.saveError': '监听地址设置保存失败',
 
   // Root用户设置弹窗
   'app.ssh.rootModal.title': 'Root用户设置',
+  'app.ssh.rootModal.label': '允许 root 用户登录',
+  'app.ssh.rootModal.description':
+    '是否允许 root 用户通过 SSH 登录系统，默认启用。',
+  'app.ssh.rootModal.save': '保存',
+  'app.ssh.rootModal.cancel': '取消',
   'app.ssh.rootModal.allow': '允许SSH登录',
   'app.ssh.rootModal.deny': '禁止SSH登录',
   'app.ssh.rootModal.saveSuccess': 'Root用户设置已保存',
+  'app.ssh.rootModal.saveError': 'Root用户设置保存失败',
 
   // 密码管理标签页
   'app.ssh.keyPairs.generateKey': '生成密钥',

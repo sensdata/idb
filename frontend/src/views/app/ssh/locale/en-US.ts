@@ -26,9 +26,27 @@ export default {
   'app.ssh.source.parseError': 'Failed to parse source configuration',
   'app.ssh.source.emptyConfig': 'Configuration content is empty',
   'app.ssh.source.noChanges': 'No valid configuration changes detected',
+  'app.ssh.savingConfig': 'Saving SSH configuration...',
+
+  // Unsaved changes modal
+  'app.ssh.unsavedChanges.title': 'Unsaved Changes',
+  'app.ssh.unsavedChanges.content':
+    'You have unsaved changes in the source editor. Switching to form mode will discard these changes. Do you want to continue?',
+  'app.ssh.unsavedChanges.discard': 'Discard Changes',
+  'app.ssh.unsavedChanges.cancel': 'Cancel',
+
+  // Config updates
+  'app.ssh.config.updateSuccess': 'Configuration updated successfully',
+  'app.ssh.config.updateError': 'Failed to update configuration',
 
   // Error messages
   'app.ssh.error.fetchFailed': 'Failed to fetch SSH configuration',
+  'app.ssh.error.noHost': 'No host selected',
+  'app.ssh.error.emptyConfig': 'Empty SSH configuration received',
+
+  // Loading message
+  'app.ssh.loading': 'Loading SSH configuration...',
+  'app.ssh.savingChanges': 'Saving configuration changes...',
 
   'app.ssh.port.label': 'Port',
   'app.ssh.port.description':
@@ -42,30 +60,51 @@ export default {
   'app.ssh.password.label': 'Password Auth',
   'app.ssh.password.description':
     'Whether to enable password authentication, enabled by default.',
-  'app.ssh.key.label': 'Key Auth',
+  'app.ssh.key.label': 'Public Key Auth',
   'app.ssh.key.description':
-    'Whether to enable key authentication, enabled by default.',
+    'Whether to enable public key authentication, enabled by default.',
   'app.ssh.passwordInfo.label': 'Password Info',
   'app.ssh.reverse.label': 'Reverse Lookup',
   'app.ssh.reverse.description':
     'Specify whether the SSH service should perform DNS resolution for clients, to speed up connection establishment time.',
+  'app.ssh.sftp.label': 'SFTP Subsystem',
+  'app.ssh.sftp.description':
+    'Enable or disable the SFTP (SSH File Transfer Protocol) subsystem for secure file transfers.',
   'app.ssh.autostart.label': 'Auto Start',
   'app.ssh.btn.setting': 'Settings',
 
   // Port setting modal
   'app.ssh.portModal.title': 'Port Settings',
+  'app.ssh.portModal.port': 'Port Number',
+  'app.ssh.portModal.description':
+    'Specify the port number for SSH service, default is 22.',
+  'app.ssh.portModal.save': 'Save',
+  'app.ssh.portModal.cancel': 'Cancel',
   'app.ssh.portModal.saveSuccess': 'Port settings saved successfully',
+  'app.ssh.portModal.saveError': 'Failed to save port settings',
 
   // Listen address setting modal
   'app.ssh.listenModal.title': 'Listen Address Settings',
+  'app.ssh.listenModal.address': 'Listen Address',
+  'app.ssh.listenModal.description':
+    'Specify the IP address for SSH service to listen on, default is 0.0.0.0.',
+  'app.ssh.listenModal.save': 'Save',
+  'app.ssh.listenModal.cancel': 'Cancel',
   'app.ssh.listenModal.saveSuccess':
     'Listen address settings saved successfully',
+  'app.ssh.listenModal.saveError': 'Failed to save listen address settings',
 
   // Root user setting modal
   'app.ssh.rootModal.title': 'Root User Settings',
+  'app.ssh.rootModal.label': 'Allow root user login',
+  'app.ssh.rootModal.description':
+    'Whether to allow root user to login via SSH, enabled by default.',
+  'app.ssh.rootModal.save': 'Save',
+  'app.ssh.rootModal.cancel': 'Cancel',
   'app.ssh.rootModal.allow': 'Allow SSH Login',
   'app.ssh.rootModal.deny': 'Deny SSH Login',
   'app.ssh.rootModal.saveSuccess': 'Root user settings saved successfully',
+  'app.ssh.rootModal.saveError': 'Failed to save root user settings',
 
   // Password tab
   'app.ssh.keyPairs.generateKey': 'Generate Key',

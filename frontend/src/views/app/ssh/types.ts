@@ -28,5 +28,4 @@ export interface SSHConfig {
   passwordAuth: boolean;
   keyAuth: boolean;
   reverseLookup: boolean;
-  autoStart: boolean;
 }

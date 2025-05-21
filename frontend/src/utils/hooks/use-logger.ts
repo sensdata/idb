@@ -6,7 +6,15 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
 // 日志参数类型
-type LogParams = (string | number | boolean | object | null | undefined)[];
+type LogParams = (
+  | string
+  | number
+  | boolean
+  | object
+  | null
+  | undefined
+  | unknown
+)[];
 
 export const useLogger = (component?: string) => {
   const isDev = import.meta.env.DEV;
@@ -27,6 +35,13 @@ export const useLogger = (component?: string) => {
       console.log(`${prefix} 组件已卸载`);
     }
   });
+
+  // 标准日志（与logDebug相同，但命名更简单）
+  const log = (...args: LogParams): void => {
+    if (isEnabled.value) {
+      console.log(prefix, ...args);
+    }
+  };
 
   // 调试日志
   const logDebug = (...args: LogParams): void => {
@@ -62,6 +77,7 @@ export const useLogger = (component?: string) => {
   };
 
   return {
+    log,
     logDebug,
     logInfo,
     logWarn,

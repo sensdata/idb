@@ -17,6 +17,18 @@ export function getSSHConfigContent(hostId: number) {
 }
 
 /**
+ * 更新SSH配置
+ * @param hostId - 主机ID
+ * @param values - 要更新的配置键值对列表
+ */
+export function updateSSHConfig(
+  hostId: number,
+  values: Array<{ key: string; old_value: string; new_value: string }>
+) {
+  return request.put(`/ssh/${hostId}/config`, { values });
+}
+
+/**
  * 更新SSH配置文件内容
  * @param hostId - 主机ID
  * @param content - 配置文件内容
