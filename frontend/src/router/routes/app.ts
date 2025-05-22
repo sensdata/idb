@@ -52,6 +52,16 @@ const appRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/app/store',
+    name: 'store',
+    component: () => import('@/views/app/store/main.vue'),
+    meta: {
+      locale: 'menu.app.store',
+      requiresAuth: true,
+      icon: 'icon-apps',
+    },
+  },
+  {
     path: '/app/crontab',
     name: 'crontab',
     component: () => import('@/views/app/crontab/main.vue'),

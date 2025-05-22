@@ -1,0 +1,50 @@
+export interface AppFormValidation {
+  MinLength: number;
+  MaxLength: number;
+  Pattern: string;
+  MinValue: number;
+  MaxValue: number;
+}
+
+export interface AppFormField {
+  Name: string;
+  Label: string;
+  Key: string;
+  Type: string;
+  Default: string;
+  Required: boolean;
+  Hint: string;
+  Options: string[];
+  Validation: AppFormValidation;
+}
+
+export interface AppEntity {
+  id: number;
+  type: string;
+  name: string;
+  display_name: string;
+  category: string;
+  tags: string[];
+  title: string;
+  description: string;
+  vendor: {
+    name: string;
+    url: string;
+  };
+  packager: {
+    name: string;
+    url: string;
+  };
+  has_update: boolean;
+  versions: Array<{
+    id: number;
+    version: string;
+    update_version: string;
+    compose_content: string;
+  }>;
+  form: {
+    Fields: AppFormField[];
+  };
+}
+
+export type AppSimpleEntity = Omit<AppEntity, 'form'>;

@@ -1,5 +1,6 @@
 export default {
   'common.loading': '加载中...',
+  'common.search': '搜索',
   'common.confirm.okText': '确定',
   'common.confirm.cancelText': '取消',
   'common.confirm.title': '提示',
