@@ -631,7 +631,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	var envArray []string
 	for key, value := range envMap {
 		// 应用名
-		if key == "iDB_name" {
+		if key == constant.IDB_compose_name {
 			appName = value
 		}
 		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
@@ -650,7 +650,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 
 	// 处理conf
 	var confPath, confContent string
-	if confDir, exist := envMap["iDB_service_conf_path"]; exist {
+	if confDir, exist := envMap[constant.IDB_service_config_path]; exist {
 		confPath = filepath.Join(confDir, version.ConfigName)
 		confContent = version.ConfigContent
 	}
@@ -679,11 +679,11 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action %v", err)
+		global.LOG.Error("Failed to send action Docker_Compose_Create %v", err)
 		return &result, err
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action failed")
+		global.LOG.Error("action Docker_Compose_Create failed")
 		return &result, fmt.Errorf("failed to create compose")
 	}
 
@@ -724,11 +724,11 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 	}
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action %v", err)
+		global.LOG.Error("Failed to send action Docker_Compose_Remove %v", err)
 		return err
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action failed")
+		global.LOG.Error("action Docker_Compose_Remove failed")
 		return fmt.Errorf("failed to remove compose")
 	}
 	return nil

@@ -496,10 +496,10 @@ func (c DockerClient) ContainerLogs(req model.FileContentPartReq) (*model.FileCo
 	if containerType == "compose" {
 		var workingDir, configFiles string
 		for _, label := range containerInfo.Labels {
-			if label.Key == "com.docker.compose.project.working_dir" {
+			if label.Key == constant.ComposeWorkDirLabel {
 				workingDir = label.Value
 			}
-			if label.Key == "com.docker.compose.project.config_files" {
+			if label.Key == constant.ComposeConfFilesLabel {
 				configFiles = label.Value
 			}
 		}
