@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
+	"gorm.io/gorm"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -135,17 +137,21 @@ func (s *AppService) SyncApp() error {
 			app.FormContent = form
 
 			// create or update app
+			var appId uint
 			appRecord, err := AppRepo.Get(AppRepo.WithByName(app.Name))
 			if err != nil {
-				global.LOG.Error("Error when checking app record, %v", err)
-				continue
-			}
-			var appId uint
-			if appRecord.Name == "" {
-				if err := AppRepo.Create(app); err != nil {
-					global.LOG.Error("Failed to create app, %v", err)
+				// 如果是未找到记录，创建新应用
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					if err := AppRepo.Create(app); err != nil {
+						global.LOG.Error("Failed to create app, %v", err)
+						continue
+					}
+					appId = app.ID
+				} else {
+					// 其他数据库错误
+					global.LOG.Error("Error when checking app record, %v", err)
+					continue
 				}
-				appId = app.ID
 			} else {
 				upMap := make(map[string]interface{})
 				upMap["name"] = app.Name
@@ -251,7 +257,7 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 
 			// compose.yml
 			fileOp := files.NewFileOp()
-			dockerComposePath := filepath.Join(versionDir, "docker-compose.yml")
+			dockerComposePath := filepath.Join(versionDir, "docker-compose.yaml")
 			if !fileOp.Stat(dockerComposePath) {
 				global.LOG.Error("docker-compose.yaml missed in %s", versionDir)
 				continue
@@ -263,14 +269,37 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 			}
 			appVersion.ComposeContent = string(dockerComposeByte)
 
-			var composeConfig types.Config
-			err = yaml.Unmarshal(dockerComposeByte, &composeConfig)
-			if err != nil {
-				global.LOG.Error("Failed to unmarshal Compose YAML: %v", err)
+			// .env
+			envPath := filepath.Join(versionDir, ".env")
+			if !fileOp.Stat(envPath) {
+				global.LOG.Error(".env missed in %s", versionDir)
 				continue
 			}
+			envByte, err := fileOp.GetContent(envPath)
+			if err != nil {
+				global.LOG.Error("faile to get .env content %s", envByte)
+				continue
+			}
+			appVersion.EnvContent = string(envByte)
+
+			// 获取project信息
+			envMap, _ := godotenv.Read(envPath)
+
+			project, err := loader.Load(types.ConfigDetails{
+				ConfigFiles: []types.ConfigFile{
+					{
+						Filename: dockerComposePath,
+					},
+				},
+				Environment: envMap,
+			})
+			if err != nil {
+				global.LOG.Error("Failed to load Compose YAML: %v", err)
+				continue
+			}
+
 			// 遍历 services 部分，拿到版本和升级版本
-			for _, service := range composeConfig.Services {
+			for _, service := range project.Services {
 				if service.Labels != nil {
 					for key, value := range service.Labels {
 						switch key {
@@ -287,19 +316,6 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 					}
 				}
 			}
-
-			// .env
-			envPath := filepath.Join(versionDir, ".env")
-			if !fileOp.Stat(envPath) {
-				global.LOG.Error(".env missed in %s", versionDir)
-				continue
-			}
-			envByte, err := fileOp.GetContent(envPath)
-			if err != nil {
-				global.LOG.Error("faile to get .env content %s", envByte)
-				continue
-			}
-			appVersion.EnvContent = string(envByte)
 
 			// config (might not exist)
 			configDir := filepath.Join(versionDir, "config")
@@ -340,6 +356,7 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 	var items []core.App
 	for _, appData := range apps {
 		items = append(items, core.App{
+			ID:          appData.ID,
 			Name:        appData.Name,
 			DisplayName: appData.DisplayName,
 			Category:    appData.Category,
@@ -715,3 +732,4 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 	}
 	return nil
 }
+

@@ -25,6 +25,7 @@ func Init() {
 		AddTableHost,
 		AddTableSettings,
 		AddTableTimezone,
+		AddTableApp,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -280,6 +281,21 @@ var AddTableTimezone = &gormigrate.Migration{
 			return err
 		}
 		global.LOG.Info("Table Timezone added successfully")
+		return nil
+	},
+}
+
+var AddTableApp = &gormigrate.Migration{
+	ID: "20250522-add-table-app",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Adding table App")
+		if err := db.AutoMigrate(&model.App{}); err != nil {
+			return err
+		}
+		if err := db.AutoMigrate(&model.AppVersion{}); err != nil {
+			return err
+		}
+		global.LOG.Info("Table App added successfully")
 		return nil
 	},
 }
