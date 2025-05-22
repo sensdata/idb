@@ -164,6 +164,7 @@ func (s *AppService) SyncApp() error {
 				upMap["vendor_url"] = app.VendorUrl
 				upMap["packager"] = app.Packager
 				upMap["packager_url"] = app.PackagerUrl
+				upMap["form_content"] = app.FormContent
 
 				if err := AppRepo.Update(appRecord.ID, upMap); err != nil {
 					global.LOG.Error("Failed to update app, %v", err)
@@ -732,4 +733,3 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 	}
 	return nil
 }
-
