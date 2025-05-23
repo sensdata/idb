@@ -19,10 +19,7 @@
     (e: 'modeChange', mode: ConfigMode): void;
   }>();
 
-  const handleModeChange = (
-    value: string | number | boolean,
-    _ev?: Event
-  ): void => {
+  const handleModeChange = (value: string | number | boolean): void => {
     emit('modeChange', value as ConfigMode);
   };
 </script>
