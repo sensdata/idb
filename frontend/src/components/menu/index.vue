@@ -6,6 +6,7 @@
   import { useAppStore } from '@/store';
   import { listenerRouteChange } from '@/utils/route-listener';
   import { openWindow, regexUrl } from '@/utils';
+  import usePermission from '@/hooks/permission';
   import HostInfo from '@/components/host-info/index.vue';
   import useMenuTree from './use-menu-tree';
 
@@ -16,6 +17,7 @@
       const appStore = useAppStore();
       const router = useRouter();
       const route = useRoute();
+      const permission = usePermission();
       const { manageMenuTree, appMenuTree } = useMenuTree();
       const isAppRoute = computed(() => route.fullPath.startsWith('/app'));
       const menuTree = computed(() => {
@@ -83,6 +85,90 @@
         });
         return result;
       };
+
+      // 检查当前路由是否是菜单项的子路由
+      const isChildOfMenu = (menuName: string) => {
+        const menuOpenKeys = findMenuOpenKeys(route.name as string);
+        return menuOpenKeys.includes(menuName);
+      };
+
+      // 查找菜单项的第一个子路由
+      const findFirstChildRoute = (menuName: string): RouteRecordRaw | null => {
+        let firstChild: RouteRecordRaw | null = null;
+
+        const findChild = (items: RouteRecordRaw[]) => {
+          for (const item of items) {
+            if (item.name === menuName && item.children?.length) {
+              // 查找第一个可以导航到的有效子路由
+              for (const child of item.children) {
+                if (!child.meta?.hideInMenu && permission.accessRouter(child)) {
+                  firstChild = child;
+                  return;
+                }
+              }
+            } else if (item.children?.length) {
+              findChild(item.children);
+            }
+          }
+        };
+
+        findChild(menuTree.value);
+        return firstChild;
+      };
+
+      // 处理菜单项点击事件
+      const handleMenuItemClick = (key: string) => {
+        // 查找对应的菜单项
+        const findMenuItem = (
+          items: RouteRecordRaw[]
+        ): RouteRecordRaw | null => {
+          for (const item of items) {
+            if (item.name === key) {
+              return item;
+            }
+            if (item.children?.length) {
+              const found = findMenuItem(item.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        const menuItem = findMenuItem(menuTree.value);
+        if (menuItem) {
+          goto(menuItem);
+        }
+      };
+
+      // 处理子菜单点击事件 - 当点击子菜单时
+      const handleSubMenuClick = (key: string) => {
+        // 如果菜单已展开，点击会自动收起（默认行为）
+        if (openKeys.value.includes(key)) {
+          return;
+        }
+
+        // 如果用户不在当前菜单的任意子页面，导航到第一个子页面
+        if (!isChildOfMenu(key)) {
+          const firstChild = findFirstChildRoute(key);
+          if (firstChild) {
+            goto(firstChild);
+          }
+        }
+        // 如果用户已在子页面，只需展开菜单（默认行为）
+      };
+
+      // 处理子菜单展开/折叠状态变化
+      const updateOpenKeys = (keys: string[]) => {
+        // 找出新增的 key（即刚被打开的子菜单）
+        const newKey = keys.find((key) => !openKeys.value.includes(key));
+        if (newKey) {
+          // 新展开的菜单
+          handleSubMenuClick(newKey);
+        }
+        // 更新打开的菜单键值
+        openKeys.value = keys;
+      };
+
       listenerRouteChange((newRoute) => {
         const { requiresAuth, activeMenu, hideInMenu } = newRoute.meta;
         if (requiresAuth && (!hideInMenu || activeMenu)) {
@@ -166,6 +252,9 @@
             level-indent={34}
             style={{ width: '100%', flex: 1 }}
             onCollapse={setCollapse}
+            onClickSubMenu={handleSubMenuClick}
+            onMenuItemClick={handleMenuItemClick}
+            onUpdate:openKeys={updateOpenKeys}
           >
             {renderSubMenu()}
           </a-menu>
@@ -235,6 +324,16 @@
       position: absolute;
       right: 16px;
       left: auto;
+    }
+
+    // 确保整个菜单项可点击，而不仅是标题区域
+    .arco-menu-inline-header {
+      cursor: pointer;
+      width: 100%;
+
+      &:hover {
+        background-color: var(--color-fill-2);
+      }
     }
   }
 </style>

@@ -5,7 +5,12 @@
       <ssh-status class="ssh-status-container" />
     </div>
 
-    <a-alert v-if="anyLoading" type="info" class="operation-alert" banner>
+    <a-alert
+      v-if="anyLoading && !pageLoading"
+      type="info"
+      class="operation-alert"
+      banner
+    >
       <template #icon><icon-loading /></template>
       {{ $t('app.ssh.savingChanges') }}
     </a-alert>
@@ -37,7 +42,7 @@
         v-model:config="sourceConfig"
         :original-config="originalSourceConfig"
         :loading="loadingStates.sourceConfig"
-        @save="saveSourceConfig"
+        @save="handleSaveSourceConfig"
         @reset="resetSourceConfig"
         @update-form="updateFormFromSourceConfig"
       />
@@ -296,6 +301,11 @@
     } else if (type === 'root') {
       rootModalVisible.value = true;
     }
+  };
+
+  /* 处理源码编辑器保存 */
+  const handleSaveSourceConfig = async (): Promise<void> => {
+    await saveSourceConfig();
   };
 </script>
 
