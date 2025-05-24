@@ -13,6 +13,7 @@ type IAppVersionRepo interface {
 	GetList(opts ...DBOption) ([]model.AppVersion, error)
 	Page(page, size int, opts ...DBOption) (int64, []model.AppVersion, error)
 	WithByID(id uint) DBOption
+	WithByAppID(appID uint) DBOption
 	Create(app *model.AppVersion) error
 	Update(id uint, vars map[string]interface{}) error
 	Delete(opts ...DBOption) error
@@ -53,7 +54,12 @@ func (r *AppVersionRepo) Page(page, size int, opts ...DBOption) (int64, []model.
 }
 func (r *AppVersionRepo) WithByID(id uint) DBOption {
 	return func(g *gorm.DB) *gorm.DB {
-		return g.Where("app_id = ?", id)
+		return g.Where("id = ?", id)
+	}
+}
+func (r *AppVersionRepo) WithByAppID(appID uint) DBOption {
+	return func(g *gorm.DB) *gorm.DB {
+		return g.Where("app_id = ?", appID)
 	}
 }
 func (r *AppVersionRepo) Create(app *model.AppVersion) error {

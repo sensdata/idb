@@ -178,7 +178,7 @@ func (s *AppService) SyncApp() error {
 				continue
 			}
 			// delete app versions
-			if err := AppVersionRepo.Delete(AppVersionRepo.WithByID(appId)); err != nil {
+			if err := AppVersionRepo.Delete(AppVersionRepo.WithByAppID(appId)); err != nil {
 				global.LOG.Error("Failed to delete versions for app %s with id %d", app.Name, appId)
 			}
 			// create app versions
@@ -433,7 +433,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			continue
 		}
 		// 查询版本信息
-		appVersions, err := AppVersionRepo.GetList(AppVersionRepo.WithByID(appData.ID))
+		appVersions, err := AppVersionRepo.GetList(AppVersionRepo.WithByAppID(appData.ID))
 		if err != nil {
 			global.LOG.Error("Error query app %s version, %v", compose.IdbName, err)
 			continue
@@ -512,7 +512,7 @@ func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {
 		Packager:    core.NameUrl{Name: app.Packager, Url: app.PackagerUrl},
 	}
 
-	versions, _ := AppVersionRepo.GetList(AppVersionRepo.WithByID(app.ID))
+	versions, _ := AppVersionRepo.GetList(AppVersionRepo.WithByAppID(app.ID))
 	for _, version := range versions {
 		appInfo.Versions = append(appInfo.Versions, core.AppVersion{
 			ID:             version.ID,
