@@ -36,17 +36,17 @@
         </a-radio-group>
       </a-form-item>
       <template v-if="formState.mode === 'form'">
-        <template v-for="field in dynamicFields" :key="field.Key">
+        <template v-for="field in dynamicFields" :key="field.Name">
           <a-form-item
             :label="field.Label"
-            :field="field.Key"
+            :field="field.Name"
             :required="field.Required"
             :tooltip="field.Hint"
             :rules="getFieldRules(field)"
           >
             <component
               :is="getFieldComponent(field)"
-              v-model="formState[field.Key]"
+              v-model="formState[field.Name]"
               v-bind="getFieldProps(field)"
             />
           </a-form-item>
@@ -204,8 +204,8 @@
       }));
       dynamicFields.value = data.form?.Fields || [];
       dynamicFields.value.forEach((field) => {
-        formState[field.Key] = field.Default || '';
-        rules[field.Key] = getFieldRules(field);
+        formState[field.Name] = field.Default || '';
+        rules[field.Name] = getFieldRules(field);
       });
     } catch (err: any) {
       Message.error(err?.message);
@@ -218,12 +218,15 @@
     return {
       id: appDetail.value!.id,
       version_id: formState.version_id,
-      compose_content: composeContent.value,
       extra_params: [],
-      form_params: dynamicFields.value.map((field) => ({
-        key: field.Key,
-        value: formState[field.Key],
-      })),
+      compose_content: formState.mode === 'yaml' ? composeContent.value : '',
+      form_params:
+        formState.mode === 'yaml'
+          ? []
+          : dynamicFields.value.map((field) => ({
+              key: field.Name,
+              value: formState[field.Name],
+            })),
     };
   };
 
