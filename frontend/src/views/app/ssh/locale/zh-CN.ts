@@ -44,6 +44,7 @@ export default {
   'app.ssh.error.fetchFailed': '获取SSH配置失败',
   'app.ssh.error.noHost': '未选择主机',
   'app.ssh.error.emptyConfig': '收到的SSH配置为空',
+  'app.ssh.error.fetchError': '获取SSH配置内容失败',
 
   // 加载提示
   'app.ssh.loading': '正在加载SSH配置...',

@@ -11,11 +11,6 @@ export interface FormOptions<T> {
   validateMessage?: string;
 }
 
-interface ResetOptions {
-  validate?: boolean;
-  deep?: boolean;
-}
-
 export function useForm<T extends Record<string, any>>(
   options: FormOptions<T>
 ) {
@@ -26,7 +21,7 @@ export function useForm<T extends Record<string, any>>(
   const { logWarn, logError } = useLogger('FormHook');
 
   // 重置表单为初始值
-  const resetForm = (opt?: ResetOptions) => {
+  const resetForm = () => {
     // 使用深拷贝确保不会影响原始数据
     Object.keys(options.initialValues).forEach((key) => {
       // @ts-ignore

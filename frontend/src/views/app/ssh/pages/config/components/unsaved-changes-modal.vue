@@ -14,9 +14,14 @@
 </template>
 
 <script lang="ts" setup>
-  import { defineProps } from 'vue';
+  import { defineProps, defineEmits } from 'vue';
 
   defineProps<{
     visible: boolean;
+  }>();
+
+  defineEmits<{
+    (e: 'cancel'): void;
+    (e: 'confirm'): void;
   }>();
 </script>

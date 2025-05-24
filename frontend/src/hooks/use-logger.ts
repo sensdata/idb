@@ -3,6 +3,7 @@
  * 封装控制台方法，仅在开发环境下输出日志
  */
 
+/* eslint-disable no-console */
 import { ref, onMounted, onUnmounted } from 'vue';
 
 // 日志参数类型

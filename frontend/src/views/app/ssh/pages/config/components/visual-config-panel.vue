@@ -138,7 +138,7 @@
   import { IconSettings } from '@arco-design/web-vue/es/icon';
   import type { SSHConfig, LoadingStates } from '../types';
 
-  const props = defineProps<{
+  defineProps<{
     sshConfig: SSHConfig;
     loadingStates: LoadingStates;
     rootEnabled: boolean;
@@ -158,34 +158,22 @@
   };
 
   /** 切换 root 登录开关 */
-  const handleRootEnabledChange = (
-    value: string | number | boolean,
-    _ev?: Event
-  ) => {
+  const handleRootEnabledChange = (value: string | number | boolean) => {
     emit('saveRoot', Boolean(value));
   };
 
   /** 切换密码认证开关 */
-  const handlePasswordAuthChange = (
-    value: string | number | boolean,
-    _ev?: Event
-  ) => {
+  const handlePasswordAuthChange = (value: string | number | boolean) => {
     emit('updatePasswordAuth', Boolean(value));
   };
 
   /** 切换密钥认证开关 */
-  const handleKeyAuthChange = (
-    value: string | number | boolean,
-    _ev?: Event
-  ) => {
+  const handleKeyAuthChange = (value: string | number | boolean) => {
     emit('updateKeyAuth', Boolean(value));
   };
 
   /** 切换反向 DNS 查询开关 */
-  const handleReverseLookupChange = (
-    value: string | number | boolean,
-    _ev?: Event
-  ) => {
+  const handleReverseLookupChange = (value: string | number | boolean) => {
     emit('updateReverseLookup', Boolean(value));
   };
 </script>

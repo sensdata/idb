@@ -44,6 +44,7 @@ export default {
   'app.ssh.error.fetchFailed': 'Failed to fetch SSH configuration',
   'app.ssh.error.noHost': 'No host selected',
   'app.ssh.error.emptyConfig': 'Empty SSH configuration received',
+  'app.ssh.error.fetchError': 'Failed to fetch SSH configuration content',
 
   // Loading message
   'app.ssh.loading': 'Loading SSH configuration...',

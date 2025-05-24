@@ -33,7 +33,7 @@
 <script setup lang="ts">
   import { SSHKeyRecord, SSHKeyStatus } from '@/views/app/ssh/types';
 
-  const props = defineProps<{
+  defineProps<{
     record: SSHKeyRecord;
     status: typeof SSHKeyStatus;
   }>();

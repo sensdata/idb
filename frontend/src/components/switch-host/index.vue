@@ -63,14 +63,12 @@
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute } from 'vue-router';
   import { HostEntity } from '@/entity/Host';
   import { getHostListApi } from '@/api/host';
   import { useHostStore } from '@/store';
   import usetCurrentHost from '@/hooks/current-host';
 
   const { t } = useI18n();
-  const route = useRoute();
 
   const gridRef = ref();
   const hostStore = useHostStore();
