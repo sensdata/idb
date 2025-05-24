@@ -69,6 +69,7 @@
   import { formatTransferSpeed } from '@/utils/format';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
+  import { onBeforeRouteUpdate } from 'vue-router';
 
   defineProps<{
     collapsed: boolean;
@@ -112,6 +113,12 @@
   const gotoSysInfo = () => {
     router.push('/app/sysinfo');
   };
+
+  onBeforeRouteUpdate(() => {
+    if (hostStore.currentId) {
+      refreshStatus();
+    }
+  });
 
   onMounted(() => {
     if (hostStore.currentId) {
