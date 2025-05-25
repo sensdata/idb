@@ -322,6 +322,7 @@ function Set_Dir(){
 
 function Set_Port(){
     DEFAULT_PORT='9918'
+    DEFAULT_AGENT_PORT='9919'
 
     while true; do
         read -p "设置 idb 端口 (默认为 ${DEFAULT_PORT}): " PANEL_PORT
@@ -357,6 +358,7 @@ function Set_Firewall(){
         if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 ${PANEL_PORT} 端口"
             firewall-cmd --zone=public --add-port=$PANEL_PORT/tcp --permanent
+            firewall-cmd --zone=public --add-port=$DEFAULT_AGENT_PORT/tcp --permanent
             firewall-cmd --reload
         else
             log "防火墙未开启，忽略端口开放"
@@ -367,6 +369,7 @@ function Set_Firewall(){
         if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 ${PANEL_PORT} 端口"
             ufw allow $PANEL_PORT/tcp
+            ufw allow $DEFAULT_AGENT_PORT/tcp
             ufw reload
         else
             log "防火墙未开启，忽略端口开放"
