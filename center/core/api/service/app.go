@@ -590,7 +590,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 						continue
 					}
 					// 设置了长度限制
-					if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
+					if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength != 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
 						if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
 							global.LOG.Error("Value %s does not has valid length for key %s", param.Value, param.Key)
 							return &result, fmt.Errorf("invalid value for key %s", param.Key)
@@ -599,7 +599,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 						continue
 					}
 					// 是数值类型，且设置了值大小
-					if formField.Type == "number" && formField.Validation.MinValue >= 0 && formField.Validation.MaxValue >= formField.Validation.MinValue {
+					if formField.Type == "number" && formField.Validation.MaxValue >= formField.Validation.MinValue {
 						paramValue, err := strconv.Atoi(param.Value)
 						if err != nil || (paramValue < formField.Validation.MinValue || paramValue > formField.Validation.MaxValue) {
 							global.LOG.Error("Value %s is not valid number for key %s", param.Value, param.Key)
