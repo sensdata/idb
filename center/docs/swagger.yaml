@@ -1495,7 +1495,7 @@ definitions:
         description: 是否允许使用该证书签发下级证书
         type: boolean
     type: object
-  model.ServiceAction:
+  model.ServiceActivate:
     properties:
       action:
         enum:
@@ -2474,11 +2474,12 @@ paths:
       summary: List crontab conf files
       tags:
       - Crontab
-  /crontab/{host}/action:
+  /crontab/{host}/activate:
     post:
       consumes:
       - application/json
-      description: Execute conf actions
+      description: Create a symlink in the crontab configuration directory to activate
+        the specified configuration, or remove the symlink to deactivate it.
       parameters:
       - description: Host ID
         in: path
@@ -2490,13 +2491,13 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ServiceAction'
+          $ref: '#/definitions/model.ServiceActivate'
       produces:
       - application/json
       responses:
         "200":
           description: OK
-      summary: Execute conf actions
+      summary: Activate or deactivate conf
       tags:
       - Crontab
   /crontab/{host}/category:
@@ -3354,7 +3355,7 @@ paths:
       summary: Query container names
       tags:
       - Docker
-  /docker/{host}/containers/operatetion:
+  /docker/{host}/containers/operation:
     post:
       consumes:
       - application/json
@@ -5472,11 +5473,12 @@ paths:
       summary: List logrotate conf files
       tags:
       - Logrotate
-  /logrotate/{host}/action:
+  /logrotate/{host}/activate:
     post:
       consumes:
       - application/json
-      description: Execute conf actions
+      description: Create a symlink in the logrotate configuration directory to activate
+        the specified configuration, or remove the symlink to deactivate it.
       parameters:
       - description: Host ID
         in: path
@@ -5488,13 +5490,13 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ServiceAction'
+          $ref: '#/definitions/model.ServiceActivate'
       produces:
       - application/json
       responses:
         "200":
           description: OK
-      summary: Execute conf actions
+      summary: Activate or deactivate conf
       tags:
       - Logrotate
   /logrotate/{host}/category:
@@ -5974,6 +5976,106 @@ paths:
       summary: Connect to log stream
       tags:
       - Log
+  /nftables/{host}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a conf file
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      - description: File name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete conf file
+      tags:
+      - nftables
+    get:
+      consumes:
+      - application/json
+      description: Get custom NFTable conf file list in work dir
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: List NFTable conf files
+      tags:
+      - nftables
+  /nftables/{host}/activate:
+    post:
+      consumes:
+      - application/json
+      description: Replace /etc/nftables.conf with the specified configuration to
+        activate, or restore the default configuration to deactivate.
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf action details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceActivate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Activate or deactivate conf
+      tags:
+      - nftables
   /nftables/{host}/category:
     delete:
       consumes:
@@ -6086,106 +6188,7 @@ paths:
       summary: Update category
       tags:
       - nftables
-  /nftables/{host}/conf:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a conf file
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: 'Type (options: ''global'', ''local'')'
-        in: query
-        name: type
-        required: true
-        type: string
-      - description: Category (directory under 'global' or 'local')
-        in: query
-        name: category
-        required: true
-        type: string
-      - description: File name
-        in: query
-        name: name
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Delete conf file
-      tags:
-      - nftables
-    get:
-      consumes:
-      - application/json
-      description: Get custom NFTable conf file list in work dir
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: 'Type (options: ''global'', ''local'')'
-        in: query
-        name: type
-        required: true
-        type: string
-      - description: Category (directory under 'global' or 'local')
-        in: query
-        name: category
-        required: true
-        type: string
-      - description: Page
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.PageResult'
-      summary: List NFTable conf files
-      tags:
-      - nftables
-  /nftables/{host}/conf/action:
-    post:
-      consumes:
-      - application/json
-      description: Execute conf actions
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      - description: Conf action details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ServiceAction'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Execute conf actions
-      tags:
-      - nftables
-  /nftables/{host}/conf/diff:
+  /nftables/{host}/diff:
     get:
       consumes:
       - application/json
@@ -6226,7 +6229,26 @@ paths:
       summary: Get conf diff
       tags:
       - nftables
-  /nftables/{host}/conf/log:
+  /nftables/{host}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install nftables
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Install nftables
+      tags:
+      - nftables
+  /nftables/{host}/log:
     get:
       consumes:
       - application/json
@@ -6272,7 +6294,7 @@ paths:
       summary: Get conf histories
       tags:
       - nftables
-  /nftables/{host}/conf/raw:
+  /nftables/{host}/raw:
     get:
       consumes:
       - application/json
@@ -6356,7 +6378,7 @@ paths:
       summary: Save conf file content
       tags:
       - nftables
-  /nftables/{host}/conf/restore:
+  /nftables/{host}/restore:
     put:
       consumes:
       - application/json
@@ -6379,25 +6401,6 @@ paths:
         "200":
           description: OK
       summary: Restore conf file
-      tags:
-      - nftables
-  /nftables/{host}/install:
-    post:
-      consumes:
-      - application/json
-      description: Install nftables
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Install nftables
       tags:
       - nftables
   /nftables/{host}/switch/to:
@@ -7111,11 +7114,12 @@ paths:
       summary: List services
       tags:
       - Service
-  /services/{host}/action:
+  /services/{host}/activate:
     post:
       consumes:
       - application/json
-      description: Execute service actions
+      description: Create a symlink in the service configuration directory to activate
+        the specified configuration, or remove the symlink to deactivate it.
       parameters:
       - description: Host ID
         in: path
@@ -7127,13 +7131,13 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ServiceAction'
+          $ref: '#/definitions/model.ServiceActivate'
       produces:
       - application/json
       responses:
         "200":
           description: OK
-      summary: Execute service actions
+      summary: Activate or deactivate service
       tags:
       - Service
   /services/{host}/category:
@@ -8143,6 +8147,59 @@ paths:
       summary: Get plugin menu
       tags:
       - SSH
+  /store/{host}/apps:
+    get:
+      description: Get app list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Category
+        in: query
+        name: category
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Get app list
+      tags:
+      - App
+  /store/{host}/apps/detail:
+    get:
+      description: Get app detail
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: App ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+      summary: Get app detail
+      tags:
+      - App
   /store/{host}/apps/install:
     post:
       description: Install app
@@ -8214,49 +8271,6 @@ paths:
         "200":
           description: OK
       summary: Uninstall app
-      tags:
-      - App
-  /store/apps:
-    get:
-      description: Get app list
-      parameters:
-      - description: Page number
-        in: query
-        name: page
-        required: true
-        type: integer
-      - description: Page size
-        in: query
-        name: page_size
-        required: true
-        type: integer
-      - description: Name
-        in: query
-        name: name
-        type: string
-      - description: Category
-        in: query
-        name: category
-        type: string
-      responses:
-        "200":
-          description: OK
-      summary: Get app list
-      tags:
-      - App
-  /store/apps/detail:
-    get:
-      description: Get app detail
-      parameters:
-      - description: App ID
-        in: query
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-      summary: Get app detail
       tags:
       - App
   /store/apps/sync:

@@ -731,9 +731,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/{host}/action": {
+        "/crontab/{host}/activate": {
             "post": {
-                "description": "Execute conf actions",
+                "description": "Create a symlink in the crontab configuration directory to activate the specified configuration, or remove the symlink to deactivate it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -743,7 +743,7 @@ const docTemplate = `{
                 "tags": [
                     "Crontab"
                 ],
-                "summary": "Execute conf actions",
+                "summary": "Activate or deactivate conf",
                 "parameters": [
                     {
                         "type": "integer",
@@ -758,7 +758,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ServiceAction"
+                            "$ref": "#/definitions/model.ServiceActivate"
                         }
                     }
                 ],
@@ -2040,7 +2040,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/docker/{host}/containers/operatetion": {
+        "/docker/{host}/containers/operation": {
             "post": {
                 "description": "Execute operations to container",
                 "consumes": [
@@ -5228,9 +5228,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/{host}/action": {
+        "/logrotate/{host}/activate": {
             "post": {
-                "description": "Execute conf actions",
+                "description": "Create a symlink in the logrotate configuration directory to activate the specified configuration, or remove the symlink to deactivate it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5240,7 +5240,7 @@ const docTemplate = `{
                 "tags": [
                     "Logrotate"
                 ],
-                "summary": "Execute conf actions",
+                "summary": "Activate or deactivate conf",
                 "parameters": [
                     {
                         "type": "integer",
@@ -5255,7 +5255,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ServiceAction"
+                            "$ref": "#/definitions/model.ServiceActivate"
                         }
                     }
                 ],
@@ -5975,6 +5975,152 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}": {
+            "get": {
+                "description": "Get custom NFTable conf file list in work dir",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "List NFTable conf files",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a conf file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Delete conf file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/activate": {
+            "post": {
+                "description": "Replace /etc/nftables.conf with the specified configuration to activate, or restore the default configuration to deactivate.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Activate or deactivate conf",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf action details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceActivate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/category": {
             "get": {
                 "description": "List category",
@@ -6141,153 +6287,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/nftables/{host}/conf": {
-            "get": {
-                "description": "Get custom NFTable conf file list in work dir",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nftables"
-                ],
-                "summary": "List NFTable conf files",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Type (options: 'global', 'local')",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Category (directory under 'global' or 'local')",
-                        "name": "category",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page",
-                        "name": "page",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.PageResult"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a conf file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nftables"
-                ],
-                "summary": "Delete conf file",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Type (options: 'global', 'local')",
-                        "name": "type",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Category (directory under 'global' or 'local')",
-                        "name": "category",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "File name",
-                        "name": "name",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/nftables/{host}/conf/action": {
-            "post": {
-                "description": "Execute conf actions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nftables"
-                ],
-                "summary": "Execute conf actions",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Conf action details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.ServiceAction"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/nftables/{host}/conf/diff": {
+        "/nftables/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
                 "consumes": [
@@ -6347,7 +6347,36 @@ const docTemplate = `{
                 }
             }
         },
-        "/nftables/{host}/conf/log": {
+        "/nftables/{host}/install": {
+            "post": {
+                "description": "Install nftables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Install nftables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/log": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -6414,7 +6443,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/nftables/{host}/conf/raw": {
+        "/nftables/{host}/raw": {
             "get": {
                 "description": "Get content of a conf file",
                 "consumes": [
@@ -6539,7 +6568,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/nftables/{host}/conf/restore": {
+        "/nftables/{host}/restore": {
             "put": {
                 "description": "Restore conf file to specified version",
                 "consumes": [
@@ -6568,35 +6597,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.RestoreGitFile"
                         }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/nftables/{host}/install": {
-            "post": {
-                "description": "Install nftables",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nftables"
-                ],
-                "summary": "Install nftables",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -7665,9 +7665,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/{host}/action": {
+        "/services/{host}/activate": {
             "post": {
-                "description": "Execute service actions",
+                "description": "Create a symlink in the service configuration directory to activate the specified configuration, or remove the symlink to deactivate it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7677,7 +7677,7 @@ const docTemplate = `{
                 "tags": [
                     "Service"
                 ],
-                "summary": "Execute service actions",
+                "summary": "Activate or deactivate service",
                 "parameters": [
                     {
                         "type": "integer",
@@ -7692,7 +7692,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ServiceAction"
+                            "$ref": "#/definitions/model.ServiceActivate"
                         }
                     }
                 ],
@@ -9164,7 +9164,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/store/apps": {
+        "/store/apps/sync": {
+            "post": {
+                "description": "同步应用列表",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Sync app list",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/store/{host}/apps": {
             "get": {
                 "description": "Get app list",
                 "tags": [
@@ -9172,6 +9186,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get app list",
                 "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Page number",
@@ -9206,7 +9227,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/store/apps/detail": {
+        "/store/{host}/apps/detail": {
             "get": {
                 "description": "Get app detail",
                 "tags": [
@@ -9216,26 +9237,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
                         "description": "App ID",
                         "name": "id",
                         "in": "query",
                         "required": true
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/store/apps/sync": {
-            "post": {
-                "description": "同步应用列表",
-                "tags": [
-                    "App"
-                ],
-                "summary": "Sync app list",
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -12779,7 +12793,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.ServiceAction": {
+        "model.ServiceActivate": {
             "type": "object",
             "required": [
                 "action",
