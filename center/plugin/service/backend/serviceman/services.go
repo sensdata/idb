@@ -1444,7 +1444,7 @@ func (s *ServiceMan) syncGlobal(hostID uint) error {
 	return nil
 }
 
-func (s *ServiceMan) serviceAction(hostID uint64, req model.ServiceAction) error {
+func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
 	switch req.Type {

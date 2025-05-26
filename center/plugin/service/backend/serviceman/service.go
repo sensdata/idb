@@ -163,7 +163,7 @@ func (s *ServiceMan) Initialize() {
 			{Method: "GET", Path: "/:host/log", Handler: s.GetServiceLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/action", Handler: s.ServiceAction},
+			{Method: "POST", Path: "/:host/activate", Handler: s.ServiceActivate},
 		},
 	)
 
@@ -895,15 +895,15 @@ func (s *ServiceMan) SyncGlobal(c *gin.Context) {
 }
 
 // @Tags Service
-// @Summary Execute service actions
-// @Description Execute service actions
+// @Summary Activate or deactivate service
+// @Description Create a symlink in the service configuration directory to activate the specified configuration, or remove the symlink to deactivate it.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.ServiceAction true "Service action details"
+// @Param request body model.ServiceActivate true "Service action details"
 // @Success 200
-// @Router /services/{host}/action [post]
-func (s *ServiceMan) ServiceAction(c *gin.Context) {
+// @Router /services/{host}/activate [post]
+func (s *ServiceMan) ServiceActivate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -914,7 +914,7 @@ func (s *ServiceMan) ServiceAction(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.serviceAction(hostID, req)
+	err = s.serviceActivate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

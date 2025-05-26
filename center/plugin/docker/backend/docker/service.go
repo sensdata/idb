@@ -157,15 +157,15 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/compose/operation", Handler: s.ComposeOperation}, // 操作编排
 
 			// containers
-			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                  // 获取容器列表
-			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},            // 获取容器名列表
-			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},          // 获取容器资源占用
-			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},            // 获取容器资源限制
-			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},                // 创建容器
-			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},                 // 编辑容器
-			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},       // 升级容器
-			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},         // 重命名容器
-			{Method: "POST", Path: "/:host/containers/operatetion", Handler: s.ContainerOperation}, // 操作容器
+			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                // 获取容器列表
+			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},          // 获取容器名列表
+			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},        // 获取容器资源占用
+			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},          // 获取容器资源限制
+			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},              // 创建容器
+			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},               // 编辑容器
+			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},     // 升级容器
+			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},       // 重命名容器
+			{Method: "POST", Path: "/:host/containers/operation", Handler: s.ContainerOperation}, // 操作容器
 
 			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},          // 获取容器详情
 			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},          // 获取容器监控数据
@@ -926,7 +926,7 @@ func (s *DockerMan) ContainerRename(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerOperation true "Container operation details"
 // @Success 200
-// @Router /docker/{host}/containers/operatetion [post]
+// @Router /docker/{host}/containers/operation [post]
 func (s *DockerMan) ContainerOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

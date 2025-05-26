@@ -1227,7 +1227,7 @@ func (s *NFTable) syncGlobal(hostID uint) error {
 	return nil
 }
 
-func (s *NFTable) confAction(hostID uint64, req model.ServiceAction) error {
+func (s *NFTable) confActivate(hostID uint64, req model.ServiceAction) error {
 
 	var repoPath string
 	switch req.Type {

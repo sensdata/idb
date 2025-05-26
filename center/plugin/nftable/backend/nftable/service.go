@@ -144,16 +144,16 @@ func (s *NFTable) Initialize() {
 			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
 			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
 			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
-			{Method: "GET", Path: "/:host/conf", Handler: s.GetConfList},
-			{Method: "GET", Path: "/:host/conf/raw", Handler: s.GetContent},     // 源文模式获取
-			{Method: "POST", Path: "/:host/conf/raw", Handler: s.CreateContent}, // 源文模式创建
-			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.UpdateContent},  // 源文模式更新
-			{Method: "DELETE", Path: "/:host/conf", Handler: s.Delete},
-			{Method: "PUT", Path: "/:host/conf/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/conf/log", Handler: s.GetConfLog},
-			{Method: "GET", Path: "/:host/conf/diff", Handler: s.GetConfDiff},
+			{Method: "GET", Path: "/:host", Handler: s.GetConfList},
+			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/conf/action", Handler: s.ConfAction},
+			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
 		},
 	)
 
@@ -454,7 +454,7 @@ func (s *NFTable) DeleteCategory(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /nftables/{host}/conf [get]
+// @Router /nftables/{host} [get]
 func (s *NFTable) GetConfList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -514,7 +514,7 @@ func (s *NFTable) GetConfList(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.CreateGitFile true "Conf file creation details"
 // @Success 200
-// @Router /nftables/{host}/conf/raw [post]
+// @Router /nftables/{host}/raw [post]
 func (s *NFTable) CreateContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -544,7 +544,7 @@ func (s *NFTable) CreateContent(c *gin.Context) {
 // @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "Conf file name"
 // @Success 200 {string} string
-// @Router /nftables/{host}/conf/raw [get]
+// @Router /nftables/{host}/raw [get]
 func (s *NFTable) GetContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -597,7 +597,7 @@ func (s *NFTable) GetContent(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.UpdateGitFile true "Conf file edit details"
 // @Success 200
-// @Router /nftables/{host}/conf/raw [put]
+// @Router /nftables/{host}/raw [put]
 func (s *NFTable) UpdateContent(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -627,7 +627,7 @@ func (s *NFTable) UpdateContent(c *gin.Context) {
 // @Param category query string true "Category (directory under 'global' or 'local')"
 // @Param name query string true "File name"
 // @Success 200
-// @Router /nftables/{host}/conf [delete]
+// @Router /nftables/{host} [delete]
 func (s *NFTable) Delete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -680,7 +680,7 @@ func (s *NFTable) Delete(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param request body model.RestoreGitFile true "Conf file restore details"
 // @Success 200
-// @Router /nftables/{host}/conf/restore [put]
+// @Router /nftables/{host}/restore [put]
 func (s *NFTable) Restore(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -712,7 +712,7 @@ func (s *NFTable) Restore(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /nftables/{host}/conf/log [get]
+// @Router /nftables/{host}/log [get]
 func (s *NFTable) GetConfLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -782,7 +782,7 @@ func (s *NFTable) GetConfLog(c *gin.Context) {
 // @Param name query string true "Conf file name"
 // @Param commit query string true "Commit hash"
 // @Success 200 {string} string
-// @Router /nftables/{host}/conf/diff [get]
+// @Router /nftables/{host}/diff [get]
 func (s *NFTable) GetConfDiff(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -858,15 +858,15 @@ func (s *NFTable) SyncGlobal(c *gin.Context) {
 }
 
 // @Tags nftables
-// @Summary Execute conf actions
-// @Description Execute conf actions
+// @Summary Activate or deactivate conf
+// @Description Replace /etc/nftables.conf with the specified configuration to activate, or restore the default configuration to deactivate.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
-// @Router /nftables/{host}/conf/action [post]
-func (s *NFTable) ConfAction(c *gin.Context) {
+// @Router /nftables/{host}/activate [post]
+func (s *NFTable) ConfActivate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -877,7 +877,7 @@ func (s *NFTable) ConfAction(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.confAction(hostID, req)
+	err = s.confActivate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

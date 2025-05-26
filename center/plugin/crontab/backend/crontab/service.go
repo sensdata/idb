@@ -163,7 +163,7 @@ func (s *CronTab) Initialize() {
 			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/action", Handler: s.ConfAction},
+			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
 		},
 	)
 
@@ -895,15 +895,15 @@ func (s *CronTab) SyncGlobal(c *gin.Context) {
 }
 
 // @Tags Crontab
-// @Summary Execute conf actions
-// @Description Execute conf actions
+// @Summary Activate or deactivate conf
+// @Description Create a symlink in the crontab configuration directory to activate the specified configuration, or remove the symlink to deactivate it.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
-// @Router /crontab/{host}/action [post]
-func (s *CronTab) ConfAction(c *gin.Context) {
+// @Router /crontab/{host}/activate [post]
+func (s *CronTab) ConfActivate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -914,7 +914,7 @@ func (s *CronTab) ConfAction(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.confAction(hostID, req)
+	err = s.confActivate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

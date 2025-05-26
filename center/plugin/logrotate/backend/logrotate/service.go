@@ -163,7 +163,7 @@ func (s *LogRotate) Initialize() {
 			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/action", Handler: s.ConfAction},
+			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
 		},
 	)
 
@@ -895,15 +895,15 @@ func (s *LogRotate) SyncGlobal(c *gin.Context) {
 }
 
 // @Tags Logrotate
-// @Summary Execute conf actions
-// @Description Execute conf actions
+// @Summary Activate or deactivate conf
+// @Description Create a symlink in the logrotate configuration directory to activate the specified configuration, or remove the symlink to deactivate it.
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Param request body model.ServiceAction true "Conf action details"
 // @Success 200
-// @Router /logrotate/{host}/action [post]
-func (s *LogRotate) ConfAction(c *gin.Context) {
+// @Router /logrotate/{host}/activate [post]
+func (s *LogRotate) ConfActivate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
@@ -914,7 +914,7 @@ func (s *LogRotate) ConfAction(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.confAction(hostID, req)
+	err = s.confActivate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
