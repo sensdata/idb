@@ -863,7 +863,7 @@ func (s *NFTable) SyncGlobal(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.ServiceAction true "Conf action details"
+// @Param request body model.ServiceActivate true "Conf action details"
 // @Success 200
 // @Router /nftables/{host}/activate [post]
 func (s *NFTable) ConfActivate(c *gin.Context) {
@@ -873,7 +873,7 @@ func (s *NFTable) ConfActivate(c *gin.Context) {
 		return
 	}
 
-	var req model.ServiceAction
+	var req model.ServiceActivate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

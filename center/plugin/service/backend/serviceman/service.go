@@ -910,7 +910,7 @@ func (s *ServiceMan) ServiceActivate(c *gin.Context) {
 		return
 	}
 
-	var req model.ServiceAction
+	var req model.ServiceActivate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

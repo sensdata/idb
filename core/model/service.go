@@ -33,15 +33,9 @@ type UpdateServiceForm struct {
 	Form        []KeyValue `json:"form" validate:"dive,required"`
 }
 
-type ServiceAction struct {
+type ServiceActivate struct {
 	Type     string `json:"type" validate:"required"`
 	Category string `json:"category"`
 	Name     string `json:"name" validate:"required"`
 	Action   string `json:"action" validate:"required,oneof=activate deactivate"`
-}
-
-type ServiceActionInfo struct {
-	RepoPath     string `json:"repo_path" validate:"required"`
-	RelativePath string `json:"relative_path" validate:"required"`
-	Action       string `json:"action" validate:"required,oneof=activate deactivate"`
 }

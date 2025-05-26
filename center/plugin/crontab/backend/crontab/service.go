@@ -900,7 +900,7 @@ func (s *CronTab) SyncGlobal(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param request body model.ServiceAction true "Conf action details"
+// @Param request body model.ServiceActivate true "Conf action details"
 // @Success 200
 // @Router /crontab/{host}/activate [post]
 func (s *CronTab) ConfActivate(c *gin.Context) {
@@ -910,7 +910,7 @@ func (s *CronTab) ConfActivate(c *gin.Context) {
 		return
 	}
 
-	var req model.ServiceAction
+	var req model.ServiceActivate
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}

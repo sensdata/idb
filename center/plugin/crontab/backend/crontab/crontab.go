@@ -1395,7 +1395,7 @@ func (s *CronTab) syncGlobal(hostID uint) error {
 	return nil
 }
 
-func (s *CronTab) confActivate(hostID uint64, req model.ServiceAction) error {
+func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 	var repoPath string
 	switch req.Type {
