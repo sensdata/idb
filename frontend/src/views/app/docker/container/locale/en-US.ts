@@ -1,0 +1,30 @@
+export default {
+  'app.docker.container.list.column.name': 'Name',
+  'app.docker.container.list.column.image': 'Image',
+  'app.docker.container.list.column.status': 'Status',
+  'app.docker.container.list.column.resource': 'Resource',
+  'app.docker.container.list.column.ip': 'IP Address',
+  'app.docker.container.list.column.ports': 'Ports',
+  'app.docker.container.list.column.uptime': 'Uptime',
+  'app.docker.container.list.status.running': 'Running',
+  'app.docker.container.list.status.stopped': 'Stopped',
+  'app.docker.container.list.status.paused': 'Paused',
+  'app.docker.container.list.status.unknown': 'Unknown',
+  'app.docker.container.list.operation.terminal': 'Terminal',
+  'app.docker.container.list.operation.terminal.todo':
+    'Terminal feature is under development',
+  'app.docker.container.list.operation.log': 'Log',
+  'app.docker.container.list.operation.log.todo':
+    'Log feature is under development',
+  'app.docker.container.list.operation.start': 'Start',
+  'app.docker.container.list.operation.stop': 'Stop',
+  'app.docker.container.list.operation.restart': 'Restart',
+  'app.docker.container.list.operation.kill': 'Force Stop',
+  'app.docker.container.list.operation.pause': 'Pause',
+  'app.docker.container.list.operation.resume': 'Resume',
+  'app.docker.container.list.operation.delete': 'Delete',
+  'app.docker.container.list.operation.delete.confirm':
+    'Are you sure to delete this container?',
+  'app.docker.container.list.operation.success': 'Operation succeeded',
+  'app.docker.container.list.operation.failed': 'Operation failed',
+};

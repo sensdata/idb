@@ -62,14 +62,33 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/app/crontab',
-    name: 'crontab',
-    component: () => import('@/views/app/crontab/main.vue'),
+    path: '/app/docker',
+    name: 'docker',
     meta: {
-      locale: 'menu.app.crontab',
+      locale: 'menu.app.docker',
       requiresAuth: true,
-      icon: 'icon-clock-circle',
+      icon: 'icon-common',
     },
+    children: [
+      {
+        path: 'compose',
+        name: 'compose',
+        component: () => import('@/views/app/docker/compose/list.vue'),
+        meta: {
+          locale: 'menu.app.docker.compose',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'container',
+        name: 'container',
+        component: () => import('@/views/app/docker/container/list.vue'),
+        meta: {
+          locale: 'menu.app.docker.container',
+          requiresAuth: true,
+        },
+      },
+    ],
   },
   {
     path: '/app/file',
@@ -90,6 +109,16 @@ const appRoutes: RouteRecordRaw[] = [
       requiresAuth: true,
       icon: 'icon-code-square',
       command: 'openTerminal',
+    },
+  },
+  {
+    path: '/app/crontab',
+    name: 'crontab',
+    component: () => import('@/views/app/crontab/main.vue'),
+    meta: {
+      locale: 'menu.app.crontab',
+      requiresAuth: true,
+      icon: 'icon-clock-circle',
     },
   },
   {
