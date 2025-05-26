@@ -565,7 +565,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		// 字段规则
 		validKeys := make(map[string]core.FormField)
 		for _, field := range form.Fields {
-			validKeys[field.Key] = field
+			validKeys[field.Name] = field
 		}
 		// 校验env params
 		for _, param := range req.FormParams {
@@ -607,13 +607,13 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 						}
 					}
 				}
-				// 校验通过，根据传入的form params，替换env中的对应值
-				if _, exist := envMap[param.Key]; exist {
+				// 校验通过，传递值到envMap中，formField.Name -> envMap key
+				if _, exist := envMap[formField.Name]; exist {
 					// 密码类型，可能包含特殊字符，以单引号包含，避免转义错误
 					if formField.Type == "password" {
-						envMap[param.Key] = fmt.Sprintf("'%s'", param.Value)
+						envMap[formField.Name] = fmt.Sprintf("'%s'", param.Value)
 					} else {
-						envMap[param.Key] = param.Value
+						envMap[formField.Name] = param.Value
 					}
 				}
 			} else {

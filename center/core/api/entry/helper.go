@@ -25,6 +25,19 @@ func ErrorWithDetail(ctx *gin.Context, code int, msg string, err error) {
 	ctx.Abort()
 }
 
+func ErrorWithData(ctx *gin.Context, code int, msg string, data interface{}) {
+	if data == nil {
+		data = gin.H{}
+	}
+	res := model.Response{
+		Code:    code,
+		Message: msg,
+		Data:    data,
+	}
+	ctx.JSON(http.StatusOK, res)
+	ctx.Abort()
+}
+
 func SuccessWithData(ctx *gin.Context, data interface{}) {
 	if data == nil {
 		data = gin.H{}

@@ -116,7 +116,7 @@ func (b *BaseApi) InstallApp(c *gin.Context) {
 
 	result, err := appService.AppInstall(uint64(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithData(c, constant.CodeFailed, err.Error(), result)
 		return
 	}
 	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
