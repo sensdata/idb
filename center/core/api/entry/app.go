@@ -25,19 +25,26 @@ func (b *BaseApi) SyncApp(c *gin.Context) {
 // @Tags App
 // @Summary Get app list
 // @Description Get app list
+// @Param host path int true "Host ID"
 // @Param page query int true "Page number"
 // @Param page_size query int true "Page size"
 // @Param name query string false "Name"
 // @Param category query string false "Category"
 // @Success 200
-// @Router /store/apps [get]
+// @Router /store/{host}/apps [get]
 func (b *BaseApi) AppPage(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
 	var req model.QueryApp
 	if err := CheckQueryAndValidate(&req, c); err != nil {
 		return
 	}
 
-	result, err := appService.AppPage(req)
+	result, err := appService.AppPage(hostID, req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
@@ -48,17 +55,24 @@ func (b *BaseApi) AppPage(c *gin.Context) {
 // @Tags App
 // @Summary Get app detail
 // @Description Get app detail
+// @Param host path int true "Host ID"
 // @Param id query int true "App ID"
 // @Success 200
-// @Router /store/apps/detail [get]
+// @Router /store/{host}/apps/detail [get]
 func (b *BaseApi) AppDetail(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
 	appID, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid app ID", err)
 		return
 	}
 
-	result, err := appService.AppDetail(model.QueryAppDetail{ID: uint(appID)})
+	result, err := appService.AppDetail(hostID, model.QueryAppDetail{ID: uint(appID)})
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return

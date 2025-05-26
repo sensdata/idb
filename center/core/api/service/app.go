@@ -33,9 +33,9 @@ type AppService struct {
 
 type IAppService interface {
 	SyncApp() error
-	AppPage(req core.QueryApp) (*core.PageResult, error)
+	AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error)
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
-	AppDetail(req core.QueryAppDetail) (*core.App, error)
+	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
 	AppUninstall(hostID uint64, req core.UninstallApp) error
 }
@@ -341,7 +341,21 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 	return appVersions, nil
 }
 
-func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
+func (s *AppService) AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error) {
+	var result core.PageResult
+
+	// 查询host上已安装的应用
+	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, s.AppDir)
+	if err != nil {
+		global.LOG.Error("Error query compose in host %d, %v", hostID, err)
+		return &result, err
+	}
+	// 转成map
+	composeMap := make(map[string]core.ComposeInfo)
+	for _, composeInfo := range composeInfos {
+		composeMap[composeInfo.IdbName] = composeInfo
+	}
+
 	var opts []repo.DBOption
 	if req.Name != "" {
 		opts = append(opts, CommonRepo.WithLikeName(req.Name))
@@ -351,13 +365,19 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 	}
 	total, apps, err := AppRepo.Page(req.Page, req.PageSize, opts...)
 	if err != nil {
-		return nil, errors.WithMessage(constant.ErrNoRecords, err.Error())
+		return &result, errors.WithMessage(constant.ErrNoRecords, err.Error())
 	}
 	// db -> dto
 	var items []core.App
 	for _, appData := range apps {
+		status := "uninstalled"
+		if _, ok := composeMap[appData.Name]; ok {
+			status = "installed"
+		}
+
 		items = append(items, core.App{
 			ID:          appData.ID,
+			Type:        constant.TYPE_APP,
 			Name:        appData.Name,
 			DisplayName: appData.DisplayName,
 			Category:    appData.Category,
@@ -366,6 +386,7 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 			Description: appData.Description,
 			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
 			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+			Status:      status,
 		})
 	}
 	return &core.PageResult{Total: total, Items: items}, nil
@@ -374,50 +395,10 @@ func (s *AppService) AppPage(req core.QueryApp) (*core.PageResult, error) {
 func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error) {
 	var result core.PageResult
 
-	queryCompose := core.QueryCompose{
-		PageInfo: core.PageInfo{Page: 1, PageSize: 10000}, // get all
-		Info:     req.Name,
-		WorkDir:  s.AppDir,
-		IdbType:  constant.TYPE_APP,
-	}
-	data, err := utils.ToJSONString(queryCompose)
+	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, s.AppDir)
 	if err != nil {
+		global.LOG.Error("Error query compose in host %d, %v", hostID, err)
 		return &result, err
-	}
-
-	actionRequest := core.HostAction{
-		HostID: uint(hostID),
-		Action: core.Action{
-			Action: core.Docker_Compose_Page,
-			Data:   data,
-		},
-	}
-	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action %v", err)
-		return &result, err
-	}
-	if !actionResponse.Result {
-		global.LOG.Error("action failed")
-		return &result, fmt.Errorf("failed to query compose")
-	}
-	var composeResult core.PageResult
-	err = utils.FromJSONString(actionResponse.Data, &composeResult)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to compose query result: %v", err)
-		return &result, fmt.Errorf("unmarshal err: %v", err)
-	}
-
-	// 将 Items 转换为 []ComposeInfo 类型
-	itemsJSON, err := utils.ToJSONString(composeResult.Items)
-	if err != nil {
-		global.LOG.Error("Error marshaling Items: %v", err)
-		return &result, fmt.Errorf("marshal err: %v", err)
-	}
-	var composeInfos []core.ComposeInfo
-	if err := utils.FromJSONString(itemsJSON, &composeInfos); err != nil {
-		global.LOG.Error("Error unmarshaling Items to []ComposeInfo: %v", err)
-		return &result, fmt.Errorf("unmarshal err: %v", err)
 	}
 
 	// 遍历 ComposeInfo 查询对应的 App
@@ -494,7 +475,54 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 	return &result, nil
 }
 
-func (s *AppService) AppDetail(req core.QueryAppDetail) (*core.App, error) {
+func (s *AppService) composePageInHost(hostID uint, info string, workDir string) ([]core.ComposeInfo, error) {
+	var result []core.ComposeInfo
+	queryCompose := core.QueryCompose{
+		PageInfo: core.PageInfo{Page: 1, PageSize: 10000}, // get all
+		Info:     info,
+		WorkDir:  workDir,
+		IdbType:  constant.TYPE_APP,
+	}
+	data, err := utils.ToJSONString(queryCompose)
+	if err != nil {
+		return result, err
+	}
+	actionRequest := core.HostAction{
+		HostID: hostID,
+		Action: core.Action{
+			Action: core.Docker_Compose_Page,
+			Data:   data,
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Docker_Compose_Page %v", err)
+		return result, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Docker_Compose_Page failed")
+		return result, fmt.Errorf("failed to query compose")
+	}
+	var composeResult core.PageResult
+	err = utils.FromJSONString(actionResponse.Data, &composeResult)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose query result: %v", err)
+		return result, fmt.Errorf("unmarshal err: %v", err)
+	}
+	// 将 Items 转换为 []ComposeInfo 类型
+	itemsJSON, err := utils.ToJSONString(composeResult.Items)
+	if err != nil {
+		global.LOG.Error("Error marshaling Items: %v", err)
+		return result, fmt.Errorf("marshal err: %v", err)
+	}
+	if err := utils.FromJSONString(itemsJSON, &result); err != nil {
+		global.LOG.Error("Error unmarshaling Items to []ComposeInfo: %v", err)
+		return result, fmt.Errorf("unmarshal err: %v", err)
+	}
+	return result, nil
+}
+
+func (s *AppService) AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error) {
 	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
 	if err != nil {
 		global.LOG.Error("App %d data not found", req.ID)

@@ -14,6 +14,7 @@ type App struct {
 	HasUpdate   bool         `yaml:"-" json:"has_update"`
 	Versions    []AppVersion `json:"versions"`
 	Form        Form         `json:"form"`
+	Status      string       `json:"status"`
 }
 type AppVersion struct {
 	ID             uint   `json:"id"`
