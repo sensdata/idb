@@ -420,13 +420,24 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			continue
 		}
 		hasUpdate := false
+		status := "uninstalled"
 		var versions []core.AppVersion
 		for _, version := range appVersions {
+			var createdAt string
+			versionStatus := "uninstalled"
+			if version.Version == compose.IdbVersion {
+				versionStatus = "installed"
+				status = "installed"
+				createdAt = compose.CreatedAt
+			}
+
 			versions = append(versions, core.AppVersion{
 				ID:             version.ID,
 				Version:        version.Version,
 				UpdateVersion:  version.UpdateVersion,
 				ComposeContent: version.ComposeContent,
+				Status:         versionStatus,
+				CreatedAt:      createdAt,
 			})
 			if version.Version == compose.IdbVersion {
 				composeUpdtVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
@@ -446,6 +457,8 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			}
 		}
 		apps = append(apps, core.App{
+			ID:          appData.ID,
+			Type:        constant.TYPE_APP,
 			Name:        appData.Name,
 			DisplayName: appData.DisplayName,
 			Category:    appData.Category,
@@ -456,6 +469,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
 			HasUpdate:   hasUpdate,
 			Versions:    versions,
+			Status:      status,
 		})
 	}
 

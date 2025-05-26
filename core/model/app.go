@@ -21,6 +21,8 @@ type AppVersion struct {
 	Version        string `json:"version"`
 	UpdateVersion  string `json:"update_version"`
 	ComposeContent string `json:"compose_content"`
+	Status         string `json:"status"`
+	CreatedAt      string `json:"created_at"`
 }
 type NameUrl struct {
 	Name string `yaml:"name" json:"name"`
