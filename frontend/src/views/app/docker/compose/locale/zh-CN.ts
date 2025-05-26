@@ -1,0 +1,17 @@
+export default {
+  'app.compose.list.column.name': '名称',
+  'app.compose.list.column.status': '状态',
+  'app.compose.list.status.running': '运行中',
+  'app.compose.list.status.stopped': '已停止',
+  'app.compose.list.status.unknown': '未知',
+  'app.compose.list.column.create_time': '创建时间',
+  'app.compose.list.action.add': '新建 Compose',
+  'app.compose.list.operation.start': '启动',
+  'app.compose.list.operation.stop': '停止',
+  'app.compose.list.operation.down': '下线',
+  'app.compose.list.operation.edit': '编辑',
+  'app.compose.list.operation.delete': '删除',
+  'app.compose.list.operation.delete.confirm': '确定要删除该 Compose 吗？',
+  'app.compose.list.operation.success': '操作成功',
+  'app.compose.list.operation.failed': '操作失败',
+};
