@@ -15,6 +15,7 @@ export default {
   'menu.app.file': '文件管理',
   'menu.app.terminal': '命令终端',
   'menu.app.crontab': '计划任务',
+  'menu.app.logrotate': '日志轮转',
   'menu.app.script': '脚本管理',
   'menu.app.process': '进程管理',
   'menu.app.ssh': 'SSH 管理',

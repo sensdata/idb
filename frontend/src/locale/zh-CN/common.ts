@@ -8,6 +8,7 @@ export default {
   'common.form.saveText': '保存',
   'common.form.cancelText': '取消',
   'common.table.operation': '操作',
+  'common.operation': '操作',
 
   'common.request.timeout': '请求超时，请稍后重试',
   'common.request.unauthorized': '登录过期，请重新登录',
@@ -28,6 +29,7 @@ export default {
   'common.view': '查看',
   'common.modify': '修改',
   'common.save': '保存',
+  'common.cancel': '取消',
   'common.discard': '放弃',
 
   'common.yes': '是',
@@ -37,4 +39,5 @@ export default {
 
   'common.message.saveSuccess': '操作成功',
   'common.message.saveError': '操作失败',
+  'common.host_id_required': '主机ID是必需的',
 };

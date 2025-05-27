@@ -35,3 +35,20 @@ export enum TASK_STATUS {
   Failed = 'failed',
   Canceled = 'canceled',
 }
+
+export enum LOGROTATE_TYPE {
+  Local = 'local',
+  Global = 'global',
+}
+
+export enum LOGROTATE_MODE {
+  Form = 'form',
+  Raw = 'raw',
+}
+
+export enum LOGROTATE_FREQUENCY {
+  Daily = 'daily',
+  Weekly = 'weekly',
+  Monthly = 'monthly',
+  Yearly = 'yearly',
+}

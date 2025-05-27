@@ -15,6 +15,7 @@ export default {
   'menu.app.file': 'File Manager',
   'menu.app.terminal': 'Terminal',
   'menu.app.crontab': 'Crontab',
+  'menu.app.logrotate': 'Log Rotation',
   'menu.app.script': 'Script Manager',
   'menu.app.process': 'Process Manager',
   'menu.app.ssh': 'SSH Manager',

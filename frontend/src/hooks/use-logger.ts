@@ -5,72 +5,27 @@
 
 /* eslint-disable no-console */
 import { ref, onMounted, onUnmounted } from 'vue';
-
-// 日志参数类型
-type LogParams = (
-  | string
-  | number
-  | boolean
-  | object
-  | null
-  | undefined
-  | unknown
-)[];
+import { createLogger } from '@/utils/logger';
 
 export const useLogger = (component?: string) => {
-  const isDev = import.meta.env.DEV;
-  // 控制日志是否启用
-  const isEnabled = ref(isDev);
-  // 日志前缀
-  const prefix = component ? `[${component}]` : '';
+  // 创建底层日志实例
+  const logger = createLogger(component);
+
+  // 控制日志是否启用（保持响应式，用于组件内部状态管理）
+  const isEnabled = ref(import.meta.env.DEV);
 
   // 记录组件挂载和卸载
   onMounted(() => {
     if (isEnabled.value && component) {
-      console.log(`${prefix} 组件已挂载`);
+      logger.log('组件已挂载');
     }
   });
 
   onUnmounted(() => {
     if (isEnabled.value && component) {
-      console.log(`${prefix} 组件已卸载`);
+      logger.log('组件已卸载');
     }
   });
-
-  // 标准日志（与logDebug相同，但命名更简单）
-  const log = (...args: LogParams): void => {
-    if (isEnabled.value) {
-      console.log(prefix, ...args);
-    }
-  };
-
-  // 调试日志
-  const logDebug = (...args: LogParams): void => {
-    if (isEnabled.value) {
-      console.log(prefix, ...args);
-    }
-  };
-
-  // 信息日志
-  const logInfo = (...args: LogParams): void => {
-    if (isEnabled.value) {
-      console.info(prefix, ...args);
-    }
-  };
-
-  // 警告日志
-  const logWarn = (...args: LogParams): void => {
-    if (isEnabled.value) {
-      console.warn(prefix, ...args);
-    }
-  };
-
-  // 错误日志
-  const logError = (...args: LogParams): void => {
-    if (isEnabled.value) {
-      console.error(prefix, ...args);
-    }
-  };
 
   // 设置日志级别
   const setLogEnabled = (enabled: boolean): void => {
@@ -78,11 +33,11 @@ export const useLogger = (component?: string) => {
   };
 
   return {
-    log,
-    logDebug,
-    logInfo,
-    logWarn,
-    logError,
+    log: logger.log.bind(logger),
+    logDebug: logger.logDebug.bind(logger),
+    logInfo: logger.logInfo.bind(logger),
+    logWarn: logger.logWarn.bind(logger),
+    logError: logger.logError.bind(logger),
     setLogEnabled,
     isEnabled,
   };

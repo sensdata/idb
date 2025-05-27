@@ -7,6 +7,7 @@ export default {
   'common.form.saveText': 'Save',
   'common.form.cancelText': 'Cancel',
   'common.table.operation': 'Operation',
+  'common.operation': 'Operation',
 
   'common.request.timeout': 'Request timeout, please try again later',
   'common.request.unauthorized': 'Login expired, please log in again',
@@ -27,6 +28,7 @@ export default {
   'common.view': 'View',
   'common.modify': 'Modify',
   'common.save': 'Save',
+  'common.cancel': 'Cancel',
   'common.discard': 'Discard',
 
   'common.yes': 'Yes',
@@ -36,4 +38,5 @@ export default {
 
   'common.message.saveSuccess': 'handle success',
   'common.message.saveError': 'handle failed',
+  'common.host_id_required': 'Host ID is required',
 };

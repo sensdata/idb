@@ -122,6 +122,16 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/app/logrotate',
+    name: 'logrotate',
+    component: () => import('@/views/app/logrotate/main.vue'),
+    meta: {
+      locale: 'menu.app.logrotate',
+      requiresAuth: true,
+      icon: 'icon-refresh',
+    },
+  },
+  {
     path: '/app/script',
     name: 'script',
     component: () => import('@/views/app/script/main.vue'),
