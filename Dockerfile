@@ -41,6 +41,7 @@ ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
 # 拷贝代码
+WORKDIR /app
 COPY . .
 # 拷贝证书和密钥
 COPY --from=certs-builder /app/certs/cert.pem agent/global/certs/
@@ -52,8 +53,7 @@ WORKDIR /app/agent
 # 下载依赖
 RUN go mod download
 # 编译 agent
-RUN go mod tidy && \
-    GOOS=${GOOS} \
+RUN GOOS=${GOOS} \
     GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
     -ldflags="-s -w -X 'github.com/sensdata/idb/agent/global.Version=${VERSION}'" \
@@ -81,6 +81,7 @@ ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
 # 拷贝代码
+WORKDIR /app
 COPY . .
 # 拷贝证书和密钥
 COPY --from=certs-builder /app/certs/cert.pem center/global/certs/
@@ -93,7 +94,6 @@ WORKDIR /app/center
 RUN go mod download
 # 编译 center
 RUN KEY=$(cat /app/.env | grep KEY | cut -d'=' -f2) && \
-    go mod tidy && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
     -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}' -X 'github.com/sensdata/idb/center/global.DefaultKey=${KEY}'" \
