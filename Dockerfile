@@ -26,7 +26,12 @@ RUN apt-get update && apt-get install -y \
     libc6-dev \
     make \
     sed
-RUN curl -L https://go.dev/dl/go1.22.3.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+
+# 安装 golang
+RUN curl -L https://go.dev/dl/go1.22.3.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
+    export GOROOT=/usr/local/go && \
+    export PATH=$GOROOT/bin:$PATH && \
+    ln -s /usr/local/go/bin/go /usr/local/bin/go
     
 # 环境变量
 ENV GOROOT=/usr/local/go \
