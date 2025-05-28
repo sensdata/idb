@@ -1,5 +1,5 @@
 # ---------- 构建 frontend ---------- #
-FROM node:16 AS frontend-builder
+FROM node:current AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
