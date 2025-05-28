@@ -22,6 +22,7 @@ import (
 )
 
 type SSHService struct {
+	done          chan struct{}
 	mu            sync.Mutex
 	sshClients    map[string]*ssh.Client
 	responseChMap map[string]chan string
@@ -29,7 +30,7 @@ type SSHService struct {
 
 type ISSHService interface {
 	Start() error
-	Stop()
+	Stop() error
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host, taskId string, upgrade bool) error
 	UninstallAgent(host model.Host, taskId string) error
@@ -46,7 +47,7 @@ func NewSSHService() ISSHService {
 
 func (s *SSHService) Start() error {
 
-	global.LOG.Info("SSHService started")
+	global.LOG.Info("SSHService Starting")
 
 	// 尝试连接所有的host
 	go s.ensureConnections()
@@ -54,13 +55,17 @@ func (s *SSHService) Start() error {
 	return nil
 }
 
-func (s *SSHService) Stop() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *SSHService) Stop() error {
+	close(s.done)
 
+	// 关闭所有的ssh连接
+	s.mu.Lock()
 	for _, client := range s.sshClients {
 		client.Close()
 	}
+	s.mu.Unlock()
+
+	return nil
 }
 
 func (s *SSHService) TestConnection(host model.Host) error {
@@ -112,25 +117,14 @@ func (s *SSHService) TestConnection(host model.Host) error {
 	return nil
 }
 
-func (s *SSHService) checkClient(host model.Host) (*ssh.Client, error) {
+func (s *SSHService) getClient(host model.Host) (*ssh.Client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	client, exists := s.sshClients[host.Addr]
 	if !exists || client == nil || !isValidSSHClient(client) {
-		delete(s.sshClients, host.Addr)
-
-		// 如果连接不存在，或者连接无效，尝试建立连接
-		resultCh := make(chan error, 1)
-		go s.connectToHost(&host, resultCh)
-		err := <-resultCh
-		if err != nil {
-			global.LOG.Error("Failed to connect to host %s: %v", host.Addr, err)
-			return nil, fmt.Errorf("failed to connect to host %s: %v", host.Addr, err)
-		}
-		client = s.sshClients[host.Addr]
+		global.LOG.Error("ssh connection to host %s not exists", host.Addr)
+		return nil, fmt.Errorf("ssh connection to host %s not exists", host.Addr)
 	}
-
 	return client, nil
 }
 
@@ -192,9 +186,9 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		return fmt.Errorf("agent package not found at %s", agentPackagePath)
 	}
 
-	// 2. 检查并确保 SSH 连接存在
+	// 2. 拿 SSH 连接
 	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
-	client, err := s.checkClient(host)
+	client, err := s.getClient(host)
 	if err != nil {
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
 		taskStatus(taskId, types.TaskStatusCanceled)
@@ -281,7 +275,7 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 
 	// 1. 检查并确保 SSH 连接存在
 	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
-	client, err := s.checkClient(host)
+	client, err := s.getClient(host)
 	if err != nil {
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
 		taskStatus(taskId, types.TaskStatusCanceled)
@@ -352,8 +346,8 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 func (s *SSHService) AgentInstalled(host model.Host) (string, error) {
 	installed := "unknown"
 
-	// 1. 检查并确保 SSH 连接存在
-	client, err := s.checkClient(host)
+	// 1. 检查 SSH 连接是否存在
+	client, err := s.getClient(host)
 	if err != nil {
 		return installed, err
 	}
@@ -380,7 +374,7 @@ func (s *SSHService) AgentInstalled(host model.Host) (string, error) {
 
 func (s *SSHService) RestartAgent(host model.Host) error {
 	// 检查并确保 SSH 连接存在
-	client, err := s.checkClient(host)
+	client, err := s.getClient(host)
 	if err != nil {
 		return err
 	}
@@ -464,21 +458,34 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 }
 
 func (s *SSHService) ensureConnections() {
-	//获取所有的host
-	hosts, err := HostRepo.GetList()
-	if err != nil {
-		global.LOG.Error("Failed to get host list: %v", err)
-		return
-	}
-	global.LOG.Info("%d hosts to connect", len(hosts))
+	global.LOG.Info("Ensure ssh connections")
 
-	// 挨个确认是否已经建立连接
-	for _, host := range hosts {
-		_, err := s.checkClient(host)
-		if err != nil {
-			continue
-		} else {
-			go s.InstallAgent(host, "", false)
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-s.done:
+			global.LOG.Info("Ensure ssh connections done")
+			return
+		case <-ticker.C:
+			//获取所有的host
+			hosts, err := HostRepo.GetList()
+			if err != nil {
+				global.LOG.Error("Failed to get host list: %v", err)
+				continue
+			}
+
+			// 检查连接
+			for _, host := range hosts {
+				global.LOG.Info("Ensure ssh connection for host %s", host.Addr)
+				client, _ := s.getClient(host)
+				if client == nil || err != nil {
+					resultCh := make(chan error, 1)
+					go s.connectToHost(&host, resultCh)
+				} else {
+					// do nothing
+				}
+			}
 		}
 	}
 }
@@ -532,6 +539,15 @@ func getPrivateKey(path string) (*core.FileInfo, error) {
 }
 
 func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
+	// 先关闭已有的client
+	s.mu.Lock()
+	client, exists := s.sshClients[host.Addr]
+	if exists && client != nil {
+		client.Close()
+		delete(s.sshClients, host.Addr)
+	}
+	s.mu.Unlock()
+
 	proto := "tcp"
 	addr := host.Addr
 	if strings.Contains(host.Addr, ":") {
@@ -577,7 +593,9 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 		resultCh <- err
 		return
 	}
+	s.mu.Lock()
 	s.sshClients[host.Addr] = client
+	s.mu.Unlock()
 
 	global.LOG.Info("SSH connection to %s created", host.Addr)
 	resultCh <- nil
