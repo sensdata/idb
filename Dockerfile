@@ -28,14 +28,13 @@ RUN apt-get update && apt-get install -y \
     sed
 
 # 安装 golang
-RUN curl -L https://go.dev/dl/go1.22.3.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
-    export GOROOT=/usr/local/go && \
-    export PATH=$GOROOT/bin:$PATH && \
+RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.22.3.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go
     
 # 环境变量
-ENV GOROOT=/usr/local/go \
-    PATH=$GOROOT/bin:$PATH
+ENV GOROOT=/usr/local/go
+ENV PATH=$GOROOT/bin:$PATH
 ENV CGO_ENABLED=1
 # 编译参数
 ARG GOOS=linux
