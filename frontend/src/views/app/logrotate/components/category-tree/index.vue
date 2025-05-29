@@ -1,10 +1,7 @@
 <template>
   <div class="category-tree">
     <div v-if="items.length === 0" class="empty-text">
-      {{ $t('app.logrotate.category.tree.empty') }}
-      <span class="color-primary" @click="handleCreate">
-        {{ $t('app.logrotate.category.tree.create') }}
-      </span>
+      暂无分组，<span class="create-link" @click="handleCreate">立即创建</span>
     </div>
     <template v-else>
       <div
@@ -185,61 +182,68 @@
 
 <style scoped>
   .category-tree {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 16px;
-    background: var(--color-bg-2);
-    border-radius: 4px;
+    padding-left: 8px;
   }
 
   .empty-text {
-    padding: 20px;
-    font-size: 14px;
-    color: var(--color-text-3);
-    text-align: center;
+    padding: 10px;
   }
 
-  .color-primary {
-    margin-left: 4px;
-    color: var(--color-primary-6);
+  .create-link {
+    color: rgb(var(--primary-6));
     cursor: pointer;
-    transition: color 0.2s ease;
-  }
-
-  .color-primary:hover {
-    color: var(--color-primary-5);
   }
 
   .item {
+    position: relative;
     display: flex;
     align-items: center;
-    padding: 8px 12px;
-    margin-bottom: 4px;
+    justify-content: flex-start;
+    height: 32px;
+    padding-left: 10px;
+    margin-bottom: 8px;
+    line-height: 32px;
     cursor: pointer;
     border-radius: 4px;
-    transition: all 0.2s ease;
   }
 
   .item:hover {
-    background: var(--color-fill-2);
+    background-color: var(--color-fill-1);
   }
 
   .item.selected {
-    color: var(--color-primary-6);
-    background: var(--color-primary-light-1);
+    background-color: var(--color-fill-2);
+  }
+
+  .item.selected::before {
+    position: absolute;
+    top: 12.5%;
+    left: -8px;
+    width: 4px;
+    height: 75%;
+    content: '';
+    background-color: rgb(var(--primary-6));
+    border-radius: 11px;
   }
 
   .item-icon {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 5px 0;
+  }
+
+  .item-icon svg {
+    width: 14px;
+    height: 14px;
   }
 
   .item-text {
     flex: 1;
+    min-width: 0;
+    margin-left: 8px;
     font-size: 14px;
+    line-height: 22px;
   }
 
   .truncate {

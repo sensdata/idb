@@ -56,7 +56,6 @@
   import useCurrentHost from '@/hooks/current-host';
   import CategoryFormModal from './form-modal.vue';
 
-  // Props 和 Emits 定义
   const props = defineProps<{
     type: LOGROTATE_TYPE;
   }>();
@@ -65,7 +64,6 @@
     ok: [];
   }>();
 
-  // Composables
   const { t } = useI18n();
   const { currentHostId } = useCurrentHost();
   const { confirm } = useConfirm();
@@ -75,19 +73,12 @@
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref<InstanceType<typeof CategoryFormModal>>();
 
-  // 计算属性
   const columns = computed(() => [
     {
       dataIndex: 'name',
       title: t('app.logrotate.category.manage.column.name'),
       width: 200,
       ellipsis: true,
-    },
-    {
-      dataIndex: 'count',
-      title: t('app.logrotate.category.manage.column.count'),
-      width: 100,
-      align: 'center' as const,
     },
     {
       dataIndex: 'operation',
@@ -98,7 +89,7 @@
     },
   ]);
 
-  // 方法
+  // 获取分类数据
   const fetchCategories = async (params: {
     type: LOGROTATE_TYPE;
     page?: number;
@@ -130,6 +121,7 @@
     formRef.value?.show();
   };
 
+  // 删除分类
   const handleDelete = async (category: { name: string }) => {
     const hostId = currentHostId.value;
     if (!hostId) {
@@ -149,6 +141,11 @@
       Message.success(
         t('app.logrotate.category.manage.message.delete_success')
       );
+
+      // 先通知父组件分类已删除，确保在加载数据前更新分类树和选择
+      emit('ok');
+
+      // 然后重新加载当前表格
       reload();
     } catch (err: any) {
       if (err?.message) {
@@ -166,7 +163,6 @@
     emit('ok');
   };
 
-  // 暴露方法
   defineExpose({
     show,
   });

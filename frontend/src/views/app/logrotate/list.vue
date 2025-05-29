@@ -1,105 +1,103 @@
 <template>
-  <div class="logrotate-main">
-    <div class="logrotate-content">
-      <div class="logrotate-left-panel">
-        <category-tree
-          ref="categoryTreeRef"
-          v-model:selected="params.category"
-          :type="type"
-        />
-      </div>
-      <div class="logrotate-right-panel">
-        <idb-table
-          ref="gridRef"
-          class="logrotate-table"
-          :loading="loading"
-          :params="params"
-          :columns="columns"
-          :fetch="fetchLogrotateList"
-          :auto-load="false"
-        >
-          <template #leftActions>
-            <a-button :type="BUTTON_TYPE_PRIMARY" @click="handleCreate">
-              <template #icon>
-                <icon-plus />
-              </template>
-              {{ $t('app.logrotate.list.action.create') }}
-            </a-button>
-            <a-button @click="handleCategoryManage">
-              <template #icon>
-                <icon-settings />
-              </template>
-              {{ $t('app.logrotate.category.manage.title') }}
-            </a-button>
-          </template>
-
-          <template #status="{ record }: { record: LogrotateEntity }">
-            <div class="status-cell">
-              <a-tag :color="getStatusInfo(record).color" class="status-tag">
-                {{ getStatusInfo(record).text }}
-              </a-tag>
-            </div>
-          </template>
-
-          <template #count="{ record }: { record: LogrotateEntity }">
-            {{ formatCount(record) }}
-          </template>
-
-          <template #frequency="{ record }: { record: LogrotateEntity }">
-            {{ formatFrequency(record) }}
-          </template>
-
-          <template #operation="{ record }: { record: LogrotateEntity }">
-            <div class="operation">
-              <a-button
-                :type="BUTTON_TYPE_TEXT"
-                :size="BUTTON_SIZE"
-                @click="handleEdit(record)"
-              >
-                {{ $t('common.edit') }}
-              </a-button>
-              <a-button
-                :type="BUTTON_TYPE_TEXT"
-                :size="BUTTON_SIZE"
-                @click="handleActionClick(record)"
-              >
-                {{ getActionButtonInfo(record).text }}
-              </a-button>
-              <a-button
-                :type="BUTTON_TYPE_TEXT"
-                :size="BUTTON_SIZE"
-                @click="handleHistory(record)"
-              >
-                {{ $t('app.logrotate.list.operation.history') }}
-              </a-button>
-              <a-button
-                :type="BUTTON_TYPE_TEXT"
-                :size="BUTTON_SIZE"
-                :status="BUTTON_STATUS_DANGER"
-                @click="handleDeleteClick(record)"
-              >
-                {{ $t('common.delete') }}
-              </a-button>
-            </div>
-          </template>
-        </idb-table>
-      </div>
+  <div class="logrotate-layout">
+    <div class="logrotate-sidebar">
+      <category-tree
+        ref="categoryTreeRef"
+        v-model:selected="params.category"
+        :type="type"
+      />
     </div>
+    <div class="logrotate-main">
+      <idb-table
+        ref="gridRef"
+        class="logrotate-table"
+        :loading="loading"
+        :params="params"
+        :columns="columns"
+        :fetch="fetchLogrotateList"
+        :auto-load="false"
+      >
+        <template #leftActions>
+          <a-button :type="BUTTON_TYPE_PRIMARY" @click="handleCreate">
+            <template #icon>
+              <icon-plus />
+            </template>
+            {{ $t('app.logrotate.list.action.create') }}
+          </a-button>
+          <a-button @click="handleCategoryManage">
+            <template #icon>
+              <icon-settings />
+            </template>
+            {{ $t('app.logrotate.category.manage.title') }}
+          </a-button>
+        </template>
 
-    <!-- 子组件 -->
-    <form-drawer
-      ref="formRef"
-      :type="type"
-      @ok="handleFormOk"
-      @category-change="handleCategoryChange"
-    />
-    <history-drawer ref="historyRef" />
-    <category-manage
-      ref="categoryManageRef"
-      :type="type"
-      @ok="handleCategoryManageOk"
-    />
+        <template #status="{ record }: { record: LogrotateEntity }">
+          <div class="status-cell">
+            <a-tag :color="getStatusInfo(record).color" class="status-tag">
+              {{ getStatusInfo(record).text }}
+            </a-tag>
+          </div>
+        </template>
+
+        <template #count="{ record }: { record: LogrotateEntity }">
+          {{ formatCount(record) }}
+        </template>
+
+        <template #frequency="{ record }: { record: LogrotateEntity }">
+          {{ formatFrequency(record) }}
+        </template>
+
+        <template #operation="{ record }: { record: LogrotateEntity }">
+          <div class="operation">
+            <a-button
+              :type="BUTTON_TYPE_TEXT"
+              :size="BUTTON_SIZE"
+              @click="handleEdit(record)"
+            >
+              {{ $t('common.edit') }}
+            </a-button>
+            <a-button
+              :type="BUTTON_TYPE_TEXT"
+              :size="BUTTON_SIZE"
+              @click="handleActionClick(record)"
+            >
+              {{ getActionButtonInfo(record).text }}
+            </a-button>
+            <a-button
+              :type="BUTTON_TYPE_TEXT"
+              :size="BUTTON_SIZE"
+              @click="handleHistory(record)"
+            >
+              {{ $t('app.logrotate.list.operation.history') }}
+            </a-button>
+            <a-button
+              :type="BUTTON_TYPE_TEXT"
+              :size="BUTTON_SIZE"
+              :status="BUTTON_STATUS_DANGER"
+              @click="handleDeleteClick(record)"
+            >
+              {{ $t('common.delete') }}
+            </a-button>
+          </div>
+        </template>
+      </idb-table>
+    </div>
   </div>
+
+  <!-- 子组件 -->
+  <form-drawer
+    ref="formRef"
+    :type="type"
+    @ok="handleFormOk"
+    @category-change="handleCategoryChange"
+  />
+  <history-drawer ref="historyRef" />
+  <category-manage
+    ref="categoryManageRef"
+    :type="type"
+    @ok="handleCategoryManageOk"
+  />
 </template>
 
 <script setup lang="ts">
@@ -323,9 +321,38 @@
     }
   };
 
-  const handleCategoryManageOk = () => {
-    categoryTreeRef.value?.refresh();
-    gridRef.value?.reload();
+  const handleCategoryManageOk = async () => {
+    try {
+      // First, clear the current category selection to prevent immediate invalid API calls
+      const previousCategory = params.value.category;
+      params.value.category = '';
+
+      // Next, refresh the category tree
+      if (categoryTreeRef.value) {
+        await categoryTreeRef.value.refresh();
+        logInfo('Category tree refreshed after category management');
+
+        // Only select the previous category if it still exists
+        if (
+          previousCategory &&
+          categoryTreeRef.value.items &&
+          categoryTreeRef.value.items.includes(previousCategory)
+        ) {
+          params.value.category = previousCategory;
+          logInfo(`Restored previous category selection: ${previousCategory}`);
+        } else if (previousCategory) {
+          logInfo(
+            `Previous category '${previousCategory}' no longer exists, selection cleared`
+          );
+        }
+      }
+
+      // Only after the category tree is refreshed and category selection is updated, reload the grid
+      // This prevents errors from trying to load a deleted category
+      gridRef.value?.reload();
+    } catch (error) {
+      logError('Error refreshing category tree', error as Error);
+    }
   };
 
   // 处理新分类的选择和更新
@@ -403,29 +430,30 @@
 </script>
 
 <style scoped>
-  .logrotate-main {
-    display: flex;
-    flex-direction: column;
+  .logrotate-layout {
+    position: relative;
+    min-height: calc(100vh - 240px);
+    padding-left: 240px;
+    margin-top: 20px;
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
+  }
+
+  .logrotate-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 240px;
     height: 100%;
+    overflow: auto;
+    border-right: 1px solid var(--color-border-2);
   }
 
-  .logrotate-content {
-    display: flex;
-    flex: 1;
-    gap: 16px;
-    min-height: 0;
-  }
-
-  .logrotate-left-panel {
-    flex-shrink: 0;
-    width: v-bind('LAYOUT_CONFIG.LEFT_PANEL_WIDTH + "px"');
-    padding: 16px 0;
-    border-right: 1px solid var(--color-border);
-  }
-
-  .logrotate-right-panel {
-    flex: 1;
+  .logrotate-main {
     min-width: 0;
+    height: 100%;
+    padding: 20px;
   }
 
   .logrotate-table {
