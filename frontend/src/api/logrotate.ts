@@ -87,15 +87,6 @@ interface CreateServiceForm {
   form: Array<{ key: string; value: string }>;
 }
 
-interface UpdateServiceForm {
-  type: string;
-  category: string;
-  new_category: string;
-  name: string;
-  new_name: string;
-  form: Array<{ key: string; value: string }>;
-}
-
 interface CreateLogrotateCategory {
   type: string;
   category: string;

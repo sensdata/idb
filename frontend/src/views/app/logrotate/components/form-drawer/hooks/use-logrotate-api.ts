@@ -5,8 +5,6 @@ import { LOGROTATE_TYPE } from '@/config/enum';
 
 // API imports
 import {
-  createLogrotateApi,
-  updateLogrotateApi,
   createLogrotateRawApi,
   updateLogrotateContentApi,
   getLogrotateContentApi,
