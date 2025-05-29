@@ -30,13 +30,19 @@
                 {{ item.display_name.charAt(0) }}
               </a-avatar>
               <div class="item-main flex-1">
-                <h3 class="mt-0 mb-2">
+                <h3 class="mt-0 mb-3">
                   {{ item.display_name }}
                 </h3>
-                <div class="mb-4 text-sm text-gray-500 line-clamp-2">
-                  {{ item.description }}
+                <a-tag bordered class="text-gray-600 mb-2">
+                  {{ $t('app.store.app.install.version') }}:
+                  {{ item.versions[0].version }}.{{
+                    item.versions[0].update_version
+                  }}
+                </a-tag>
+                <div class="text-gray-500 text-sm mb-2">
+                  {{ $t('app.store.app.install.created_at') }}:
+                  {{ item.versions[0].created_at }}
                 </div>
-                <a-tag color="arcoblue">{{ item.category }}</a-tag>
               </div>
             </div>
           </a-card>

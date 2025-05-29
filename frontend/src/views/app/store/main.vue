@@ -1,6 +1,6 @@
 <template>
   <a-spin :loading="loading" class="w-full">
-    <a-tabs v-model:active-key="activeTab" lazy-load>
+    <a-tabs v-model:active-key="activeTab" lazy-load destroy-on-hide>
       <template #extra>
         <a-button type="text" size="small" @click="handleSync">
           {{ $t('app.store.app.syncAppList') }}

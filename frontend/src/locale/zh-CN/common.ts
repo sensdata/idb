@@ -37,7 +37,11 @@ export default {
   'common.all': '全部',
   'common.seconds': '秒',
 
-  'common.message.saveSuccess': '操作成功',
-  'common.message.saveError': '操作失败',
+  'common.message.saveSuccess': '保存成功',
+  'common.message.saveError': '保存失败',
+  'common.message.operationSuccess': '操作成功',
+  'common.message.operationError': '操作失败',
+  'common.message.deleteSuccess': '删除成功',
+  'common.message.deleteError': '删除失败',
   'common.host_id_required': '主机ID是必需的',
 };
