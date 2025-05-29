@@ -6,11 +6,7 @@ export default {
   'app.docker.container.list.column.ports': 'Ports',
   'app.docker.container.list.column.uptime': 'Uptime',
   'app.docker.container.list.operation.terminal': 'Terminal',
-  'app.docker.container.list.operation.terminal.todo':
-    'Terminal feature is under development',
   'app.docker.container.list.operation.log': 'Log',
-  'app.docker.container.list.operation.log.todo':
-    'Log feature is under development',
   'app.docker.container.list.operation.start': 'Start',
   'app.docker.container.list.operation.stop': 'Stop',
   'app.docker.container.list.operation.restart': 'Restart',

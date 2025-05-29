@@ -20,7 +20,8 @@
       <idb-dropdown-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
-  <logs-modal ref="logsModalRef" />
+  <logs-modal ref="logsRef" />
+  <terminal-drawer ref="termRef" />
 </template>
 
 <script lang="ts" setup>
@@ -29,6 +30,7 @@
   import { Message } from '@arco-design/web-vue';
   import { queryContainersApi, operateContainersApi } from '@/api/docker';
   import LogsModal from './components/logs-modal.vue';
+  import TerminalDrawer from './components/terminal-drawer.vue';
 
   const { t } = useI18n();
   const gridRef = ref();
@@ -189,18 +191,20 @@
     }
   };
 
-  const logsModalRef = ref<InstanceType<typeof LogsModal>>();
+  const logsRef = ref<InstanceType<typeof LogsModal>>();
+  const termRef = ref<InstanceType<typeof TerminalDrawer>>();
   const getOperationOptions = (record: any) => [
     {
       text: t('app.docker.container.list.operation.terminal'),
-      click: () =>
-        Message.info(t('app.docker.container.list.operation.terminal.todo')),
+      click: () => {
+        termRef?.value?.show(record.container_id);
+      },
     },
     {
       text: t('app.docker.container.list.operation.log'),
       click: () => {
-        logsModalRef.value?.connect(record.container_id);
-        logsModalRef.value?.show();
+        logsRef.value?.connect(record.container_id);
+        logsRef.value?.show();
       },
     },
     {

@@ -284,7 +284,7 @@ export const queryContainerNamesApi = () =>
 
 // 容器批量操作
 export const operateContainersApi = (params: ContainerOperation) =>
-  request.post('/docker/{host}/containers/operatetion', params);
+  request.post('/docker/{host}/containers/operation', params);
 
 // 容器重命名
 export const renameContainerApi = (params: Rename) =>
