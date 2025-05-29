@@ -2,6 +2,7 @@ export default {
   'app.store.app.tabs.all': 'All',
   'app.store.app.tabs.installed': 'Installed',
   'app.store.app.list.install': 'Install',
+  'app.store.app.list.installed': 'Installed',
   'app.store.app.syncAppList': 'Sync App List',
 
   'app.store.app.message.syncSuccess': 'App list updated successfully',
@@ -11,6 +12,7 @@ export default {
   'app.store.app.install.mode.yaml': 'Edit by compose.yaml',
   'app.store.app.install.name': 'App Name',
   'app.store.app.install.version': 'Version',
+  'app.store.app.install.created_at': 'Installed at',
   'app.store.app.install.version.required': 'Please select a version',
   'app.store.app.install.version.placeholder': 'Please select a version',
   'app.store.app.install.required': 'Please enter {label}',

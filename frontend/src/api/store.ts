@@ -3,11 +3,14 @@ import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
 export function getAppListApi(params?: ApiListParams) {
-  return request.get<ApiListResult<AppSimpleEntity>>('store/apps', params);
+  return request.get<ApiListResult<AppSimpleEntity>>(
+    'store/{host}/apps',
+    params
+  );
 }
 
-export function getAppDetail(params: { id: number }) {
-  return request.get<AppEntity>('store/apps/detail', params);
+export function getAppDetailApi(params: { id: number }) {
+  return request.get<AppEntity>('store/{host}/apps/detail', params);
 }
 
 export function syncAppApi() {

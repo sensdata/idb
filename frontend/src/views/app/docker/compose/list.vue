@@ -1,17 +1,27 @@
 <template>
-  <idb-table ref="gridRef" :columns="columns" :fetch="queryComposeApi">
+  <idb-table
+    ref="gridRef"
+    :loading="loading"
+    :columns="columns"
+    :fetch="queryComposeApi"
+  >
     <template #operation="{ record }">
       <idb-dropdown-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
+  <edit-drawer ref="editRef" />
 </template>
 
 <script lang="ts" setup>
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { queryComposeApi, operateComposeApi } from '@/api/docker';
-  import { formatTime } from '@/utils/format';
+  import {
+    queryComposeApi,
+    operateComposeApi,
+    deleteComposeApi,
+  } from '@/api/docker';
+  import EditDrawer from './components/edit-drawer.vue';
 
   const { t } = useI18n();
 
@@ -19,6 +29,8 @@
   const reload = () => {
     gridRef.value?.reload();
   };
+
+  const loading = ref(false);
 
   const columns = [
     {
@@ -28,32 +40,20 @@
     },
     {
       dataIndex: 'status',
-      title: t('app.compose.list.column.status'),
+      title: t('app.compose.list.column.container_status'),
       width: 120,
       render: ({ record }: { record: any }) => {
-        const status = record.status;
-        let color = '';
-        let text = '';
-        if (status === 'running') {
-          color = 'color-success';
-          text = t('app.compose.list.status.running');
-        } else if (status === 'stopped') {
-          color = 'color-danger';
-          text = t('app.compose.list.status.stopped');
-        } else {
-          color = 'color-warning';
-          text = t('app.compose.list.status.unknown');
-        }
-        return `<span class="${color}">${text}</span>`;
+        return [
+          record.containers.filter((item: any) => item.state === 'running')
+            .length,
+          record.container_number,
+        ].join('/');
       },
     },
     {
-      dataIndex: 'create_time',
-      title: t('app.script.list.column.create_time'),
-      width: 125,
-      render: ({ record }: { record: any }) => {
-        return formatTime(record.create_time);
-      },
+      dataIndex: 'created_at',
+      title: t('app.compose.list.column.created_at'),
+      width: 160,
     },
     {
       dataIndex: 'operation',
@@ -65,7 +65,7 @@
 
   const handleOperate = async (
     record: any,
-    operation: 'start' | 'stop' | 'down'
+    operation: 'start' | 'stop' | 'restart' | 'down' | 'up'
   ) => {
     try {
       await operateComposeApi({
@@ -79,41 +79,53 @@
     }
   };
 
+  const editRef = ref<InstanceType<typeof EditDrawer>>();
   const getOperationOptions = (record: any) => [
     {
+      text: t('app.compose.list.operation.edit'),
+      click: () => {
+        editRef.value?.setParams({ name: record.name });
+        editRef.value?.load();
+        editRef.value?.show();
+      },
+    },
+    {
       text: t('app.compose.list.operation.start'),
-      visible: record.status !== 'running',
       click: async () => {
         await handleOperate(record, 'start');
       },
     },
     {
       text: t('app.compose.list.operation.stop'),
-      visible: record.status === 'running',
       click: async () => {
         await handleOperate(record, 'stop');
       },
     },
     {
+      text: t('app.compose.list.operation.restart'),
+      click: async () => {
+        await handleOperate(record, 'restart');
+      },
+    },
+    {
       text: t('app.compose.list.operation.down'),
-      visible: true,
       click: async () => {
         await handleOperate(record, 'down');
       },
     },
     {
-      text: t('app.compose.list.operation.edit'),
-      visible: true,
-      click: () => {
-        // TODO: 打开编辑弹窗
-      },
-    },
-    {
       text: t('app.compose.list.operation.delete'),
-      visible: true,
       confirm: t('app.compose.list.operation.delete.confirm'),
-      click: () => {
-        // TODO: 删除操作
+      click: async () => {
+        loading.value = true;
+        try {
+          await deleteComposeApi(record.name);
+          Message.success(t('common.message.operationSuccess'));
+        } catch (err: any) {
+          Message.error(err.message || t('common.message.operationError'));
+        } finally {
+          loading.value = false;
+        }
       },
     },
   ];

@@ -211,31 +211,41 @@ export const queryComposeApi = (params: {
   page_size: number;
 }) => request.get<ApiListResult<any>>('/docker/{host}/compose', params);
 
+// 查询 compose详情
+// TODO: 支持查询 compose 详情
+export const getComposeDetailApi = (params: { name: string }) =>
+  request.get('/docker/{host}/compose/detail', params);
+
 // 更新 compose
-export const updateComposeApi = (data: CreateCompose) =>
-  request.put('/docker/{host}/compose', data);
+export const updateComposeApi = (params: CreateCompose) =>
+  request.put('/docker/{host}/compose', params);
 
 // 创建 compose
-export const createComposeApi = (data: CreateCompose) =>
-  request.post<ComposeCreateResult>('/docker/{host}/compose', data);
+export const createComposeApi = (params: CreateCompose) =>
+  request.post<ComposeCreateResult>('/docker/{host}/compose', params);
 
 // 操作 compose
-export const operateComposeApi = (data: {
+export const operateComposeApi = (params: {
   name: string;
-  operation: 'start' | 'stop' | 'down';
-}) => request.post('/docker/{host}/compose/operation', data);
+  operation: 'start' | 'stop' | 'restart' | 'up' | 'down';
+}) => request.post('/docker/{host}/compose/operation', params);
+
+// 删除 compose
+// TODO: 支持删除
+export const deleteComposeApi = (params: { name: string }) =>
+  request.delete('/docker/{host}/compose', params);
 
 // 测试 compose
-export const testComposeApi = (data: CreateCompose) =>
-  request.post<ComposeTestResult>('/docker/{host}/compose/test', data);
+export const testComposeApi = (params: CreateCompose) =>
+  request.post<ComposeTestResult>('/docker/{host}/compose/test', params);
 
 // 获取 docker 配置
 export const getDockerConfApi = () =>
   request.get<DaemonJsonConf>('/docker/{host}/conf');
 
 // 更新 docker 配置
-export const updateDockerConfApi = (data: DaemonJsonUpdateByFile) =>
-  request.put('/docker/{host}/conf', data);
+export const updateDockerConfApi = (params: DaemonJsonUpdateByFile) =>
+  request.put('/docker/{host}/conf', params);
 
 // 查询容器
 export const queryContainersApi = (params: {
@@ -247,12 +257,12 @@ export const queryContainersApi = (params: {
 }) => request.get<ApiListResult<any>>('/docker/{host}/containers', params);
 
 // 更新容器
-export const updateContainerApi = (data: ContainerOperate) =>
-  request.put('/docker/{host}/containers', data);
+export const updateContainerApi = (params: ContainerOperate) =>
+  request.put('/docker/{host}/containers', params);
 
 // 创建容器
-export const createContainerApi = (data: ContainerOperate) =>
-  request.post('/docker/{host}/containers', data);
+export const createContainerApi = (params: ContainerOperate) =>
+  request.post('/docker/{host}/containers', params);
 
 // 获取容器详情
 export const getContainerDetailApi = (id: number) =>
@@ -264,33 +274,29 @@ export const getContainerDetailApi = (id: number) =>
 export const getContainerResourceLimitApi = () =>
   request.get<ContainerResourceLimit>('/docker/{host}/containers/limit');
 
-// 获取容器日志
-export const getContainerLogApi = (id: number) =>
-  request.get<any>('/docker/{host}/containers/log', { id });
-
 // 清理容器日志
 export const cleanContainerLogApi = (id: number) =>
-  request.delete('/docker/{host}/containers/log', { id });
+  request.delete('/docker/{host}/containers/logs', { id });
 
 // 查询容器名称
 export const queryContainerNamesApi = () =>
   request.get<ApiListResult<any>>('/docker/{host}/containers/names');
 
 // 容器批量操作
-export const operateContainersApi = (data: ContainerOperation) =>
-  request.post('/docker/{host}/containers/operatetion', data);
+export const operateContainersApi = (params: ContainerOperation) =>
+  request.post('/docker/{host}/containers/operatetion', params);
 
 // 容器重命名
-export const renameContainerApi = (data: Rename) =>
-  request.post('/docker/{host}/containers/rename', data);
+export const renameContainerApi = (params: Rename) =>
+  request.post('/docker/{host}/containers/rename', params);
 
 // 获取容器统计
 export const getContainerStatsApi = (id: number) =>
   request.get<ContainerStats>('/docker/{host}/containers/stats', { id });
 
 // 升级容器
-export const upgradeContainerApi = (data: ContainerUpgrade) =>
-  request.post('/docker/{host}/containers/upgrade', data);
+export const upgradeContainerApi = (params: ContainerUpgrade) =>
+  request.post('/docker/{host}/containers/upgrade', params);
 
 // 获取容器资源使用列表
 export const getContainerUsagesApi = () =>
@@ -310,46 +316,46 @@ export const batchDeleteImagesApi = (params: {
 }) => request.delete('/docker/{host}/images', params);
 
 // 构建镜像
-export const buildImageApi = (data: ImageBuild) =>
-  request.post('/docker/{host}/images/build', data);
+export const buildImageApi = (params: ImageBuild) =>
+  request.post('/docker/{host}/images/build', params);
 
 // 导出镜像
-export const exportImageApi = (data: ImageSave) =>
-  request.post('/docker/{host}/images/export', data);
+export const exportImageApi = (params: ImageSave) =>
+  request.post('/docker/{host}/images/export', params);
 
 // 导入镜像
-export const importImageApi = (data: ImageLoad) =>
-  request.post('/docker/{host}/images/import', data);
+export const importImageApi = (params: ImageLoad) =>
+  request.post('/docker/{host}/images/import', params);
 
 // 查询镜像名称
 export const queryImageNamesApi = () =>
   request.get<ApiListResult<any>>('/docker/{host}/images/names');
 
 // 拉取镜像
-export const pullImageApi = (data: ImagePull) =>
-  request.post('/docker/{host}/images/pull', data);
+export const pullImageApi = (params: ImagePull) =>
+  request.post('/docker/{host}/images/pull', params);
 
 // 推送镜像
-export const pushImageApi = (id: string, data: ImagePush) =>
-  request.post('/docker/{host}/images/push', data, {
+export const pushImageApi = (id: string, params: ImagePush) =>
+  request.post('/docker/{host}/images/push', params, {
     params: { id },
   });
 
 // 设置镜像标签
-export const setImageTagApi = (data: ImageTag) =>
-  request.put('/docker/{host}/images/tag', data);
+export const setImageTagApi = (params: ImageTag) =>
+  request.put('/docker/{host}/images/tag', params);
 
 // inspect
 export const inspectApi = (params: { type: string; id: string }) =>
   request.get<any>('/docker/{host}/inspect', { ...params });
 
 // 更新 ipv6 选项
-export const updateIpv6OptionApi = (data: Ipv6Option) =>
-  request.put('/docker/{host}/ipv6', data);
+export const updateIpv6OptionApi = (params: Ipv6Option) =>
+  request.put('/docker/{host}/ipv6', params);
 
 // 更新日志选项
-export const updateLogOptionApi = (data: LogOption) =>
-  request.put('/docker/{host}/log', data);
+export const updateLogOptionApi = (params: LogOption) =>
+  request.put('/docker/{host}/log', params);
 
 // 获取网络
 export const getNetworksApi = (params: {
@@ -359,8 +365,8 @@ export const getNetworksApi = (params: {
 }) => request.get<ApiListResult<any>>('/docker/{host}/networks', params);
 
 // 创建网络
-export const createNetworkApi = (data: NetworkCreate) =>
-  request.post('/docker/{host}/networks', data);
+export const createNetworkApi = (params: NetworkCreate) =>
+  request.post('/docker/{host}/networks', params);
 
 // 批量删除网络
 export const batchDeleteNetworkApi = (params: {
@@ -373,12 +379,12 @@ export const queryNetworkNamesApi = () =>
   request.get<ApiListResult<any>>('/docker/{host}/networks/names');
 
 // docker 操作
-export const dockerOperationApi = (data: DockerOperation) =>
-  request.post('/docker/{host}/operation', data);
+export const dockerOperationApi = (params: DockerOperation) =>
+  request.post('/docker/{host}/operation', params);
 
 // prune
-export const pruneApi = (data: Prune) =>
-  request.post<PruneResult>('/docker/{host}/prune', data);
+export const pruneApi = (params: Prune) =>
+  request.post<PruneResult>('/docker/{host}/prune', params);
 
 // 获取 docker 状态
 export const getDockerStatusApi = () =>
@@ -392,8 +398,8 @@ export const getVolumesApi = (params: {
 }) => request.get<ApiListResult<any>>('/docker/{host}/volumes', params);
 
 // 创建卷
-export const createVolumeApi = (data: VolumeCreate) =>
-  request.post('/docker/{host}/volumes', data);
+export const createVolumeApi = (params: VolumeCreate) =>
+  request.post('/docker/{host}/volumes', params);
 
 // 批量删除卷
 export const batchDeleteVolumeApi = (params: {

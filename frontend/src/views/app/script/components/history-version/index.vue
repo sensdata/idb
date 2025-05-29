@@ -85,7 +85,7 @@
         ...toRaw(params),
         commit_hash: record.commit_hash,
       });
-      Message.success('common.message.saveSuccess');
+      Message.success('common.message.operationSuccess');
       reload();
     }
   };
