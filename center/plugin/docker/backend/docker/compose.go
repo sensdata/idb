@@ -120,6 +120,29 @@ func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error 
 	return nil
 }
 
+func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Compose_Remove,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action Docker_Compose_Remove failed")
+		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+	}
+	return nil
+}
+
 func (s *DockerMan) composeTest(hostID uint64, req model.CreateCompose) (*model.ComposeTestResult, error) {
 	var result model.ComposeTestResult
 

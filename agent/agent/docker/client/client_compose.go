@@ -353,8 +353,8 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
 	}
 	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
 	if _, err := os.Stat(composePath); err != nil {
-		global.LOG.Error("Failed to load compose file %s", composePath)
-		return fmt.Errorf("load compose file failed, %v", err)
+		global.LOG.Error("Compose file %s not found", composePath)
+		return fmt.Errorf("%s not found, %v", composePath, err)
 	}
 	if stdout, err := down(composePath); err != nil {
 		return errors.New(string(stdout))

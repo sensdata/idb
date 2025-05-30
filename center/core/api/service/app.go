@@ -771,7 +771,7 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return fmt.Errorf("failed to remove compose")
+		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
 	return nil
 }

@@ -153,6 +153,7 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/:host/compose", Handler: s.ComposeQuery},                // 获取编排列表
 			{Method: "POST", Path: "/:host/compose", Handler: s.ComposeCreate},              // 创建编排
 			{Method: "PUT", Path: "/:host/compose", Handler: s.ComposeUpdate},               // 更新编排
+			{Method: "DELETE", Path: "/:host/compose", Handler: s.ComposeDelete},            // 删除编排
 			{Method: "POST", Path: "/:host/compose/test", Handler: s.ComposeTest},           // 测试编排
 			{Method: "POST", Path: "/:host/compose/operation", Handler: s.ComposeOperation}, // 操作编排
 
@@ -626,6 +627,38 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 	err = s.composeUpdate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Remove compose
+// @Description Remove compose
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param name query string true "Compose name"
+// @Success 200
+// @Router /docker/{host}/compose [delete]
+func (s *DockerMan) ComposeDelete(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", err)
+		return
+	}
+
+	req := model.ComposeRemove{Name: name, WorkDir: s.AppDir}
+	err = s.composeRemove(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
