@@ -160,7 +160,7 @@ func (s *CronTab) Initialize() {
 			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
 			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
@@ -749,7 +749,7 @@ func (s *CronTab) Restore(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /crontab/{host}/log [get]
+// @Router /crontab/{host}/history [get]
 func (s *CronTab) GetConfLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

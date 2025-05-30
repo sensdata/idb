@@ -150,7 +150,7 @@ func (s *NFTable) Initialize() {
 			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
 			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/log", Handler: s.GetConfLog},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetConfLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
@@ -712,7 +712,7 @@ func (s *NFTable) Restore(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /nftables/{host}/log [get]
+// @Router /nftables/{host}/history [get]
 func (s *NFTable) GetConfLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

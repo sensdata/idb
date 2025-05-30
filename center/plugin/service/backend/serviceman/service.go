@@ -751,7 +751,7 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /services/{host}/log [get]
+// @Router /services/{host}/history [get]
 func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

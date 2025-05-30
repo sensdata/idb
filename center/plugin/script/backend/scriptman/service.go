@@ -134,7 +134,7 @@ func (s *ScriptMan) Initialize() {
 			{Method: "PUT", Path: "/:host", Handler: s.Update},
 			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/log", Handler: s.GetScriptLog},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetScriptLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
@@ -618,7 +618,7 @@ func (s *ScriptMan) Restore(c *gin.Context) {
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.PageResult
-// @Router /scripts/{host}/log [get]
+// @Router /scripts/{host}/history [get]
 func (s *ScriptMan) GetScriptLog(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
