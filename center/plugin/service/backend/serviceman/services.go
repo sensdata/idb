@@ -3,16 +3,30 @@ package serviceman
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/logstream/pkg/reader/adapters"
+	"github.com/sensdata/idb/core/logstream/pkg/types"
+	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+)
+
+const (
+	heartbeatInterval = 10 * time.Second // 心跳间隔
 )
 
 func parseServiceBytesToServiceForm(serviceBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
@@ -210,6 +224,19 @@ func (s *ServiceMan) handleHostID(reqType string, hostID uint64) (uint, error) {
 		hid = defaultHost.ID
 	}
 	return hid, nil
+}
+
+func (s *ServiceMan) needSync(reqType string, hostID uint64) (bool, error) {
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return false, err
+		}
+		if hostID != uint64(defaultHost.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *ServiceMan) createFile(hostID uint64, op model.FileCreate) error {
@@ -1446,6 +1473,21 @@ func (s *ServiceMan) syncGlobal(hostID uint) error {
 
 func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) error {
 
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return err
+		}
+	}
+
+	// 执行激活
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1460,14 +1502,8 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 		relativePath = req.Name + ".service"
 	}
 
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
 	// 检查repo
-	err = s.checkRepo(hid, repoPath)
+	err = s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
@@ -1488,7 +1524,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 			IsSymlink: true,
 			LinkPath:  servicePath,
 		}
-		err := s.createFile(uint64(hid), createFile)
+		err := s.createFile(hostID, createFile)
 		if err != nil {
 			LOG.Error("Failed to create symlink")
 			return err
@@ -1501,7 +1537,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(uint64(hid), createGitFile, ".linked")
+		err = s.create(hostID, createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1509,7 +1545,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(hid, command)
+		_, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err
@@ -1520,7 +1556,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 		deleteFile := model.FileDelete{
 			Path: serviceLinkPath,
 		}
-		err := s.deleteFile(uint64(hid), deleteFile)
+		err := s.deleteFile(hostID, deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete symlink")
 			return err
@@ -1532,7 +1568,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(uint64(hid), deleteGitFile, ".linked")
+		err = s.delete(hostID, deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err
@@ -1540,7 +1576,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 
 		// systemctl daemon-reload
 		command := "systemctl daemon-reload"
-		_, err = s.sendCommand(hid, command)
+		_, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to reload daemon")
 			return err
@@ -1550,5 +1586,286 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 		return errors.New("unsupported action")
 	}
 
+	return nil
+}
+
+func (s *ServiceMan) operateService(hostID uint64, req model.ServiceOperate) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// 检查repo
+	err := s.checkRepo(uint(hostID), repoPath)
+	if err != nil {
+		return &result, err
+	}
+
+	var command string
+	switch req.Operation {
+	case "start", "stop", "restart", "reload", "enable", "disable":
+		command = fmt.Sprintf("systemctl %s %s", req.Operation, req.Name)
+	case "status":
+		command = fmt.Sprintf("systemctl show %s --property=ActiveState,SubState", req.Name)
+	default:
+		return &result, errors.New("unsupported operation")
+	}
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to send service operation command")
+		return &result, err
+	}
+	LOG.Info("Service operation command result: %s", commandResult.Result)
+	result.Result = commandResult.Result
+	return &result, nil
+}
+
+func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("Panic in followServiceLogs: %v", r)
+		}
+	}()
+	global.LOG.Info("tail start")
+
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		global.LOG.Info("Invalid host")
+		return errors.New("Invalid host")
+	}
+
+	repoType := c.Query("type")
+	if repoType == "" {
+		global.LOG.Info("Invalid repo type")
+		return errors.New("Invalid type")
+	}
+
+	category := c.Query("category")
+	if category == "" {
+		global.LOG.Info("Invalid category")
+		return errors.New("Invalid category")
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		global.LOG.Info("Invalid name")
+		return errors.New("Invalid name")
+	}
+
+	var repoPath string
+	switch repoType {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+
+	// 检查repo
+	err = s.checkRepo(uint(hostID), repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 构造服务日志参数 service:serviceName
+	serviceParam := fmt.Sprintf("service:%s", name)
+
+	// follow
+	follow := ""
+	f, _ := strconv.ParseBool(c.Query("follow"))
+	if f {
+		follow = "follow"
+	}
+
+	var offset int64
+	tail, err := strconv.ParseUint(c.Query("tail"), 10, 32)
+	if err != nil {
+		offset = 0
+	} else {
+		offset = int64(tail)
+	}
+
+	var whence int
+	since := c.Query("since")
+	switch since {
+	case "24h":
+		whence = 24 * 60
+	case "4h":
+		whence = 4 * 60
+	case "1h":
+		whence = 60
+	case "10m":
+		whence = 10
+	default:
+		whence = 0
+	}
+
+	// 找host
+	hostRepo := repo.NewHostRepo()
+	host, err := hostRepo.Get(hostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		global.LOG.Error("get host failed: %v", err)
+		return fmt.Errorf("get host failed: %w", err)
+	}
+
+	// 创建任务
+	metadata := map[string]interface{}{
+		"log_path": serviceParam, // 服务日志参数
+	}
+	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
+	if err != nil {
+		global.LOG.Info("failed to create task")
+		return errors.New("failed to create tail task")
+	}
+	global.LOG.Info("task: %s", task.ID)
+
+	// 把task的metadata都打印出来
+	for k, v := range task.Metadata {
+		global.LOG.Info("task metadata: %s=%v", k, v)
+	}
+
+	reader, err := global.LogStream.GetReader(task.ID)
+	if err != nil {
+		global.LOG.Error("get reader failed: %v", err)
+		return fmt.Errorf("get reader failed: %w", err)
+	}
+	defer reader.Close()
+
+	// 判断reader是否是 RemoteReader
+	_, ok := reader.(*adapters.RemoteReader)
+	if ok {
+		global.LOG.Info("reader is RemoteReader")
+		// 获取agent连接
+		agentConn, err := conn.CENTER.GetAgentConn(&host)
+		if err != nil {
+			global.LOG.Error("get agent conn failed: %v", err)
+			return fmt.Errorf("get agent conn failed: %w", err)
+		}
+
+		err = s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStart, offset, whence, follow)
+		if err != nil {
+			return fmt.Errorf("failed to start stream : %w", err)
+		}
+	}
+
+	logCh, err := reader.Follow(offset, whence)
+	if err != nil {
+		global.LOG.Error("follow log failed: %v", err)
+		return fmt.Errorf("follow log failed: %w", err)
+	}
+	global.LOG.Info("follow log success for task %s, path: %s", task.ID, serviceParam)
+
+	// 获取任务状态监听器
+	watcher, err := global.LogStream.GetTaskWatcher(task.ID)
+	if err != nil {
+		global.LOG.Error("get task watcher failed: %v", err)
+		return fmt.Errorf("get task watcher failed: %w", err)
+	}
+	defer watcher.Close()
+
+	// 获取状态监听通道
+	statusCh, err := watcher.WatchStatus()
+	if err != nil {
+		global.LOG.Error("watch status failed: %v", err)
+		return fmt.Errorf("watch status failed: %w", err)
+	}
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+
+	heartbeat := time.NewTicker(heartbeatInterval)
+	defer heartbeat.Stop()
+
+	// 创建一个缓冲通道来处理日志
+	bufferCh := make(chan []byte, 100)
+	defer close(bufferCh)
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 启动一个 goroutine 来处理日志缓冲
+	go func() {
+		for {
+			select {
+			case msg := <-logCh:
+				select {
+				case bufferCh <- msg:
+				default:
+					// 如果缓冲区满了，丢弃最旧的消息
+					<-bufferCh
+					bufferCh <- msg
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case msg := <-bufferCh:
+			c.SSEvent("log", string(msg))
+			flusher.Flush()
+		case status := <-statusCh:
+			global.LOG.Info("SSE STATUS: %s", status)
+			c.SSEvent("status", status)
+			flusher.Flush()
+		case <-heartbeat.C:
+			global.LOG.Info("SSE HEARTBEAT")
+			c.SSEvent("heartbeat", time.Now().Unix())
+			flusher.Flush()
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			// 如果是远程读取器，发送停止消息
+			if _, ok := reader.(*adapters.RemoteReader); ok {
+				// 获取agent连接
+				agentConn, err := conn.CENTER.GetAgentConn(&host)
+				if err != nil {
+					global.LOG.Error("get agent conn failed: %v", err)
+					return fmt.Errorf("get agent conn failed: %w", err)
+				}
+
+				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
+			}
+			// 清理任务相关的资源
+			//s.clearTaskStuff(task.ID)
+			return nil
+		}
+	}
+}
+
+func (s *ServiceMan) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int, content string) error {
+	global.LOG.Info("notify remote logstream message %s", msgType)
+	stopMsg, err := message.CreateLogStreamMessage(
+		utils.GenerateMsgId(),
+		msgType,
+		taskId,
+		logPath,
+		offset,
+		whence,
+		content,
+		"",
+	)
+	if err == nil {
+		message.SendLogStreamMessage(*conn, stopMsg)
+	}
 	return nil
 }

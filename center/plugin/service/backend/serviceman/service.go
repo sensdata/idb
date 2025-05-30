@@ -160,10 +160,12 @@ func (s *ServiceMan) Initialize() {
 			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
 			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
 			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/log", Handler: s.GetServiceLog},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetServiceLog},
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ServiceActivate},
+			{Method: "POST", Path: "/:host/operate", Handler: s.OperateService},
+			{Method: "GET", Path: "/:host/logs/tail", Handler: s.FollowServiceLogs}, //追踪服务日志
 		},
 	)
 
@@ -919,5 +921,59 @@ func (s *ServiceMan) ServiceActivate(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Service
+// @Summary Operate service
+// @Description Performing operations on a systemd-managed service on the specified host. Supported actions include enabling/disabling on boot, starting, stopping, restarting, reloading, and get status of the service, .
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.ServiceOperate true "Service operation details"
+// @Success 200 {object} model.ServiceOperateResult
+// @Router /services/{host}/operate [post]
+func (s *ServiceMan) OperateService(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.ServiceOperate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	result, err := s.operateService(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Service
+// @Summary Connect to service log stream
+// @Description Connect to a service log stream through SSE
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param name query string true "Service file name"
+// @Param follow query bool false "Follow the log stream"
+// @Param tail query int false "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown."
+// @Param since query string false "Show logs since a certain time, can be one of 24h, 4h, 1h, 10m. If not specified, all logs will be shown."
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /services/{host}/logs/tail [get]
+func (s *ServiceMan) FollowServiceLogs(c *gin.Context) {
+	err := s.followServiceLogs(c)
+	if err != nil {
+		global.LOG.Error("Handle service log stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+
 	helper.SuccessWithData(c, nil)
 }
