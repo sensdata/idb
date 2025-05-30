@@ -21,6 +21,22 @@ func FormatContainerLogTimeFilter(minutes int) string {
 	}
 }
 
+func FormatServiceLogTimeFilter(minutes int) string {
+	// 将分钟数转换为几个选项：all, 24h, 4h, 1h, 10m
+	switch {
+	case minutes <= 24*60:
+		return "24 hours ago"
+	case minutes <= 4*60:
+		return "4 hours ago"
+	case minutes <= 60:
+		return "1 hour ago"
+	case minutes <= 10:
+		return "10 minutes ago"
+	default:
+		return "all"
+	}
+}
+
 func FormatDuration(sec int64) string {
 	// 将秒转换为天、小时、分钟、秒
 	duration := time.Duration(sec) * time.Second

@@ -783,6 +783,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 		} else if strings.HasPrefix(msg.LogPath, "compose:") {
 			rType = "compose"
 			logPath = strings.TrimPrefix(msg.LogPath, "compose:")
+		} else if strings.HasPrefix(msg.LogPath, "service:") {
+			rType = "service"
+			logPath = strings.TrimPrefix(msg.LogPath, "service:")
 		} else {
 			rType = "file"
 			logPath = msg.LogPath
@@ -820,6 +823,37 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
 				return
 			}
+
+		case "service":
+			// 根据 msg.content 确定follow
+			follow := msg.Content == "follow"
+
+			// 根据 msg.Whence 确定 since
+			since := utils.FormatServiceLogTimeFilter(msg.Whence)
+			// 根据 msg.Offset 确定 tail
+			var tail string
+			switch msg.Offset {
+			// 全部
+			case 0:
+				tail = "all"
+			// 行数
+			default:
+				tail = strconv.Itoa(int(msg.Offset))
+			}
+
+			r, err = adapters.NewServiceLogReader(
+				logPath,
+				since,
+				tail,
+				follow,
+			)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to create service log reader: %v", err)
+				global.LOG.Error(errMsg)
+				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				return
+			}
+
 		default:
 			r, err = adapters.NewTailReader(msg.LogPath, nil)
 			if err != nil {
