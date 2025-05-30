@@ -77,7 +77,7 @@ func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error
 		}
 	}
 
-	composePath := fmt.Sprintf("%s/compose.yml", dir)
+	composePath := fmt.Sprintf("%s/docker-compose.yaml", dir)
 	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
@@ -275,7 +275,7 @@ func (c DockerClient) ComposeTest(req model.ComposeCreate) (*model.ComposeTestRe
 			return &result, errors.New("compose project already exists")
 		}
 	}
-	// 写入compose.yml和.env
+	// 写入docker-compose.yaml和.env
 	composePath, err := c.initComposeAndEnv(&req)
 	if err != nil {
 		result.Error = "failed to init compose and env"
@@ -297,7 +297,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	// 写入compose.yml和.env
+	// 写入docker-compose.yaml和.env
 	composePath, err := c.initComposeAndEnv(&req)
 	if err != nil {
 		return &result, err
@@ -351,7 +351,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
 	if utils.CheckIllegal(req.Name, req.WorkDir) {
 		return errors.New(constant.ErrCmdIllegal)
 	}
-	composePath := fmt.Sprintf("%s/%s/compose.yml", req.WorkDir, req.Name)
+	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
 	if _, err := os.Stat(composePath); err != nil {
 		global.LOG.Error("Failed to load compose file %s", composePath)
 		return fmt.Errorf("load compose file failed, %v", err)
@@ -375,7 +375,7 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 	if utils.CheckIllegal(req.Name, req.Operation, req.WorkDir) {
 		return errors.New(constant.ErrCmdIllegal)
 	}
-	composePath := fmt.Sprintf("%s/%s/compose.yml", req.WorkDir, req.Name)
+	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
 	if _, err := os.Stat(composePath); err != nil {
 		global.LOG.Error("Failed to load compose file %s", composePath)
 		return fmt.Errorf("load compose file failed, %v", err)
@@ -413,14 +413,14 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 		return errors.New(constant.ErrCmdIllegal)
 	}
 
-	composePath := fmt.Sprintf("%s/%s/compose.yml", req.WorkDir, req.Name)
+	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
 
 	// 先停止原compose
 	if stdout, err := down(composePath); err != nil {
 		return fmt.Errorf("failed to docker-compose down %s, err: %s", req.Name, string(stdout))
 	}
 
-	// 覆盖compose.yml
+	// 覆盖docker-compose.yaml
 	composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
 	if err != nil {
 		return err

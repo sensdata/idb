@@ -406,11 +406,11 @@ function Install_IDB() {
         exit 1
     fi
 
-    # 下载 .env和docker-compose.yml 到 PANEL_DIR 中
+    # 下载 .env和docker-compose.yaml 到 PANEL_DIR 中
     # .env 地址: "https://static.sensdata.com/idb/release/${VERSION}/.env"
-    # docker-compose.yml 地址: "https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yml"
+    # docker-compose.yaml 地址: "https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
     ENV_URL="https://static.sensdata.com/idb/release/${VERSION}/.env"
-    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yml"
+    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
 
     log "正在下载 .env 文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env" 2>&1 | tee -a ${CURRENT_DIR}/install.log
@@ -419,14 +419,14 @@ function Install_IDB() {
         exit 1
     fi
 
-    log "正在下载 docker-compose.yml 文件..."
-    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yml" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    log "正在下载 docker-compose.yaml 文件..."
+    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yaml" 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
-        log "docker-compose.yml 文件下载失败，请检查网络连接或 URL 是否正确。"
+        log "docker-compose.yaml 文件下载失败，请检查网络连接或 URL 是否正确。"
         exit 1
     fi
 
-    log ".env 和 docker-compose.yml 文件下载成功。"
+    log ".env 和 docker-compose.yaml 文件下载成功。"
     
     # 修改 .env 文件中的端口配置
     log "正在修改 .env 文件中的配置..."

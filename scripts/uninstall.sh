@@ -1,4 +1,4 @@
-# 找到docker compose.yml文件所在的目录
+# 找到docker-compose.yaml文件所在的目录
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # 确认卸载
@@ -14,7 +14,7 @@ echo "开始卸载..."
 
 # 停止并删除所有的容器
 echo "停止并删除容器..."
-docker-compose -f $DIR/docker-compose.yml down --remove-orphans
+docker-compose -f $DIR/docker-compose.yaml down --remove-orphans
 
 # 删除相关的 Docker 镜像
 echo "清理 Docker 镜像..."

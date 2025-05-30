@@ -256,7 +256,7 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 			// app id
 			appVersion.AppId = appId
 
-			// compose.yml
+			// docker-compose.yaml
 			fileOp := files.NewFileOp()
 			dockerComposePath := filepath.Join(versionDir, "docker-compose.yaml")
 			if !fileOp.Stat(dockerComposePath) {

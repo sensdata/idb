@@ -36,7 +36,7 @@ function Backup_Data() {
         
         # 备份关键文件
         cp "${PANEL_DIR}/.env" "$BACKUP_DIR/.env"
-        cp "${PANEL_DIR}/docker-compose.yml" "$BACKUP_DIR/docker-compose.yml"
+        cp "${PANEL_DIR}/docker-compose.yaml" "$BACKUP_DIR/docker-compose.yaml"
         
         # 备份数据目录
         if [[ -d "${PANEL_DIR}/data" ]]; then
@@ -79,9 +79,9 @@ function Restore_Data() {
     
     log "开始恢复数据到 ${PANEL_DIR}..."
     
-    # 恢复 .env 和 docker-compose.yml
+    # 恢复 .env 和 docker-compose.yaml
     cp "$BACKUP_DIR/.env" "${PANEL_DIR}/.env"
-    cp "$BACKUP_DIR/docker-compose.yml" "${PANEL_DIR}/docker-compose.yml"
+    cp "$BACKUP_DIR/docker-compose.yaml" "${PANEL_DIR}/docker-compose.yaml"
     
     # 恢复数据目录
     if [[ -d "$BACKUP_DIR/data" ]]; then
@@ -120,11 +120,11 @@ function Upgrade_IDB() {
     
     # 下载新版本配置文件
     ENV_URL="https://static.sensdata.com/idb/release/${VERSION}/.env"
-    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yml"
+    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"
-    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yml.new"
+    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yaml.new"
     
     # 合并配置文件（保留原有的自定义配置）
     if [[ -f "${PANEL_DIR}/.env.new" ]]; then
@@ -148,9 +148,9 @@ function Upgrade_IDB() {
         fi
     fi
 
-    # docker-compose.yml
-    if [[ -f "${PANEL_DIR}/docker-compose.yml.new" ]]; then
-        mv "${PANEL_DIR}/docker-compose.yml.new" "${PANEL_DIR}/docker-compose.yml"
+    # docker-compose.yaml
+    if [[ -f "${PANEL_DIR}/docker-compose.yaml.new" ]]; then
+        mv "${PANEL_DIR}/docker-compose.yaml.new" "${PANEL_DIR}/docker-compose.yaml"
     fi
     
     # 启动新版本容器

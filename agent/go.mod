@@ -9,7 +9,6 @@ replace github.com/sensdata/idb/core => ../core
 require (
 	github.com/docker/go-connections v0.5.0
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
-	github.com/gorilla/websocket v1.5.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/sensdata/idb/core v0.0.0
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3

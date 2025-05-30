@@ -40,10 +40,10 @@ func (r *ContainerLogReader) buildCmd() *exec.Cmd {
 	var args []string
 	if r.containerType == "compose" {
 		cmdName = "docker-compose"
-		// 这里的 container 是 compose.yml路径，但有可能是多个路径以,分隔
-		// 因此需要将 compose.yml路径按,分隔，然后逐个传入-f命令
+		// 这里的 container 是 docker-compose.yaml路径，但有可能是多个路径以,分隔
+		// 因此需要将 docker-compose.yaml路径按,分隔，然后逐个传入-f命令
 		if strings.Contains(r.container, ",") {
-			// 将 compose.yml路径按,分隔，然后逐个传入-f命令
+			// 将 docker-compose.yaml路径按,分隔，然后逐个传入-f命令
 			composeFiles := strings.Split(r.container, ",")
 			for _, composeFile := range composeFiles {
 				args = append(args, "-f", composeFile)
