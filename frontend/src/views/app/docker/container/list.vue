@@ -1,21 +1,83 @@
 <template>
-  <idb-table ref="gridRef" :columns="columns" :fetch="fetchContainers">
+  <idb-table
+    ref="gridRef"
+    :columns="columns"
+    :fetch="queryContainersApi"
+    :filters="filters"
+  >
+    <template #ports="{ record }">
+      <div
+        v-for="(port, index) in record.ports"
+        :key="port"
+        :class="{
+          'mt-2': index > 0,
+        }"
+      >
+        <a-tag bordered>{{ port }}</a-tag>
+      </div>
+    </template>
     <template #operation="{ record }">
       <idb-dropdown-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
+  <logs-modal ref="logsRef" />
+  <terminal-drawer ref="termRef" />
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue';
+  import { h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { queryContainersApi, operateContainersApi } from '@/api/docker';
-  import { formatTime } from '@/utils/format';
+  import LogsModal from './components/logs-modal.vue';
+  import TerminalDrawer from './components/terminal-drawer.vue';
 
   const { t } = useI18n();
   const gridRef = ref();
   const reload = () => gridRef.value?.reload();
+
+  const filters = [
+    {
+      label: t('app.docker.container.list.filter.state'),
+      field: 'state',
+      type: 'select' as const,
+      defaultValue: 'all',
+      options: [
+        {
+          label: t('app.docker.container.list.state.all'),
+          value: 'all',
+        },
+        {
+          label: t('app.docker.container.list.state.created'),
+          value: 'created',
+        },
+        {
+          label: t('app.docker.container.list.state.running'),
+          value: 'running',
+        },
+        {
+          label: t('app.docker.container.list.state.paused'),
+          value: 'paused',
+        },
+        {
+          label: t('app.docker.container.list.state.restarting'),
+          value: 'restarting',
+        },
+        {
+          label: t('app.docker.container.list.state.removing'),
+          value: 'removing',
+        },
+        {
+          label: t('app.docker.container.list.state.exited'),
+          value: 'exited',
+        },
+        {
+          label: t('app.docker.container.list.state.dead'),
+          value: 'dead',
+        },
+      ],
+    },
+  ];
 
   const columns = [
     {
@@ -24,84 +86,88 @@
       width: 180,
     },
     {
-      dataIndex: 'image',
+      dataIndex: 'image_name',
       title: t('app.docker.container.list.column.image'),
       width: 180,
     },
     {
-      dataIndex: 'status',
-      title: t('app.docker.container.list.column.status'),
+      dataIndex: 'state',
+      title: t('app.docker.container.list.column.state'),
       width: 110,
       render: ({ record }: { record: any }) => {
-        const status = record.status;
-        let color = '';
-        let text = '';
-        if (status === 'running') {
-          color = 'color-success';
-          text = t('app.docker.container.list.status.running');
-        } else if (status === 'exited') {
-          color = 'color-danger';
-          text = t('app.docker.container.list.status.stopped');
-        } else if (status === 'paused') {
-          color = 'color-warning';
-          text = t('app.docker.container.list.status.paused');
-        } else {
-          color = 'color-warning';
-          text = t('app.docker.container.list.status.unknown');
-        }
-        return `<span class="${color}">${text}</span>`;
+        const stateMap = {
+          created: {
+            color: 'orange',
+            text: t('app.docker.container.list.state.created'),
+          },
+          running: {
+            color: 'green',
+            text: t('app.docker.container.list.state.running'),
+          },
+          paused: {
+            color: 'orange',
+            text: t('app.docker.container.list.state.paused'),
+          },
+          restarting: {
+            color: 'orange',
+            text: t('app.docker.container.list.state.restarting'),
+          },
+          removing: {
+            color: 'orange',
+            text: t('app.docker.container.list.state.removing'),
+          },
+          exited: {
+            color: 'red',
+            text: t('app.docker.container.list.state.exited'),
+          },
+          dead: {
+            color: 'red',
+            text: t('app.docker.container.list.state.dead'),
+          },
+        };
+
+        const { color, text } = stateMap[
+          record.state as keyof typeof stateMap
+        ] || {
+          color: '#ccc',
+          text: record.state,
+        };
+
+        return h(
+          resolveComponent('a-tag'),
+          { color },
+          {
+            default: () => text,
+          }
+        );
       },
     },
     {
-      dataIndex: 'resource',
-      title: t('app.docker.container.list.column.resource'),
-      width: 120,
-      render: ({ record }: { record: any }) => {
-        // 假设 record.resource 是字符串，如 "0.2 CPU, 128MB RAM"
-        return record.resource || '-';
-      },
-    },
-    {
-      dataIndex: 'ip',
+      dataIndex: 'network',
       title: t('app.docker.container.list.column.ip'),
       width: 140,
-      render: ({ record }: { record: any }) => record.ip || '-',
+      render: ({ record }: { record: any }) => {
+        return record.network.join(',');
+      },
     },
     {
       dataIndex: 'ports',
       title: t('app.docker.container.list.column.ports'),
-      width: 140,
-      render: ({ record }: { record: any }) =>
-        Array.isArray(record.ports)
-          ? record.ports
-              .map(
-                (p: any) =>
-                  `${p.host_ip || ''}:${p.host_port}->${p.container_port}/${
-                    p.protocol
-                  }`
-              )
-              .join('<br>')
-          : '-',
+      width: 180,
+      slotName: 'ports',
     },
     {
-      dataIndex: 'uptime',
+      dataIndex: 'run_time',
       title: t('app.docker.container.list.column.uptime'),
-      width: 140,
-      render: ({ record }: { record: any }) => formatTime(record.uptime),
+      width: 180,
     },
     {
       dataIndex: 'operation',
       title: t('common.table.operation'),
-      width: 180,
+      width: 120,
       slotName: 'operation',
     },
   ];
-
-  const fetchContainers = async (params: any) => {
-    // 这里假设 params 里有 host，实际可根据业务调整
-    const res = await queryContainersApi({ ...params, state: '' });
-    return res;
-  };
 
   const handleOperate = async (
     record: any,
@@ -125,45 +191,50 @@
     }
   };
 
+  const logsRef = ref<InstanceType<typeof LogsModal>>();
+  const termRef = ref<InstanceType<typeof TerminalDrawer>>();
   const getOperationOptions = (record: any) => [
     {
       text: t('app.docker.container.list.operation.terminal'),
-      click: () =>
-        Message.info(t('app.docker.container.list.operation.terminal.todo')),
+      click: () => {
+        termRef?.value?.show(record.container_id);
+      },
     },
     {
       text: t('app.docker.container.list.operation.log'),
-      click: () =>
-        Message.info(t('app.docker.container.list.operation.log.todo')),
+      click: () => {
+        logsRef.value?.connect(record.container_id);
+        logsRef.value?.show();
+      },
     },
     {
       text: t('app.docker.container.list.operation.start'),
-      visible: record.status !== 'running',
+      visible: record.state !== 'running',
       click: () => handleOperate(record, 'start'),
     },
     {
       text: t('app.docker.container.list.operation.stop'),
-      visible: record.status === 'running',
+      visible: record.state === 'running',
       click: () => handleOperate(record, 'stop'),
     },
     {
       text: t('app.docker.container.list.operation.restart'),
-      visible: record.status === 'running',
+      visible: record.state === 'running',
       click: () => handleOperate(record, 'restart'),
     },
     {
       text: t('app.docker.container.list.operation.kill'),
-      visible: record.status === 'running',
+      visible: record.state === 'running',
       click: () => handleOperate(record, 'kill'),
     },
     {
       text: t('app.docker.container.list.operation.pause'),
-      visible: record.status === 'running',
+      visible: record.state === 'running',
       click: () => handleOperate(record, 'pause'),
     },
     {
       text: t('app.docker.container.list.operation.resume'),
-      visible: record.status === 'paused',
+      visible: record.state === 'paused',
       click: () => handleOperate(record, 'resume'),
     },
     {

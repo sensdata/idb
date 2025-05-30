@@ -7,7 +7,7 @@
     unmount-on-close
   >
     <template #title>{{ $t('manage.host.terminal.title') }}</template>
-    <terminal v-if="termVisible" :host-id="hostId!" />
+    <terminal v-if="termVisible" :host-id="hostId" />
   </a-drawer>
 </template>
 
@@ -15,7 +15,7 @@
   import { nextTick, ref } from 'vue';
   import Terminal from '@/components/terminal/terminal.vue';
 
-  const hostId = ref<number>();
+  const hostId = ref<number>(0);
   const visible = ref(false);
   const termVisible = ref(false);
   function show(host: number) {

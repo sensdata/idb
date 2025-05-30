@@ -1,5 +1,6 @@
 <template>
   <codemirror
+    ref="cmRef"
     v-model="value"
     :autofocus="true"
     :indent-with-tab="true"
@@ -26,6 +27,14 @@
     },
   });
 
+  const cmRef = ref<InstanceType<typeof Codemirror>>();
+  const scrollBottom = () => {
+    const sc = cmRef.value?.$el.querySelector('.cm-scroller');
+    if (sc) {
+      sc.scrollTo(0, sc.scrollHeight);
+    }
+  };
+
   const value = ref(props.content);
   watch(
     () => props.content,
@@ -37,4 +46,8 @@
     }
   );
   const extensions = [javascript(), oneDark];
+
+  defineExpose({
+    scrollBottom,
+  });
 </script>

@@ -36,11 +36,14 @@ export interface AppEntity {
     url: string;
   };
   has_update: boolean;
+  status: string;
   versions: Array<{
     id: number;
     version: string;
     update_version: string;
     compose_content: string;
+    status: string;
+    created_at: string;
   }>;
   form: {
     Fields: AppFormField[];

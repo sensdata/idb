@@ -74,7 +74,7 @@
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/hooks/loading';
   import { Message } from '@arco-design/web-vue';
-  import { getAppDetail, installAppApi } from '@/api/store';
+  import { getAppDetailApi, installAppApi } from '@/api/store';
   import type { AppEntity, AppFormField } from '@/entity/App';
   import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
@@ -194,7 +194,7 @@
   const load = async () => {
     setLoading(true);
     try {
-      const data = await getAppDetail({ id: params.id! });
+      const data = await getAppDetailApi({ id: params.id! });
       appDetail.value = data;
       formState.display_name = data.display_name;
       formState.version_id = data.versions[0]?.id;

@@ -14,9 +14,59 @@ import { simpleMode } from '@codemirror/legacy-modes/mode/simple-mode';
 import { EditorState } from '@codemirror/state';
 import { FileItem } from '../types';
 
-// 定义日志文件的高亮规则
+// 常量定义 - 提取到文件顶部以提高可维护性
+const BASH_FILES = [
+  '.bashrc',
+  '.bash_profile',
+  '.bash_login',
+  '.bash_logout',
+  '.profile',
+] as const;
+
+// 文件扩展名到语言的映射
+const EXTENSION_MAP = {
+  // JavaScript/TypeScript
+  js: 'javascript',
+  jsx: 'javascript',
+  ts: 'javascript',
+  tsx: 'javascript',
+
+  // Web
+  json: 'json',
+  html: 'html',
+  htm: 'html',
+  vue: 'html',
+  css: 'css',
+  scss: 'css',
+  less: 'css',
+
+  // Documentation
+  md: 'markdown',
+  markdown: 'markdown',
+
+  // Shell
+  sh: 'shell',
+  bash: 'shell',
+
+  // Configuration
+  yaml: 'yaml',
+  yml: 'yaml',
+  properties: 'properties',
+  env: 'properties',
+  conf: 'nginx',
+  nginx: 'nginx',
+  toml: 'toml',
+  ini: 'toml',
+
+  // Logs
+  log: 'log',
+} as const;
+
+type SupportedExtension = keyof typeof EXTENSION_MAP;
+type LanguageType = (typeof EXTENSION_MAP)[SupportedExtension];
+
+// 日志文件的高亮规则
 const logSyntax = {
-  // 起始状态
   start: [
     // 匹配 ISO 格式日期 (2023-04-23T10:15:30)
     {
@@ -55,80 +105,172 @@ const logSyntax = {
   ],
 };
 
-// 创建日志语法高亮器
+// logrotate配置文件的高亮规则
+const logrotateSyntax = {
+  start: [
+    // 注释
+    { regex: /#.*/, token: 'comment' },
+
+    // 文件路径 (行首的路径)
+    { regex: /^\/[^\s{]+/, token: 'string' },
+
+    // 大括号
+    { regex: /[{}]/, token: 'bracket' },
+
+    // 频率关键词
+    {
+      regex: /\b(?:daily|weekly|monthly|yearly|hourly)\b/,
+      token: 'keyword',
+    },
+
+    // rotate 指令
+    { regex: /\brotate\s+\d+/, token: 'number' },
+
+    // 布尔选项
+    {
+      regex:
+        /\b(?:compress|delaycompress|missingok|notifempty|copytruncate|create|dateext|ifempty|nocompress|nocopytruncate|nocreate|nodateext|nodelaycompress|nomissingok|noolddir|nosharedscripts|olddir|sharedscripts|size|maxage|minsize|maxsize)\b/,
+      token: 'atom',
+    },
+
+    // create 指令的权限和用户组
+    { regex: /\bcreate\s+\d{3,4}\s+\w+\s+\w+/, token: 'def' },
+
+    // size 指令
+    { regex: /\bsize\s+\d+[kmgKMG]?/, token: 'number' },
+
+    // maxage 指令
+    { regex: /\bmaxage\s+\d+/, token: 'number' },
+
+    // 脚本块关键词
+    {
+      regex: /\b(?:prerotate|postrotate|firstaction|lastaction|endscript)\b/,
+      token: 'keyword',
+    },
+
+    // 数字
+    { regex: /\b\d+\b/, token: 'number' },
+
+    // 字符串 (引号包围)
+    { regex: /"(?:[^"\\]|\\.)*"/, token: 'string' },
+    { regex: /'(?:[^'\\]|\\.)*'/, token: 'string' },
+
+    // 文件路径和通配符
+    { regex: /\/[^\s]*/, token: 'string' },
+    { regex: /\*+/, token: 'operator' },
+  ],
+};
+
+// 创建语法高亮器
 const logMode = simpleMode({ start: logSyntax.start });
+const logrotateMode = simpleMode({ start: logrotateSyntax.start });
 
-// 添加统一的行分隔符配置，确保一致的换行符处理
-const commonExtensions = [EditorState.lineSeparator.of('\n')];
+// 统一的行分隔符配置，确保一致的换行符处理
+const commonExtensions = [EditorState.lineSeparator.of('\n')] as const;
 
+/**
+ * 获取指定语言类型的扩展配置
+ * @param languageType 语言类型
+ * @returns CodeMirror扩展数组
+ */
+function getLanguageExtensions(languageType: LanguageType) {
+  switch (languageType) {
+    case 'javascript':
+      return [javascript(), ...commonExtensions];
+    case 'json':
+      return [json(), ...commonExtensions];
+    case 'html':
+      return [html(), ...commonExtensions];
+    case 'css':
+      return [css(), ...commonExtensions];
+    case 'markdown':
+      return [markdown(), ...commonExtensions];
+    case 'shell':
+      return [StreamLanguage.define(shell), ...commonExtensions];
+    case 'yaml':
+      return [StreamLanguage.define(yaml), ...commonExtensions];
+    case 'properties':
+      return [StreamLanguage.define(properties), ...commonExtensions];
+    case 'nginx':
+      return [StreamLanguage.define(nginx), ...commonExtensions];
+    case 'toml':
+      return [StreamLanguage.define(toml), ...commonExtensions];
+    case 'log':
+      return [StreamLanguage.define(logMode), ...commonExtensions];
+    default:
+      return [...commonExtensions];
+  }
+}
+
+/**
+ * 检查文件名是否为bash配置文件
+ * @param fileName 文件名
+ * @returns 是否为bash配置文件
+ */
+function isBashConfigFile(fileName: string): boolean {
+  return BASH_FILES.includes(fileName as (typeof BASH_FILES)[number]);
+}
+
+/**
+ * 获取文件扩展名
+ * @param fileName 文件名
+ * @returns 文件扩展名或undefined
+ */
+function getFileExtension(fileName: string): SupportedExtension | undefined {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  return ext && ext in EXTENSION_MAP ? (ext as SupportedExtension) : undefined;
+}
+
+/**
+ * 编辑器配置Hook
+ * 根据文件类型自动配置CodeMirror编辑器的语法高亮
+ *
+ * @param file 文件对象的响应式引用
+ * @returns 包含extensions和工具方法的配置对象
+ */
 export default function useEditorConfig(file: Ref<FileItem | null>) {
   const extensions = computed(() => {
     if (!file.value) {
-      return commonExtensions;
+      return [...commonExtensions];
     }
 
     const fileName = file.value.name.toLowerCase();
 
-    // 特殊处理没有扩展名的文件，如 .bashrc, .bash_profile 等
-    if (
-      fileName === '.bashrc' ||
-      fileName === '.bash_profile' ||
-      fileName === '.bash_login' ||
-      fileName === '.bash_logout' ||
-      fileName === '.profile'
-    ) {
-      return [StreamLanguage.define(shell), ...commonExtensions];
+    // 特殊处理bash配置文件
+    if (isBashConfigFile(fileName)) {
+      return getLanguageExtensions('shell');
     }
 
-    const ext = fileName.split('.').pop();
-
+    // 根据文件扩展名获取语言类型
+    const ext = getFileExtension(fileName);
     if (!ext) {
-      return commonExtensions;
+      return [...commonExtensions];
     }
 
-    switch (ext) {
-      case 'js':
-      case 'jsx':
-      case 'ts':
-      case 'tsx':
-        return [javascript(), ...commonExtensions];
-      case 'json':
-        return [json(), ...commonExtensions];
-      case 'html':
-      case 'htm':
-      case 'vue':
-        return [html(), ...commonExtensions];
-      case 'css':
-      case 'scss':
-      case 'less':
-        return [css(), ...commonExtensions];
-      case 'md':
-      case 'markdown':
-        return [markdown(), ...commonExtensions];
-      case 'sh':
-      case 'bash':
-        return [StreamLanguage.define(shell), ...commonExtensions];
-      case 'yaml':
-      case 'yml':
-        return [StreamLanguage.define(yaml), ...commonExtensions];
-      case 'properties':
-      case 'env':
-        return [StreamLanguage.define(properties), ...commonExtensions];
-      case 'conf':
-      case 'nginx':
-        return [StreamLanguage.define(nginx), ...commonExtensions];
-      case 'toml':
-      case 'ini':
-        return [StreamLanguage.define(toml), ...commonExtensions];
-      case 'log':
-        // 使用自定义的日志高亮模式，并确保一致的换行符处理
-        return [StreamLanguage.define(logMode), ...commonExtensions];
-      default:
-        return commonExtensions;
-    }
+    const languageType = EXTENSION_MAP[ext];
+    return getLanguageExtensions(languageType);
   });
+
+  /**
+   * 获取指定语言类型的扩展配置
+   * @param languageType 语言类型
+   * @returns CodeMirror扩展数组
+   */
+  const getExtensionsForLanguage = (languageType: LanguageType) => {
+    return getLanguageExtensions(languageType);
+  };
+
+  /**
+   * 获取logrotate配置文件的扩展配置
+   * @returns logrotate语言扩展配置
+   */
+  const getLogrotateExtensions = () => {
+    return [StreamLanguage.define(logrotateMode), ...commonExtensions];
+  };
 
   return {
     extensions,
-  };
+    getExtensionsForLanguage,
+    getLogrotateExtensions,
+  } as const;
 }

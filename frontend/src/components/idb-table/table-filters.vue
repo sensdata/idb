@@ -10,30 +10,28 @@
       >
         <a-row :gutter="50">
           <a-col v-for="item of items" :key="item.field" :span="8">
-            <a-form-item :field="item.field" :label="$t(item.label)">
+            <a-form-item :field="item.field" :label="item.label">
               <a-input
                 v-if="item.type === 'input'"
                 v-model="formModel[item.field]"
-                :placeholder="item.placeholder ? $t(item.placeholder!) : ''"
+                :placeholder="item.placeholder"
                 v-bind="getOtherProps(item)"
                 @press-enter="search"
               />
               <a-input-number
                 v-else-if="item.type === 'input-number'"
                 v-model="formModel[item.field]"
-                :placeholder="item.placeholder ? $t(item.placeholder!) : ''"
+                :placeholder="item.placeholder"
                 v-bind="getOtherProps(item)"
                 @press-enter="search"
               />
               <a-select
                 v-else-if="item.type === 'select'"
                 v-model="formModel[item.field]"
-                :options="item.options?.map((item) => ({ ...item, label: $t(item.label!) }))"
+                :options="item.options"
                 :placeholder="
-                  $t(
-                    item.placeholder ||
-                      'components.idbTable.filter.selectDefault'
-                  )
+                  item.placeholder ||
+                  $t('components.idbTable.filter.selectDefault')
                 "
                 v-bind="getOtherProps(item)"
                 @clear="handleItemClear(item)"
