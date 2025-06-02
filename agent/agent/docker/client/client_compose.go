@@ -408,6 +408,54 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 	return nil
 }
 
+func (c DockerClient) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error) {
+	var rsp model.ComposeDetailRsp
+	if utils.CheckIllegal(req.Name, req.WorkDir) {
+		return &rsp, errors.New(constant.ErrCmdIllegal)
+	}
+
+	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+	if _, err := os.Stat(composePath); err != nil {
+		global.LOG.Error("Failed to load compose file %s", composePath)
+		return &rsp, fmt.Errorf("load compose file failed, %v", err)
+	}
+	// 读取docker-compose.yaml
+	composeFile, err := os.Open(composePath)
+	if err != nil {
+		return &rsp, err
+	}
+	defer composeFile.Close()
+	composeBytes, err := io.ReadAll(composeFile)
+	if err != nil {
+		return &rsp, err
+	}
+	rsp.ComposeContent = string(composeBytes)
+	// 读取.env
+	envPath := fmt.Sprintf("%s/%s/.env", req.WorkDir, req.Name)
+	envContent := ""
+	if _, err := os.Stat(envPath); err == nil {
+		envFile, err := os.Open(envPath)
+		if err != nil {
+			global.LOG.Error("Failed to open env file %s: %v", envPath, err)
+		} else {
+			defer envFile.Close()
+			envBytes, err := io.ReadAll(envFile)
+			if err != nil {
+				global.LOG.Error("Failed to read env file %s: %v", envPath, err)
+			} else {
+				envContent = string(envBytes)
+			}
+		}
+	} else if os.IsNotExist(err) {
+		global.LOG.Info("Env file %s not found", envPath)
+	} else {
+		global.LOG.Error("Failed to stat env file %s: %v", envPath, err)
+	}
+	rsp.EnvContent = envContent
+
+	return &rsp, nil
+}
+
 func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 	if utils.CheckIllegal(req.Name, req.WorkDir) {
 		return errors.New(constant.ErrCmdIllegal)

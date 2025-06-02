@@ -86,6 +86,35 @@ func (s *DockerMan) composeCreate(hostID uint64, req model.CreateCompose) (*mode
 	return &result, nil
 }
 
+func (s *DockerMan) composeDetail(hostID uint64, req model.ComposeDetailReq) (*model.ComposeDetailRsp, error) {
+	var result model.ComposeDetailRsp
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Compose_Detail,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action Docker_Compose_Detail failed")
+		return &result, fmt.Errorf("failed to query compose detail")
+	}
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose detail result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+	return &result, nil
+}
+
 func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error {
 	composeUpdate := model.ComposeUpdate{
 		Name:           req.Name,

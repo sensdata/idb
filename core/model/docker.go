@@ -253,6 +253,16 @@ type ComposeUpdate struct {
 	WorkDir        string `json:"work_dir"`
 }
 
+type ComposeDetailReq struct {
+	Name    string `json:"name" validate:"required"`
+	WorkDir string `json:"work_dir"`
+}
+
+type ComposeDetailRsp struct {
+	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
+}
+
 // image
 type Image struct {
 	ID        string    `json:"id"`

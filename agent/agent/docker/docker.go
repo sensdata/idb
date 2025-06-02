@@ -49,6 +49,7 @@ type IDockerService interface {
 	ComposeCreate(req model.ComposeCreate) (*model.ComposeCreateResult, error)
 	ComposeRemove(req model.ComposeRemove) error
 	ComposeOperation(req model.ComposeOperation) error
+	ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error)
 	ComposeUpdate(req model.ComposeUpdate) error
 
 	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)

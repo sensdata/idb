@@ -117,6 +117,7 @@ const (
 	Docker_Compose_Remove           string = "docker_compose_remove"
 	Docker_Compose_Operation        string = "docker_compose_operation"
 	Docker_Compose_Test             string = "docker_compose_test"
+	Docker_Compose_Detail           string = "docker_compose_detail"
 	Docker_Compose_Update           string = "docker_compose_update"
 
 	CA_Groups       string = "ca_groups"

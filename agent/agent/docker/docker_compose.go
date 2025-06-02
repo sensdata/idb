@@ -50,6 +50,15 @@ func (s *DockerService) ComposeOperation(req model.ComposeOperation) error {
 	return client.ComposeOperation(req)
 }
 
+func (s *DockerService) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error) {
+	client, err := client.NewClient()
+	if err != nil {
+		return &model.ComposeDetailRsp{}, err
+	}
+	defer client.Close()
+	return client.ComposeDetail(req)
+}
+
 func (s *DockerService) ComposeUpdate(req model.ComposeUpdate) error {
 	client, err := client.NewClient()
 	if err != nil {

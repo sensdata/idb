@@ -2363,6 +2363,21 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.Docker_Compose_Detail:
+		var req model.ComposeDetailReq
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ComposeDetail(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 	case model.Docker_Compose_Update:
 		var req model.ComposeUpdate
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
