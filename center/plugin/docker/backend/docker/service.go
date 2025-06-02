@@ -611,7 +611,7 @@ func (s *DockerMan) ComposeCreate(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param name query string true "Compose name"
-// @Success 200 {object} model.PageResult
+// @Success 200 {object} model.ComposeDetailRsp
 // @Router /docker/{host}/compose/detail [get]
 func (s *DockerMan) ComposeDetail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
