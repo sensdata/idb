@@ -1119,7 +1119,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/crontab/{host}/log": {
+        "/crontab/{host}/history": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -1549,6 +1549,79 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove compose",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Remove compose",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Compose name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/compose/detail": {
+            "get": {
+                "description": "Get compose detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get compose detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Compose name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeDetailRsp"
                         }
                     }
                 }
@@ -5616,7 +5689,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logrotate/{host}/log": {
+        "/logrotate/{host}/history": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -6347,36 +6420,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/nftables/{host}/install": {
-            "post": {
-                "description": "Install nftables",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nftables"
-                ],
-                "summary": "Install nftables",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
-        "/nftables/{host}/log": {
+        "/nftables/{host}/history": {
             "get": {
                 "description": "Get histories of a conf file",
                 "consumes": [
@@ -6439,6 +6483,35 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
                         }
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/install": {
+            "post": {
+                "description": "Install nftables",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Install nftables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -7242,7 +7315,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/scripts/{host}/log": {
+        "/scripts/{host}/history": {
             "get": {
                 "description": "Get histories of a script file",
                 "consumes": [
@@ -8053,7 +8126,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/services/{host}/log": {
+        "/services/{host}/history": {
             "get": {
                 "description": "Get histories of a service file",
                 "consumes": [
@@ -8115,6 +8188,124 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/{host}/logs/tail": {
+            "get": {
+                "description": "Connect to a service log stream through SSE",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Connect to service log stream",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Type (options: 'global', 'local')",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category (directory under 'global' or 'local')",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Service file name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Follow the log stream",
+                        "name": "follow",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown.",
+                        "name": "tail",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Show logs since a certain time, can be one of 24h, 4h, 1h, 10m. If not specified, all logs will be shown.",
+                        "name": "since",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/services/{host}/operate": {
+            "post": {
+                "description": "Performing operations on a systemd-managed service on the specified host. Supported actions include enabling/disabling on boot, starting, stopping, restarting, reloading, and get status of the service, .",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Service"
+                ],
+                "summary": "Operate service",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Service operation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceOperateResult"
                         }
                     }
                 }
@@ -10841,6 +11032,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ComposeDetailRsp": {
+            "type": "object",
+            "properties": {
+                "compose_content": {
+                    "type": "string"
+                },
+                "env_content": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ComposeTestResult": {
             "type": "object",
             "properties": {
@@ -12864,6 +13066,39 @@ const docTemplate = `{
                     "$ref": "#/definitions/model.Validation"
                 },
                 "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceOperate": {
+            "type": "object",
+            "required": [
+                "name",
+                "operation",
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "start"
+                    ]
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceOperateResult": {
+            "type": "object",
+            "properties": {
+                "result": {
                     "type": "string"
                 }
             }

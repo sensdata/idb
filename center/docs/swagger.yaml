@@ -183,6 +183,13 @@ definitions:
       log:
         type: string
     type: object
+  model.ComposeDetailRsp:
+    properties:
+      compose_content:
+        type: string
+      env_content:
+        type: string
+    type: object
   model.ComposeTestResult:
     properties:
       error:
@@ -1545,6 +1552,28 @@ definitions:
       value:
         type: string
     type: object
+  model.ServiceOperate:
+    properties:
+      category:
+        type: string
+      name:
+        type: string
+      operation:
+        enum:
+        - start
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - operation
+    - type
+    type: object
+  model.ServiceOperateResult:
+    properties:
+      result:
+        type: string
+    type: object
   model.SetKeyPassword:
     properties:
       key_name:
@@ -2738,7 +2767,7 @@ paths:
       summary: Save conf file in form mode
       tags:
       - Crontab
-  /crontab/{host}/log:
+  /crontab/{host}/history:
     get:
       consumes:
       - application/json
@@ -2945,6 +2974,29 @@ paths:
       tags:
       - Crontab
   /docker/{host}/compose:
+    delete:
+      consumes:
+      - application/json
+      description: Remove compose
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Remove compose
+      tags:
+      - Docker
     get:
       consumes:
       - application/json
@@ -3027,6 +3079,32 @@ paths:
         "200":
           description: OK
       summary: Update compose
+      tags:
+      - Docker
+  /docker/{host}/compose/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get compose detail
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Compose name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeDetailRsp'
+      summary: Get compose detail
       tags:
       - Docker
   /docker/{host}/compose/operation:
@@ -5736,7 +5814,7 @@ paths:
       summary: Save conf file in form mode
       tags:
       - Logrotate
-  /logrotate/{host}/log:
+  /logrotate/{host}/history:
     get:
       consumes:
       - application/json
@@ -6229,26 +6307,7 @@ paths:
       summary: Get conf diff
       tags:
       - nftables
-  /nftables/{host}/install:
-    post:
-      consumes:
-      - application/json
-      description: Install nftables
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Install nftables
-      tags:
-      - nftables
-  /nftables/{host}/log:
+  /nftables/{host}/history:
     get:
       consumes:
       - application/json
@@ -6292,6 +6351,25 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: Get conf histories
+      tags:
+      - nftables
+  /nftables/{host}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install nftables
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Install nftables
       tags:
       - nftables
   /nftables/{host}/raw:
@@ -6830,7 +6908,7 @@ paths:
       summary: Get script diff
       tags:
       - Script
-  /scripts/{host}/log:
+  /scripts/{host}/history:
     get:
       consumes:
       - application/json
@@ -7377,7 +7455,7 @@ paths:
       summary: Save service file in form mode
       tags:
       - Service
-  /services/{host}/log:
+  /services/{host}/history:
     get:
       consumes:
       - application/json
@@ -7421,6 +7499,89 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: Get service histories
+      tags:
+      - Service
+  /services/{host}/logs/tail:
+    get:
+      consumes:
+      - application/json
+      description: Connect to a service log stream through SSE
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: 'Type (options: ''global'', ''local'')'
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: Category (directory under 'global' or 'local')
+        in: query
+        name: category
+        required: true
+        type: string
+      - description: Service file name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Follow the log stream
+        in: query
+        name: follow
+        type: boolean
+      - description: How many lines from the end of the logs to show, can be one of
+          100, 200, 500, 1000. If not specified, all logs will be shown.
+        in: query
+        name: tail
+        type: integer
+      - description: Show logs since a certain time, can be one of 24h, 4h, 1h, 10m.
+          If not specified, all logs will be shown.
+        in: query
+        name: since
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to service log stream
+      tags:
+      - Service
+  /services/{host}/operate:
+    post:
+      consumes:
+      - application/json
+      description: Performing operations on a systemd-managed service on the specified
+        host. Supported actions include enabling/disabling on boot, starting, stopping,
+        restarting, reloading, and get status of the service, .
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Service operation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceOperate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceOperateResult'
+      summary: Operate service
       tags:
       - Service
   /services/{host}/raw:
