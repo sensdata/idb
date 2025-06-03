@@ -84,7 +84,7 @@ export interface ScriptVersionsApiParams extends ApiListParams {
   category: string;
 }
 export function getScriptVersionListApi(params: ScriptVersionsApiParams) {
-  return request.get('scripts/{host}/log', params);
+  return request.get('scripts/{host}/history', params);
 }
 
 export interface RestoreScriptVersionsApiParams {
@@ -96,7 +96,7 @@ export interface RestoreScriptVersionsApiParams {
 export function restoreScriptVersionApi(
   params: RestoreScriptVersionsApiParams
 ) {
-  return request.put('scripts/{host}/log', params);
+  return request.put('scripts/{host}/history', params);
 }
 
 export function runScriptApi(params: { host_id: number; script_path: string }) {

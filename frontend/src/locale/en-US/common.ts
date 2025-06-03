@@ -30,6 +30,7 @@ export default {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.discard': 'Discard',
+  'common.restore': 'Restore',
 
   'common.yes': 'Yes',
   'common.no': 'No',

@@ -45,5 +45,7 @@ export function pruneTerminalSessionApi(host: number) {
 }
 
 export function installTerminalApi(host: number) {
-  return request.post(`/terminals/${host}/install`);
+  return request.post(`/terminals/${host}/install`, {
+    type: 'screen',
+  });
 }

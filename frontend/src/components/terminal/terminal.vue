@@ -38,6 +38,17 @@
   const sessionIdRef = ref<string>();
   const { confirm } = useConfirm();
 
+  function onWsClose(ev: CloseEvent) {
+    termRef.value?.write(`\x1b[31mConnection closed: ${ev.reason}\x1b[m\r\n`);
+  }
+
+  function onWsError(ev: any) {
+    const message = ev.message || 'Connection error';
+    if (termRef.value) {
+      termRef.value.write(`\x1b[31m${message}\x1b[m\r\n`);
+    }
+  }
+
   function isWsOpen() {
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
   }
@@ -79,15 +90,30 @@
     window.removeEventListener('resize', onResizeDebounce);
   }
 
-  async function onWsMsgReceived(ev: MessageEvent) {
+  // 使用类型系统解决循环引用问题
+  type WebSocketInitializer = (term: Terminal) => void;
+  let initWebSocket: WebSocketInitializer;
+
+  // 使用const定义onWsMsgReceived函数
+  const onWsMsgReceived = async (ev: MessageEvent) => {
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
     if (msg.code != null && msg.code !== 200) {
       termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
       if (msg.msg === 'ErrNotInstalled') {
         if (await confirm(t('components.terminal.session.confirmInstall'))) {
           termRef.value?.write('installing...\r\n');
-          await installTerminalApi(props.hostId);
-          termRef.value?.write('install success\r\n');
+          try {
+            await installTerminalApi(props.hostId);
+            termRef.value?.write('install success\r\n');
+            // 安装成功后重新连接
+            if (termRef.value) {
+              initWebSocket(termRef.value);
+            }
+          } catch (error) {
+            termRef.value?.write(
+              `\x1b[31mInstallation failed: ${error}\x1b[m\r\n`
+            );
+          }
           return;
         }
       }
@@ -113,20 +139,15 @@
       default:
         break;
     }
-  }
+  };
 
-  function onWsClose(ev: CloseEvent) {
-    termRef.value?.write(`\x1b[31mConnection closed: ${ev.reason}\x1b[m\r\n`);
-  }
-
-  function onWsError(ev: any) {
-    const message = ev.message || 'Connection error';
-    if (termRef.value) {
-      termRef.value.write(`\x1b[31m${message}\x1b[m\r\n`);
+  // 定义initWebSocket函数
+  initWebSocket = (term: Terminal) => {
+    // 关闭已存在的连接
+    if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+      wsRef.value.close();
     }
-  }
 
-  function initWs(term: Terminal) {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     let path = (props.path || 'terminals/{host}/ssh/start').replace(
       '{host}',
@@ -137,6 +158,7 @@
       cols: term.cols,
       rows: term.rows,
     });
+
     wsRef.value = new WebSocket(
       `${protocol}://${window.location.host}${API_BASE_URL}${path}`
     );
@@ -152,7 +174,7 @@
       onResize();
     };
     wsRef.value.onmessage = onWsMsgReceived;
-  }
+  };
 
   function disconnectWs() {
     if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
@@ -182,7 +204,7 @@
     fitRef.value.fit();
     termRef.value.focus();
     addResizeListener();
-    initWs(termRef.value);
+    initWebSocket(termRef.value);
   }
 
   function dispose() {

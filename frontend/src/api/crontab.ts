@@ -88,7 +88,7 @@ export interface CrontabVersionsApiParams extends ApiListParams {
 }
 export function getCrontabVersionsApi(params: CrontabVersionsApiParams) {
   return request.get<ApiListResult<CrontabEntity>>(
-    'crontab/{host}/versions',
+    'crontab/{host}/history',
     params
   );
 }

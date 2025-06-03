@@ -31,6 +31,7 @@ export default {
   'common.save': '保存',
   'common.cancel': '取消',
   'common.discard': '放弃',
+  'common.restore': '恢复',
 
   'common.yes': '是',
   'common.no': '否',

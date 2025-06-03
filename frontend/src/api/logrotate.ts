@@ -543,7 +543,7 @@ export const getLogrotateHistoryApi = async (
   params: LogrotateHistoryParams
 ): Promise<ApiListResult<LogrotateHistory>> => {
   const response = await request.get<PageResult<LogrotateHistoryResponse>>(
-    'logrotate/{host}/log',
+    'logrotate/{host}/history',
     {
       type: params.type,
       category: params.category,

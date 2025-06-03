@@ -587,4 +587,9 @@
     display: flex;
     justify-content: center;
   }
+
+  .operation :deep(.arco-btn-size-small) {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
 </style>

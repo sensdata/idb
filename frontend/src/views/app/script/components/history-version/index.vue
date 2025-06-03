@@ -35,7 +35,7 @@
   import { SCRIPT_TYPE } from '@/config/enum';
   import { useConfirm } from '@/hooks/confirm';
   import { Message } from '@arco-design/web-vue';
-  import { formatTime } from '@/utils/format';
+  import { formatTime, formatCommitHash } from '@/utils/format';
 
   const props = defineProps<{
     type: SCRIPT_TYPE;
@@ -57,7 +57,8 @@
     {
       dataIndex: 'commit_hash',
       title: t('app.script.history_version.commit_hash'),
-      render: ({ record }: { record: any }) => record.commit_hash.slice(0, 7),
+      render: ({ record }: { record: any }) =>
+        formatCommitHash(record.commit_hash, 7),
     },
     {
       dataIndex: 'date',
