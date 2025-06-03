@@ -10,6 +10,7 @@ export interface SendMsgDo {
   type: MsgType;
   data?: string;
   session?: string;
+  name?: string;
   cols?: number;
   rows?: number;
   timestamp?: number;

@@ -18,11 +18,13 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { syncAppApi } from '@/api/store';
   import List from './list.vue';
   import InstalledList from './installed-list.vue';
 
+  const { t } = useI18n();
   const listRef = ref<InstanceType<typeof List>>();
 
   const loading = ref(false);
@@ -30,7 +32,7 @@
     try {
       loading.value = true;
       await syncAppApi();
-      Message.success('app.store.app.message.syncSuccess');
+      Message.success(t('app.store.app.message.syncSuccess'));
       listRef.value?.load();
     } catch (err: any) {
       Message.error(err.message);

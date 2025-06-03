@@ -212,7 +212,6 @@ export const queryComposeApi = (params: {
 }) => request.get<ApiListResult<any>>('/docker/{host}/compose', params);
 
 // 查询 compose详情
-// TODO: 支持查询 compose 详情
 export const getComposeDetailApi = (params: { name: string }) =>
   request.get('/docker/{host}/compose/detail', params);
 
@@ -231,7 +230,6 @@ export const operateComposeApi = (params: {
 }) => request.post('/docker/{host}/compose/operation', params);
 
 // 删除 compose
-// TODO: 支持删除
 export const deleteComposeApi = (params: { name: string }) =>
   request.delete('/docker/{host}/compose', params);
 
@@ -281,6 +279,13 @@ export const cleanContainerLogApi = (id: number) =>
 // 查询容器名称
 export const queryContainerNamesApi = () =>
   request.get<ApiListResult<any>>('/docker/{host}/containers/names');
+
+// 退出容器终端
+export const quitContainerTerminalApi = (params: {
+  session: string;
+  data?: string;
+  type: 'screen';
+}) => request.post('/docker/{host}/containers/terminal/quit', params);
 
 // 容器批量操作
 export const operateContainersApi = (params: ContainerOperation) =>

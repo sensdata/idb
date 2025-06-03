@@ -18,16 +18,18 @@
 </template>
 
 <script setup lang="ts">
-  import { nextTick, ref } from 'vue';
+  import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
   import Terminal from '@/components/terminal/terminal.vue';
   import { useHostStore } from '@/store';
   import { MsgType } from '@/components/terminal/type';
+  import { quitContainerTerminalApi } from '@/api/docker';
 
   const { currentId: hostId } = useHostStore();
   const visible = ref(false);
   const termRef = ref<InstanceType<typeof Terminal>>();
   const termVisible = ref(false);
   const conatinerIdRef = ref('');
+
   function show(containerId: string) {
     conatinerIdRef.value = containerId;
     visible.value = true;
@@ -40,13 +42,28 @@
     visible.value = false;
   }
 
+  function handleQuit() {
+    quitContainerTerminalApi({
+      session: conatinerIdRef.value,
+      type: 'screen',
+    });
+  }
+
   function handleWsOpen() {
-    console.log('handleWsOpen', conatinerIdRef.value);
     termRef.value?.sendWsMsg({
       type: MsgType.Start,
       session: conatinerIdRef.value,
+      name: '/bin/bash',
     });
   }
+
+  watch(visible, (v) => {
+    if (!v) {
+      handleQuit();
+    }
+  });
+
+  onBeforeUnmount(handleQuit);
 
   defineExpose({
     show,
