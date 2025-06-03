@@ -127,7 +127,7 @@ export default {
   'app.logrotate.history.restore.button': 'Restore to this version',
   'app.logrotate.history.diff.title': 'File Diff',
   'app.logrotate.history.diff.current': 'Current Version',
-  'app.logrotate.history.diff.version': 'Version {commit}',
+  'app.logrotate.history.diff.version': 'Historical Version {commit}',
   'app.logrotate.history.diff.historical': 'Historical Version',
   'app.logrotate.history.diff.description':
     'Green shows content that existed in the historical version but was removed in the current version; Red shows content that did not exist in the historical version but was added in the current version',

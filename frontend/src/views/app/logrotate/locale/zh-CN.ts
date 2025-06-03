@@ -120,7 +120,7 @@ export default {
   'app.logrotate.history.restore.button': '恢复到此版本',
   'app.logrotate.history.diff.title': '文件对比',
   'app.logrotate.history.diff.current': '当前版本',
-  'app.logrotate.history.diff.version': '版本 {commit}',
+  'app.logrotate.history.diff.version': '历史版本 {commit}',
   'app.logrotate.history.diff.historical': '历史版本',
   'app.logrotate.history.diff.description':
     '绿色表示在历史版本中存在，当前版本中被删除的内容；红色表示历史版本中不存在，当前版本中新增的内容',

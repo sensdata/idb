@@ -7,12 +7,11 @@
     <div v-if="isValidDiff" class="diff-side-by-side">
       <section
         class="diff-column left-column"
-        aria-labelledby="historical-header"
+        aria-labelledby="historical-content"
       >
-        <header id="historical-header" class="diff-header">
-          {{ $t('components.diffViewer.historical') }}
-        </header>
+        <!-- eslint-disable vue/no-v-html -->
         <pre
+          id="historical-content"
           class="diff-text"
           role="textbox"
           :aria-label="$t('components.diffViewer.historicalContent')"
@@ -20,6 +19,7 @@
           tabindex="0"
           v-html="sanitizedHistorical"
         ></pre>
+        <!-- eslint-enable vue/no-v-html -->
       </section>
 
       <div
@@ -30,12 +30,11 @@
 
       <section
         class="diff-column right-column"
-        aria-labelledby="current-header"
+        aria-labelledby="current-content"
       >
-        <header id="current-header" class="diff-header">
-          {{ $t('components.diffViewer.current') }}
-        </header>
+        <!-- eslint-disable vue/no-v-html -->
         <pre
+          id="current-content"
           class="diff-text"
           role="textbox"
           :aria-label="$t('components.diffViewer.currentContent')"
@@ -43,6 +42,7 @@
           tabindex="0"
           v-html="sanitizedCurrent"
         ></pre>
+        <!-- eslint-enable vue/no-v-html -->
       </section>
     </div>
 
@@ -153,15 +153,6 @@
     flex-shrink: 0;
     width: 2px;
     background: var(--color-border-2);
-  }
-
-  .diff-header {
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--color-text-2);
-    background: var(--color-bg-2);
-    border-bottom: 1px solid var(--color-border-2);
   }
 
   .diff-text {
