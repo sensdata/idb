@@ -108,16 +108,26 @@ export default {
 
   // 历史记录
   'app.logrotate.history.title': '配置历史',
+  'app.logrotate.history.current': '当前',
   'app.logrotate.history.column.commit': '提交ID',
   'app.logrotate.history.column.message': '提交信息',
   'app.logrotate.history.column.author': '作者',
   'app.logrotate.history.column.date': '提交时间',
   'app.logrotate.history.operation.restore': '恢复',
+  'app.logrotate.history.operation.diff': '对比',
   'app.logrotate.history.restore.title': '确认恢复',
   'app.logrotate.history.restore.content': '确定要恢复到提交 {commit} 吗？',
+  'app.logrotate.history.restore.button': '恢复到此版本',
+  'app.logrotate.history.diff.title': '文件对比',
+  'app.logrotate.history.diff.current': '当前版本',
+  'app.logrotate.history.diff.version': '版本 {commit}',
+  'app.logrotate.history.diff.historical': '历史版本',
+  'app.logrotate.history.diff.description':
+    '绿色表示在历史版本中存在，当前版本中被删除的内容；红色表示历史版本中不存在，当前版本中新增的内容',
   'app.logrotate.history.message.load_failed': '加载历史记录失败',
   'app.logrotate.history.message.restore_success': '恢复配置成功',
   'app.logrotate.history.message.restore_failed': '恢复配置失败',
+  'app.logrotate.history.message.diff_failed': '获取文件对比失败',
 
   // 分类管理
   'app.logrotate.category.manage.title': '分类管理',

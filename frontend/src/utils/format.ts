@@ -1,4 +1,5 @@
 import { useI18n } from 'vue-i18n';
+import { truncate } from 'lodash';
 
 export function formatFileSize(size?: number, fixed = 1): string {
   if (size == null) {
@@ -133,4 +134,17 @@ export function formatSeconds(seconds?: number) {
   str += t('common.timeFormat.seconds', { seconds: remainingSeconds });
 
   return str;
+}
+
+/**
+ * 格式化提交哈希，显示指定长度
+ * @param commit - 完整的提交哈希
+ * @param length - 要显示的长度，默认8位
+ * @returns 格式化后的提交哈希
+ */
+export function formatCommitHash(commit: string, length = 8): string {
+  if (!commit || typeof commit !== 'string') {
+    return '';
+  }
+  return truncate(commit, { length, omission: '' });
 }

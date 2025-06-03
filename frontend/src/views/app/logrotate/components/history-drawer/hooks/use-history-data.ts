@@ -142,11 +142,13 @@ export function useHistoryData() {
     historyList,
     pagination,
     loading,
+    currentParams,
 
     // 方法
     initializeHistory,
     handlePageChange,
     handlePageSizeChange,
     handleRestore,
+    loadHistory,
   };
 }

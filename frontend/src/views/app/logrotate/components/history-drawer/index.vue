@@ -11,6 +11,7 @@
         :data="historyList"
         :loading="loading"
         :pagination="pagination"
+        :row-class="getRowClass"
         @page-change="handlePageChange"
         @page-size-change="handlePageSizeChange"
       >
@@ -18,10 +19,20 @@
           <a-table-column
             :title="$t('app.logrotate.history.column.commit')"
             data-index="commit"
-            :width="120"
+            :width="140"
           >
-            <template #cell="{ record }">
-              <a-tag size="small">{{ formatCommit(record.commit) }}</a-tag>
+            <template #cell="{ record, rowIndex }">
+              <div class="commit-cell">
+                <a-tag size="small">{{ formatCommit(record.commit) }}</a-tag>
+                <a-tag
+                  v-if="rowIndex === 0"
+                  color="green"
+                  size="small"
+                  class="current-tag"
+                >
+                  {{ $t('app.logrotate.history.current') }}
+                </a-tag>
+              </div>
             </template>
           </a-table-column>
           <a-table-column
@@ -42,11 +53,24 @@
           />
           <a-table-column
             :title="$t('common.operation')"
-            :width="120"
+            :width="180"
             fixed="right"
           >
-            <template #cell="{ record }">
-              <a-button type="text" size="small" @click="onRestore(record)">
+            <template #cell="{ record, rowIndex }">
+              <a-button
+                type="text"
+                size="small"
+                :disabled="rowIndex === 0"
+                @click="onDiff(record)"
+              >
+                {{ $t('app.logrotate.history.operation.diff') }}
+              </a-button>
+              <a-button
+                type="text"
+                size="small"
+                :disabled="rowIndex === 0"
+                @click="onRestore(record)"
+              >
                 {{ $t('app.logrotate.history.operation.restore') }}
               </a-button>
             </template>
@@ -54,16 +78,23 @@
         </template>
       </a-table>
     </div>
+
+    <!-- 文件对比抽屉 -->
+    <logrotate-diff-drawer ref="diffDrawerRef" />
   </a-drawer>
 </template>
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { formatCommitHash } from '@/utils/format';
   import type { LogrotateHistory } from '@/entity/Logrotate';
   import type { HistoryParams, HistoryDrawerExpose } from './types';
   import { useHistoryData } from './hooks/use-history-data';
+  import LogrotateDiffDrawer from '../diff-drawer/index.vue';
+  import type { DiffDrawerExpose } from '../diff-drawer/types';
 
   const visible = ref(false);
+  const diffDrawerRef = ref<DiffDrawerExpose | null>(null);
 
   // 使用自定义 hook 管理历史数据
   const {
@@ -74,6 +105,8 @@
     handlePageChange,
     handlePageSizeChange,
     handleRestore,
+    currentParams,
+    loadHistory,
   } = useHistoryData();
 
   /**
@@ -81,8 +114,16 @@
    * @param commit - 完整的提交哈希
    * @returns 格式化后的提交哈希
    */
-  const formatCommit = (commit: string): string => {
-    return commit.substring(0, 8);
+  const formatCommit = formatCommitHash;
+
+  /**
+   * 获取表格行的CSS类名
+   * @param record - 记录数据
+   * @param rowIndex - 行索引
+   * @returns CSS类名
+   */
+  const getRowClass = (record: LogrotateHistory, rowIndex: number): string => {
+    return rowIndex === 0 ? 'current-version-row' : '';
   };
 
   /**
@@ -92,6 +133,29 @@
   const show = (params: HistoryParams): void => {
     visible.value = true;
     initializeHistory(params);
+  };
+
+  /**
+   * 处理文件对比操作
+   * @param record - 要对比的历史记录
+   */
+  const onDiff = (record: LogrotateHistory): void => {
+    if (!diffDrawerRef.value || !currentParams.value) {
+      return;
+    }
+
+    diffDrawerRef.value.show(
+      {
+        type: currentParams.value.type,
+        category: currentParams.value.category,
+        name: currentParams.value.name,
+        commit: record.commit,
+      },
+      () => {
+        // 恢复成功后刷新历史数据
+        loadHistory();
+      }
+    );
   };
 
   /**
@@ -114,5 +178,27 @@
 <style scoped>
   .history-drawer {
     height: 100%;
+  }
+
+  .commit-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .current-tag {
+    height: 18px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
+  }
+
+  :deep(.current-version-row) {
+    background-color: var(--color-fill-1);
+  }
+
+  :deep(.current-version-row:hover) {
+    background-color: var(--color-fill-2) !important;
   }
 </style>

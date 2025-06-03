@@ -114,18 +114,28 @@ export default {
 
   // History
   'app.logrotate.history.title': 'Config History',
+  'app.logrotate.history.current': 'Current',
   'app.logrotate.history.column.commit': 'Commit ID',
   'app.logrotate.history.column.message': 'Commit Message',
   'app.logrotate.history.column.author': 'Author',
   'app.logrotate.history.column.date': 'Commit Date',
   'app.logrotate.history.operation.restore': 'Restore',
+  'app.logrotate.history.operation.diff': 'Diff',
   'app.logrotate.history.restore.title': 'Confirm Restore',
   'app.logrotate.history.restore.content':
     'Are you sure to restore to commit {commit}?',
+  'app.logrotate.history.restore.button': 'Restore to this version',
+  'app.logrotate.history.diff.title': 'File Diff',
+  'app.logrotate.history.diff.current': 'Current Version',
+  'app.logrotate.history.diff.version': 'Version {commit}',
+  'app.logrotate.history.diff.historical': 'Historical Version',
+  'app.logrotate.history.diff.description':
+    'Green shows content that existed in the historical version but was removed in the current version; Red shows content that did not exist in the historical version but was added in the current version',
   'app.logrotate.history.message.load_failed': 'Failed to load history',
   'app.logrotate.history.message.restore_success':
     'Config restored successfully',
   'app.logrotate.history.message.restore_failed': 'Failed to restore config',
+  'app.logrotate.history.message.diff_failed': 'Failed to get file diff',
 
   // Category Management
   'app.logrotate.category.manage.title': 'Category Management',
