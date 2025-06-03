@@ -164,6 +164,7 @@ func (s *LogRotate) Initialize() {
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
+			{Method: "POST", Path: "/:host/operate", Handler: s.ConfOperate},
 		},
 	)
 
@@ -920,4 +921,32 @@ func (s *LogRotate) ConfActivate(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Logrotate
+// @Summary Test or force execute logrotate configuration
+// @Description Test (dry-run) or force execute a specified logrotate configuration for the given host, returning the operation result.
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.LogrotateOperate true "Logrotate operation details"
+// @Success 200 {object} model.ServiceOperateResult
+// @Router /logrotate/{host}/operate [post]
+func (s *LogRotate) ConfOperate(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.LogrotateOperate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	result, err := s.confOperate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, result)
 }

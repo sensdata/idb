@@ -477,6 +477,19 @@ func (s *LogRotate) handleHostID(reqType string, hostID uint64) (uint, error) {
 	return hid, nil
 }
 
+func (s *LogRotate) needSync(reqType string, hostID uint64) (bool, error) {
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return false, err
+		}
+		if hostID != uint64(defaultHost.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *LogRotate) createFile(hostID uint64, op model.FileCreate) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -1719,6 +1732,20 @@ func (s *LogRotate) syncGlobal(hostID uint) error {
 
 func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error {
 
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return err
+		}
+	}
+
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1733,14 +1760,8 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 		relativePath = req.Name + ".logrotate"
 	}
 
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
 	// 检查repo
-	err = s.checkRepo(hid, repoPath)
+	err = s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
@@ -1762,7 +1783,7 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 			IsSymlink: true,
 			LinkPath:  confPath,
 		}
-		err := s.createFile(uint64(hid), createFile)
+		err := s.createFile(uint64(hostID), createFile)
 		if err != nil {
 			LOG.Error("Failed to create symlink")
 			return err
@@ -1775,7 +1796,7 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(uint64(hid), createGitFile, ".linked")
+		err = s.create(uint64(hostID), createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1784,7 +1805,7 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 		// 进行-d测试
 		// TODO: 根据测试结果，做进一步的处理
 		command := fmt.Sprintf("logrotate -d %s", confLinkPath)
-		commandResult, err := s.sendCommand(hid, command)
+		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
 			return err
@@ -1796,7 +1817,7 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 		deleteFile := model.FileDelete{
 			Path: confLinkPath,
 		}
-		err := s.deleteFile(uint64(hid), deleteFile)
+		err := s.deleteFile(uint64(hostID), deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete symlink")
 			return err
@@ -1808,7 +1829,7 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(uint64(hid), deleteGitFile, ".linked")
+		err = s.delete(uint64(hostID), deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err
@@ -1821,4 +1842,67 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 	}
 
 	return nil
+}
+
+func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return &result, err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return &result, err
+		}
+	}
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".logrotate")
+	} else {
+		relativePath = req.Name + ".logrotate"
+	}
+
+	// 检查repo
+	err = s.checkRepo(uint(hostID), repoPath)
+	if err != nil {
+		return &result, err
+	}
+
+	// conf file path
+	confPath := filepath.Join(repoPath, relativePath)
+
+	switch req.Operation {
+	case "test":
+		// 进行-d测试
+		command := fmt.Sprintf("logrotate -d %s", confPath)
+		commandResult, err := s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to test conf")
+			return &result, err
+		}
+		result.Result = commandResult.Result
+	case "execute":
+		// 进行-f测试
+		command := fmt.Sprintf("logrotate -f %s", confPath)
+		commandResult, err := s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to execute conf")
+			return &result, err
+		}
+		result.Result = commandResult.Result
+	}
+	return &result, nil
 }
