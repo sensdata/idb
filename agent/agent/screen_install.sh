@@ -18,7 +18,8 @@ install_screen() {
     fi
     
     if [ "$OS_TYPE" == "Debian" ] || [ "$OS_TYPE" == "Ubuntu" ]; then
-        sudo apt-get update && sudo apt-get install -y screen
+        sudo apt-get update || true
+        sudo apt-get install -y screen
     elif [ "$OS_TYPE" == "CentOS" ] || [ "$OS_TYPE" == "RedHat" ] || [ "$OS_TYPE" == "Fedora" ]; then
         sudo yum install -y screen
     elif [ "$OS_TYPE" == "Arch" ]; then
