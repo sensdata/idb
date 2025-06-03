@@ -110,6 +110,19 @@ func (s *NFTable) handleHostID(reqType string, hostID uint64) (uint, error) {
 	return hid, nil
 }
 
+func (s *NFTable) needSync(reqType string, hostID uint64) (bool, error) {
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return false, err
+		}
+		if hostID != uint64(defaultHost.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *NFTable) updateFile(hostID uint64, op model.FileEdit) error {
 	data, err := utils.ToJSONString(op)
 	if err != nil {
@@ -1229,6 +1242,20 @@ func (s *NFTable) syncGlobal(hostID uint) error {
 
 func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return err
+		}
+	}
+
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1242,26 +1269,18 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 	} else {
 		relativePath = req.Name + ".nftable"
 	}
-
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
-	gitGetFile := model.GitGetFile{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-	}
-
 	// 检查repo
-	err = s.checkRepo(gitGetFile.HostID, repoPath)
+	err = s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
 
 	// 获取脚本详情
+	gitGetFile := model.GitGetFile{
+		HostID:       uint(hostID),
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+	}
 	data, err := utils.ToJSONString(gitGetFile)
 	if err != nil {
 		return err
@@ -1305,7 +1324,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 			Source:  "/etc/nftables.conf",
 			Content: content,
 		}
-		err = s.updateFile(uint64(hid), editFile)
+		err = s.updateFile(uint64(hostID), editFile)
 		if err != nil {
 			LOG.Error("Failed to edit conf")
 			return err
@@ -1313,7 +1332,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 		// 进行测试
 		command := "nft -c -f /etc/nftables.conf"
-		commandResult, err := s.sendCommand(hid, command)
+		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
 			return err
@@ -1325,7 +1344,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 		// 生效规则
 		command = "nft -f /etc/nftables.conf"
-		commandResult, err = s.sendCommand(hid, command)
+		commandResult, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to enable conf")
 			return err
@@ -1350,7 +1369,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 			Source:  "/etc/nftables.conf",
 			Content: content,
 		}
-		err = s.updateFile(uint64(hid), editFile)
+		err = s.updateFile(uint64(hostID), editFile)
 		if err != nil {
 			LOG.Error("Failed to edit conf")
 			return err
@@ -1358,7 +1377,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 		// 进行测试
 		command := "nft -c -f /etc/nftables.conf"
-		commandResult, err := s.sendCommand(hid, command)
+		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
 			return err
@@ -1370,7 +1389,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 		// 生效规则
 		command = "nft -f /etc/nftables.conf"
-		commandResult, err = s.sendCommand(hid, command)
+		commandResult, err = s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to enable conf")
 			return err
