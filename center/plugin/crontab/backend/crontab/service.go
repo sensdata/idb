@@ -164,6 +164,7 @@ func (s *CronTab) Initialize() {
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
+			{Method: "POST", Path: "/:host/operate", Handler: s.ConfOperate},
 		},
 	)
 
@@ -920,4 +921,32 @@ func (s *CronTab) ConfActivate(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags CronTab
+// @Summary Execute the specified crontab configuration for a host
+// @Description Forcefully executes all commands defined in the specified crontab configuration for the given host and returns the execution result.
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CrontabOperate true "Logrotate operation details"
+// @Success 200 {object} model.ServiceOperateResult
+// @Router /crontab/{host}/operate [post]
+func (s *CronTab) ConfOperate(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.CrontabOperate
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	result, err := s.confOperate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, result)
 }

@@ -118,6 +118,38 @@ func (s *CronTab) sendAction(actionRequest model.HostAction) (*model.ActionRespo
 	return &actionResponse, nil
 }
 
+func (s *CronTab) sendCommand(hostId uint, command string) (*model.CommandResult, error) {
+	var commandResult model.CommandResult
+
+	commandRequest := model.Command{
+		HostID:  hostId,
+		Command: command,
+	}
+
+	var commandResponse model.CommandResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(commandRequest).
+		SetResult(&commandResponse).
+		Post("/commands")
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	LOG.Info("cmd response: %v", commandResponse)
+
+	commandResult = commandResponse.Data
+
+	return &commandResult, nil
+}
+
 func (s *CronTab) checkRepo(hostID uint, repoPath string) error {
 	req := model.GitInit{HostID: hostID, RepoPath: repoPath, IsBare: false}
 	data, err := utils.ToJSONString(req)
@@ -157,6 +189,19 @@ func (s *CronTab) handleHostID(reqType string, hostID uint64) (uint, error) {
 		hid = defaultHost.ID
 	}
 	return hid, nil
+}
+
+func (s *CronTab) needSync(reqType string, hostID uint64) (bool, error) {
+	if reqType == "global" {
+		defaultHost, err := s.hostRepo.Get(s.hostRepo.WithByDefault())
+		if err != nil {
+			return false, err
+		}
+		if hostID != uint64(defaultHost.ID) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *CronTab) createFile(hostID uint64, op model.FileCreate) error {
@@ -1397,6 +1442,20 @@ func (s *CronTab) syncGlobal(hostID uint) error {
 
 func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return err
+		}
+	}
+
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1411,25 +1470,18 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 		relativePath = req.Name + ".crontab"
 	}
 
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
-	gitGetFile := model.GitGetFile{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: relativePath,
-	}
-
 	// 检查repo
-	err = s.checkRepo(gitGetFile.HostID, repoPath)
+	err = s.checkRepo(uint(hostID), repoPath)
 	if err != nil {
 		return err
 	}
 
 	// 获取脚本详情
+	gitGetFile := model.GitGetFile{
+		HostID:       uint(hostID),
+		RepoPath:     repoPath,
+		RelativePath: relativePath,
+	}
 	data, err := utils.ToJSONString(gitGetFile)
 	if err != nil {
 		return err
@@ -1476,7 +1528,7 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 			Source:  confLinkPath,
 			Content: gitFile.Content,
 		}
-		err := s.createFile(uint64(hid), createFile)
+		err := s.createFile(uint64(hostID), createFile)
 		if err != nil {
 			LOG.Error("Failed to create conf file")
 			return err
@@ -1489,7 +1541,7 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 			Name:     req.Name,
 			Content:  "",
 		}
-		err = s.create(uint64(hid), createGitFile, ".linked")
+		err = s.create(uint64(hostID), createGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to create linked file")
 			return err
@@ -1500,7 +1552,7 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 		deleteFile := model.FileDelete{
 			Path: confLinkPath,
 		}
-		err := s.deleteFile(uint64(hid), deleteFile)
+		err := s.deleteFile(uint64(hostID), deleteFile)
 		if err != nil {
 			LOG.Error("Failed to delete conf file")
 			return err
@@ -1512,7 +1564,7 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 			Category: req.Category,
 			Name:     req.Name,
 		}
-		err = s.delete(uint64(hid), deleteGitFile, ".linked")
+		err = s.delete(uint64(hostID), deleteGitFile, ".linked")
 		if err != nil {
 			LOG.Error("Failed to delete linked file")
 			return err
@@ -1523,4 +1575,116 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 	}
 
 	return nil
+}
+
+func (s *CronTab) confOperate(hostID uint64, req model.CrontabOperate) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+
+	// 先看是否需要同步
+	needSync, err := s.needSync(req.Type, hostID)
+	if err != nil {
+		LOG.Error("Failed to check if sync is needed: %v", err)
+		return &result, err
+	}
+	// 执行同步
+	if needSync {
+		if err := s.syncGlobal(uint(hostID)); err != nil {
+			LOG.Error("Failed to sync global services: %v", err)
+			return &result, err
+		}
+	}
+
+	var repoPath string
+	switch req.Type {
+	case "global":
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	default:
+		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	}
+	var relativePath string
+	if req.Category != "" {
+		relativePath = filepath.Join(req.Category, req.Name+".crontab")
+	} else {
+		relativePath = req.Name + ".crontab"
+	}
+
+	// 检查repo
+	err = s.checkRepo(uint(hostID), repoPath)
+	if err != nil {
+		return &result, err
+	}
+
+	// 执行操作
+	switch req.Operation {
+	case "execute":
+		// 获取脚本内容
+		gitGetFile := model.GitGetFile{
+			HostID:       uint(hostID),
+			RepoPath:     repoPath,
+			RelativePath: relativePath,
+		}
+		data, err := utils.ToJSONString(gitGetFile)
+		if err != nil {
+			return &result, err
+		}
+		actionRequest := model.HostAction{
+			HostID: gitGetFile.HostID,
+			Action: model.Action{
+				Action: model.Git_File,
+				Data:   data,
+			},
+		}
+		actionResponse, err := s.sendAction(actionRequest)
+		if err != nil {
+			LOG.Error("Failed to send action: %v", err)
+			return &result, err
+		}
+		if !actionResponse.Data.Action.Result {
+			LOG.Error("Action failed")
+			return &result, fmt.Errorf("failed to get conf detail")
+		}
+		var gitFile model.GitFile
+		err = utils.FromJSONString(actionResponse.Data.Action.Data, &gitFile)
+		if err != nil {
+			LOG.Error("Error unmarshaling data to conf detail: %v", err)
+			return &result, fmt.Errorf("json err: %v", err)
+		}
+		// 从脚本提取命令
+		commandLines := extractCrontabCommands(gitFile.Content)
+		if len(commandLines) == 0 {
+			return &result, fmt.Errorf("no commands found in the crontab file")
+		}
+		// 执行命令
+		command := commandLines[0]
+		commandResult, err := s.sendCommand(uint(hostID), command)
+		if err != nil {
+			LOG.Error("Failed to execute conf")
+			return &result, err
+		}
+		result.Result = commandResult.Result
+	}
+	return &result, nil
+}
+
+func extractCrontabCommands(content string) []string {
+	var commands []string
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		if strings.HasPrefix(fields[0], "@") && len(fields) > 1 {
+			// 兼容 @reboot、@daily 等
+			commands = append(commands, strings.Join(fields[1:], " "))
+		} else if len(fields) > 5 {
+			// 标准时间表达式
+			commands = append(commands, strings.Join(fields[5:], " "))
+		}
+	}
+	return commands
 }
