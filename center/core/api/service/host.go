@@ -2,10 +2,14 @@ package service
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 
@@ -32,6 +36,7 @@ type IHostService interface {
 	Delete(id uint) error
 	Info(id uint) (*core.HostInfo, error)
 	Status(id uint) (*core.HostStatus, error)
+	StatusFollow(c *gin.Context) error
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(req core.TestSSH) error
@@ -39,6 +44,7 @@ type IHostService interface {
 	InstallAgent(id uint, req core.InstallAgent) (*core.LogInfo, error)
 	UninstallAgent(id uint) (*core.LogInfo, error)
 	AgentStatus(id uint) (*core.AgentStatus, error)
+	AgentStatusFollow(c *gin.Context) error
 	RestartAgent(id uint) error
 }
 
@@ -284,7 +290,7 @@ func (s *HostService) Status(id uint) (*core.HostStatus, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
 	if err != nil {
-		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return &status, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
 	actionRequest := core.HostAction{
@@ -311,6 +317,56 @@ func (s *HostService) Status(id uint) (*core.HostStatus, error) {
 	}
 
 	return &status, nil
+}
+
+func (s *HostService) StatusFollow(c *gin.Context) error {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		return errors.New("invalid host")
+	}
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			return nil
+		default:
+			status, err := s.Status(uint(hostID))
+			if err != nil {
+				global.LOG.Error("get status failed: %v", err)
+				c.SSEvent("error", err.Error())
+			} else {
+				statusJson, err := utils.ToJSONString(status)
+				if err != nil {
+					global.LOG.Error("json err: %v", err)
+					c.SSEvent("error", err.Error())
+				} else {
+					c.SSEvent("status", statusJson)
+				}
+			}
+			flusher.Flush()
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
@@ -434,6 +490,56 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
 	return s.getAgentStatus(id)
+}
+
+func (s *HostService) AgentStatusFollow(c *gin.Context) error {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		return errors.New("invalid host")
+	}
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			return nil
+		default:
+			status, err := s.getAgentStatus(uint(hostID))
+			if err != nil {
+				global.LOG.Error("get agent status failed: %v", err)
+				c.SSEvent("error", err.Error())
+			} else {
+				statusJson, err := utils.ToJSONString(status)
+				if err != nil {
+					global.LOG.Error("json err: %v", err)
+					c.SSEvent("error", err.Error())
+				} else {
+					c.SSEvent("status", statusJson)
+				}
+			}
+			flusher.Flush()
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (s *HostService) getAgentStatus(id uint) (*core.AgentStatus, error) {

@@ -1,9 +1,11 @@
 package entry
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 )
@@ -238,6 +240,24 @@ func (b *BaseApi) HostStatus(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Follow host status
+// @Description Follow host status
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /hosts/{host}/status/follow [get]
+func (b *BaseApi) HostStatusFollow(c *gin.Context) {
+	err := hostService.StatusFollow(c)
+	if err != nil {
+		global.LOG.Error("Follow host status failed: %v", err)
+		ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+}
+
+// @Tags Host
 // @Summary Update ssh config in host
 // @Description Update ssh config in host
 // @Accept json
@@ -364,6 +384,24 @@ func (b *BaseApi) AgentStatus(c *gin.Context) {
 		return
 	}
 	SuccessWithData(c, status)
+}
+
+// @Tags Host
+// @Summary Follow agent status
+// @Description Follow agent status
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /hosts/{host}/agent/status/follow [get]
+func (b *BaseApi) AgentStatusFollow(c *gin.Context) {
+	err := hostService.AgentStatusFollow(c)
+	if err != nil {
+		global.LOG.Error("Follow agent status failed: %v", err)
+		ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
 }
 
 // @Tags Host
