@@ -57,7 +57,7 @@ export interface ContainerOperation {
     | 'restart'
     | 'kill'
     | 'pause'
-    | 'resume'
+    | 'unpause'
     | 'remove';
 }
 

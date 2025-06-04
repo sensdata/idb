@@ -12,7 +12,7 @@ export default {
   'app.docker.container.list.operation.restart': '重启',
   'app.docker.container.list.operation.kill': '强制停止',
   'app.docker.container.list.operation.pause': '暂停',
-  'app.docker.container.list.operation.resume': '恢复',
+  'app.docker.container.list.operation.unpause': '恢复',
   'app.docker.container.list.operation.delete': '删除',
   'app.docker.container.list.operation.delete.confirm': '确定要删除该容器吗？',
   'app.docker.container.list.operation.success': '操作成功',

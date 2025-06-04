@@ -177,7 +177,7 @@
       | 'restart'
       | 'kill'
       | 'pause'
-      | 'resume'
+      | 'unpause'
       | 'remove'
   ) => {
     try {
@@ -233,9 +233,9 @@
       click: () => handleOperate(record, 'pause'),
     },
     {
-      text: t('app.docker.container.list.operation.resume'),
+      text: t('app.docker.container.list.operation.unpause'),
       visible: record.state === 'paused',
-      click: () => handleOperate(record, 'resume'),
+      click: () => handleOperate(record, 'unpause'),
     },
     {
       text: t('app.docker.container.list.operation.delete'),

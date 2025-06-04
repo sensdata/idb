@@ -12,7 +12,7 @@ export default {
   'app.docker.container.list.operation.restart': 'Restart',
   'app.docker.container.list.operation.kill': 'Force Stop',
   'app.docker.container.list.operation.pause': 'Pause',
-  'app.docker.container.list.operation.resume': 'Resume',
+  'app.docker.container.list.operation.unpause': 'Unpause',
   'app.docker.container.list.operation.delete': 'Delete',
   'app.docker.container.list.operation.delete.confirm':
     'Are you sure to delete this container?',
