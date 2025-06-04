@@ -1186,6 +1186,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/crontab/{host}/operate": {
+            "post": {
+                "description": "Forcefully executes all commands defined in the specified crontab configuration for the given host and returns the execution result.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "CronTab"
+                ],
+                "summary": "Execute the specified crontab configuration for a host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Logrotate operation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CrontabOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceOperateResult"
+                        }
+                    }
+                }
+            }
+        },
         "/crontab/{host}/raw": {
             "get": {
                 "description": "Get content of a conf file",
@@ -4966,6 +5007,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/hosts/{host}/agent/status/follow": {
+            "get": {
+                "description": "Follow agent status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Follow agent status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/hosts/{host}/agent/uninstall": {
             "post": {
                 "description": "Uninstall agent in host",
@@ -5101,6 +5180,44 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.HostStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/hosts/{host}/status/follow": {
+            "get": {
+                "description": "Follow host status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Follow host status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
                         }
                     }
                 }
@@ -5751,6 +5868,47 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/logrotate/{host}/operate": {
+            "post": {
+                "description": "Test (dry-run) or force execute a specified logrotate configuration for the given host, returning the operation result.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Logrotate"
+                ],
+                "summary": "Test or force execute logrotate configuration",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Logrotate operation details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.LogrotateOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceOperateResult"
                         }
                     }
                 }
@@ -11168,7 +11326,7 @@ const docTemplate = `{
                         "restart",
                         "kill",
                         "pause",
-                        "resume",
+                        "unpause",
                         "remove"
                     ]
                 }
@@ -11432,6 +11590,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.CrontabOperate": {
+            "type": "object",
+            "required": [
+                "name",
+                "operation",
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "execute"
+                    ]
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -12373,6 +12556,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.LogrotateOperate": {
+            "type": "object",
+            "required": [
+                "name",
+                "operation",
+                "type"
+            ],
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "test"
+                    ]
+                },
+                "type": {
                     "type": "string"
                 }
             }

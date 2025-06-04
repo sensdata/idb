@@ -272,7 +272,7 @@ definitions:
         - restart
         - kill
         - pause
-        - resume
+        - unpause
         - remove
         type: string
     required:
@@ -457,6 +457,23 @@ definitions:
     - group_id
     - name
     - password
+    type: object
+  model.CrontabOperate:
+    properties:
+      category:
+        type: string
+      name:
+        type: string
+      operation:
+        enum:
+        - execute
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - operation
+    - type
     type: object
   model.DNSInfo:
     properties:
@@ -1087,6 +1104,23 @@ definitions:
         type: string
       token:
         type: string
+    type: object
+  model.LogrotateOperate:
+    properties:
+      category:
+        type: string
+      name:
+        type: string
+      operation:
+        enum:
+        - test
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - operation
+    - type
     type: object
   model.MemoryState:
     properties:
@@ -2813,6 +2847,34 @@ paths:
       summary: Get conf histories
       tags:
       - Crontab
+  /crontab/{host}/operate:
+    post:
+      consumes:
+      - application/json
+      description: Forcefully executes all commands defined in the specified crontab
+        configuration for the given host and returns the execution result.
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Logrotate operation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CrontabOperate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceOperateResult'
+      summary: Execute the specified crontab configuration for a host
+      tags:
+      - CronTab
   /crontab/{host}/raw:
     get:
       consumes:
@@ -5256,6 +5318,31 @@ paths:
       summary: Get agent status in host
       tags:
       - Host
+  /hosts/{host}/agent/status/follow:
+    get:
+      consumes:
+      - application/json
+      description: Follow agent status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Follow agent status
+      tags:
+      - Host
   /hosts/{host}/agent/uninstall:
     post:
       consumes:
@@ -5346,6 +5433,31 @@ paths:
           schema:
             $ref: '#/definitions/model.HostStatus'
       summary: Get host status
+      tags:
+      - Host
+  /hosts/{host}/status/follow:
+    get:
+      consumes:
+      - application/json
+      description: Follow host status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Follow host status
       tags:
       - Host
   /hosts/{host}/test/agent:
@@ -5858,6 +5970,34 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: Get conf histories
+      tags:
+      - Logrotate
+  /logrotate/{host}/operate:
+    post:
+      consumes:
+      - application/json
+      description: Test (dry-run) or force execute a specified logrotate configuration
+        for the given host, returning the operation result.
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Logrotate operation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LogrotateOperate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceOperateResult'
+      summary: Test or force execute logrotate configuration
       tags:
       - Logrotate
   /logrotate/{host}/raw:
