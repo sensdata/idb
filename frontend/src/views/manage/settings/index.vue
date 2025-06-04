@@ -191,7 +191,7 @@
     try {
       isSubmitting.value = true;
       const ret = await updateSettingsApi(form.value);
-      if (form.value.bind_domain) {
+      if (ret.redirect_url) {
         Message.success(t('manage.settings.successRedirect'));
         setTimeout(() => {
           window.location.href = ret.redirect_url;
