@@ -120,7 +120,7 @@ export interface DockerStatus {
 
 export interface ImageBuild {
   docker_file: string;
-  from: string;
+  from: string; // edit|file
   name: string;
   tags?: string[];
 }
@@ -308,7 +308,7 @@ export const getContainerUsagesApi = () =>
   request.get<ApiListResult<any>>('/docker/{host}/containers/usages');
 
 // 获取镜像
-export const getImagesApi = (params: {
+export const queryImagesApi = (params: {
   info?: string;
   page: number;
   page_size: number;
@@ -316,7 +316,7 @@ export const getImagesApi = (params: {
 
 // 批量删除镜像
 export const batchDeleteImagesApi = (params: {
-  force: string;
+  force: boolean;
   sources: string;
 }) => request.delete('/docker/{host}/images', params);
 

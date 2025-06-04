@@ -88,6 +88,15 @@ const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
         },
       },
+      {
+        path: 'image',
+        name: 'image',
+        component: () => import('@/views/app/docker/image/list.vue'),
+        meta: {
+          locale: 'menu.app.docker.image',
+          requiresAuth: true,
+        },
+      },
     ],
   },
   {

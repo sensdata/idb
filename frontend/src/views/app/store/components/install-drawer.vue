@@ -56,6 +56,7 @@
         <codemirror
           v-model="composeContent"
           theme="cobalt"
+          :style="{ width: '100%', height: '400px' }"
           :tabSize="4"
           :extensions="extensions"
           autofocus
