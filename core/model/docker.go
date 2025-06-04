@@ -142,7 +142,7 @@ type ContainerUpgrade struct {
 
 type ContainerOperation struct {
 	Names     []string `json:"names" validate:"required"`
-	Operation string   `json:"operation" validate:"required,oneof=start stop restart kill pause resume remove"`
+	Operation string   `json:"operation" validate:"required,oneof=start stop restart kill pause unpause remove"`
 }
 
 type ContainerResourceUsage struct {
