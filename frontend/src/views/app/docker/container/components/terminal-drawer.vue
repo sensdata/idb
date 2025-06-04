@@ -10,6 +10,7 @@
     <terminal
       v-if="termVisible && hostId"
       ref="termRef"
+      type="session"
       :hostId="hostId!"
       path="docker/{host}/containers/terminal"
       @wsopen="handleWsOpen"
@@ -53,7 +54,7 @@
     termRef.value?.sendWsMsg({
       type: MsgType.Start,
       session: conatinerIdRef.value,
-      name: '/bin/bash',
+      data: '/bin/bash',
     });
   }
 
