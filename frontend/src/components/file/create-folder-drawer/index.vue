@@ -201,6 +201,8 @@
       visible.value = false;
       Message.success(t('components.file.createFolderDrawer.success'));
       emit('ok');
+    } catch (err: any) {
+      Message.error(err.message);
     } finally {
       setLoading(false);
     }
