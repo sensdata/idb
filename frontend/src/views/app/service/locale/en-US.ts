@@ -1,0 +1,178 @@
+export default {
+  'app.service.enum.type.local': 'Local',
+  'app.service.enum.type.global': 'Global',
+
+  'app.service.list.columns.name': 'Service Name',
+  'app.service.list.columns.description': 'Description',
+  'app.service.list.columns.status': 'Status',
+  'app.service.list.columns.size': 'Size',
+  'app.service.list.columns.mod_time': 'Modified Time',
+  'app.service.list.columns.operation': 'Operation',
+  'app.service.list.action.create': 'Create Service',
+  'app.service.list.action.sync': 'Sync Global',
+  'app.service.list.status.activated': 'Activated',
+  'app.service.list.status.deactivated': 'Deactivated',
+  'app.service.list.operation.manage': 'Manage',
+  'app.service.list.operation.activate': 'Activate',
+  'app.service.list.operation.deactivate': 'Deactivate',
+  'app.service.list.operation.start': 'Start',
+  'app.service.list.operation.stop': 'Stop',
+  'app.service.list.operation.restart': 'Restart',
+  'app.service.list.operation.enable': 'Enable',
+  'app.service.list.operation.disable': 'Disable',
+  'app.service.list.operation.reload': 'Reload',
+  'app.service.list.operation.status': 'Status',
+  'app.service.list.operation.logs': 'View Logs',
+  'app.service.list.operation.history': 'History',
+  'app.service.list.confirm.action': 'Are you sure to {action} service {name}?',
+  'app.service.list.confirm.operation':
+    'Are you sure to {operation} service {name}?',
+  'app.service.list.confirm.delete': 'Are you sure to delete service {name}?',
+  'app.service.list.confirm.sync': 'Are you sure to sync global repository?',
+  'app.service.list.success.action': '{action} successful',
+  'app.service.list.success.operation': '{operation} successful',
+  'app.service.list.success.delete': 'Delete successful',
+  'app.service.list.success.sync': 'Sync successful',
+  'app.service.list.error.fetch': 'Failed to fetch service list',
+  'app.service.list.error.action': 'Operation failed',
+  'app.service.list.error.operation': 'Operation failed',
+  'app.service.list.error.delete': 'Delete failed',
+  'app.service.list.error.sync': 'Sync failed',
+  'app.service.list.error.no_host': 'No host selected',
+  'app.service.list.error.invalid_category': 'Invalid category parameter',
+
+  'app.service.form.title.create': 'Create Service',
+  'app.service.form.title.edit': 'Edit Service',
+  'app.service.form.tab.form': 'Form Mode',
+  'app.service.form.tab.raw': 'File Mode',
+
+  // Form sections
+  'app.service.form.section.basic': 'Basic Information',
+  'app.service.form.section.execution': 'Execution Settings',
+  'app.service.form.section.lifecycle': 'Lifecycle Commands',
+  'app.service.form.section.restart': 'Restart Settings',
+  'app.service.form.section.timeouts': 'Timeout Settings',
+
+  // Service types with descriptions
+  'app.service.form.service_type.simple':
+    'Main process starts and manages the service',
+  'app.service.form.service_type.forking':
+    'Parent process forks and exits, child continues',
+  'app.service.form.service_type.oneshot': 'Executes once and stops',
+  'app.service.form.service_type.notify': 'Sends notification when ready',
+
+  // Form fields
+  'app.service.form.field.name': 'Service Name',
+  'app.service.form.field.category': 'Category',
+  'app.service.form.field.category.placeholder':
+    'Please select or enter category, new categories will be created automatically',
+  'app.service.form.field.description': 'Description',
+  'app.service.form.field.content':
+    'Enter systemd service configuration content...',
+  'app.service.form.field.service_type': 'Service Type',
+  'app.service.form.field.exec_start': 'Start Command',
+  'app.service.form.field.working_directory': 'Working Directory',
+  'app.service.form.field.user': 'Run User',
+  'app.service.form.field.group': 'Run Group',
+  'app.service.form.field.environment': 'Environment Variables',
+  'app.service.form.field.exec_stop': 'Stop Command',
+  'app.service.form.field.exec_reload': 'Reload Command',
+  'app.service.form.field.exec_start_pre': 'Pre-start Command',
+  'app.service.form.field.exec_start_post': 'Post-start Command',
+  'app.service.form.field.pid_file': 'PID File',
+  'app.service.form.field.remain_after_exit': 'Remain After Exit',
+  'app.service.form.field.restart': 'Restart Policy',
+  'app.service.form.field.restart_sec': 'Restart Delay (seconds)',
+  'app.service.form.field.start_limit_interval': 'Start Limit Interval',
+  'app.service.form.field.start_limit_burst': 'Start Limit Burst',
+  'app.service.form.field.timeout_start_sec': 'Start Timeout (seconds)',
+  'app.service.form.field.timeout_stop_sec': 'Stop Timeout (seconds)',
+  'app.service.form.field.timeout_sec': 'Overall Timeout (seconds)',
+  'app.service.form.field.wanted_by': 'Wanted By',
+
+  // Form options
+  'app.service.form.restart.no': 'No',
+  'app.service.form.restart.on_failure': 'On Failure',
+  'app.service.form.restart.on_abnormal': 'On Abnormal',
+  'app.service.form.restart.on_watchdog': 'On Watchdog',
+  'app.service.form.restart.on_abort': 'On Abort',
+  'app.service.form.restart.always': 'Always',
+
+  // Environment editor
+  'app.service.form.environment.editor.title': 'Environment Variables',
+  'app.service.form.environment.editor.name': 'Variable Name',
+  'app.service.form.environment.editor.value': 'Variable Value',
+  'app.service.form.environment.editor.action': 'Action',
+  'app.service.form.environment.editor.add': 'Add Variable',
+  'app.service.form.environment.editor.add_button': 'Add',
+  'app.service.form.environment.editor.remove': 'Remove',
+  'app.service.form.environment.editor.name_placeholder':
+    'e.g., NODE_ENV, PATH, etc.',
+  'app.service.form.environment.editor.value_placeholder':
+    'e.g., production, /usr/bin, etc.',
+  'app.service.form.environment.editor.empty':
+    'No environment variables, click Add button to start configuration',
+  'app.service.form.environment.editor.preview': 'Preview Output',
+
+  'app.service.form.advanced.title': 'Advanced Settings',
+
+  'app.service.form.unit.seconds': 'seconds',
+
+  'app.service.form.validate.name.required': 'Please enter service name',
+  'app.service.form.validate.category.required': 'Please enter category',
+  'app.service.form.validate.description.required':
+    'Please enter service description',
+  'app.service.form.validate.service_type.required':
+    'Please select service type',
+  'app.service.form.validate.exec_start.required': 'Please enter start command',
+  'app.service.form.validate.working_directory.required':
+    'Please enter working directory',
+  'app.service.form.success.create': 'Created successfully',
+  'app.service.form.success.update': 'Updated successfully',
+  'app.service.form.error.create': 'Failed to create',
+  'app.service.form.error.update': 'Failed to update',
+  'app.service.form.error.load': 'Failed to load data',
+  'app.service.form.error.parse': 'Failed to parse configuration',
+  'app.service.form.error.mode_switch': 'Failed to switch mode',
+  'app.service.form.error.missing_category':
+    'Missing category parameter, unable to load service data',
+  'app.service.form.error.create_category': 'Failed to create category',
+
+  'app.service.logs.title': 'Service Logs',
+  'app.service.logs.auto_refresh': 'Auto Refresh',
+  'app.service.logs.manual': 'Manual Refresh',
+  'app.service.logs.connecting': 'Connecting to service logs...',
+  'app.service.logs.connected': 'Connected to service logs for {name}',
+  'app.service.logs.no_entries': 'No log entries found',
+  'app.service.logs.no_entries_info': 'This service has no log entries',
+  'app.service.logs.no_entries_hint':
+    'This service currently has no log output',
+  'app.service.logs.connection_error': 'Connection Error',
+  'app.service.logs.connection_failed': 'Failed to connect to log stream',
+  'app.service.logs.connection_timeout': 'Connection timeout, please try again',
+  'app.service.logs.retry': 'Retry',
+
+  'app.service.history.title': 'History',
+  'app.service.history.current': 'Current',
+  'app.service.history.column.commit': 'Commit ID',
+  'app.service.history.column.message': 'Commit Message',
+  'app.service.history.column.author': 'Author',
+  'app.service.history.column.date': 'Date',
+  'app.service.history.operation.diff': 'Diff',
+  'app.service.history.operation.restore': 'Restore',
+  'app.service.history.restore.title': 'Confirm Restore',
+  'app.service.history.restore.content':
+    'Are you sure to restore to commit {commit}?',
+  'app.service.history.restore.button': 'Restore to this version',
+  'app.service.history.restore.success': 'Service restored successfully',
+  'app.service.history.restore.error': 'Failed to restore service',
+  'app.service.history.message.load_failed': 'Failed to load history',
+  'app.service.history.message.restore_success':
+    'Service restored successfully',
+  'app.service.history.message.restore_failed': 'Failed to restore service',
+  'app.service.history.empty.message': 'No history records found',
+  'app.service.history.diff.title': 'Service Diff',
+  'app.service.history.diff.current': 'Current Version',
+  'app.service.history.diff.version': 'Historical Version {commit}',
+  'app.service.history.diff.error.load': 'Failed to load diff content',
+};

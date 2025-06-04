@@ -199,6 +199,16 @@ const appRoutes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    path: '/app/service',
+    name: 'service',
+    component: () => import('@/views/app/service/main.vue'),
+    meta: {
+      locale: 'menu.app.service',
+      requiresAuth: true,
+      icon: 'icon-settings',
+    },
+  },
 ];
 
 export default appRoutes;

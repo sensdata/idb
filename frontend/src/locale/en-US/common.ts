@@ -31,6 +31,8 @@ export default {
   'common.cancel': 'Cancel',
   'common.discard': 'Discard',
   'common.restore': 'Restore',
+  'common.more': 'More',
+  'common.refresh': 'Refresh',
 
   'common.yes': 'Yes',
   'common.no': 'No',

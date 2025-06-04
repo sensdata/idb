@@ -52,3 +52,28 @@ export enum LOGROTATE_FREQUENCY {
   Monthly = 'monthly',
   Yearly = 'yearly',
 }
+
+export enum SERVICE_TYPE {
+  Local = 'local',
+  Global = 'global',
+}
+
+export enum SERVICE_MODE {
+  Form = 'form',
+  Raw = 'raw',
+}
+
+export enum SERVICE_OPERATION {
+  Start = 'start',
+  Stop = 'stop',
+  Restart = 'restart',
+  Enable = 'enable',
+  Disable = 'disable',
+  Reload = 'reload',
+  Status = 'status',
+}
+
+export enum SERVICE_ACTION {
+  Activate = 'activate',
+  Deactivate = 'deactivate',
+}

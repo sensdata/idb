@@ -161,9 +161,106 @@ const logrotateSyntax = {
   ],
 };
 
+// systemd service配置文件的高亮规则
+const serviceSyntax = {
+  start: [
+    // 注释
+    { regex: /#.*/, token: 'comment' },
+
+    // 段标题 [Unit], [Service], [Install]
+    { regex: /^\[[^\]]+\]/, token: 'header' },
+
+    // systemd 配置键（主要的配置键名）
+    {
+      regex:
+        /^(?:Description|Documentation|Requires|Wants|After|Before|Conflicts|ConditionPathExists|ConditionFileNotEmpty|AssertPathExists)(?=\s*=)/,
+      token: 'keyword',
+    },
+
+    // Service 段的配置键
+    {
+      regex:
+        /^(?:Type|PIDFile|BusName|ExecStart|ExecStartPre|ExecStartPost|ExecReload|ExecStop|ExecStopPost|RestartSec|TimeoutStartSec|TimeoutStopSec|TimeoutSec|Restart|SuccessExitStatus|RestartPreventExitStatus|RestartForceExitStatus|PermissionsStartOnly|RootDirectoryStartOnly|RemainAfterExit|GuessMainPID|KillMode|KillSignal|SendSIGKILL|SendSIGHUP|UMask|NotifyAccess|Sockets|StandardInput|StandardOutput|StandardError|TTYPath|TTYReset|TTYVHangup|TTYVTDisallocate|SyslogIdentifier|SyslogFacility|SyslogLevel|SyslogLevelPrefix|LogLevelMax|SecureBits|CapabilityBoundingSet|AmbientCapabilities|User|Group|DynamicUser|SupplementaryGroups|PAMName|WorkingDirectory|RootDirectory|Nice|OOMScoreAdjust|IOSchedulingClass|IOSchedulingPriority|CPUSchedulingPolicy|CPUSchedulingPriority|CPUSchedulingResetOnFork|CPUAffinity|LimitCPU|LimitFSIZE|LimitDATA|LimitSTACK|LimitCORE|LimitRSS|LimitNOFILE|LimitAS|LimitNPROC|LimitMEMLOCK|LimitLOCKS|LimitSIGPENDING|LimitMSGQUEUE|LimitNICE|LimitRTPRIO|LimitRTTIME|ReadWriteDirectories|ReadOnlyDirectories|InaccessibleDirectories|PrivateTmp|PrivateDevices|PrivateNetwork|ProtectSystem|ProtectHome|MountFlags|Environment|EnvironmentFile|PassEnvironment|UnsetEnvironment)(?=\s*=)/,
+      token: 'keyword',
+    },
+
+    // Install 段的配置键
+    {
+      regex: /^(?:WantedBy|RequiredBy|Also|DefaultInstance)(?=\s*=)/,
+      token: 'keyword',
+    },
+
+    // 其他通用配置键
+    { regex: /^[A-Za-z][A-Za-z0-9]*(?=\s*=)/, token: 'property' },
+
+    // 等号
+    { regex: /=/, token: 'operator' },
+
+    // 布尔值
+    { regex: /\b(?:true|false|yes|no|on|off|1|0)\b/i, token: 'atom' },
+
+    // 数字（包括带单位的时间值）
+    { regex: /\b\d+[smhd]?\b/, token: 'number' },
+
+    // 服务类型关键词
+    {
+      regex: /\b(?:simple|forking|oneshot|notify|dbus|idle)\b/,
+      token: 'builtin',
+    },
+
+    // 重启策略关键词
+    {
+      regex:
+        /\b(?:no|always|on-success|on-failure|on-abnormal|on-abort|on-watchdog)\b/,
+      token: 'builtin',
+    },
+
+    // Kill 模式
+    { regex: /\b(?:control-group|process|mixed|none)\b/, token: 'builtin' },
+
+    // 标准流重定向
+    {
+      regex:
+        /\b(?:inherit|null|tty|journal|syslog|kmsg|journal\+console|syslog\+console|kmsg\+console|socket|fd)\b/,
+      token: 'builtin',
+    },
+
+    // 文件路径
+    { regex: /\/[^\s]*/, token: 'string' },
+
+    // 引号字符串
+    { regex: /"(?:[^"\\]|\\.)*"/, token: 'string' },
+    { regex: /'(?:[^'\\]|\\.)*'/, token: 'string' },
+
+    // 变量引用 ${VAR} 或 $VAR
+    { regex: /\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*/, token: 'variable' },
+
+    // 常见的用户和组名
+    {
+      regex:
+        /\b(?:root|www-data|nobody|daemon|apache|nginx|mysql|postgres|systemd-journal|systemd-network|systemd-resolve)\b/,
+      token: 'def',
+    },
+
+    // systemd targets
+    { regex: /\b[a-z-]+\.target\b/, token: 'tag' },
+
+    // systemd 服务单位
+    { regex: /\b[a-z-]+\.service\b/, token: 'tag' },
+
+    // systemd 其他单位类型
+    {
+      regex:
+        /\b[a-z-]+\.(?:socket|timer|mount|automount|swap|path|slice|scope)\b/,
+      token: 'tag',
+    },
+  ],
+};
+
 // 创建语法高亮器
 const logMode = simpleMode({ start: logSyntax.start });
 const logrotateMode = simpleMode({ start: logrotateSyntax.start });
+const serviceMode = simpleMode({ start: serviceSyntax.start });
 
 // 统一的行分隔符配置，确保一致的换行符处理
 const commonExtensions = [EditorState.lineSeparator.of('\n')] as const;
@@ -268,9 +365,18 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
     return [StreamLanguage.define(logrotateMode), ...commonExtensions];
   };
 
+  /**
+   * 获取systemd service配置文件的扩展配置
+   * @returns service语言扩展配置
+   */
+  const getServiceExtensions = () => {
+    return [StreamLanguage.define(serviceMode), ...commonExtensions];
+  };
+
   return {
     extensions,
     getExtensionsForLanguage,
     getLogrotateExtensions,
+    getServiceExtensions,
   } as const;
 }

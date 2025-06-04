@@ -151,7 +151,7 @@
 
   .diff-footer {
     flex-shrink: 0;
-    padding: 16px 0 0 0;
+    padding: 16px 0 16px 0;
     border-top: 1px solid var(--color-border-2);
   }
 
