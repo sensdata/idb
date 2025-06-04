@@ -17,7 +17,7 @@
       </div>
     </template>
     <template #operation="{ record }">
-      <idb-dropdown-operation :options="getOperationOptions(record)" />
+      <idb-table-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
   <logs-modal ref="logsRef" />

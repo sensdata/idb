@@ -75,7 +75,7 @@
       </div>
     </template>
     <template #operation="{ record }: { record: HostItem }">
-      <idb-dropdown-operation :options="getOperationOptions(record)" />
+      <idb-table-operation :options="getOperationOptions(record)" />
     </template>
   </idb-table>
   <host-create ref="formRef" @ok="reload"></host-create>

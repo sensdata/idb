@@ -6,7 +6,10 @@
     :fetch="queryComposeApi"
   >
     <template #operation="{ record }">
-      <idb-dropdown-operation :options="getOperationOptions(record)" />
+      <idb-table-operation
+        type="button"
+        :options="getOperationOptions(record)"
+      />
     </template>
   </idb-table>
   <edit-drawer ref="editRef" />
@@ -58,7 +61,8 @@
     {
       dataIndex: 'operation',
       title: t('common.table.operation'),
-      width: 120,
+      align: 'center' as const,
+      width: 150,
       slotName: 'operation',
     },
   ];
