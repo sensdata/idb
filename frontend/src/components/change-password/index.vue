@@ -89,13 +89,21 @@
     ],
   };
 
+  const validate = async () => {
+    return formRef.value?.validate().then((errors: any) => {
+      return !errors;
+    });
+  };
+
   const handleOk = async () => {
     if (!formRef.value) {
       return;
     }
+    if (!(await validate())) {
+      return;
+    }
 
     try {
-      await formRef.value.validate();
       showLoading();
       await changePasswordApi({
         id: userStore.id,

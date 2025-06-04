@@ -51,7 +51,10 @@ export function useForm<T extends Record<string, any>>(
 
     try {
       loading.value = true;
-      await formRef.value.validate();
+      const errors = await formRef.value.validate();
+      if (errors) {
+        return;
+      }
 
       if (options.onSubmit) {
         await options.onSubmit(formData as T);

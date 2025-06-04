@@ -61,8 +61,11 @@
   });
 
   const handleOk = async () => {
+    const errors = await formRef.value?.validate();
+    if (errors) {
+      return;
+    }
     try {
-      await formRef.value?.validate();
       if (isEdit.value) {
         await updateScriptCategoryApi({
           type: props.type,

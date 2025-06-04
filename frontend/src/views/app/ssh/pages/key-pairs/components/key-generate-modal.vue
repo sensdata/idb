@@ -149,7 +149,10 @@
     }
 
     try {
-      await formRef.value.validate();
+      const errors = await formRef.value.validate();
+      if (errors) {
+        return;
+      }
       emit('confirm');
     } catch (error) {
       logError('Form validation failed:', error);

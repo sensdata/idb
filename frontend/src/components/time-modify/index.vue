@@ -58,9 +58,18 @@
   });
   const currentTime = ref('');
 
+  const validate = async () => {
+    return formRef.value?.validate().then((errors: any) => {
+      return !errors;
+    });
+  };
+
   const handleBeforeOk = async (done: (closed: boolean) => void) => {
     try {
-      await formRef.value?.validate();
+      if (!(await validate())) {
+        done(false);
+        return;
+      }
 
       if (!formState.newTime) {
         Message.error(t('components.timeModify.new_time_required'));

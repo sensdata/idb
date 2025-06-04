@@ -102,7 +102,10 @@
 
     try {
       loading.value = true;
-      await formRef.value?.validate();
+      const errors = await formRef.value?.validate();
+      if (errors) {
+        return;
+      }
 
       if (isEdit.value && editingCategory.value) {
         await updateLogrotateCategoryApi(

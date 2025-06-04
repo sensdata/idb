@@ -71,7 +71,11 @@
   // 提交前验证
   const handleBeforeOk = async (done: (closed: boolean) => void) => {
     try {
-      await formRef.value?.validate();
+      const errors = await formRef.value?.validate();
+      if (errors) {
+        done(false);
+        return;
+      }
 
       showLoading();
       try {
