@@ -13,6 +13,7 @@ export default {
   'menu.app.docker.compose': 'Compose Management',
   'menu.app.docker.container': 'Container Management',
   'menu.app.docker.image': 'Image Management',
+  'menu.app.docker.network': 'Network Management',
   'menu.app.file': 'File Manager',
   'menu.app.terminal': 'Terminal',
   'menu.app.crontab': 'Crontab',

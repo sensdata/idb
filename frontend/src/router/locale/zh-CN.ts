@@ -13,6 +13,7 @@ export default {
   'menu.app.docker.compose': 'Compose管理',
   'menu.app.docker.container': '容器管理',
   'menu.app.docker.image': '镜像管理',
+  'menu.app.docker.network': '网路管理',
   'menu.app.file': '文件管理',
   'menu.app.terminal': '命令终端',
   'menu.app.crontab': '计划任务',
