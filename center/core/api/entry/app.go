@@ -9,14 +9,30 @@ import (
 )
 
 // @Tags App
-// @Summary Sync app list
-// @Description 同步应用列表
+// @Summary Sync app
+// @Description Sync from idb-store
 // @Success 200
 // @Router /store/apps/sync [post]
 func (b *BaseApi) SyncApp(c *gin.Context) {
 	err := appService.SyncApp()
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, "")
+}
+
+// DELETE /store/apps/{id}
+func (b *BaseApi) RemoveApp(c *gin.Context) {
+	appID, err := strconv.ParseUint(c.Query("id"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid app ID", err)
+		return
+	}
+
+	err = appService.RemoveApp(model.RemoveApp{ID: uint(appID)})
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, "")

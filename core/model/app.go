@@ -28,6 +28,9 @@ type NameUrl struct {
 	Name string `yaml:"name" json:"name"`
 	Url  string `yaml:"url" json:"url"`
 }
+type RemoveApp struct {
+	ID uint `json:"id"`
+}
 type QueryApp struct {
 	PageInfo
 	Name     string `json:"name"`

@@ -33,6 +33,7 @@ type AppService struct {
 
 type IAppService interface {
 	SyncApp() error
+	RemoveApp(req core.RemoveApp) error
 	AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error)
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
@@ -339,6 +340,22 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 	}
 
 	return appVersions, nil
+}
+
+func (s *AppService) RemoveApp(req core.RemoveApp) error {
+	// 从数据库中删除应用版本
+	if err := AppVersionRepo.Delete(AppVersionRepo.WithByAppID(req.ID)); err != nil {
+		global.LOG.Error("Failed to delete versions for app %s with id %d", req.ID, err)
+		return err
+	}
+
+	// 从数据库中删除应用
+	if err := AppRepo.Delete(AppRepo.WithByID(req.ID)); err != nil {
+		global.LOG.Error("Failed to delete app %s, %v", req.ID, err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *AppService) AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error) {
