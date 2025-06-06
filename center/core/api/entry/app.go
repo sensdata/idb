@@ -22,9 +22,9 @@ func (b *BaseApi) SyncApp(c *gin.Context) {
 	SuccessWithData(c, "")
 }
 
-// DELETE /store/apps/{id}
+// DELETE /store/apps?id=1
 func (b *BaseApi) RemoveApp(c *gin.Context) {
-	appID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	appID, err := strconv.ParseUint(c.Query("id"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid app ID", err)
 		return

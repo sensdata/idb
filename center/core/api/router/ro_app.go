@@ -14,7 +14,7 @@ func (s *AppRouter) InitRouter(Router *gin.RouterGroup) {
 	baseApi := entry.ApiGroup
 	{
 		appRouter.POST("/apps/sync", baseApi.SyncApp)                    // 同步Apps
-		appRouter.DELETE("/apps/:id", baseApi.RemoveApp)                 // 删除应用
+		appRouter.DELETE("/apps", baseApi.RemoveApp)                     // 删除应用
 		appRouter.GET("/:host/apps", baseApi.AppPage)                    // 获取应用列表
 		appRouter.GET("/:host/apps/detail", baseApi.AppDetail)           // 获取应用详情
 		appRouter.GET("/:host/apps/installed", baseApi.InstalledAppPage) //获取已安装应用列表
