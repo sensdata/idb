@@ -12,7 +12,9 @@ export default {
   'components.terminal.session.attachSession.placeholder':
     'Please select a session',
   'components.terminal.session.startSession.placeholder':
-    'Please enter session name',
+    'Enter custom session name (optional)',
+  'components.terminal.session.startSession.autoGenerate':
+    'Leave empty to let the system automatically generate a session name',
   'components.terminal.session.add': 'Add',
   'components.terminal.session.quit': 'Close Session',
   'components.terminal.session.detach': 'Run in Background',
@@ -42,6 +44,9 @@ export default {
   'components.terminal.session.renamePlaceholder': 'Enter new session name',
   'components.terminal.session.statusAttached': 'Active',
   'components.terminal.session.statusDetached': 'Background',
+
+  // 连接状态
+  'components.terminal.session.connecting': 'Connecting...',
 
   // 操作结果提示
   'components.terminal.session.detachSuccess':
@@ -74,4 +79,6 @@ export default {
   'components.terminal.workspace.statusUnknown': 'Unknown',
   'components.terminal.workspace.initializeFailed':
     'Failed to initialize terminal workspace',
+  'components.terminal.session.fallbackToNewSession':
+    'Creating new session as fallback',
 };

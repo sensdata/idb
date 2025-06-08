@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useLogger } from '@/hooks/use-logger';
 import type { SendMsgDo } from '../type';
 
@@ -33,6 +34,7 @@ export interface AddItemOptions {
 export function useTerminalTabs() {
   const terms = ref<TermSessionItem[]>([]);
   const activeKey = ref<string>();
+  const { t } = useI18n();
   const { logError, logWarn } = useLogger('TerminalTabs');
 
   // 生成唯一的key
@@ -40,26 +42,20 @@ export function useTerminalTabs() {
     return `term_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   };
 
-  // 生成会话名称
-  const generateSessionName = (customName?: string): string => {
-    return customName || `session-${Date.now().toString().slice(-6)}`;
-  };
-
   // 添加新的终端会话
   const addItem = (options: AddItemOptions): string => {
     try {
       const key = generateKey();
-      const sessionName = generateSessionName(options.sessionName);
 
       const newItem: TermSessionItem = {
         key,
         type: options.type,
         hostId: options.hostId,
         hostName: options.hostName,
-        title: `${options.hostName}-${sessionName}`,
+        title: t('components.terminal.session.connecting'),
         termRef: undefined,
         sessionId: options.sessionId || '',
-        sessionName,
+        sessionName: options.sessionName,
       };
 
       terms.value.push(newItem);

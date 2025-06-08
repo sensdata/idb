@@ -15,10 +15,9 @@ interface SessionOption {
 interface SessionCreationResult {
   type: 'attach' | 'start';
   sessionId?: string;
-  sessionName: string;
 }
 
-// 定义API响应中的会话项类型
+// 定义会话项类型
 interface SessionItem {
   name: string;
   status: string;
@@ -71,7 +70,7 @@ export function useTerminalSessions() {
     }
   }
 
-  // 创建第一个会话（优先选择已有session）
+  // 创建第一个会话（直接尝试attach，让后端自动选择session）
   async function createFirstSession(
     host: HostEntity
   ): Promise<SessionCreationResult> {
@@ -79,71 +78,15 @@ export function useTerminalSessions() {
       logWarn('Invalid host provided to createFirstSession:', host);
       return {
         type: 'start',
-        sessionName: `session-${Date.now().toString().slice(-6)}`,
       };
     }
 
-    try {
-      // 先检查是否有已有的session
-      const res = await getTerminalSessionsApi(host.id);
-
-      if (!res || !Array.isArray(res.items)) {
-        logWarn('Invalid response format from getTerminalSessionsApi:', res);
-        return {
-          type: 'start',
-          sessionName: `session-${Date.now().toString().slice(-6)}`,
-        };
-      }
-
-      const detachedSessions = res.items
-        .filter((item: SessionItem) => {
-          if (!item || typeof item.status !== 'string') {
-            logWarn('Invalid session item:', item);
-            return false;
-          }
-          return item.status.toLowerCase() === 'detached';
-        })
-        .sort((a: SessionItem, b: SessionItem) => {
-          const timeA = a.time ? new Date(a.time).getTime() : 0;
-          const timeB = b.time ? new Date(b.time).getTime() : 0;
-          return timeB - timeA;
-        });
-
-      if (detachedSessions.length > 0) {
-        // 选择最新的detached session
-        const latestSession = detachedSessions[0];
-
-        if (!latestSession.session) {
-          logWarn('Latest session has no session ID:', latestSession);
-          return {
-            type: 'start',
-            sessionName: `session-${Date.now().toString().slice(-6)}`,
-          };
-        }
-
-        return {
-          type: 'attach',
-          sessionId: latestSession.session,
-          sessionName: latestSession.name || `session-${latestSession.session}`,
-        };
-      }
-
-      // 没有可用的session，创建新的
-      return {
-        type: 'start',
-        sessionName: `session-${Date.now().toString().slice(-6)}`,
-      };
-    } catch (error) {
-      logError(
-        'Failed to get terminal sessions for first session creation:',
-        error
-      );
-      // 如果获取session失败，直接创建新的
-      return {
-        type: 'start',
-        sessionName: `session-${Date.now().toString().slice(-6)}`,
-      };
-    }
+    // 直接尝试attach，后端会自动选择最新的detached session
+    // 如果没有可用的session，后端会返回错误，前端再fallback到创建新session
+    return {
+      type: 'attach',
+      sessionId: '', // 空sessionId让后端自动选择
+    };
   }
 
   // 清理函数（可选，用于组件卸载时清理状态）

@@ -77,6 +77,7 @@
   import {
     detachTerminalSessionApi,
     quitTerminalSessionApi,
+    renameTerminalSessionApi,
   } from '@/api/terminal';
   import HostSidebar from './host-sidebar.vue';
   import Terminal from './terminal.vue';
@@ -163,12 +164,50 @@
   }
 
   // 处理标签页重命名
-  function handleTabRename(updatedItem: TermSessionItem): void {
+  async function handleTabRename(updatedItem: TermSessionItem): Promise<void> {
     const index = terms.value.findIndex(
       (term: TermSessionItem) => term.key === updatedItem.key
     );
-    if (index !== -1) {
-      terms.value[index] = { ...terms.value[index], ...updatedItem };
+
+    if (index === -1) {
+      logWarn('Terminal item not found for rename:', updatedItem.key);
+      return;
+    }
+
+    const originalItem = terms.value[index];
+
+    // 如果没有真正改变名称，或者没有sessionId，则只更新前端状态
+    if (!updatedItem.sessionId || updatedItem.title === originalItem.title) {
+      terms.value[index] = { ...originalItem, isRenaming: false };
+      return;
+    }
+
+    // 先退出重命名模式，显示原来的标题，等API完成后再更新
+    terms.value[index] = { ...originalItem, isRenaming: false };
+
+    try {
+      // 调用后端API重命名session
+      await renameTerminalSessionApi(updatedItem.hostId, {
+        session: updatedItem.sessionId,
+        data: updatedItem.title,
+      });
+
+      // 成功后更新为新标题
+      terms.value[index] = {
+        ...originalItem,
+        title: updatedItem.title,
+        isRenaming: false,
+      };
+      Message.success(t('components.terminal.session.renameSuccess'));
+
+      logWarn(
+        `Successfully renamed session ${updatedItem.sessionId} to "${updatedItem.title}"`
+      );
+    } catch (error) {
+      logError('Failed to rename terminal session:', error);
+      Message.error(t('components.terminal.session.renameFailed'));
+
+      // 失败时保持原始状态（已经设置过了，不需要再次设置）
     }
   }
 
@@ -188,8 +227,7 @@
       hostId: currentHost.value.id,
       hostName: currentHost.value.name,
       sessionId: sessionData.sessionId,
-      sessionName:
-        sessionData.sessionName || `session-${Date.now().toString().slice(-6)}`,
+      sessionName: sessionData.sessionName,
     });
 
     popoverVisible.value = false;
@@ -207,7 +245,7 @@
         item.termRef.sendWsMsg({
           type: MsgType.Start,
           session: item.sessionId || '',
-          data: item.sessionName,
+          data: item.sessionName || '', // 传递用户自定义的会话名称，空则让后端自动生成
         });
       } else {
         item.termRef.sendWsMsg({
@@ -234,7 +272,7 @@
       return;
     }
 
-    item.title = `${item.hostName}-${data.sessionName}`;
+    item.title = data.sessionName;
     item.sessionId = data.sessionId;
     item.sessionName = data.sessionName;
   }
@@ -251,7 +289,6 @@
         hostId: currentHost.value.id,
         hostName: currentHost.value.name,
         sessionId: sessionData.sessionId,
-        sessionName: sessionData.sessionName,
       });
     } catch (error) {
       logError('Failed to create first session:', error);
@@ -260,7 +297,6 @@
         type: 'start',
         hostId: currentHost.value.id,
         hostName: currentHost.value.name,
-        sessionName: `session-${Date.now().toString().slice(-6)}`,
       });
       Message.warning(t('components.terminal.session.fallbackToNewSession'));
     } finally {

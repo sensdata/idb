@@ -52,15 +52,21 @@
               allow-clear
               allow-search
             />
-            <a-input
-              v-else
-              v-model="formState.sessionName"
-              :placeholder="
-                $t('components.terminal.session.startSession.placeholder')
-              "
-              :max-length="50"
-              show-word-limit
-            />
+            <div v-else>
+              <a-input
+                v-model="formState.sessionName"
+                :placeholder="
+                  $t('components.terminal.session.startSession.placeholder')
+                "
+                :max-length="50"
+                show-word-limit
+              />
+              <div class="start-session-hint">
+                {{
+                  $t('components.terminal.session.startSession.autoGenerate')
+                }}
+              </div>
+            </div>
           </a-form-item>
           <a-form-item>
             <a-button
@@ -138,23 +144,7 @@
   const sessionLoading = ref(false);
   const isSubmitting = ref(false);
 
-  // 验证会话名称
-  function validateSessionName(name: string): boolean {
-    if (!name.trim()) return false;
-    // 检查是否包含特殊字符 (避免使用控制字符)
-    const invalidChars = /[<>:"/\\|?*]/;
-    const hasControlChars = name.split('').some((char) => {
-      const code = char.charCodeAt(0);
-      return code >= 0 && code <= 31;
-    });
-    return !invalidChars.test(name) && !hasControlChars;
-  }
-
-  // 生成默认会话名称
-  function generateDefaultSessionName(): string {
-    const timestamp = Date.now().toString().slice(-6);
-    return `session-${timestamp}`;
-  }
+  // 已移除会话名称验证和生成函数，改为后端自动生成
 
   // 加载会话选项
   async function loadSessionOptions(hostId: number): Promise<void> {
@@ -248,15 +238,8 @@
         Message.error(t('components.terminal.session.selectSession'));
         return;
       }
-    } else if (formState.type === 'start') {
-      // 对于start类型，如果没有输入会话名称，生成默认名称
-      if (!formState.sessionName.trim()) {
-        formState.sessionName = generateDefaultSessionName();
-      } else if (!validateSessionName(formState.sessionName)) {
-        Message.error(t('components.terminal.session.invalidSessionName'));
-        return;
-      }
     }
+    // 对于start类型，不需要验证会话名称，后端会自动生成
 
     isSubmitting.value = true;
     try {
@@ -360,5 +343,12 @@
 
   .popover-body {
     padding: 12px 16px;
+  }
+
+  .start-session-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-3);
   }
 </style>
