@@ -355,7 +355,7 @@ func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Param request body model.DaemonJsonUpdateByFile true "Configuration file details"
+// @Param request body model.DaemonJsonUpdateRaw true "Configuration file details"
 // @Success 200
 // @Router /docker/{host}/conf/raw [put]
 func (s *DockerMan) DockerUpdateConfRaw(c *gin.Context) {

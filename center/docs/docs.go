@@ -1779,6 +1779,44 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "description": "Update docker conf with key-value",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Update Docker conf",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Configuration key and value",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.KeyValue"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/conf/raw": {
+            "put": {
                 "description": "Update docker conf file with content",
                 "consumes": [
                     "application/json"
@@ -1804,7 +1842,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.DaemonJsonUpdateByFile"
+                            "$ref": "#/definitions/model.DaemonJsonUpdateRaw"
                         }
                     }
                 ],
@@ -9515,11 +9553,11 @@ const docTemplate = `{
         },
         "/store/apps/sync": {
             "post": {
-                "description": "同步应用列表",
+                "description": "Sync from idb-store",
                 "tags": [
                     "App"
                 ],
-                "summary": "Sync app list",
+                "summary": "Sync app",
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -9762,13 +9800,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/sysctl/{host}/boot": {
+        "/sysctl/{host}/operate": {
             "post": {
-                "description": "运行systemctl的服务启动相关命令",
+                "description": "Performing operations on a systemd-managed service on the specified host. Supported actions include enabling/disabling on boot, starting, stopping, restarting, reloading, and get status of the service.",
                 "tags": [
                     "Sysctl"
                 ],
-                "summary": "run systemctl start/stop/restart service commands",
+                "summary": "Operate service",
                 "parameters": [
                     {
                         "type": "integer",
@@ -9776,11 +9814,23 @@ const docTemplate = `{
                         "name": "host",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Service operation",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.OperateServiceReq"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceOperateResult"
+                        }
                     }
                 }
             }
@@ -11692,10 +11742,10 @@ const docTemplate = `{
                 }
             }
         },
-        "model.DaemonJsonUpdateByFile": {
+        "model.DaemonJsonUpdateRaw": {
             "type": "object",
             "properties": {
-                "file": {
+                "content": {
                     "type": "string"
                 }
             }
@@ -12769,6 +12819,23 @@ const docTemplate = `{
                         "up",
                         "down"
                     ]
+                }
+            }
+        },
+        "model.OperateServiceReq": {
+            "type": "object",
+            "required": [
+                "operation"
+            ],
+            "properties": {
+                "operation": {
+                    "type": "string",
+                    "enum": [
+                        "start"
+                    ]
+                },
+                "service": {
+                    "type": "string"
                 }
             }
         },

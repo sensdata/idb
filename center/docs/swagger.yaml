@@ -524,9 +524,9 @@ definitions:
       version:
         type: string
     type: object
-  model.DaemonJsonUpdateByFile:
+  model.DaemonJsonUpdateRaw:
     properties:
-      file:
+      content:
         type: string
     type: object
   model.DirSizeRes:
@@ -1246,6 +1246,17 @@ definitions:
         type: string
     required:
     - name
+    - operation
+    type: object
+  model.OperateServiceReq:
+    properties:
+      operation:
+        enum:
+        - start
+        type: string
+      service:
+        type: string
+    required:
     - operation
     type: object
   model.Overview:
@@ -3245,6 +3256,31 @@ paths:
     put:
       consumes:
       - application/json
+      description: Update docker conf with key-value
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Configuration key and value
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.KeyValue'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update Docker conf
+      tags:
+      - Docker
+  /docker/{host}/conf/raw:
+    put:
+      consumes:
+      - application/json
       description: Update docker conf file with content
       parameters:
       - description: Host ID
@@ -3257,7 +3293,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.DaemonJsonUpdateByFile'
+          $ref: '#/definitions/model.DaemonJsonUpdateRaw'
       produces:
       - application/json
       responses:
@@ -8576,26 +8612,36 @@ paths:
       - App
   /store/apps/sync:
     post:
-      description: 同步应用列表
+      description: Sync from idb-store
       responses:
         "200":
           description: OK
-      summary: Sync app list
+      summary: Sync app
       tags:
       - App
-  /sysctl/{host}/boot:
+  /sysctl/{host}/operate:
     post:
-      description: 运行systemctl的服务启动相关命令
+      description: Performing operations on a systemd-managed service on the specified
+        host. Supported actions include enabling/disabling on boot, starting, stopping,
+        restarting, reloading, and get status of the service.
       parameters:
       - description: Host ID
         in: path
         name: host
         required: true
         type: integer
+      - description: Service operation
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperateServiceReq'
       responses:
         "200":
           description: OK
-      summary: run systemctl start/stop/restart service commands
+          schema:
+            $ref: '#/definitions/model.ServiceOperateResult'
+      summary: Operate service
       tags:
       - Sysctl
   /sysctl/info:
