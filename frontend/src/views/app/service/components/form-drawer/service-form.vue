@@ -76,9 +76,7 @@
   // 使用表单模型钩子
   const { formModel, setFormData, getFormData } = useFormModel(
     props.type,
-    props.category,
-    props.isEdit,
-    props.record
+    props.category
   );
 
   // 环境变量编辑器引用
