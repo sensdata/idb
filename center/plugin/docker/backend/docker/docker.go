@@ -96,7 +96,7 @@ func (s *DockerMan) dockerUpdateConf(hostID uint64, req model.KeyValue) error {
 	return nil
 }
 
-func (s *DockerMan) dockerUpdateConfByFile(hostID uint64, req model.DaemonJsonUpdateByFile) error {
+func (s *DockerMan) dockerUpdateConfByFile(hostID uint64, req model.DaemonJsonUpdateRaw) error {
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {

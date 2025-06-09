@@ -22,7 +22,7 @@ type IDockerService interface {
 	DockerStatus() (*model.DockerStatus, error)
 	DockerConf() (*model.DaemonJsonConf, error)
 	DockerUpdateConf(req model.KeyValue) error
-	DockerUpdateConfByFile(req model.DaemonJsonUpdateByFile) error
+	DockerUpdateConfByFile(req model.DaemonJsonUpdateRaw) error
 	DockerUpdateLogOption(req model.LogOption) error
 	DockerUpdateIpv6Option(req model.Ipv6Option) error
 	DockerOperation(req model.DockerOperation) error
@@ -189,9 +189,16 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 	return nil
 }
 
-func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateByFile) error {
-	if len(req.File) == 0 {
+func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateRaw) error {
+	if len(req.Content) == 0 {
 		_ = os.Remove(constant.DaemonJsonPath)
+
+		go func() {
+			stdout, err := shell.ExecuteCommand("systemctl restart docker")
+			if err != nil {
+				global.LOG.Error(string(stdout))
+			}
+		}()
 		return nil
 	}
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil && os.IsNotExist(err) {
@@ -206,7 +213,7 @@ func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateByFile)
 	}
 	defer file.Close()
 	write := bufio.NewWriter(file)
-	_, _ = write.WriteString(req.File)
+	_, _ = write.WriteString(req.Content)
 	write.Flush()
 
 	go func() {

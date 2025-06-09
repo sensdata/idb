@@ -1853,7 +1853,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 
 		// 更新 docker 配置
 	case model.Docker_Upd_Conf_File:
-		var req model.DaemonJsonUpdateByFile
+		var req model.DaemonJsonUpdateRaw
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}

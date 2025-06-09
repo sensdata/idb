@@ -19,8 +19,8 @@ type Ipv6Option struct {
 	Experimental bool   `json:"experimental"`
 }
 
-type DaemonJsonUpdateByFile struct {
-	File string `json:"file"`
+type DaemonJsonUpdateRaw struct {
+	Content string `json:"content"`
 }
 
 type DaemonJsonConf struct {

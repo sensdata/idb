@@ -139,15 +139,15 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 
 			// docker
-			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},              // 获取docker状态
-			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},                  // 获取docker配置
-			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},            // 更新docker配置
-			{Method: "PUT", Path: "/:host/conf/file", Handler: s.DockerUpdateConfByFile}, // 更新docker配置
-			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},        // 日志设置
-			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},      // ipv6设置
-			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},       // 操作docker服务
-			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},                  // 获取信息（container image volume network）
-			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                     // 清理（container image volume network buildcache）
+			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},          // 获取docker状态
+			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},              // 获取docker配置
+			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},        // 更新docker配置
+			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.DockerUpdateConfRaw}, // 更新docker配置
+			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},    // 日志设置
+			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},  // ipv6设置
+			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},   // 操作docker服务
+			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},              // 获取信息（container image volume network）
+			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                 // 清理（container image volume network buildcache）
 
 			// compose
 			{Method: "GET", Path: "/:host/compose", Handler: s.ComposeQuery},                // 获取编排列表
@@ -357,15 +357,15 @@ func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param request body model.DaemonJsonUpdateByFile true "Configuration file details"
 // @Success 200
-// @Router /docker/{host}/conf [put]
-func (s *DockerMan) DockerUpdateConfByFile(c *gin.Context) {
+// @Router /docker/{host}/conf/raw [put]
+func (s *DockerMan) DockerUpdateConfRaw(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
 		return
 	}
 
-	var req model.DaemonJsonUpdateByFile
+	var req model.DaemonJsonUpdateRaw
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
