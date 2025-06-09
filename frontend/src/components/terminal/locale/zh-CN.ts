@@ -10,7 +10,10 @@ export default {
   'components.terminal.session.attach': '连接已有会话',
   'components.terminal.session.session': '会话',
   'components.terminal.session.attachSession.placeholder': '请选择会话',
-  'components.terminal.session.startSession.placeholder': '请输入会话名称',
+  'components.terminal.session.startSession.placeholder':
+    '输入自定义会话名称（可选）',
+  'components.terminal.session.startSession.autoGenerate':
+    '留空则由系统自动生成会话名称',
   'components.terminal.session.add': '添加',
   'components.terminal.session.quit': '关闭会话',
   'components.terminal.session.detach': '切换到后台',
@@ -37,6 +40,9 @@ export default {
   'components.terminal.session.renamePlaceholder': '请输入新的会话名称',
   'components.terminal.session.statusAttached': '活跃',
   'components.terminal.session.statusDetached': '后台',
+
+  // 连接状态
+  'components.terminal.session.connecting': '连接中...',
 
   // 操作结果提示
   'components.terminal.session.detachSuccess': '会话已切换到后台运行',
@@ -65,4 +71,5 @@ export default {
   'components.terminal.workspace.statusOffline': '离线',
   'components.terminal.workspace.statusUnknown': '未知',
   'components.terminal.workspace.initializeFailed': '初始化终端工作区失败',
+  'components.terminal.session.fallbackToNewSession': '降级创建新会话',
 };

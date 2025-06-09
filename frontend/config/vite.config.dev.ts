@@ -12,7 +12,7 @@ export default mergeConfig(
       },
       proxy: {
         '^/api/terminals/.*?/start': {
-          target: 'ws://39.99.155.139:9918',
+          target: 'wss://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
           secure: false,
@@ -27,7 +27,7 @@ export default mergeConfig(
           rewrite: (path) => path.replace(/^\/api\/docker/, '/api/v1/docker'),
         },
         '/api': {
-          target: 'http://39.99.155.139:9918',
+          target: 'https://39.99.155.139:9918',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
