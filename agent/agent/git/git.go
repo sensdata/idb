@@ -49,12 +49,49 @@ func (s *GitService) InitRepo(repoPath string, isBare bool) error {
 	}
 
 	// 检查目录是否已经是一个仓库了
-	_, err := git.PlainOpen(repoPath)
+	repo, err := git.PlainOpen(repoPath)
 	if err == git.ErrRepositoryNotExists {
 		global.LOG.Info("Initializing Git repository at: %s", repoPath)
 		_, err := git.PlainInit(repoPath, isBare)
 		if err != nil {
 			global.LOG.Error("Failed to init repo %s, %v", repoPath, err)
+			return err
+		}
+		// 获取工作区路径
+		worktree, err := repo.Worktree()
+		if err != nil {
+			global.LOG.Error("Failed to get work tree in repo %s, %v", repoPath, err)
+			return err
+		}
+		rootPath := worktree.Filesystem.Root()
+
+		// 创建 default/.gitkeep 文件，并确保目录存在
+		gitkeepPath := filepath.Join(rootPath, "default", ".gitkeep")
+		if err := os.MkdirAll(filepath.Dir(gitkeepPath), os.ModePerm); err != nil {
+			global.LOG.Error("Failed to create directory for .gitkeep %s, %v", gitkeepPath, err)
+			return err
+		}
+		if err := os.WriteFile(gitkeepPath, []byte{}, 0644); err != nil {
+			global.LOG.Error("Failed to create .gitkeep at %s, %v", gitkeepPath, err)
+			return err
+		}
+
+		// 添加并提交
+		relPath := filepath.ToSlash(filepath.Join("default", ".gitkeep"))
+		if _, err := worktree.Add(relPath); err != nil {
+			global.LOG.Error("Failed to add file to repo %s, %v", repoPath, err)
+			return err
+		}
+
+		_, err = worktree.Commit("Initialize repo with default directory", &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  "IDB",
+				Email: "idb@sensdata.com",
+				When:  time.Now(),
+			},
+		})
+		if err != nil {
+			global.LOG.Error("Failed to commit to repo %s, %v", repoPath, err)
 			return err
 		}
 	} else if err != nil {
