@@ -1,10 +1,13 @@
 package nftable
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1404,4 +1407,104 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 	}
 
 	return nil
+}
+
+func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
+	var result model.PageResult
+
+	// 拿取监听端口信息
+	command := "ss -ltnpH"
+	commandResult, err := s.sendCommand(hostID, command)
+	if err != nil {
+		LOG.Error("Failed to get port listening info")
+		return &result, fmt.Errorf("get port listening info failed")
+	}
+	portInfos := commandResult.Result
+	LOG.Info("Port listening info: %s", portInfos)
+	if portInfos == "" {
+		LOG.Error("No port listening info")
+		return &result, fmt.Errorf("no port listening info")
+	}
+
+	// 拿取本机ip
+	command = "ip -o -4 addr show | awk '$2 ~ /^lo$|^eth[0-9]+$|^enp[0-9s]+$/ { print $4 }' | cut -d/ -f1"
+	commandResult, err = s.sendCommand(hostID, command)
+	if err != nil {
+		LOG.Error("Failed to get ip info")
+		return &result, fmt.Errorf("get ip info failed")
+	}
+	ipInfos := commandResult.Result
+	LOG.Info("IP info: %s", ipInfos)
+	if ipInfos == "" {
+		LOG.Error("No ip info")
+		return &result, fmt.Errorf("no ip info")
+	}
+	var ips []string
+	for _, ip := range strings.Split(ipInfos, "\n") {
+		ip = strings.TrimSpace(ip)
+		if ip != "" {
+			ips = append(ips, ip)
+		}
+	}
+
+	status := []model.ProcessStatus{}
+	scanner := bufio.NewScanner(bytes.NewReader([]byte(portInfos)))
+	re := regexp.MustCompile(`users:\(\("([^"]+)",pid=(\d+),`)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) < 5 {
+			LOG.Error("Invalid line: %s", line)
+			continue
+		}
+
+		// 取地址与端口
+		addrPort := fields[4]
+		parts := strings.Split(addrPort, ":")
+		if len(parts) < 2 {
+			LOG.Error("Invalid address and port: %s", addrPort)
+			continue
+		}
+		portStr := parts[len(parts)-1]
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			LOG.Error("Invalid port: %s", portStr)
+			continue
+		}
+
+		ip := strings.Join(parts[:len(parts)-1], ":")
+		// 去除 IPv6 中括号
+		ip = strings.Trim(ip, "[]")
+
+		// 提取进程名和PID
+		procMatch := re.FindStringSubmatch(line)
+		if len(procMatch) != 3 {
+			LOG.Error("Invalid process info: %s", line)
+			continue
+		}
+		processName := procMatch[1]
+		pid, err := strconv.Atoi(procMatch[2])
+		if err != nil {
+			LOG.Error("Invalid PID: %s", procMatch[2])
+			continue
+		}
+
+		var addresses []string
+		if ip == "*" || ip == "0.0.0.0" || ip == "" {
+			addresses = ips
+		} else {
+			addresses = []string{ip}
+		}
+
+		status = append(status, model.ProcessStatus{
+			Process:   processName,
+			Pid:       pid,
+			Port:      port,
+			Addresses: addresses,
+		})
+	}
+
+	result.Total = int64(len(status))
+	result.Items = status
+	return &result, nil
 }

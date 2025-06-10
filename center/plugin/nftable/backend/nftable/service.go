@@ -154,6 +154,7 @@ func (s *NFTable) Initialize() {
 			{Method: "GET", Path: "/:host/diff", Handler: s.GetConfDiff},
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
+			{Method: "GET", Path: "/:host/process", Handler: s.GetProcessStatus},
 		},
 	)
 
@@ -883,4 +884,26 @@ func (s *NFTable) ConfActivate(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Get process status
+// @Description Get proceses status info including pid, ports, local address, etc.
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.ProcessStatus
+// @Router /nftables/{host}/process [get]
+func (s *NFTable) GetProcessStatus(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	status, err := s.getProcessStatus(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	helper.SuccessWithData(c, status)
 }
