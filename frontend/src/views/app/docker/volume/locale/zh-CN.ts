@@ -1,0 +1,26 @@
+export default {
+  'app.docker.volume.list.action.create': '新建卷',
+  'app.docker.volume.list.column.name': '卷名称',
+  'app.docker.volume.list.column.driver': '驱动类型',
+  'app.docker.volume.list.column.mount_point': '挂载点',
+  'app.docker.volume.list.column.created': '时间',
+  'app.docker.volume.list.operation.delete': '删除',
+  'app.docker.volume.list.operation.delete.confirm': '确定要删除该卷吗？',
+  'app.docker.volume.list.operation.delete.success': '删除成功',
+  'app.docker.volume.list.operation.delete.failed': '删除失败',
+  'app.docker.volume.create.title': '新建卷',
+  'app.docker.volume.create.form.name': '卷名称',
+  'app.docker.volume.create.form.name.placeholder': '请输入卷名称',
+  'app.docker.volume.create.form.name.required': '请输入卷名称',
+  'app.docker.volume.create.form.driver': '驱动类型',
+  'app.docker.volume.create.form.driver.placeholder': '请选择驱动类型',
+  'app.docker.volume.create.form.driver.required': '请选择驱动类型',
+  'app.docker.volume.create.form.options': '参数',
+  'app.docker.volume.create.form.options.placeholder':
+    '每行一个参数，如 key=value',
+  'app.docker.volume.create.form.labels': '标签',
+  'app.docker.volume.create.form.labels.placeholder':
+    '每行一个标签，如 key=value',
+  'app.docker.volume.create.success': '卷创建成功',
+  'app.docker.volume.create.failed': '卷创建失败',
+};

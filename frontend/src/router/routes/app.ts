@@ -97,6 +97,33 @@ const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
         },
       },
+      {
+        path: 'network',
+        name: 'network',
+        component: () => import('@/views/app/docker/network/list.vue'),
+        meta: {
+          locale: 'menu.app.docker.network',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'volume',
+        name: 'volume',
+        component: () => import('@/views/app/docker/volume/list.vue'),
+        meta: {
+          locale: 'menu.app.docker.volume',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'setting',
+        name: 'setting',
+        component: () => import('@/views/app/docker/setting/main.vue'),
+        meta: {
+          locale: 'menu.app.docker.setting',
+          requiresAuth: true,
+        },
+      },
     ],
   },
   {
