@@ -37,16 +37,15 @@
   const localListRef = ref<ListInstance | null>(null);
   const globalListRef = ref<ListInstance | null>(null);
 
-  // 确保在tab切换时强制刷新列表
+  // 确保在tab切换时刷新当前激活的列表
   const handleTabChange = async (key: string | number) => {
     // 使用 nextTick 确保DOM已更新
     await nextTick();
 
+    // 切换tab时，刷新对应的列表以确保数据最新
     if (key === SERVICE_TYPE.Local && localListRef.value) {
-      // 强制重置本地列表的状态
       localListRef.value.resetComponentsState?.();
     } else if (key === SERVICE_TYPE.Global && globalListRef.value) {
-      // 强制重置全局列表的状态
       globalListRef.value.resetComponentsState?.();
     }
   };
