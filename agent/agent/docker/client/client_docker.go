@@ -38,7 +38,11 @@ func (c DockerClient) LoadDockerConf() (*model.DaemonJsonConf, error) {
 	if string(stdout2) == " Swarm: active\n" {
 		data.IsSwarm = true
 	}
+	// 如果配置文件不存在，不认为是错误，返回默认配置
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil {
+		if os.IsNotExist(err) {
+			return &data, nil
+		}
 		return &data, err
 	}
 	file, err := os.ReadFile(constant.DaemonJsonPath)
