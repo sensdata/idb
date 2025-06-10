@@ -44,8 +44,9 @@
           :placeholder="$t('app.service.form.field.category.placeholder')"
           :loading="categoryLoading"
           :options="categoryOptions"
-          allow-clear
-          allow-create
+          :disabled="isEdit"
+          :allow-clear="!isEdit"
+          :allow-create="!isEdit"
           @change="handleCategoryChange"
           @update:model-value="updateField('category', $event)"
           @visible-change="handleCategoryVisibleChange"
@@ -122,6 +123,7 @@
   const props = defineProps<{
     type: SERVICE_TYPE;
     initialCategory: string;
+    isEdit: boolean;
     styles: any;
   }>();
 

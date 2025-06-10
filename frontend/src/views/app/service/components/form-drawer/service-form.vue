@@ -11,6 +11,7 @@
         :form-model="formModel"
         :type="type"
         :initial-category="category"
+        :is-edit="isEdit"
         :styles="typedStyles"
         @category-change="handleCategoryChange"
         @update:form-model="updateFormModel"

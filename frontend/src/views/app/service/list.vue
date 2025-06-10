@@ -365,11 +365,12 @@
 
   // 重置组件状态
   const resetComponentsState = () => {
-    // 如果没有手动选择分类，则重置为空
-    if (!lastManualCategory.value) {
-      params.value.category = '';
-    }
-    gridRef.value?.reload();
+    // 先刷新分类树，确保目录树状态正确
+    categoryTreeRef.value?.refresh();
+    // 延迟重新加载表格数据，等待分类树刷新完成
+    nextTick(() => {
+      gridRef.value?.reload();
+    });
   };
 
   // 当分类选择后，自动加载数据
@@ -384,11 +385,10 @@
     () => props.type,
     (newType) => {
       params.value.type = newType;
-      params.value.category = '';
+      // 不清空分类选择，让分类树组件自己决定选择哪个分类
       lastManualCategory.value = '';
       nextTick(() => {
         categoryTreeRef.value?.refresh();
-        gridRef.value?.reload();
       });
     }
   );

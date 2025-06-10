@@ -62,7 +62,10 @@
       });
       items.value = [...ret.items.map((item) => item.name)];
       if (items.value.length > 0) {
-        selected.value = items.value[0];
+        // 如果当前选择的分类仍然存在，保持选择；否则选择第一个
+        if (!selected.value || !items.value.includes(selected.value)) {
+          selected.value = items.value[0];
+        }
       } else {
         selected.value = '';
       }
