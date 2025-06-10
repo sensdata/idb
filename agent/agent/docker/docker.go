@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -101,7 +100,7 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 		if err = os.MkdirAll(path.Dir(constant.DaemonJsonPath), os.ModePerm); err != nil {
 			return err
 		}
-		_, _ = os.Create(constant.DaemonJsonPath)
+		_ = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640)
 	}
 
 	file, err := os.ReadFile(constant.DaemonJsonPath)
@@ -176,50 +175,69 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 	if err != nil {
 		return err
 	}
+	global.LOG.Info("new conf %v", string(newJson))
 	if err := os.WriteFile(constant.DaemonJsonPath, newJson, 0640); err != nil {
 		return err
 	}
 	global.LOG.Info("restart docker")
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				global.LOG.Error("panic in docker restart goroutine: %v", r)
+			}
+		}()
 		stdout, err := shell.ExecuteCommand("systemctl restart docker")
 		if err != nil {
-			global.LOG.Error(string(stdout))
+			global.LOG.Error("restart docker: %v", stdout)
 		}
 	}()
 	return nil
 }
 
 func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateRaw) error {
-	if len(req.Content) == 0 {
-		_ = os.Remove(constant.DaemonJsonPath)
-
-		go func() {
-			stdout, err := shell.ExecuteCommand("systemctl restart docker")
-			if err != nil {
-				global.LOG.Error(string(stdout))
-			}
-		}()
-		return nil
-	}
+	global.LOG.Info("upd conf raw start")
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(path.Dir(constant.DaemonJsonPath), os.ModePerm); err != nil {
 			return err
 		}
-		_, _ = os.Create(constant.DaemonJsonPath)
+		_ = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640)
 	}
-	file, err := os.OpenFile(constant.DaemonJsonPath, os.O_WRONLY|os.O_TRUNC, 0640)
+
+	if len(req.Content) == 0 {
+		global.LOG.Info("no content, remove conf")
+		_ = os.Remove(constant.DaemonJsonPath)
+		return nil
+	}
+
+	daemonMap := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(strings.TrimSpace(req.Content)), &daemonMap); err != nil {
+		global.LOG.Error("failed to unmarshal conf raw content %v", err)
+		return err
+	}
+
+	if len(daemonMap) == 0 {
+		_ = os.Remove(constant.DaemonJsonPath)
+		return nil
+	}
+	global.LOG.Info("upd conf raw")
+	newJson, err := json.MarshalIndent(daemonMap, "", "\t")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	write := bufio.NewWriter(file)
-	_, _ = write.WriteString(req.Content)
-	write.Flush()
-
+	global.LOG.Info("new conf raw %v", string(newJson))
+	if err := os.WriteFile(constant.DaemonJsonPath, newJson, 0640); err != nil {
+		return err
+	}
+	global.LOG.Info("restart docker")
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				global.LOG.Error("panic in docker restart goroutine: %v", r)
+			}
+		}()
 		stdout, err := shell.ExecuteCommand("systemctl restart docker")
 		if err != nil {
-			global.LOG.Error(string(stdout))
+			global.LOG.Error("restart docker: %v", stdout)
 		}
 	}()
 	return nil
