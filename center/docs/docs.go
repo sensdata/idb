@@ -1816,6 +1816,36 @@ const docTemplate = `{
             }
         },
         "/docker/{host}/conf/raw": {
+            "get": {
+                "description": "Get docker configurations raw content",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker docker configurations raw content",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.DaemonJsonUpdateRaw"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Update docker conf file with content",
                 "consumes": [
