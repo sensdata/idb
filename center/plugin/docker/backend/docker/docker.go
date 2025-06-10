@@ -68,6 +68,47 @@ func (s *DockerMan) dockerConf(hostID uint64) (*model.DaemonJsonConf, error) {
 	return &conf, nil
 }
 
+func (s *DockerMan) dockerConfRaw(hostID uint64) (*model.DaemonJsonUpdateRaw, error) {
+	var raw model.DaemonJsonUpdateRaw
+
+	req := model.FileContentReq{
+		Path:   "/etc/docker/daemon.json",
+		Expand: true,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &raw, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &raw, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &raw, fmt.Errorf("failed to get file content")
+	}
+
+	var info model.FileInfo
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &info)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return &raw, fmt.Errorf("json err: %v", err)
+	}
+
+	raw.Content = info.Content
+	return &raw, nil
+}
+
 func (s *DockerMan) dockerUpdateConf(hostID uint64, req model.KeyValue) error {
 
 	data, err := utils.ToJSONString(req)

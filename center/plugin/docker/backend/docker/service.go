@@ -142,7 +142,8 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},          // 获取docker状态
 			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},              // 获取docker配置
 			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},        // 更新docker配置
-			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.DockerUpdateConfRaw}, // 更新docker配置
+			{Method: "GET", Path: "/:host/conf/raw", Handler: s.DockerConfRaw},       // 获取docker配置源文
+			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.DockerUpdateConfRaw}, // 更新docker配置源文
 			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},    // 日志设置
 			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},  // ipv6设置
 			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},   // 操作docker服务
@@ -347,6 +348,30 @@ func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Docker
+// @Summary Docker docker configurations raw content
+// @Description Get docker configurations raw content
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.DaemonJsonUpdateRaw
+// @Router /docker/{host}/conf/raw [get]
+func (s *DockerMan) DockerConfRaw(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.dockerConfRaw(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
