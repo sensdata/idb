@@ -78,5 +78,6 @@ module.exports = {
     'no-bitwise': 'off',
     'prefer-destructuring': 'off',
     'no-plusplus': 'off',
+    'consistent-return': 'off',
   },
 };

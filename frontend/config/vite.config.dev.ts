@@ -20,7 +20,7 @@ export default mergeConfig(
             path.replace(/^\/api\/terminals/, '/api/v1/terminals'),
         },
         '^/api/docker/.*?/containers/terminal(\\?|$)': {
-          target: 'ws://39.99.155.139:9918',
+          target: 'wss://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
           secure: false,
