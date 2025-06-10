@@ -115,6 +115,15 @@ const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
         },
       },
+      {
+        path: 'setting',
+        name: 'setting',
+        component: () => import('@/views/app/docker/setting/main.vue'),
+        meta: {
+          locale: 'menu.app.docker.setting',
+          requiresAuth: true,
+        },
+      },
     ],
   },
   {

@@ -15,6 +15,7 @@ export default {
   'menu.app.docker.image': 'Image Management',
   'menu.app.docker.network': 'Network Management',
   'menu.app.docker.volume': 'Volume Management',
+  'menu.app.docker.setting': 'Settings',
   'menu.app.file': 'File Manager',
   'menu.app.terminal': 'Terminal',
   'menu.app.crontab': 'Crontab',

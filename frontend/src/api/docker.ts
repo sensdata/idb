@@ -90,24 +90,20 @@ export interface CreateCompose {
 }
 
 export interface DaemonJsonConf {
-  cgroup_driver?: string;
-  experimental?: boolean;
-  fixed_cidr_v6?: string;
-  insecure_registries?: string[];
-  ip6_tables?: boolean;
-  ip_tables?: boolean;
-  ipv6?: boolean;
-  is_swarm?: boolean;
-  live_restore?: boolean;
-  log_max_file?: string;
-  log_max_size?: string;
-  registry_mirrors?: string[];
-  status?: string;
-  version?: string;
-}
-
-export interface DaemonJsonUpdateByFile {
-  file?: string;
+  cgroup_driver: string;
+  experimental: boolean;
+  fixed_cidr_v6: string;
+  insecure_registries: string[];
+  ip6_tables: boolean;
+  ip_tables: boolean;
+  ipv6: boolean;
+  is_swarm: boolean;
+  live_restore: boolean;
+  log_max_file: string;
+  log_max_size: string;
+  registry_mirrors: string[];
+  status: string;
+  version: string;
 }
 
 export interface DockerOperation {
@@ -241,9 +237,27 @@ export const testComposeApi = (params: CreateCompose) =>
 export const getDockerConfApi = () =>
   request.get<DaemonJsonConf>('/docker/{host}/conf');
 
-// 更新 docker 配置
-export const updateDockerConfApi = (params: DaemonJsonUpdateByFile) =>
+// 更新 docker 配置 (修改字段)
+export const updateDockerConfApi = (params: { key: string; value: any }) =>
   request.put('/docker/{host}/conf', params);
+
+// 获取 docker 配置文件
+export const getDockerConfRawApi = () =>
+  request.get<{
+    content: string;
+  }>('/docker/{host}/conf/raw');
+
+// 更新docker配置 (通过配置文件修改)
+export const updateDockerConfRawApi = (params: { content: string }) =>
+  request.put('/docker/{host}/conf/raw', params);
+
+// 更新 ipv6 选项
+export const updateIpv6OptionApi = (params: Ipv6Option) =>
+  request.put('/docker/{host}/ipv6', params);
+
+// 更新日志选项
+export const updateLogOptionApi = (params: LogOption) =>
+  request.put('/docker/{host}/log', params);
 
 // 查询容器
 export const queryContainersApi = (params: {
@@ -353,14 +367,6 @@ export const setImageTagApi = (params: ImageTag) =>
 // inspect
 export const inspectApi = (params: { type: string; id: string }) =>
   request.get<any>('/docker/{host}/inspect', { ...params });
-
-// 更新 ipv6 选项
-export const updateIpv6OptionApi = (params: Ipv6Option) =>
-  request.put('/docker/{host}/ipv6', params);
-
-// 更新日志选项
-export const updateLogOptionApi = (params: LogOption) =>
-  request.put('/docker/{host}/log', params);
 
 // 获取网络
 export const getNetworksApi = (params: {
