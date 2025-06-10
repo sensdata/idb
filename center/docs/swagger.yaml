@@ -1346,6 +1346,19 @@ definitions:
       pem:
         type: string
     type: object
+  model.ProcessStatus:
+    properties:
+      addresses:
+        items:
+          type: string
+        type: array
+      pid:
+        type: integer
+      port:
+        type: integer
+      process:
+        type: string
+    type: object
   model.Profile:
     properties:
       id:
@@ -6566,6 +6579,27 @@ paths:
         "200":
           description: OK
       summary: Install nftables
+      tags:
+      - nftables
+  /nftables/{host}/process:
+    get:
+      consumes:
+      - application/json
+      description: Get proceses status info including pid, ports, local address, etc.
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ProcessStatus'
+      summary: Get process status
       tags:
       - nftables
   /nftables/{host}/raw:
