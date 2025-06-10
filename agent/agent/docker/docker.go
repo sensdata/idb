@@ -98,17 +98,25 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 	global.LOG.Info("upd conf start")
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(path.Dir(constant.DaemonJsonPath), os.ModePerm); err != nil {
+			global.LOG.Error("mkdir %v err: %v", constant.DaemonJsonPath, err)
 			return err
 		}
-		_ = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640)
+		if err = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640); err != nil {
+			global.LOG.Error("create %v err: %v", constant.DaemonJsonPath, err)
+			return err
+		}
 	}
 
 	file, err := os.ReadFile(constant.DaemonJsonPath)
 	if err != nil {
+		global.LOG.Error("read %v err: %v", constant.DaemonJsonPath, err)
 		return err
 	}
 	daemonMap := make(map[string]interface{})
-	_ = json.Unmarshal(file, &daemonMap)
+	if err := json.Unmarshal(file, &daemonMap); err != nil {
+		global.LOG.Error("unmarshal %v err: %v", constant.DaemonJsonPath, err)
+		return fmt.Errorf("invalid JSON in %s; please check and fix the file: %w", constant.DaemonJsonPath, err)
+	}
 
 	switch req.Key {
 	case "Registries":
@@ -167,7 +175,7 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 		}
 	}
 	if len(daemonMap) == 0 {
-		_ = os.Remove(constant.DaemonJsonPath)
+		global.LOG.Info("no conf fields, won't update conf")
 		return nil
 	}
 	global.LOG.Info("upd conf")
@@ -196,17 +204,20 @@ func (s *DockerService) DockerUpdateConf(req model.KeyValue) error {
 
 func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateRaw) error {
 	global.LOG.Info("upd conf raw start")
+
 	if _, err := os.Stat(constant.DaemonJsonPath); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(path.Dir(constant.DaemonJsonPath), os.ModePerm); err != nil {
 			return err
 		}
-		_ = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640)
+		if err = os.WriteFile(constant.DaemonJsonPath, []byte("{}"), 0640); err != nil {
+			global.LOG.Error("create %v err: %v", constant.DaemonJsonPath, err)
+			return err
+		}
 	}
 
 	if len(req.Content) == 0 {
-		global.LOG.Info("no content, remove conf")
-		_ = os.Remove(constant.DaemonJsonPath)
-		return nil
+		global.LOG.Info("no content, won't update conf")
+		return fmt.Errorf("invalid content")
 	}
 
 	daemonMap := make(map[string]interface{})
@@ -216,9 +227,10 @@ func (s *DockerService) DockerUpdateConfByFile(req model.DaemonJsonUpdateRaw) er
 	}
 
 	if len(daemonMap) == 0 {
-		_ = os.Remove(constant.DaemonJsonPath)
+		global.LOG.Info("no conf fields, won't update conf")
 		return nil
 	}
+
 	global.LOG.Info("upd conf raw")
 	newJson, err := json.MarshalIndent(daemonMap, "", "\t")
 	if err != nil {
