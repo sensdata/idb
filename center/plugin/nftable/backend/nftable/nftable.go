@@ -1412,7 +1412,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	var result model.PageResult
 
-	// 拿取监听端口信息
+	// 获取监听端口信息
 	command := "ss -ltnpH"
 	commandResult, err := s.sendCommand(hostID, command)
 	if err != nil {
@@ -1426,19 +1426,20 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		return &result, fmt.Errorf("no port listening info")
 	}
 
-	// 拿取本机ip
+	// 获取本机 IP 地址
 	command = "ip -o -4 addr show | awk '$2 ~ /^lo$|^eth[0-9]+$|^enp[0-9s]+$/ { print $4 }' | cut -d/ -f1"
 	commandResult, err = s.sendCommand(hostID, command)
 	if err != nil {
-		LOG.Error("Failed to get ip info")
+		LOG.Error("Failed to get IP info")
 		return &result, fmt.Errorf("get ip info failed")
 	}
 	ipInfos := commandResult.Result
 	LOG.Info("IP info: %s", ipInfos)
 	if ipInfos == "" {
-		LOG.Error("No ip info")
+		LOG.Error("No IP info")
 		return &result, fmt.Errorf("no ip info")
 	}
+
 	var ips []string
 	for _, ip := range strings.Split(ipInfos, "\n") {
 		ip = strings.TrimSpace(ip)
@@ -1450,33 +1451,31 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	status := []model.ProcessStatus{}
 	scanner := bufio.NewScanner(bytes.NewReader([]byte(portInfos)))
 	re := regexp.MustCompile(`users:\(\("([^"]+)",pid=(\d+),`)
+
 	for scanner.Scan() {
 		line := scanner.Text()
+		LOG.Info("line: %s", line)
 		fields := strings.Fields(line)
-		if len(fields) < 5 {
+		if len(fields) < 4 {
 			LOG.Error("Invalid line: %s", line)
 			continue
 		}
 
-		// 取地址与端口
-		addrPort := fields[4]
-		parts := strings.Split(addrPort, ":")
-		if len(parts) < 2 {
-			LOG.Error("Invalid address and port: %s", addrPort)
+		addrPort := fields[3]
+		// IPv6 可能带中括号，也可能有 %interface，先处理
+		ip, portStr := parseAddrPort(addrPort)
+		if ip == "" || portStr == "" {
+			LOG.Error("Failed to parse address:port -> %s", addrPort)
 			continue
 		}
-		portStr := parts[len(parts)-1]
+
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
 			LOG.Error("Invalid port: %s", portStr)
 			continue
 		}
 
-		ip := strings.Join(parts[:len(parts)-1], ":")
-		// 去除 IPv6 中括号
-		ip = strings.Trim(ip, "[]")
-
-		// 提取进程名和PID
+		// 提取进程名和 PID
 		procMatch := re.FindStringSubmatch(line)
 		if len(procMatch) != 3 {
 			LOG.Error("Invalid process info: %s", line)
@@ -1490,7 +1489,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		}
 
 		var addresses []string
-		if ip == "*" || ip == "0.0.0.0" || ip == "" {
+		if ip == "*" || ip == "0.0.0.0" || ip == "" || ip == "::" {
 			addresses = ips
 		} else {
 			addresses = []string{ip}
@@ -1507,4 +1506,37 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	result.Total = int64(len(status))
 	result.Items = status
 	return &result, nil
+}
+
+// parseAddrPort 解析 IP:PORT 字符串，兼容 IPv6、带中括号、%interface 等情况
+func parseAddrPort(addrPort string) (string, string) {
+	// IPv6 带中括号：[::1]%lo:80 或 [::1]:80
+	if strings.HasPrefix(addrPort, "[") {
+		endIdx := strings.Index(addrPort, "]")
+		if endIdx == -1 {
+			return "", ""
+		}
+		ip := addrPort[1:endIdx]
+		// 去除 % 接口信息
+		if percent := strings.Index(ip, "%"); percent != -1 {
+			ip = ip[:percent]
+		}
+		rest := addrPort[endIdx+1:]
+		if strings.HasPrefix(rest, ":") {
+			return ip, rest[1:]
+		}
+		return "", ""
+	}
+
+	// IPv4 或不带中括号的 IPv6
+	parts := strings.Split(addrPort, ":")
+	if len(parts) < 2 {
+		return "", ""
+	}
+	port := parts[len(parts)-1]
+	ip := strings.Join(parts[:len(parts)-1], ":")
+	if percent := strings.Index(ip, "%"); percent != -1 {
+		ip = ip[:percent]
+	}
+	return ip, port
 }
