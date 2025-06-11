@@ -26,6 +26,12 @@ export default {
   'menu.app.ssh.config': 'SSH Config',
   'menu.app.ssh.keyPairs': 'Key Pairs Management',
   'menu.app.ssh.publicKeys': 'Public Keys Management',
+  'menu.app.nftables': 'Firewall Manager',
+  'menu.app.nftables.config': 'Application Config',
+  'menu.app.nftables.ports': 'Port Config',
+  'menu.app.nftables.ipBlacklist': 'IP Blacklist',
+  'menu.app.nftables.ping': 'Ping Config',
+  'menu.app.nftables.file': 'Source File Editor',
   'menu.app.test': 'Test',
   'router.guard.hostId.message': 'Please select a host',
 };

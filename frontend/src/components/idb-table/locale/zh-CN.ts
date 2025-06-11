@@ -27,4 +27,7 @@ export default {
 
   // summary
   'components.idbTable.summaryText': '合计',
+
+  // columns
+  'components.idbTable.columns.operations': '操作',
 };

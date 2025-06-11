@@ -161,6 +161,82 @@ const logrotateSyntax = {
   ],
 };
 
+// nftables配置文件的语法高亮规则
+const nftablesSyntax = {
+  start: [
+    // 注释
+    { regex: /#.*/, token: 'comment' },
+
+    // 表、链、规则等关键词
+    {
+      regex:
+        /\b(?:table|chain|rule|set|map|element|flush|add|insert|replace|delete|list|reset|export|monitor)\b/,
+      token: 'keyword',
+    },
+
+    // 表类型
+    {
+      regex: /\b(?:inet|ip|ip6|bridge|netdev|arp)\b/,
+      token: 'atom',
+    },
+
+    // 链类型和优先级
+    {
+      regex: /\b(?:type|hook|priority|policy)\b/,
+      token: 'property',
+    },
+
+    // 钩子类型
+    {
+      regex:
+        /\b(?:prerouting|input|forward|output|postrouting|ingress|egress)\b/,
+      token: 'def',
+    },
+
+    // 动作
+    {
+      regex:
+        /\b(?:accept|drop|reject|queue|continue|return|jump|goto|masquerade|redirect|snat|dnat)\b/,
+      token: 'builtin',
+    },
+
+    // 协议和服务
+    {
+      regex:
+        /\b(?:tcp|udp|icmp|icmpv6|esp|ah|sctp|dccp|http|https|ssh|ftp|smtp|dns|dhcp|ntp|snmp)\b/,
+      token: 'variable-2',
+    },
+
+    // 匹配条件
+    {
+      regex:
+        /\b(?:iif|oif|iifname|oifname|ip|ip6|tcp|udp|icmp|icmpv6|ether|vlan|arp|rt|ct|meta|socket|osf|fib)\b/,
+      token: 'variable',
+    },
+
+    // 端口和地址
+    { regex: /\b\d{1,5}(?:-\d{1,5})?\b/, token: 'number' },
+    {
+      regex: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/\d{1,2})?\b/,
+      token: 'string',
+    },
+    { regex: /\b[0-9a-fA-F:]+\/\d{1,3}\b/, token: 'string' },
+
+    // 运算符
+    { regex: /[<>=!&|]/, token: 'operator' },
+
+    // 大括号和小括号
+    { regex: /[{}()]/, token: 'bracket' },
+
+    // 字符串
+    { regex: /"(?:[^"\\]|\\.)*"/, token: 'string' },
+    { regex: /'(?:[^'\\]|\\.)*'/, token: 'string' },
+
+    // 数字
+    { regex: /\b\d+\b/, token: 'number' },
+  ],
+};
+
 // systemd service配置文件的高亮规则
 const serviceSyntax = {
   start: [
@@ -260,6 +336,7 @@ const serviceSyntax = {
 // 创建语法高亮器
 const logMode = simpleMode({ start: logSyntax.start });
 const logrotateMode = simpleMode({ start: logrotateSyntax.start });
+const nftablesMode = simpleMode({ start: nftablesSyntax.start });
 const serviceMode = simpleMode({ start: serviceSyntax.start });
 
 // 统一的行分隔符配置，确保一致的换行符处理
@@ -366,6 +443,14 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
   };
 
   /**
+   * 获取nftables配置文件的扩展配置
+   * @returns nftables语言扩展配置
+   */
+  const getNftablesExtensions = () => {
+    return [StreamLanguage.define(nftablesMode), ...commonExtensions];
+  };
+
+  /**
    * 获取systemd service配置文件的扩展配置
    * @returns service语言扩展配置
    */
@@ -377,6 +462,7 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
     extensions,
     getExtensionsForLanguage,
     getLogrotateExtensions,
+    getNftablesExtensions,
     getServiceExtensions,
   } as const;
 }

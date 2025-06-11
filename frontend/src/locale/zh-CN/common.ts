@@ -4,9 +4,11 @@ export default {
   'common.confirm.okText': '确定',
   'common.confirm.cancelText': '取消',
   'common.confirm.title': '提示',
+  'common.confirm.delete': '确认删除',
   'common.form.submitText': '提交',
   'common.form.saveText': '保存',
   'common.form.cancelText': '取消',
+  'common.form.required': '此项为必填项',
   'common.table.operation': '操作',
   'common.operation': '操作',
 
@@ -34,6 +36,7 @@ export default {
   'common.restore': '恢复',
   'common.more': '更多',
   'common.refresh': '刷新',
+  'common.button.retry': '重试',
 
   'common.yes': '是',
   'common.no': '否',
@@ -47,4 +50,7 @@ export default {
   'common.message.deleteSuccess': '删除成功',
   'common.message.deleteError': '删除失败',
   'common.host_id_required': '主机ID是必需的',
+  'common.error.noHostSelected': '请选择主机',
+  'common.error.unknown': '未知错误',
+  'common.error.title': '错误',
 };

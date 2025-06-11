@@ -26,6 +26,12 @@ export default {
   'menu.app.ssh.config': 'SSH 配置',
   'menu.app.ssh.keyPairs': '密钥对管理',
   'menu.app.ssh.publicKeys': '公钥管理',
+  'menu.app.nftables': '防火墙管理',
+  'menu.app.nftables.config': '应用配置',
+  'menu.app.nftables.ports': '端口配置',
+  'menu.app.nftables.ipBlacklist': 'IP黑名单',
+  'menu.app.nftables.ping': 'Ping配置',
+  'menu.app.nftables.file': '源文件编辑',
   'menu.app.test': '测试',
   'router.guard.hostId.message': '请选择节点',
 };

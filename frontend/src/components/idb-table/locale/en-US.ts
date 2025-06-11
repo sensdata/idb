@@ -27,4 +27,7 @@ export default {
 
   // summary
   'components.idbTable.summaryText': 'Summary',
+
+  // columns
+  'components.idbTable.columns.operations': 'Operations',
 };

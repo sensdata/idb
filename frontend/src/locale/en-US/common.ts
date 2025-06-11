@@ -3,9 +3,11 @@ export default {
   'common.confirm.okText': 'OK',
   'common.confirm.cancelText': 'Cancel',
   'common.confirm.title': 'Tips',
+  'common.confirm.delete': 'Confirm Delete',
   'common.form.submitText': 'Submit',
   'common.form.saveText': 'Save',
   'common.form.cancelText': 'Cancel',
+  'common.form.required': 'This field is required',
   'common.table.operation': 'Operation',
   'common.operation': 'Operation',
 
@@ -33,6 +35,7 @@ export default {
   'common.restore': 'Restore',
   'common.more': 'More',
   'common.refresh': 'Refresh',
+  'common.button.retry': 'Retry',
 
   'common.yes': 'Yes',
   'common.no': 'No',
@@ -42,4 +45,7 @@ export default {
   'common.message.saveSuccess': 'handle success',
   'common.message.saveError': 'handle failed',
   'common.host_id_required': 'Host ID is required',
+  'common.error.noHostSelected': 'Please select a host',
+  'common.error.unknown': 'Unknown error',
+  'common.error.title': 'Error',
 };

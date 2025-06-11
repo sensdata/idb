@@ -188,6 +188,65 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/app/nftables',
+    name: 'nftables',
+    meta: {
+      locale: 'menu.app.nftables',
+      requiresAuth: true,
+      icon: 'icon-thunderbolt',
+    },
+    redirect: '/app/nftables/config',
+    children: [
+      {
+        path: 'config',
+        name: 'nftables-config',
+        component: () =>
+          import('@/views/app/nftables/pages/process-config/main.vue'),
+        meta: {
+          locale: 'menu.app.nftables.config',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'ports',
+        name: 'nftables-ports',
+        component: () => import('@/views/app/nftables/pages/ports/main.vue'),
+        meta: {
+          locale: 'menu.app.nftables.ports',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'ip-blacklist',
+        name: 'nftables-ip-blacklist',
+        component: () =>
+          import('@/views/app/nftables/pages/ip-blacklist/main.vue'),
+        meta: {
+          locale: 'menu.app.nftables.ipBlacklist',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'ping',
+        name: 'nftables-ping',
+        component: () => import('@/views/app/nftables/pages/ping/main.vue'),
+        meta: {
+          locale: 'menu.app.nftables.ping',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'file',
+        name: 'nftables-file',
+        component: () => import('@/views/app/nftables/pages/file/main.vue'),
+        meta: {
+          locale: 'menu.app.nftables.file',
+          requiresAuth: true,
+        },
+      },
+    ],
+  },
+  {
     path: '/app/ssh',
     name: 'ssh',
     meta: {
