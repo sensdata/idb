@@ -6742,6 +6742,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/process": {
+            "get": {
+                "description": "Get proceses status info including pid, ports, local address, etc.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get process status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ProcessStatus"
+                        }
+                    }
+                }
+            }
+        },
         "/nftables/{host}/raw": {
             "get": {
                 "description": "Get content of a conf file",
@@ -12997,6 +13029,26 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "pem": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ProcessStatus": {
+            "type": "object",
+            "properties": {
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pid": {
+                    "type": "integer"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "process": {
                     "type": "string"
                 }
             }
