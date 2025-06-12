@@ -13,4 +13,5 @@ type ProcessStatus struct {
 	Pid       int      `json:"pid"`
 	Port      int      `json:"port"`
 	Addresses []string `json:"addresses"`
+	Status    string   `json:"status"`
 }

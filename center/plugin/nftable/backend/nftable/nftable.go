@@ -3,6 +3,7 @@ package nftable
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func (s *NFTable) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
@@ -306,7 +309,7 @@ func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
 	return nil
 }
 
-const safeguardRule = "tcp dport { 9918, 9919 } accept"
+const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
 
 func (s *NFTable) checkConfContent(content string) (string, error) {
 	LOG.Info("check content: %s", content)
@@ -1549,7 +1552,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 
 	status := []model.ProcessStatus{}
 	scanner := bufio.NewScanner(bytes.NewReader([]byte(portInfos)))
-	re := regexp.MustCompile(`users:\(\("([^"]+)",pid=(\d+),`)
+	re := regexp.MustCompile(`users:\(\("([^"]+)",pid=(\d+),.*?\)\)`)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -1599,12 +1602,101 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 			Pid:       pid,
 			Port:      port,
 			Addresses: addresses,
+			Status:    "Unknown",
 		})
 	}
 
 	result.Total = int64(len(status))
 	result.Items = status
+
+	// 查询 nft ruleset
+	command = "nft -j list ruleset"
+	commandResult, err = s.sendCommand(hostID, command)
+	if err != nil {
+		LOG.Error("Failed to get ruleset")
+		return &result, fmt.Errorf("get ruleset failed")
+	}
+	rulesetOutput := commandResult.Result
+	var nftData map[string]interface{}
+	if err := json.Unmarshal([]byte(rulesetOutput), &nftData); err != nil {
+		LOG.Error("Failed to parse ruleset JSON: %v", err)
+		return &result, fmt.Errorf("faile to parse ruleset json")
+	}
+
+	rules, ok := nftData["nftables"].([]interface{})
+	if !ok {
+		LOG.Error("Unexpected nftables JSON structure")
+		return &result, fmt.Errorf("invalid ruleset json")
+	}
+
+	// 遍历每个待检查端口
+	for i := range status {
+		verdict := matchPortVerdict(status[i].Port, rules)
+		switch verdict {
+		case "Accept":
+			status[i].Status = "Accepted"
+		case "Drop", "Reject":
+			status[i].Status = "Rejected"
+		default:
+			status[i].Status = "Unknown"
+		}
+	}
+
 	return &result, nil
+}
+
+func matchPortVerdict(port int, rules []interface{}) string {
+	title := cases.Title(language.English)
+
+	for _, item := range rules {
+		ruleItem, ok := item.(map[string]interface{})["rule"]
+		if !ok {
+			continue
+		}
+
+		exprList, ok := ruleItem.(map[string]interface{})["expr"].([]interface{})
+		if !ok {
+			continue
+		}
+
+		var portMatched bool
+		var verdictKind string
+
+		for _, expr := range exprList {
+			exprMap, ok := expr.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			// 判断是否是 dport 匹配
+			if match, ok := exprMap["match"].(map[string]interface{}); ok {
+				left, lok := match["left"].(map[string]interface{})
+				if !lok {
+					continue
+				}
+				if payload, ok := left["payload"].(map[string]interface{}); ok {
+					if payload["field"] == "dport" {
+						if right, rok := match["right"].(float64); rok && int(right) == port {
+							portMatched = true
+						}
+					}
+				}
+			}
+
+			// 查找 verdict
+			if v, ok := exprMap["verdict"].(map[string]interface{}); ok {
+				if kind, ok := v["kind"].(string); ok {
+					verdictKind = title.String(kind)
+				}
+			}
+		}
+
+		if portMatched && verdictKind != "" {
+			return verdictKind
+		}
+	}
+
+	return "Unknown"
 }
 
 // parseAddrPort 解析 IP:PORT 字符串，兼容 IPv6、带中括号、%interface 等情况
