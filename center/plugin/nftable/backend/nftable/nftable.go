@@ -72,6 +72,54 @@ func (s *NFTable) sendCommand(hostId uint, command string) (*model.CommandResult
 	return &commandResult, nil
 }
 
+func (s *NFTable) fileExist(hostID uint, path string) (bool, error) {
+	command := fmt.Sprintf("[ -f \"%s\" ] && echo \"true\" || echo \"false\"", path)
+	commandResult, err := s.sendCommand(hostID, command)
+	if err != nil {
+		return false, err
+	}
+	return commandResult.Result == "true", nil
+}
+
+func (s *NFTable) fileContent(hostID uint, path string) (string, error) {
+	var content string
+	req := model.FileContentReq{
+		Path:   path,
+		Expand: true,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return content, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return content, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to get content of file %s", path)
+		return content, fmt.Errorf("failed to get file content")
+	}
+
+	var info model.FileInfo
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &info)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return content, fmt.Errorf("json err: %v", err)
+	}
+
+	return info.Content, nil
+}
+
 func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 	req := model.GitInit{HostID: hostID, RepoPath: repoPath, IsBare: false}
 	data, err := utils.ToJSONString(req)
@@ -95,6 +143,57 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("Failed to init repo %s in host %d", repoPath, hostID)
 		return fmt.Errorf("failed to init repo")
+	}
+
+	// 判断是否存在 /local/default/default.nftable
+	defaultConfPath := filepath.Join(repoPath, "default/default.nftable")
+	exist, err := s.fileExist(hostID, defaultConfPath)
+	if err != nil {
+		LOG.Error("Failed to check %s", defaultConfPath)
+		return fmt.Errorf("failed to check default conf")
+	}
+	// 不存在则初始化
+	if !exist {
+		LOG.Info("default.nftable not exists in host %d", hostID)
+		var content string
+		// 获取 /etc/nftables.conf 内容
+		detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+		if err != nil {
+			LOG.Error("Failed to get /etc/nftables.conf")
+			// 获取失败，以模板内容初始化
+			content = string(templateConf)
+		} else {
+			// 获取成功，以/etc/nftables.conf的内容初始化
+			content = detail
+		}
+		gitCreate := model.GitCreate{
+			HostID:       hostID,
+			RepoPath:     repoPath,
+			RelativePath: "default/default.nftable",
+			Content:      content,
+		}
+		data, err := utils.ToJSONString(gitCreate)
+		if err != nil {
+			return err
+		}
+
+		actionRequest := model.HostAction{
+			HostID: gitCreate.HostID,
+			Action: model.Action{
+				Action: model.Git_Create,
+				Data:   data,
+			},
+		}
+
+		actionResponse, err := s.sendAction(actionRequest)
+		if err != nil {
+			return err
+		}
+
+		if !actionResponse.Data.Action.Result {
+			LOG.Error("failed to create default.nftable")
+			return fmt.Errorf("failed to create default conf")
+		}
 	}
 
 	return nil
@@ -773,7 +872,7 @@ func (s *NFTable) create(hostID uint64, req model.CreateGitFile, extension strin
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to get create conf file")
+		return fmt.Errorf("failed to create conf file")
 	}
 
 	return nil
