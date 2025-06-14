@@ -351,7 +351,7 @@
       }
       let data = await props.fetch(rawParams);
       if (props.afterFetchHook) {
-        data = props.afterFetchHook(data);
+        data = await props.afterFetchHook(data);
       }
       setData(data);
     } finally {

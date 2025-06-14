@@ -70,6 +70,7 @@ export default {
   'manage.host.form.test.success': 'Connection successful',
   'manage.host.form.test.failed': 'Connection failed: {message}',
 
+  'manage.host.installAgent.logConnected': 'Connected successfully',
   'manage.host.installAgent.installing': 'Installing agent...',
   'manage.host.installAgent.installSuccess': 'Agent installed successfully',
   'manage.host.installAgent.installFailed': 'Failed to install agent',

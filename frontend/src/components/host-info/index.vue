@@ -59,17 +59,16 @@
 </template>
 
 <script lang="ts" setup>
-  import { inject, reactive, ref, onMounted } from 'vue';
+  import { inject, reactive, ref, watch, onUnmounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import router from '@/router';
   import { useHostStore } from '@/store';
   import { SELECT_HOST } from '@/router/constants';
-  import { getHostStatusApi } from '@/api/host';
+  import { connectHostStatusFollowApi, getHostStatusApi } from '@/api/host';
   import { formatTransferSpeed } from '@/utils/format';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
-  import { onBeforeRouteUpdate } from 'vue-router';
 
   defineProps<{
     collapsed: boolean;
@@ -88,7 +87,9 @@
   const isLoading = ref(false);
 
   const refreshStatus = async () => {
-    if (!hostStore.currentId || isLoading.value) return;
+    if (!hostStore.currentId || isLoading.value) {
+      return;
+    }
 
     isLoading.value = true;
     try {
@@ -104,6 +105,51 @@
     }
   };
 
+  const esRef = ref<EventSource>();
+  const stopSSE = () => {
+    if (esRef.value) {
+      esRef.value.close();
+    }
+  };
+  const startSSE = () => {
+    if (!hostStore.currentId) {
+      return;
+    }
+
+    stopSSE();
+
+    const es = connectHostStatusFollowApi(hostStore.currentId);
+    esRef.value = es;
+    es.addEventListener('status', (event) => {
+      const data = JSON.parse(event.data);
+      state.cpu_usage = data.cpu + '%';
+      state.memory_usage = data.mem_used + '/' + data.mem_total;
+      state.network_up = formatTransferSpeed(data.tx);
+      state.network_down = formatTransferSpeed(data.rx);
+    });
+    es.addEventListener('error', (err) => {
+      console.error('SSE error', err);
+    });
+  };
+  onUnmounted(() => {
+    stopSSE();
+  });
+
+  watch(
+    () => hostStore.currentId,
+    (v?: number) => {
+      if (v) {
+        refreshStatus();
+        startSSE();
+      } else {
+        stopSSE();
+      }
+    },
+    {
+      immediate: true,
+    }
+  );
+
   const gotoManage = () => {
     router.push(SELECT_HOST);
   };
@@ -113,18 +159,6 @@
   const gotoSysInfo = () => {
     router.push('/app/sysinfo');
   };
-
-  onBeforeRouteUpdate(() => {
-    if (hostStore.currentId) {
-      refreshStatus();
-    }
-  });
-
-  onMounted(() => {
-    if (hostStore.currentId) {
-      refreshStatus();
-    }
-  });
 </script>
 
 <style scoped lang="less">
