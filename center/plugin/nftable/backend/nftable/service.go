@@ -155,6 +155,8 @@ func (s *NFTable) Initialize() {
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
 			{Method: "GET", Path: "/:host/process", Handler: s.GetProcessStatus},
+			{Method: "GET", Path: "/:host/port", Handler: s.GetPorts},
+			{Method: "POST", Path: "/:host/port/rules", Handler: s.SetPortRules},
 		},
 	)
 
@@ -902,8 +904,57 @@ func (s *NFTable) GetProcessStatus(c *gin.Context) {
 	}
 	status, err := s.getProcessStatus(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, status)
+}
+
+// @Tags nftables
+// @Summary Get port rules
+// @Description Get port rules
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /nftables/{host}/port [get]
+func (s *NFTable) GetPorts(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	ports, err := s.getPorts(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, ports)
+}
+
+// @Tags nftables
+// @Summary Set rules for the specified port
+// @Description Set rules for the specified port
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.SetPortRule true "Port rules"
+// @Success 200
+// @Router /nftables/{host}/port/rules [post]
+func (s *NFTable) SetPortRules(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	var req model.SetPortRule
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.setPortRules(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }

@@ -1731,3 +1731,288 @@ func parseAddrPort(addrPort string) (string, string) {
 	}
 	return ip, port
 }
+
+func (s *NFTable) getPorts(hostID uint) (*model.PageResult, error) {
+	var result model.PageResult
+
+	// 获取 /etc/nftables.conf 内容
+	detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return &result, err
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(detail))
+	var lines []string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			lines = append(lines, line)
+		}
+	}
+
+	rules := parseNftRules(lines)
+
+	result.Total = int64(len(rules))
+	result.Items = rules
+
+	return &result, nil
+}
+
+func parseNftRules(lines []string) []model.PortRule {
+	rulesByPort := map[int]*model.PortRule{}
+
+	for _, line := range lines {
+		ruleItem, port, err := parseRuleLine(line)
+		if err != nil || ruleItem == nil {
+			continue
+		}
+		if _, exists := rulesByPort[port]; !exists {
+			rulesByPort[port] = &model.PortRule{
+				Protocol: "tcp",
+				Port:     port,
+				Rules:    []model.RuleItem{},
+			}
+		}
+		rulesByPort[port].Rules = append(rulesByPort[port].Rules, *ruleItem)
+	}
+
+	result := []model.PortRule{}
+	for _, r := range rulesByPort {
+		result = append(result, *r)
+	}
+	return result
+}
+
+func parseRuleLine(line string) (*model.RuleItem, int, error) {
+	if !strings.HasPrefix(line, "tcp dport") {
+		return nil, 0, nil
+	}
+
+	parts := strings.Fields(line)
+	if len(parts) < 3 {
+		return nil, 0, fmt.Errorf("invalid rule format")
+	}
+
+	port, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	action := extractAction(line)
+	if strings.Contains(line, "limit rate") {
+		return &model.RuleItem{
+			Type:   model.RuleRateLimit,
+			Rate:   extractRate(line),
+			Action: action,
+		}, port, nil
+	} else if strings.Contains(line, "ct count") && strings.Contains(line, "over") {
+		return &model.RuleItem{
+			Type:   model.RuleConcurrentLimit,
+			Count:  extractCount(line),
+			Action: action,
+		}, port, nil
+	} else {
+		return &model.RuleItem{
+			Type:   model.RuleDefault,
+			Action: action,
+		}, port, nil
+	}
+}
+
+func extractRate(line string) string {
+	re := regexp.MustCompile(`limit rate (\S+)`)
+	match := re.FindStringSubmatch(line)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return ""
+}
+
+func extractCount(line string) int {
+	re := regexp.MustCompile(`over (\d+)`)
+	match := re.FindStringSubmatch(line)
+	if len(match) > 1 {
+		count, _ := strconv.Atoi(match[1])
+		return count
+	}
+	return 0
+}
+
+func extractAction(line string) string {
+	if strings.HasSuffix(line, " accept") {
+		return "accept"
+	} else if strings.HasSuffix(line, " drop") {
+		return "drop"
+	} else if strings.HasSuffix(line, " reject") {
+		return "reject"
+	}
+	return ""
+}
+
+func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
+
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+
+	newConfContent, err := updatePortRuleInConfContent(
+		confContent,
+		model.PortRule{
+			Protocol: "",
+			Port:     req.Port,
+			Rules:    req.Rules,
+		},
+	)
+	if err != nil {
+		LOG.Error("Failed to update conf content")
+		return fmt.Errorf("failed to update conf content %v", err)
+	}
+
+	// 更新 /local/default/default.nftable
+	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	relativePath := "default/default.nftable"
+
+	// 检查repo
+	err = s.checkRepo(hostID, repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 更新
+	gitUpdate := model.GitUpdate{
+		HostID:          hostID,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: "",
+		Dir:             false,
+		Content:         newConfContent,
+	}
+	data, err := utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("failed to send action Git_Update")
+		return fmt.Errorf("failed to send action Git_Update %v", err)
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("failed to update conf file")
+		return fmt.Errorf("failed to update conf file")
+	}
+
+	// activate default.nftable
+	// 检查content
+	content, err := s.checkConfContent(newConfContent)
+	if err != nil {
+		return err
+	}
+
+	// 覆盖 /etc/nftables.conf内容
+	editFile := model.FileEdit{
+		Source:  "/etc/nftables.conf",
+		Content: content,
+	}
+	err = s.updateFile(uint64(hostID), editFile)
+	if err != nil {
+		LOG.Error("Failed to update nftables conf")
+		return fmt.Errorf("failed to update nftables conf %v", err)
+	}
+
+	// 进行测试
+	command := "nft -c -f /etc/nftables.conf"
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to test conf")
+		return err
+	}
+	LOG.Info("Conf test result: %s", commandResult.Result)
+	if commandResult.Result != "" {
+		return fmt.Errorf("test failed")
+	}
+
+	// 生效规则
+	command = "nft -f /etc/nftables.conf"
+	commandResult, err = s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to enable conf")
+		return err
+	}
+	LOG.Info("Conf enable result: %s", commandResult.Result)
+	if commandResult.Result != "" {
+		return fmt.Errorf("enable failed")
+	}
+
+	return nil
+}
+
+func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (string, error) {
+	lines := strings.Split(string(confContent), "\n")
+	var output []string
+	insideChain := false
+
+	// 生成新的规则行
+	newLines := generateNftRules([]model.PortRule{newRule})
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideChain = true
+			output = append(output, line)
+			continue
+		}
+
+		if insideChain {
+			// 删除当前端口的所有规则行
+			matched, _ := regexp.MatchString(fmt.Sprintf(`tcp dport %d( |$)`, newRule.Port), trimmed)
+			if matched {
+				continue
+			}
+			if trimmed == "}" {
+				// 插入新规则
+				for _, nl := range newLines {
+					output = append(output, "        "+nl)
+				}
+				output = append(output, line)
+				insideChain = false
+				continue
+			}
+		}
+
+		output = append(output, line)
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
+func generateNftRules(rules []model.PortRule) []string {
+	var output []string
+	for _, portRule := range rules {
+		for _, rule := range portRule.Rules {
+			var line string
+			switch rule.Type {
+			case model.RuleRateLimit:
+				line = fmt.Sprintf("tcp dport %d ip saddr limit rate %s %s", portRule.Port, rule.Rate, rule.Action)
+			case model.RuleConcurrentLimit:
+				line = fmt.Sprintf("tcp dport %d ct count ip saddr over %d %s", portRule.Port, rule.Count, rule.Action)
+			case model.RuleDefault:
+				line = fmt.Sprintf("tcp dport %d %s", portRule.Port, rule.Action)
+			}
+			output = append(output, line)
+		}
+	}
+	return output
+}
