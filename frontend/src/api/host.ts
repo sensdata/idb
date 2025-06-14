@@ -101,6 +101,11 @@ export const getHostStatusApi = (hostId: number): Promise<HostStatusDo> => {
   return request.get(`hosts/${hostId}/status`);
 };
 
+export function connectHostStatusFollowApi(hostId: number): EventSource {
+  const url = `/api/hosts/${hostId}/status/follow`;
+  return new EventSource(url);
+}
+
 export interface AgentStatusDo {
   status: string;
   connected: string;

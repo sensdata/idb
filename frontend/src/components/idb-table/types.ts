@@ -75,7 +75,7 @@ export interface Props extends /* @vue-ignore */ TableProps {
   // fetch前钩子，可以对请求参数进行处理
   beforeFetchHook?: (params: ApiListParams & any) => ApiListParams & any;
   // fetch后钩子，可以对返回数据进行处理
-  afterFetchHook?: (data: ApiListResult<any>) => ApiListResult<any>;
+  afterFetchHook?: (data: ApiListResult<any>) => Promise<ApiListResult<any>>;
   // 展开行事件
   onExpand?: ((rowKey: any, record: any) => any) | undefined;
   // 每页条数

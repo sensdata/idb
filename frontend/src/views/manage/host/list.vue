@@ -1,6 +1,6 @@
 <template>
   <idb-table
-    ref="gridRef"
+    ref="tableRef"
     :columns="columns"
     :fetch="getHostListApi"
     :afterFetchHook="afterFetchHook"
@@ -87,7 +87,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { onUnmounted, ref, nextTick, watch } from 'vue';
+  import { onUnmounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
@@ -98,6 +98,7 @@
     getHostStatusApi,
     restartHostAgentApi,
     getHostAgentStatusApi,
+    connectHostStatusFollowApi,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
@@ -269,18 +270,10 @@
     ];
   };
 
-  const gridRef = ref();
+  const tableRef = ref();
   const dataRef = ref<ApiListResult<HostItem>>();
   const isLoading = ref(false);
-  const dataChanged = ref(false);
-  const timerRef = ref<number>();
-
-  const stopAutoFetchStatus = () => {
-    if (timerRef.value) {
-      clearInterval(timerRef.value);
-      timerRef.value = undefined;
-    }
-  };
+  const sseMap = ref<Map<number, EventSource>>(new Map());
 
   const fetchListStatus = async () => {
     if (!dataRef.value?.items || isLoading.value) {
@@ -342,88 +335,81 @@
 
       // 等待所有请求完成
       await Promise.all(requests);
-
-      // 使用深拷贝创建全新对象，以确保响应式更新
-      if (dataRef.value) {
-        const newData = JSON.parse(JSON.stringify(dataRef.value));
-        dataRef.value = newData;
-      }
-
-      // 强制更新表格数据
-      if (gridRef.value) {
-        gridRef.value.setData(JSON.parse(JSON.stringify(dataRef.value)));
-      }
+    } catch (err) {
+      console.error(err);
     } finally {
       isLoading.value = false;
     }
   };
 
-  // 使用 watch 监听 dataRef 变化，当有数据时自动获取状态
-  // 但不主动触发状态刷新，只标记数据已变化
-  watch(
-    () => dataRef.value?.items,
-    (newItems) => {
-      if (newItems?.length) {
-        dataChanged.value = true;
-      }
-    }
-  );
-
-  // 添加专用的状态更新控制器
-  const statusUpdateController = {
-    pending: false,
-
-    // 手动触发数据刷新，不创建定时器
-    triggerUpdate() {
-      if (this.pending || isLoading.value) return;
-
-      this.pending = true;
-      nextTick(() => {
-        fetchListStatus().finally(() => {
-          this.pending = false;
-          dataChanged.value = false;
-        });
-      });
-    },
-
-    // 在组件挂载完成后初始化定时更新
-    initAutoUpdate() {
-      // 确保之前的定时器被清除
-      stopAutoFetchStatus();
-
-      // 首次立即获取状态
-      this.triggerUpdate();
-
-      // 设置新的定时器
-      timerRef.value = window.setInterval(() => {
-        // Remove console.log to fix linting warning
-        // console.log('Timer triggered at:', new Date().toISOString());
-        this.triggerUpdate();
-      }, 10000);
-    },
-  };
-
   const reload = () => {
     // 只重新加载表格数据，状态更新会由 dataRef 变化触发
-    gridRef.value?.reload();
+    tableRef.value?.reload();
   };
 
-  // 简化后的启动函数，只负责启动定时器，不再直接触发状态更新
-  const startAutoFetchStatus = () => {
-    statusUpdateController.initAutoUpdate();
-  };
-
-  const afterFetchHook = (data: ApiListResult<HostItem>) => {
-    dataRef.value = data;
-
-    // 如果定时器不存在，则初始化自动更新
-    if (!timerRef.value) {
-      startAutoFetchStatus();
-    } else if (dataChanged.value) {
-      // 如果数据已更改但定时器存在，则手动触发一次更新
-      statusUpdateController.triggerUpdate();
+  const stopAllSSE = () => {
+    for (const es of sseMap.value.values()) {
+      es.close();
     }
+    sseMap.value = new Map();
+  };
 
+  onUnmounted(() => {
+    stopAllSSE();
+  });
+
+  const startSSEForHosts = () => {
+    if (!dataRef.value?.items) {
+      return;
+    }
+    dataRef.value.items.forEach((item) => {
+      if (
+        item.agent_status?.status === 'installed' &&
+        !sseMap.value.has(item.id)
+      ) {
+        const es = connectHostStatusFollowApi(item.id);
+        es.addEventListener('status', (event) => {
+          try {
+            const statusData = JSON.parse(event.data);
+            item.cpu = statusData.cpu;
+            item.disk = statusData.disk;
+            item.mem = statusData.mem;
+            item.mem_total = statusData.mem_total;
+            item.mem_used = statusData.mem_used;
+            item.rx = statusData.rx;
+            item.tx = statusData.tx;
+            item.statusReady = true;
+            if (item.agent_status) {
+              item.agent_status.connected = 'online';
+            }
+            if (tableRef.value) {
+              tableRef.value.setData(dataRef.value);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        });
+        es.onerror = () => {
+          if (item.agent_status) {
+            item.agent_status.connected = 'offline';
+          }
+        };
+        sseMap.value.set(item.id, es);
+      }
+    });
+
+    for (const id of sseMap.value.keys()) {
+      if (!dataRef.value?.items?.find((item) => item.id === id)) {
+        sseMap.value.get(id)?.close();
+        sseMap.value.delete(id);
+      }
+    }
+  };
+
+  const afterFetchHook = async (data: ApiListResult<HostItem>) => {
+    dataRef.value = data;
+    await fetchListStatus();
+    startSSEForHosts();
     return data;
   };
 
@@ -434,10 +420,6 @@
     form?.loadOptions();
     form?.show();
   };
-
-  onUnmounted(() => {
-    stopAutoFetchStatus();
-  });
 </script>
 
 <style scoped>

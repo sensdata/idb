@@ -69,6 +69,7 @@ export default {
   'manage.host.form.test.success': '连接成功',
   'manage.host.form.test.failed': '连接失败：{message}',
 
+  'manage.host.installAgent.logConnected': '连接成功',
   'manage.host.installAgent.installing': '正在安装受控端...',
   'manage.host.installAgent.installSuccess': '安装成功',
   'manage.host.installAgent.installFailed': '安装受控端失败',
