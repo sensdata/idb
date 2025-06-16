@@ -6673,6 +6673,29 @@ paths:
       tags:
       - nftables
   /nftables/{host}/ip/blacklist:
+    delete:
+      consumes:
+      - application/json
+      description: Delete ip from ip blacklist
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: IP
+        in: query
+        name: ip
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete ip from ip blacklist
+      tags:
+      - nftables
     get:
       consumes:
       - application/json
@@ -6696,24 +6719,25 @@ paths:
     post:
       consumes:
       - application/json
-      description: Delete ip from ip blacklist
+      description: Add ip to ip blacklist
       parameters:
       - description: Host ID
         in: path
         name: host
         required: true
         type: integer
-      - description: IP
-        in: query
-        name: ip
+      - description: IP Request
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/model.IPRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
-      summary: Delete ip from ip blacklist
+      summary: Add ip to ip blacklist
       tags:
       - nftables
   /nftables/{host}/ping:

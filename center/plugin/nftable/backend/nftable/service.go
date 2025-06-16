@@ -1078,7 +1078,7 @@ func (s *NFTable) AddIPBlacklist(c *gin.Context) {
 // @Param host path uint true "Host ID"
 // @Param ip query string true "IP"
 // @Success 200
-// @Router /nftables/{host}/ip/blacklist [post]
+// @Router /nftables/{host}/ip/blacklist [delete]
 func (s *NFTable) DeleteIPBlacklist(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
