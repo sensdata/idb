@@ -332,6 +332,82 @@ func (s *NFTable) checkConfContent(content string) (string, error) {
 	return safeContent, nil
 }
 
+func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
+	var result model.NftablesStatus
+
+	// 命令行查询nftables是否安装，并返回 installed/not installed
+	command := "command -v nft >/dev/null 2>&1 && echo \"installed\" || echo \"not installed\""
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to check install status")
+		return &result, fmt.Errorf("failed to check install status")
+	}
+	LOG.Info("Install status result: %s", commandResult.Result)
+	if commandResult.Result != "" {
+		return &result, fmt.Errorf("failed to get install status")
+	}
+	result.Status = commandResult.Result
+
+	// 脚本检测防火墙
+	logPath := filepath.Join("/tmp", "iDB_nftable_detect.log")
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_detect_%s.sh", time.Now().Format("20060102150405"))
+	createFile := model.FileCreate{
+		Source:  scriptPath,
+		Content: string(detectFirewall),
+	}
+	err = s.createFile(hostID, createFile)
+	if err != nil {
+		LOG.Error("Failed to create detect shell file")
+		return &result, err
+	}
+	// 执行脚本，获得结果
+	scriptResult := model.ScriptResult{
+		Start: time.Now(),
+		End:   time.Now(),
+		Out:   "",
+		Err:   "",
+	}
+
+	scriptExec := model.ScriptExec{
+		ScriptPath: scriptPath,
+		LogPath:    logPath,
+	}
+
+	data, err := utils.ToJSONString(scriptExec)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Script_Exec,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to run switch script")
+		return &result, fmt.Errorf("failed to run switch script")
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to run switch script")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &scriptResult)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to filetree: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+	LOG.Info("Detect result: %v", scriptResult)
+	result.Active = strings.TrimSpace(scriptResult.Out)
+
+	return &result, nil
+}
+
 func (s *NFTable) install(hostID uint64) error {
 	// 将安装脚本内容保存到一个临时文件
 	logPath := filepath.Join("/tmp", "iDB_nftable_install.log")

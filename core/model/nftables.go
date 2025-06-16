@@ -1,5 +1,10 @@
 package model
 
+type NftablesStatus struct {
+	Status string `json:"status"`
+	Active string `json:"active"`
+}
+
 type ToggleOptions struct {
 	Option string `json:"option" validate:"required,oneof=on off"`
 }

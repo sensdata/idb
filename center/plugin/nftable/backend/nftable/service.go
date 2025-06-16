@@ -50,6 +50,9 @@ var switchToIptables []byte
 //go:embed switch_to_nftables.sh
 var switchToNftables []byte
 
+//go:embed detect-firewall.sh
+var detectFirewall []byte
+
 func (s *NFTable) Initialize() {
 	global.LOG.Info("NFTable init begin \n")
 
@@ -137,6 +140,7 @@ func (s *NFTable) Initialize() {
 		[]plugin.PluginRoute{
 			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/status", Handler: s.Status},       // nftables状态
 			{Method: "POST", Path: "/:host/install", Handler: s.Install},    // 安装nftables
 			{Method: "POST", Path: "/:host/toggle", Handler: s.Toggle},      // 启停nftables
 			{Method: "POST", Path: "/:host/switch/to", Handler: s.SwitchTo}, // 切换nftables和iptables
@@ -208,6 +212,29 @@ func (s *NFTable) getMenus() ([]plugin.MenuItem, error) {
 }
 
 // @Tags nftables
+// @Summary Get install status of nftables
+// @Description Get the installation status of nftables and determine whether nftables or iptables is currently active
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.NftablesStatus
+// @Router /nftables/{host}/status [get]
+func (s *NFTable) Status(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	status, err := s.status(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, status)
+}
+
+// @Tags nftables
 // @Summary Install nftables
 // @Description Install nftables
 // @Accept json
@@ -224,7 +251,7 @@ func (s *NFTable) Install(c *gin.Context) {
 
 	err = s.install(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -253,7 +280,7 @@ func (s *NFTable) Toggle(c *gin.Context) {
 
 	err = s.toggle(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -281,7 +308,7 @@ func (s *NFTable) SwitchTo(c *gin.Context) {
 	}
 	err = s.switchTo(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -336,7 +363,7 @@ func (s *NFTable) GetCategories(c *gin.Context) {
 
 	categories, err := s.getCategories(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -365,7 +392,7 @@ func (s *NFTable) CreateCategory(c *gin.Context) {
 	}
 	err = s.createCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -393,7 +420,7 @@ func (s *NFTable) UpdateCategory(c *gin.Context) {
 	}
 	err = s.updateCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -439,7 +466,7 @@ func (s *NFTable) DeleteCategory(c *gin.Context) {
 
 	err = s.deleteCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -502,7 +529,7 @@ func (s *NFTable) GetConfList(c *gin.Context) {
 
 	services, err := s.getConfList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -531,7 +558,7 @@ func (s *NFTable) CreateContent(c *gin.Context) {
 	}
 	err = s.create(hostID, req, ".nftable")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -585,7 +612,7 @@ func (s *NFTable) GetContent(c *gin.Context) {
 
 	detail, err := s.getContent(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -614,7 +641,7 @@ func (s *NFTable) UpdateContent(c *gin.Context) {
 	}
 	err = s.update(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -668,7 +695,7 @@ func (s *NFTable) Delete(c *gin.Context) {
 
 	err = s.delete(hostID, req, ".nftable")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -697,7 +724,7 @@ func (s *NFTable) Restore(c *gin.Context) {
 	}
 	err = s.restore(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -767,7 +794,7 @@ func (s *NFTable) GetConfLog(c *gin.Context) {
 
 	logs, err := s.getConfLog(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -830,7 +857,7 @@ func (s *NFTable) GetConfDiff(c *gin.Context) {
 
 	diff, err := s.getConfDiff(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -882,7 +909,7 @@ func (s *NFTable) ConfActivate(c *gin.Context) {
 	}
 	err = s.confActivate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
