@@ -313,22 +313,28 @@ const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
 
 func (s *NFTable) checkConfContent(content string) (string, error) {
 	LOG.Info("check content: %s", content)
-	if strings.Contains(content, safeguardRule) {
-		LOG.Info("has safegard rule")
-		return content, nil
-	}
-
-	lines := strings.Split(content, "\n")
-	var buffer bytes.Buffer
-	for _, line := range lines {
-		buffer.WriteString(line + "\n")
-		// 在 input 链的定义中添加规则
-		if strings.Contains(line, "chain input") {
-			buffer.WriteString(fmt.Sprintf("        %s\n", safeguardRule))
+	safeContent := content
+	safePorts := []int{22, 9918, 9919}
+	var err error
+	for _, port := range safePorts {
+		safeContent, err = updatePortRuleInConfContent(
+			safeContent,
+			model.PortRule{
+				Protocol: "",
+				Port:     port,
+				Rules: []model.RuleItem{
+					{
+						Type:   "default",
+						Action: "accept",
+					},
+				},
+			},
+		)
+		if err != nil {
+			LOG.Error("failed to check content for port %d", port)
+			return "", err
 		}
 	}
-	safeContent := buffer.String()
-	LOG.Info("safe content: %s", safeContent)
 	return safeContent, nil
 }
 
@@ -2342,13 +2348,35 @@ func setPingStatus(confContent string, allowed bool) (string, error) {
 	return strings.Join(output, "\n"), nil
 }
 
+func (s *NFTable) getConfRaw(hostID uint) (*model.ConfRaw, error) {
+	var result model.ConfRaw
+	// 获取 /etc/nftables.conf 内容
+	detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return &result, err
+	}
+	result.Content = detail
+	return &result, nil
+}
+
+func (s *NFTable) setConfRaw(hostID uint, req model.ConfRaw) error {
+	return s.updateThenActivate(hostID, req.Content)
+}
+
 func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
+	// 检查content
+	safeContent, err := s.checkConfContent(newConfContent)
+	if err != nil {
+		return err
+	}
+
 	// 更新 /local/default/default.nftable
 	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
 	relativePath := "default/default.nftable"
 
 	// 检查repo
-	err := s.checkRepo(hostID, repoPath)
+	err = s.checkRepo(hostID, repoPath)
 	if err != nil {
 		return err
 	}
@@ -2360,7 +2388,7 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		RelativePath:    relativePath,
 		NewRelativePath: "",
 		Dir:             false,
-		Content:         newConfContent,
+		Content:         safeContent,
 	}
 	data, err := utils.ToJSONString(gitUpdate)
 	if err != nil {
@@ -2383,17 +2411,10 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		return errors.New("failed to update conf file")
 	}
 
-	// activate default.nftable
-	// 检查content
-	content, err := s.checkConfContent(newConfContent)
-	if err != nil {
-		return err
-	}
-
 	// 覆盖 /etc/nftables.conf内容
 	editFile := model.FileEdit{
 		Source:  "/etc/nftables.conf",
-		Content: content,
+		Content: safeContent,
 	}
 	err = s.updateFile(uint64(hostID), editFile)
 	if err != nil {

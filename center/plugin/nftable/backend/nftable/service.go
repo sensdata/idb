@@ -166,6 +166,8 @@ func (s *NFTable) Initialize() {
 			{Method: "DELETE", Path: "/:host/ip/blacklist", Handler: s.DeleteIPBlacklist},
 			{Method: "GET", Path: "/:host/ping", Handler: s.GetPingStatus},
 			{Method: "POST", Path: "/:host/ping", Handler: s.SetPingAllowed},
+			{Method: "GET", Path: "/:host/conf/raw", Handler: s.GetConfRaw},
+			{Method: "POST", Path: "/:host/conf/raw", Handler: s.SetConfRaw},
 		},
 	)
 
@@ -1139,6 +1141,55 @@ func (s *NFTable) SetPingAllowed(c *gin.Context) {
 		return
 	}
 	err = s.setPingStatus(uint(hostID), req.Allowed)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Get raw content of nftables.conf
+// @Description Get raw content of nftables.conf
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.ConfRaw
+// @Router /nftables/{host}/conf/raw [get]
+func (s *NFTable) GetConfRaw(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	raw, err := s.getConfRaw(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, raw)
+}
+
+// @Tags nftables
+// @Summary Set raw content of nftables.conf
+// @Description Set raw content of nftables.conf
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.ConfRaw true "Conf details"
+// @Success 200
+// @Router /nftables/{host}/conf/raw [post]
+func (s *NFTable) SetConfRaw(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	var req model.ConfRaw
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.setConfRaw(uint(hostID), req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return

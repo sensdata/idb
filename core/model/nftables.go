@@ -52,3 +52,7 @@ type IPRequest struct {
 type PingStatus struct {
 	Allowed bool `json:"allowed" validate:"required"`
 }
+
+type ConfRaw struct {
+	Content string `json:"content" validate:"required"`
+}
