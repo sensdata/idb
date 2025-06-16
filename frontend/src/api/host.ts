@@ -1,5 +1,5 @@
 import { HostEntity, HostGroupEntity, HostStatusDo } from '@/entity/Host';
-import request from '@/helper/api-helper';
+import request, { resolveApiUrl } from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 import axios from 'axios';
 
@@ -102,7 +102,7 @@ export const getHostStatusApi = (hostId: number): Promise<HostStatusDo> => {
 };
 
 export function connectHostStatusFollowApi(hostId: number): EventSource {
-  const url = `/api/hosts/${hostId}/status/follow`;
+  const url = resolveApiUrl(`hosts/${hostId}/status/follow`);
   return new EventSource(url);
 }
 
