@@ -28,10 +28,10 @@ const (
 )
 
 type RuleItem struct {
-	Type   string `json:"type"`
+	Type   string `json:"type" validate:"required,oneof=rate_limit concurrent_limit default"`
 	Rate   string `json:"rate,omitempty"`
 	Count  int    `json:"count,omitempty"`
-	Action string `json:"action"`
+	Action string `json:"action" validate:"required,oneof=accept reject drop"`
 }
 
 type PortRule struct {

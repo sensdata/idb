@@ -76,12 +76,14 @@ func (s *NFTable) sendCommand(hostId uint, command string) (*model.CommandResult
 }
 
 func (s *NFTable) fileExist(hostID uint, path string) (bool, error) {
-	command := fmt.Sprintf("[ -f \"%s\" ] && echo \"true\" || echo \"false\"", path)
+	command := fmt.Sprintf("test -f %s && echo true || echo false", path)
 	commandResult, err := s.sendCommand(hostID, command)
 	if err != nil {
 		return false, err
 	}
-	return commandResult.Result == "true", nil
+	trimmed := strings.TrimSpace(commandResult.Result)
+	LOG.Info("file exist: %s, raw result: %q, trimmed: %q", path, commandResult.Result, trimmed)
+	return trimmed == "true", nil
 }
 
 func (s *NFTable) fileContent(hostID uint, path string) (string, error) {
@@ -349,10 +351,7 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 		return &result, errors.New("failed to check install status")
 	}
 	LOG.Info("Install status result: %s", commandResult.Result)
-	if commandResult.Result != "" {
-		return &result, errors.New("failed to get install status")
-	}
-	result.Status = commandResult.Result
+	result.Status = strings.TrimSpace(commandResult.Result)
 
 	// 脚本检测防火墙
 	logPath := filepath.Join("/tmp", "iDB_nftable_detect.log")
@@ -1603,7 +1602,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		LOG.Error("Failed to get port listening info")
 		return &result, errors.New("get port listening info failed")
 	}
-	portInfos := commandResult.Result
+	portInfos := strings.TrimSpace(commandResult.Result)
 	LOG.Info("Port listening info: %s", portInfos)
 	if portInfos == "" {
 		LOG.Error("No port listening info")
@@ -1617,7 +1616,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		LOG.Error("Failed to get IP info")
 		return &result, errors.New("get ip info failed")
 	}
-	ipInfos := commandResult.Result
+	ipInfos := strings.TrimSpace(commandResult.Result)
 	LOG.Info("IP info: %s", ipInfos)
 	if ipInfos == "" {
 		LOG.Error("No IP info")
@@ -1698,7 +1697,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		LOG.Error("Failed to get ruleset")
 		return &result, errors.New("get ruleset failed")
 	}
-	rulesetOutput := commandResult.Result
+	rulesetOutput := strings.TrimSpace(commandResult.Result)
 	var nftData map[string]interface{}
 	if err := json.Unmarshal([]byte(rulesetOutput), &nftData); err != nil {
 		LOG.Error("Failed to parse ruleset JSON: %v", err)
