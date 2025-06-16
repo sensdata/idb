@@ -161,6 +161,11 @@ func (s *NFTable) Initialize() {
 			{Method: "GET", Path: "/:host/process", Handler: s.GetProcessStatus},
 			{Method: "GET", Path: "/:host/port", Handler: s.GetPorts},
 			{Method: "POST", Path: "/:host/port/rules", Handler: s.SetPortRules},
+			{Method: "GET", Path: "/:host/ip/blacklist", Handler: s.GetIPBlacklist},
+			{Method: "POST", Path: "/:host/ip/blacklist", Handler: s.AddIPBlacklist},
+			{Method: "DELETE", Path: "/:host/ip/blacklist", Handler: s.DeleteIPBlacklist},
+			{Method: "GET", Path: "/:host/ping", Handler: s.GetPingStatus},
+			{Method: "POST", Path: "/:host/ping", Handler: s.SetPingAllowed},
 		},
 	)
 
@@ -979,6 +984,161 @@ func (s *NFTable) SetPortRules(c *gin.Context) {
 		return
 	}
 	err = s.setPortRules(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Delete rules for the specified port
+// @Description Delete rules for the specified port
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param port query uint true "Port"
+// @Success 200
+// @Router /nftables/{host}/port/rules [delete]
+func (s *NFTable) DeletePortRules(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	port, err := strconv.ParseUint(c.Query("port"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid port", err)
+		return
+	}
+	err = s.deletePortRules(uint(hostID), uint(port))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Get ip blacklist
+// @Description Get ip blacklist
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.PageResult
+// @Router /nftables/{host}/ip/blacklist [get]
+func (s *NFTable) GetIPBlacklist(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	list, err := s.getIpBlacklist(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, list)
+}
+
+// @Tags nftables
+// @Summary Add ip to ip blacklist
+// @Description Add ip to ip blacklist
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.IPRequest true "IP Request"
+// @Success 200
+// @Router /nftables/{host}/ip/blacklist [post]
+func (s *NFTable) AddIPBlacklist(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	var req model.IPRequest
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.addIPToBlacklist(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Delete ip from ip blacklist
+// @Description Delete ip from ip blacklist
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param ip query string true "IP"
+// @Success 200
+// @Router /nftables/{host}/ip/blacklist [post]
+func (s *NFTable) DeleteIPBlacklist(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	ip := c.Query("ip")
+	if ip == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid ip", err)
+		return
+	}
+	req := model.IPRequest{IP: ip}
+	err = s.deleteIPFromBlacklist(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags nftables
+// @Summary Get ping status
+// @Description Get ping status
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.PingStatus
+// @Router /nftables/{host}/ping [get]
+func (s *NFTable) GetPingStatus(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	status, err := s.getPingStatus(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, status)
+}
+
+// @Tags nftables
+// @Summary Set ping allowed
+// @Description Set ping allowed
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.PingStatus true "Ping request"
+// @Success 200
+// @Router /nftables/{host}/ping [post]
+func (s *NFTable) SetPingAllowed(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	var req model.PingStatus
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.setPingStatus(uint(hostID), req.Allowed)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return

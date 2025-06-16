@@ -44,3 +44,11 @@ type SetPortRule struct {
 	Port  int        `json:"port"`
 	Rules []RuleItem `json:"rules"`
 }
+
+type IPRequest struct {
+	IP string `json:"ip" validate:"required"`
+}
+
+type PingStatus struct {
+	Allowed bool `json:"allowed" validate:"required"`
+}

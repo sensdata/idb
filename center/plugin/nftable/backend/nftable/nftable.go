@@ -145,7 +145,7 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("Failed to init repo %s in host %d", repoPath, hostID)
-		return fmt.Errorf("failed to init repo")
+		return errors.New("failed to init repo")
 	}
 
 	// 判断是否存在 /local/default/default.nftable
@@ -153,7 +153,7 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 	exist, err := s.fileExist(hostID, defaultConfPath)
 	if err != nil {
 		LOG.Error("Failed to check %s", defaultConfPath)
-		return fmt.Errorf("failed to check default conf")
+		return errors.New("failed to check default conf")
 	}
 	// 不存在则初始化
 	if !exist {
@@ -195,7 +195,7 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 
 		if !actionResponse.Data.Action.Result {
 			LOG.Error("failed to create default.nftable")
-			return fmt.Errorf("failed to create default conf")
+			return errors.New("failed to create default conf")
 		}
 	}
 
@@ -249,7 +249,7 @@ func (s *NFTable) updateFile(hostID uint64, op model.FileEdit) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("failed to edit file")
-		return fmt.Errorf("failed to edit file")
+		return errors.New("failed to edit file")
 	}
 
 	return nil
@@ -276,7 +276,7 @@ func (s *NFTable) createFile(hostID uint64, op model.FileCreate) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("failed to create file")
-		return fmt.Errorf("failed to create file")
+		return errors.New("failed to create file")
 	}
 
 	return nil
@@ -303,7 +303,7 @@ func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("failed to delete file")
-		return fmt.Errorf("failed to delete file")
+		return errors.New("failed to delete file")
 	}
 
 	return nil
@@ -340,11 +340,11 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 	commandResult, err := s.sendCommand(uint(hostID), command)
 	if err != nil {
 		LOG.Error("Failed to check install status")
-		return &result, fmt.Errorf("failed to check install status")
+		return &result, errors.New("failed to check install status")
 	}
 	LOG.Info("Install status result: %s", commandResult.Result)
 	if commandResult.Result != "" {
-		return &result, fmt.Errorf("failed to get install status")
+		return &result, errors.New("failed to get install status")
 	}
 	result.Status = commandResult.Result
 
@@ -389,12 +389,12 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
 		LOG.Error("Failed to run switch script")
-		return &result, fmt.Errorf("failed to run switch script")
+		return &result, errors.New("failed to run switch script")
 	}
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return &result, fmt.Errorf("failed to run switch script")
+		return &result, errors.New("failed to run switch script")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &scriptResult)
@@ -451,12 +451,12 @@ func (s *NFTable) install(hostID uint64) error {
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
 		LOG.Error("Failed to run install script")
-		return fmt.Errorf("failed to run install script")
+		return errors.New("failed to run install script")
 	}
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to get filetree")
+		return errors.New("failed to get filetree")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
@@ -466,7 +466,7 @@ func (s *NFTable) install(hostID uint64) error {
 	}
 	LOG.Info("Install result: %v", result)
 	if result.Out == "Failed" {
-		return fmt.Errorf("Install failed")
+		return errors.New("Install failed")
 	}
 
 	// 使用默认内容覆盖 /etc/nftables.conf内容
@@ -515,7 +515,7 @@ func (s *NFTable) toggle(hostID uint64, req model.ToggleOptions) error {
 		}
 
 	default:
-		return fmt.Errorf("invalid option")
+		return errors.New("invalid option")
 	}
 
 	return nil
@@ -530,7 +530,7 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 	case "iptables":
 		content = string(switchToIptables)
 	default:
-		return fmt.Errorf("invalid option")
+		return errors.New("invalid option")
 	}
 
 	// 将切换脚本内容保存到一个临时文件
@@ -576,12 +576,12 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
 		LOG.Error("Failed to run switch script")
-		return fmt.Errorf("failed to run switch script")
+		return errors.New("failed to run switch script")
 	}
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to run switch script")
+		return errors.New("failed to run switch script")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
@@ -592,7 +592,7 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 	LOG.Info("Switch result: %v", result)
 	out := strings.TrimSpace(result.Out)
 	if !strings.HasSuffix(out, "Success") {
-		return fmt.Errorf("switch failed")
+		return errors.New("switch failed")
 	}
 
 	return nil
@@ -651,7 +651,7 @@ func (s *NFTable) getCategories(hostID uint64, req model.QueryGitFile) (*model.P
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return &pageResult, fmt.Errorf("failed to get conf list")
+		return &pageResult, errors.New("failed to get conf list")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
@@ -713,7 +713,7 @@ func (s *NFTable) createCategory(hostID uint64, req model.CreateGitCategory) err
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to get create conf file")
+		return errors.New("failed to get create conf file")
 	}
 
 	return nil
@@ -770,7 +770,7 @@ func (s *NFTable) updateCategory(hostID uint64, req model.UpdateGitCategory) err
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to update conf file")
+		return errors.New("failed to update conf file")
 	}
 
 	return nil
@@ -825,7 +825,7 @@ func (s *NFTable) deleteCategory(hostID uint64, req model.DeleteGitCategory) err
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to delete conf file")
+		return errors.New("failed to delete conf file")
 	}
 
 	return nil
@@ -884,7 +884,7 @@ func (s *NFTable) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return &pageResult, fmt.Errorf("failed to get conf list")
+		return &pageResult, errors.New("failed to get conf list")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
@@ -951,7 +951,7 @@ func (s *NFTable) create(hostID uint64, req model.CreateGitFile, extension strin
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to create conf file")
+		return errors.New("failed to create conf file")
 	}
 
 	return nil
@@ -1011,7 +1011,7 @@ func (s *NFTable) getContent(hostID uint64, req model.GetGitFileDetail) (*model.
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return nil, fmt.Errorf("failed to get conf detail")
+		return nil, errors.New("failed to get conf detail")
 	}
 
 	var gitFile model.GitFile
@@ -1099,7 +1099,7 @@ func (s *NFTable) update(hostID uint64, req model.UpdateGitFile) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to update conf file")
+		return errors.New("failed to update conf file")
 	}
 
 	return nil
@@ -1159,7 +1159,7 @@ func (s *NFTable) delete(hostID uint64, req model.DeleteGitFile, extension strin
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to delete conf file")
+		return errors.New("failed to delete conf file")
 	}
 
 	return nil
@@ -1220,7 +1220,7 @@ func (s *NFTable) restore(hostID uint64, req model.RestoreGitFile) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to restore conf file")
+		return errors.New("failed to restore conf file")
 	}
 
 	return nil
@@ -1284,7 +1284,7 @@ func (s *NFTable) getConfLog(hostID uint64, req model.GitFileLog) (*model.PageRe
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return &pageResult, fmt.Errorf("failed to get conf logs")
+		return &pageResult, errors.New("failed to get conf logs")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
@@ -1351,7 +1351,7 @@ func (s *NFTable) getConfDiff(hostID uint64, req model.GitFileDiff) (string, err
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return "", fmt.Errorf("failed to get conf diff")
+		return "", errors.New("failed to get conf diff")
 	}
 
 	return actionResponse.Data.Action.Data, nil
@@ -1367,7 +1367,7 @@ func (s *NFTable) syncGlobal(hostID uint) error {
 	}
 	if hostID == defaultHost.ID {
 		LOG.Error("Attempting to sync global nftabls on default host (ID: %d)", hostID)
-		return fmt.Errorf("can't sync global nftabls in default host")
+		return errors.New("can't sync global nftabls in default host")
 	}
 
 	settingService := service.NewISettingsService()
@@ -1414,7 +1414,7 @@ func (s *NFTable) syncGlobal(hostID uint) error {
 	}
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("Sync action failed on agent")
-		return fmt.Errorf("failed to sync global nftabls")
+		return errors.New("failed to sync global nftabls")
 	}
 
 	LOG.Info("Successfully synced global nftabls for host %d", hostID)
@@ -1482,7 +1482,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return fmt.Errorf("failed to get conf detail")
+		return errors.New("failed to get conf detail")
 	}
 
 	var gitFile model.GitFile
@@ -1520,7 +1520,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 		}
 		LOG.Info("Conf test result: %s", commandResult.Result)
 		if commandResult.Result != "" {
-			return fmt.Errorf("test failed")
+			return errors.New("test failed")
 		}
 
 		// 生效规则
@@ -1532,7 +1532,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 		}
 		LOG.Info("Conf enable result: %s", commandResult.Result)
 		if commandResult.Result != "" {
-			return fmt.Errorf("enable failed")
+			return errors.New("enable failed")
 		}
 
 	case "deactivate":
@@ -1565,7 +1565,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 		}
 		LOG.Info("Conf test result: %s", commandResult.Result)
 		if commandResult.Result != "" {
-			return fmt.Errorf("test failed")
+			return errors.New("test failed")
 		}
 
 		// 生效规则
@@ -1577,7 +1577,7 @@ func (s *NFTable) confActivate(hostID uint64, req model.ServiceActivate) error {
 		}
 		LOG.Info("Conf enable result: %s", commandResult.Result)
 		if commandResult.Result != "" {
-			return fmt.Errorf("enable failed")
+			return errors.New("enable failed")
 		}
 
 	default:
@@ -1595,13 +1595,13 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	commandResult, err := s.sendCommand(hostID, command)
 	if err != nil {
 		LOG.Error("Failed to get port listening info")
-		return &result, fmt.Errorf("get port listening info failed")
+		return &result, errors.New("get port listening info failed")
 	}
 	portInfos := commandResult.Result
 	LOG.Info("Port listening info: %s", portInfos)
 	if portInfos == "" {
 		LOG.Error("No port listening info")
-		return &result, fmt.Errorf("no port listening info")
+		return &result, errors.New("no port listening info")
 	}
 
 	// 获取本机 IP 地址
@@ -1609,13 +1609,13 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	commandResult, err = s.sendCommand(hostID, command)
 	if err != nil {
 		LOG.Error("Failed to get IP info")
-		return &result, fmt.Errorf("get ip info failed")
+		return &result, errors.New("get ip info failed")
 	}
 	ipInfos := commandResult.Result
 	LOG.Info("IP info: %s", ipInfos)
 	if ipInfos == "" {
 		LOG.Error("No IP info")
-		return &result, fmt.Errorf("no ip info")
+		return &result, errors.New("no ip info")
 	}
 
 	var ips []string
@@ -1690,19 +1690,19 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	commandResult, err = s.sendCommand(hostID, command)
 	if err != nil {
 		LOG.Error("Failed to get ruleset")
-		return &result, fmt.Errorf("get ruleset failed")
+		return &result, errors.New("get ruleset failed")
 	}
 	rulesetOutput := commandResult.Result
 	var nftData map[string]interface{}
 	if err := json.Unmarshal([]byte(rulesetOutput), &nftData); err != nil {
 		LOG.Error("Failed to parse ruleset JSON: %v", err)
-		return &result, fmt.Errorf("faile to parse ruleset json")
+		return &result, errors.New("faile to parse ruleset json")
 	}
 
 	rules, ok := nftData["nftables"].([]interface{})
 	if !ok {
 		LOG.Error("Unexpected nftables JSON structure")
-		return &result, fmt.Errorf("invalid ruleset json")
+		return &result, errors.New("invalid ruleset json")
 	}
 
 	// 遍历每个待检查端口
@@ -1867,7 +1867,7 @@ func parseRuleLine(line string) (*model.RuleItem, int, error) {
 
 	parts := strings.Fields(line)
 	if len(parts) < 3 {
-		return nil, 0, fmt.Errorf("invalid rule format")
+		return nil, 0, errors.New("invalid rule format")
 	}
 
 	port, err := strconv.Atoi(parts[2])
@@ -1948,93 +1948,12 @@ func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
 		return fmt.Errorf("failed to update conf content %v", err)
 	}
 
-	// 更新 /local/default/default.nftable
-	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	relativePath := "default/default.nftable"
-
-	// 检查repo
-	err = s.checkRepo(hostID, repoPath)
-	if err != nil {
-		return err
-	}
-
-	// 更新
-	gitUpdate := model.GitUpdate{
-		HostID:          hostID,
-		RepoPath:        repoPath,
-		RelativePath:    relativePath,
-		NewRelativePath: "",
-		Dir:             false,
-		Content:         newConfContent,
-	}
-	data, err := utils.ToJSONString(gitUpdate)
-	if err != nil {
-		return err
-	}
-	actionRequest := model.HostAction{
-		HostID: gitUpdate.HostID,
-		Action: model.Action{
-			Action: model.Git_Update,
-			Data:   data,
-		},
-	}
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		LOG.Error("failed to send action Git_Update")
-		return fmt.Errorf("failed to send action Git_Update %v", err)
-	}
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("failed to update conf file")
-		return fmt.Errorf("failed to update conf file")
-	}
-
-	// activate default.nftable
-	// 检查content
-	content, err := s.checkConfContent(newConfContent)
-	if err != nil {
-		return err
-	}
-
-	// 覆盖 /etc/nftables.conf内容
-	editFile := model.FileEdit{
-		Source:  "/etc/nftables.conf",
-		Content: content,
-	}
-	err = s.updateFile(uint64(hostID), editFile)
-	if err != nil {
-		LOG.Error("Failed to update nftables conf")
-		return fmt.Errorf("failed to update nftables conf %v", err)
-	}
-
-	// 进行测试
-	command := "nft -c -f /etc/nftables.conf"
-	commandResult, err := s.sendCommand(uint(hostID), command)
-	if err != nil {
-		LOG.Error("Failed to test conf")
-		return err
-	}
-	LOG.Info("Conf test result: %s", commandResult.Result)
-	if commandResult.Result != "" {
-		return fmt.Errorf("test failed")
-	}
-
-	// 生效规则
-	command = "nft -f /etc/nftables.conf"
-	commandResult, err = s.sendCommand(uint(hostID), command)
-	if err != nil {
-		LOG.Error("Failed to enable conf")
-		return err
-	}
-	LOG.Info("Conf enable result: %s", commandResult.Result)
-	if commandResult.Result != "" {
-		return fmt.Errorf("enable failed")
-	}
-
-	return nil
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
 }
 
 func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (string, error) {
-	lines := strings.Split(string(confContent), "\n")
+	lines := strings.Split(confContent, "\n")
 	var output []string
 	insideChain := false
 
@@ -2091,4 +2010,420 @@ func generateNftRules(rules []model.PortRule) []string {
 		}
 	}
 	return output
+}
+
+func (s *NFTable) deletePortRules(hostID uint, port uint) error {
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+	// 删除指定端口的规则
+	newConfContent, err := deletePortRuleInConf(confContent, port)
+	if err != nil {
+		LOG.Error("Failed to update conf content")
+		return fmt.Errorf("failed to update conf content %v", err)
+	}
+
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
+}
+
+func deletePortRuleInConf(confContent string, port uint) (string, error) {
+	lines := strings.Split(confContent, "\n")
+	var output []string
+	insideChain := false
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideChain = true
+			output = append(output, line)
+			continue
+		}
+
+		if insideChain {
+			// 匹配目标端口的规则并删除
+			matched, _ := regexp.MatchString(fmt.Sprintf(`tcp dport %d( |$)`, port), trimmed)
+			if matched {
+				continue
+			}
+			if trimmed == "}" {
+				output = append(output, line)
+				insideChain = false
+				continue
+			}
+		}
+
+		output = append(output, line)
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
+func (s *NFTable) getIpBlacklist(hostID uint) (*model.PageResult, error) {
+	var result model.PageResult
+	// 获取 /etc/nftables.conf 内容
+	detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return &result, err
+	}
+	scanner := bufio.NewScanner(strings.NewReader(detail))
+	var lines []string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			lines = append(lines, line)
+		}
+	}
+	blacklist := parseNftBlacklist(lines)
+	result.Total = int64(len(blacklist))
+	result.Items = blacklist
+	return &result, nil
+}
+
+func parseNftBlacklist(lines []string) []string {
+	var blacklist []string
+	insideInputChain := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideInputChain = true
+			continue
+		}
+		if trimmed == "}" && insideInputChain {
+			insideInputChain = false
+			continue
+		}
+		if insideInputChain &&
+			strings.HasPrefix(trimmed, "ip saddr") &&
+			strings.Contains(trimmed, "drop") &&
+			!strings.Contains(trimmed, "tcp dport") {
+			parts := strings.Fields(trimmed)
+			if len(parts) >= 3 {
+				blacklist = append(blacklist, parts[2])
+			}
+		}
+	}
+	return blacklist
+}
+
+func (s *NFTable) addIPToBlacklist(hostID uint, req model.IPRequest) error {
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+
+	// 添加 IP 到黑名单
+	newConfContent, err := addBlacklistIP(confContent, req.IP)
+	if err != nil {
+		LOG.Error("Failed to update conf content")
+		return fmt.Errorf("failed to update conf content %v", err)
+	}
+
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
+}
+
+func addBlacklistIP(confContent string, ip string) (string, error) {
+	lines := strings.Split(confContent, "\n")
+	var output []string
+	insideChain := false
+	inserted := false
+	ruleLine := fmt.Sprintf("ip saddr %s drop", ip)
+
+	for i := 0; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+
+		// 是否已经存在该规则
+		if trimmed == ruleLine {
+			return "", errors.New("ip already exists in blacklist")
+		}
+
+		output = append(output, lines[i])
+
+		// 进入 input chain 区块
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideChain = true
+			continue
+		}
+
+		// 准备插入前，检查是否在 input chain 的末尾
+		if insideChain && trimmed == "}" {
+			// 插入规则前，删除最后一个 "}"，并插入规则及花括号
+			output = output[:len(output)-1]
+			output = append(output, "        "+ruleLine)
+			output = append(output, "    }")
+			inserted = true
+			insideChain = false // 插入完毕，重置状态
+		}
+	}
+
+	if !inserted {
+		return "", errors.New("input chain not found")
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
+func (s *NFTable) deleteIPFromBlacklist(hostID uint, req model.IPRequest) error {
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+
+	// 删除 IP 黑名单
+	newConfContent, err := removeBlacklistIP(confContent, req.IP)
+	if err != nil {
+		LOG.Error("Failed to update conf content")
+		return fmt.Errorf("failed to update conf content %v", err)
+	}
+
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
+}
+
+func removeBlacklistIP(confContent string, ip string) (string, error) {
+	lines := strings.Split(confContent, "\n")
+	var output []string
+	insideChain := false
+	ruleLine := fmt.Sprintf("ip saddr %s drop", ip)
+	removed := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideChain = true
+			output = append(output, line)
+			continue
+		}
+
+		if insideChain {
+			if trimmed == ruleLine {
+				// 跳过这一行，实现删除
+				removed = true
+				continue
+			}
+			if trimmed == "}" {
+				insideChain = false
+			}
+		}
+
+		output = append(output, line)
+	}
+
+	if !removed {
+		return "", errors.New("blacklist rule not found")
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
+func (s *NFTable) getPingStatus(hostID uint) (*model.PingStatus, error) {
+	var result model.PingStatus
+	// 获取 /etc/nftables.conf 内容
+	detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return &result, err
+	}
+	scanner := bufio.NewScanner(strings.NewReader(detail))
+	var lines []string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			lines = append(lines, line)
+		}
+	}
+	allowed := parsePingStatus(lines)
+	result.Allowed = allowed
+	return &result, nil
+}
+
+func parsePingStatus(lines []string) bool {
+	insideInput := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideInput = true
+			continue
+		}
+
+		if insideInput {
+			if trimmed == "}" {
+				insideInput = false
+				continue
+			}
+
+			if strings.HasPrefix(trimmed, "ip protocol icmp") &&
+				strings.Contains(trimmed, "icmp type echo-request") &&
+				(strings.Contains(trimmed, "drop") || strings.Contains(trimmed, "reject")) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func (s *NFTable) setPingStatus(hostID uint, allowed bool) error {
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+
+	// 设置 ping
+	newConfContent, err := setPingStatus(confContent, allowed)
+	if err != nil {
+		LOG.Error("Failed to update conf content")
+		return fmt.Errorf("failed to update conf content %v", err)
+	}
+
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
+}
+
+func setPingStatus(confContent string, allowed bool) (string, error) {
+	lines := strings.Split(confContent, "\n")
+	var output []string
+	insideInput := false
+	ruleLine := "ip protocol icmp icmp type echo-request drop"
+	ruleExists := false
+
+	for i := 0; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+
+		// 进入 chain input 区块
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideInput = true
+			output = append(output, lines[i])
+			continue
+		}
+
+		if insideInput {
+			// 到达 input 区块末尾
+			if trimmed == "}" {
+				// 如果禁止 ping 且规则不存在，则插入规则
+				if !allowed && !ruleExists {
+					output = append(output, "        "+ruleLine)
+				}
+				insideInput = false
+				output = append(output, lines[i])
+				continue
+			}
+
+			// 检查是否是 drop ping 规则
+			if trimmed == ruleLine {
+				ruleExists = true
+				// 如果允许 ping，需要删除这一行
+				if allowed {
+					continue
+				}
+			}
+		}
+
+		// 默认加入当前行
+		output = append(output, lines[i])
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
+func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
+	// 更新 /local/default/default.nftable
+	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	relativePath := "default/default.nftable"
+
+	// 检查repo
+	err := s.checkRepo(hostID, repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 更新
+	gitUpdate := model.GitUpdate{
+		HostID:          hostID,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: "",
+		Dir:             false,
+		Content:         newConfContent,
+	}
+	data, err := utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("failed to send action Git_Update")
+		return fmt.Errorf("failed to send action Git_Update %v", err)
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("failed to update conf file")
+		return errors.New("failed to update conf file")
+	}
+
+	// activate default.nftable
+	// 检查content
+	content, err := s.checkConfContent(newConfContent)
+	if err != nil {
+		return err
+	}
+
+	// 覆盖 /etc/nftables.conf内容
+	editFile := model.FileEdit{
+		Source:  "/etc/nftables.conf",
+		Content: content,
+	}
+	err = s.updateFile(uint64(hostID), editFile)
+	if err != nil {
+		LOG.Error("Failed to update nftables conf")
+		return fmt.Errorf("failed to update nftables conf %v", err)
+	}
+
+	// 进行测试
+	command := "nft -c -f /etc/nftables.conf"
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to test conf")
+		return err
+	}
+	LOG.Info("Conf test result: %s", commandResult.Result)
+	if commandResult.Result != "" {
+		return errors.New("test failed")
+	}
+
+	// 生效规则
+	command = "nft -f /etc/nftables.conf"
+	commandResult, err = s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to enable conf")
+		return err
+	}
+	LOG.Info("Conf enable result: %s", commandResult.Result)
+	if commandResult.Result != "" {
+		return errors.New("enable failed")
+	}
+
+	return nil
 }
