@@ -197,6 +197,13 @@ definitions:
       success:
         type: boolean
     type: object
+  model.ConfRaw:
+    properties:
+      content:
+        type: string
+    required:
+    - content
+    type: object
   model.ContainerOperate:
     properties:
       auto_remove:
@@ -940,6 +947,13 @@ definitions:
         description: 发送实时速率
         type: number
     type: object
+  model.IPRequest:
+    properties:
+      ip:
+        type: string
+    required:
+    - ip
+    type: object
   model.ImageBuild:
     properties:
       docker_file:
@@ -1232,6 +1246,13 @@ definitions:
         - $ref: '#/definitions/model.TrafficInfo'
         description: 流量信息
     type: object
+  model.NftablesStatus:
+    properties:
+      active:
+        type: string
+      status:
+        type: string
+    type: object
   model.OperateCompose:
     properties:
       name:
@@ -1324,6 +1345,13 @@ definitions:
         description: 使用率
         type: number
     type: object
+  model.PingStatus:
+    properties:
+      allowed:
+        type: boolean
+    required:
+    - allowed
+    type: object
   model.PortHelper:
     properties:
       container_port:
@@ -1344,19 +1372,6 @@ definitions:
       key_size:
         type: integer
       pem:
-        type: string
-    type: object
-  model.ProcessStatus:
-    properties:
-      addresses:
-        items:
-          type: string
-        type: array
-      pid:
-        type: integer
-      port:
-        type: integer
-      process:
         type: string
     type: object
   model.Profile:
@@ -1443,6 +1458,28 @@ definitions:
         type: integer
       role_name:
         type: string
+    type: object
+  model.RuleItem:
+    properties:
+      action:
+        enum:
+        - accept
+        - reject
+        - drop
+        type: string
+      count:
+        type: integer
+      rate:
+        type: string
+      type:
+        enum:
+        - rate_limit
+        - concurrent_limit
+        - default
+        type: string
+    required:
+    - action
+    - type
     type: object
   model.SSHConfigContent:
     properties:
@@ -1641,6 +1678,15 @@ definitions:
     required:
     - key_name
     - password
+    type: object
+  model.SetPortRule:
+    properties:
+      port:
+        type: integer
+      rules:
+        items:
+          $ref: '#/definitions/model.RuleItem'
+        type: array
     type: object
   model.SetTimeReq:
     properties:
@@ -6475,6 +6521,51 @@ paths:
       summary: Update category
       tags:
       - nftables
+  /nftables/{host}/conf/raw:
+    get:
+      consumes:
+      - application/json
+      description: Get raw content of nftables.conf
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ConfRaw'
+      summary: Get raw content of nftables.conf
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Set raw content of nftables.conf
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Conf details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ConfRaw'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set raw content of nftables.conf
+      tags:
+      - nftables
   /nftables/{host}/diff:
     get:
       consumes:
@@ -6581,6 +6672,164 @@ paths:
       summary: Install nftables
       tags:
       - nftables
+  /nftables/{host}/ip/blacklist:
+    get:
+      consumes:
+      - application/json
+      description: Get ip blacklist
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get ip blacklist
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Delete ip from ip blacklist
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: IP
+        in: query
+        name: ip
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete ip from ip blacklist
+      tags:
+      - nftables
+  /nftables/{host}/ping:
+    get:
+      consumes:
+      - application/json
+      description: Get ping status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PingStatus'
+      summary: Get ping status
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Set ping allowed
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Ping request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PingStatus'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set ping allowed
+      tags:
+      - nftables
+  /nftables/{host}/port:
+    get:
+      consumes:
+      - application/json
+      description: Get port rules
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get port rules
+      tags:
+      - nftables
+  /nftables/{host}/port/rules:
+    delete:
+      consumes:
+      - application/json
+      description: Delete rules for the specified port
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Port
+        in: query
+        name: port
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete rules for the specified port
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Set rules for the specified port
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Port rules
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetPortRule'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set rules for the specified port
+      tags:
+      - nftables
   /nftables/{host}/process:
     get:
       consumes:
@@ -6598,7 +6847,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.ProcessStatus'
+            $ref: '#/definitions/model.PageResult'
       summary: Get process status
       tags:
       - nftables
@@ -6709,6 +6958,28 @@ paths:
         "200":
           description: OK
       summary: Restore conf file
+      tags:
+      - nftables
+  /nftables/{host}/status:
+    get:
+      consumes:
+      - application/json
+      description: Get the installation status of nftables and determine whether nftables
+        or iptables is currently active
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.NftablesStatus'
+      summary: Get install status of nftables
       tags:
       - nftables
   /nftables/{host}/switch/to:
