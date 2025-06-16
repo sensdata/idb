@@ -11,26 +11,22 @@ export default mergeConfig(
         strict: true,
       },
       proxy: {
-        '^/api/terminals/.*?/start': {
+        '^/api/v1/terminals/.*?/start': {
           target: 'wss://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) =>
-            path.replace(/^\/api\/terminals/, '/api/v1/terminals'),
         },
-        '^/api/docker/.*?/containers/terminal(\\?|$)': {
+        '^/api/v1/docker/.*?/containers/terminal(\\?|$)': {
           target: 'wss://39.99.155.139:9918',
           ws: true,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/api\/docker/, '/api/v1/docker'),
         },
-        '/api': {
+        '/api/v1': {
           target: 'https://39.99.155.139:9918',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
         },
       },
       port: 5300,
