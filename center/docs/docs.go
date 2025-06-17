@@ -6586,6 +6586,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/conf/raw": {
+            "get": {
+                "description": "Get raw content of nftables.conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get raw content of nftables.conf",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ConfRaw"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set raw content of nftables.conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Set raw content of nftables.conf",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Conf details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ConfRaw"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/diff": {
             "get": {
                 "description": "Get conf diff compare to specfied version",
@@ -6742,6 +6810,280 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/ip/blacklist": {
+            "get": {
+                "description": "Get ip blacklist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get ip blacklist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add ip to ip blacklist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Add ip to ip blacklist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "IP Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.IPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete ip from ip blacklist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Delete ip from ip blacklist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "IP",
+                        "name": "ip",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/ping": {
+            "get": {
+                "description": "Get ping status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get ping status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PingStatus"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set ping allowed",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Set ping allowed",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ping request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.PingStatus"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/port": {
+            "get": {
+                "description": "Get port rules",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get port rules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/port/rules": {
+            "post": {
+                "description": "Set rules for the specified port",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Set rules for the specified port",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Port rules",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetPortRule"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete rules for the specified port",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Delete rules for the specified port",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Port",
+                        "name": "port",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/process": {
             "get": {
                 "description": "Get proceses status info including pid, ports, local address, etc.",
@@ -6768,7 +7110,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.ProcessStatus"
+                            "$ref": "#/definitions/model.PageResult"
                         }
                     }
                 }
@@ -6933,6 +7275,38 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/nftables/{host}/status": {
+            "get": {
+                "description": "Get the installation status of nftables and determine whether nftables or iptables is currently active",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get install status of nftables",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.NftablesStatus"
+                        }
                     }
                 }
             }
@@ -11324,6 +11698,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ConfRaw": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ContainerOperate": {
             "type": "object",
             "required": [
@@ -12423,6 +12808,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.IPRequest": {
+            "type": "object",
+            "required": [
+                "ip"
+            ],
+            "properties": {
+                "ip": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ImageBuild": {
             "type": "object",
             "required": [
@@ -12862,6 +13258,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.NftablesStatus": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "model.OperateCompose": {
             "type": "object",
             "required": [
@@ -12999,6 +13406,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.PingStatus": {
+            "type": "object",
+            "required": [
+                "allowed"
+            ],
+            "properties": {
+                "allowed": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.PortHelper": {
             "type": "object",
             "properties": {
@@ -13029,26 +13447,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "pem": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.ProcessStatus": {
-            "type": "object",
-            "properties": {
-                "addresses": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "pid": {
-                    "type": "integer"
-                },
-                "port": {
-                    "type": "integer"
-                },
-                "process": {
                     "type": "string"
                 }
             }
@@ -13176,6 +13574,37 @@ const docTemplate = `{
                 },
                 "role_name": {
                     "type": "string"
+                }
+            }
+        },
+        "model.RuleItem": {
+            "type": "object",
+            "required": [
+                "action",
+                "type"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "accept",
+                        "reject",
+                        "drop"
+                    ]
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "rate": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "rate_limit",
+                        "concurrent_limit",
+                        "default"
+                    ]
                 }
             }
         },
@@ -13472,6 +13901,20 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "model.SetPortRule": {
+            "type": "object",
+            "properties": {
+                "port": {
+                    "type": "integer"
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RuleItem"
+                    }
                 }
             }
         },
