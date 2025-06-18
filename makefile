@@ -14,7 +14,7 @@ generate-key:
 # 生成证书的命令
 generate-certs:
 	# 生成证书
-	openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout $(KEY_FILE) -out $(CERT_FILE) -config ssl.cnf \
+	openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout $(KEY_FILE) -out $(CERT_FILE) -config ssl.cnf -extensions v3_ca
 
 	# 创建证书目录
 	mkdir -p $(AGENT_DIR)

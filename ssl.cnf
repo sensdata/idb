@@ -1,7 +1,7 @@
 [req]
 default_bits       = 2048
 distinguished_name = req_distinguished_name
-req_extensions     = req_ext
+x509_extensions    = v3_ca
 prompt             = no
 
 [req_distinguished_name]
@@ -13,8 +13,8 @@ OU = iDB Certificate Authority
 CN = Sensdata iDB Root CA
 emailAddress = support@sensdata.com
 
-[req_ext]
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = *.sensdata.com
+[v3_ca]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:TRUE
+keyUsage = critical, keyCertSign, cRLSign

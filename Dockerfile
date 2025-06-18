@@ -11,7 +11,7 @@ FROM golang:1.22 AS certs-builder
 WORKDIR /app/certs
 COPY ssl.cnf ./
 # 证书
-RUN openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout key.pem -out cert.pem -config ssl.cnf 
+RUN openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout key.pem -out cert.pem -config ssl.cnf -extensions v3_ca
 # 密钥
 RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
     echo "KEY=${KEY}" >> /app/.env
