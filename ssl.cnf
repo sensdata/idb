@@ -5,12 +5,13 @@ req_extensions     = req_ext
 prompt             = no
 
 [req_distinguished_name]
-C  = US
-ST = California
-L  = San Francisco
+C  = CN
+ST = Guangdong
+L  = Guangzhou
 O  = Sensdata
-OU = idb
-CN = *.sensdata.com
+OU = iDB Certificate Authority
+CN = Sensdata iDB Root CA
+emailAddress = support@sensdata.com
 
 [req_ext]
 subjectAltName = @alt_names
