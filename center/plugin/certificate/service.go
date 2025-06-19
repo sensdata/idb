@@ -81,6 +81,31 @@ func (s *CertificateMan) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"certificates",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/group", Handler: s.Groups},
+			{Method: "POST", Path: "/:host/group", Handler: s.CreateGroup},
+			{Method: "DELETE", Path: "/:host/group", Handler: s.DeleteGroup},
+			{Method: "GET", Path: "/:host/group/key", Handler: s.GroupPk},
+			{Method: "GET", Path: "/:host/group/csr", Handler: s.GroupCsr},
+
+			{Method: "GET", Path: "/:host", Handler: s.GetCertificate},
+			{Method: "DELETE", Path: "/:host", Handler: s.DeleteCertificate},
+			{Method: "POST", Path: "/:host/sign/self", Handler: s.SelfSignCertificate},
+			{Method: "POST", Path: "/:host/complete", Handler: s.CompleteCertificate},
+
+			{Method: "POST", Path: "/:host/import", Handler: s.Import},
+		},
+	)
+
+	global.LOG.Info("certificateman init end")
+}
+
+func (s *CertificateMan) Start() {
+	global.LOG.Info("certificateman start")
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -112,28 +137,6 @@ func (s *CertificateMan) Initialize() {
 		}
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
-
-	api.API.SetUpPluginRouters(
-		"certificates",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/group", Handler: s.Groups},
-			{Method: "POST", Path: "/:host/group", Handler: s.CreateGroup},
-			{Method: "DELETE", Path: "/:host/group", Handler: s.DeleteGroup},
-			{Method: "GET", Path: "/:host/group/key", Handler: s.GroupPk},
-			{Method: "GET", Path: "/:host/group/csr", Handler: s.GroupCsr},
-
-			{Method: "GET", Path: "/:host", Handler: s.GetCertificate},
-			{Method: "DELETE", Path: "/:host", Handler: s.DeleteCertificate},
-			{Method: "POST", Path: "/:host/sign/self", Handler: s.SelfSignCertificate},
-			{Method: "POST", Path: "/:host/complete", Handler: s.CompleteCertificate},
-
-			{Method: "POST", Path: "/:host/import", Handler: s.Import},
-		},
-	)
-
-	global.LOG.Info("certificateman init end")
 }
 
 func (s *CertificateMan) Release() {

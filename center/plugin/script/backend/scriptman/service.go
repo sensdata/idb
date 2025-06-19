@@ -84,6 +84,36 @@ func (s *ScriptMan) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"scripts",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
+			{Method: "GET", Path: "/:host", Handler: s.GetScriptList},
+			{Method: "GET", Path: "/:host/detail", Handler: s.GetScriptDetail},
+			{Method: "POST", Path: "/:host", Handler: s.Create},
+			{Method: "PUT", Path: "/:host", Handler: s.Update},
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetScriptLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
+			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
+			{Method: "GET", Path: "/:host/run/logs", Handler: s.GetScriptRunLogs},
+			{Method: "GET", Path: "/:host/run/logs/detail", Handler: s.GetScriptRunLogsDetail},
+		},
+	)
+
+	global.LOG.Info("scriptman init end")
+}
+
+func (s *ScriptMan) Start() {
+	global.LOG.Info("scriptman start")
+
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -116,34 +146,8 @@ func (s *ScriptMan) Initialize() {
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
 
-	// 初始化 host 模块
+	// 初始化 host repo
 	s.hostRepo = repo.NewHostRepo()
-
-	api.API.SetUpPluginRouters(
-		"scripts",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
-			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
-			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
-			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
-			{Method: "GET", Path: "/:host", Handler: s.GetScriptList},
-			{Method: "GET", Path: "/:host/detail", Handler: s.GetScriptDetail},
-			{Method: "POST", Path: "/:host", Handler: s.Create},
-			{Method: "PUT", Path: "/:host", Handler: s.Update},
-			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
-			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/history", Handler: s.GetScriptLog},
-			{Method: "GET", Path: "/:host/diff", Handler: s.GetScriptDiff},
-			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/run", Handler: s.Execute},
-			{Method: "GET", Path: "/:host/run/logs", Handler: s.GetScriptRunLogs},
-			{Method: "GET", Path: "/:host/run/logs/detail", Handler: s.GetScriptRunLogsDetail},
-		},
-	)
-
-	global.LOG.Info("scriptman init end")
 }
 
 func (s *ScriptMan) Release() {

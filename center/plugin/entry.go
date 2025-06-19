@@ -42,3 +42,7 @@ func RegisterPlugins() {
 	// 执行所有模块的初始化
 	conn.InitializePlugins()
 }
+
+func StartPlugins() {
+	conn.StartPlugins()
+}

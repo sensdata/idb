@@ -10,8 +10,10 @@ RUN npm run build
 FROM golang:1.22 AS certs-builder
 WORKDIR /app/certs
 COPY ssl.cnf ./
-# 证书
-RUN openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout key.pem -out cert.pem -config ssl.cnf -extensions v3_ca
+# 生成 PKCS#8 格式的私钥
+RUN openssl genpkey -algorithm RSA -out key.pem -pkeyopt rsa_keygen_bits:2048
+# 生成自签名的 CA 证书，使用已生成的 PKCS#8 私钥
+RUN openssl req -x509 -new -key key.pem -out cert.pem -days 3650 -config ssl.cnf -extensions v3_ca
 # 密钥
 RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
     echo "KEY=${KEY}" >> /app/.env

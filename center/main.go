@@ -169,11 +169,14 @@ func StartServices() error {
 	api.API.InitRouter()
 	// 注册插件
 	plugin.RegisterPlugins()
-	//启动apiServer
+	// 启动apiServer
 	if err := api.API.Start(); err != nil {
 		global.LOG.Error("Failed to start api: %v", err)
 		return err
 	}
+	// 启动插件
+	plugin.StartPlugins()
+
 	return nil
 }
 

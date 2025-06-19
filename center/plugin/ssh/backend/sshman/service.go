@@ -80,6 +80,35 @@ func (s *SSHMan) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"ssh",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/config", Handler: s.GetSSHConfig},
+			{Method: "PUT", Path: "/:host/config", Handler: s.UpdateSSHConfig},
+			{Method: "GET", Path: "/:host/config/content", Handler: s.GetSSHConfigContent},
+			{Method: "PUT", Path: "/:host/config/content", Handler: s.UpdateSSHConfigContent},
+			{Method: "POST", Path: "/:host/operate", Handler: s.OperateSSH},
+			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
+			{Method: "POST", Path: "/:host/keys", Handler: s.CreateKey},
+			{Method: "DELETE", Path: "/:host/keys", Handler: s.RemoveKey},
+			{Method: "POST", Path: "/:host/keys/enable", Handler: s.EnableKey},
+			{Method: "GET", Path: "/:host/keys/download", Handler: s.DownloadPrivateKey},
+			{Method: "POST", Path: "/:host/keys/password/set", Handler: s.SetKeyPassword},
+			{Method: "POST", Path: "/:host/keys/password/update", Handler: s.UpdateKeyPassword},
+			{Method: "POST", Path: "/:host/keys/password/clear", Handler: s.ClearKeyPassword},
+			{Method: "GET", Path: "/:host/auth/keys", Handler: s.ListAuthKey},
+			{Method: "POST", Path: "/:host/auth/keys", Handler: s.AddAuthKey},
+			{Method: "DELETE", Path: "/:host/auth/keys", Handler: s.RemoveAuthKey},
+			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
+		},
+	)
+	global.LOG.Info("sshman init end")
+}
+
+func (s *SSHMan) Start() {
+	global.LOG.Info("sshman start")
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -111,32 +140,6 @@ func (s *SSHMan) Initialize() {
 		}
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
-
-	api.API.SetUpPluginRouters(
-		"ssh",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/config", Handler: s.GetSSHConfig},
-			{Method: "PUT", Path: "/:host/config", Handler: s.UpdateSSHConfig},
-			{Method: "GET", Path: "/:host/config/content", Handler: s.GetSSHConfigContent},
-			{Method: "PUT", Path: "/:host/config/content", Handler: s.UpdateSSHConfigContent},
-			{Method: "POST", Path: "/:host/operate", Handler: s.OperateSSH},
-			{Method: "GET", Path: "/:host/keys", Handler: s.ListKey},
-			{Method: "POST", Path: "/:host/keys", Handler: s.CreateKey},
-			{Method: "DELETE", Path: "/:host/keys", Handler: s.RemoveKey},
-			{Method: "POST", Path: "/:host/keys/enable", Handler: s.EnableKey},
-			{Method: "GET", Path: "/:host/keys/download", Handler: s.DownloadPrivateKey},
-			{Method: "POST", Path: "/:host/keys/password/set", Handler: s.SetKeyPassword},
-			{Method: "POST", Path: "/:host/keys/password/update", Handler: s.UpdateKeyPassword},
-			{Method: "POST", Path: "/:host/keys/password/clear", Handler: s.ClearKeyPassword},
-			{Method: "GET", Path: "/:host/auth/keys", Handler: s.ListAuthKey},
-			{Method: "POST", Path: "/:host/auth/keys", Handler: s.AddAuthKey},
-			{Method: "DELETE", Path: "/:host/auth/keys", Handler: s.RemoveAuthKey},
-			{Method: "GET", Path: "/:host/logs", Handler: s.LoadSSHLogs},
-		},
-	)
-	global.LOG.Info("sshman init end")
 }
 
 func (s *SSHMan) Release() {

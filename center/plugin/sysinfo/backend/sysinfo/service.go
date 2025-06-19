@@ -82,6 +82,36 @@ func (s *SysInfo) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"sysinfo",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/overview", Handler: s.GetOverview},
+			{Method: "GET", Path: "/:host/network", Handler: s.GetNetwork},
+			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
+			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
+			{Method: "GET", Path: "/:host/settings", Handler: s.GetSysSettings},
+			{Method: "POST", Path: "/:host/action/upd/time", Handler: s.SetTime},
+			{Method: "POST", Path: "/:host/action/upd/timezone", Handler: s.SetTimeZone},
+			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
+			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
+			{Method: "POST", Path: "/:host/action/memcache/auto/set", Handler: s.SetAutoClearInterval},
+			{Method: "GET", Path: "/:host/action/memcache/auto/set", Handler: s.GetAutoClearInterval},
+			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
+			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
+			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
+			{Method: "POST", Path: "/:host/action/upd/hostname", Handler: s.UpdateHostName},
+			{Method: "POST", Path: "/:host/action/upd/settings", Handler: s.UpdateSysSetting},
+		},
+	)
+
+	global.LOG.Info("sysinfo init end")
+}
+
+func (s *SysInfo) Start() {
+	global.LOG.Info("sysinfo start")
+
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -113,32 +143,6 @@ func (s *SysInfo) Initialize() {
 		}
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
-
-	api.API.SetUpPluginRouters(
-		"sysinfo",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/overview", Handler: s.GetOverview},
-			{Method: "GET", Path: "/:host/network", Handler: s.GetNetwork},
-			{Method: "GET", Path: "/:host/system", Handler: s.GetSystemInfo},
-			{Method: "GET", Path: "/:host/hardware", Handler: s.GetHardware},
-			{Method: "GET", Path: "/:host/settings", Handler: s.GetSysSettings},
-			{Method: "POST", Path: "/:host/action/upd/time", Handler: s.SetTime},
-			{Method: "POST", Path: "/:host/action/upd/timezone", Handler: s.SetTimeZone},
-			{Method: "POST", Path: "/:host/action/sync/time", Handler: s.SyncTime},
-			{Method: "POST", Path: "/:host/action/memcache/clear", Handler: s.ClearMemCache},
-			{Method: "POST", Path: "/:host/action/memcache/auto/set", Handler: s.SetAutoClearInterval},
-			{Method: "GET", Path: "/:host/action/memcache/auto/set", Handler: s.GetAutoClearInterval},
-			{Method: "POST", Path: "/:host/action/swap/create", Handler: s.CreateSwap},
-			{Method: "POST", Path: "/:host/action/swap/delete", Handler: s.DeleteSwap},
-			{Method: "POST", Path: "/:host/action/upd/dns", Handler: s.UpdateDnsSettings},
-			{Method: "POST", Path: "/:host/action/upd/hostname", Handler: s.UpdateHostName},
-			{Method: "POST", Path: "/:host/action/upd/settings", Handler: s.UpdateSysSetting},
-		},
-	)
-
-	global.LOG.Info("sysinfo init end")
 }
 
 func (s *SysInfo) Release() {

@@ -81,6 +81,20 @@ func (s *SystemCtl) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"sysctl",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/operate", Handler: s.OperateService},
+		},
+	)
+
+	global.LOG.Info("systemctl init end")
+}
+
+func (s *SystemCtl) Start() {
+	global.LOG.Info("systemctl start")
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -112,17 +126,6 @@ func (s *SystemCtl) Initialize() {
 		}
 		s.restyClient.SetTLSClientConfig(tlsConfig)
 	}
-
-	api.API.SetUpPluginRouters(
-		"sysctl",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/operate", Handler: s.OperateService},
-		},
-	)
-
-	global.LOG.Info("systemctl init end")
 }
 
 func (s *SystemCtl) Release() {}

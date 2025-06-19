@@ -37,3 +37,11 @@ func InitializePlugins() {
 		p.Initialize()
 	}
 }
+
+func StartPlugins() {
+	global.LOG.Info("StartPlugins")
+	for i, p := range PLUGINS {
+		global.LOG.Info(fmt.Sprintf("StartPlugins %d", i))
+		p.Start()
+	}
+}

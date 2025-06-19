@@ -87,38 +87,6 @@ func (s *FileMan) Initialize() {
 		LOG = logger
 	}
 
-	settingService := service.NewISettingsService()
-	settingInfo, _ := settingService.Settings()
-	scheme := "http"
-	if settingInfo.Https == "yes" {
-		scheme = "https"
-	}
-	host := global.Host
-	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
-		host = settingInfo.BindDomain
-	}
-	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.BindPort)
-
-	s.restyClient = resty.New().
-		SetBaseURL(baseUrl).
-		SetHeader("Content-Type", "application/json")
-
-	if settingInfo.Https == "yes" {
-		// 创建 TLS 配置
-		cert, err := tls.X509KeyPair(global.CertPem, global.KeyPem)
-		if err != nil {
-			global.LOG.Error("Failed to create cert: %v", err)
-			return
-		}
-
-		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert}, // 设置服务器证书
-			MinVersion:         tls.VersionTLS13,        // 设置最小 TLS 版本
-			InsecureSkipVerify: true,
-		}
-		s.restyClient.SetTLSClientConfig(tlsConfig)
-	}
-
 	api.API.SetUpPluginRouters(
 		"files",
 		[]plugin.PluginRoute{
@@ -153,6 +121,42 @@ func (s *FileMan) Initialize() {
 	)
 
 	global.LOG.Info("fileman init end")
+}
+
+func (s *FileMan) Start() {
+	global.LOG.Info("fileman start")
+
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+	}
+	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.BindPort)
+
+	s.restyClient = resty.New().
+		SetBaseURL(baseUrl).
+		SetHeader("Content-Type", "application/json")
+
+	if settingInfo.Https == "yes" {
+		// 创建 TLS 配置
+		cert, err := tls.X509KeyPair(global.CertPem, global.KeyPem)
+		if err != nil {
+			global.LOG.Error("Failed to create cert: %v", err)
+			return
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates:       []tls.Certificate{cert}, // 设置服务器证书
+			MinVersion:         tls.VersionTLS13,        // 设置最小 TLS 版本
+			InsecureSkipVerify: true,
+		}
+		s.restyClient.SetTLSClientConfig(tlsConfig)
+	}
 }
 
 func (s *FileMan) Release() {

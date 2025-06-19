@@ -186,9 +186,26 @@ func (s *ApiServer) checkCertAndKey(domain string) (string, string, error) {
 	if keyBlock == nil {
 		return "", "", errors.New("无法解析 CA 私钥 PEM")
 	}
-	caPrivateKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+
+	var parsedKey any
+	switch keyBlock.Type {
+	case "RSA PRIVATE KEY":
+		// PKCS#1 格式
+		parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	case "PRIVATE KEY":
+		// PKCS#8 格式
+		parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+	default:
+		return "", "", fmt.Errorf("不支持的私钥类型: %s", keyBlock.Type)
+	}
 	if err != nil {
 		return "", "", fmt.Errorf("解析 CA 私钥失败: %v", err)
+	}
+
+	// 确保是 *rsa.PrivateKey 类型
+	caPrivateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return "", "", errors.New("CA 私钥不是 RSA 类型")
 	}
 
 	// 生成新密钥

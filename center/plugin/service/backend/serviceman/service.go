@@ -107,6 +107,38 @@ func (s *ServiceMan) Initialize() {
 		LOG = logger
 	}
 
+	api.API.SetUpPluginRouters(
+		"services",
+		[]plugin.PluginRoute{
+			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
+			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
+			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
+			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
+			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
+			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
+			{Method: "GET", Path: "/:host", Handler: s.GetServiceList},
+			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
+			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
+			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
+			{Method: "GET", Path: "/:host/form", Handler: s.GetForm},       // 表单模式获取
+			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
+			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
+			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
+			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
+			{Method: "GET", Path: "/:host/history", Handler: s.GetServiceLog},
+			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
+			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
+			{Method: "POST", Path: "/:host/activate", Handler: s.ServiceActivate},
+			{Method: "POST", Path: "/:host/operate", Handler: s.OperateService},
+			{Method: "GET", Path: "/:host/logs/tail", Handler: s.FollowServiceLogs}, //追踪服务日志
+		},
+	)
+
+	global.LOG.Info("serviceman init end")
+}
+
+func (s *ServiceMan) Start() {
+	global.LOG.Info("serviceman start")
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -141,35 +173,6 @@ func (s *ServiceMan) Initialize() {
 
 	// 初始化 host 模块
 	s.hostRepo = repo.NewHostRepo()
-
-	api.API.SetUpPluginRouters(
-		"services",
-		[]plugin.PluginRoute{
-			{Method: "GET", Path: "/info", Handler: s.GetPluginInfo},
-			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
-			{Method: "GET", Path: "/:host/category", Handler: s.GetCategories},
-			{Method: "POST", Path: "/:host/category", Handler: s.CreateCategory},
-			{Method: "PUT", Path: "/:host/category", Handler: s.UpdateCategory},
-			{Method: "DELETE", Path: "/:host/category", Handler: s.DeleteCategory},
-			{Method: "GET", Path: "/:host", Handler: s.GetServiceList},
-			{Method: "GET", Path: "/:host/raw", Handler: s.GetContent},     // 源文模式获取
-			{Method: "POST", Path: "/:host/raw", Handler: s.CreateContent}, // 源文模式创建
-			{Method: "PUT", Path: "/:host/raw", Handler: s.UpdateContent},  // 源文模式更新
-			{Method: "GET", Path: "/:host/form", Handler: s.GetForm},       // 表单模式获取
-			{Method: "POST", Path: "/:host/form", Handler: s.CreateForm},   // 表单模式创建
-			{Method: "PUT", Path: "/:host/form", Handler: s.UpdateForm},    // 表单模式更新
-			{Method: "DELETE", Path: "/:host", Handler: s.Delete},
-			{Method: "PUT", Path: "/:host/restore", Handler: s.Restore},
-			{Method: "GET", Path: "/:host/history", Handler: s.GetServiceLog},
-			{Method: "GET", Path: "/:host/diff", Handler: s.GetServiceDiff},
-			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
-			{Method: "POST", Path: "/:host/activate", Handler: s.ServiceActivate},
-			{Method: "POST", Path: "/:host/operate", Handler: s.OperateService},
-			{Method: "GET", Path: "/:host/logs/tail", Handler: s.FollowServiceLogs}, //追踪服务日志
-		},
-	)
-
-	global.LOG.Info("serviceman init end")
 }
 
 func (s *ServiceMan) Release() {
