@@ -308,7 +308,7 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 
 	// 创建证书池并添加自签名证书
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(global.CertPem)
+	caCertPool.AppendCertsFromPEM(global.CaCertPem)
 
 	// 创建 TLS 配置
 	tlsConfig := &tls.Config{

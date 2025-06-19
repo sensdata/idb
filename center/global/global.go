@@ -20,8 +20,11 @@ var (
 	DB        *gorm.DB
 	VALID     *validator.Validate
 
-	//go:embed certs/key.pem
-	KeyPem []byte
 	//go:embed certs/cert.pem
+	CaCertPem []byte
+	//go:embed certs/key.pem
+	CaKeyPem []byte
+	// self-sign cert & key
 	CertPem []byte
+	KeyPem  []byte
 )
