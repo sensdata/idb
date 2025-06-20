@@ -344,8 +344,6 @@ export default {
   'app.nftables.message.noHost': '没有可用的主机',
 
   // 编辑器相关
-  'app.nftables.config.editor.placeholder': '在此输入您的 nftables 配置...',
-  'app.nftables.config.editor.lineCount': '{count} 行',
   'app.nftables.config.editor.modified': '已修改',
   'app.nftables.config.editor.tips': '按 Ctrl+S 保存，或使用上方的保存按钮',
   'app.nftables.config.editor.emptyContent': '配置内容不能为空',

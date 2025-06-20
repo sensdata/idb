@@ -1,9 +1,9 @@
 /**
  * IP黑名单管理的组合式函数
- * @description 提供IP黑名单规则和配置管理的相关功能
+ * @description 提供IP黑名单规则管理的相关功能
  */
 
-import { ref, computed, readonly, type Ref } from 'vue';
+import { ref, computed, readonly } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import { useHostStore } from '@/store';
@@ -12,28 +12,10 @@ import {
   getIPBlacklistApi,
   addIPBlacklistApi,
   deleteIPBlacklistApi,
-  getIPBlacklistConfigApi,
-  updateIPBlacklistConfigApi,
-  createIPBlacklistConfigApi,
-  getDefaultIPBlacklistConfigTemplate,
-  activateConfigApi,
   getFirewallStatusApi,
   type IPBlacklistRequest,
   type DeleteIPBlacklistRequest,
-  type ConfigType,
 } from '@/api/nftables';
-
-export type ConfigModeType = 'form' | 'file';
-
-// 常量定义
-const CONFIG_CATEGORIES = {
-  IP_BLACKLIST: 'ip-blacklist',
-  MAIN_CONFIG: 'main.nft',
-} as const;
-
-const ACTIONS = {
-  ACTIVATE: 'activate',
-} as const;
 
 /**
  * IP黑名单规则接口
@@ -45,14 +27,6 @@ export interface IPBlacklistRule {
   description?: string;
   createdAt?: string;
 }
-
-/**
- * 获取默认IP黑名单配置模板
- * @returns 默认的 NFTables IP黑名单配置内容
- */
-const getDefaultIPBlacklistConfig = (): string => {
-  return getDefaultIPBlacklistConfigTemplate();
-};
 
 /**
  * IP地址格式验证
@@ -95,16 +69,7 @@ export function useIPBlacklistManagement() {
   // 状态管理
   const loading = ref<boolean>(false);
   const saving = ref<boolean>(false);
-  const configMode = ref<ConfigModeType>('form');
-  const configType = ref<ConfigType>('local');
   const ipBlacklist = ref<string[]>([]);
-  const configContent = ref<string>('');
-  const isConfigExist = ref<boolean>(false);
-  const activeConfigType = ref<ConfigType>('local');
-
-  // 计算属性
-  const isFormMode = computed(() => configMode.value === 'form');
-  const isFileMode = computed(() => configMode.value === 'file');
 
   /**
    * 检查主机是否可用
@@ -196,28 +161,6 @@ export function useIPBlacklistManagement() {
   };
 
   /**
-   * 获取配置文件内容
-   */
-  const fetchConfigContent = async (): Promise<void> => {
-    if (!checkHostAvailable()) return;
-
-    try {
-      loading.value = true;
-      const content = await getIPBlacklistConfigApi(configType.value);
-      configContent.value = content;
-      isConfigExist.value = true;
-      logInfo(`Fetched config content for type: ${configType.value}`);
-    } catch (error) {
-      // 如果配置文件不存在，使用默认配置
-      configContent.value = getDefaultIPBlacklistConfig();
-      isConfigExist.value = false;
-      logInfo('Using default config content');
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  /**
    * 保存IP黑名单规则
    */
   const saveIPBlacklistRule = async (rule: IPBlacklistRule): Promise<void> => {
@@ -227,7 +170,6 @@ export function useIPBlacklistManagement() {
       saving.value = true;
       const request: IPBlacklistRequest = {
         ip: rule.ip,
-        description: rule.description,
       };
 
       await addIPBlacklistApi(request);
@@ -262,92 +204,6 @@ export function useIPBlacklistManagement() {
   };
 
   /**
-   * 保存配置文件内容
-   */
-  const saveConfigContent = async (content: string): Promise<void> => {
-    if (!checkHostAvailable()) return;
-
-    try {
-      saving.value = true;
-
-      if (isConfigExist.value) {
-        await updateIPBlacklistConfigApi(content, configType.value);
-      } else {
-        await createIPBlacklistConfigApi(content, configType.value);
-        isConfigExist.value = true;
-      }
-
-      configContent.value = content;
-      logInfo(`Saved config content for type: ${configType.value}`);
-    } catch (error) {
-      handleApiError(error, 'save config content');
-      throw error;
-    } finally {
-      saving.value = false;
-    }
-  };
-
-  /**
-   * 切换配置模式
-   */
-  const switchConfigMode = (mode: ConfigModeType): void => {
-    configMode.value = mode;
-    Message.success(
-      t('app.nftables.message.switchedToMode', {
-        mode: t(`app.nftables.mode.${mode}`),
-      })
-    );
-    logInfo(`Switched to ${mode} mode`);
-  };
-
-  /**
-   * 切换配置类型
-   */
-  const switchConfigType = async (type: ConfigType): Promise<void> => {
-    configType.value = type;
-    Message.success(
-      t('app.nftables.message.switchedToConfigType', {
-        type: t(`app.nftables.configType.${type}`),
-      })
-    );
-
-    // 重新获取对应类型的配置
-    if (isFileMode.value) {
-      await fetchConfigContent();
-    } else {
-      await fetchIPBlacklist();
-    }
-
-    logInfo(`Switched to ${type} config type`);
-  };
-
-  /**
-   * 激活配置
-   */
-  const activateConfig = async (): Promise<void> => {
-    if (!checkHostAvailable()) return;
-
-    try {
-      saving.value = true;
-      await activateConfigApi({
-        type: configType.value,
-        category: CONFIG_CATEGORIES.IP_BLACKLIST,
-        name: CONFIG_CATEGORIES.MAIN_CONFIG,
-        action: ACTIONS.ACTIVATE,
-      });
-
-      activeConfigType.value = configType.value;
-      Message.success(t('app.nftables.message.configApplied'));
-      logInfo(`Activated ${configType.value} config`);
-    } catch (error) {
-      handleApiError(error, 'activate config');
-      throw error;
-    } finally {
-      saving.value = false;
-    }
-  };
-
-  /**
    * 初始化
    */
   const initialize = async (): Promise<void> => {
@@ -358,29 +214,11 @@ export function useIPBlacklistManagement() {
       const statusResponse = await getFirewallStatusApi();
       logInfo('Firewall status:', statusResponse);
 
-      // 根据当前模式加载数据
-      if (isFormMode.value) {
-        await fetchIPBlacklist();
-      } else {
-        await fetchConfigContent();
-      }
+      // 加载IP黑名单数据
+      await fetchIPBlacklist();
     } catch (error) {
       handleApiError(error, 'initialize');
     }
-  };
-
-  /**
-   * 处理配置刷新
-   */
-  const handleConfigRefresh = async (): Promise<void> => {
-    await fetchConfigContent();
-  };
-
-  /**
-   * 处理配置保存
-   */
-  const handleConfigSave = async (content: string): Promise<void> => {
-    await saveConfigContent(content);
   };
 
   // 返回响应式数据和方法
@@ -388,16 +226,7 @@ export function useIPBlacklistManagement() {
     // 状态
     loading: readonly(loading),
     saving: readonly(saving),
-    configMode: readonly(configMode),
-    configType: readonly(configType),
     ipBlacklist: readonly(ipBlacklist),
-    configContent: readonly(configContent),
-    isConfigExist: readonly(isConfigExist),
-    activeConfigType: readonly(activeConfigType),
-
-    // 计算属性
-    isFormMode,
-    isFileMode,
 
     // 转换函数
     convertToIPRules,
@@ -405,12 +234,7 @@ export function useIPBlacklistManagement() {
     // 方法
     saveIPBlacklistRule,
     deleteIPBlacklistRule,
-    saveConfigContent,
-    switchConfigMode,
-    switchConfigType,
-    activateConfig,
     initialize,
-    fetchConfigContent: handleConfigRefresh,
-    handleConfigSave,
+    fetchIPBlacklist,
   };
 }

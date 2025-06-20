@@ -463,9 +463,6 @@ export default {
   'app.nftables.message.noHost': 'No host available',
 
   // Editor specific
-  'app.nftables.config.editor.placeholder':
-    'Enter your nftables configuration here...',
-  'app.nftables.config.editor.lineCount': '{count} lines',
   'app.nftables.config.editor.modified': 'Modified',
   'app.nftables.config.editor.tips':
     'Press Ctrl+S to save, or use the Save button above',
