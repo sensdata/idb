@@ -18,7 +18,7 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { Codemirror } from 'vue-codemirror';
-  import useEditorConfig from '@/components/file/file-editor-drawer/composables/use-editor-config';
+  import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
   import { useLogger } from '@/composables/use-logger';
   import { SERVICE_TYPE } from '@/config/enum';
   import { ServiceEntity } from '@/entity/Service';

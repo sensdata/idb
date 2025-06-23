@@ -124,7 +124,7 @@
   } from '@arco-design/web-vue/es/icon';
   import { useLogger } from '@/composables/use-logger';
   import useCurrentHost from '@/composables/current-host';
-  import useEditorConfig from '@/components/file/file-editor-drawer/composables/use-editor-config';
+  import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
   import {
     getNftablesRawConfigApi,
     updateNftablesRawConfigApi,

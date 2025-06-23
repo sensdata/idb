@@ -41,6 +41,7 @@
     "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/legacy-modes": "^6.5.1",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@fsegurai/codemirror-theme-github-light": "^6.2.0",
     "@vueuse/core": "^9.3.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

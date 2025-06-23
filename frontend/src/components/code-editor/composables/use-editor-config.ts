@@ -12,7 +12,12 @@ import { nginx } from '@codemirror/legacy-modes/mode/nginx';
 import { toml } from '@codemirror/legacy-modes/mode/toml';
 import { simpleMode } from '@codemirror/legacy-modes/mode/simple-mode';
 import { EditorState } from '@codemirror/state';
-import { FileItem } from '../types';
+
+interface FileItem {
+  name: string;
+  path: string;
+  size?: number;
+}
 
 // 常量定义 - 提取到文件顶部以提高可维护性
 const BASH_FILES = [
@@ -249,214 +254,146 @@ const serviceSyntax = {
     // systemd 配置键（主要的配置键名）
     {
       regex:
-        /^(?:Description|Documentation|Requires|Wants|After|Before|Conflicts|ConditionPathExists|ConditionFileNotEmpty|AssertPathExists)(?=\s*=)/,
-      token: 'keyword',
+        /\b(?:Type|ExecStart|ExecReload|ExecStop|Restart|RestartSec|User|Group|WorkingDirectory|Environment|EnvironmentFile|TimeoutStartSec|TimeoutStopSec|RuntimeMaxSec|LimitNOFILE|LimitNPROC|PrivateTmp|NoNewPrivileges|ProtectSystem|ProtectHome|ReadWritePaths|ReadOnlyPaths|InaccessiblePaths|DynamicUser|SupplementaryGroups|Requires|Wants|After|Before|BindsTo|PartOf|Conflicts|Requisite|OnFailure|PropagatesReloadTo|ReloadPropagatedFrom|JoinsNamespaceOf|RequiresMountsFor|OnFailureJobMode|IgnoreOnIsolate|StopWhenUnneeded|RefuseManualStart|RefuseManualStop|AllowIsolate|DefaultDependencies|JobTimeoutSec|JobTimeoutAction|StartLimitIntervalSec|StartLimitBurst|StartLimitAction|RebootArgument|SourcePath|Description|Documentation|WantedBy|RequiredBy|Also|Alias)\b/,
+      token: 'variable',
     },
 
-    // Service 段的配置键
+    // systemd 特殊值
     {
       regex:
-        /^(?:Type|PIDFile|BusName|ExecStart|ExecStartPre|ExecStartPost|ExecReload|ExecStop|ExecStopPost|RestartSec|TimeoutStartSec|TimeoutStopSec|TimeoutSec|Restart|SuccessExitStatus|RestartPreventExitStatus|RestartForceExitStatus|PermissionsStartOnly|RootDirectoryStartOnly|RemainAfterExit|GuessMainPID|KillMode|KillSignal|SendSIGKILL|SendSIGHUP|UMask|NotifyAccess|Sockets|StandardInput|StandardOutput|StandardError|TTYPath|TTYReset|TTYVHangup|TTYVTDisallocate|SyslogIdentifier|SyslogFacility|SyslogLevel|SyslogLevelPrefix|LogLevelMax|SecureBits|CapabilityBoundingSet|AmbientCapabilities|User|Group|DynamicUser|SupplementaryGroups|PAMName|WorkingDirectory|RootDirectory|Nice|OOMScoreAdjust|IOSchedulingClass|IOSchedulingPriority|CPUSchedulingPolicy|CPUSchedulingPriority|CPUSchedulingResetOnFork|CPUAffinity|LimitCPU|LimitFSIZE|LimitDATA|LimitSTACK|LimitCORE|LimitRSS|LimitNOFILE|LimitAS|LimitNPROC|LimitMEMLOCK|LimitLOCKS|LimitSIGPENDING|LimitMSGQUEUE|LimitNICE|LimitRTPRIO|LimitRTTIME|ReadWriteDirectories|ReadOnlyDirectories|InaccessibleDirectories|PrivateTmp|PrivateDevices|PrivateNetwork|ProtectSystem|ProtectHome|MountFlags|Environment|EnvironmentFile|PassEnvironment|UnsetEnvironment)(?=\s*=)/,
-      token: 'keyword',
+        /\b(?:simple|exec|forking|oneshot|dbus|notify|idle|always|on-success|on-failure|on-abnormal|on-watchdog|on-abort|true|false|yes|no|on|off|strict|full|read-only|tmpfs|multi-user\.target|graphical\.target|default\.target)\b/,
+      token: 'atom',
     },
 
-    // Install 段的配置键
-    {
-      regex: /^(?:WantedBy|RequiredBy|Also|DefaultInstance)(?=\s*=)/,
-      token: 'keyword',
-    },
-
-    // 其他通用配置键
-    { regex: /^[A-Za-z][A-Za-z0-9]*(?=\s*=)/, token: 'property' },
-
-    // 等号
+    // 赋值符号
     { regex: /=/, token: 'operator' },
 
-    // 布尔值
-    { regex: /\b(?:true|false|yes|no|on|off|1|0)\b/i, token: 'atom' },
-
-    // 数字（包括带单位的时间值）
-    { regex: /\b\d+[smhd]?\b/, token: 'number' },
-
-    // 服务类型关键词
-    {
-      regex: /\b(?:simple|forking|oneshot|notify|dbus|idle)\b/,
-      token: 'builtin',
-    },
-
-    // 重启策略关键词
-    {
-      regex:
-        /\b(?:no|always|on-success|on-failure|on-abnormal|on-abort|on-watchdog)\b/,
-      token: 'builtin',
-    },
-
-    // Kill 模式
-    { regex: /\b(?:control-group|process|mixed|none)\b/, token: 'builtin' },
-
-    // 标准流重定向
-    {
-      regex:
-        /\b(?:inherit|null|tty|journal|syslog|kmsg|journal\+console|syslog\+console|kmsg\+console|socket|fd)\b/,
-      token: 'builtin',
-    },
-
-    // 文件路径
+    // 路径
     { regex: /\/[^\s]*/, token: 'string' },
 
-    // 引号字符串
+    // 数字和时间单位
+    { regex: /\b\d+[smhd]?\b/, token: 'number' },
+
+    // 字符串
     { regex: /"(?:[^"\\]|\\.)*"/, token: 'string' },
     { regex: /'(?:[^'\\]|\\.)*'/, token: 'string' },
-
-    // 变量引用 ${VAR} 或 $VAR
-    { regex: /\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*/, token: 'variable' },
-
-    // 常见的用户和组名
-    {
-      regex:
-        /\b(?:root|www-data|nobody|daemon|apache|nginx|mysql|postgres|systemd-journal|systemd-network|systemd-resolve)\b/,
-      token: 'def',
-    },
-
-    // systemd targets
-    { regex: /\b[a-z-]+\.target\b/, token: 'tag' },
-
-    // systemd 服务单位
-    { regex: /\b[a-z-]+\.service\b/, token: 'tag' },
-
-    // systemd 其他单位类型
-    {
-      regex:
-        /\b[a-z-]+\.(?:socket|timer|mount|automount|swap|path|slice|scope)\b/,
-      token: 'tag',
-    },
   ],
 };
 
-// 创建语法高亮器
-const logMode = simpleMode({ start: logSyntax.start });
-const logrotateMode = simpleMode({ start: logrotateSyntax.start });
-const nftablesMode = simpleMode({ start: nftablesSyntax.start });
-const serviceMode = simpleMode({ start: serviceSyntax.start });
-
-// 统一的行分隔符配置，确保一致的换行符处理
-const commonExtensions = [EditorState.lineSeparator.of('\n')] as const;
-
 /**
- * 获取指定语言类型的扩展配置
- * @param languageType 语言类型
- * @returns CodeMirror扩展数组
+ * 根据语言类型获取对应的扩展
  */
 function getLanguageExtensions(languageType: LanguageType) {
   switch (languageType) {
     case 'javascript':
-      return [javascript(), ...commonExtensions];
+      return [javascript()];
     case 'json':
-      return [json(), ...commonExtensions];
+      return [json()];
     case 'html':
-      return [html(), ...commonExtensions];
+      return [html()];
     case 'css':
-      return [css(), ...commonExtensions];
+      return [css()];
     case 'markdown':
-      return [markdown(), ...commonExtensions];
+      return [markdown()];
     case 'shell':
-      return [StreamLanguage.define(shell), ...commonExtensions];
+      return [StreamLanguage.define(shell)];
     case 'yaml':
-      return [StreamLanguage.define(yaml), ...commonExtensions];
+      return [StreamLanguage.define(yaml)];
     case 'properties':
-      return [StreamLanguage.define(properties), ...commonExtensions];
+      return [StreamLanguage.define(properties)];
     case 'nginx':
-      return [StreamLanguage.define(nginx), ...commonExtensions];
+      return [StreamLanguage.define(nginx)];
     case 'toml':
-      return [StreamLanguage.define(toml), ...commonExtensions];
+      return [StreamLanguage.define(toml)];
     case 'log':
-      return [StreamLanguage.define(logMode), ...commonExtensions];
+      return [StreamLanguage.define(simpleMode(logSyntax))];
     default:
-      return [...commonExtensions];
+      return [];
   }
 }
 
 /**
- * 检查文件名是否为bash配置文件
- * @param fileName 文件名
- * @returns 是否为bash配置文件
+ * 判断是否为 bash 配置文件
  */
 function isBashConfigFile(fileName: string): boolean {
-  return BASH_FILES.includes(fileName as (typeof BASH_FILES)[number]);
+  return BASH_FILES.includes(fileName as any);
 }
 
 /**
  * 获取文件扩展名
- * @param fileName 文件名
- * @returns 文件扩展名或undefined
  */
 function getFileExtension(fileName: string): SupportedExtension | undefined {
-  const ext = fileName.split('.').pop()?.toLowerCase();
-  return ext && ext in EXTENSION_MAP ? (ext as SupportedExtension) : undefined;
+  const lastDotIndex = fileName.lastIndexOf('.');
+  if (lastDotIndex === -1) return undefined;
+
+  const extension = fileName.slice(lastDotIndex + 1).toLowerCase();
+  return EXTENSION_MAP[extension as SupportedExtension]
+    ? (extension as SupportedExtension)
+    : undefined;
 }
 
-/**
- * 编辑器配置Hook
- * 根据文件类型自动配置CodeMirror编辑器的语法高亮
- *
- * @param file 文件对象的响应式引用
- * @returns 包含extensions和工具方法的配置对象
- */
 export default function useEditorConfig(file: Ref<FileItem | null>) {
-  const extensions = computed(() => {
-    if (!file.value) {
-      return [...commonExtensions];
-    }
-
-    const fileName = file.value.name.toLowerCase();
-
-    // 特殊处理bash配置文件
-    if (isBashConfigFile(fileName)) {
-      return getLanguageExtensions('shell');
-    }
-
-    // 根据文件扩展名获取语言类型
-    const ext = getFileExtension(fileName);
-    if (!ext) {
-      return [...commonExtensions];
-    }
-
-    const languageType = EXTENSION_MAP[ext];
-    return getLanguageExtensions(languageType);
-  });
-
-  /**
-   * 获取指定语言类型的扩展配置
-   * @param languageType 语言类型
-   * @returns CodeMirror扩展数组
-   */
+  // Define helper functions before they are used
   const getExtensionsForLanguage = (languageType: LanguageType) => {
     return getLanguageExtensions(languageType);
   };
 
-  /**
-   * 获取logrotate配置文件的扩展配置
-   * @returns logrotate语言扩展配置
-   */
   const getLogrotateExtensions = () => {
-    return [StreamLanguage.define(logrotateMode), ...commonExtensions];
+    return [
+      StreamLanguage.define(simpleMode(logrotateSyntax)),
+      EditorState.readOnly.of(false),
+    ];
   };
 
-  /**
-   * 获取nftables配置文件的扩展配置
-   * @returns nftables语言扩展配置
-   */
   const getNftablesExtensions = () => {
-    return [StreamLanguage.define(nftablesMode), ...commonExtensions];
+    return [
+      StreamLanguage.define(simpleMode(nftablesSyntax)),
+      EditorState.readOnly.of(false),
+    ];
   };
 
-  /**
-   * 获取systemd service配置文件的扩展配置
-   * @returns service语言扩展配置
-   */
   const getServiceExtensions = () => {
-    return [StreamLanguage.define(serviceMode), ...commonExtensions];
+    return [
+      StreamLanguage.define(simpleMode(serviceSyntax)),
+      EditorState.readOnly.of(false),
+    ];
   };
+
+  const extensions = computed(() => {
+    if (!file.value) {
+      return [];
+    }
+
+    const fileName = file.value.name;
+    const filePath = file.value.path;
+
+    // 特殊文件名处理
+    if (isBashConfigFile(fileName)) {
+      return getExtensionsForLanguage('shell');
+    }
+
+    // 基于文件扩展名判断
+    const extension = getFileExtension(fileName);
+    if (extension) {
+      const languageType = EXTENSION_MAP[extension];
+      return getExtensionsForLanguage(languageType);
+    }
+
+    // 特殊文件类型处理（基于文件名模式）
+    if (/logrotate/.test(filePath) || fileName === 'logrotate') {
+      return getLogrotateExtensions();
+    }
+
+    if (/nftables|\.nft$/.test(filePath) || fileName.includes('nftables')) {
+      return getNftablesExtensions();
+    }
+
+    if (/\.service$/.test(fileName) || /systemd/.test(filePath)) {
+      return getServiceExtensions();
+    }
+
+    return [];
+  });
 
   return {
     extensions,
@@ -464,5 +401,5 @@ export default function useEditorConfig(file: Ref<FileItem | null>) {
     getLogrotateExtensions,
     getNftablesExtensions,
     getServiceExtensions,
-  } as const;
+  };
 }
