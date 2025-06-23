@@ -201,3 +201,38 @@
     resetFields: () => formRef.value?.resetFields(),
   });
 </script>
+
+<style scoped>
+  /* 轻量样式调整，不干扰默认功能 */
+  :deep(.arco-checkbox) {
+    margin-bottom: 4px;
+  }
+
+  :deep(.arco-checkbox-label) {
+    font-size: 14px;
+  }
+
+  /* 选中状态颜色调整 - 对于第三方组件库需要使用!important来确保样式生效 */
+  :deep(.arco-checkbox-checked .arco-checkbox-icon) {
+    background-color: #165dff !important;
+    border-color: #165dff !important;
+  }
+
+  :deep(.arco-checkbox-checked .arco-checkbox-icon .arco-checkbox-icon-check) {
+    color: white !important;
+  }
+
+  /* 悬停状态 */
+  :deep(.arco-checkbox:not(.arco-checkbox-disabled):hover .arco-checkbox-icon) {
+    border-color: #165dff !important;
+  }
+
+  /* 聚焦状态 */
+  :deep(
+      .arco-checkbox:not(.arco-checkbox-disabled).arco-checkbox-focus
+        .arco-checkbox-icon
+    ) {
+    border-color: #165dff !important;
+    box-shadow: 0 0 0 2px rgb(22 93 255 / 10%) !important;
+  }
+</style>

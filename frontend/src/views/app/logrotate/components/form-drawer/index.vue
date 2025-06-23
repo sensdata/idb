@@ -238,7 +238,7 @@
           delayCompress: false,
           missingOk: false,
           notIfEmpty: false,
-          create: '',
+          create: 'create 0644 root root',
           preRotate: '',
           postRotate: '',
         });

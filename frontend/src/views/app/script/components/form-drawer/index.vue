@@ -9,6 +9,8 @@
     "
     unmountOnClose
     :ok-loading="submitLoading"
+    :ok-text="$t('common.form.submitText')"
+    :cancel-text="$t('common.form.cancelText')"
     @ok="handleOk"
     @cancel="handleCancel"
   >
