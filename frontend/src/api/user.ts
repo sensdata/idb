@@ -16,7 +16,7 @@ export function loginApi(data: LoginDataDo) {
 }
 
 export function logoutApi() {
-  return request.post<LoginRes>('user/logout');
+  return request.delete<LoginRes>('auth/sessions');
 }
 
 export function getUserInfoApi() {
