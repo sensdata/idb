@@ -35,7 +35,7 @@
   import { ref, watch } from 'vue';
   import { IconSettings } from '@arco-design/web-vue/es/icon';
   import PermissionModal from './permission-modal.vue';
-  import { usePermission } from './hooks/use-permission';
+  import { usePermission } from './composables/use-permission';
   import type { PermissionConfig } from './types';
 
   interface Props {

@@ -58,8 +58,8 @@
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { compressFilesApi } from '@/api/file';
   import FolderIcon from '@/assets/icons/color-folder.svg';
@@ -193,9 +193,9 @@
     min-width: 0;
     margin-left: 8px;
     overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 14px;
     line-height: 22px;
     white-space: nowrap;
-    text-overflow: ellipsis;
   }
 </style>

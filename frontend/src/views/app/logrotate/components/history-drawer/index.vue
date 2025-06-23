@@ -89,7 +89,7 @@
   import { formatCommitHash } from '@/utils/format';
   import type { LogrotateHistory } from '@/entity/Logrotate';
   import type { HistoryParams, HistoryDrawerExpose } from './types';
-  import { useHistoryData } from './hooks/use-history-data';
+  import { useHistoryData } from './composables/use-history-data';
   import LogrotateDiffDrawer from '../diff-drawer/index.vue';
   import type { DiffDrawerExpose } from '../diff-drawer/types';
 

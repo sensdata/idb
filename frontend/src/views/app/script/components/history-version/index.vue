@@ -33,7 +33,7 @@
     getScriptVersionListApi,
   } from '@/api/script';
   import { SCRIPT_TYPE } from '@/config/enum';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { Message } from '@arco-design/web-vue';
   import { formatTime, formatCommitHash } from '@/utils/format';
 

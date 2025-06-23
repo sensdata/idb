@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
   import { onMounted, reactive, ref, toRaw } from 'vue';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { AppSimpleEntity } from '@/entity/App';
   import { getAppListApi } from '@/api/store';
   import { Message } from '@arco-design/web-vue';

@@ -100,8 +100,8 @@
   import { Message } from '@arco-design/web-vue';
   import { AUTH_MODE } from '@/config/enum';
   import { updateHostSSHApi, testHostSSHApi, getHostInfoApi } from '@/api/host';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import FileSelector from '@/components/file/file-selector/index.vue';
 
   interface TestResult {

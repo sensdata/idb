@@ -31,8 +31,8 @@
   import { Message } from '@arco-design/web-vue';
   import { formatTime } from '@/utils/format';
   import { getProcessListApi, killProcessApi } from '@/api/process';
-  import useLoading from '@/hooks/loading';
-  import { useConfirm } from '@/hooks/confirm';
+  import useLoading from '@/composables/loading';
+  import { useConfirm } from '@/composables/confirm';
   import DetailDrawer from './components/detail-drawer/index.vue';
 
   const { t } = useI18n();

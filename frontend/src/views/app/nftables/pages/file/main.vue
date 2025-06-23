@@ -122,9 +122,9 @@
     IconFile,
     IconEdit,
   } from '@arco-design/web-vue/es/icon';
-  import { useLogger } from '@/hooks/use-logger';
-  import useCurrentHost from '@/hooks/current-host';
-  import useEditorConfig from '@/components/file/file-editor-drawer/hooks/use-editor-config';
+  import { useLogger } from '@/composables/use-logger';
+  import useCurrentHost from '@/composables/current-host';
+  import useEditorConfig from '@/components/file/file-editor-drawer/composables/use-editor-config';
   import {
     getNftablesRawConfigApi,
     updateNftablesRawConfigApi,

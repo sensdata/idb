@@ -41,9 +41,9 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { useHostStore } from '@/store';
-  import { useApiWithLoading } from '@/hooks/use-api-with-loading';
-  import useLoading from '@/hooks/loading';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useApiWithLoading } from '@/composables/use-api-with-loading';
+  import useLoading from '@/composables/loading';
+  import { useLogger } from '@/composables/use-logger';
   import {
     getAuthorizedKeys,
     addAuthorizedKey,

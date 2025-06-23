@@ -137,9 +137,9 @@
   import { formatTime } from '@/utils/format';
   import { ServiceEntity } from '@/entity/Service';
   import { syncGlobalServiceApi } from '@/api/service';
-  import { useConfirm } from '@/hooks/confirm';
-  import { useLogger } from '@/hooks/use-logger';
-  import { useServiceList } from './hooks/use-service-list';
+  import { useConfirm } from '@/composables/confirm';
+  import { useLogger } from '@/composables/use-logger';
+  import { useServiceList } from './composables/use-service-list';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import HistoryDrawer from './components/history-drawer/index.vue';

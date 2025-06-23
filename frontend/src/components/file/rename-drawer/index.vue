@@ -29,7 +29,7 @@
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { renameFileApi } from '@/api/file';
 
   const emit = defineEmits(['ok']);

@@ -1,8 +1,8 @@
 import { ref, onUnmounted, readonly } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
-import { useConfirm } from '@/hooks/confirm';
-import { useLogger } from '@/hooks/use-logger';
+import { useConfirm } from '@/composables/confirm';
+import { useLogger } from '@/composables/use-logger';
 import { ParsedDiff } from './types';
 import { decodeUnicodeString, parseDiffToSideBySide } from './utils';
 

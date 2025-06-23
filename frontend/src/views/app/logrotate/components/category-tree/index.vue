@@ -38,8 +38,8 @@
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import { LOGROTATE_TYPE } from '@/config/enum';
   import { Message } from '@arco-design/web-vue';
-  import useCurrentHost from '@/hooks/current-host';
-  import { useLogger } from '@/hooks/use-logger';
+  import useCurrentHost from '@/composables/current-host';
+  import { useLogger } from '@/composables/use-logger';
   import CategoryFormModal from '../category-manage/form-modal.vue';
 
   // 日志记录

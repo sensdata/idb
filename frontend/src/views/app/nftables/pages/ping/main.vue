@@ -113,7 +113,7 @@
   import { Message } from '@arco-design/web-vue';
   import { IconCheck } from '@arco-design/web-vue/es/icon';
   import { useI18n } from 'vue-i18n';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type { PingStatus, SetPingStatusRequest } from '@/api/nftables';
   import { getPingStatusApi, setPingStatusApi } from '@/api/nftables';
 

@@ -155,19 +155,19 @@
 <script lang="ts" setup>
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import usetCurrentHost from '@/hooks/current-host';
+  import usetCurrentHost from '@/composables/current-host';
   import { CRONTAB_TYPE } from '@/config/enum';
   import { CrontabEntity } from '@/entity/Crontab';
   import ShellEditor from '@/components/shell-editor/index.vue';
   import PeriodInput from '../period-input/index.vue';
 
   // 引入自定义钩子函数
-  import { useFormState } from './hooks/use-form-state';
-  import { useContentHandler } from './hooks/use-content-handler';
-  import { useScriptHandler } from './hooks/use-script-handler';
-  import { useEventHandlers } from './hooks/use-event-handlers';
-  import { useDataLoader } from './hooks/use-data-loader';
-  import { useFormSubmit } from './hooks/use-form-submit';
+  import { useFormState } from './composables/use-form-state';
+  import { useContentHandler } from './composables/use-content-handler';
+  import { useScriptHandler } from './composables/use-script-handler';
+  import { useEventHandlers } from './composables/use-event-handlers';
+  import { useDataLoader } from './composables/use-data-loader';
+  import { useFormSubmit } from './composables/use-form-submit';
 
   const props = defineProps({
     type: {

@@ -52,8 +52,8 @@
     getLogrotateCategoriesApi,
   } from '@/api/logrotate';
   import { LOGROTATE_TYPE } from '@/config/enum';
-  import { useConfirm } from '@/hooks/confirm';
-  import useCurrentHost from '@/hooks/current-host';
+  import { useConfirm } from '@/composables/confirm';
+  import useCurrentHost from '@/composables/current-host';
   import CategoryFormModal from './form-modal.vue';
 
   const props = defineProps<{

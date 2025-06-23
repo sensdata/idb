@@ -102,7 +102,7 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { IconPlus, IconUser } from '@arco-design/web-vue/es/icon';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import type { PortRule } from '@/api/nftables';
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';

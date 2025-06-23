@@ -81,7 +81,7 @@
   import { useI18n } from 'vue-i18n';
   import { useStorage } from '@vueuse/core';
   import { useUserStore } from '@/store';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import type { LoginDataDo } from '@/api/user';
   import { DEFAULT_ROUTE_NAME } from '@/router/constants';
 

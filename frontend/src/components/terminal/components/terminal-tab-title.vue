@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
   import { ref, nextTick, computed } from 'vue';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
 
   export interface TermSessionItem {
     key: string;

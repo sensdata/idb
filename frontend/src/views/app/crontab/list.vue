@@ -114,11 +114,11 @@
     actionCrontabApi,
     CrontabListApiParams,
   } from '@/api/crontab';
-  import useLoading from '@/hooks/loading';
-  import { useConfirm } from '@/hooks/confirm';
+  import useLoading from '@/composables/loading';
+  import { useConfirm } from '@/composables/confirm';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
-  import { usePeriodUtils } from './components/form-drawer/hooks/use-period-utils';
+  import { usePeriodUtils } from './components/form-drawer/composables/use-period-utils';
   import CategoryTree from './components/category-tree/index.vue';
   import CategoryManage from './components/category-manage/index.vue';
 

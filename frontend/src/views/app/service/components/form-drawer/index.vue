@@ -64,11 +64,11 @@
     createServiceCategoryApi,
     getServiceCategoryListApi,
   } from '@/api/service';
-  import { useForm } from '@/hooks/use-form';
-  import { useLogger } from '@/hooks/use-logger';
-  import { useServiceFormState } from './hooks/use-service-form-state';
-  import { useServiceModeSync } from './hooks/use-service-mode-sync';
-  import { useServiceParser } from './hooks/use-service-parser';
+  import { useForm } from '@/composables/use-form';
+  import { useLogger } from '@/composables/use-logger';
+  import { useServiceFormState } from './composables/use-service-form-state';
+  import { useServiceModeSync } from './composables/use-service-mode-sync';
+  import { useServiceParser } from './composables/use-service-parser';
   import ServiceForm from './service-form.vue';
   import ServiceRaw from './service-raw.vue';
 

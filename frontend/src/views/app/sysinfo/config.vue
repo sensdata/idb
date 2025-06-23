@@ -60,7 +60,7 @@
     updateSysInfoSettingsApi,
     UpdateSettingsParams,
   } from '@/api/sysinfo';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);

@@ -34,7 +34,7 @@
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { updateFileOwnerApi } from '@/api/file';
 

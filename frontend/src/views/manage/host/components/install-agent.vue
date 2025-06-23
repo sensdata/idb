@@ -49,7 +49,7 @@
   import { ref, computed, watch, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { formatTime } from '@/utils/format';
-  import useVisible from '@/hooks/visible';
+  import useVisible from '@/composables/visible';
   import { Message } from '@arco-design/web-vue';
   import { resolveApiUrl } from '@/helper/api-helper';
   import {
@@ -57,7 +57,7 @@
     testHostAgentApi,
     upgradeHostAgentApi,
   } from '@/api/host';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
 
   const emit = defineEmits(['ok', 'cancel']);
   const { t } = useI18n();
@@ -469,8 +469,8 @@
     flex: 1;
     padding: 12px;
     overflow-y: auto;
-    font-size: 14px;
     font-family: monospace;
+    font-size: 14px;
     line-height: 1.5;
     background-color: var(--color-fill-2);
     border-radius: 4px;
@@ -478,8 +478,8 @@
 
   .log-item {
     margin-bottom: 4px;
-    white-space: pre-wrap;
     word-break: break-all;
+    white-space: pre-wrap;
   }
 
   .log-time {

@@ -63,7 +63,7 @@
 <script lang="ts" setup>
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { batchUpdateFileRoleApi } from '@/api/file';
   import { Message } from '@arco-design/web-vue';

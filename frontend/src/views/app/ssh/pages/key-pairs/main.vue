@@ -57,12 +57,12 @@
   import { ref, computed, GlobalComponents } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useLoading from '@/hooks/loading';
-  import { useForm } from '@/hooks/use-form';
-  import { useConfirm } from '@/hooks/confirm';
+  import useLoading from '@/composables/loading';
+  import { useForm } from '@/composables/use-form';
+  import { useConfirm } from '@/composables/confirm';
   import useHostStore from '@/store/modules/host';
   import { ApiListParams, ApiListResult } from '@/types/global';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import {
     getSSHKeys,
     generateSSHKey,
@@ -70,7 +70,7 @@
     toggleSSHKeyEnabled,
     deleteSSHKey,
   } from '@/api/ssh';
-  import { useApiWithLoading } from '@/hooks/use-api-with-loading';
+  import { useApiWithLoading } from '@/composables/use-api-with-loading';
   import {
     SSHKeyRecord,
     GenerateKeyForm,

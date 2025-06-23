@@ -77,8 +77,8 @@
   import { useHostStore } from '@/store';
   import { HostEntity } from '@/entity/Host';
   import { Message } from '@arco-design/web-vue';
-  import { usePolling } from '@/hooks/use-polling';
-  import { useLogger } from '@/hooks/use-logger';
+  import { usePolling } from '@/composables/use-polling';
+  import { useLogger } from '@/composables/use-logger';
 
   const STATUS_CLASSES = {
     ONLINE: 'online',

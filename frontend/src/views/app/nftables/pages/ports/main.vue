@@ -67,7 +67,7 @@
   import { ref, onMounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type {
     PortRule,
     PortRuleSet,

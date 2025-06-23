@@ -95,9 +95,9 @@
     getScriptListApi,
     runScriptApi,
   } from '@/api/script';
-  import useLoading from '@/hooks/loading';
-  import { useConfirm } from '@/hooks/confirm';
-  import usetCurrentHost from '@/hooks/current-host';
+  import useLoading from '@/composables/loading';
+  import { useConfirm } from '@/composables/confirm';
+  import usetCurrentHost from '@/composables/current-host';
   import LogsViewModal from '@/components/logs-view/modal.vue';
   import CategoryTree from './components/category-tree/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
@@ -263,8 +263,8 @@
   .script-layout {
     position: relative;
     min-height: calc(100vh - 240px);
-    margin-top: 20px;
     padding-left: 240px;
+    margin-top: 20px;
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
   }

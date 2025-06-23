@@ -32,7 +32,7 @@
     MessageRecord,
     MessageListType,
   } from '@/api/message';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import List from './list.vue';
 
   interface TabItem {

@@ -44,13 +44,13 @@
 <script lang="ts" setup>
   import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLocale from '@/hooks/locale';
+  import useLocale from '@/composables/locale';
   import { getLocaleLabel, LOCALE_OPTIONS } from '@/locale';
   import LanguageIcon from '@/assets/icons/language-1.svg';
   import { getPublicVersionApi } from '@/api/public';
   import { isLogin } from '@/helper/auth';
   import { getSettingsAboutApi, upgradeApi } from '@/api/settings';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { compareVersion } from '@/helper/utils';
   import { Message } from '@arco-design/web-vue';
 

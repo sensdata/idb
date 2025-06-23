@@ -47,8 +47,8 @@
   import { reactive, ref, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { decompressFilesApi } from '@/api/file';
   import FileSelector from '@/components/file/file-selector/index.vue';
@@ -180,9 +180,9 @@
     min-width: 0;
     margin-left: 8px;
     overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 14px;
     line-height: 22px;
     white-space: nowrap;
-    text-overflow: ellipsis;
   }
 </style>

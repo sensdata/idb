@@ -45,7 +45,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type { Component } from 'vue';
 
   interface Option {

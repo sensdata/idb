@@ -16,7 +16,7 @@
   import { useI18n } from 'vue-i18n';
   import { FileInfoEntity } from '@/entity/FileInfo';
   import { formatFileSize, formatTime } from '@/utils/format';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { getFileSizeApi } from '@/api/file';
 
   const { t } = useI18n();

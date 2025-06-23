@@ -6,7 +6,7 @@
   import { useAppStore } from '@/store';
   import { listenerRouteChange } from '@/utils/route-listener';
   import { openWindow, regexUrl } from '@/utils';
-  import usePermission from '@/hooks/permission';
+  import usePermission from '@/composables/permission';
   import HostInfo from '@/components/host-info/index.vue';
   import useMenuTree from './use-menu-tree';
 

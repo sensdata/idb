@@ -54,9 +54,9 @@
   import { ref, defineProps, defineEmits, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FormInstance } from '@arco-design/web-vue';
-  import { useForm } from '@/hooks/use-form';
+  import { useForm } from '@/composables/use-form';
   import { KeyForm, ParsedKey } from '@/views/app/ssh/types';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
 
   const props = defineProps<{
     visible: boolean;

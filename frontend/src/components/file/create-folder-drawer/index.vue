@@ -63,7 +63,7 @@
   import { reactive, ref, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { createFileApi } from '@/api/file';
   import { useHostStore } from '@/store';
 

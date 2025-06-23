@@ -78,8 +78,8 @@
   import { Message } from '@arco-design/web-vue';
   import useSSHStore from '../../store';
   import SshStatus from '../../components/ssh-status/index.vue';
-  import { useSSHConfig } from './hooks/use-ssh-config';
-  import { useLoadingState } from './hooks/use-loading-state';
+  import { useSSHConfig } from './composables/use-ssh-config';
+  import { useLoadingState } from './composables/use-loading-state';
   import ModeSwitcher from './components/mode-switcher.vue';
   import VisualConfigPanel from './components/visual-config-panel.vue';
   import SourceConfigPanel from './components/source-config-panel.vue';

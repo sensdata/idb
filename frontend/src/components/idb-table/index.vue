@@ -139,7 +139,7 @@
     useSlots,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { ApiListParams, ApiListResult, BaseEntity } from '@/types/global';
   import type {
     TableChangeExtra,

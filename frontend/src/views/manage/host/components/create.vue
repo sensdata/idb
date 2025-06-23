@@ -129,8 +129,8 @@
     getHostGroupListApi,
     testHostSSHApi,
   } from '@/api/host';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import FileSelector from '@/components/file/file-selector/index.vue';
   import GroupForm from './group-form.vue';
   import InstallAgent from './install-agent.vue';

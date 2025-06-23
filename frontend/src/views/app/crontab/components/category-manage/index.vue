@@ -50,7 +50,7 @@
     getCrontabCategoryListApi,
   } from '@/api/crontab';
   import { CRONTAB_TYPE } from '@/config/enum';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { Message } from '@arco-design/web-vue';
   import CategoryFormModal from './form-modal.vue';
 

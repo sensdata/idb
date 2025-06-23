@@ -131,7 +131,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { getSysInfoNetworkApi, SysInfoNetworkRes } from '@/api/sysinfo';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import DnsModify from '@/views/app/sysinfo/components/dns-modify/index.vue';
 
   const { t } = useI18n();

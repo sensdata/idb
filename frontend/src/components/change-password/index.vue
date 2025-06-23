@@ -50,8 +50,8 @@
   import { Message } from '@arco-design/web-vue';
   import { changePasswordApi } from '@/api/user';
   import { useUserStore } from '@/store';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
 
   const userStore = useUserStore();
   const { t } = useI18n();

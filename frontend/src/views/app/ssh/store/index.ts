@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { Message } from '@arco-design/web-vue';
 import { getSSHConfig, operateSSH } from '@/api/ssh';
-import { useLogger } from '@/hooks/use-logger';
+import { useLogger } from '@/composables/use-logger';
 import { t } from '@/utils/i18n';
 import type {
   SSHState,

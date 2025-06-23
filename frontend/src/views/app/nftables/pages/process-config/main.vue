@@ -58,13 +58,13 @@
   import { ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import {
     setPortRulesApi,
     type PortRule,
     type SetPortRuleApiParams,
   } from '@/api/nftables';
-  import { useNftablesConfig } from '../../hooks/use-nftables-config';
+  import { useNftablesConfig } from '../../composables/use-nftables-config';
   import FirewallStatusHeader from '../../components/firewall-status-header.vue';
   import ProcessStatusTable from '../../components/process-status-table.vue';
   import PortRuleForm from '../../components/port-rule-form.vue';

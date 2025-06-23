@@ -88,7 +88,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { getTerminalSessionsApi } from '@/api/terminal';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
 
   interface SessionData {
     type: 'attach' | 'start';

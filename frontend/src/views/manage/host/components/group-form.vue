@@ -37,8 +37,8 @@
   import { toRaw, reactive, ref, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import { createHostGroupApi, updateHostGroupApi } from '@/api/host';
 
   interface HostGroup {

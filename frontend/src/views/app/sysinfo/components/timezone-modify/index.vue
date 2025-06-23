@@ -42,8 +42,8 @@
   import { Message, SelectOptionData } from '@arco-design/web-vue';
   import { updateTimeZoneApi } from '@/api/sysinfo';
   import { getTimezonesApi } from '@/api/settings';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
 
   const emit = defineEmits(['ok']);
   const { t } = useI18n();

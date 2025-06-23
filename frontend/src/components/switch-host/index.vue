@@ -66,7 +66,7 @@
   import { HostEntity } from '@/entity/Host';
   import { getHostListApi } from '@/api/host';
   import { useHostStore } from '@/store';
-  import usetCurrentHost from '@/hooks/current-host';
+  import usetCurrentHost from '@/composables/current-host';
 
   const { t } = useI18n();
 

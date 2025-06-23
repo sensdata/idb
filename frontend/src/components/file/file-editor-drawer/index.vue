@@ -94,10 +94,10 @@
   import { useI18n } from 'vue-i18n';
   import { EditorView } from '@codemirror/view';
   import { IconLoading } from '@arco-design/web-vue/es/icon';
-  import { useConfirm } from '@/hooks/confirm';
-  import useFileEditor from './hooks/use-file-editor';
-  import useDrawerResize from './hooks/use-drawer-resize';
-  import useEditorConfig from './hooks/use-editor-config';
+  import { useConfirm } from '@/composables/confirm';
+  import useFileEditor from './composables/use-file-editor';
+  import useDrawerResize from './composables/use-drawer-resize';
+  import useEditorConfig from './composables/use-editor-config';
   import { ContentViewMode } from './types';
   import FileViewMode from './file-view-mode.vue';
   import EditorToolbar from './editor-toolbar.vue';
@@ -435,10 +435,10 @@
     justify-content: center;
     width: 5px;
     height: 100vh;
-    background: linear-gradient(to right, transparent, rgb(0 0 0 / 5%));
-    cursor: col-resize;
-    transition: opacity 0.3s ease;
     pointer-events: auto;
+    cursor: col-resize;
+    background: linear-gradient(to right, transparent, rgb(0 0 0 / 5%));
+    transition: opacity 0.3s ease;
   }
 
   .resize-handle[style*='opacity: 0'] {
@@ -448,9 +448,9 @@
   .resize-handle::after {
     width: 2px;
     height: 30px;
+    content: '';
     background-color: rgb(0 0 0 / 20%);
     border-radius: 2px;
-    content: '';
   }
 
   .resize-handle:hover {

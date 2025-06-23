@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { computed } from 'vue';
 
   interface OperationOption {

@@ -64,9 +64,9 @@
   import { FileInfoEntity } from '@/entity/FileInfo';
 
   import DropdownContent, { DropdownOption } from './drop-down-content.vue';
-  import useDropdownNavigation from './hooks/use-dropdown-navigation';
-  import useAddressBarSearch from './hooks/use-address-bar-search';
-  import usePathNavigation from './hooks/use-path-navigation';
+  import useDropdownNavigation from './composables/use-dropdown-navigation';
+  import useAddressBarSearch from './composables/use-address-bar-search';
+  import usePathNavigation from './composables/use-path-navigation';
   import { removeRootSlash, addRootSlash } from './utils';
   import { EmitFn } from './types';
 
@@ -312,8 +312,8 @@
 
   .address-bar :deep(.arco-input) {
     overflow: hidden;
-    white-space: nowrap;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .address-bar :deep(.arco-input-inner-wrapper) {
@@ -339,15 +339,15 @@
     justify-content: center;
     min-width: 36px;
     padding: 0 8px;
+    cursor: pointer;
     background-color: var(--color-fill-2);
     border-right: 1px solid var(--color-border-2);
-    cursor: pointer;
   }
 
   .root-slash {
     margin-left: 4px;
-    color: var(--color-text-1);
     font-weight: bold;
+    color: var(--color-text-1);
     user-select: none;
   }
 
@@ -359,8 +359,8 @@
     width: 36px;
     height: 100%;
     min-height: 32px;
-    border-left: 1px solid var(--color-border-2);
     cursor: pointer;
+    border-left: 1px solid var(--color-border-2);
     transition: all 0.2s ease;
   }
 
@@ -384,8 +384,8 @@
   }
 
   .after-highlight :deep(svg) {
-    color: white;
     font-weight: bold;
+    color: white;
   }
 
   @keyframes purple-pulse {

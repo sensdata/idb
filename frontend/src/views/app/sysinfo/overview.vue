@@ -300,7 +300,7 @@
     resolveComponent,
   } from 'vue';
   import { formatSeconds, formatTime } from '@/utils/format';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import {
     getSysInfoOverviewtApi,
     SysInfoOverviewRes,
@@ -308,7 +308,7 @@
     deleteSwapApi,
     clearMemoryCacheApi,
   } from '@/api/sysinfo';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { Message } from '@arco-design/web-vue';
   import TimeModify from '@/components/time-modify/index.vue';
   import CreateSwapModal from './components/create-swap-modal/index.vue';

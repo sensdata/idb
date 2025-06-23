@@ -115,17 +115,17 @@
   import { useI18n } from 'vue-i18n';
   import { LOGROTATE_TYPE, LOGROTATE_FREQUENCY } from '@/config/enum';
   import { LogrotateEntity } from '@/entity/Logrotate';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import FormDrawer from './components/form-drawer/index.vue';
   import HistoryDrawer from './components/history-drawer/index.vue';
   import CategoryTree from './components/category-tree/index.vue';
   import CategoryManage from './components/category-manage/index.vue';
 
   // 使用组合式函数
-  import { useLogrotateList } from './hooks/use-logrotate-list';
-  import { useLogrotateColumns } from './hooks/use-logrotate-columns';
-  import { useLogrotateActions } from './hooks/use-logrotate-actions';
-  import { useCategoryManagement } from './hooks/use-category-management';
+  import { useLogrotateList } from './composables/use-logrotate-list';
+  import { useLogrotateColumns } from './composables/use-logrotate-columns';
+  import { useLogrotateActions } from './composables/use-logrotate-actions';
+  import { useCategoryManagement } from './composables/use-category-management';
   import { LAYOUT_CONFIG } from './constants';
 
   // 常量定义

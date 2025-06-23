@@ -123,10 +123,10 @@
 <script setup lang="ts">
   import { ref, computed, nextTick, onMounted } from 'vue';
   import { formatCommitHash } from '@/utils/format';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type { ServiceHistoryEntity } from '@/entity/Service';
   import type { HistoryParams, HistoryDrawerExpose } from './types';
-  import { useHistoryData } from './hooks/use-history-data';
+  import { useHistoryData } from './composables/use-history-data';
   import ServiceDiffDrawer from '../diff-drawer/index.vue';
   import type { DiffDrawerExpose } from '../diff-drawer/types';
 

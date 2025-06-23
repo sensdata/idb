@@ -18,7 +18,7 @@
   import { ref, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import TerminalWorkspace from './terminal-workspace.vue';
 
   // 国际化

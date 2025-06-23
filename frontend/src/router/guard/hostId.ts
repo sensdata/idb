@@ -1,6 +1,6 @@
 import type { Router } from 'vue-router';
 import NProgress from 'nprogress'; // progress bar
-import usetCurrentHost from '@/hooks/current-host';
+import usetCurrentHost from '@/composables/current-host';
 import { Message } from '@arco-design/web-vue';
 import i18n from '@/locale';
 import { isLogin } from '@/helper/auth';

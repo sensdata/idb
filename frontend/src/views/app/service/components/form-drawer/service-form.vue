@@ -42,14 +42,14 @@
   import { ref, watch, nextTick } from 'vue';
   import { SERVICE_TYPE } from '@/config/enum';
   import { ServiceEntity } from '@/entity/Service';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import EnvironmentEditor from './environment-editor.vue';
   import {
     BasicInfoSection,
     ExecutionSection,
     AdvancedSection,
   } from './sections';
-  import { useFormModel } from './hooks/use-form-model';
+  import { useFormModel } from './composables/use-form-model';
   import styles from './styles/index.module.css';
 
   const props = defineProps<{

@@ -52,7 +52,7 @@
   import { ref, reactive, computed, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { validateIPFormat, getIPType } from '@/utils';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type { FormInstance, FieldRule } from '@arco-design/web-vue';
   import { IconInfoCircle } from '@arco-design/web-vue/es/icon';
   // IP黑名单规则接口

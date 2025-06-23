@@ -46,7 +46,7 @@
 <script lang="ts" setup>
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { Message } from '@arco-design/web-vue';
   import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';

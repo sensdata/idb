@@ -42,7 +42,7 @@
   import { checkIpV6 } from '@/helper/utils';
   import { Message } from '@arco-design/web-vue';
   import { updateIpv6OptionApi } from '@/api/docker';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { useI18n } from 'vue-i18n';
 
   const emit = defineEmits(['ok']);

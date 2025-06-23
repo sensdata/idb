@@ -6,7 +6,7 @@ import {
   restoreLogrotateApi,
   getLogrotateHistoryApi,
 } from '@/api/logrotate';
-import useCurrentHost from '@/hooks/current-host';
+import useCurrentHost from '@/composables/current-host';
 import useDiff from '@/components/diff-viewer/use-diff';
 import { DiffParams } from './types';
 

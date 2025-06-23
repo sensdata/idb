@@ -41,7 +41,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { updateLogOptionApi } from '@/api/docker';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
 
   const { t } = useI18n();
   const emit = defineEmits(['ok']);

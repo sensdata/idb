@@ -36,7 +36,7 @@
   } from '@/api/logrotate';
   import { LOGROTATE_TYPE } from '@/config/enum';
   import { Message } from '@arco-design/web-vue';
-  import useCurrentHost from '@/hooks/current-host';
+  import useCurrentHost from '@/composables/current-host';
   import type { FormInstance } from '@arco-design/web-vue';
 
   // 接口定义

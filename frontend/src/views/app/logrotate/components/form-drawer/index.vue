@@ -54,20 +54,20 @@
   import { ref, computed, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import useEditorConfig from '@/components/file/file-editor-drawer/hooks/use-editor-config';
+  import useEditorConfig from '@/components/file/file-editor-drawer/composables/use-editor-config';
   import { LOGROTATE_TYPE } from '@/config/enum';
 
   // 组合式API
-  import useLoading from '@/hooks/loading';
-  import useCurrentHost from '@/hooks/current-host';
-  import useVisible from '@/hooks/visible';
-  import { useLogger } from '@/hooks/use-logger';
-  import { useRawContentParser } from './hooks/use-raw-content-parser';
-  import { useCategories } from './hooks/use-categories';
+  import useLoading from '@/composables/loading';
+  import useCurrentHost from '@/composables/current-host';
+  import useVisible from '@/composables/visible';
+  import { useLogger } from '@/composables/use-logger';
+  import { useRawContentParser } from './composables/use-raw-content-parser';
+  import { useCategories } from './composables/use-categories';
 
-  import { useFormState } from './hooks/use-form-state';
-  import { useModeManager } from './hooks/use-mode-manager';
-  import { useLogrotateApi } from './hooks/use-logrotate-api';
+  import { useFormState } from './composables/use-form-state';
+  import { useModeManager } from './composables/use-mode-manager';
+  import { useLogrotateApi } from './composables/use-logrotate-api';
 
   import FormTab from './form-tab.vue';
   import RawTab from './raw-tab.vue';

@@ -1,6 +1,6 @@
 import type { Router } from 'vue-router';
 
-import usePermission from '@/hooks/permission';
+import usePermission from '@/composables/permission';
 import { useUserStore } from '@/store';
 import { allRoutes } from '../routes';
 import { NOT_FOUND } from '../constants';

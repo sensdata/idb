@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
 
   /**
    * 组件事件定义

@@ -235,7 +235,7 @@
   } from '@/api/docker';
   import { onMounted, reactive, ref, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { Codemirror } from 'vue-codemirror';
   import { json } from '@codemirror/lang-json';
   import { oneDark } from '@codemirror/theme-one-dark';

@@ -50,8 +50,8 @@
   import { ref, computed, watch, provide, onMounted } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import { useAppStore, useUserStore } from '@/store';
-  import usePermission from '@/hooks/permission';
-  import useResponsive from '@/hooks/responsive';
+  import usePermission from '@/composables/permission';
+  import useResponsive from '@/composables/responsive';
   import NavBar from '@/components/navbar/index.vue';
   import Menu from '@/components/menu/index.vue';
   import Footer from '@/components/footer/index.vue';

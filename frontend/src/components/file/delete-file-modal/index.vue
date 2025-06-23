@@ -38,7 +38,7 @@
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
   import { FileInfoEntity } from '@/entity/FileInfo';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { batchDeleteFileApi } from '@/api/file';
 
   const emit = defineEmits(['ok']);

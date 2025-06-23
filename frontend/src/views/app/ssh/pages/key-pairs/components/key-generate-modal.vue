@@ -93,7 +93,7 @@
     EncryptionMode,
     KeyBits,
   } from '@/views/app/ssh/types';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
 
   interface EncryptionOption {
     label: string;

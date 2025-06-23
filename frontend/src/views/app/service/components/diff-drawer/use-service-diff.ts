@@ -2,14 +2,14 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Message } from '@arco-design/web-vue';
 import { formatCommitHash } from '@/utils/format';
-import { useLogger } from '@/hooks/use-logger';
+import { useLogger } from '@/composables/use-logger';
 import { getServiceDiffApi, restoreServiceApi } from '@/api/service';
 import {
   parseDiffToSideBySide,
   decodeUnicodeString,
 } from '@/components/diff-viewer/utils';
-import { useConfirm } from '@/hooks/confirm';
-import useLoading from '@/hooks/loading';
+import { useConfirm } from '@/composables/confirm';
+import useLoading from '@/composables/loading';
 import type { ParsedDiff } from '@/components/diff-viewer/types';
 import type { DiffParams, RestoreSuccessCallback } from './types';
 

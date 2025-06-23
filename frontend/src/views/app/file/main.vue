@@ -65,7 +65,7 @@
   import { storeToRefs } from 'pinia';
   import { computed, inject, onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import AddressBar from '@/components/file/address-bar/index.vue';
   import CreateFileDrawer from '@/components/file/create-file-drawer/index.vue';
   import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
@@ -88,10 +88,10 @@
 
   // 导入组合函数
   import useFileStore from './store/file-store';
-  import { useFileOperations } from './hooks/use-file-operations';
-  import { useFileNavigation } from './hooks/use-file-navigation';
-  import { useFileSelection } from './hooks/use-file-selection';
-  import { useFileColumns } from './hooks/use-file-columns';
+  import { useFileOperations } from './composables/use-file-operations';
+  import { useFileNavigation } from './composables/use-file-navigation';
+  import { useFileSelection } from './composables/use-file-selection';
+  import { useFileColumns } from './composables/use-file-columns';
 
   const { t } = useI18n();
   const openTerminal = inject<() => void>('openTerminal');

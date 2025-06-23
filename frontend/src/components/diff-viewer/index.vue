@@ -34,7 +34,7 @@
 <script setup lang="ts">
   import { ref, watch, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import DiffView from './diff-view.vue';
   import VersionHeader from './version-header.vue';
   import type { ParsedDiff, DiffViewerExpose } from './types';

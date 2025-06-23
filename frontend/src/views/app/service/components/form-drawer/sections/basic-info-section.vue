@@ -117,7 +117,7 @@
   import { ref, onMounted, watch, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { getServiceCategoryListApi } from '@/api/service';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import type { SERVICE_TYPE } from '@/config/enum';
 
   const props = defineProps<{

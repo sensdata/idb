@@ -30,7 +30,7 @@
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import { SERVICE_TYPE } from '@/config/enum';
   import { Message } from '@arco-design/web-vue';
-  import useCurrentHost from '@/hooks/current-host';
+  import useCurrentHost from '@/composables/current-host';
   import CategoryFormModal from '../category-manage/form-modal.vue';
 
   const props = defineProps<{

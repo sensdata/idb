@@ -183,8 +183,8 @@
   import { useDark, useToggle, useFullscreen } from '@vueuse/core';
   import { useAppStore, useUserStore } from '@/store';
   import { LOCALE_OPTIONS } from '@/locale';
-  import useLocale from '@/hooks/locale';
-  import useUser from '@/hooks/user';
+  import useLocale from '@/composables/locale';
+  import useUser from '@/composables/user';
   import LogoImage from '@/assets/logo-wide.png';
   import Menu from '@/components/menu/index.vue';
   import MessageBox from '../message-box/index.vue';

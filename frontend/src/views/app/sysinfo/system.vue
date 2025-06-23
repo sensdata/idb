@@ -42,7 +42,7 @@
   import { ref, onMounted } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { getSysInfoSystemApi, SysInfoSystemRes } from '@/api/sysinfo';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import HostNameModify from '@/views/app/sysinfo/components/host-name-modify/index.vue';
 
   const { loading, setLoading } = useLoading(true);

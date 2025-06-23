@@ -134,7 +134,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { debounce } from 'lodash';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import {
     getTerminalSessionsApi,
     detachTerminalSessionApi,

@@ -72,7 +72,7 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { useHostStore } from '@/store';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import { HostEntity } from '@/entity/Host';
   import {
     detachTerminalSessionApi,
@@ -89,8 +89,8 @@
   import {
     useTerminalTabs,
     type TermSessionItem,
-  } from './hooks/use-terminal-tabs';
-  import { useTerminalSessions } from './hooks/use-terminal-sessions';
+  } from './composables/use-terminal-tabs';
+  import { useTerminalSessions } from './composables/use-terminal-sessions';
 
   const { t } = useI18n();
   const hostStore = useHostStore();

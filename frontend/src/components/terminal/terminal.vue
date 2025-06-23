@@ -8,7 +8,7 @@
   import { API_BASE_URL } from '@/helper/api-helper';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import { installTerminalApi } from '@/api/terminal';
   import { debounce } from 'lodash';
   import { serializeQueryParams } from '@/utils';

@@ -59,8 +59,8 @@
   import { useRoute } from 'vue-router';
   import useSSHStore from '@/views/app/ssh/store';
   import { useHostStore } from '@/store';
-  import { useLogger } from '@/hooks/use-logger';
-  import { usePolling } from '@/hooks/use-polling';
+  import { useLogger } from '@/composables/use-logger';
+  import { usePolling } from '@/composables/use-polling';
 
   type BadgeStatus = 'success' | 'warning' | 'danger' | 'normal' | 'processing';
 

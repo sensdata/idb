@@ -21,7 +21,7 @@
   import { computed, ref, onUnmounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { formatCommitHash } from '@/utils/format';
-  import { useLogger } from '@/hooks/use-logger';
+  import { useLogger } from '@/composables/use-logger';
   import DiffViewer from '@/components/diff-viewer/index.vue';
   import type {
     DiffParams,

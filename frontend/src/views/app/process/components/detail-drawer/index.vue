@@ -53,7 +53,7 @@
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import useLoading from '@/hooks/loading';
+  import useLoading from '@/composables/loading';
   import { getProcessDetailApi } from '@/api/process';
   import ShellEditor from '@/components/shell-editor/index.vue';
 

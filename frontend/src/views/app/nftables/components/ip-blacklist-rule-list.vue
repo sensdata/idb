@@ -67,7 +67,7 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { IconPlus } from '@arco-design/web-vue/es/icon';
-  import { useConfirm } from '@/hooks/confirm';
+  import { useConfirm } from '@/composables/confirm';
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
   import IdbTable from '@/components/idb-table/index.vue';

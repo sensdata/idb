@@ -104,8 +104,8 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
   import { updateDNSApi, UpdateDNSParams } from '@/api/sysinfo';
 
   const emit = defineEmits(['ok']);

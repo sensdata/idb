@@ -60,8 +60,8 @@
     setAutoClearMemoryCacheApi,
     getAutoClearMemoryCacheApi,
   } from '@/api/sysinfo';
-  import useVisible from '@/hooks/visible';
-  import useLoading from '@/hooks/loading';
+  import useVisible from '@/composables/visible';
+  import useLoading from '@/composables/loading';
 
   const emit = defineEmits(['ok']);
   const { t } = useI18n();
