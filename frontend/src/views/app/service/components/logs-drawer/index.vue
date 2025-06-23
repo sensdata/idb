@@ -124,7 +124,7 @@
       category: currentParams.value.category,
       name: currentParams.value.name,
       follow: autoRefresh.value,
-      tail: 100, // 默认显示最后100行
+      tail: 30, // 默认显示最后30行
     };
 
     const url = resolveApiUrl('services/{host}/logs/tail', streamParams);

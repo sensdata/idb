@@ -27,6 +27,8 @@ export default {
   'app.file.editor.followStarted': '文件实时追踪已开始',
   'app.file.editor.followError': '追踪文件更新时出错',
   'app.file.editor.followFailed': '启动文件追踪失败',
+  'app.file.editor.pauseFollow': '暂停追踪',
+  'app.file.editor.resumeFollow': '恢复追踪',
   'app.file.editor.noHostSelected': '未选择主机',
   'app.file.editor.lineCount': '行数',
   'app.file.editor.apply': '应用',

@@ -31,6 +31,8 @@ export default {
   'app.file.editor.followStarted': 'Real-time file following started',
   'app.file.editor.followError': 'Error following file updates',
   'app.file.editor.followFailed': 'Failed to start file following',
+  'app.file.editor.pauseFollow': 'Pause',
+  'app.file.editor.resumeFollow': 'Resume',
   'app.file.editor.noHostSelected': 'No host selected',
   'app.file.editor.lineCount': 'Line Count',
   'app.file.editor.apply': 'Apply',

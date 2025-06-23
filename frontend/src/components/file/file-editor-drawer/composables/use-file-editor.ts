@@ -1,4 +1,4 @@
-import { ref, computed, shallowRef } from 'vue';
+import { ref, computed, shallowRef, nextTick } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/api/file';
 import { resolveApiUrl } from '@/helper/api-helper';
 import useLoading from '@/composables/loading';
+import { useLogger } from '@/composables/use-logger';
 import { useHostStore } from '@/store';
 import {
   ContentViewMode,
@@ -18,6 +19,7 @@ import {
 export default function useFileEditor() {
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(false);
+  const { logError } = useLogger('FileEditor');
   const hostStore = useHostStore();
   const file = ref<FileItem | null>(null);
   const content = ref('');
@@ -28,6 +30,7 @@ export default function useFileEditor() {
   const editorInstance = ref<any>(null);
   const eventSource = shallowRef<EventSource | null>(null);
   const isFollowMode = ref(false);
+  const isFollowPaused = ref(false);
 
   const isEdited = computed(() => {
     return content.value !== originalContent.value;
@@ -45,9 +48,9 @@ export default function useFileEditor() {
     if (instance && isPartialView.value) {
       // 如果是tail模式，确保滚动到顶部
       if (viewMode.value === 'tail' && instance.scrollDOM) {
-        setTimeout(() => {
+        nextTick(() => {
           instance.scrollDOM.scrollTop = 0;
-        }, 100);
+        });
       }
     }
   };
@@ -59,6 +62,7 @@ export default function useFileEditor() {
       eventSource.value = null;
     }
     isFollowMode.value = false;
+    isFollowPaused.value = false;
 
     // 如果正在跟踪模式，切换回尾部模式
     if (viewMode.value === 'follow') {
@@ -66,8 +70,26 @@ export default function useFileEditor() {
     }
   };
 
+  // 暂停追踪
+  const pauseFollowMode = () => {
+    isFollowPaused.value = true;
+  };
+
+  // 恢复追踪
+  const resumeFollowMode = () => {
+    isFollowPaused.value = false;
+
+    // 恢复时自动滚动到底部显示最新内容
+    if (editorInstance.value && editorInstance.value.scrollDOM) {
+      nextTick(() => {
+        const scrollDOM = editorInstance.value.scrollDOM;
+        scrollDOM.scrollTop = scrollDOM.scrollHeight;
+      });
+    }
+  };
+
   // 新增: 启动文件跟踪模式
-  const startFollowMode = (filePath: string) => {
+  const startFollowMode = async (filePath: string) => {
     if (eventSource.value) {
       // 如果已存在连接，先关闭
       stopFollowMode();
@@ -84,26 +106,36 @@ export default function useFileEditor() {
     isFollowMode.value = true;
     viewMode.value = 'follow' as ContentViewMode;
 
-    // 清空原有日志内容
-    content.value = '';
-    originalContent.value = '';
+    // 设置follow模式的默认行数
+    lineCount.value = 10;
 
     try {
+      // 先获取文件尾部10行作为初始内容
+      const tailData = await getFileTailApi({
+        path: filePath,
+        numbers: 10,
+      });
+
+      // 设置初始内容
+      content.value = tailData.content;
+      originalContent.value = tailData.content;
+
       // 创建 SSE 连接
       eventSource.value = connectFileTailFollowApi(hostId, filePath);
 
       // 处理日志事件
       eventSource.value.addEventListener('log', (event: Event) => {
-        if (event instanceof MessageEvent) {
-          // 将新内容添加到编辑器的顶部
+        if (event instanceof MessageEvent && !isFollowPaused.value) {
+          // 只有在未暂停时才更新内容
           content.value += event.data;
           originalContent.value = content.value;
 
-          // 自动保持在顶部位置
+          // 自动滚动到底部显示最新内容
           if (editorInstance.value && editorInstance.value.scrollDOM) {
-            setTimeout(() => {
-              editorInstance.value.scrollDOM.scrollTop = 0;
-            }, 100);
+            nextTick(() => {
+              const scrollDOM = editorInstance.value.scrollDOM;
+              scrollDOM.scrollTop = scrollDOM.scrollHeight;
+            });
           }
         }
       });
@@ -125,7 +157,7 @@ export default function useFileEditor() {
 
       // 处理错误
       eventSource.value.addEventListener('error', (event) => {
-        console.error('File follow error:', event);
+        logError('File follow error:', event);
         Message.error(t('app.file.editor.followError'));
         stopFollowMode();
       });
@@ -136,7 +168,7 @@ export default function useFileEditor() {
         Message.success(t('app.file.editor.followStarted'));
       };
     } catch (error) {
-      console.error('Failed to start follow mode:', error);
+      logError('Failed to start follow mode:', error);
       Message.error(t('app.file.editor.followFailed'));
       stopFollowMode();
     }
@@ -167,8 +199,12 @@ export default function useFileEditor() {
       viewMode.value = 'full';
     }
 
-    // Set the line count from the file item or use default
-    lineCount.value = fileItem.line_count || 100;
+    // Set the line count from the file item or use default based on view mode
+    if (fileItem.content_view_mode === 'tail') {
+      lineCount.value = fileItem.line_count || 30; // tail模式默认30行
+    } else {
+      lineCount.value = fileItem.line_count || 100; // head模式默认100行
+    }
 
     try {
       // 如果文件大小为0，则直接设置为空内容，不下载文件
@@ -187,9 +223,9 @@ export default function useFileEditor() {
 
           // 确保重新加载文件后立即重置滚动位置到顶部
           if (editorInstance.value && editorInstance.value.scrollDOM) {
-            setTimeout(() => {
+            nextTick(() => {
               editorInstance.value.scrollDOM.scrollTop = 0;
-            }, 100);
+            });
           }
         } else {
           content.value = fileItem.content;
@@ -213,7 +249,7 @@ export default function useFileEditor() {
       originalContent.value = fileContent;
     } catch (error) {
       Message.error(t('app.file.editor.loadFailed'));
-      console.error('Failed to load file content:', error);
+      logError('Failed to load file content:', error);
       content.value = '';
       originalContent.value = '';
     } finally {
@@ -233,7 +269,7 @@ export default function useFileEditor() {
     // 如果切换到跟踪模式
     if (mode === 'follow') {
       if (file.value) {
-        startFollowMode(file.value.path);
+        await startFollowMode(file.value.path);
       }
       return;
     }
@@ -245,9 +281,13 @@ export default function useFileEditor() {
       // 清空编辑器内容，以便显示加载状态
       content.value = '';
 
-      // 如果提供了行数，更新行数
+      // 如果提供了行数，更新行数；否则使用对应模式的默认行数
       if (lines !== undefined) {
         lineCount.value = lines;
+      } else if (mode === 'tail') {
+        lineCount.value = 30; // tail模式默认30行
+      } else if (mode === 'head') {
+        lineCount.value = 100; // head模式默认100行
       }
 
       if (mode === 'full') {
@@ -289,15 +329,15 @@ export default function useFileEditor() {
 
       // 确保滚动到顶部
       if (editorInstance.value && mode !== 'full') {
-        setTimeout(() => {
+        nextTick(() => {
           if (editorInstance.value.scrollDOM) {
             editorInstance.value.scrollDOM.scrollTop = 0;
           }
-        }, 100);
+        });
       }
     } catch (error) {
       Message.error(t('app.file.editor.loadFailed'));
-      console.error('Failed to change view mode:', error);
+      logError('Failed to change view mode:', error);
     } finally {
       setLoading(false);
     }
@@ -326,7 +366,7 @@ export default function useFileEditor() {
       return true;
     } catch (error) {
       Message.error(t('app.file.editor.saveFailed'));
-      console.error('Failed to save file:', error);
+      logError('Failed to save file:', error);
       return false;
     } finally {
       setLoading(false);
@@ -337,8 +377,6 @@ export default function useFileEditor() {
   const cleanup = () => {
     // 关闭 SSE 连接
     stopFollowMode();
-
-    // 其他现有清理逻辑...
   };
 
   return {
@@ -350,6 +388,7 @@ export default function useFileEditor() {
     lineCount,
     isPartialView,
     isFollowMode,
+    isFollowPaused,
     batchSize,
     changeViewMode,
     setFile,
@@ -357,6 +396,8 @@ export default function useFileEditor() {
     setEditorInstance,
     startFollowMode,
     stopFollowMode,
+    pauseFollowMode,
+    resumeFollowMode,
     cleanup,
   };
 }

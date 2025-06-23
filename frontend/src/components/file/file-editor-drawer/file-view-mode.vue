@@ -81,6 +81,26 @@
           </a-button>
         </template>
       </a-button-group>
+
+      <!-- 实时追踪模式下的暂停/恢复按钮 -->
+      <template v-if="isFollowMode">
+        <a-button
+          v-if="!isFollowPaused"
+          type="outline"
+          size="small"
+          @click="$emit('pauseFollow')"
+        >
+          {{ t('app.file.editor.pauseFollow') }}
+        </a-button>
+        <a-button
+          v-else
+          type="primary"
+          size="small"
+          @click="$emit('resumeFollow')"
+        >
+          {{ t('app.file.editor.resumeFollow') }}
+        </a-button>
+      </template>
     </div>
   </div>
 </template>
@@ -109,10 +129,20 @@
       type: Number,
       required: true,
     },
+    isFollowMode: {
+      type: Boolean,
+      default: false,
+    },
+    isFollowPaused: {
+      type: Boolean,
+      default: false,
+    },
   });
 
   const emit = defineEmits<{
     (e: 'changeViewMode', mode: ContentViewMode, lines?: number): void;
+    (e: 'pauseFollow'): void;
+    (e: 'resumeFollow'): void;
   }>();
 
   const loadingButton = ref<ContentViewMode | null>(null);
@@ -136,6 +166,20 @@
   const handleViewModeChange = (mode: ContentViewMode, lines?: number) => {
     // 设置点击的按钮为加载状态
     loadingButton.value = mode;
+
+    // 如果没有提供行数，根据模式设置默认行数
+    if (lines === undefined) {
+      if (mode === 'tail') {
+        lines = 30; // tail模式默认30行
+        tempLineCount.value = 30;
+      } else if (mode === 'head') {
+        lines = 100; // head模式默认100行
+        tempLineCount.value = 100;
+      } else if (mode === 'follow') {
+        lines = 10; // follow模式默认10行
+        tempLineCount.value = 10;
+      }
+    }
 
     // 触发模式变更事件
     emit('changeViewMode', mode, lines);
@@ -214,8 +258,8 @@
     align-items: center;
     justify-content: center;
     width: auto;
-    max-width: 650px;
-    padding: 6px 12px;
+    max-width: 800px;
+    padding: 8px 16px;
     background-color: var(--color-bg-1);
     border: 1px solid var(--color-border);
     border-radius: 4px;
@@ -251,7 +295,7 @@
   }
 
   .lines-label {
-    color: var(--color-text-3);
     font-size: 12px;
+    color: var(--color-text-3);
   }
 </style>

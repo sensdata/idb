@@ -64,7 +64,11 @@
         :line-count="lineCount"
         :batch-size="batchSize"
         :is-large-file="isLargeFile === true"
+        :is-follow-mode="isFollowMode"
+        :is-follow-paused="isFollowPaused"
         @change-view-mode="handleViewModeChange"
+        @pause-follow="pauseFollowMode"
+        @resume-follow="resumeFollowMode"
       />
     </a-spin>
 
@@ -189,10 +193,14 @@
     viewMode,
     lineCount,
     isPartialView,
+    isFollowMode,
+    isFollowPaused,
     setFile: loadFile,
     saveFile,
     changeViewMode,
     setEditorInstance,
+    pauseFollowMode,
+    resumeFollowMode,
     cleanup,
     batchSize,
   } = useFileEditor();

@@ -7,6 +7,7 @@ import {
   ContentViewMode,
   FileItem,
 } from '@/components/file/file-editor-drawer/types';
+import { useLogger } from '@/composables/use-logger';
 import useFileStore from '../store/file-store';
 import FileMainView from '../components/file-main-view.vue';
 
@@ -18,6 +19,7 @@ interface FileSelectionParams {
 
 export const useFileSelection = (params: FileSelectionParams) => {
   const { store, fileEditorDrawerRef, fileMainViewRef } = params;
+  const { logError } = useLogger('FileSelection');
 
   // 引用导航模块中的函数
   const openFileInEditor = async (fileOrPath: FileItem | string) => {
@@ -85,7 +87,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
       if (!fileDetail) return;
 
       // 默认显示行数
-      const defaultLineCount = 100;
+      const defaultLineCount = 30;
 
       // 根据文件大小决定打开方式
       if (fileDetail.size > 100000) {
@@ -116,7 +118,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
         });
       }
     } catch (error) {
-      console.error('File open error:', error);
+      logError('File open error:', error);
       // 发生错误时关闭编辑器
       fileEditorDrawerRef.value?.hide();
     }
@@ -202,7 +204,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
         }
       }
     } catch (error) {
-      console.error('处理文件导航失败:', error);
+      logError('处理文件导航失败:', error);
     }
   };
 
