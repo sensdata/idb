@@ -1,23 +1,23 @@
 <template>
   <div class="perioid-wrap">
-    <div class="period-item mb-4">
+    <div class="period-item flex items-center gap-3">
       <a-select
         v-model="localPeriod.type"
-        class="w-[120px]"
+        class="period-select"
         :options="periodTypeOptions"
         @change="handlePeriodChange"
       />
       <a-select
         v-if="showWeek(localPeriod)"
         v-model="localPeriod.week"
-        class="w-[120px] ml-4"
+        class="period-input"
         :options="weekOptions"
         @change="handlePeriodChange"
       />
       <a-input-number
         v-if="showDay(localPeriod)"
         v-model="localPeriod.day"
-        class="w-[120px] ml-4"
+        class="period-input"
         :min="1"
         :max="31"
         @change="handlePeriodChange"
@@ -27,7 +27,7 @@
       <a-input-number
         v-if="showHour(localPeriod)"
         v-model="localPeriod.hour"
-        class="w-[120px] ml-4"
+        class="period-input"
         :min="0"
         :max="23"
         @change="handlePeriodChange"
@@ -37,7 +37,7 @@
       <a-input-number
         v-if="showMinute(localPeriod)"
         v-model="localPeriod.minute"
-        class="w-[120px] ml-4"
+        class="period-input"
         :min="0"
         :max="59"
         @change="handlePeriodChange"
@@ -47,7 +47,7 @@
       <a-input-number
         v-if="showSecond(localPeriod)"
         v-model="localPeriod.second"
-        class="w-[120px] ml-4"
+        class="period-input"
         :min="0"
         :max="59"
         @change="handlePeriodChange"
@@ -245,3 +245,27 @@
     }
   });
 </script>
+
+<style scoped lang="less">
+  .perioid-wrap {
+    .period-item {
+      align-items: center;
+
+      .period-select {
+        min-width: 150px;
+        width: auto;
+      }
+
+      .period-input {
+        min-width: 100px;
+        width: auto;
+      }
+    }
+  }
+
+  :deep(.arco-input-number) {
+    .arco-input-number-step {
+      display: none;
+    }
+  }
+</style>

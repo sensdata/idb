@@ -15,32 +15,37 @@
     @before-close="handleBeforeClose"
   >
     <a-spin :loading="loading" style="width: 100%">
-      <a-form ref="formRef" :model="formState" :rules="rules">
+      <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
         <a-form-item field="name" :label="t('app.crontab.form.name.label')">
           <a-input
             v-model="formState.name"
-            class="w-[368px]"
             :placeholder="t('app.crontab.form.name.placeholder')"
             :disabled="isEdit"
+            class="form-input"
           />
         </a-form-item>
+
         <a-form-item
           field="category"
           :label="t('app.crontab.form.category.label')"
         >
           <a-select
             v-model="formState.category"
-            class="w-[368px]"
             :placeholder="t('app.crontab.form.category.placeholder')"
             :loading="categoryLoading"
             :options="categoryOptions"
             allow-clear
             allow-create
+            class="form-input"
             @change="handleCategoryChange"
             @visible-change="(visible: boolean) => visible && fetchCategories()"
           />
         </a-form-item>
-        <a-form-item :label="t('app.crontab.form.content_mode.label')">
+
+        <a-form-item>
+          <template #label>
+            {{ t('app.crontab.form.content_mode.label') }}
+          </template>
           <a-radio-group
             v-model="formState.content_mode"
             :options="[
@@ -58,24 +63,27 @@
         </a-form-item>
 
         <template v-if="formState.content_mode === 'script'">
-          <a-form-item :label="t('app.crontab.form.script_source.label')">
+          <a-form-item>
+            <template #label>
+              {{ t('app.crontab.form.script_source.label') }}
+            </template>
             <a-select
               v-model="selectedScriptSourceCategory"
-              class="w-[368px]"
               :loading="scriptSourceCategoryLoading"
               :placeholder="t('app.crontab.form.script_category.placeholder')"
               :options="scriptSourceCategoryOptions"
+              class="form-input"
               @change="handleScriptSourceCategoryChange"
             />
           </a-form-item>
           <a-form-item v-if="selectedScriptSourceCategory">
             <a-select
               v-model="selectedScript"
-              class="w-[368px]"
               :loading="scriptsLoading"
               :placeholder="t('app.crontab.form.script_name.placeholder')"
               :options="scriptOptions"
               :disabled="scriptOptions.length === 0"
+              class="form-input"
               @change="handleScriptChange"
             />
             <div v-if="scriptsLoading" class="text-sm mt-1 text-gray-500">
@@ -90,14 +98,14 @@
               {{ t('app.crontab.form.script_name.no_scripts') }}
             </div>
           </a-form-item>
-          <a-form-item
-            v-if="selectedScript"
-            :label="t('app.crontab.form.script_params.label')"
-          >
+          <a-form-item v-if="selectedScript">
+            <template #label>
+              {{ t('app.crontab.form.script_params.label') }}
+            </template>
             <a-input
               v-model="scriptParams"
-              class="w-[368px]"
               :placeholder="t('app.crontab.form.script_params.placeholder')"
+              class="form-input"
               @change="updateScriptContent"
             />
           </a-form-item>
@@ -114,13 +122,14 @@
         </a-form-item>
 
         <template v-if="formState.content_mode === 'direct'">
-          <a-form-item
-            field="command"
-            :label="t('app.crontab.form.command.label')"
-          >
+          <a-form-item field="command">
+            <template #label>
+              {{ t('app.crontab.form.command.label') }}
+            </template>
             <a-input
               v-model="formState.command"
               :placeholder="t('app.crontab.form.command.placeholder')"
+              class="form-input"
               @update:model-value="handleCommandChange"
             />
           </a-form-item>
@@ -135,15 +144,21 @@
               :key="`content-${contentEditorKey}`"
               v-model="formState.content"
               :readonly="true"
+              class="form-code-editor"
               @blur="handleContentBlur"
             />
           </a-spin>
         </a-form-item>
 
-        <a-form-item field="mark" :label="t('app.crontab.form.mark.label')">
+        <a-form-item field="mark">
+          <template #label>
+            {{ t('app.crontab.form.mark.label') }}
+          </template>
           <a-textarea
             v-model="formState.mark"
             :placeholder="t('app.crontab.form.mark.placeholder')"
+            class="form-textarea"
+            :rows="4"
             @blur="handleMarkBlur"
           />
         </a-form-item>
@@ -400,7 +415,7 @@
         },
         visible,
         isEdit.value,
-        (category) => {
+        (category: string) => {
           emit('categoryChange', category);
         }
       );
@@ -493,3 +508,163 @@
     hide,
   });
 </script>
+
+<style scoped lang="less">
+  .form-input {
+    width: 100%;
+  }
+
+  .form-textarea {
+    width: 100%;
+    resize: vertical;
+  }
+
+  .form-code-editor {
+    width: 100%;
+    min-height: 200px;
+    background-color: #ffffff !important;
+    border: 1px solid #e5e6eb;
+    border-radius: 6px;
+
+    // 强制覆盖所有可能的黑色背景
+    * {
+      background-color: #ffffff !important;
+    }
+
+    // 针对可能的深色元素进行全面覆盖
+    div,
+    span,
+    pre,
+    code {
+      background-color: #ffffff !important;
+      color: #1d2129 !important;
+    }
+
+    // 覆盖代码编辑器的深色主题
+    :deep(.cm-editor) {
+      background-color: #ffffff !important;
+      color: #1d2129 !important;
+    }
+
+    :deep(.cm-content) {
+      background-color: #ffffff !important;
+      color: #1d2129 !important;
+    }
+
+    :deep(.cm-focused) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.cm-scroller) {
+      background-color: #ffffff !important;
+    }
+
+    // 行号区域样式覆盖
+    :deep(.cm-gutters) {
+      background-color: #ffffff !important;
+      border-right: 1px solid #e5e6eb !important;
+    }
+
+    :deep(.cm-gutter) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.cm-lineNumbers) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.cm-lineNumbers .cm-gutterElement) {
+      background-color: #ffffff !important;
+      color: #86909c !important;
+    }
+
+    // Monaco Editor 样式覆盖（如果使用的是Monaco）
+    :deep(.monaco-editor) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.monaco-editor .margin) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.monaco-editor .monaco-editor-background) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.monaco-editor .margin-view-overlays) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.monaco-editor .line-numbers) {
+      background-color: #ffffff !important;
+      color: #86909c !important;
+    }
+
+    // 通用行号样式覆盖（针对任何可能的编辑器）
+    :deep(.line-numbers) {
+      background-color: #ffffff !important;
+      color: #86909c !important;
+    }
+
+    :deep(.gutter) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.CodeMirror-gutters) {
+      background-color: #ffffff !important;
+      border-right: 1px solid #e5e6eb !important;
+    }
+
+    :deep(.CodeMirror-linenumber) {
+      background-color: #ffffff !important;
+      color: #86909c !important;
+    }
+
+    // 额外的深度样式覆盖，确保没有任何黑色残留
+    :deep(.cm-theme-dark) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.cm-editor.cm-focused) {
+      outline: none !important;
+    }
+
+    :deep(.view-line) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.current-line) {
+      background-color: #ffffff !important;
+    }
+
+    // 针对可能的深色主题类
+    :deep(.dark) {
+      background-color: #ffffff !important;
+    }
+
+    :deep(.theme-dark) {
+      background-color: #ffffff !important;
+    }
+
+    // 针对行背景
+    :deep(.line) {
+      background-color: #ffffff !important;
+    }
+  }
+
+  :deep(.arco-form-item-label) {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #1d2129;
+  }
+
+  :deep(.arco-form-item) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.arco-radio-group) {
+    .arco-radio-button {
+      margin-right: 16px;
+    }
+  }
+</style>
