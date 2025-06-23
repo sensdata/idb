@@ -94,15 +94,14 @@ func (s *AppService) SyncApp() error {
 		RemoteName: "origin",
 		Progress:   os.Stdout,
 	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		global.LOG.Error("Error pulling changes: %s\n", err)
-		return err
-	}
-
-	if err == git.NoErrAlreadyUpToDate {
-		global.LOG.Error("Repository is already up-to-date.")
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate {
+			global.LOG.Info("Repository is already up-to-date.")
+		} else {
+			global.LOG.Error("Error pulling changes: %s\n", err)
+		}
 	} else {
-		global.LOG.Error("Successfully pulled latest changes.")
+		global.LOG.Info("Successfully pulled latest changes.")
 	}
 
 	// 打印当前HEAD
@@ -111,7 +110,7 @@ func (s *AppService) SyncApp() error {
 		global.LOG.Error("Error getting HEAD: %s\n", err)
 		return err
 	}
-	global.LOG.Error("Current HEAD: %s\n", ref.Hash())
+	global.LOG.Info("Current HEAD: %s\n", ref.Hash())
 
 	// 扫描应用目录
 	appsDir := filepath.Join(repoPath, "apps")
