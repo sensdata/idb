@@ -1349,8 +1349,6 @@ definitions:
     properties:
       allowed:
         type: boolean
-    required:
-    - allowed
     type: object
   model.PortHelper:
     properties:
@@ -3761,6 +3759,62 @@ paths:
         "200":
           description: OK
       summary: Upgrade container
+      tags:
+      - Docker
+  /docker/{host}/containers/usage:
+    get:
+      consumes:
+      - application/json
+      description: Get resource usage of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get resource usage of the specified container
+      tags:
+      - Docker
+  /docker/{host}/containers/usage/follow:
+    get:
+      consumes:
+      - application/json
+      description: Follow resource usage of the specified container
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Container ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Follow resource usage of the specified container
       tags:
       - Docker
   /docker/{host}/containers/usages:

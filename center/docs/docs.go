@@ -2454,6 +2454,90 @@ const docTemplate = `{
                 }
             }
         },
+        "/docker/{host}/containers/usage": {
+            "get": {
+                "description": "Get resource usage of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Get resource usage of the specified container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/docker/{host}/containers/usage/follow": {
+            "get": {
+                "description": "Follow resource usage of the specified container",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Follow resource usage of the specified container",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/docker/{host}/containers/usages": {
             "get": {
                 "description": "Get container resource usage list",
@@ -13408,9 +13492,6 @@ const docTemplate = `{
         },
         "model.PingStatus": {
             "type": "object",
-            "required": [
-                "allowed"
-            ],
             "properties": {
                 "allowed": {
                     "type": "boolean"
