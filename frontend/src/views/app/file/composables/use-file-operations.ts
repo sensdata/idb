@@ -27,6 +27,8 @@ interface FileStore {
   clearSelected: () => void;
   handleOpen: (record: FileItem) => void;
   handleGoto: (path: string) => void;
+  handleCopy: () => void;
+  handleCut: () => void;
 }
 
 interface FileOperationsParams {
@@ -140,6 +142,20 @@ export const useFileOperations = (params: FileOperationsParams) => {
       default:
         break;
     }
+  };
+
+  const handleCopy = () => {
+    if (!selected.value?.length) {
+      return;
+    }
+    store.handleCopy();
+  };
+
+  const handleCut = () => {
+    if (!selected.value?.length) {
+      return;
+    }
+    store.handleCut();
   };
 
   const handlePaste = async () => {
@@ -275,6 +291,8 @@ export const useFileOperations = (params: FileOperationsParams) => {
     handleModifyMode,
     handleModifyOwner,
     handleCreate,
+    handleCopy,
+    handleCut,
     handlePaste,
     handleUpload,
     handleTerminal,

@@ -30,6 +30,8 @@
           @clear-selected="clearSelected"
           @create="handleCreate"
           @upload="handleUpload"
+          @copy="handleCopy"
+          @cut="handleCut"
           @paste="handlePaste"
           @back="store.handleBack"
           @compress="handleBatchCompress"
@@ -41,6 +43,7 @@
           @modify-mode="handleModifyMode"
           @modify-owner="handleModifyOwner"
           @operation="handleOperation"
+          @selected-change="handleTableSelectionChange"
           @reload="reload"
         />
       </div>
@@ -129,6 +132,8 @@
     handleModifyMode,
     handleModifyOwner,
     handleCreate,
+    handleCopy,
+    handleCut,
     handleBatchCompress,
     handleBatchDecompress,
     handleBatchDelete,
@@ -151,6 +156,14 @@
     openTerminal,
     selected,
   });
+
+  // 表格选择状态（用于批量操作）
+  const tableSelected = ref<FileItem[]>([]);
+
+  // 处理表格选择变化
+  const handleTableSelectionChange = (newSelected: FileItem[]) => {
+    tableSelected.value = newSelected;
+  };
 
   const { handleGotoWrapper, handleTreeItemSelect, handleTreeItemDoubleClick } =
     useFileNavigation({

@@ -15,15 +15,6 @@
     </div>
     <ul class="right-side">
       <li>
-        <a-tooltip :content="$t('settings.search')">
-          <a-button class="nav-btn" type="outline" :shape="'circle'">
-            <template #icon>
-              <icon-search />
-            </template>
-          </a-button>
-        </a-tooltip>
-      </li>
-      <li>
         <a-tooltip :content="$t('settings.language')">
           <a-button
             class="nav-btn"
@@ -72,33 +63,6 @@
             </template>
           </a-button>
         </a-tooltip>
-      </li>
-      <li>
-        <a-tooltip :content="$t('settings.navbar.alerts')">
-          <div class="message-box-trigger">
-            <a-badge :count="9" dot>
-              <a-button
-                class="nav-btn"
-                type="outline"
-                :shape="'circle'"
-                @click="setPopoverVisible"
-              >
-                <icon-notification />
-              </a-button>
-            </a-badge>
-          </div>
-        </a-tooltip>
-        <a-popover
-          trigger="click"
-          :arrow-style="{ display: 'none' }"
-          :content-style="{ padding: 0, minWidth: '400px' }"
-          content-class="message-popover"
-        >
-          <div ref="refBtn" class="ref-btn"></div>
-          <template #content>
-            <message-box />
-          </template>
-        </a-popover>
       </li>
       <li>
         <a-tooltip
@@ -187,7 +151,6 @@
   import useUser from '@/composables/user';
   import LogoImage from '@/assets/logo-wide.png';
   import Menu from '@/components/menu/index.vue';
-  import MessageBox from '../message-box/index.vue';
   import ChangePassword from '../change-password/index.vue';
 
   const appStore = useAppStore();
@@ -221,16 +184,7 @@
   const setVisible = () => {
     appStore.updateSettings({ globalSettings: true });
   };
-  const refBtn = ref();
   const triggerBtn = ref();
-  const setPopoverVisible = () => {
-    const event = new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true,
-    });
-    refBtn.value.dispatchEvent(event);
-  };
   const handleLogout = () => {
     logout();
   };
@@ -297,17 +251,10 @@
       font-size: 16px;
       border-color: rgb(var(--gray-2));
     }
-    .trigger-btn,
-    .ref-btn {
+    .trigger-btn {
       position: absolute;
       bottom: 14px;
-    }
-    .trigger-btn {
       margin-left: 14px;
     }
-  }
-
-  .message-popover:deep(.arco-popover-content) {
-    margin-top: 0;
   }
 </style>

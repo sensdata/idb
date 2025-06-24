@@ -28,12 +28,12 @@
           @keydown.down.prevent="handleKeyDown"
           @keydown.enter.prevent="handleKeyEnter"
           @focus="handleInputFocus"
-          @blur="() => handleBlur(removeRootSlash(props.path))"
+          @blur="handleInputBlur"
         >
           <template #suffix>
             <div
               class="after"
-              :class="{ 'after-highlight': pathChanged }"
+              :class="{ 'after-highlight': isInputFocused }"
               @mousedown.stop
               @click="handleGoButtonClick"
             >
@@ -84,6 +84,7 @@
   const allOptions = ref<any[]>([]);
   const popupVisible = ref(false);
   const pathChanged = ref(false);
+  const isInputFocused = ref(false);
 
   const {
     currentSelectedIndex,
@@ -176,9 +177,10 @@
       originalHandleGo();
     }
     pathChanged.value = false;
+    // 选择选项后让输入框失去焦点
     nextTick(() => {
       if (inputRef.value) {
-        inputRef.value.focus();
+        inputRef.value.blur();
       }
     });
   }
@@ -194,9 +196,10 @@
       originalHandleGo();
     }
     pathChanged.value = false;
+    // 按Enter后让输入框失去焦点
     nextTick(() => {
       if (inputRef.value) {
-        inputRef.value.focus();
+        inputRef.value.blur();
       }
     });
   }
@@ -204,9 +207,10 @@
   function handleGoButtonClick() {
     originalHandleGo();
     pathChanged.value = false;
+    // 点击按钮后让输入框失去焦点
     nextTick(() => {
       if (inputRef.value) {
-        inputRef.value.focus();
+        inputRef.value.blur();
       }
     });
   }
@@ -216,6 +220,7 @@
   }
 
   function handleInputFocus() {
+    isInputFocused.value = true;
     if (!value.value) {
       value.value = removeRootSlash(props.path);
       nextTick(() => {
@@ -225,6 +230,11 @@
         }
       });
     }
+  }
+
+  function handleInputBlur() {
+    isInputFocused.value = false;
+    handleBlur(removeRootSlash(props.path));
   }
 
   const validOptions = computed(() => {
@@ -292,6 +302,11 @@
     background-color: var(--color-bg-2);
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .address-bar-container:focus-within {
+    border: 1px solid rgb(var(--primary-6));
   }
 
   .input-wrapper {
@@ -306,8 +321,13 @@
     border: none;
   }
 
-  .address-bar :deep(.arco-input-wrapper) {
+  .address-bar.arco-input-wrapper {
+    padding-right: 0 !important;
     border: none;
+  }
+
+  .address-bar :deep(.arco-input-wrapper):focus-within {
+    border: 1px solid rgb(var(--primary-6));
   }
 
   .address-bar :deep(.arco-input) {
@@ -326,6 +346,7 @@
 
   .address-bar :deep(.arco-input-suffix) {
     padding: 0;
+    margin-right: 0;
   }
 
   .address-bar :deep(.arco-input-clear-btn) {
@@ -359,6 +380,7 @@
     width: 36px;
     height: 100%;
     min-height: 32px;
+    margin-right: -1px;
     cursor: pointer;
     border-left: 1px solid var(--color-border-2);
     transition: all 0.2s ease;

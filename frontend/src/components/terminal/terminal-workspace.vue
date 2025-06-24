@@ -423,4 +423,8 @@
   .terminal-tabs :deep(.arco-tabs-pane) {
     height: calc(100vh - var(--header-height, 140px));
   }
+
+  .terminal-tabs :deep(.arco-tabs-tab) {
+    padding-right: 6px;
+  }
 </style>

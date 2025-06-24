@@ -16,7 +16,7 @@
     />
     <a-dropdown position="bottom" @select="handleAction">
       <span class="arco-icon-hover tab-action-btn">
-        <icon-more />
+        <icon-down />
       </span>
       <template #content>
         <a-doption value="rename">
@@ -188,11 +188,12 @@
 <style scoped>
   .tab-title-container {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     align-items: center;
   }
 
   .tab-title {
+    font-style: italic;
     cursor: pointer;
     user-select: none;
     transition: color 0.2s ease;
