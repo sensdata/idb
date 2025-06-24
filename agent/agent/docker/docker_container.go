@@ -74,6 +74,15 @@ func (s *DockerService) ContainerResourceUsage() (*model.PageResult, error) {
 	return client.ContainerResourceUsage()
 }
 
+func (s *DockerService) ContainerResourceUsageById(id string) (*model.ContainerResourceUsage, error) {
+	client, err := client.NewClient()
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+	return client.ContainerResourceUsageById(id)
+}
+
 func (s *DockerService) ContainerResourceLimit() (*model.ContainerResourceLimit, error) {
 	cpuCounts, err := cpu.Counts(true)
 	if err != nil {

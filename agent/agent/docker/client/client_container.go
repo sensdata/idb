@@ -383,6 +383,11 @@ func (c DockerClient) ContainerResourceUsage() (*model.PageResult, error) {
 	return &result, nil
 }
 
+func (c DockerClient) ContainerResourceUsageById(id string) (*model.ContainerResourceUsage, error) {
+	data := c.loadCpuAndMem(id)
+	return &data, nil
+}
+
 func (c DockerClient) ContainerStats(id string) (*model.ContainerStats, error) {
 	res, err := c.cli.ContainerStats(context.TODO(), id, false)
 	if err != nil {

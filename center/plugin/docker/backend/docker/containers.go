@@ -100,7 +100,7 @@ func (s *DockerMan) containerUsages(hostID uint64) (*model.PageResult, error) {
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
-			Action: model.Docker_Container_Resource_Usage,
+			Action: model.Docker_Container_Resource_Usage_List,
 			Data:   "",
 		},
 	}
@@ -122,6 +122,91 @@ func (s *DockerMan) containerUsages(hostID uint64) (*model.PageResult, error) {
 	}
 
 	return &result, nil
+}
+
+func (s *DockerMan) containerUsage(hostID uint64, containerID string) (*model.ContainerResourceUsage, error) {
+	var result model.ContainerResourceUsage
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Docker_Container_Resource_Usage,
+			Data:   containerID,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return &result, fmt.Errorf("failed to get container usage")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to container usage: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (s *DockerMan) followContainerUsage(c *gin.Context) error {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		return errors.New("invalid host")
+	}
+
+	containerID := c.Query("id")
+	if containerID == "" {
+		return errors.New("invalid container id")
+	}
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			return nil
+		default:
+			usage, err := s.containerUsage(hostID, containerID)
+			if err != nil {
+				global.LOG.Error("get usage failed: %v", err)
+				c.SSEvent("error", err.Error())
+			} else {
+				usageJson, err := utils.ToJSONString(usage)
+				if err != nil {
+					global.LOG.Error("json err: %v", err)
+					c.SSEvent("error", err.Error())
+				} else {
+					c.SSEvent("status", usageJson)
+				}
+			}
+			flusher.Flush()
+		}
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (s *DockerMan) containerLimit(hostID uint64) (*model.ContainerResourceLimit, error) {

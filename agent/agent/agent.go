@@ -2002,12 +2002,24 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, result)
 
-	case model.Docker_Container_Resource_Usage:
+	case model.Docker_Container_Resource_Usage_List:
 		info, err := DockerService.ContainerResourceUsage()
 		if err != nil {
 			return nil, err
 		}
 		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Docker_Container_Resource_Usage:
+		containerID := actionData.Data
+		usage, err := DockerService.ContainerResourceUsageById(containerID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(usage)
 		if err != nil {
 			return nil, err
 		}

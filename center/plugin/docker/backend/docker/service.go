@@ -128,15 +128,17 @@ func (s *DockerMan) Initialize() {
 			{Method: "POST", Path: "/:host/compose/operation", Handler: s.ComposeOperation}, // 操作编排
 
 			// containers
-			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                // 获取容器列表
-			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},          // 获取容器名列表
-			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},        // 获取容器资源占用
-			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},          // 获取容器资源限制
-			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},              // 创建容器
-			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},               // 编辑容器
-			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},     // 升级容器
-			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},       // 重命名容器
-			{Method: "POST", Path: "/:host/containers/operation", Handler: s.ContainerOperation}, // 操作容器
+			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                    // 获取容器列表
+			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},              // 获取容器名列表
+			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},            // 获取容器资源占用
+			{Method: "GET", Path: "/:host/containers/usage", Handler: s.ContainerUsage},              // 获取单个容器资源占用
+			{Method: "GET", Path: "/:host/containers/usage/follow", Handler: s.ContainerUsageFollow}, // 追踪单个容器资源占用
+			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},              // 获取容器资源限制
+			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},                  // 创建容器
+			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},                   // 编辑容器
+			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},         // 升级容器
+			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},           // 重命名容器
+			{Method: "POST", Path: "/:host/containers/operation", Handler: s.ContainerOperation},     // 操作容器
 
 			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},          // 获取容器详情
 			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},          // 获取容器监控数据
@@ -869,6 +871,58 @@ func (s *DockerMan) ContainerUsages(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Get resource usage of the specified container
+// @Description Get resource usage of the specified container
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Param id query string true "Container ID"
+// @Success 200 {object} model.PageResult
+// @Router /docker/{host}/containers/usage [get]
+func (s *DockerMan) ContainerUsage(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	containerID := c.Query("id")
+	if containerID == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid container id", err)
+		return
+	}
+
+	result, err := s.containerUsage(hostID, containerID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Follow resource usage of the specified container
+// @Description Follow resource usage of the specified container
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Param id query string true "Container ID"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /docker/{host}/containers/usage/follow [get]
+func (s *DockerMan) ContainerUsageFollow(c *gin.Context) {
+	err := s.followContainerUsage(c)
+	if err != nil {
+		global.LOG.Error("Handle container resouce usage stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Docker
