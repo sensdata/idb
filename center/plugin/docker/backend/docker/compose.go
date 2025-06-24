@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -215,7 +216,12 @@ func (s *DockerMan) composeTest(hostID uint64, req model.CreateCompose) (*model.
 	return &result, nil
 }
 
-func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) error {
+func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: fmt.Sprintf("docker compose %s", req.Operation),
+	}
 
 	composeOperation := model.ComposeOperation{
 		Name:      req.Name,
@@ -224,7 +230,7 @@ func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) er
 	}
 	data, err := utils.ToJSONString(composeOperation)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
@@ -237,13 +243,16 @@ func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) er
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to operate compose")
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
+		global.LOG.Error("compose operation failed")
+		return &result, fmt.Errorf("failed to operate compose")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	return nil
+	return &result, nil
 }

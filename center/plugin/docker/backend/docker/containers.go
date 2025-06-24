@@ -348,10 +348,16 @@ func (s *DockerMan) renameContainer(hostID uint64, req model.Rename) error {
 	return nil
 }
 
-func (s *DockerMan) operateContainer(hostID uint64, req model.ContainerOperation) error {
+func (s *DockerMan) operateContainer(hostID uint64, req model.ContainerOperation) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: fmt.Sprintf("docker %s", req.Operation),
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
@@ -364,15 +370,18 @@ func (s *DockerMan) operateContainer(hostID uint64, req model.ContainerOperation
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to operate container")
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
+		global.LOG.Error("container operation failed")
+		return &result, fmt.Errorf("failed to operate container")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	return nil
+	return &result, nil
 }
 
 func (s *DockerMan) containerInfo(hostID uint64, containerID string) (*model.ContainerOperate, error) {

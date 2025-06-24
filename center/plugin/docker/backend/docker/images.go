@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -73,8 +74,12 @@ func (s *DockerMan) imageNames(hostID uint64) (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *DockerMan) buildImage(hostID uint64, req model.ImageBuild) (*model.ImageOperationResult, error) {
-	var result model.ImageOperationResult
+func (s *DockerMan) buildImage(hostID uint64, req model.ImageBuild) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker build",
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -94,22 +99,31 @@ func (s *DockerMan) buildImage(hostID uint64, req model.ImageBuild) (*model.Imag
 		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
 		return &result, fmt.Errorf("failed to build image")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	var ioResult model.ImageOperationResult
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &ioResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to build image result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+	result.Extra = ioResult.Result
 
 	return &result, nil
 }
 
-func (s *DockerMan) pullImage(hostID uint64, req model.ImagePull) (*model.ImageOperationResult, error) {
-	var result model.ImageOperationResult
+func (s *DockerMan) pullImage(hostID uint64, req model.ImagePull) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker pull",
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -129,22 +143,31 @@ func (s *DockerMan) pullImage(hostID uint64, req model.ImagePull) (*model.ImageO
 		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
 		return &result, fmt.Errorf("failed to pull image")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	var ioResult model.ImageOperationResult
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &ioResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to pull image result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+	result.Extra = ioResult.Result
 
 	return &result, nil
 }
 
-func (s *DockerMan) loadImage(hostID uint64, req model.ImageLoad) (*model.ImageOperationResult, error) {
-	var result model.ImageOperationResult
+func (s *DockerMan) loadImage(hostID uint64, req model.ImageLoad) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker load",
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -164,25 +187,35 @@ func (s *DockerMan) loadImage(hostID uint64, req model.ImageLoad) (*model.ImageO
 		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
 		return &result, fmt.Errorf("failed to load image")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	var ioResult model.ImageOperationResult
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &ioResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to load image result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+	result.Extra = ioResult.Result
 
 	return &result, nil
 }
 
-func (s *DockerMan) exportImage(hostID uint64, req model.ImageSave) error {
+func (s *DockerMan) exportImage(hostID uint64, req model.ImageSave) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker save",
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
@@ -195,19 +228,26 @@ func (s *DockerMan) exportImage(hostID uint64, req model.ImageSave) error {
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to save image")
+		return &result, fmt.Errorf("failed to save image")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	return nil
+	return &result, nil
 }
 
-func (s *DockerMan) pushImage(hostID uint64, req model.ImagePush) (*model.ImageOperationResult, error) {
-	var result model.ImageOperationResult
+func (s *DockerMan) pushImage(hostID uint64, req model.ImagePush) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker push",
+	}
 
 	data, err := utils.ToJSONString(req)
 	if err != nil {
@@ -227,24 +267,35 @@ func (s *DockerMan) pushImage(hostID uint64, req model.ImagePush) (*model.ImageO
 		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
 		return &result, fmt.Errorf("failed to push image")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	var ioResult model.ImageOperationResult
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &ioResult)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to push image result: %v", err)
 		return &result, fmt.Errorf("json err: %v", err)
 	}
+	result.Extra = ioResult.Result
 
 	return &result, nil
 }
 
-func (s *DockerMan) deleteImage(hostID uint64, req model.BatchDelete) error {
+func (s *DockerMan) deleteImage(hostID uint64, req model.BatchDelete) (*model.OperationResult, error) {
+	var result model.OperationResult = model.OperationResult{
+		Success: false,
+		Message: constant.OperationFailed,
+		Command: "docker rmi",
+	}
+
 	data, err := utils.ToJSONString(req)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
@@ -257,15 +308,18 @@ func (s *DockerMan) deleteImage(hostID uint64, req model.BatchDelete) error {
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
-	if !actionResponse.Data.Action.Result {
+	result.Success = actionResponse.Data.Action.Result
+	if !result.Success {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to remove images")
+		return &result, fmt.Errorf("failed to remove images")
+	} else {
+		result.Message = constant.OperationSuccess
 	}
 
-	return nil
+	return &result, nil
 }
 
 func (s *DockerMan) setImageTag(hostID uint64, req model.ImageTag) error {

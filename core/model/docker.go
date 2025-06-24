@@ -42,6 +42,13 @@ type DaemonJsonConf struct {
 	LogMaxFile string `json:"log_max_file"`
 }
 
+type OperationResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Command string `json:"command"`
+	Extra   string `json:"extra"`
+}
+
 type DockerOperation struct {
 	Operation string `json:"operation" validate:"required,oneof=start restart stop"`
 }

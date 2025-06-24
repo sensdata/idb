@@ -768,7 +768,7 @@ func (s *DockerMan) ComposeTest(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.OperateCompose true "Compose operation details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/compose/operation [post]
 func (s *DockerMan) ComposeOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -782,13 +782,13 @@ func (s *DockerMan) ComposeOperation(c *gin.Context) {
 		return
 	}
 
-	err = s.composeOperation(hostID, req)
+	result, err := s.composeOperation(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -1076,7 +1076,7 @@ func (s *DockerMan) ContainerRename(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.ContainerOperation true "Container operation details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/containers/operation [post]
 func (s *DockerMan) ContainerOperation(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1090,13 +1090,13 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 		return
 	}
 
-	err = s.operateContainer(hostID, req)
+	result, err := s.operateContainer(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -1336,7 +1336,7 @@ func (s *DockerMan) ImageNames(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.ImageBuild true "Build image details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images/build [post]
 func (s *DockerMan) ImageBuild(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1366,7 +1366,7 @@ func (s *DockerMan) ImageBuild(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.ImagePull true "Pull image details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images/pull [post]
 func (s *DockerMan) ImagePull(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1396,7 +1396,7 @@ func (s *DockerMan) ImagePull(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.ImageLoad true "Import image details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images/import [post]
 func (s *DockerMan) ImageLoad(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1426,7 +1426,7 @@ func (s *DockerMan) ImageLoad(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.ImageSave true "Export image details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images/export [post]
 func (s *DockerMan) ImageSave(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1440,13 +1440,13 @@ func (s *DockerMan) ImageSave(c *gin.Context) {
 		return
 	}
 
-	err = s.exportImage(hostID, req)
+	result, err := s.exportImage(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -1457,7 +1457,7 @@ func (s *DockerMan) ImageSave(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param id path string true "Image ID"
 // @Param request body model.ImagePush true "Push image details"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images/push [post]
 func (s *DockerMan) ImagePush(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1488,7 +1488,7 @@ func (s *DockerMan) ImagePush(c *gin.Context) {
 // @Param host path int true "Host ID"
 // @Param force query bool true "Force delete"
 // @Param sources query string true "Comma-separated list of image names to delete"
-// @Success 200
+// @Success 200 {object} model.OperationResult
 // @Router /docker/{host}/images [delete]
 func (s *DockerMan) ImageRemove(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -1510,13 +1510,13 @@ func (s *DockerMan) ImageRemove(c *gin.Context) {
 		Names: strings.Split(sources, ","),
 	}
 
-	err = s.deleteImage(hostID, req)
+	result, err := s.deleteImage(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker

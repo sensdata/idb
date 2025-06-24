@@ -86,6 +86,10 @@ var (
 var (
 	ErrContainerName = "ErrContainerName"
 )
+var (
+	OperationFailed  = "Failed"
+	OperationSuccess = "Success"
+)
 
 // session
 var (
