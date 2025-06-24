@@ -6,150 +6,87 @@
     @init="onFilterReady"
   />
   <a-divider v-if="filters.length" style="margin-top: 0" />
-  <a-row v-if="hasToolbar" align="center" style="margin-bottom: 16px">
-    <a-col :span="12">
-      <a-space>
-        <slot name="leftActions" />
-      </a-space>
-    </a-col>
-    <a-col
-      :span="12"
-      style="display: flex; align-items: center; justify-content: end"
-    >
+
+  <!-- 表格工具栏 -->
+  <table-toolbar
+    :has-toolbar="hasToolbar"
+    :has-search="hasSearch"
+    :loading="loading"
+    :download="download"
+    :size="size"
+    :show-columns="showColumns"
+    @search="onSearch"
+    @refresh="reload"
+    @toggle-column="handleToggleColumn"
+    @select-density="handleSelectDensity"
+    @columns-reordered="handleColumnsReordered"
+  >
+    <template #leftActions>
+      <slot name="leftActions" />
+    </template>
+    <template #rightActions>
       <slot name="rightActions" />
-      <a-input-search
-        v-if="hasSearch"
-        v-model="searchValue"
-        class="w-[240px] mr-4"
-        :placeholder="$t('components.idbTable.search.placeholder')"
-        :loading="loading"
-        allow-clear
-        @clear="() => onSearch('')"
-        @search="onSearch"
-        @press-enter="onSearchEnter"
-      />
-      <a-button v-if="download">
-        <template #icon>
-          <icon-download />
-        </template>
-        {{ $t('components.idbTable.actions.download') }}
-      </a-button>
-      <a-tooltip :content="$t('components.idbTable.actions.refresh')">
-        <div class="action-icon" @click="reload"
-          ><icon-refresh size="18"
-        /></div>
-      </a-tooltip>
-      <a-dropdown @select="handleSelectDensity">
-        <a-tooltip :content="$t('components.idbTable.actions.density')">
-          <div class="action-icon"><icon-line-height size="18" /></div>
-        </a-tooltip>
-        <template #content>
-          <a-doption
-            v-for="item in densityList"
-            :key="item.value"
-            :value="item.value"
-            :class="{ active: item.value === size }"
-          >
-            <span>{{ item.name }}</span>
-          </a-doption>
-        </template>
-      </a-dropdown>
-      <a-tooltip :content="$t('components.idbTable.actions.columnSetting')">
-        <a-popover
-          trigger="click"
-          position="br"
-          @popup-visible-change="popupVisibleChange"
-        >
-          <div class="action-icon"><icon-settings size="18" /></div>
-          <template #content>
-            <div id="tableSetting">
-              <div
-                v-for="item in showColumns"
-                :key="item.dataIndex"
-                class="setting"
-              >
-                <div style="margin-right: 4px; cursor: move">
-                  <icon-drag-arrow />
-                </div>
-                <div>
-                  <a-checkbox
-                    v-model="item.checked"
-                    @change="handleToggleColumn($event, item as Column)"
-                  >
-                    {{ item.title }}
-                  </a-checkbox>
-                </div>
-              </div>
-            </div>
-          </template>
-        </a-popover>
-      </a-tooltip>
-    </a-col>
-  </a-row>
-  <a-table
-    v-model:selectedKeys="selectedRowKeys"
+    </template>
+  </table-toolbar>
+
+  <!-- 表格内容 -->
+  <table-content
+    ref="tableContentRef"
     :row-key="rowKey"
     :loading="loading"
     :pagination="pagination"
     :columns="(visibleColumns as TableColumnData[])"
     :data="renderData"
-    :summary="!summaryData ? false : () => [summaryData!]"
-    :summary-text="t('components.idbTable.summaryText')"
+    :summary-data="summaryData"
     :size="size"
-    :row-selection="hasBatch ? rowSelection : undefined"
+    :has-batch="hasBatch"
     v-bind="$attrs"
     @expand="onExpand"
-    @change="onChange"
     @page-change="onPageChange"
     @page-size-change="onPageSizeChange"
+    @selected-change="onSelectedChange"
+    @sort-change="onSortChange"
   >
     <template v-for="(_, key) in tableSlots" :key="key" #[key]="slotData">
       <slot :name="key" v-bind="slotData"></slot>
     </template>
-  </a-table>
-  <fixed-footer-bar v-if="hasBatch && selectedRows.length > 0">
-    <template #left>
-      <span>
-        {{ $t('components.idbTable.batch.selectedPrefix') }}
-        <strong class="selected-count">{{ selectedRows.length }}</strong>
-        {{ $t('components.idbTable.batch.selectedSuffix') }}
-      </span>
-      <a-button type="text" class="cancel-selected" @click="cancelSelected">{{
-        $t('components.idbTable.batch.cancelSelected')
-      }}</a-button>
-    </template>
-    <template #right>
+  </table-content>
+
+  <!-- 批量操作栏 -->
+  <batch-action-bar
+    :has-batch="hasBatch"
+    :selected-rows="selectedRows"
+    :selected-row-keys="selectedRowKeys"
+    @cancel-selected="cancelSelected"
+  >
+    <template #batch="slotProps">
       <slot
         name="batch"
-        :selected-rows="selectedRows"
-        :selected-row-keys="selectedRowKeys"
+        :selected-rows="slotProps.selectedRows"
+        :selected-row-keys="slotProps.selectedRowKeys"
       />
     </template>
-  </fixed-footer-bar>
+  </batch-action-bar>
 </template>
 
 <script lang="ts" setup>
-  import {
-    computed,
-    ref,
-    reactive,
-    toRaw,
-    watch,
-    nextTick,
-    useSlots,
-  } from 'vue';
-  import { useI18n } from 'vue-i18n';
-  import useLoading from '@/composables/loading';
-  import { ApiListParams, ApiListResult, BaseEntity } from '@/types/global';
+  import { computed, ref, reactive, watch, useSlots, onMounted } from 'vue';
+  import { omit } from 'lodash';
+  import { ApiListParams, BaseEntity } from '@/types/global';
   import type {
     TableChangeExtra,
     TableColumnData,
-    TableRowSelection,
   } from '@arco-design/web-vue/es/table/interface';
-  import { cloneDeep, omit } from 'lodash';
-  import Sortable from 'sortablejs';
   import TableFilters from './table-filters.vue';
-  import { Props, Column, SizeProps } from './types';
+  import TableToolbar from './components/table-toolbar.vue';
+  import TableContent from './components/table-content.vue';
+  import BatchActionBar from './components/batch-action-bar.vue';
+  import useUrlPaginationSync from './composables/use-url-pagination-sync';
+  import { useTableColumns } from './composables/use-table-columns';
+  import { useTableData } from './composables/use-table-data';
+  import { useTableSelection } from './composables/use-table-selection';
+  import { useTableActions } from './composables/use-table-actions';
+  import { Props } from './types';
 
   defineOptions({
     inheritAttrs: false,
@@ -157,15 +94,16 @@
 
   defineSlots<{
     // 左侧操作按钮插槽
-    leftActions: (props: any) => any;
+    leftActions?: () => any;
     // 批量操作按钮插槽
-    batch: <T extends BaseEntity>(props: {
-      selectedRows: T[];
+    batch?: (props: {
+      selectedRows: BaseEntity[];
       selectedRowKeys?: number[];
     }) => any;
     // 右侧操作按钮插槽
-    rightActions: (props: any) => any;
-    [key: string]: (props: any) => any;
+    rightActions?: () => any;
+    // 表格列插槽 - 动态插槽用于表格单元格渲染
+    [key: string]: ((props?: any) => any) | undefined;
   }>();
 
   const emit = defineEmits([
@@ -185,9 +123,11 @@
     hasSearch: false,
     hasToolbar: true,
     autoLoad: true,
+    urlSync: false,
+    urlParamNames: () => ({ page: 'page', pageSize: 'pageSize' }),
   });
 
-  const { t } = useI18n();
+  const tableContentRef = ref<InstanceType<typeof TableContent>>();
 
   const rowKey = computed(() => props.rowKey ?? 'id');
 
@@ -196,251 +136,144 @@
     omit(slots, ['leftActions', 'batch', 'rightActions'])
   );
 
-  // 列设置
-  const cloneColumns = ref<Column[]>([]);
-  const showColumns = ref<Column[]>([]);
-  const visibleColumns = computed(() => {
-    const checkedDataIndex = showColumns.value
-      .filter((item) => item.checked)
-      .map((item) => item.dataIndex);
+  // 使用URL同步composable
+  const {
+    pagination: urlPagination,
+    params,
+    updatePagination,
+  } = props.urlSync
+    ? useUrlPaginationSync({
+        pageSize: props.pageSize,
+        urlParamNames: props.urlParamNames,
+      })
+    : {
+        pagination: reactive({ current: 1, pageSize: props.pageSize }),
+        params: reactive<ApiListParams>({ page: 1, page_size: props.pageSize }),
+        updatePagination: () => params,
+      };
 
-    return checkedDataIndex.map((dataIndex) =>
-      cloneColumns.value.find((item) => item.dataIndex === dataIndex)
-    );
-  });
-  watch(
-    () => props.columns,
-    (val) => {
-      cloneColumns.value = cloneDeep(val);
-      cloneColumns.value.forEach((item, index) => {
-        item.checked = true;
-      });
-      showColumns.value = cloneDeep(cloneColumns.value);
-    },
-    { deep: true, immediate: true }
-  );
-  const handleToggleColumn = (
-    checked: boolean | (string | boolean | number)[],
-    column: Column
-  ) => {
-    column.checked = checked as boolean;
-  };
-  const exchangeArray = <T extends Array<any>>(
-    array: T,
-    beforeIdx: number,
-    newIdx: number,
-    isDeep = false
-  ): T => {
-    const newArray = isDeep ? cloneDeep(array) : array;
-    if (beforeIdx > -1 && newIdx > -1) {
-      // 先替换后面的，然后拿到替换的结果替换前面的
-      newArray.splice(
-        beforeIdx,
-        1,
-        newArray.splice(newIdx, 1, newArray[beforeIdx]).pop()
-      );
-    }
-    return newArray;
-  };
-  const popupVisibleChange = (val: boolean) => {
-    if (val) {
-      nextTick(() => {
-        const el = document.getElementById('tableSetting') as HTMLElement;
-        const sortable = new Sortable(el, {
-          onEnd(e: any) {
-            const { oldIndex, newIndex } = e;
-            exchangeArray(showColumns.value, oldIndex, newIndex);
-          },
-        });
-      });
-    }
-  };
-
-  // 批量操作
-  const rowSelection = reactive({
-    type: 'checkbox' as TableRowSelection['type'],
-    showCheckedAll: true,
-    onlyCurrent: false,
-  });
-  const selectedRows = ref<BaseEntity[]>([]);
-  const selectedRowKeys = ref<number[]>([]);
-  watch(selectedRowKeys, (newValue, oldValue) => {
-    const newAdd = newValue.filter((item) => !oldValue.includes(item));
-    selectedRows.value = selectedRows.value
-      .concat(
-        renderData.value.filter((item: any) =>
-          newAdd.includes(item[rowKey.value])
-        )
-      )
-      .filter((item: any) =>
-        selectedRowKeys.value.includes(item[rowKey.value])
-      );
-
-    emit('selectedChange', selectedRows.value);
-  });
-  const cancelSelected = () => {
-    selectedRows.value = [];
-    selectedRowKeys.value = [];
-    emit('selectedChange', selectedRows.value);
-  };
-
-  // 调整密度
-  const size = ref<SizeProps>('medium');
-  const densityList = computed(() => [
-    { name: t('components.idbTable.size.mini'), value: 'mini' },
-    { name: t('components.idbTable.size.small'), value: 'small' },
-    { name: t('components.idbTable.size.medium'), value: 'medium' },
-    { name: t('components.idbTable.size.large'), value: 'large' },
-  ]);
-  const handleSelectDensity = (
-    val: string | number | Record<string, any> | undefined,
-    e: Event
-  ) => {
-    size.value = val as SizeProps;
-  };
-
-  // 数据加载和参数处理
-  const { loading, setLoading } = useLoading(false);
-  watch(
-    () => props.loading,
-    (val) => {
-      if (val !== undefined) {
-        setLoading(val);
-      }
-    },
-    {
-      immediate: true,
-    }
-  );
-
-  const params = reactive<ApiListParams>({
-    page: 1,
-    page_size: props.pageSize,
-  });
-  watch(
-    () => props.params,
-    () => {
-      Object.assign(params, props.params);
-    },
-    {
-      deep: true,
-      immediate: true,
-    }
-  );
+  // 完整分页配置
   const pagination = reactive({
-    current: 1,
-    pageSize: props.pageSize,
+    ...urlPagination,
     pageSizeOptions: [10, 20, 50, 100],
     total: 1,
     showTotal: true,
     showPageSize: true,
     showJumper: true,
   });
-  const renderData = ref<BaseEntity[]>([]);
-  const summaryData = ref<BaseEntity>();
-  const load = async (newParams?: Partial<ApiListParams>) => {
-    if (!props.fetch) {
-      return;
-    }
-    setLoading(true);
-    try {
-      Object.assign(params, newParams);
-      let rawParams = toRaw(params);
-      if (props.beforeFetchHook) {
-        rawParams = props.beforeFetchHook(rawParams);
-      }
-      let data = await props.fetch(rawParams);
-      if (props.afterFetchHook) {
-        data = await props.afterFetchHook(data);
-      }
-      setData(data);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const setData = (data: ApiListResult<any>) => {
-    renderData.value = data.items;
-    if (data.amount) {
-      (data.amount as any)[rowKey.value] = t('components.idbTable.summaryText');
-    }
-    summaryData.value = data.amount;
-    if (data.total) {
-      pagination.total = data.total;
-    }
-    if (data.page) {
-      pagination.current = data.page;
-    }
-    if (data.page_size) {
-      pagination.pageSize = data.page_size;
-    }
-  };
+
+  // 使用列管理 composable
+  const {
+    showColumns,
+    visibleColumns,
+    size,
+    handleToggleColumn,
+    handleColumnsReordered,
+    handleSelectDensity,
+  } = useTableColumns(() => props.columns);
+
+  // 使用数据管理 composable
+  const {
+    loading,
+    setLoading,
+    renderData,
+    summaryData,
+    load,
+    setData,
+    reload: reloadData,
+  } = useTableData({
+    fetch: props.fetch,
+    beforeFetchHook: props.beforeFetchHook,
+    afterFetchHook: props.afterFetchHook,
+    rowKey: rowKey.value,
+    loading: props.loading,
+    pagination,
+    params,
+    urlSync: props.urlSync,
+    updatePagination,
+  });
+
+  // 使用选择管理 composable
+  const {
+    selectedRows,
+    selectedRowKeys,
+    onSelectedChange: handleSelectedChange,
+    getSelectedRows,
+  } = useTableSelection(rowKey.value);
+
+  // 使用操作管理 composable
+  const {
+    onSearch,
+    onSortChange,
+    onPageChange,
+    onPageSizeChange,
+    onFilter,
+    onFilterReady: handleFilterReady,
+  } = useTableActions({
+    load,
+    pagination,
+    urlSync: props.urlSync,
+    updatePagination,
+    emit,
+  });
+
+  // 事件处理器
   const reload = () => {
-    load();
+    reloadData();
     emit('reload');
   };
 
-  const onChange = (_: any, extra: TableChangeExtra) => {
-    if (extra.type === 'sorter') {
-      const sortParams = {
-        sort_field: extra.sorter?.field,
-        sort_order: extra.sorter?.direction === 'descend' ? 'desc' : 'asc',
-      };
-      load(sortParams);
-      emit('sortChange', {
-        sort_field: extra.sorter?.field,
-        sort_order: extra.sorter?.direction === 'descend' ? 'desc' : 'asc',
-      });
+  const onSelectedChange = (rows: any[]) => {
+    handleSelectedChange(rows);
+    emit('selectedChange', selectedRows.value);
+  };
+
+  const cancelSelected = () => {
+    if (tableContentRef.value) {
+      tableContentRef.value.clearSelected();
     }
   };
-  // 翻页
-  const onPageChange = (page: number) => {
-    pagination.current = page;
-    load({
-      page,
-    });
-    emit('pageChange', page);
-  };
-  const onPageSizeChange = (pageSize: number) => {
-    pagination.pageSize = pageSize;
-    load({
-      page_size: pageSize,
-    });
-    emit('pageSizeChange', pageSize);
+
+  const onExpand = (rowKey: string | number, record: any) => {
+    if (props.onExpand) {
+      props.onExpand(rowKey, record);
+    }
   };
 
-  // 搜索
-  const searchValue = ref('');
-  const onSearch = (value: string) => {
-    searchValue.value = value;
-    load({
-      search: value,
-      page: 1,
-    });
-    emit('search', value);
-  };
-  const onSearchEnter = () => {
-    onSearch(searchValue.value);
-  };
-
-  // 过滤
-  const onFilter = (filterParams: any) => {
-    load({
-      ...filterParams,
-      page: 1,
-    });
-    emit('filter', filterParams);
-  };
   const onFilterReady = (filterParams: any) => {
-    if (!props.autoLoad) {
-      return;
-    }
-    load({
-      ...filterParams,
-      page: 1,
-    });
-    emit('filterReady', filterParams);
+    handleFilterReady(filterParams, props.autoLoad);
   };
 
+  // 监听参数变化
+  watch(
+    () => props.params,
+    (newPropsParams: ApiListParams | undefined) => {
+      if (!newPropsParams) return;
+
+      if (props.urlSync) {
+        // URL同步模式下，接受父组件传入的分页参数
+        // 但需要同步到UI状态
+        Object.assign(params, newPropsParams);
+        if (newPropsParams.page) {
+          pagination.current = newPropsParams.page;
+        }
+        if (newPropsParams.page_size) {
+          pagination.pageSize = newPropsParams.page_size;
+        }
+      } else {
+        // 非URL同步模式下，分页参数由组件内部管理
+        const { page, page_size: pageSize, ...otherParams } = newPropsParams;
+        Object.assign(params, otherParams);
+      }
+    },
+    {
+      deep: true,
+      // URL同步模式下不使用immediate，避免与父组件的显式调用产生冲突
+      immediate: !props.urlSync,
+    }
+  );
+
+  // 监听数据源变化
   watch(
     () => props.dataSource,
     (val) => {
@@ -453,13 +286,27 @@
     }
   );
 
+  // 组件挂载时初始化
+  onMounted(() => {
+    // 启用了URL同步的表格，等待父组件明确调用load
+    // 这样可以确保路径导航完成后再加载数据
+    if (props.urlSync) {
+      return;
+    }
+
+    // 正常的自动加载逻辑（非URL同步模式）
+    if (props.autoLoad) {
+      load();
+    }
+  });
+
   defineExpose({
     load,
     setData,
     reload,
     setLoading,
     clearSelected: cancelSelected,
-    getSelectedRows: () => selectedRows.value,
+    getSelectedRows,
     getData: () => renderData.value,
   });
 </script>
@@ -469,39 +316,3 @@
     name: 'IdbTable',
   };
 </script>
-
-<style scoped lang="less">
-  :deep(.arco-table-th) {
-    &:last-child {
-      .arco-table-th-item-title {
-        margin-left: 16px;
-      }
-    }
-  }
-
-  .action-icon {
-    margin-left: 12px;
-    cursor: pointer;
-  }
-
-  .active {
-    color: #0960bd;
-    background-color: #e3f4fc;
-  }
-
-  .setting {
-    display: flex;
-    align-items: center;
-    min-width: 160px;
-  }
-
-  .selected-count {
-    margin: 0 5px;
-    color: rgb(var(--primary-6));
-    font-weight: bold;
-  }
-
-  .cancel-selected {
-    margin-left: 20px;
-  }
-</style>

@@ -1,4 +1,4 @@
-import { ref, Ref, nextTick } from 'vue';
+import { ref, Ref, computed, watch } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
 
 export interface DropdownOption {
@@ -13,78 +13,140 @@ interface DropdownContentRef {
   optionRefs: (ComponentPublicInstance | Element | null)[];
 }
 
+/**
+ * 下拉导航组合函数
+ * 使用Vue响应式系统来管理选中状态和滚动行为
+ */
 export default function useDropdownNavigation(
   allOptions: Ref<DropdownOption[]>,
-  popupVisible: Ref<boolean>,
-  dropdownContentRef: Ref<DropdownContentRef | null>
+  popupVisible: Ref<boolean>
 ) {
   const currentSelectedIndex = ref(-1);
   const hoverItem = ref<DropdownOption | null>(null);
-  const preloadTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
 
-  function ensureSelectedItemVisible() {
-    nextTick(() => {
-      if (!dropdownContentRef.value?.contentRef) return;
+  // 响应式计算当前选中的选项
+  const currentSelectedOption = computed(() => {
+    const index = currentSelectedIndex.value;
+    return index >= 0 && index < allOptions.value.length
+      ? allOptions.value[index]
+      : null;
+  });
 
-      const container = dropdownContentRef.value.contentRef;
-      const selectedOptionEl =
-        dropdownContentRef.value.optionRefs[currentSelectedIndex.value];
+  // 响应式计算是否有选中项
+  const hasSelection = computed(() => currentSelectedIndex.value >= 0);
 
-      if (!selectedOptionEl) return;
-
-      // 获取实际的DOM元素（无论是从ComponentPublicInstance还是直接获取）
-      const selectedOption =
-        (selectedOptionEl as ComponentPublicInstance)?.$el ||
-        (selectedOptionEl as Element);
-      const containerTop = container.scrollTop;
-      const containerBottom = containerTop + container.clientHeight;
-      const elementTop = selectedOption.offsetTop;
-      const elementBottom = elementTop + selectedOption.clientHeight;
-
-      if (elementBottom > containerBottom) {
-        container.scrollTop = elementBottom - container.clientHeight;
-      } else if (elementTop < containerTop) {
-        container.scrollTop = elementTop;
-      }
-    });
-  }
-
+  /**
+   * 处理向上键导航
+   */
   function handleKeyUp() {
     if (!popupVisible.value) {
       popupVisible.value = true;
       return;
     }
 
+    const optionsLength = allOptions.value.length;
+    if (optionsLength === 0) return;
+
     if (currentSelectedIndex.value > 0) {
       currentSelectedIndex.value--;
-      ensureSelectedItemVisible();
     } else {
-      currentSelectedIndex.value = allOptions.value.length - 1;
-      ensureSelectedItemVisible();
+      // 循环到最后一项
+      currentSelectedIndex.value = optionsLength - 1;
     }
   }
 
+  /**
+   * 处理向下键导航
+   */
   function handleKeyDown() {
     if (!popupVisible.value) {
       popupVisible.value = true;
       return;
     }
 
-    if (currentSelectedIndex.value < allOptions.value.length - 1) {
+    const optionsLength = allOptions.value.length;
+    if (optionsLength === 0) return;
+
+    if (currentSelectedIndex.value < optionsLength - 1) {
       currentSelectedIndex.value++;
-      ensureSelectedItemVisible();
     } else {
+      // 循环到第一项
       currentSelectedIndex.value = 0;
-      ensureSelectedItemVisible();
     }
   }
 
+  /**
+   * 设置选中项（通过索引）
+   */
+  function setSelectedIndex(index: number) {
+    const optionsLength = allOptions.value.length;
+    if (index >= 0 && index < optionsLength) {
+      currentSelectedIndex.value = index;
+    }
+  }
+
+  /**
+   * 设置悬停项
+   */
+  function setHoverItem(option: DropdownOption | null) {
+    hoverItem.value = option;
+  }
+
+  /**
+   * 通过值选择选项
+   */
+  function selectByValue(value: string) {
+    const index = allOptions.value.findIndex(
+      (option) => option.value === value
+    );
+    if (index >= 0) {
+      currentSelectedIndex.value = index;
+    }
+  }
+
+  /**
+   * 重置选中状态
+   */
+  function resetSelection() {
+    currentSelectedIndex.value = -1;
+    hoverItem.value = null;
+  }
+
+  /**
+   * 获取当前选中项的值
+   */
+  function getCurrentSelectedValue(): string | null {
+    return currentSelectedOption.value?.value || null;
+  }
+
+  // 监听选项变化，重置无效的选中状态
+  watch(allOptions, (newOptions) => {
+    if (currentSelectedIndex.value >= newOptions.length) {
+      currentSelectedIndex.value = -1;
+    }
+  });
+
+  // 监听弹窗关闭，重置选中状态
+  watch(popupVisible, (visible) => {
+    if (!visible) {
+      resetSelection();
+    }
+  });
+
   return {
+    // 状态
     currentSelectedIndex,
+    currentSelectedOption,
     hoverItem,
-    preloadTimeoutId,
-    ensureSelectedItemVisible,
+    hasSelection,
+
+    // 方法
     handleKeyUp,
     handleKeyDown,
+    setSelectedIndex,
+    setHoverItem,
+    selectByValue,
+    resetSelection,
+    getCurrentSelectedValue,
   };
 }

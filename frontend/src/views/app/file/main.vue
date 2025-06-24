@@ -33,7 +33,7 @@
           @copy="handleCopy"
           @cut="handleCut"
           @paste="handlePaste"
-          @back="store.handleBack"
+          @back="handleBack"
           @compress="handleBatchCompress"
           @decompress="handleBatchDecompress"
           @delete="handleBatchDelete"
@@ -66,9 +66,17 @@
 
 <script lang="ts" setup>
   import { storeToRefs } from 'pinia';
-  import { computed, inject, onMounted, ref, watch } from 'vue';
+  import { computed, inject, onMounted, ref, nextTick, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
   import useLoading from '@/composables/loading';
+  import { useLogger } from '@/composables/use-logger';
+  import {
+    parseFilePathFromRoute,
+    parsePaginationFromRoute,
+    createFileRouteWithPagination,
+  } from '@/utils/file-route';
+  import useCurrentHost from '@/composables/current-host';
   import AddressBar from '@/components/file/address-bar/index.vue';
   import CreateFileDrawer from '@/components/file/create-file-drawer/index.vue';
   import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
@@ -97,8 +105,14 @@
   import { useFileColumns } from './composables/use-file-columns';
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const { currentHostId } = useCurrentHost();
   const openTerminal = inject<() => void>('openTerminal');
-  const { loading, setLoading } = useLoading(false);
+  const { loading, setLoading } = useLoading(true);
+
+  // 日志工具
+  const { log, logWarn, logError } = useLogger('FileMain');
 
   // 组件引用
   const fileMainViewRef = ref<InstanceType<typeof FileMainView>>();
@@ -119,12 +133,10 @@
   const { current, tree, pasteVisible, decompressVisible, selected } =
     storeToRefs(store);
 
-  // 计算属性
-  const showHidden = computed(() => store.showHidden);
+  // 直接从 store 解构
+  const { showHidden } = storeToRefs(store);
   const updateShowHidden = (val: boolean) => {
-    store.$patch({
-      showHidden: val,
-    });
+    store.showHidden = val;
   };
 
   // 组合函数设置
@@ -157,18 +169,31 @@
     selected,
   });
 
-  // 表格选择状态（用于批量操作）
-  const tableSelected = ref<FileItem[]>([]);
+  // 表格参数（包含从URL解析的分页参数）
+  const params = computed(() => {
+    const paginationParams = parsePaginationFromRoute(route.query);
+    // 直接从路由参数解析路径，避免依赖store.pwd的时序问题
+    const currentPath = parseFilePathFromRoute(route.params);
 
-  // 处理表格选择变化
-  const handleTableSelectionChange = (newSelected: FileItem[]) => {
-    tableSelected.value = newSelected;
-  };
+    const result = {
+      show_hidden: showHidden.value,
+      path: currentPath, // 使用从路由解析的路径
+      order_by: 'name',
+      order: 'asc',
+      page: paginationParams.page,
+      page_size: paginationParams.pageSize,
+    } as const;
+
+    return result;
+  });
 
   const { handleGotoWrapper, handleTreeItemSelect, handleTreeItemDoubleClick } =
     useFileNavigation({
       store,
       fileEditorDrawerRef,
+      router,
+      currentHostId,
+      setLoading,
     });
 
   const { handleItemSelect, handleItemDoubleClick, clearSelected } =
@@ -176,34 +201,12 @@
       store,
       fileEditorDrawerRef,
       fileMainViewRef,
+      router,
+      currentHostId,
+      setLoading,
     });
 
   const { columns } = useFileColumns(t);
-
-  // 表格参数
-  const params = computed(() => {
-    return {
-      show_hidden: showHidden.value,
-      path: store.pwd,
-      order_by: 'name',
-      order: 'asc',
-    } as const;
-  });
-
-  // 侦听器
-  watch(
-    () => store.current,
-    (newValue) => {
-      if (!newValue) return;
-      if (newValue.is_dir) {
-        store.handleOpen(newValue as unknown as FileItem);
-      }
-    }
-  );
-
-  watch(params, () => {
-    fileMainViewRef.value?.load(params.value);
-  });
 
   // 方法
   const reload = () => {
@@ -215,9 +218,107 @@
     reload();
   };
 
-  onMounted(() => {
-    store.initTree();
+  // 获取父级路径
+  const getParentPath = (currentPath: string): string => {
+    if (currentPath === '/') return '/';
+
+    const normalizedPath =
+      currentPath.endsWith('/') && currentPath !== '/'
+        ? currentPath.slice(0, -1)
+        : currentPath;
+
+    const lastSlashIndex = normalizedPath.lastIndexOf('/');
+    return lastSlashIndex <= 0 ? '/' : normalizedPath.slice(0, lastSlashIndex);
+  };
+
+  // 处理返回按钮
+  const handleBack = () => {
+    const currentPath = store.pwd;
+
+    // 检查是否可以返回
+    if (!store.current || currentPath === '/') {
+      return;
+    }
+
+    setLoading(true);
+
+    const parentPath = getParentPath(currentPath);
+    const routeConfig = createFileRouteWithPagination(
+      parentPath,
+      undefined, // 重置分页参数
+      currentHostId.value ? { id: currentHostId.value } : {}
+    );
+
+    router.push(routeConfig);
+  };
+
+  // 处理表格选择变化
+  const handleTableSelectionChange = (newSelected: FileItem[]) => {
+    // 如果需要处理表格选择，可以在这里添加逻辑
+    // 目前选择状态由 selected 管理
+  };
+
+  onMounted(async () => {
+    try {
+      // 初始化文件树
+      store.initTree();
+
+      // 等待路径导航完成
+      const targetPath = parseFilePathFromRoute(route.params);
+
+      if (targetPath !== store.pwd) {
+        // 如果当前路径与目标路径不同，等待导航完成
+        await store.navigateToPath(targetPath);
+      }
+
+      // 路径导航完成后，手动触发表格加载
+      await nextTick();
+
+      // 简化数据加载逻辑
+      if (fileMainViewRef.value?.load) {
+        await fileMainViewRef.value.load(params.value);
+      } else {
+        logWarn('File view ref not available during mount');
+        // 等待下一个tick后再试一次
+        await nextTick();
+        if (fileMainViewRef.value?.load) {
+          await fileMainViewRef.value.load(params.value);
+        } else {
+          logError('File view ref still not available after nextTick');
+        }
+      }
+    } catch (error) {
+      logError('Failed to initialize file view:', error);
+    } finally {
+      setLoading(false);
+    }
   });
+
+  // 监听路径参数变化
+  watch(
+    () => parseFilePathFromRoute(route.params),
+    async (newPath, oldPath) => {
+      // 只在路径真正变化时处理
+      if (newPath !== oldPath && newPath !== store.pwd) {
+        setLoading(true);
+
+        try {
+          await store.navigateToPath(newPath);
+          await nextTick();
+
+          if (fileMainViewRef.value?.load) {
+            await fileMainViewRef.value.load(params.value);
+          } else {
+            logWarn('File view ref not available after path change');
+          }
+        } catch (error) {
+          logError('Failed to load after path change:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+  );
 </script>
 
 <style scoped>

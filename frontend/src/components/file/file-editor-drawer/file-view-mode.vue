@@ -250,27 +250,25 @@
 <style scoped>
   /* 文件模式控制样式 */
   .file-mode-controls {
-    position: fixed;
-    top: 50px;
-    right: 20px;
-    z-index: 100;
+    position: relative;
     display: flex;
+    flex-shrink: 0; /* 防止收缩 */
     align-items: center;
-    justify-content: center;
-    width: auto;
-    max-width: 800px;
-    padding: 8px 16px;
+    justify-content: flex-end;
+    min-width: 0; /* 允许内容压缩 */
+    padding: 8px 12px;
     background-color: var(--color-bg-1);
     border: 1px solid var(--color-border);
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
   }
 
   .info-section {
     display: flex;
+    flex-shrink: 0;
     gap: 8px;
     align-items: center;
-    margin-right: 20px;
+    margin-right: 12px;
   }
 
   .info-label {
@@ -284,8 +282,10 @@
 
   .actions-section {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    min-width: 0;
   }
 
   .line-input-section {

@@ -92,4 +92,13 @@ export interface Props extends /* @vue-ignore */ TableProps {
   hasSearch?: boolean;
   // 是否有顶部工具栏
   hasToolbar?: boolean;
+  // URL同步功能
+  urlSync?: boolean;
+  // URL同步的基础路径
+  basePath?: string;
+  // URL同步的查询参数名称配置
+  urlParamNames?: {
+    page?: string;
+    pageSize?: string;
+  };
 }

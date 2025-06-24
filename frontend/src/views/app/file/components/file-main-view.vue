@@ -50,7 +50,7 @@
       </a-button-group>
 
       <a-button-group
-        v-if="tableSelected && tableSelected.length > 0"
+        v-if="selectedItems.length > 0"
         class="idb-button-group ml-4"
       >
         <a-button @click="$emit('copy')">
@@ -79,7 +79,9 @@
         <a-button @click="$emit('paste')">
           <icon-paste />
           <span class="ml-2">
-            {{ $t('app.file.list.action.paste', { count: selected.length }) }}
+            {{
+              $t('app.file.list.action.paste', { count: selectedItems.length })
+            }}
           </span>
         </a-button>
         <a-button @click="$emit('clearSelected')">
@@ -94,14 +96,17 @@
       :params="params"
       :columns="columns"
       :fetch="getFileListApi"
+      :loading="loading"
       has-batch
       row-key="path"
+      url-sync
+      :auto-load="false"
       @selected-change="handleTableSelectionChange"
     >
       <template #leftActions>
         <a-checkbox
           :modelValue="props.showHidden"
-          @update:model-value="(value: any) => emit('update:showHidden', Boolean(value))"
+          @update:model-value="handleShowHiddenChange"
         >
           {{ $t('app.file.list.filter.showHidden') }}
         </a-checkbox>
@@ -186,7 +191,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, GlobalComponents } from 'vue';
+  import { ref, GlobalComponents, watch, computed } from 'vue';
   import { debounce } from 'lodash';
   import { getFileListApi } from '@/api/file';
   import FolderIcon from '@/assets/icons/color-folder.svg';
@@ -194,6 +199,7 @@
   import CompressionIcon from '@/assets/icons/compression.svg';
   import DecompressionIcon from '@/assets/icons/decompression.svg';
   import { FileItem } from '@/components/file/file-editor-drawer/types';
+  import { useLogger } from '@/composables/use-logger';
 
   interface TableColumn {
     dataIndex: string;
@@ -239,19 +245,22 @@
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
 
-  // 分离表格选择状态和单击选择状态
-  const tableSelected = ref<FileItem[]>([]);
+  // 初始化日志
+  const { logInfo, logWarn } = useLogger('FileMainView');
 
-  // 处理表格复选框选择变化
+  // 直接使用props中的状态
+  const selectedItems = computed(() => props.selected || []);
+
+  // 事件处理直接向上传递，不维护内部状态
   const handleTableSelectionChange = (selected: FileItem[]) => {
-    tableSelected.value = selected;
     emit('selectedChange', selected);
   };
 
   // Handle item selection with debounce to avoid conflicts with double-click
+  const DEBOUNCE_DELAY = 150;
   const handleItemSelect = debounce((record: FileItem) => {
     emit('itemSelect', record);
-  }, 150);
+  }, DEBOUNCE_DELAY);
 
   const handleItemDoubleClick = (record: FileItem) => {
     // Cancel single click action to prevent conflicts
@@ -270,17 +279,35 @@
   };
 
   // Public methods exposed for parent component
-  const load = (params: Record<string, any>) => {
-    gridRef.value?.load(params);
+  const load = async (customParams?: any) => {
+    logInfo('load method called:', {
+      customParams,
+      tableRef: !!gridRef.value,
+      hasLoadMethod: !!(gridRef.value && gridRef.value.load),
+      receivedLoadingProp: props.loading,
+      urlSync: true,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (gridRef.value?.load) {
+      logInfo('calling gridRef.load with params:', customParams);
+      await gridRef.value.load(customParams);
+      logInfo('gridRef.load completed');
+    } else {
+      logWarn('gridRef or load method not available:', {
+        gridRefExists: !!gridRef.value,
+        loadMethodExists: !!(gridRef.value && gridRef.value.load),
+      });
+    }
   };
 
   const reload = () => {
     gridRef.value?.reload();
   };
 
-  // 清除表格选择
+  // 清除选择也直接向上传递
   const clearSelected = () => {
-    tableSelected.value = [];
+    emit('selectedChange', []);
     gridRef.value?.clearSelected();
   };
 
@@ -288,13 +315,32 @@
     return gridRef.value?.getData();
   };
 
-  // Expose methods to parent component
   defineExpose({
     load,
     reload,
     getData,
     clearSelected,
   });
+
+  // 监听loading状态变化，用于调试
+  watch(
+    () => props.loading,
+    (newLoading, oldLoading) => {
+      logInfo('loading prop changed:', {
+        from: oldLoading,
+        to: newLoading,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    { immediate: true }
+  );
+
+  // 1. 提取事件处理器
+  const handleShowHiddenChange = (
+    value: boolean | (string | number | boolean)[]
+  ) => {
+    emit('update:showHidden', Boolean(value));
+  };
 </script>
 
 <style scoped>

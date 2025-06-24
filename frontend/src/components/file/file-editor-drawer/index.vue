@@ -26,52 +26,54 @@
       @mousedown="handleResizeStart"
     ></div>
 
-    <a-spin
-      ref="drawerBodyRef"
-      :spinning="loading === true"
-      class="file-editor-container"
-      tip="加载文件中..."
-    >
-      <template #icon>
-        <icon-loading />
-      </template>
+    <div class="file-editor-container" @scroll="handleScroll">
+      <a-spin
+        :spinning="loading === true"
+        tip="加载文件中..."
+        style="height: 100%"
+      >
+        <template #icon>
+          <icon-loading />
+        </template>
 
-      <!-- 工具栏 -->
-      <EditorToolbar
-        :drawer-width="drawerWidth"
-        :is-full-screen="isFullScreen"
-        :read-only="readOnly"
-        @update:drawer-width="setDrawerWidth"
-        @toggle-full-screen="toggleFullScreen"
-        @toggle-edit-mode="toggleEditMode"
-      />
+        <!-- 工具栏容器 - 左侧EditorToolbar，右侧FileViewMode -->
+        <div class="toolbar-container">
+          <EditorToolbar
+            :drawer-width="drawerWidth"
+            :is-full-screen="isFullScreen"
+            :read-only="readOnly"
+            @update:drawer-width="setDrawerWidth"
+            @toggle-full-screen="toggleFullScreen"
+            @toggle-edit-mode="toggleEditMode"
+          />
 
-      <!-- 编辑器内容 -->
-      <CodeEditor
-        v-model="content"
-        :loading="loading"
-        :file="file"
-        :is-partial-view="isPartialView"
-        :read-only="readOnly"
-        :loading-text="t('app.file.editor.loadingContent')"
-        @editor-ready="handleEditorReady"
-      />
+          <FileViewMode
+            v-if="viewMode !== 'loading'"
+            ref="viewModeControlRef"
+            :view-mode="viewMode"
+            :line-count="lineCount"
+            :batch-size="batchSize"
+            :is-large-file="isLargeFile === true"
+            :is-follow-mode="isFollowMode"
+            :is-follow-paused="isFollowPaused"
+            @change-view-mode="handleViewModeChange"
+            @pause-follow="pauseFollowMode"
+            @resume-follow="resumeFollowMode"
+          />
+        </div>
 
-      <!-- 视图模式控制 -->
-      <FileViewMode
-        v-if="viewMode !== 'loading'"
-        ref="viewModeControlRef"
-        :view-mode="viewMode"
-        :line-count="lineCount"
-        :batch-size="batchSize"
-        :is-large-file="isLargeFile === true"
-        :is-follow-mode="isFollowMode"
-        :is-follow-paused="isFollowPaused"
-        @change-view-mode="handleViewModeChange"
-        @pause-follow="pauseFollowMode"
-        @resume-follow="resumeFollowMode"
-      />
-    </a-spin>
+        <!-- 编辑器内容 -->
+        <CodeEditor
+          v-model="content"
+          :loading="loading"
+          :file="file"
+          :is-partial-view="isPartialView"
+          :read-only="readOnly"
+          :loading-text="t('app.file.editor.loadingContent')"
+          @editor-ready="handleEditorReady"
+        />
+      </a-spin>
+    </div>
 
     <template #footer>
       <EditorFooter
@@ -123,61 +125,12 @@
     });
   };
 
-  // 滚动监听组合式函数
-  const useScrollListener = (
-    elRef: any,
-    callback: (scrollTop: number) => void
-  ) => {
-    let scrollableElement: HTMLElement | null = null;
-
-    // 查找可滚动元素的辅助函数
-    const findScrollableElement = (el: HTMLElement): HTMLElement => {
-      // 针对Arco Design组件的特殊处理
-      const arcoBody = el.querySelector('.arco-drawer-body');
-      return (arcoBody as HTMLElement) || el;
-    };
-
-    // 滚动事件处理函数
-    const handleScroll = (e: Event) => {
-      if (e.target instanceof HTMLElement) {
-        callback(e.target.scrollTop);
-      }
-    };
-
-    // 观察引用元素变化
-    watch(
-      () => elRef.value,
-      (newEl) => {
-        // 清理旧的事件监听
-        if (scrollableElement) {
-          scrollableElement.removeEventListener('scroll', handleScroll);
-          scrollableElement = null;
-        }
-
-        // 设置新的事件监听
-        if (newEl) {
-          scrollableElement = findScrollableElement(newEl);
-          scrollableElement.addEventListener('scroll', handleScroll);
-        }
-      },
-      { immediate: true }
-    );
-
-    // 在组件卸载时清理事件监听
-    onUnmounted(() => {
-      if (scrollableElement) {
-        scrollableElement.removeEventListener('scroll', handleScroll);
-      }
-    });
-  };
-
   const { t } = useI18n();
   const visible = ref(false);
   const editorView = shallowRef();
   const viewModeControlRef = ref();
   const drawerRef = ref<HTMLElement | null>(null);
   const resizeHandleRef = ref<HTMLElement | null>(null);
-  const drawerBodyRef = ref<HTMLElement | null>(null);
   const readOnly = ref(true); // 默认为只读模式
 
   // 拖拽状态变量
@@ -259,8 +212,13 @@
   useEventListener(document, 'mouseup', handleMouseUp);
   useEventListener(window, 'resize', handleWindowResize);
 
-  // 使用组合式函数处理滚动监听
-  useScrollListener(drawerBodyRef, updateScrollPosition);
+  // 滚动事件处理函数 - 完全使用Vue的事件系统
+  const handleScroll = (event: Event) => {
+    const target = event.target as HTMLElement;
+    if (target) {
+      updateScrollPosition(target.scrollTop);
+    }
+  };
 
   // 在组件卸载时清理文件编辑器资源
   onUnmounted(() => {
@@ -407,7 +365,51 @@
     flex: 1;
     flex-direction: column;
     width: 100%;
-    overflow: hidden;
+    height: 100%;
+    padding: 0 16px 16px 16px; /* 进一步减小顶部padding */
+    overflow: hidden auto; /* 启用垂直滚动 */
+  }
+
+  /* 确保Spin组件不影响布局 */
+  .file-editor-container :deep(.arco-spin) {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+
+  .file-editor-container :deep(.arco-spin-container) {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 工具栏容器样式 */
+  .toolbar-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  /* 响应式布局 - 在小屏幕上垂直堆叠 */
+  @media (width <= 768px) {
+    .toolbar-container {
+      flex-direction: column;
+      gap: 8px;
+      align-items: stretch;
+    }
+  }
+
+  /* 确保CodeEditor正确显示 */
+  .file-editor-container :deep(.code-editor) {
+    flex: 1;
+    order: 0; /* 在工具栏之后显示 */
+    min-height: 0; /* 允许flex收缩 */
   }
 
   /* 加强loading效果 */
