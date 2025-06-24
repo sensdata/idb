@@ -1280,6 +1280,17 @@ definitions:
     required:
     - operation
     type: object
+  model.OperationResult:
+    properties:
+      command:
+        type: string
+      extra:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   model.Overview:
     properties:
       boot_time:
@@ -3259,6 +3270,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Operate compose
       tags:
       - Docker
@@ -3630,6 +3643,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Execute operations to container
       tags:
       - Docker
@@ -3864,6 +3879,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Batch Delete images
       tags:
       - Docker
@@ -3923,6 +3940,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Build image
       tags:
       - Docker
@@ -3948,6 +3967,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Export image
       tags:
       - Docker
@@ -3973,6 +3994,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Import image
       tags:
       - Docker
@@ -4019,6 +4042,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Pull image
       tags:
       - Docker
@@ -4049,6 +4074,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.OperationResult'
       summary: Push image
       tags:
       - Docker

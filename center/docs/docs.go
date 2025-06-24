@@ -1701,7 +1701,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2255,7 +2258,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2658,7 +2664,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2696,7 +2705,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2734,7 +2746,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2772,7 +2787,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2842,7 +2860,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -2887,7 +2908,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.OperationResult"
+                        }
                     }
                 }
             }
@@ -13389,6 +13413,23 @@ const docTemplate = `{
                 },
                 "service": {
                     "type": "string"
+                }
+            }
+        },
+        "model.OperationResult": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
