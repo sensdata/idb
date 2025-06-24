@@ -19,7 +19,7 @@
             @select="handleSessionAction(session, $event as any)"
           >
             <span class="tab-close" @click.stop>
-              <icon-more />
+              <icon-down />
             </span>
             <template #content>
               <a-doption :value="SESSION_ACTIONS.DETACH">
@@ -416,11 +416,11 @@
   .tab-item {
     position: relative;
     display: flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
     min-width: 80px;
     max-width: 160px;
-    padding: 6px 12px;
+    padding: 6px 6px 6px 12px;
     margin-right: 4px;
     font-size: 13px;
     color: #722ed1;
@@ -450,6 +450,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: inherit;
+    font-style: italic;
   }
 
   .tab-status {

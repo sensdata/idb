@@ -126,6 +126,18 @@ export function usePermission(initialValue?: string) {
           parsed.group
         ),
       };
+    } else {
+      // 当输入无效时，设置默认权限并生成描述
+      permission.value = {
+        mode: DEFAULT_PERMISSION.mode,
+        user: DEFAULT_PERMISSION.user,
+        group: DEFAULT_PERMISSION.group,
+        description: generateDescription(
+          DEFAULT_PERMISSION.mode,
+          DEFAULT_PERMISSION.user,
+          DEFAULT_PERMISSION.group
+        ),
+      };
     }
   };
 
@@ -170,6 +182,13 @@ export function usePermission(initialValue?: string) {
   // 初始化
   if (initialValue) {
     updateFromString(initialValue);
+  } else {
+    // 没有初始值时，生成默认权限描述
+    permission.value.description = generateDescription(
+      DEFAULT_PERMISSION.mode,
+      DEFAULT_PERMISSION.user,
+      DEFAULT_PERMISSION.group
+    );
   }
 
   return {

@@ -47,12 +47,13 @@
       />
 
       <!-- 编辑器内容 -->
-      <EditorContent
+      <CodeEditor
         v-model="content"
         :loading="loading"
-        :extensions="extensions"
+        :file="file"
         :is-partial-view="isPartialView"
         :read-only="readOnly"
+        :loading-text="t('app.file.editor.loadingContent')"
         @editor-ready="handleEditorReady"
       />
 
@@ -99,14 +100,13 @@
   import { EditorView } from '@codemirror/view';
   import { IconLoading } from '@arco-design/web-vue/es/icon';
   import { useConfirm } from '@/composables/confirm';
+  import CodeEditor from '@/components/code-editor/index.vue';
   import useFileEditor from './composables/use-file-editor';
   import useDrawerResize from './composables/use-drawer-resize';
-  import useEditorConfig from './composables/use-editor-config';
   import { ContentViewMode } from './types';
   import FileViewMode from './file-view-mode.vue';
   import EditorToolbar from './editor-toolbar.vue';
   import EditorFooter from './editor-footer.vue';
-  import EditorContent from './editor-content.vue';
 
   // 事件监听器组合式函数
   const useEventListener = (
@@ -214,7 +214,6 @@
     toggleFullScreen,
     updateScrollPosition,
   } = useDrawerResize();
-  const { extensions } = useEditorConfig(file);
 
   const { confirm } = useConfirm();
 

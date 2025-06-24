@@ -32,7 +32,14 @@
           />
         </a-tab-pane>
         <a-tab-pane key="env" :title="$t('app.process.detailDrawer.envInfo')">
-          <shell-editor :default-value="infoRef?.env || ''" />
+          <div class="editor-container">
+            <CodeEditor
+              :model-value="infoRef?.env || ''"
+              :file="{ name: 'env', path: '/tmp/env' }"
+              :extensions="lightThemeExtensions"
+              :readonly="true"
+            />
+          </div>
         </a-tab-pane>
         <a-tab-pane
           key="network"
@@ -55,12 +62,16 @@
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { getProcessDetailApi } from '@/api/process';
-  import ShellEditor from '@/components/shell-editor/index.vue';
+  import CodeEditor from '@/components/code-editor/index.vue';
+  import { githubLight } from '@fsegurai/codemirror-theme-github-light';
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(false);
 
   const infoRef = ref();
+
+  // 添加浅色主题扩展，提供语法高亮颜色
+  const lightThemeExtensions = computed(() => [githubLight]);
 
   const baseData = computed(() => {
     const info = infoRef.value;
@@ -219,3 +230,16 @@
     load,
   });
 </script>
+
+<style scoped>
+  .editor-container {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-2);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+  }
+</style>

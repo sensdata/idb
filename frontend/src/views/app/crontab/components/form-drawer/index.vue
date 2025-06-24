@@ -9,6 +9,7 @@
     "
     unmountOnClose
     :ok-loading="submitLoading"
+    :ok-text="t('common.form.submitText')"
     @ok="handleOk"
     @cancel="handleCancel"
     @before-open="handleBeforeOpen"
@@ -140,13 +141,16 @@
           :label="t('app.crontab.form.content.label')"
         >
           <a-spin :loading="loading" style="width: 100%">
-            <ShellEditor
-              :key="`content-${contentEditorKey}`"
-              v-model="formState.content"
-              :readonly="true"
-              class="form-code-editor"
-              @blur="handleContentBlur"
-            />
+            <div class="editor-container">
+              <CodeEditor
+                :key="`content-${contentEditorKey}`"
+                v-model="formState.content"
+                :file="{ name: 'crontab.sh', path: '/tmp/crontab.sh' }"
+                :extensions="lightThemeExtensions"
+                :readonly="true"
+                @blur="handleContentBlur"
+              />
+            </div>
           </a-spin>
         </a-form-item>
 
@@ -171,9 +175,11 @@
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import usetCurrentHost from '@/composables/current-host';
+  import { useLogger } from '@/composables/use-logger';
   import { CRONTAB_TYPE } from '@/config/enum';
   import { CrontabEntity } from '@/entity/Crontab';
-  import ShellEditor from '@/components/shell-editor/index.vue';
+  import CodeEditor from '@/components/code-editor/index.vue';
+  import { githubLight } from '@fsegurai/codemirror-theme-github-light';
   import PeriodInput from '../period-input/index.vue';
 
   // 引入自定义钩子函数
@@ -205,6 +211,11 @@
   const { t } = useI18n();
 
   const { currentHostId } = usetCurrentHost();
+
+  const { logError } = useLogger('CrontabFormDrawer');
+
+  // 添加浅色主题扩展，提供语法高亮颜色
+  const lightThemeExtensions = computed(() => [githubLight]);
 
   const paramsRef = ref<{
     name?: string;
@@ -324,7 +335,7 @@
       );
       refreshContentEditor();
     } catch (error) {
-      console.error('更新脚本内容时发生错误:', error);
+      logError('更新脚本内容时发生错误:', error);
     } finally {
       // 确保状态标志被重置
       setTimeout(() => {
@@ -344,7 +355,7 @@
         await dataLoader.loadData(paramsRef);
       }
     } catch (error) {
-      console.error('加载数据失败:', error);
+      logError('加载数据失败:', error);
     } finally {
       loading.value = false;
     }
@@ -420,7 +431,7 @@
         }
       );
     } catch (error) {
-      console.error('提交表单时发生错误:', error);
+      logError('提交表单时发生错误:', error);
     }
   };
 
@@ -519,137 +530,15 @@
     resize: vertical;
   }
 
-  .form-code-editor {
+  .editor-container {
+    position: relative;
+    display: flex;
     width: 100%;
-    min-height: 200px;
-    background-color: #ffffff !important;
-    border: 1px solid #e5e6eb;
-    border-radius: 6px;
-
-    // 强制覆盖所有可能的黑色背景
-    * {
-      background-color: #ffffff !important;
-    }
-
-    // 针对可能的深色元素进行全面覆盖
-    div,
-    span,
-    pre,
-    code {
-      background-color: #ffffff !important;
-      color: #1d2129 !important;
-    }
-
-    // 覆盖代码编辑器的深色主题
-    :deep(.cm-editor) {
-      background-color: #ffffff !important;
-      color: #1d2129 !important;
-    }
-
-    :deep(.cm-content) {
-      background-color: #ffffff !important;
-      color: #1d2129 !important;
-    }
-
-    :deep(.cm-focused) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.cm-scroller) {
-      background-color: #ffffff !important;
-    }
-
-    // 行号区域样式覆盖
-    :deep(.cm-gutters) {
-      background-color: #ffffff !important;
-      border-right: 1px solid #e5e6eb !important;
-    }
-
-    :deep(.cm-gutter) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.cm-lineNumbers) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.cm-lineNumbers .cm-gutterElement) {
-      background-color: #ffffff !important;
-      color: #86909c !important;
-    }
-
-    // Monaco Editor 样式覆盖（如果使用的是Monaco）
-    :deep(.monaco-editor) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.monaco-editor .margin) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.monaco-editor .monaco-editor-background) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.monaco-editor .margin-view-overlays) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.monaco-editor .line-numbers) {
-      background-color: #ffffff !important;
-      color: #86909c !important;
-    }
-
-    // 通用行号样式覆盖（针对任何可能的编辑器）
-    :deep(.line-numbers) {
-      background-color: #ffffff !important;
-      color: #86909c !important;
-    }
-
-    :deep(.gutter) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.CodeMirror-gutters) {
-      background-color: #ffffff !important;
-      border-right: 1px solid #e5e6eb !important;
-    }
-
-    :deep(.CodeMirror-linenumber) {
-      background-color: #ffffff !important;
-      color: #86909c !important;
-    }
-
-    // 额外的深度样式覆盖，确保没有任何黑色残留
-    :deep(.cm-theme-dark) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.cm-editor.cm-focused) {
-      outline: none !important;
-    }
-
-    :deep(.view-line) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.current-line) {
-      background-color: #ffffff !important;
-    }
-
-    // 针对可能的深色主题类
-    :deep(.dark) {
-      background-color: #ffffff !important;
-    }
-
-    :deep(.theme-dark) {
-      background-color: #ffffff !important;
-    }
-
-    // 针对行背景
-    :deep(.line) {
-      background-color: #ffffff !important;
-    }
+    height: 300px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-2);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   :deep(.arco-form-item-label) {

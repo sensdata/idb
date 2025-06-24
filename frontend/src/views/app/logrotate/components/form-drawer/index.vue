@@ -54,7 +54,7 @@
   import { ref, computed, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import useEditorConfig from '@/components/file/file-editor-drawer/composables/use-editor-config';
+  import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
   import { LOGROTATE_TYPE } from '@/config/enum';
 
   // 组合式API
@@ -238,7 +238,7 @@
           delayCompress: false,
           missingOk: false,
           notIfEmpty: false,
-          create: '',
+          create: 'create 0644 root root',
           preRotate: '',
           postRotate: '',
         });

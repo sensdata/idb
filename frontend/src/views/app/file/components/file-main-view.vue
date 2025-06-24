@@ -1,79 +1,80 @@
 <template>
   <div class="file-main">
-    <div class="action-wrap mb-4">
+    <div class="toolbar">
       <a-button-group class="idb-button-group">
         <a-button @click="$emit('back')">
           <icon-left />
-          <span class="ml-2">{{ $t('app.file.list.action.back') }}</span>
         </a-button>
-        <template v-if="!selected.length">
-          <a-dropdown
-            position="bl"
-            @select="(key) => handleCreate(key as string)"
-          >
-            <a-button>
-              <icon-plus />
-              <span class="mx-2">{{ $t('app.file.list.action.create') }}</span>
-              <icon-caret-down />
-            </a-button>
+        <a-dropdown
+          position="bl"
+          @select="(key) => handleCreate(key as string)"
+        >
+          <a-button>
+            <icon-plus />
+            <span class="mx-2">{{ $t('app.file.list.action.create') }}</span>
+            <icon-caret-down />
+          </a-button>
 
-            <template #content>
-              <a-doption value="createFolder">
-                <template #icon>
-                  <icon-plus />
-                </template>
-                <template #default>
-                  <span class="ml-2">{{
-                    $t('app.file.list.action.createFolder')
-                  }}</span>
-                </template>
-              </a-doption>
-              <a-doption value="createFile">
-                <template #icon>
-                  <icon-plus />
-                </template>
-                <template #default>
-                  <span class="ml-2">{{
-                    $t('app.file.list.action.createFile')
-                  }}</span>
-                </template>
-              </a-doption>
-            </template>
-          </a-dropdown>
-          <a-button @click="$emit('upload')">
-            <icon-upload />
-            <span class="ml-2">{{ $t('app.file.list.action.upload') }}</span>
-          </a-button>
-        </template>
-        <template v-else>
-          <a-button @click="$emit('copy')">
-            <icon-copy />
-            <span class="ml-2">{{ $t('app.file.list.action.copy') }}</span>
-          </a-button>
-          <a-button @click="$emit('cut')">
-            <icon-scissor />
-            <span class="ml-2">{{ $t('app.file.list.action.cut') }}</span>
-          </a-button>
-          <a-button v-if="decompressVisible" @click="$emit('decompress')">
-            <decompression-icon />
-            <span class="ml-2">{{
-              $t('app.file.list.action.decompress')
-            }}</span>
-          </a-button>
-          <a-button v-else @click="$emit('compress')">
-            <compression-icon />
-            <span class="ml-2">{{ $t('app.file.list.action.compress') }}</span>
-          </a-button>
-          <a-button @click="$emit('delete')">
-            <icon-delete />
-            <span class="ml-2">{{ $t('app.file.list.action.delete') }}</span>
-          </a-button>
-        </template>
+          <template #content>
+            <a-doption value="createFolder">
+              <template #icon>
+                <icon-plus />
+              </template>
+              <template #default>
+                <span class="ml-2">{{
+                  $t('app.file.list.action.createFolder')
+                }}</span>
+              </template>
+            </a-doption>
+            <a-doption value="createFile">
+              <template #icon>
+                <icon-plus />
+              </template>
+              <template #default>
+                <span class="ml-2">{{
+                  $t('app.file.list.action.createFile')
+                }}</span>
+              </template>
+            </a-doption>
+          </template>
+        </a-dropdown>
+        <a-button @click="$emit('upload')">
+          <icon-upload />
+          <span class="ml-2">{{ $t('app.file.list.action.upload') }}</span>
+        </a-button>
+
         <a-button @click="$emit('terminal')">
           <icon-code-square />
           <span class="ml-2">{{ $t('app.file.list.action.terminal') }}</span>
         </a-button>
       </a-button-group>
+
+      <a-button-group
+        v-if="tableSelected && tableSelected.length > 0"
+        class="idb-button-group ml-4"
+      >
+        <a-button @click="$emit('copy')">
+          <icon-copy />
+          <span class="ml-2">{{ $t('app.file.list.action.copy') }}</span>
+        </a-button>
+        <a-button @click="$emit('cut')">
+          <icon-scissor />
+          <span class="ml-2">{{ $t('app.file.list.action.cut') }}</span>
+        </a-button>
+        <a-button v-if="decompressVisible" @click="$emit('decompress')">
+          <decompression-icon />
+          <span class="ml-2">{{ $t('app.file.list.action.decompress') }}</span>
+        </a-button>
+        <a-button v-else @click="$emit('compress')">
+          <compression-icon />
+          <span class="ml-2">{{ $t('app.file.list.action.compress') }}</span>
+        </a-button>
+        <a-button @click="$emit('delete')">
+          <icon-delete />
+          <span class="ml-2">{{ $t('app.file.list.action.delete') }}</span>
+        </a-button>
+      </a-button-group>
+
       <a-button-group v-if="pasteVisible" class="idb-button-group ml-4">
         <a-button @click="$emit('paste')">
           <icon-paste />
@@ -95,12 +96,12 @@
       :fetch="getFileListApi"
       has-batch
       row-key="path"
-      @selected-change="$emit('selectedChange', $event)"
+      @selected-change="handleTableSelectionChange"
     >
       <template #leftActions>
         <a-checkbox
-          :modelValue="showHidden"
-          @update:model-value="$emit('update:showHidden', $event)"
+          :modelValue="props.showHidden"
+          @update:model-value="(value: any) => emit('update:showHidden', Boolean(value))"
         >
           {{ $t('app.file.list.filter.showHidden') }}
         </a-checkbox>
@@ -204,76 +205,56 @@
     align?: 'left' | 'center' | 'right';
   }
 
-  const {
-    params,
-    columns,
-    showHidden,
-    selected,
-    pasteVisible,
-    decompressVisible,
-  } = defineProps({
-    params: {
-      type: Object,
-      required: true,
-    },
-    columns: {
-      type: Array as () => TableColumn[],
-      required: true,
-    },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    showHidden: {
-      type: Boolean,
-      default: false,
-    },
-    selected: {
-      type: Array as () => FileItem[],
-      default: () => [],
-    },
-    pasteVisible: {
-      type: Boolean,
-      default: false,
-    },
-    decompressVisible: {
-      type: Boolean,
-      default: false,
-    },
-  });
+  const props = defineProps<{
+    params: Record<string, any>;
+    columns: TableColumn[];
+    loading?: boolean;
+    showHidden?: boolean;
+    selected: FileItem[];
+    pasteVisible?: boolean;
+    decompressVisible?: boolean;
+  }>();
 
-  const emit = defineEmits([
-    'update:showHidden',
-    'copy',
-    'cut',
-    'paste',
-    'create',
-    'upload',
-    'compress',
-    'decompress',
-    'delete',
-    'terminal',
-    'clearSelected',
-    'selectedChange',
-    'itemSelect',
-    'itemDoubleClick',
-    'modifyMode',
-    'modifyOwner',
-    'operation',
-    'back',
-    'reload',
-  ]);
+  const emit = defineEmits<{
+    (e: 'back'): void;
+    (e: 'upload'): void;
+    (e: 'copy'): void;
+    (e: 'cut'): void;
+    (e: 'paste'): void;
+    (e: 'clearSelected'): void;
+    (e: 'terminal'): void;
+    (e: 'create', type: string): void;
+    (e: 'compress'): void;
+    (e: 'decompress'): void;
+    (e: 'delete'): void;
+    (e: 'reload'): void;
+    (e: 'selectedChange', selected: FileItem[]): void;
+    (e: 'update:showHidden', value: boolean): void;
+    (e: 'itemSelect', record: FileItem): void;
+    (e: 'itemDoubleClick', record: FileItem): void;
+    (e: 'modifyMode', record: FileItem): void;
+    (e: 'modifyOwner', record: FileItem): void;
+    (e: 'operation', key: string, record: FileItem): void;
+  }>();
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
+
+  // 分离表格选择状态和单击选择状态
+  const tableSelected = ref<FileItem[]>([]);
+
+  // 处理表格复选框选择变化
+  const handleTableSelectionChange = (selected: FileItem[]) => {
+    tableSelected.value = selected;
+    emit('selectedChange', selected);
+  };
 
   // Handle item selection with debounce to avoid conflicts with double-click
   const handleItemSelect = debounce((record: FileItem) => {
     emit('itemSelect', record);
   }, 150);
 
-  // Handle double click on a file/folder
   const handleItemDoubleClick = (record: FileItem) => {
-    // Cancel the pending single-click event
+    // Cancel single click action to prevent conflicts
     handleItemSelect.cancel();
     emit('itemDoubleClick', record);
   };
@@ -284,33 +265,35 @@
   };
 
   // Handle create folder/file dropdown selection
-  const handleCreate = (key: string) => {
-    emit('create', key);
+  const handleCreate = (type: string) => {
+    emit('create', type);
   };
 
   // Public methods exposed for parent component
-  const load = (loadParams: any) => {
-    gridRef.value?.load(loadParams);
+  const load = (params: Record<string, any>) => {
+    gridRef.value?.load(params);
   };
 
   const reload = () => {
     gridRef.value?.reload();
   };
 
+  // 清除表格选择
   const clearSelected = () => {
+    tableSelected.value = [];
     gridRef.value?.clearSelected();
   };
 
   const getData = () => {
-    return gridRef.value?.getData() || [];
+    return gridRef.value?.getData();
   };
 
   // Expose methods to parent component
   defineExpose({
     load,
     reload,
-    clearSelected,
     getData,
+    clearSelected,
   });
 </script>
 
@@ -332,7 +315,7 @@
   }
 
   /* 响应式按钮组样式 */
-  .action-wrap {
+  .toolbar {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -347,8 +330,8 @@
     .idb-button-group :deep(.arco-btn) span {
       max-width: 80px;
       overflow: hidden;
-      white-space: nowrap;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
