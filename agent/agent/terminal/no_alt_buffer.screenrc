@@ -1,0 +1,21 @@
+# 禁用进入/退出 Alternate Buffer 模式
+termcapinfo xterm|xterms|xs|rxvt|screen|screen-256color ti@:te@
+
+# 默认 shell
+shell /bin/bash
+
+# 启用滚动历史（增大 buffer）
+defscrollback 10000
+
+# 关闭视觉响铃，避免 screen 闪屏
+vbell off
+vbell_msg "beep!"
+
+# 断线自动挂起 session，避免丢失
+autodetach on
+
+# 非阻塞模式（可更好应对 SSH 等连接中断）
+defnonblock 5
+
+# 不显示启动提示
+startup_message off

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -56,7 +57,8 @@ func (s *ScreenSession) Start() error {
 	s.Name = sessionName
 
 	// create cmd
-	s.cmd = exec.Command("screen", "-S", s.Name, "-s", "bash")
+	tmpRcPath := filepath.Join(os.TempDir(), "idb.screenrc")
+	s.cmd = exec.Command("screen", "-c", tmpRcPath, "-S", s.Name, "-s", "bash")
 	s.cmd.Env = append(os.Environ(),
 		"TERM=screen-256color",
 		"SHELL=/bin/bash",

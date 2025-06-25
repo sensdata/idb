@@ -2,7 +2,9 @@ package terminal
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -12,6 +14,11 @@ import (
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
 	"github.com/sensdata/idb/core/model"
+)
+
+var (
+	//go:embed no_alt_buffer.screenrc
+	noAltBufferScreenRC []byte
 )
 
 // DefaultManager
@@ -64,6 +71,12 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, id string
 	var session Session
 	switch sessionType {
 	case message.SessionTypeScreen:
+		// check screenrc
+		tmpRcPath := filepath.Join(os.TempDir(), "idb.screenrc")
+		if err := os.WriteFile(tmpRcPath, noAltBufferScreenRC, 0644); err != nil {
+			global.LOG.Error("failed to write screenrc: %v", err)
+		}
+
 		session = NewScreenSession(
 			id,
 			name,

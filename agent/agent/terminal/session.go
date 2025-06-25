@@ -1,10 +1,12 @@
 package terminal
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/creack/pty"
@@ -196,7 +198,11 @@ func (s *BaseSession) trackOutput() {
 			}
 
 			if n > 0 {
-				global.LOG.Info("output: %s", string(buf[:n]))
+				output := string(buf[:n])
+				global.LOG.Info("output: %s", output)
+				if strings.Contains(output, "\x1b[?1049h") {
+					global.LOG.Warn("Detected switch to Alternate Buffer")
+				}
 				// 复制一份数据，避免buf被覆盖
 				data := make([]byte, n)
 				copy(data, buf[:n])
