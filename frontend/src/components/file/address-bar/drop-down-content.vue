@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, watch } from 'vue';
+  import { ref, watch, nextTick } from 'vue';
   import { IconFolder, IconFile } from '@arco-design/web-vue/es/icon';
   import type { ComponentPublicInstance } from 'vue';
 
@@ -68,11 +68,47 @@
   const contentRef = ref<HTMLElement | null>(null);
   const optionRefs = ref<(ComponentPublicInstance | Element | null)[]>([]);
 
+  /**
+   * 滚动选中项到可视区域
+   */
+  function scrollSelectedIntoView(selectedIndex: number) {
+    nextTick(() => {
+      const container = contentRef.value;
+      const selectedOptionRef = optionRefs.value[selectedIndex];
+
+      if (!container || !selectedOptionRef) return;
+
+      // 获取实际的DOM元素
+      const selectedElement =
+        (selectedOptionRef as ComponentPublicInstance)?.$el ||
+        (selectedOptionRef as Element);
+
+      if (!selectedElement) return;
+
+      // 使用现代浏览器的 scrollIntoView API
+      selectedElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    });
+  }
+
   // 当选项变化时重置 optionRefs 数组
   watch(
     () => props.options.length,
     () => {
       optionRefs.value = [];
+    }
+  );
+
+  // 当选中索引变化时，滚动到选中项
+  watch(
+    () => props.selectedIndex,
+    (newIndex) => {
+      if (newIndex >= 0) {
+        scrollSelectedIntoView(newIndex);
+      }
     }
   );
 
@@ -105,8 +141,8 @@
     align-items: center;
     justify-content: center;
     padding: 8px 0;
-    color: var(--color-text-3);
     font-size: 12px;
+    color: var(--color-text-3);
   }
 
   .searching-indicator {
@@ -141,7 +177,7 @@
   }
 
   .dir-label {
-    color: rgb(var(--primary-6));
     font-weight: 500;
+    color: rgb(var(--primary-6));
   }
 </style>

@@ -1,80 +1,175 @@
-import { ref, Ref } from 'vue';
+import { ref, Ref, computed, unref } from 'vue';
+import { Router } from 'vue-router';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import { getFileDetailApi } from '@/api/file';
+import { createFileRouteWithPagination } from '@/utils/file-route';
+import { useLogger } from '@/composables/use-logger';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
 import { FileItem } from '@/components/file/file-editor-drawer/types';
 import { FileTreeItem } from '../components/file-tree/type';
 import useFileStore from '../store/file-store';
 
+// 常量定义
+const FILE_SIZE_LIMIT = 1024 * 1024; // 1MB
+const API_DOWNLOAD_PATH = '/api/files/{host}/download';
+
 interface FileNavigationParams {
   store: ReturnType<typeof useFileStore>;
   fileEditorDrawerRef: Ref<InstanceType<typeof FileEditorDrawer> | undefined>;
+  router: Router;
+  currentHostId: Ref<number | undefined>;
+  setLoading?: (loading: boolean) => void;
 }
 
-export const useFileNavigation = (params: FileNavigationParams) => {
+interface UseFileNavigationReturn {
+  isGotoTriggered: Ref<boolean>;
+  isLoading: Ref<boolean>;
+  openFileInEditor: (fileOrPath: FileItem | string) => Promise<void>;
+  handleGotoWrapper: (path: string) => void;
+  handleTreeItemSelect: (record: FileTreeItem) => void;
+  handleTreeItemDoubleClick: (record: FileTreeItem) => void;
+}
+
+export const useFileNavigation = (
+  params: FileNavigationParams
+): UseFileNavigationReturn => {
   const { t } = useI18n();
-  const { store, fileEditorDrawerRef } = params;
+  const { store, fileEditorDrawerRef, router, currentHostId, setLoading } =
+    params;
+  const { logError } = useLogger('FileNavigation');
 
-  // Flag to track if selection was triggered by goto
+  // 响应式状态
   const isGotoTriggered = ref(false);
+  const isLoading = ref(false);
 
-  // Create a wrapper for handleGoto to track the source of selection
+  // 计算属性
+  const hostId = computed(() => unref(currentHostId));
+
+  // 工具函数：创建路由配置
+  const createRouteConfig = (path: string) => {
+    return createFileRouteWithPagination(
+      path,
+      undefined, // 重置分页参数
+      hostId.value ? { id: hostId.value } : {}
+    );
+  };
+
+  // 工具函数：设置加载状态
+  const updateLoadingState = (loading: boolean) => {
+    isLoading.value = loading;
+    if (setLoading) {
+      setLoading(loading);
+    }
+  };
+
+  // 工具函数：提取目录路径
+  const extractDirPath = (filePath: string): string => {
+    const lastSlashIndex = filePath.lastIndexOf('/');
+    return lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
+  };
+
+  // 工具函数：处理文件下载
+  const handleFileDownload = (fileDetail: FileItem) => {
+    const downloadUrl = `${API_DOWNLOAD_PATH}?source=${encodeURIComponent(
+      fileDetail.path
+    )}`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileDetail.name;
+    link.style.display = 'none';
+
+    try {
+      document.body.appendChild(link);
+      link.click();
+    } finally {
+      document.body.removeChild(link);
+    }
+  };
+
+  // 工具函数：统一的导航处理
+  const navigateToPath = async (
+    path: string,
+    updateStore = false
+  ): Promise<void> => {
+    try {
+      updateLoadingState(true);
+
+      const routeConfig = createRouteConfig(path);
+      await router.push(routeConfig);
+
+      if (updateStore) {
+        store.handleGoto(path);
+      }
+    } catch (error) {
+      logError('Navigation failed:', error);
+      Message.error(
+        t('app.file.list.message.navigationFailed') || 'Navigation failed'
+      );
+    } finally {
+      updateLoadingState(false);
+    }
+  };
+
+  /**
+   * 包装的导航处理函数
+   */
   const handleGotoWrapper = (path: string) => {
     isGotoTriggered.value = true;
-    store.handleGoto(path);
+    navigateToPath(path, true);
   };
 
   /**
    * 打开或下载文件
    */
-  const openFileInEditor = async (fileOrPath: FileItem | string) => {
+  const openFileInEditor = async (
+    fileOrPath: FileItem | string
+  ): Promise<void> => {
     try {
       const filePath =
         typeof fileOrPath === 'string' ? fileOrPath : fileOrPath.path;
-
-      // 提取目录路径
-      const lastSlashIndex = filePath.lastIndexOf('/');
-      const dirPath =
-        lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
+      const dirPath = extractDirPath(filePath);
 
       const fileDetail = await getFileDetailApi({
         path: filePath,
         expand: false,
       });
 
-      if (!fileDetail) return;
+      if (!fileDetail) {
+        Message.warning(
+          t('app.file.list.message.fileNotFound') || 'File not found'
+        );
+        return;
+      }
 
       // 更新地址栏显示目录路径
       if (store.pwd !== dirPath) {
-        // 使用handleGoto方法但跳过触发isGotoTriggered标志
-        // 我们需要临时禁用该标志，因为我们已经在goto操作中
         const currentGotoState = isGotoTriggered.value;
         isGotoTriggered.value = false;
         store.handleGoto(dirPath);
         isGotoTriggered.value = currentGotoState;
       }
 
-      if (fileDetail.size > 1048576) {
-        // 大文件以下载形式处理
-        Message.info(t('app.file.list.message.largeFileDownload'));
-
-        // 创建下载链接并触发下载
-        const downloadUrl = `/api/files/{host}/download?source=${encodeURIComponent(
-          fileDetail.path
-        )}`;
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = fileDetail.name;
-        a.click();
+      if (fileDetail.size > FILE_SIZE_LIMIT) {
+        // 大文件下载处理
+        Message.info(
+          t('app.file.list.message.largeFileDownload') ||
+            'Large file will be downloaded'
+        );
+        handleFileDownload(fileDetail);
       } else {
-        // 小文件打开编辑器
-        fileEditorDrawerRef.value?.setFile(fileDetail);
-        fileEditorDrawerRef.value?.show();
+        // 小文件编辑器处理
+        const drawer = unref(fileEditorDrawerRef);
+        if (drawer) {
+          drawer.setFile(fileDetail);
+          drawer.show();
+        }
       }
     } catch (error) {
-      console.error('获取文件详情失败:', error);
-      Message.error(t('app.file.list.message.fileOpenFailed'));
+      logError('Failed to open file:', error);
+      Message.error(
+        t('app.file.list.message.fileOpenFailed') || 'Failed to open file'
+      );
     }
   };
 
@@ -83,44 +178,42 @@ export const useFileNavigation = (params: FileNavigationParams) => {
    */
   const handleTreeItemSelect = (record: FileTreeItem) => {
     if (!record) return;
-    // For simplified tree, selecting a root folder should navigate to it directly
-    if (record.is_dir) {
-      // 优化性能：直接设置当前目录而不发起网络请求
-      // 这是针对简化版目录树的优化，因为根目录文件夹已经加载过
 
-      // 直接更新状态，避免网络请求导致的延迟
-      // 重要：确保设置current以更新pwd，触发params变化，进而刷新右侧文件列表
+    if (record.is_dir) {
+      navigateToPath(record.path);
+
+      // 更新store状态
       store.$patch({
         current: record,
-        selected: [record as unknown as FileItem],
+        selected: [record] as FileItem[],
         addressItems: [],
       });
-
-      // 通过修改current触发params变化，会自动刷新右侧文件列表
-      // 无需手动调用reload()
     } else {
       store.handleTreeItemSelect(record);
     }
   };
 
   /**
-   * 从文件树双击处理
+   * 文件树双击处理
    */
   const handleTreeItemDoubleClick = (record: FileTreeItem) => {
     if (record.is_dir) {
-      // 对于目录，导航到该目录
-      store.handleOpen(record as unknown as FileItem);
+      // 目录双击导航
+      navigateToPath(record.path);
+      store.handleOpen(record as FileItem);
     } else {
-      // 获取文件所在目录路径
-      const filePath = record.path;
-      const lastSlashIndex = filePath.lastIndexOf('/');
-      const parentDir =
-        lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
+      // 文件双击处理
+      const parentDir = extractDirPath(record.path);
 
-      // 检查是否已经在正确的目录
+      // 确保在正确目录
       if (store.pwd !== parentDir) {
-        // 如果不在正确的目录，先导航
-        store.handleGoto(parentDir);
+        const routeConfig = createRouteConfig(parentDir);
+        router.push(routeConfig).catch((error) => {
+          logError('Failed to navigate to parent directory:', error);
+          Message.error(
+            t('app.file.list.message.navigationFailed') || 'Navigation failed'
+          );
+        });
       }
 
       // 打开文件
@@ -130,6 +223,7 @@ export const useFileNavigation = (params: FileNavigationParams) => {
 
   return {
     isGotoTriggered,
+    isLoading,
     openFileInEditor,
     handleGotoWrapper,
     handleTreeItemSelect,

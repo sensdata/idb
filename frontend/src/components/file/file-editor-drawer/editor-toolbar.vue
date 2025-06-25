@@ -11,7 +11,7 @@
         }}
       </a-button>
 
-      <a-button type="outline" size="small" @click="$emit('toggleEditMode')">
+      <a-button type="outline" size="small" @click="toggleEditMode">
         <icon-edit v-if="readOnly" />
         <icon-eye v-else />
         {{
@@ -33,38 +33,44 @@
     IconEye,
   } from '@arco-design/web-vue/es/icon';
 
+  interface Props {
+    drawerWidth: number;
+    isFullScreen: boolean;
+    readOnly?: boolean;
+  }
+
   const { t } = useI18n();
 
-  defineProps({
-    drawerWidth: {
-      type: Number,
-      required: true,
-    },
-    isFullScreen: {
-      type: Boolean,
-      required: true,
-    },
-    readOnly: {
-      type: Boolean,
-      default: true,
-    },
-  });
+  defineProps<Props>();
 
   const emit = defineEmits<{
-    (e: 'update:drawer-width', width: number): void;
-    (e: 'toggleFullScreen'): void;
-    (e: 'toggleEditMode'): void;
+    'update:drawer-width': [width: number];
+    'toggleFullScreen': [];
+    'toggleEditMode': [];
   }>();
 
   const toggleFullScreen = () => {
     emit('toggleFullScreen');
   };
+
+  const toggleEditMode = () => {
+    emit('toggleEditMode');
+  };
 </script>
 
 <style scoped>
   .editor-toolbar {
-    margin-bottom: 8px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--color-border-2);
+    display: flex;
+    flex-shrink: 0; /* 防止收缩 */
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--color-bg-1);
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
+  }
+
+  .editor-toolbar :deep(.arco-space) {
+    display: flex;
+    align-items: center;
   }
 </style>

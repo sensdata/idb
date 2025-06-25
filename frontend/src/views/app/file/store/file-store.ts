@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { getFileDetailApi, searchFileListApi } from '@/api/file';
 import { SimpleFileInfoEntity } from '@/entity/FileInfo';
 import { FileItem } from '@/components/file/file-editor-drawer/types';
+import { createLogger } from '@/utils/logger';
 import { FileTreeItem } from '../components/file-tree/type';
 
 const useFileStore = defineStore('file-manage', {
@@ -14,6 +15,7 @@ const useFileStore = defineStore('file-manage', {
     selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
+    logger: createLogger('FileStore'),
   }),
 
   getters: {
@@ -264,6 +266,9 @@ const useFileStore = defineStore('file-manage', {
           this.$state.tree = [...this.$state.tree];
         }
         // 其他情况（已展开）则不做操作
+
+        // 对于目录打开，直接更新当前项而不使用路由导航
+        // 路由导航将在组合函数中处理
       }
 
       // 无论是文件还是文件夹，都更新当前选中项
@@ -370,6 +375,81 @@ const useFileStore = defineStore('file-manage', {
     handleCut() {
       this.$state.copyActive = false;
       this.$state.cutActive = true;
+    },
+
+    /**
+     * 从外部跳转到指定路径（用于URL路由）
+     * @param path 目标路径
+     */
+    async navigateToPath(path: string) {
+      try {
+        const normalizedPath = path || '/';
+        this.logger.log('🗂️ store.navigateToPath called:', {
+          targetPath: normalizedPath,
+          currentPwd: this.pwd,
+          currentState: this.current,
+          timestamp: new Date().toISOString(),
+        });
+
+        // 如果当前路径已经是目标路径，不执行任何操作
+        if (this.pwd === normalizedPath) {
+          this.logger.log(
+            '⏭️ store.navigateToPath: already at target path, skipping'
+          );
+          return;
+        }
+
+        const item = await getFileDetailApi({
+          path: normalizedPath,
+          expand: false,
+        });
+
+        this.logger.log('📋 store.navigateToPath: got file detail:', item);
+
+        if (item) {
+          // 如果是目录，直接导航
+          if (item.is_dir) {
+            this.logger.log(
+              '📁 store.navigateToPath: updating current to directory:',
+              item.path
+            );
+            this.$state.current = item;
+            this.$state.addressItems = [];
+            this.logger.log(
+              '📁 store.navigateToPath: navigated to directory:',
+              item.path,
+              'new pwd:',
+              this.pwd
+            );
+          } else {
+            // 如果是文件，导航到其父目录并选中该文件
+            const parentPath =
+              normalizedPath.substring(0, normalizedPath.lastIndexOf('/')) ||
+              '/';
+            const parentItem = await getFileDetailApi({
+              path: parentPath,
+              expand: false,
+            });
+
+            if (parentItem && parentItem.is_dir) {
+              this.logger.log(
+                '📄 store.navigateToPath: updating current to parent directory:',
+                parentItem.path
+              );
+              this.$state.current = parentItem;
+              this.$state.selected = [item];
+              this.logger.log(
+                '📄 store.navigateToPath: navigated to parent directory:',
+                parentItem.path,
+                'and selected file:',
+                item.path
+              );
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.logError('❌ store.navigateToPath failed:', error);
+      }
     },
   },
 });

@@ -1,5 +1,6 @@
 import { Ref, watch, nextTick } from 'vue';
 import { debounce } from 'lodash';
+import { Router } from 'vue-router';
 import { getFileListApi, getFileDetailApi, getFileTailApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
@@ -8,6 +9,7 @@ import {
   FileItem,
 } from '@/components/file/file-editor-drawer/types';
 import { useLogger } from '@/composables/use-logger';
+import { createFileRouteWithPagination } from '@/utils/file-route';
 import useFileStore from '../store/file-store';
 import FileMainView from '../components/file-main-view.vue';
 
@@ -15,11 +17,21 @@ interface FileSelectionParams {
   store: ReturnType<typeof useFileStore>;
   fileEditorDrawerRef: Ref<InstanceType<typeof FileEditorDrawer> | undefined>;
   fileMainViewRef: Ref<InstanceType<typeof FileMainView> | undefined>;
+  router: Router;
+  currentHostId: Ref<number | undefined>;
+  setLoading?: (loading: boolean) => void;
 }
 
 export const useFileSelection = (params: FileSelectionParams) => {
-  const { store, fileEditorDrawerRef, fileMainViewRef } = params;
-  const { logError } = useLogger('FileSelection');
+  const {
+    store,
+    fileEditorDrawerRef,
+    fileMainViewRef,
+    router,
+    currentHostId,
+    setLoading,
+  } = params;
+  const { logError, logDebug } = useLogger('FileSelection');
 
   // 引用导航模块中的函数
   const openFileInEditor = async (fileOrPath: FileItem | string) => {
@@ -129,8 +141,34 @@ export const useFileSelection = (params: FileSelectionParams) => {
    */
   const handleSingleClickAction = (record: FileItem) => {
     if (record.is_dir) {
-      // 目录进行选择并打开
+      // 立即设置loading状态，避免显示空白页面
+      if (setLoading) {
+        logDebug(
+          '🔄 useFileSelection handleSingleClickAction: setting loading to true immediately'
+        );
+        setLoading(true);
+      }
+
+      // 目录进行选择并打开，使用路由导航
       store.handleSelected([record]);
+
+      // 创建新的路由配置，不传递分页参数以重置page为1
+      const routeConfig = createFileRouteWithPagination(
+        record.path,
+        undefined, // 不传递分页参数，让page重置为默认值
+        currentHostId.value ? { id: currentHostId.value } : {}
+      );
+
+      logDebug('🚀 useFileSelection handleSingleClickAction navigation:', {
+        targetPath: record.path,
+        routeConfig,
+        currentPath: store.pwd,
+      });
+
+      // 使用push导航，更新URL并重置分页
+      router.push(routeConfig);
+
+      // 同时也调用store方法更新内部状态
       store.handleOpen(record);
     } else {
       // 文件进行选择
@@ -154,7 +192,31 @@ export const useFileSelection = (params: FileSelectionParams) => {
     handleItemSelect.cancel();
 
     if (record.is_dir) {
-      // 打开目录
+      // 立即设置loading状态，避免显示空白页面
+      if (setLoading) {
+        logDebug(
+          '🔄 useFileSelection handleItemDoubleClick: setting loading to true immediately'
+        );
+        setLoading(true);
+      }
+
+      // 创建新的路由配置，不传递分页参数以重置page为1
+      const routeConfig = createFileRouteWithPagination(
+        record.path,
+        undefined, // 不传递分页参数，让page重置为默认值
+        currentHostId.value ? { id: currentHostId.value } : {}
+      );
+
+      logDebug('🚀 useFileSelection handleItemDoubleClick navigation:', {
+        targetPath: record.path,
+        routeConfig,
+        currentPath: store.pwd,
+      });
+
+      // 使用push导航，更新URL并重置分页
+      router.push(routeConfig);
+
+      // 同时也调用store方法更新内部状态
       store.handleOpen(record);
     } else {
       // 直接打开文件，不需要额外的导航检查

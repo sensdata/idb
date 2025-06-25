@@ -30,4 +30,7 @@ export default {
 
   // columns
   'components.idbTable.columns.operations': 'Operations',
+
+  // error
+  'components.idbTable.error.loadFailed': 'Failed to load data: {error}',
 };
