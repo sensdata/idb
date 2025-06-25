@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
