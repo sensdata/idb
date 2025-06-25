@@ -24,7 +24,14 @@ export const useAddressBarStore = defineStore('address-bar', () => {
     isUserNavigating.value = true;
     expectedPath.value = targetPath;
     navigationStartTime.value = Date.now();
-    userInputValue.value = targetPath.replace(/^\//, ''); // 移除开头的斜杠
+
+    const cleanPath = targetPath.replace(/^\//, ''); // 移除开头的斜杠
+    // 如果不是根目录，在末尾添加斜杠以表示这是一个目录
+    if (cleanPath && !cleanPath.endsWith('/')) {
+      userInputValue.value = cleanPath + '/';
+    } else {
+      userInputValue.value = cleanPath;
+    }
   };
 
   // 完成导航
@@ -70,7 +77,15 @@ export const useAddressBarStore = defineStore('address-bar', () => {
     if (isUserNavigating.value && userInputValue.value) {
       return userInputValue.value;
     }
-    return propsPath.replace(/^\//, ''); // 移除开头的斜杠
+
+    const cleanPath = propsPath.replace(/^\//, ''); // 移除开头的斜杠
+
+    // 如果不是根目录，在末尾添加斜杠以表示这是一个目录
+    if (cleanPath && !cleanPath.endsWith('/')) {
+      return cleanPath + '/';
+    }
+
+    return cleanPath;
   };
 
   // 重置所有状态
