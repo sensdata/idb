@@ -90,9 +90,6 @@
   import DecompressDrawer from '@/components/file/decompress-drawer/index.vue';
   import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
 
-  // 类型导入
-  import { FileItem } from '@/components/file/file-editor-drawer/types';
-
   // 导入重构的组件
   import SimplifiedFileSidebar from './components/simplified-file-sidebar.vue';
   import FileMainView from './components/file-main-view.vue';
@@ -112,7 +109,7 @@
   const { loading, setLoading } = useLoading(true);
 
   // 日志工具
-  const { log, logWarn, logError } = useLogger('FileMain');
+  const { logWarn, logError } = useLogger('FileMain');
 
   // 组件引用
   const fileMainViewRef = ref<InstanceType<typeof FileMainView>>();
@@ -253,7 +250,7 @@
   };
 
   // 处理表格选择变化
-  const handleTableSelectionChange = (newSelected: FileItem[]) => {
+  const handleTableSelectionChange = () => {
     // 如果需要处理表格选择，可以在这里添加逻辑
     // 目前选择状态由 selected 管理
   };

@@ -1,16 +1,10 @@
 import { ref, Ref, computed, watch } from 'vue';
-import type { ComponentPublicInstance } from 'vue';
 
 export interface DropdownOption {
   value: string;
   label: string;
   isDir?: boolean;
   displayValue?: string;
-}
-
-interface DropdownContentRef {
-  contentRef: HTMLElement | null;
-  optionRefs: (ComponentPublicInstance | Element | null)[];
 }
 
 /**

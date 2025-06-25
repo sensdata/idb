@@ -59,10 +59,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref, watch, onMounted, nextTick } from 'vue';
+  import { computed, ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
   import { IconHome, IconArrowRight } from '@arco-design/web-vue/es/icon';
   import type { FileInfoEntity } from '@/entity/FileInfo';
   import { useLogger } from '@/composables/use-logger';
+  import { useAddressBarStore } from './store/address-bar-store';
 
   import DropdownContent, { DropdownOption } from './drop-down-content.vue';
   import useDropdownNavigation from './composables/use-dropdown-navigation';
@@ -84,6 +85,9 @@
   const inputRef = ref<HTMLElement | null>(null);
   const dropdownRef = ref();
   const dropdownContentRef = ref();
+
+  // ==================== Store ====================
+  const addressBarStore = useAddressBarStore();
 
   // ==================== Reactive State ====================
   const value = ref('');
@@ -137,11 +141,9 @@
   });
 
   const {
-    handleGo,
     handleHome,
     handleClear,
     handleTab: originalHandleTab,
-    handleKeyEnter: originalHandleKeyEnter,
     handleBlur: originalHandleBlur,
   } = usePathNavigation(
     value,
@@ -164,13 +166,30 @@
   });
 
   // ==================== Event Handlers ====================
+  // 定义 handleGo 函数在其他函数之前，避免 no-use-before-define 错误
+  const handleGo = () => {
+    const trimmedValue = value.value.trim();
+    if (!trimmedValue) {
+      emit('goto', '/');
+      return;
+    }
+
+    const targetPath = addRootSlash(trimmedValue);
+
+    // 开始导航，store 会保持当前输入值
+    addressBarStore.startNavigation(targetPath);
+
+    emit('goto', targetPath);
+  };
+
   const handleInputValueChange = () => {
+    // 更新 store 中的用户输入值
+    addressBarStore.setUserInput(value.value);
     originalHandleInputValueChange();
   };
 
   const handleTab = () => {
     originalHandleTab();
-
     // Maintain focus after tab completion
     focusInputWithSelection();
   };
@@ -206,6 +225,9 @@
         : selectedOption.value;
       value.value = basePath + selectedValue;
 
+      // 更新 store
+      addressBarStore.setUserInput(value.value);
+
       // 清理下拉状态
       allOptions.value = [];
       isSearching.value = false;
@@ -213,17 +235,10 @@
       resetSelection();
     } else {
       handleGo();
-
-      // 只有在实际导航时才blur输入框
-      nextTick(() => {
-        if (inputRef.value) {
-          (inputRef.value as HTMLInputElement).blur();
-        }
-      });
     }
   };
 
-  const handleKeyEnter = (e: KeyboardEvent) => {
+  const handleKeyEnter = () => {
     logDebug('handleKeyEnter called:', {
       popupVisible: popupVisible.value,
       currentSelectedIndex: currentSelectedIndex.value,
@@ -251,6 +266,9 @@
         : selectedOption.value;
       value.value = basePath + selectedValue;
 
+      // 更新 store
+      addressBarStore.setUserInput(value.value);
+
       // 清理下拉状态
       allOptions.value = [];
       isSearching.value = false;
@@ -260,7 +278,7 @@
       logDebug('Enter: calling handleGo directly');
       handleGo();
 
-      // 只有在实际导航时才blur输入框
+      // 失焦输入框
       nextTick(() => {
         if (inputRef.value) {
           (inputRef.value as HTMLInputElement).blur();
@@ -280,7 +298,7 @@
   const handleInputFocus = () => {
     isInputFocused.value = true;
     if (!value.value) {
-      value.value = removeRootSlash(props.path);
+      value.value = addressBarStore.getDisplayValue(props.path);
       focusInputWithSelection();
     }
   };
@@ -343,8 +361,28 @@
   watch(
     () => props.path,
     (newPath) => {
-      if (addRootSlash(value.value) !== newPath) {
-        value.value = removeRootSlash(newPath);
+      logDebug('props.path changed:', {
+        newPath,
+        shouldIgnore: addressBarStore.shouldIgnorePathChange(newPath),
+        isNavigating: addressBarStore.isUserNavigating,
+        expectedPath: addressBarStore.expectedPath,
+      });
+
+      // 检查是否应该忽略路径变化
+      if (addressBarStore.shouldIgnorePathChange(newPath)) {
+        logDebug('Ignoring path change during navigation');
+        return;
+      }
+
+      // 检查导航是否完成
+      if (addressBarStore.completeNavigation(newPath)) {
+        logDebug('Navigation completed successfully');
+      }
+
+      // 更新输入框显示值
+      const displayValue = addressBarStore.getDisplayValue(newPath);
+      if (value.value !== displayValue) {
+        value.value = displayValue;
       }
     },
     { immediate: true }
@@ -360,9 +398,17 @@
 
   // ==================== Lifecycle ====================
   onMounted(() => {
+    logDebug('AddressBar mounted');
+
+    // 初始化显示值
     if (!value.value.trim() && props.path) {
-      value.value = removeRootSlash(props.path);
+      value.value = addressBarStore.getDisplayValue(props.path);
     }
+  });
+
+  onUnmounted(() => {
+    logDebug('AddressBar unmounted');
+    // 组件卸载时不重置 store，让状态保持
   });
 </script>
 
