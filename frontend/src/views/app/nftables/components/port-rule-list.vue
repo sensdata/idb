@@ -143,9 +143,6 @@
     operations: 120,
   } as const;
 
-  // 计算属性
-  const hasRules = computed(() => props.portRules.length > 0);
-
   // 表格数据源
   const tableDataSource = computed(
     (): ApiListResult<PortRule> => ({

@@ -164,7 +164,8 @@
     if (val) {
       nextTick(() => {
         const el = document.getElementById('tableSetting') as HTMLElement;
-        const sortableInstance = new Sortable(el, {
+        // eslint-disable-next-line no-new
+        new Sortable(el, {
           onEnd(e: any) {
             const { oldIndex, newIndex } = e;
             const newColumns = [...props.showColumns];

@@ -3,7 +3,7 @@
  * @description 提供IP黑名单规则管理的相关功能
  */
 
-import { ref, computed, readonly } from 'vue';
+import { ref, readonly } from 'vue';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
 import { useHostStore } from '@/store';

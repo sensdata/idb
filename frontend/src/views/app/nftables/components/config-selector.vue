@@ -42,7 +42,7 @@
     (e: 'configModeChange', value: 'form' | 'file'): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     variant: 'radio',
     showLabels: true,
   });

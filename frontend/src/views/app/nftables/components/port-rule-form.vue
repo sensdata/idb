@@ -383,8 +383,6 @@
   import {
     IconPlus,
     IconDelete,
-    IconSave,
-    IconClose,
     IconCheckCircle,
     IconCloseCircle,
     IconMinusCircle,

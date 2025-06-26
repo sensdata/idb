@@ -151,6 +151,7 @@
 
   const handleEditorReady = (payload: { view: any }) => {
     // 编辑器准备完成的回调，可以在这里做一些初始化操作
+    // eslint-disable-next-line no-console
     console.log('Editor ready:', payload);
   };
 

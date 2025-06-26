@@ -73,10 +73,7 @@
   import { computed, ref, reactive, watch, useSlots, onMounted } from 'vue';
   import { omit } from 'lodash';
   import { ApiListParams, BaseEntity } from '@/types/global';
-  import type {
-    TableChangeExtra,
-    TableColumnData,
-  } from '@arco-design/web-vue/es/table/interface';
+  import type { TableColumnData } from '@arco-design/web-vue/es/table/interface';
   import TableFilters from './table-filters.vue';
   import TableToolbar from './components/table-toolbar.vue';
   import TableContent from './components/table-content.vue';

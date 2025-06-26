@@ -22,7 +22,6 @@
 
 <script lang="ts" setup>
   import { computed } from 'vue';
-  import { useI18n } from 'vue-i18n';
   import FixedFooterBar from '@/components/fixed-footer-bar/index.vue';
   import type { BaseEntity } from '@/types/global';
 
@@ -47,8 +46,6 @@
     /** 取消选择事件 */
     cancelSelected: [];
   }>();
-
-  const { t } = useI18n();
 
   /** 是否显示批量操作栏 */
   const visible = computed(

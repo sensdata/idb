@@ -124,9 +124,6 @@
     focus,
     setTerminalRef,
     clearAll,
-    getHostTabsCount,
-    canAddTab,
-    MAX_TABS,
   } = useTerminalTabs();
 
   const { createFirstSession } = useTerminalSessions();
@@ -430,8 +427,6 @@
       Message.warning(t('components.terminal.workspace.selectHost'));
       return;
     }
-
-    console.log('Pruning sessions for host:', currentHostId.value);
 
     isPruningSessions.value = true;
     try {

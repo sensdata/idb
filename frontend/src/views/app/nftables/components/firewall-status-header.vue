@@ -63,7 +63,7 @@
 
   const props = defineProps<Props>();
 
-  const emit = defineEmits<{
+  defineEmits<{
     switch: [];
     refresh: [];
   }>();

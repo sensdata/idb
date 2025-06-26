@@ -1,5 +1,5 @@
 import request from '@/helper/api-helper';
-import { ApiListParams, ApiListResult } from '@/types/global';
+import { ApiListResult } from '@/types/global';
 
 // 类型定义
 export type ConfigType = 'global' | 'local';
