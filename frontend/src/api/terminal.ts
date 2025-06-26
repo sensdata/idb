@@ -40,8 +40,10 @@ export function quitTerminalSessionApi(
   return request.post(`/terminals/${host}/sessions/quit`, params);
 }
 
-export function pruneTerminalSessionApi(host: number) {
-  return request.post(`/terminals/${host}/sessions/prune`);
+export function pruneTerminalSessionApi(host: number, type = 'screen') {
+  return request.post(`/terminals/${host}/sessions/prune`, {
+    type,
+  });
 }
 
 export function installTerminalApi(host: number) {

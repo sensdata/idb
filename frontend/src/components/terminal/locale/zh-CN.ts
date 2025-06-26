@@ -30,7 +30,7 @@ export default {
   // 新增的会话相关文本
   'components.terminal.session.new': '新建',
   'components.terminal.session.create': '创建会话',
-  'components.terminal.session.createFirst': '创建第一个会话',
+  'components.terminal.session.createFirst': '打开会话',
   'components.terminal.session.name': '会话名称',
   'components.terminal.session.newName': '新会话名称',
   'components.terminal.session.nameRequired': '会话名称不能为空',
@@ -71,5 +71,8 @@ export default {
   'components.terminal.workspace.statusOffline': '离线',
   'components.terminal.workspace.statusUnknown': '未知',
   'components.terminal.workspace.initializeFailed': '初始化终端工作区失败',
+  'components.terminal.workspace.hostSelectFailed': '选择主机失败',
   'components.terminal.session.fallbackToNewSession': '降级创建新会话',
+  'components.terminal.session.tabLimitReached':
+    '终端标签页数量已达上限（最多 {max} 个），请先关闭一些标签页。',
 };

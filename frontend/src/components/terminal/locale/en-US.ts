@@ -34,7 +34,7 @@ export default {
   // 新增的会话相关文本
   'components.terminal.session.new': 'New',
   'components.terminal.session.create': 'Create Session',
-  'components.terminal.session.createFirst': 'Create First Session',
+  'components.terminal.session.createFirst': 'Open Session',
   'components.terminal.session.name': 'Session Name',
   'components.terminal.session.newName': 'New Session Name',
   'components.terminal.session.nameRequired': 'Session name is required',
@@ -79,6 +79,9 @@ export default {
   'components.terminal.workspace.statusUnknown': 'Unknown',
   'components.terminal.workspace.initializeFailed':
     'Failed to initialize terminal workspace',
+  'components.terminal.workspace.hostSelectFailed': 'Failed to select host',
   'components.terminal.session.fallbackToNewSession':
     'Creating new session as fallback',
+  'components.terminal.session.tabLimitReached':
+    'Terminal tab limit reached (max: {max}). Please close some tabs first.',
 };

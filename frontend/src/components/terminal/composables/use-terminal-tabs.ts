@@ -37,6 +37,9 @@ export function useTerminalTabs() {
   const { t } = useI18n();
   const { logError, logWarn } = useLogger('TerminalTabs');
 
+  // 终端标签页数量限制
+  const MAX_TABS = 10;
+
   // 生成唯一的key
   const generateKey = (): string => {
     return `term_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -45,6 +48,16 @@ export function useTerminalTabs() {
   // 添加新的终端会话
   const addItem = (options: AddItemOptions): string => {
     try {
+      // 检查当前主机的标签页数量限制
+      const currentHostTabs = terms.value.filter(
+        (item) => item.hostId === options.hostId
+      );
+      if (currentHostTabs.length >= MAX_TABS) {
+        throw new Error(
+          t('components.terminal.session.tabLimitReached', { max: MAX_TABS })
+        );
+      }
+
       const key = generateKey();
 
       const newItem: TermSessionItem = {
@@ -161,6 +174,16 @@ export function useTerminalTabs() {
     return terms.value.some((item) => item.key === key);
   };
 
+  // 获取指定主机的标签页数量
+  const getHostTabsCount = (hostId: number): number => {
+    return terms.value.filter((item) => item.hostId === hostId).length;
+  };
+
+  // 检查指定主机是否可以添加新标签页
+  const canAddTab = (hostId: number): boolean => {
+    return getHostTabsCount(hostId) < MAX_TABS;
+  };
+
   // 组件卸载时清理资源
   onUnmounted(() => {
     clearAll();
@@ -176,5 +199,8 @@ export function useTerminalTabs() {
     clearAll,
     getActiveItem,
     hasItem,
+    getHostTabsCount,
+    canAddTab,
+    MAX_TABS,
   };
 }

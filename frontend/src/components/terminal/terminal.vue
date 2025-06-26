@@ -3,19 +3,21 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';
+  import { ref, onMounted, onBeforeUnmount, shallowRef, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { debounce } from 'lodash';
   import { API_BASE_URL } from '@/helper/api-helper';
   import { Terminal } from '@xterm/xterm';
   import { FitAddon } from '@xterm/addon-fit';
   import { useConfirm } from '@/composables/confirm';
   import { installTerminalApi } from '@/api/terminal';
-  import { debounce } from 'lodash';
   import { serializeQueryParams } from '@/utils';
+  import { useAppStore } from '@/store';
   import { MsgType, ReceiveMsgDo, SendMsgDo } from './type';
   import '@xterm/xterm/css/xterm.css';
 
   const { t } = useI18n();
+  const appStore = useAppStore();
 
   const props = defineProps<{
     path?: string;
@@ -37,6 +39,68 @@
   const timerRef = shallowRef<number>();
   const sessionIdRef = ref<string>();
   const { confirm } = useConfirm();
+
+  // 计算终端主题
+  const terminalTheme = computed(() => {
+    const isDark = appStore.theme === 'dark';
+
+    if (isDark) {
+      // 深色主题
+      return {
+        background: '#1a1a1a',
+        foreground: '#e8e8e8',
+        cursor: '#ffffff',
+        cursorAccent: '#1a1a1a',
+        selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        selectionForeground: undefined,
+        // ANSI 颜色
+        black: '#2e3436',
+        red: '#cc0000',
+        green: '#4e9a06',
+        yellow: '#c4a000',
+        blue: '#3465a4',
+        magenta: '#75507b',
+        cyan: '#06989a',
+        white: '#d3d7cf',
+        // 亮色 ANSI 颜色
+        brightBlack: '#555753',
+        brightRed: '#ef2929',
+        brightGreen: '#8ae234',
+        brightYellow: '#fce94f',
+        brightBlue: '#729fcf',
+        brightMagenta: '#ad7fa8',
+        brightCyan: '#34e2e2',
+        brightWhite: '#eeeeec',
+      };
+    }
+    // 亮色主题 - 也使用黑色背景
+    return {
+      background: '#1a1a1a',
+      foreground: '#e8e8e8',
+      cursor: '#ffffff',
+      cursorAccent: '#1a1a1a',
+      selectionBackground: 'rgba(255, 255, 255, 0.3)',
+      selectionForeground: undefined,
+      // ANSI 颜色 - 明亮配色适合黑色背景
+      black: '#2e3436',
+      red: '#cc0000',
+      green: '#4e9a06',
+      yellow: '#c4a000',
+      blue: '#3465a4',
+      magenta: '#75507b',
+      cyan: '#06989a',
+      white: '#d3d7cf',
+      // 亮色 ANSI 颜色 - 在黑色背景上的明亮色彩
+      brightBlack: '#555753',
+      brightRed: '#ef2929',
+      brightGreen: '#8ae234',
+      brightYellow: '#fce94f',
+      brightBlue: '#729fcf',
+      brightMagenta: '#ad7fa8',
+      brightCyan: '#34e2e2',
+      brightWhite: '#ffffff',
+    };
+  });
 
   function onWsClose(ev: CloseEvent) {
     termRef.value?.write(`\x1b[31mConnection closed: ${ev.reason}\x1b[m\r\n`);
@@ -190,7 +254,12 @@
         "'Lucida Console', 'DejaVu Sans Mono', 'Everson Mono', FreeMono, Menlo, Terminal, monospace",
       cursorStyle: 'underline',
       cursorBlink: true,
-      scrollback: 100,
+      scrollback: 5000,
+      // 设置主题
+      theme: terminalTheme.value,
+      // 优化渲染
+      convertEol: true,
+      disableStdin: false,
     });
     fitRef.value = new FitAddon();
     termRef.value.loadAddon(fitRef.value);
@@ -207,12 +276,27 @@
     initWebSocket(termRef.value);
   }
 
+  // 监听主题变化并更新终端主题
+  const updateTerminalTheme = () => {
+    if (termRef.value) {
+      const options = termRef.value.options;
+      options.theme = terminalTheme.value;
+      termRef.value.refresh(0, termRef.value.rows - 1);
+    }
+  };
+
+  // 监听应用主题变化
+  const stopWatchingTheme = appStore.$subscribe(() => {
+    updateTerminalTheme();
+  });
+
   function dispose() {
     removeResizeListener();
     disconnectWs();
     if (timerRef.value) {
       clearInterval(timerRef.value);
     }
+    stopWatchingTheme();
     termRef.value?.dispose();
   }
 
@@ -242,5 +326,14 @@
 
   .xterm-container :deep(.xterm) {
     padding: 8px 16px;
+  }
+
+  /* 强制覆盖默认颜色样式，解决白条问题 - 始终使用深色背景 */
+  .xterm-container :deep(.xterm-bg-257) {
+    background-color: #1a1a1a !important;
+  }
+
+  .xterm-container :deep(.xterm-fg-257) {
+    color: #e8e8e8 !important;
   }
 </style>

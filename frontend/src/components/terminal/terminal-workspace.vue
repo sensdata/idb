@@ -17,51 +17,69 @@
       </div>
 
       <template v-else>
-        <!-- 终端标签页 -->
-        <a-tabs
-          v-model:active-key="activeKey"
-          class="terminal-tabs"
-          type="card-gutter"
-          auto-switch
-          lazy-load
-        >
-          <template #extra>
-            <session-add-popover
-              v-model:visible="popoverVisible"
-              :current-host-id="currentHostId"
-              @add-session="handleAddSession"
-            />
-          </template>
+        <!-- 终端容器 -->
+        <div class="terminal-container">
+          <!-- 右上角操作按钮 -->
+          <div class="terminal-actions">
+            <a-button
+              type="text"
+              size="small"
+              :loading="isPruningSessions"
+              @click="handlePruneSessions"
+            >
+              <template #icon>
+                <icon-delete />
+              </template>
+              {{ $t('components.terminal.session.prune') }}
+            </a-button>
+          </div>
 
-          <!-- 终端标签页内容 -->
-          <a-tab-pane v-for="item of terms" :key="item.key">
-            <terminal
-              :ref="(el) => setTerminalRef(el, item)"
-              :host-id="item.hostId"
-              type="session"
-              path="terminals/{host}/start"
-              send-heartbeat
-              @wsopen="() => handleWsOpen(item)"
-              @session="(data) => handleSessionName(item, data)"
-            />
-            <template #title>
-              <terminal-tab-title
-                :item="item"
-                @action="handleTabAction"
-                @rename="handleTabRename"
+          <!-- 终端标签页 -->
+          <a-tabs
+            v-model:active-key="activeKey"
+            class="terminal-tabs"
+            type="card-gutter"
+            auto-switch
+            lazy-load
+          >
+            <template #extra>
+              <session-add-popover
+                v-model:visible="popoverVisible"
+                :current-host-id="currentHostId"
+                @add-session="handleAddSession"
               />
             </template>
-          </a-tab-pane>
-        </a-tabs>
 
-        <!-- 加载状态 -->
-        <loading-state v-if="terms.length === 0 && isCreatingSession" />
+            <!-- 终端标签页内容 -->
+            <a-tab-pane v-for="item of terms" :key="item.key">
+              <terminal
+                :ref="(el) => setTerminalRef(el, item)"
+                :host-id="item.hostId"
+                type="session"
+                path="terminals/{host}/start"
+                send-heartbeat
+                @wsopen="() => handleWsOpen(item)"
+                @session="(data) => handleSessionName(item, data)"
+              />
+              <template #title>
+                <terminal-tab-title
+                  :item="item"
+                  @action="handleTabAction"
+                  @rename="handleTabRename"
+                />
+              </template>
+            </a-tab-pane>
+          </a-tabs>
 
-        <!-- 空状态 -->
-        <empty-state
-          v-else-if="terms.length === 0"
-          @create-session="handleCreateFirstSession"
-        />
+          <!-- 加载状态 -->
+          <loading-state v-if="terms.length === 0 && isCreatingSession" />
+
+          <!-- 空状态 -->
+          <empty-state
+            v-else-if="terms.length === 0"
+            @create-session="handleCreateFirstSession"
+          />
+        </div>
       </template>
     </div>
   </div>
@@ -78,6 +96,7 @@
     detachTerminalSessionApi,
     quitTerminalSessionApi,
     renameTerminalSessionApi,
+    pruneTerminalSessionApi,
   } from '@/api/terminal';
   import HostSidebar from './host-sidebar.vue';
   import Terminal from './terminal.vue';
@@ -105,6 +124,9 @@
     focus,
     setTerminalRef,
     clearAll,
+    getHostTabsCount,
+    canAddTab,
+    MAX_TABS,
   } = useTerminalTabs();
 
   const { createFirstSession } = useTerminalSessions();
@@ -112,6 +134,7 @@
   const currentHostId = ref<number>();
   const popoverVisible = ref(false);
   const isCreatingSession = ref(false);
+  const isPruningSessions = ref(false);
 
   // 计算属性
   const currentHost = computed(() =>
@@ -222,15 +245,24 @@
       return;
     }
 
-    addItem({
-      type: sessionData.type,
-      hostId: currentHost.value.id,
-      hostName: currentHost.value.name,
-      sessionId: sessionData.sessionId,
-      sessionName: sessionData.sessionName,
-    });
+    try {
+      addItem({
+        type: sessionData.type,
+        hostId: currentHost.value.id,
+        hostName: currentHost.value.name,
+        sessionId: sessionData.sessionId,
+        sessionName: sessionData.sessionName,
+      });
 
-    popoverVisible.value = false;
+      popoverVisible.value = false;
+    } catch (error) {
+      logError('Failed to add session:', error);
+      Message.error(
+        error instanceof Error
+          ? error.message
+          : t('components.terminal.session.addFailed')
+      );
+    }
   }
 
   // 处理WebSocket连接打开
@@ -292,13 +324,28 @@
       });
     } catch (error) {
       logError('Failed to create first session:', error);
+      // 检查是否是标签页数量限制错误
+      if (error instanceof Error && error.message.includes('tabLimitReached')) {
+        Message.error(error.message);
+        return;
+      }
+
       // 降级处理：创建新会话
-      addItem({
-        type: 'start',
-        hostId: currentHost.value.id,
-        hostName: currentHost.value.name,
-      });
-      Message.warning(t('components.terminal.session.fallbackToNewSession'));
+      try {
+        addItem({
+          type: 'start',
+          hostId: currentHost.value.id,
+          hostName: currentHost.value.name,
+        });
+        Message.warning(t('components.terminal.session.fallbackToNewSession'));
+      } catch (fallbackError) {
+        logError('Failed to create fallback session:', fallbackError);
+        Message.error(
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : t('components.terminal.session.addFailed')
+        );
+      }
     } finally {
       isCreatingSession.value = false;
     }
@@ -318,7 +365,12 @@
       await handleCreateFirstSession();
     } catch (error) {
       logError('Failed to select host:', error);
-      Message.error(t('components.terminal.workspace.hostSelectFailed'));
+      // 如果是标签页数量限制错误，显示具体错误信息
+      if (error instanceof Error && error.message.includes('tabLimitReached')) {
+        Message.error(error.message);
+      } else {
+        Message.error(t('components.terminal.workspace.hostSelectFailed'));
+      }
     }
   }
 
@@ -371,6 +423,30 @@
     stopWatchingHostStore();
     clearAll();
   });
+
+  // 处理终端会话清理
+  async function handlePruneSessions(): Promise<void> {
+    if (!currentHostId.value) {
+      Message.warning(t('components.terminal.workspace.selectHost'));
+      return;
+    }
+
+    console.log('Pruning sessions for host:', currentHostId.value);
+
+    isPruningSessions.value = true;
+    try {
+      await pruneTerminalSessionApi(currentHostId.value, 'screen');
+      Message.success(t('components.terminal.session.pruneSuccess'));
+      // 清理成功后，刷新当前的终端列表（如果需要的话）
+      // 这里可以选择是否重新创建第一个会话，或者保持当前状态
+    } catch (error) {
+      logError('Failed to prune terminal sessions:', error);
+      console.error('Prune sessions error:', error);
+      Message.error(t('components.terminal.session.pruneFailed'));
+    } finally {
+      isPruningSessions.value = false;
+    }
+  }
 
   defineExpose({
     currentHostId,
@@ -426,5 +502,33 @@
 
   .terminal-tabs :deep(.arco-tabs-tab) {
     padding-right: 6px;
+  }
+
+  .terminal-container {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .terminal-actions {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    z-index: 10;
+  }
+
+  .terminal-actions .arco-btn {
+    color: var(--color-text-2);
+    background: rgb(255 255 255 / 80%);
+    border: 1px solid var(--color-border-2);
+    backdrop-filter: blur(4px);
+  }
+
+  .terminal-actions .arco-btn:hover {
+    color: var(--color-text-1);
+    background: rgb(255 255 255 / 95%);
+    border-color: var(--color-border-3);
   }
 </style>
