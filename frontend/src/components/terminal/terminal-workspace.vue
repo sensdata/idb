@@ -136,7 +136,6 @@
     setCurrentHost,
     restoreHostSessions,
     saveCurrentState,
-    debugHostSessionState,
   } = useTerminalTabs();
 
   const { createFirstSession, getAllHostSessions } = useTerminalSessions();
@@ -664,8 +663,6 @@
     handleHostSelect,
     reinitialize,
     handlePruneSessions,
-    // 调试功能
-    debugHostSessionState,
   });
 </script>
 
