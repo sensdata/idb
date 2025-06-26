@@ -39,7 +39,7 @@ export function useTerminalTabs() {
   const terms = ref<TermSessionItem[]>([]);
   const activeKey = ref<string>();
   const { t } = useI18n();
-  const { logError, logWarn } = useLogger('TerminalTabs');
+  const { logError } = useLogger('TerminalTabs');
   const {
     saveHostSessionState,
     loadHostSessionState,
@@ -278,7 +278,7 @@ export function useTerminalTabs() {
       const runtimeSessions = convertToRuntimeSessions(validSessions);
       const validSessionsToKeep: any[] = []; // 用于更新缓存
 
-      runtimeSessions.forEach((session, index) => {
+      runtimeSessions.forEach((session) => {
         let shouldRestore = false;
         let shouldKeepInCache = true;
 
