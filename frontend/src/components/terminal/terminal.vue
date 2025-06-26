@@ -230,7 +230,7 @@
     wsRef.value.onclose = onWsClose;
     wsRef.value.onopen = () => {
       // eslint-disable-next-line no-console
-      console.log(`terminal connected, host: ${props.hostId}`);
+
       emit('wsopen');
       if (props.sendHeartbeat) {
         autoSendHeartbeat();

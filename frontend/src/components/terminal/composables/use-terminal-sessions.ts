@@ -70,7 +70,31 @@ export function useTerminalSessions() {
     }
   }
 
-  // 创建第一个会话（直接尝试attach，让后端自动选择session）
+  // 获取主机所有可用的会话（包括attached和detached）
+  async function getAllHostSessions(hostId: number): Promise<SessionItem[]> {
+    if (!hostId || hostId <= 0) {
+      logWarn('Invalid hostId provided to getAllHostSessions:', hostId);
+      return [];
+    }
+
+    try {
+      const res = await getTerminalSessionsApi(hostId);
+
+      if (!res || !Array.isArray(res.items)) {
+        logWarn('Invalid response format from getTerminalSessionsApi:', res);
+        return [];
+      }
+
+      return res.items.filter((item: SessionItem) => {
+        return item && item.session && item.name;
+      });
+    } catch (error) {
+      logError('Failed to get all host sessions:', error);
+      return [];
+    }
+  }
+
+  // 创建第一个会话（智能选择attach或start）
   async function createFirstSession(
     host: HostEntity
   ): Promise<SessionCreationResult> {
@@ -81,12 +105,62 @@ export function useTerminalSessions() {
       };
     }
 
-    // 直接尝试attach，后端会自动选择最新的detached session
-    // 如果没有可用的session，后端会返回错误，前端再fallback到创建新session
-    return {
-      type: 'attach',
-      sessionId: '', // 空sessionId让后端自动选择
-    };
+    try {
+      // 先查询服务器上的会话
+      const serverSessions = await getAllHostSessions(host.id);
+      logWarn(
+        `Found ${serverSessions.length} sessions on server for host ${host.id}`
+      );
+
+      // 查找detached状态的会话
+      const detachedSessions = serverSessions.filter(
+        (session) => session.status?.toLowerCase() === 'detached'
+      );
+
+      if (detachedSessions.length > 0) {
+        // 选择最新的detached会话
+        const latestSession = detachedSessions.reduce((latest, current) => {
+          // 如果有时间信息，选择最新的；否则选择第一个
+          if (latest.time && current.time) {
+            return new Date(current.time) > new Date(latest.time)
+              ? current
+              : latest;
+          }
+          return latest;
+        });
+
+        // 确保选择的会话确实有sessionId
+        if (latestSession.session) {
+          logWarn(
+            `Will attach to detached session: ${latestSession.session} (${latestSession.name})`
+          );
+          return {
+            type: 'attach',
+            sessionId: latestSession.session,
+          };
+        }
+        logWarn(
+          'Selected detached session has no sessionId, will create new session'
+        );
+        return {
+          type: 'start',
+        };
+      }
+      // 没有detached会话，创建新会话
+      logWarn('No detached sessions found, will create new session');
+      return {
+        type: 'start',
+      };
+    } catch (error) {
+      logError(
+        'Failed to query server sessions for createFirstSession:',
+        error
+      );
+      // 查询失败，降级为创建新会话
+      return {
+        type: 'start',
+      };
+    }
   }
 
   // 清理函数（可选，用于组件卸载时清理状态）
@@ -102,6 +176,7 @@ export function useTerminalSessions() {
     // 方法
     loadSessionOptions,
     createFirstSession,
+    getAllHostSessions,
     clearSessions,
   } as const;
 }

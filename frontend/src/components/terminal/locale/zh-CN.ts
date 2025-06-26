@@ -26,6 +26,7 @@ export default {
   'components.terminal.workspace.selectHost': '请从左侧选择一个主机',
   'components.terminal.workspace.selectSession': '请选择或创建一个会话',
   'components.terminal.workspace.creatingSession': '正在创建会话...',
+  'components.terminal.workspace.restoringSession': '正在恢复会话...',
 
   // 新增的会话相关文本
   'components.terminal.session.new': '新建',
@@ -75,4 +76,5 @@ export default {
   'components.terminal.session.fallbackToNewSession': '降级创建新会话',
   'components.terminal.session.tabLimitReached':
     '终端标签页数量已达上限（最多 {max} 个），请先关闭一些标签页。',
+  'components.terminal.session.sessionsRestored': '已恢复 {count} 个终端会话',
 };

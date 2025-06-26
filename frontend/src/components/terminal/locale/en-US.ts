@@ -30,6 +30,7 @@ export default {
   'components.terminal.workspace.selectSession':
     'Please select or create a session',
   'components.terminal.workspace.creatingSession': 'Creating session...',
+  'components.terminal.workspace.restoringSession': 'Restoring sessions...',
 
   // 新增的会话相关文本
   'components.terminal.session.new': 'New',
@@ -84,4 +85,6 @@ export default {
     'Creating new session as fallback',
   'components.terminal.session.tabLimitReached':
     'Terminal tab limit reached (max: {max}). Please close some tabs first.',
+  'components.terminal.session.sessionsRestored':
+    'Restored {count} terminal sessions',
 };

@@ -72,7 +72,16 @@
           </a-tabs>
 
           <!-- 加载状态 -->
-          <loading-state v-if="terms.length === 0 && isCreatingSession" />
+          <loading-state
+            v-if="
+              terms.length === 0 && (isCreatingSession || isRestoringSession)
+            "
+            :text-key="
+              isRestoringSession
+                ? 'components.terminal.workspace.restoringSession'
+                : 'components.terminal.workspace.creatingSession'
+            "
+          />
 
           <!-- 空状态 -->
           <empty-state
@@ -124,14 +133,19 @@
     focus,
     setTerminalRef,
     clearAll,
+    setCurrentHost,
+    restoreHostSessions,
+    saveCurrentState,
+    debugHostSessionState,
   } = useTerminalTabs();
 
-  const { createFirstSession } = useTerminalSessions();
+  const { createFirstSession, getAllHostSessions } = useTerminalSessions();
 
   const currentHostId = ref<number>();
   const popoverVisible = ref(false);
   const isCreatingSession = ref(false);
   const isPruningSessions = ref(false);
+  const isRestoringSession = ref(false);
 
   // 计算属性
   const currentHost = computed(() =>
@@ -164,6 +178,8 @@
             session: item.sessionId,
           });
         }
+        // 保存移除会话后的状态到缓存
+        saveCurrentState();
       } else if (action === 'detach') {
         removeItem(item.key);
         if (item.sessionId) {
@@ -171,6 +187,8 @@
             session: item.sessionId,
           });
         }
+        // 保存移除会话后的状态到缓存
+        saveCurrentState();
       }
     } catch (error) {
       logError(`Failed to ${action} terminal session:`, error);
@@ -212,16 +230,25 @@
         data: updatedItem.title,
       });
 
-      // 成功后更新为新标题
+      // 成功后更新为新标题，但保持原始的sessionName不变
       terms.value[index] = {
         ...originalItem,
         title: updatedItem.title,
+        isCustomTitle: true, // 标记为用户自定义标题
         isRenaming: false,
+        // 注意：不修改sessionName，保持服务器端的原始会话名称
       };
+
+      // 保存更新后的状态到缓存
+      logWarn(
+        `About to save state after rename: hostId=${updatedItem.hostId}, sessionId=${updatedItem.sessionId}, newTitle="${updatedItem.title}"`
+      );
+      saveCurrentState();
+
       Message.success(t('components.terminal.session.renameSuccess'));
 
       logWarn(
-        `Successfully renamed session ${updatedItem.sessionId} to "${updatedItem.title}"`
+        `Successfully renamed session ${updatedItem.sessionId} to "${updatedItem.title}" for host ${updatedItem.hostId}`
       );
     } catch (error) {
       logError('Failed to rename terminal session:', error);
@@ -277,10 +304,33 @@
           data: item.sessionName || '', // 传递用户自定义的会话名称，空则让后端自动生成
         });
       } else {
+        // 对于attach类型，使用原始的服务器会话名称，而不是用户自定义的标题
+        // 这确保服务器能找到正确的会话进行附加
+        const originalSessionName =
+          item.originalSessionName || item.sessionName || '';
+
+        logWarn(
+          `Attaching to session ${item.sessionId} with original name: "${originalSessionName}"`
+        );
+
+        // 检查sessionId是否有效（只有在attach类型时才需要sessionId）
+        if (!item.sessionId) {
+          logWarn(
+            'SessionId is empty, this might be a restored session that needs to be re-attached'
+          );
+          // 对于没有sessionId的attach类型，可能需要转换为start类型
+          // 或者让服务器处理这种情况
+        }
+
         item.termRef.sendWsMsg({
           type: MsgType.Attach,
-          session: item.sessionId,
+          session: item.sessionId || '', // 允许空的sessionId，让服务器处理
+          data: originalSessionName, // 传递原始的服务器会话名称，确保能正确附加
         });
+
+        logWarn(
+          `Sent attach message for session "${item.sessionId}" (empty sessionId will be handled by server)`
+        );
       }
     } catch (error) {
       logError('Failed to send WebSocket message:', error);
@@ -301,9 +351,58 @@
       return;
     }
 
-    item.title = data.sessionName;
+    // 如果当前标题不是默认的"连接中"状态，并且sessionId已经存在，
+    // 说明这是一个已经存在的会话（可能是用户重命名过的），不应该被服务器返回的名称覆盖
+    const isConnectingTitle =
+      item.title === t('components.terminal.session.connecting');
+    const hasExistingSession = Boolean(item.sessionId);
+
+    logWarn(
+      `handleSessionName: current title="${item.title}", isConnecting=${isConnectingTitle}, hasExisting=${hasExistingSession}, serverName="${data.sessionName}"`
+    );
+
+    // 检查sessionId是否发生了变化（可能表明attach失败，服务器创建了新session）
+    if (
+      hasExistingSession &&
+      item.sessionId &&
+      item.sessionId !== data.sessionId
+    ) {
+      logError(
+        `WARNING: SessionId mismatch! Expected: ${item.sessionId}, Got: ${data.sessionId}. This may indicate attach failed and server created a new session.`
+      );
+    }
+
+    // 只有在以下情况才更新标题：
+    // 1. 当前标题是"连接中"（新建会话）
+    // 2. 或者没有自定义标题且当前会话ID为空（新建会话）
+    if (isConnectingTitle || (!item.isCustomTitle && !hasExistingSession)) {
+      item.title = data.sessionName;
+      item.isCustomTitle = false; // 标记为非自定义标题
+      logWarn(`Updated title from server: "${data.sessionName}"`);
+    } else {
+      logWarn(
+        `Keeping existing title: "${item.title}", ignoring server name: "${data.sessionName}"`
+      );
+    }
+
+    // 更新sessionId和sessionName（但记录原始值用于调试）
+    const originalSessionId = item.sessionId;
     item.sessionId = data.sessionId;
+
+    // 保存原始的服务器会话名称，用于会话恢复
+    if (!item.originalSessionName) {
+      item.originalSessionName = data.sessionName;
+    }
     item.sessionName = data.sessionName;
+
+    if (originalSessionId && originalSessionId !== data.sessionId) {
+      logWarn(
+        `SessionId updated from ${originalSessionId} to ${data.sessionId}`
+      );
+    }
+
+    // 保存更新后的会话信息到缓存
+    saveCurrentState();
   }
 
   // 创建第一个会话
@@ -351,15 +450,73 @@
   // 处理主机选择
   async function handleHostSelect(host: HostEntity): Promise<void> {
     try {
-      // 清理当前所有终端
+      // 如果当前有其他主机的会话，先保存当前状态
+      if (
+        currentHostId.value &&
+        currentHostId.value !== host.id &&
+        terms.value.length > 0
+      ) {
+        saveCurrentState();
+        logWarn(
+          `Saved ${terms.value.length} sessions for previous host ${currentHostId.value}`
+        );
+      }
+
+      // 清空当前所有会话（切换主机时必须清空）
       clearAll();
 
-      // 切换主机
+      // 设置新的主机
       currentHostId.value = host.id;
       hostStore.setCurrentId(host.id);
+      setCurrentHost(host.id);
 
-      // 创建默认会话
-      await handleCreateFirstSession();
+      // 尝试恢复新主机的保存的会话
+      isRestoringSession.value = true; // 开始恢复会话
+      try {
+        const restored = await restoreHostSessions(
+          host.id,
+          host.name,
+          getAllHostSessions
+        );
+
+        if (restored) {
+          // 成功恢复会话，显示提示信息
+          Message.success(
+            t('components.terminal.session.sessionsRestored', {
+              count: terms.value.length,
+            })
+          );
+
+          // 恢复会话后，需要等待所有终端组件渲染完成
+          await nextTick();
+
+          // 为每个恢复的会话重新建立WebSocket连接
+          // 由于termRef需要在组件渲染后才能设置，这里等待一段时间再尝试连接
+          terms.value.forEach((item, index) => {
+            setTimeout(() => {
+              if (item.termRef) {
+                handleWsOpen(item);
+              } else {
+                // 如果termRef还没有设置，再等待一下
+                setTimeout(() => {
+                  if (item.termRef) {
+                    handleWsOpen(item);
+                  }
+                }, 200);
+              }
+            }, 100 + index * 50); // 错开每个连接的时间
+          });
+
+          logWarn(
+            `Successfully restored ${terms.value.length} sessions for host ${host.name}`
+          );
+        } else {
+          // 没有保存的会话，创建默认会话
+          await handleCreateFirstSession();
+        }
+      } finally {
+        isRestoringSession.value = false; // 恢复会话结束
+      }
     } catch (error) {
       logError('Failed to select host:', error);
       // 如果是标签页数量限制错误，显示具体错误信息
@@ -367,6 +524,13 @@
         Message.error(error.message);
       } else {
         Message.error(t('components.terminal.workspace.hostSelectFailed'));
+
+        // 恢复失败时，尝试创建默认会话
+        try {
+          await handleCreateFirstSession();
+        } catch (fallbackError) {
+          logError('Failed to create fallback session:', fallbackError);
+        }
       }
     }
   }
@@ -375,7 +539,26 @@
   const reinitialize = async (): Promise<void> => {
     await nextTick();
     if (currentHostId.value && terms.value.length === 0) {
-      await handleCreateFirstSession();
+      const currentHostItem = hostStore.items.find(
+        (h) => h.id === currentHostId.value
+      );
+      if (currentHostItem) {
+        // 尝试恢复保存的会话
+        isRestoringSession.value = true; // 开始恢复会话
+        try {
+          const restored = await restoreHostSessions(
+            currentHostId.value,
+            currentHostItem.name,
+            getAllHostSessions
+          );
+          if (!restored) {
+            // 如果没有保存的会话，创建默认会话
+            await handleCreateFirstSession();
+          }
+        } finally {
+          isRestoringSession.value = false; // 恢复会话结束
+        }
+      }
     }
   };
 
@@ -410,7 +593,27 @@
   onMounted(async () => {
     await nextTick();
     if (currentHostId.value && terms.value.length === 0) {
-      await handleCreateFirstSession();
+      const currentHostItem = hostStore.items.find(
+        (h) => h.id === currentHostId.value
+      );
+      if (currentHostItem) {
+        setCurrentHost(currentHostId.value);
+        // 尝试恢复保存的会话
+        isRestoringSession.value = true; // 开始恢复会话
+        try {
+          const restored = await restoreHostSessions(
+            currentHostId.value,
+            currentHostItem.name,
+            getAllHostSessions
+          );
+          if (!restored) {
+            // 如果没有保存的会话，创建默认会话
+            await handleCreateFirstSession();
+          }
+        } finally {
+          isRestoringSession.value = false; // 恢复会话结束
+        }
+      }
     }
   });
 
@@ -445,9 +648,24 @@
 
   defineExpose({
     currentHostId,
-    addItem,
-    focus,
+    terms,
+    activeKey,
+    popoverVisible,
+    isCreatingSession,
+    isPruningSessions,
+    isRestoringSession,
+    currentHost,
+    handleTabAction,
+    handleTabRename,
+    handleAddSession,
+    handleWsOpen,
+    handleSessionName,
+    handleCreateFirstSession,
+    handleHostSelect,
     reinitialize,
+    handlePruneSessions,
+    // 调试功能
+    debugHostSessionState,
   });
 </script>
 

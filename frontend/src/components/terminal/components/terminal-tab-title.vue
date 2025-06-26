@@ -44,10 +44,12 @@
     hostName: string;
     title: string;
     sessionId?: string;
-    sessionName?: string;
+    sessionName?: string; // 服务器端的会话名称，不应该被用户重命名影响
+    originalSessionName?: string; // 保存原始的服务器会话名称，用于恢复会话
     termRef?: any;
     isRenaming?: boolean;
     renameValue?: string;
+    isCustomTitle?: boolean; // 标记标题是否为用户自定义
   }
 
   interface Props {
@@ -112,8 +114,15 @@
 
       nextTick(() => {
         if (renameInputRef.value) {
-          renameInputRef.value.focus();
-          renameInputRef.value.select();
+          try {
+            renameInputRef.value.focus();
+            // 检查是否有select方法再调用
+            if (typeof renameInputRef.value.select === 'function') {
+              renameInputRef.value.select();
+            }
+          } catch (error) {
+            logError('Failed to focus/select rename input:', error);
+          }
         }
       }).catch((error) => {
         logError('Failed to focus rename input:', error);
