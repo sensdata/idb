@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package scriptmanagerpb;
+
+option go_package = "./pb";
+
+service ScriptManager {
+  rpc ListScripts(ListScriptsRequest) returns (ListScriptsResponse);
+}
+
+message ListScriptsRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message ListScriptsResponse {
+  repeated string scripts = 1;
+}
