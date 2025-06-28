@@ -40,11 +40,11 @@ import (
 )
 
 var API ApiServer = ApiServer{
-	router: gin.Default(),
+	Router: gin.Default(),
 }
 
 type ApiServer struct {
-	router *gin.Engine
+	Router *gin.Engine
 	server *http.Server
 	ln     net.Listener
 }
@@ -74,7 +74,7 @@ func (s *ApiServer) Start() error {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", settings.BindIP, settings.BindPort),
-		Handler: s.router,
+		Handler: s.Router,
 	}
 	tcpItem := "tcp4"
 	ln, err := net.Listen(tcpItem, server.Addr)
@@ -392,7 +392,7 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 // SetupRouter sets up the API routes
 func (s *ApiServer) setUpDefaultRouters() {
 	global.LOG.Info("register router - api")
-	apiGroup := s.router.Group("api/v1")
+	apiGroup := s.Router.Group("api/v1")
 
 	// 添加全局日志中间件
 	apiGroup.Use(func(c *gin.Context) {
@@ -428,19 +428,19 @@ func (s *ApiServer) setUpDefaultRouters() {
 	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	// 处理未匹配的请求，重定向到 /var/lib/idb/home
-	s.router.NoRoute(func(c *gin.Context) {
+	s.Router.NoRoute(func(c *gin.Context) {
 		// 这里可以使用 c.FileServer 来处理目录下的所有请求
 		c.File("/var/lib/idb/home/index.html") // 默认返回 index.html
 	})
 
 	// 设置静态文件路由，确保可以访问 assets 目录
-	s.router.Static("/assets", "/var/lib/idb/home/assets") // 处理 assets 目录
+	s.Router.Static("/assets", "/var/lib/idb/home/assets") // 处理 assets 目录
 }
 
 // SetUpPluginRouters sets up routers from plugins
 func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute) {
 	global.LOG.Info("register router - %s", group)
-	pluginGroup := s.router.Group("api/v1/" + group)
+	pluginGroup := s.Router.Group("api/v1/" + group)
 	pluginGroup.Use(middleware.NewJWT().JWTAuth())
 	for _, route := range routes {
 		switch route.Method {
@@ -456,7 +456,7 @@ func (s *ApiServer) SetUpPluginRouters(group string, routes []plugin.PluginRoute
 	}
 
 	// 设置 git 路由
-	gitGroup := s.router.Group("api/v1/git/" + group)
+	gitGroup := s.Router.Group("api/v1/git/" + group)
 	repoPath := fmt.Sprintf("/var/lib/idb/data/%s/global", group)
 	// 处理 git clone/pull 请求
 	gitGroup.GET("/*path", s.handleGitRoute(repoPath))

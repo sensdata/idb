@@ -1,0 +1,4 @@
+plugins:
+  - name: scriptmanager
+    path: /var/lib/idb/plugins/scriptmanager
+    enabled: true
