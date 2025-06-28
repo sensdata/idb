@@ -34,15 +34,25 @@
                   {{ item.display_name }}
                 </h3>
                 <a-tag bordered class="text-gray-600 mb-2">
-                  {{ $t('app.store.app.install.version') }}:
+                  {{ $t('app.store.app.list.version') }}:
                   {{ item.versions[0].version }}.{{
                     item.versions[0].update_version
                   }}
                 </a-tag>
                 <div class="text-gray-500 text-sm mb-2">
-                  {{ $t('app.store.app.install.created_at') }}:
+                  {{ $t('app.store.app.list.install_at') }}:
                   {{ item.versions[0].created_at }}
                 </div>
+              </div>
+              <div class="item-actions">
+                <a-button
+                  type="primary"
+                  shape="round"
+                  size="small"
+                  @click="handleUpgrade(item)"
+                >
+                  {{ $t('app.store.app.list.upgrade') }}
+                </a-button>
               </div>
             </div>
           </a-card>
@@ -58,7 +68,7 @@
       />
     </div>
   </a-spin>
-  <install-drawer ref="installRef" />
+  <upgrade-drawer ref="upgradeRef" />
 </template>
 
 <script setup lang="ts">
@@ -68,7 +78,7 @@
   import { getInstalledAppListApi } from '@/api/store';
   import { Message } from '@arco-design/web-vue';
   import { getHexColorByChar } from '@/helper/utils';
-  import InstallDrawer from './components/install-drawer.vue';
+  import UpgradeDrawer from './components/upgrade-drawer.vue';
 
   const pagination = reactive({
     page: 1,
@@ -78,7 +88,7 @@
 
   const items = ref<AppSimpleEntity[]>([]);
 
-  const installRef = ref<InstanceType<typeof InstallDrawer>>();
+  const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
 
@@ -116,6 +126,12 @@
   };
   const onSearchEnter = () => {
     onSearch(searchValue.value);
+  };
+
+  const handleUpgrade = (item: AppSimpleEntity) => {
+    upgradeRef.value?.setParams({ id: item.id });
+    upgradeRef.value?.load();
+    upgradeRef.value?.show();
   };
 
   defineExpose({

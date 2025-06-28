@@ -44,6 +44,13 @@ export function installAppApi(params: InstallAppParams) {
   }>('store/{host}/apps/install', params);
 }
 
+export function upgradeAppApi(params: InstallAppParams) {
+  return request.post<{
+    log_host: number;
+    log_path: string;
+  }>('store/{host}/apps/upgrade', params);
+}
+
 export function uninstallAppApi(params: { id: number }) {
   return request.post('store/{host}/apps/uninstall', params);
 }

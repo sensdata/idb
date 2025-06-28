@@ -80,7 +80,7 @@ const appRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'container',
+        path: 'container/:composeId?',
         name: 'container',
         component: () => import('@/views/app/docker/container/list.vue'),
         meta: {

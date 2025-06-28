@@ -223,7 +223,13 @@ export const createComposeApi = (params: CreateCompose) =>
 export const operateComposeApi = (params: {
   name: string;
   operation: 'start' | 'stop' | 'restart' | 'up' | 'down';
-}) => request.post('/docker/{host}/compose/operation', params);
+  delete_volumes?: boolean;
+}) =>
+  request.post<{
+    success: boolean;
+    message: string;
+    command: string;
+  }>('/docker/{host}/compose/operation', params);
 
 // 删除 compose
 export const deleteComposeApi = (params: { name: string }) =>

@@ -10,10 +10,13 @@ export default {
   'app.compose.list.operation.down': 'Down',
   'app.compose.list.operation.edit': 'Edit',
   'app.compose.list.operation.delete': 'Delete',
+  'app.compose.list.operation.success': 'Successfully executed {command}',
+  'app.compose.list.operation.failed': 'Failed to execute {command}, {message}',
+  'app.compose.list.operation.error': 'Failed to execute',
+  'app.compose.list.operation.stop.confirm':
+    'Only stop containers, not delete them.',
   'app.compose.list.operation.delete.confirm':
-    'Are you sure to delete this Compose?',
-  'app.compose.list.operation.success': 'Operation succeeded',
-  'app.compose.list.operation.failed': 'Operation failed',
+    'Stop and delete all resources and data of the project',
 
   'app.docker.compose.edit.title': 'Edit Compose',
   'app.docker.compose.edit.compose_content': 'compose.yaml',

@@ -13,11 +13,13 @@
     </template>
   </idb-table>
   <edit-drawer ref="editRef" />
+  <down-confirm-modal ref="downConfirmRef" @confirm="afterDownConfirm" />
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue';
+  import { ref, h, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
   import {
     queryComposeApi,
@@ -25,8 +27,10 @@
     deleteComposeApi,
   } from '@/api/docker';
   import EditDrawer from './components/edit-drawer.vue';
+  import DownConfirmModal from './components/down-confirm-modal.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const gridRef = ref();
   const reload = () => {
@@ -40,17 +44,44 @@
       dataIndex: 'name',
       title: t('app.compose.list.column.name'),
       width: 200,
+      render: ({ record }: { record: any }) => {
+        return h(
+          resolveComponent('a-link'),
+          {
+            onClick: () => {
+              router.push(`/app/docker/container/${record.container_number}`);
+            },
+            hoverable: false,
+          },
+          {
+            default: () => record.name,
+          }
+        );
+      },
     },
     {
       dataIndex: 'status',
       title: t('app.compose.list.column.container_status'),
       width: 120,
       render: ({ record }: { record: any }) => {
-        return [
-          record.containers.filter((item: any) => item.state === 'running')
-            .length,
-          record.container_number,
-        ].join('/');
+        return h(
+          resolveComponent('a-link'),
+          {
+            onClick: () => {
+              router.push(`/app/docker/container/${record.container_number}`);
+            },
+            hoverable: false,
+          },
+          {
+            default: () =>
+              [
+                record.containers.filter(
+                  (item: any) => item.state === 'running'
+                ).length,
+                record.container_number,
+              ].join('/'),
+          }
+        );
       },
     },
     {
@@ -62,28 +93,55 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       align: 'center' as const,
-      width: 150,
+      width: 180,
       slotName: 'operation',
     },
   ];
 
   const handleOperate = async (
-    record: any,
-    operation: 'start' | 'stop' | 'restart' | 'down' | 'up'
+    name: string,
+    operation: 'start' | 'stop' | 'restart' | 'up' | 'down',
+    params?: {
+      delete_volumes?: boolean;
+    }
   ) => {
     try {
-      await operateComposeApi({
-        name: record.name,
+      const result = await operateComposeApi({
+        name,
         operation,
+        ...params,
       });
-      Message.success(t('app.compose.list.operation.success'));
+      if (result.success) {
+        Message.success(
+          t('app.compose.list.operation.success', {
+            command: result.command,
+          })
+        );
+      } else {
+        Message.error(
+          t('app.compose.list.operation.failed', {
+            command: result.command,
+            message: result.message,
+          })
+        );
+      }
       reload();
     } catch (e: any) {
-      Message.error(e.message || t('app.compose.list.operation.failed'));
+      Message.error(e.message || t('app.compose.list.operation.error'));
     }
   };
 
+  const afterDownConfirm = async (params: {
+    name: string;
+    delete_volumes: boolean;
+  }) => {
+    await handleOperate(params.name, 'down', {
+      delete_volumes: params.delete_volumes,
+    });
+  };
+
   const editRef = ref<InstanceType<typeof EditDrawer>>();
+  const downConfirmRef = ref<InstanceType<typeof DownConfirmModal>>();
   const getOperationOptions = (record: any) => [
     {
       text: t('app.compose.list.operation.edit'),
@@ -96,25 +154,32 @@
     {
       text: t('app.compose.list.operation.start'),
       click: async () => {
-        await handleOperate(record, 'start');
+        await handleOperate(record.name, 'start');
       },
     },
     {
       text: t('app.compose.list.operation.stop'),
+      confirm: t('app.compose.list.operation.stop.confirm'),
       click: async () => {
-        await handleOperate(record, 'stop');
+        await handleOperate(record.name, 'stop');
       },
     },
     {
       text: t('app.compose.list.operation.restart'),
       click: async () => {
-        await handleOperate(record, 'restart');
+        await handleOperate(record.name, 'restart');
+      },
+    },
+    {
+      text: t('app.compose.list.operation.up'),
+      click: async () => {
+        await handleOperate(record.name, 'up');
       },
     },
     {
       text: t('app.compose.list.operation.down'),
       click: async () => {
-        await handleOperate(record, 'down');
+        downConfirmRef.value?.show(record.name);
       },
     },
     {

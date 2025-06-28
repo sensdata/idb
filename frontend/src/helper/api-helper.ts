@@ -65,13 +65,17 @@ axios.interceptors.response.use(
       return response;
     }
 
-    if (response.data.code === 200) {
+    if (response.data?.code === 200) {
       return response.data.data;
     }
 
     // Message.error(response.data.message as string);
 
-    return Promise.reject(new Error(response.data.message as string));
+    if (response.data?.message) {
+      return Promise.reject(new Error(response.data?.message as string));
+    }
+
+    return Promise.reject(new Error(response.statusText));
   },
   (error) => {
     if (error.response?.status === 401) {

@@ -3,6 +3,7 @@
     ref="gridRef"
     :columns="columns"
     :fetch="queryContainersApi"
+    :params="params"
     :filters="filters"
   >
     <template #ports="{ record }">
@@ -27,6 +28,7 @@
 <script lang="ts" setup>
   import { h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
   import { queryContainersApi, operateContainersApi } from '@/api/docker';
   import LogsModal from './components/logs-modal.vue';
@@ -35,6 +37,11 @@
   const { t } = useI18n();
   const gridRef = ref();
   const reload = () => gridRef.value?.reload();
+
+  const route = useRoute();
+  const params = {
+    composeId: +route.params.composeId || undefined,
+  };
 
   const filters = [
     {

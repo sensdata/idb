@@ -43,12 +43,11 @@
                 </div>
                 <a-tag color="arcoblue">{{ item.category }}</a-tag>
               </div>
-              <div class="item-extra">
-                <a-tag v-if="item.status === 'installed'" color="green">
+              <div class="item-actions">
+                <!-- <a-tag v-if="item.status === 'installed'" color="green">
                   {{ $t('app.store.app.list.installed') }}
-                </a-tag>
+                </a-tag> -->
                 <a-button
-                  v-else
                   type="primary"
                   shape="round"
                   size="small"
