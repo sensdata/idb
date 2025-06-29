@@ -1,17 +1,17 @@
 <template>
   <a-modal
     v-model:visible="visible"
-    :width="600"
+    :width="400"
     :title="t('common.confirm.title')"
     unmount-on-close
     @ok="onOk"
     @cancel="onCancel"
   >
     <p>
-      {{ t('app.docker.compose.down.confirm.message') }}
+      {{ t('app.docker.container.stop.confirm.message') }}
     </p>
-    <a-checkbox v-model="deleteVolumes">{{
-      t('app.docker.compose.down.confirm.deleteVolumes')
+    <a-checkbox v-model="force">{{
+      t('app.docker.container.stop.confirm.force')
     }}</a-checkbox>
   </a-modal>
 </template>
@@ -24,20 +24,20 @@
   const { t } = useI18n();
   const visible = ref(false);
 
-  const deleteVolumes = ref(false);
-  const composeName = ref('');
+  const force = ref(false);
+  const nameRef = ref('');
   const show = (name: string) => {
     visible.value = true;
-    composeName.value = name;
-    deleteVolumes.value = false;
+    nameRef.value = name;
+    force.value = false;
   };
   const hide = () => {
     visible.value = false;
   };
   const onOk = async () => {
     emit('confirm', {
-      name: composeName.value,
-      delete_volumes: deleteVolumes.value,
+      name: nameRef.value,
+      force: force.value,
     });
   };
   const onCancel = hide;

@@ -11,6 +11,9 @@
         <a-button @click="onBuildImageClick">{{
           $t('app.docker.image.list.action.build')
         }}</a-button>
+        <a-button type="primary" @click="onPruneClick">
+          {{ t('app.docker.image.list.action.prune') }}
+        </a-button>
       </div>
     </template>
     <template #state="{ record }">
@@ -34,7 +37,7 @@
     </template>
     <template #operation="{ record }">
       <idb-table-operation
-        type="button"
+        type="dropdown"
         :options="getOperationOptions(record)"
       />
     </template>
@@ -45,14 +48,22 @@
   <tag-drawer ref="tagRef" @success="reload" />
   <push-drawer ref="pushRef" @success="reload" />
   <export-drawer ref="exportRef" @success="reload" />
+  <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { formatTime } from '@/utils/format';
-  import { queryImagesApi, batchDeleteImagesApi } from '@/api/docker';
+  import { useConfirm } from '@/composables/confirm';
+  import {
+    queryImagesApi,
+    batchDeleteImagesApi,
+    pruneApi,
+    inspectApi,
+  } from '@/api/docker';
+  import YamlDrawer from '@/components/yaml-drawer/index.vue';
   import PullImageDrawer from './components/pull-image-drawer.vue';
   import ImportImageDrawer from './components/import-image-drawer.vue';
   import BuildImageDrawer from './components/build-image-drawer.vue';
@@ -65,11 +76,27 @@
   const reload = () => gridRef.value?.reload();
 
   const pullImageRef = ref<InstanceType<typeof PullImageDrawer>>();
-  const importImageRef = ref();
-  const buildImageRef = ref();
-  const tagRef = ref();
-  const pushRef = ref();
-  const exportRef = ref();
+  const importImageRef = ref<InstanceType<typeof ImportImageDrawer>>();
+  const buildImageRef = ref<InstanceType<typeof BuildImageDrawer>>();
+  const tagRef = ref<InstanceType<typeof TagDrawer>>();
+  const pushRef = ref<InstanceType<typeof PushDrawer>>();
+  const exportRef = ref<InstanceType<typeof ExportDrawer>>();
+  const inspectRef = ref<InstanceType<typeof YamlDrawer>>();
+
+  async function handleInspect(record: any) {
+    try {
+      const data = await inspectApi({
+        type: 'image',
+        id: record.id!,
+      });
+      inspectRef.value?.setContent(
+        JSON.stringify(JSON.parse(data.info), null, 2)
+      );
+      inspectRef.value?.show();
+    } catch (err: any) {
+      Message.error(err?.message);
+    }
+  }
 
   const columns = [
     {
@@ -77,9 +104,22 @@
       title: t('app.docker.image.list.column.id'),
       width: 180,
       render: ({ record }: { record: any }) => {
-        return record.id.startsWith('sha256:')
-          ? record.id.substring(7, 19)
-          : record.id;
+        return h(
+          resolveComponent('a-link'),
+          {
+            onClick: () => {
+              handleInspect(record);
+            },
+            hoverable: false,
+          },
+          {
+            default: () => {
+              return record.id.startsWith('sha256:')
+                ? record.id.substring(7, 19)
+                : record.id;
+            },
+          }
+        );
       },
     },
     {
@@ -111,16 +151,33 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       align: 'center' as const,
-      width: 180,
+      width: 120,
       slotName: 'operation',
     },
   ];
 
+  const { confirm } = useConfirm();
   const onPullImageClick = () => pullImageRef.value?.show();
   const onImportImageClick = () => importImageRef.value?.show();
   const onBuildImageClick = () => buildImageRef.value?.show();
+  const onPruneClick = async () => {
+    if (!(await confirm(t('app.docker.image.prune.confirm')))) {
+      return;
+    }
+    try {
+      await pruneApi({ type: 'image' });
+      Message.success(t('app.docker.image.prune.success'));
+      reload();
+    } catch (e: any) {
+      Message.error(e.message);
+    }
+  };
 
   const getOperationOptions = (record: any) => [
+    {
+      text: t('app.docker.image.list.operation.inspect'),
+      click: () => handleInspect(record),
+    },
     {
       text: t('app.docker.image.list.operation.tag'),
       click: () => tagRef.value?.show(record),
@@ -138,13 +195,22 @@
       confirm: t('app.docker.image.list.operation.delete.confirm'),
       click: async () => {
         try {
-          await batchDeleteImagesApi({ sources: record.id, force: false });
-          Message.success(t('app.docker.image.list.operation.delete.success'));
+          const result = await batchDeleteImagesApi({
+            sources: record.id,
+            force: false,
+          });
+          if (result.success) {
+            Message.success(
+              t('app.docker.image.list.operation.delete.success', {
+                command: result.command,
+              })
+            );
+          } else {
+            Message.success(t('app.docker.image.list.operation.delete.failed'));
+          }
           reload();
         } catch (e: any) {
-          Message.error(
-            e.message || t('app.docker.image.list.operation.delete.failed')
-          );
+          Message.error(e.message);
         }
       },
     },

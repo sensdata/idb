@@ -29,6 +29,7 @@ export default {
   'common.add': '添加',
   'common.delete': '删除',
   'common.view': '查看',
+  'common.detail': '详情',
   'common.modify': '修改',
   'common.save': '保存',
   'common.cancel': '取消',

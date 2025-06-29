@@ -74,14 +74,20 @@
 
     try {
       loading.value = true;
-      await pullImageApi({ image_name: formState.image_name });
-      Message.success(t('app.docker.image.list.pull.success'));
+      const result = await pullImageApi({ image_name: formState.image_name });
+      if (result.success) {
+        Message.success(
+          t('app.docker.image.list.pull.success', {
+            command: result.command,
+          })
+        );
+      } else {
+        Message.success(t('app.docker.image.list.pull.failed'));
+      }
       emit('success');
       hide();
     } catch (e: any) {
-      if (e?.message) {
-        Message.error(e.message);
-      }
+      Message.error(e.message);
     } finally {
       loading.value = false;
     }

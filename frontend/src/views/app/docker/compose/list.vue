@@ -42,7 +42,7 @@
   const columns = [
     {
       dataIndex: 'name',
-      title: t('app.compose.list.column.name'),
+      title: t('app.docker.compose.list.column.name'),
       width: 200,
       render: ({ record }: { record: any }) => {
         return h(
@@ -61,7 +61,7 @@
     },
     {
       dataIndex: 'status',
-      title: t('app.compose.list.column.container_status'),
+      title: t('app.docker.compose.list.column.container_status'),
       width: 120,
       render: ({ record }: { record: any }) => {
         return h(
@@ -86,7 +86,7 @@
     },
     {
       dataIndex: 'created_at',
-      title: t('app.compose.list.column.created_at'),
+      title: t('app.docker.compose.list.column.created_at'),
       width: 160,
     },
     {
@@ -113,13 +113,13 @@
       });
       if (result.success) {
         Message.success(
-          t('app.compose.list.operation.success', {
+          t('app.docker.compose.list.operation.success', {
             command: result.command,
           })
         );
       } else {
         Message.error(
-          t('app.compose.list.operation.failed', {
+          t('app.docker.compose.list.operation.failed', {
             command: result.command,
             message: result.message,
           })
@@ -127,7 +127,7 @@
       }
       reload();
     } catch (e: any) {
-      Message.error(e.message || t('app.compose.list.operation.error'));
+      Message.error(e.message || t('app.docker.compose.list.operation.error'));
     }
   };
 
@@ -144,7 +144,7 @@
   const downConfirmRef = ref<InstanceType<typeof DownConfirmModal>>();
   const getOperationOptions = (record: any) => [
     {
-      text: t('app.compose.list.operation.edit'),
+      text: t('app.docker.compose.list.operation.edit'),
       click: () => {
         editRef.value?.setParams({ name: record.name });
         editRef.value?.load();
@@ -152,39 +152,39 @@
       },
     },
     {
-      text: t('app.compose.list.operation.start'),
+      text: t('app.docker.compose.list.operation.start'),
       click: async () => {
         await handleOperate(record.name, 'start');
       },
     },
     {
-      text: t('app.compose.list.operation.stop'),
-      confirm: t('app.compose.list.operation.stop.confirm'),
+      text: t('app.docker.compose.list.operation.stop'),
+      confirm: t('app.docker.compose.list.operation.stop.confirm'),
       click: async () => {
         await handleOperate(record.name, 'stop');
       },
     },
     {
-      text: t('app.compose.list.operation.restart'),
+      text: t('app.docker.compose.list.operation.restart'),
       click: async () => {
         await handleOperate(record.name, 'restart');
       },
     },
     {
-      text: t('app.compose.list.operation.up'),
+      text: t('app.docker.compose.list.operation.up'),
       click: async () => {
         await handleOperate(record.name, 'up');
       },
     },
     {
-      text: t('app.compose.list.operation.down'),
+      text: t('app.docker.compose.list.operation.down'),
       click: async () => {
         downConfirmRef.value?.show(record.name);
       },
     },
     {
-      text: t('app.compose.list.operation.delete'),
-      confirm: t('app.compose.list.operation.delete.confirm'),
+      text: t('app.docker.compose.list.operation.delete'),
+      confirm: t('app.docker.compose.list.operation.delete.confirm'),
       click: async () => {
         loading.value = true;
         try {

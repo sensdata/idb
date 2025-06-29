@@ -2,11 +2,11 @@ export default {
   'app.docker.volume.list.action.create': 'Create Volume',
   'app.docker.volume.list.column.name': 'Volume Name',
   'app.docker.volume.list.column.driver': 'Driver',
-  'app.docker.volume.list.column.mount_point': 'Mountpoint',
+  'app.docker.volume.list.column.mount_point': 'Host Path',
   'app.docker.volume.list.column.created': 'Time',
   'app.docker.volume.list.operation.delete': 'Delete',
   'app.docker.volume.list.operation.delete.confirm':
-    'Are you sure to delete this volume?',
+    'Need to stop the mounted containers first',
   'app.docker.volume.list.operation.delete.success': 'Delete succeeded',
   'app.docker.volume.list.operation.delete.failed': 'Delete failed',
   'app.docker.volume.create.title': 'Create Volume',

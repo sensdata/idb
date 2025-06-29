@@ -1,7 +1,11 @@
 import { useI18n } from 'vue-i18n';
 import { truncate } from 'lodash';
 
-export function formatFileSize(size?: number, fixed = 1): string {
+export function formatFileSize(
+  size?: number,
+  fixed = 1,
+  useAbbrUnit = false
+): string {
   if (size == null) {
     return '-';
   }
@@ -11,17 +15,18 @@ export function formatFileSize(size?: number, fixed = 1): string {
   }
   size /= 1024;
   if (size < 1024) {
-    return size.toFixed(fixed) + 'KB';
+    return size.toFixed(fixed) + (useAbbrUnit ? 'K' : 'KB');
   }
   size /= 1024;
   if (size < 1024) {
-    return size.toFixed(fixed) + 'MB';
+    return size.toFixed(fixed) + (useAbbrUnit ? 'M' : 'MB');
   }
   size /= 1024;
-  return size.toFixed(fixed) + 'GB';
+  return size.toFixed(fixed) + (useAbbrUnit ? 'G' : 'GB');
 }
 
-export const formatMemorySize = formatFileSize;
+export const formatMemorySize = (size?: number, fixed = 1) =>
+  formatFileSize(size, fixed, true);
 
 export function formatBandwidth(bps?: number, fixed = 1): string {
   if (bps == null) {

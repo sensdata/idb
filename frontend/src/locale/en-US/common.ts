@@ -28,6 +28,7 @@ export default {
   'common.add': 'Add',
   'common.delete': 'Delete',
   'common.view': 'View',
+  'common.detail': 'Detail',
   'common.modify': 'Modify',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
