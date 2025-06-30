@@ -532,7 +532,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	containerType := "docker"
 	configFilePaths := ""
 	for _, label := range containerInfo.Labels {
-		if label.Key == "com.docker.compose.project" {
+		if label.Key == constant.ComposeProjectLabel {
 			containerType = "compose"
 			break
 		}

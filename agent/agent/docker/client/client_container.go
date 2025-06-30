@@ -94,6 +94,13 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 		if lable, ok := item.Labels[constant.IDBType]; ok {
 			from = lable
 		}
+		// 判断是否由compose启动
+		var compose string
+		composeName, inCompose := item.Labels[constant.ComposeProjectLabel]
+		if inCompose {
+			compose = composeName
+		}
+
 		ports := c.loadContainerPort(item.Ports)
 		info := model.ContainerInfo{
 			ContainerID: item.ID,
@@ -105,6 +112,7 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 			RunTime:     item.Status,
 			Ports:       ports,
 			From:        from,
+			Compose:     compose,
 		}
 		// install, _ := appInstallRepo.GetFirst(appInstallRepo.WithContainerName(info.Name))
 		// if install.ID > 0 {
@@ -502,7 +510,7 @@ func (c DockerClient) ContainerLogs(req model.FileContentPartReq) (*model.FileCo
 	containerType := "docker"
 	configFilePaths := ""
 	for _, label := range containerInfo.Labels {
-		if label.Key == "com.docker.compose.project" {
+		if label.Key == constant.ComposeProjectLabel {
 			containerType = "compose"
 			break
 		}

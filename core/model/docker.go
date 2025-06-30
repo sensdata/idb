@@ -96,7 +96,8 @@ type ContainerInfo struct {
 	Network []string `json:"network"`
 	Ports   []string `json:"ports"`
 
-	From string `json:"from"`
+	From    string `json:"from"`
+	Compose string `json:"compose"`
 
 	// AppName        string   `json:"app_name"`
 	// AppInstallName string   `json:"app_install_name"`
