@@ -176,7 +176,7 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 	}
 
 	// composeProjects, _ := c.listComposeProjects(req.WorkDir) // workDir下实际的项目，暂时不做限制
-	composeMap := make(map[string]model.ComposeInfo)
+	composeMap := make(map[string]*model.ComposeInfo)
 	for _, container := range list {
 		if projectName, workingDir, configFiles, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir); ok {
 			containerItem := model.ComposeContainer{
@@ -190,7 +190,7 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 				compose.Containers = append(compose.Containers, containerItem)
 				composeMap[projectName] = compose
 			} else {
-				composeItem := model.ComposeInfo{
+				composeItem := &model.ComposeInfo{
 					ContainerNumber: 1,
 					CreatedAt:       time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
 					ConfigFile:      configFiles,
@@ -229,10 +229,44 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 			}
 		}
 	}
-	for key, value := range composeMap {
-		value.Name = key
-		records = append(records, value)
+
+	// 遍历计算状态
+	for name, compose := range composeMap {
+		statusCount := make(map[string]int)
+		for _, c := range compose.Containers {
+			state := c.State // e.g. "running", "exited"
+			statusCount[state]++
+		}
+
+		switch len(statusCount) {
+		case 0:
+			compose.Status = model.ComposeStatusUnknown
+		case 1:
+			for state := range statusCount {
+				switch state {
+				case "running":
+					compose.Status = model.ComposeStatusRunning
+				case "exited":
+					compose.Status = model.ComposeStatusExited
+				case "paused":
+					compose.Status = model.ComposeStatusPaused
+				case "restarting":
+					compose.Status = model.ComposeStatusRestarting
+				case "removing":
+					compose.Status = model.ComposeStatusRemoving
+				case "dead":
+					compose.Status = model.ComposeStatusDead
+				default:
+					compose.Status = model.ComposeStatusUnknown
+				}
+			}
+		default:
+			compose.Status = model.ComposeStatusMixed
+		}
+		compose.Name = name
+		records = append(records, *compose)
 	}
+
 	if len(req.Info) != 0 {
 		length, count := len(records), 0
 		for count < length {

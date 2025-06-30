@@ -183,6 +183,20 @@ type ContainerResourceLimit struct {
 	Memory uint64 `json:"memory"`
 }
 
+type ComposeStatus string
+
+const (
+	ComposeStatusRunning    ComposeStatus = "running"    // 所有容器运行中
+	ComposeStatusExited     ComposeStatus = "exited"     // 所有容器退出
+	ComposeStatusPartial    ComposeStatus = "partial"    // 混合状态（有的 exited，有的 running）
+	ComposeStatusPaused     ComposeStatus = "paused"     // 所有容器暂停
+	ComposeStatusRestarting ComposeStatus = "restarting" // 所有容器都在重启
+	ComposeStatusRemoving   ComposeStatus = "removing"   // 所有容器都在被删除
+	ComposeStatusDead       ComposeStatus = "dead"       // 所有容器都是 dead
+	ComposeStatusMixed      ComposeStatus = "mixed"      // 多种状态混合（running + restarting + paused 等）
+	ComposeStatusUnknown    ComposeStatus = "unknown"    // 状态未知或无容器
+)
+
 // compose
 type ComposeInfo struct {
 	Name             string             `json:"name"`
@@ -196,6 +210,7 @@ type ComposeInfo struct {
 	ConfigFile       string             `json:"config_file"`
 	Workdir          string             `json:"work_dir"`
 	Path             string             `json:"path"`
+	Status           ComposeStatus      `json:"status"`
 	Containers       []ComposeContainer `json:"containers"`
 }
 
