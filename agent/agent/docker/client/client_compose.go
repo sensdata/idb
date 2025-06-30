@@ -130,8 +130,12 @@ func up(filePath string) (string, error) {
 	return stdout, err
 }
 
-func down(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s down --remove-orphans", filePath)
+func down(filePath string, removeVolumes bool) (string, error) {
+	var removeVolumesFlag string
+	if removeVolumes {
+		removeVolumesFlag = "--volumes"
+	}
+	stdout, err := utils.Execf("docker-compose -f %s down --remove-orphans %s", filePath, removeVolumesFlag)
 	return stdout, err
 }
 
@@ -371,7 +375,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	cmd.Stderr = multiWriter
 	if err := cmd.Run(); err != nil {
 		global.LOG.Error("docker-compose up %s failed, err: %v", req.Name, err)
-		_, _ = down(composePath)
+		_, _ = down(composePath, true)
 		_, _ = file.WriteString("docker-compose up failed!")
 		return &result, err
 	}
@@ -390,7 +394,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
 		global.LOG.Error("Compose file %s not found", composePath)
 		return fmt.Errorf("%s not found, %v", composePath, err)
 	}
-	if stdout, err := down(composePath); err != nil {
+	if stdout, err := down(composePath, true); err != nil {
 		return errors.New(string(stdout))
 	}
 	global.LOG.Info("docker-compose down %s successful", req.Name)
@@ -432,7 +436,7 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 			return errors.New(string(stdout))
 		}
 	case "down":
-		if stdout, err := down(composePath); err != nil {
+		if stdout, err := down(composePath, req.RemoveVolumes); err != nil {
 			return errors.New(string(stdout))
 		}
 	default:
@@ -498,7 +502,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
 
 	// 先停止原compose
-	if stdout, err := down(composePath); err != nil {
+	if stdout, err := down(composePath, true); err != nil {
 		return fmt.Errorf("failed to docker-compose down %s, err: %s", req.Name, string(stdout))
 	}
 

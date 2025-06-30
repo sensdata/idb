@@ -244,8 +244,9 @@ type CreateCompose struct {
 }
 
 type OperateCompose struct {
-	Name      string `json:"name" validate:"required"`
-	Operation string `json:"operation" validate:"required,oneof=start stop restart up down"`
+	Name          string `json:"name" validate:"required"`
+	Operation     string `json:"operation" validate:"required,oneof=start stop restart up down"`
+	RemoveVolumes bool   `json:"remove_volumes"`
 }
 
 type ComposeCreate struct {
@@ -263,9 +264,10 @@ type ComposeRemove struct {
 }
 
 type ComposeOperation struct {
-	Name      string `json:"name" validate:"required"`
-	Operation string `json:"operation" validate:"required,oneof=start stop down"`
-	WorkDir   string `json:"work_dir"`
+	Name          string `json:"name" validate:"required"`
+	Operation     string `json:"operation" validate:"required,oneof=start stop down"`
+	RemoveVolumes bool   `json:"remove_volumes"`
+	WorkDir       string `json:"work_dir"`
 }
 
 type ComposeUpdate struct {

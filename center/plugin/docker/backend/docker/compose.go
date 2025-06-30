@@ -224,9 +224,10 @@ func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) (*
 	}
 
 	composeOperation := model.ComposeOperation{
-		Name:      req.Name,
-		Operation: req.Operation,
-		WorkDir:   s.AppDir,
+		Name:          req.Name,
+		Operation:     req.Operation,
+		RemoveVolumes: req.RemoveVolumes,
+		WorkDir:       s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeOperation)
 	if err != nil {
