@@ -623,7 +623,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 
 	// 创建任务
 	metadata := map[string]interface{}{
-		"log_path": containerParam, // 容器参数 containerID 或者 containerID:config_files
+		"log_path": containerParam, // 容器参数 docker:containerID 或者 compose:config_files
 	}
 	task, err := global.LogStream.CreateTask(types.TaskTypeRemote, metadata)
 	if err != nil {

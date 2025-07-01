@@ -126,6 +126,7 @@ func (s *DockerMan) Initialize() {
 			{Method: "DELETE", Path: "/:host/compose", Handler: s.ComposeDelete},            // 删除编排
 			{Method: "POST", Path: "/:host/compose/test", Handler: s.ComposeTest},           // 测试编排
 			{Method: "POST", Path: "/:host/compose/operation", Handler: s.ComposeOperation}, // 操作编排
+			{Method: "GET", Path: "/:host/compose/logs/tail", Handler: s.FollowComposeLogs}, // 追踪编排日志
 
 			// containers
 			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                    // 获取容器列表
@@ -789,6 +790,27 @@ func (s *DockerMan) ComposeOperation(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Connect to compose log stream
+// @Description Connect to a compose log stream through SSE
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Param config_files query string true "Comma-separated list of config files to tail"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /docker/{host}/compose/logs/tail [get]
+func (s *DockerMan) FollowComposeLogs(c *gin.Context) {
+	err := s.followComposeLogs(c)
+	if err != nil {
+		global.LOG.Error("Handle compose log stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Docker
