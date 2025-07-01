@@ -693,6 +693,10 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	// 转换成env内容
 	var envArray []string
 	for key, value := range envMap {
+		// 应用名，也支持从form中传入
+		if key == constant.IDB_compose_name {
+			appName = value
+		}
 		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
 	}
 	envContent := strings.Join(envArray, "\n")
