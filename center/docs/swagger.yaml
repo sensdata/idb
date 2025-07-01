@@ -1265,6 +1265,8 @@ definitions:
         - up
         - down
         type: string
+      remove_volumes:
+        type: boolean
     required:
     - name
     - operation
@@ -3246,6 +3248,36 @@ paths:
           schema:
             $ref: '#/definitions/model.ComposeDetailRsp'
       summary: Get compose detail
+      tags:
+      - Docker
+  /docker/{host}/compose/logs/tail:
+    get:
+      consumes:
+      - application/json
+      description: Connect to a compose log stream through SSE
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Comma-separated list of config files to tail
+        in: query
+        name: config_files
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Connect to compose log stream
       tags:
       - Docker
   /docker/{host}/compose/operation:

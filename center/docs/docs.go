@@ -1668,6 +1668,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/docker/{host}/compose/logs/tail": {
+            "get": {
+                "description": "Connect to a compose log stream through SSE",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Connect to compose log stream",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of config files to tail",
+                        "name": "config_files",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/docker/{host}/compose/operation": {
             "post": {
                 "description": "Operate compose",
@@ -13396,6 +13441,9 @@ const docTemplate = `{
                         "up",
                         "down"
                     ]
+                },
+                "remove_volumes": {
+                    "type": "boolean"
                 }
             }
         },
