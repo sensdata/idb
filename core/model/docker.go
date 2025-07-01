@@ -208,7 +208,7 @@ type ComposeInfo struct {
 	IdbUpdateVersion string             `json:"idb_update_version"`
 	IdbPanel         string             `json:"idb_panel"`
 	ContainerNumber  int                `json:"container_number"`
-	ConfigFile       string             `json:"config_file"`
+	ConfigFiles      string             `json:"config_files"`
 	Workdir          string             `json:"work_dir"`
 	Path             string             `json:"path"`
 	Status           ComposeStatus      `json:"status"`

@@ -45,6 +45,51 @@ func isContainerFromManagedCompose(labels map[string]string, managedRoot string)
 	return projectName, workingDir, configFiles, isContainerFromManagedCompose
 }
 
+// resolveComposeConfigPaths 将 config_files label 中的路径转换为绝对路径列表
+func resolveComposeConfigPaths(workdir, configFiles string) []string {
+	var result []string
+	for _, f := range strings.Split(configFiles, ",") {
+		f = strings.TrimSpace(f)
+		if f == "" {
+			continue
+		}
+		if filepath.IsAbs(f) {
+			result = append(result, f)
+		} else {
+			result = append(result, filepath.Join(workdir, f))
+		}
+	}
+	return result
+}
+
+// mergeComposeConfigPaths 合并已有和新增的配置路径，并生成去重后的逗号分隔字符串
+func mergeComposeConfigPaths(existing string, incoming []string) string {
+	existingSet := make(map[string]struct{})
+
+	// 处理 existing 字符串
+	for _, f := range strings.Split(existing, ",") {
+		f = strings.TrimSpace(f)
+		if f != "" {
+			existingSet[f] = struct{}{}
+		}
+	}
+
+	// 处理 incoming 切片
+	for _, f := range incoming {
+		f = strings.TrimSpace(f)
+		if f != "" {
+			existingSet[f] = struct{}{}
+		}
+	}
+
+	var merged []string
+	for f := range existingSet {
+		merged = append(merged, f)
+	}
+	sort.Strings(merged) // 保持一致性
+	return strings.Join(merged, ",")
+}
+
 // 列举compose项目: /{workdir}/docker/{project}
 func (c DockerClient) listComposeProjects(workDir string) ([]string, error) {
 	var projects []string
@@ -189,15 +234,17 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 				State:       container.State,
 				CreateTime:  time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
 			}
+			confFiles := resolveComposeConfigPaths(workingDir, configFiles)
 			if compose, has := composeMap[projectName]; has {
 				compose.ContainerNumber++
 				compose.Containers = append(compose.Containers, containerItem)
 				composeMap[projectName] = compose
+				compose.ConfigFiles = mergeComposeConfigPaths(compose.ConfigFiles, confFiles)
 			} else {
 				composeItem := &model.ComposeInfo{
 					ContainerNumber: 1,
 					CreatedAt:       time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
-					ConfigFile:      configFiles,
+					ConfigFiles:     strings.Join(confFiles, ","),
 					Workdir:         workingDir,
 					Path:            workingDir,
 					Containers:      []model.ComposeContainer{containerItem},
