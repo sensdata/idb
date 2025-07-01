@@ -166,12 +166,12 @@ func (c DockerClient) initConf(req *model.ComposeCreate) error {
 }
 
 func pull(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s pull", filePath)
+	stdout, err := utils.Execf("docker compose -f %s pull", filePath)
 	return stdout, err
 }
 
 func up(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s up -d", filePath)
+	stdout, err := utils.Execf("docker compose -f %s up -d", filePath)
 	return stdout, err
 }
 
@@ -180,27 +180,27 @@ func down(filePath string, removeVolumes bool) (string, error) {
 	if removeVolumes {
 		removeVolumesFlag = "--volumes"
 	}
-	stdout, err := utils.Execf("docker-compose -f %s down --remove-orphans %s", filePath, removeVolumesFlag)
+	stdout, err := utils.Execf("docker compose -f %s down --remove-orphans %s", filePath, removeVolumesFlag)
 	return stdout, err
 }
 
 func start(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s start", filePath)
+	stdout, err := utils.Execf("docker compose -f %s start", filePath)
 	return stdout, err
 }
 
 func stop(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s stop", filePath)
+	stdout, err := utils.Execf("docker compose -f %s stop", filePath)
 	return stdout, err
 }
 
 func restart(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s restart", filePath)
+	stdout, err := utils.Execf("docker compose -f %s restart", filePath)
 	return stdout, err
 }
 
 func operate(filePath, operation string) (string, error) {
-	stdout, err := utils.Execf("docker-compose -f %s %s", filePath, operation)
+	stdout, err := utils.Execf("docker compose -f %s %s", filePath, operation)
 	return stdout, err
 }
 
@@ -366,7 +366,7 @@ func (c DockerClient) ComposeTest(req model.ComposeCreate) (*model.ComposeTestRe
 		result.Error = "failed to init compose and env"
 		return &result, err
 	}
-	cmd := exec.Command("docker-compose", "-f", composePath, "config")
+	cmd := exec.Command("docker compose", "-f", composePath, "config")
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
 		result.Error = string(stdout)
@@ -398,7 +398,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 		global.LOG.Info("init conf successful")
 	}
 
-	global.LOG.Info("try docker-compose up %s", req.Name)
+	global.LOG.Info("try docker compose up %s", req.Name)
 
 	// 初始化日志
 	projectDir := filepath.Dir(composePath)
@@ -416,18 +416,18 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	result.Log = logPath
 
 	defer file.Close()
-	cmd := exec.Command("docker-compose", "-f", composePath, "up", "-d")
+	cmd := exec.Command("docker compose", "-f", composePath, "up", "-d")
 	multiWriter := io.MultiWriter(os.Stdout, file)
 	cmd.Stdout = multiWriter
 	cmd.Stderr = multiWriter
 	if err := cmd.Run(); err != nil {
-		global.LOG.Error("docker-compose up %s failed, err: %v", req.Name, err)
+		global.LOG.Error("docker compose up %s failed, err: %v", req.Name, err)
 		_, _ = down(composePath, true)
-		_, _ = file.WriteString("docker-compose up failed!")
+		_, _ = file.WriteString("docker compose up failed!")
 		return &result, err
 	}
-	global.LOG.Info("docker-compose up %s successful!", req.Name)
-	_, _ = file.WriteString("docker-compose up successful!")
+	global.LOG.Info("docker compose up %s successful!", req.Name)
+	_, _ = file.WriteString("docker compose up successful!")
 
 	return &result, nil
 }
@@ -444,7 +444,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
 	if stdout, err := down(composePath, true); err != nil {
 		return errors.New(string(stdout))
 	}
-	global.LOG.Info("docker-compose down %s successful", req.Name)
+	global.LOG.Info("docker compose down %s successful", req.Name)
 
 	// 删除工作目录
 	dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
@@ -489,7 +489,7 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
 	default:
 		return errors.New("invalid operation")
 	}
-	global.LOG.Info("docker-compose %s %s successful", req.Operation, req.Name)
+	global.LOG.Info("docker compose %s %s successful", req.Operation, req.Name)
 	return nil
 }
 
@@ -550,7 +550,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 
 	// 先停止原compose
 	if stdout, err := down(composePath, true); err != nil {
-		return fmt.Errorf("failed to docker-compose down %s, err: %s", req.Name, string(stdout))
+		return fmt.Errorf("failed to docker compose down %s, err: %s", req.Name, string(stdout))
 	}
 
 	// 覆盖docker-compose.yaml
@@ -574,12 +574,12 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 	_, _ = write.WriteString(req.EnvContent)
 	write.Flush()
 
-	global.LOG.Info("config files has been replaced, try docker-compose up")
+	global.LOG.Info("config files has been replaced, try docker compose up")
 
 	if stdout, err := up(composePath); err != nil {
-		return fmt.Errorf("docker-compose up %s failed: %s", req.Name, string(stdout))
+		return fmt.Errorf("docker compose up %s failed: %s", req.Name, string(stdout))
 	}
 
-	global.LOG.Info("docker-compose up %s successful!", req.Name)
+	global.LOG.Info("docker compose up %s successful!", req.Name)
 	return nil
 }
