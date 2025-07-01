@@ -46,11 +46,12 @@ type QueryAppDetail struct {
 type InstallApp struct {
 	ID             uint       `json:"id"`
 	VersionID      uint       `json:"version_id"`
+	ComposeName    string     `json:"compose_name"`
 	ComposeContent string     `json:"compose_content"`
 	FormParams     []KeyValue `json:"form_params"`
 	ExtraParams    []KeyValue `json:"extra_params"`
 }
 
 type UninstallApp struct {
-	ID uint `json:"id"`
+	ComposeName string `json:"compose_name"`
 }

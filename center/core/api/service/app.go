@@ -604,7 +604,12 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		global.LOG.Error("Failed to unmarshal app form data: %v", err)
 		return &result, fmt.Errorf("unmarshal form err: %v", err)
 	}
-	appName := app.Name
+
+	// 使用传入的compose名称
+	appName := req.ComposeName
+	if appName == "" {
+		appName = app.Name
+	}
 
 	// 找版本
 	version, err := AppVersionRepo.Get(AppVersionRepo.WithByID(req.VersionID))
@@ -688,10 +693,6 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	// 转换成env内容
 	var envArray []string
 	for key, value := range envMap {
-		// 应用名
-		if key == constant.IDB_compose_name {
-			appName = value
-		}
 		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
 	}
 	envContent := strings.Join(envArray, "\n")
@@ -756,17 +757,8 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 
 func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 
-	// 查找应用
-	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
-	if err != nil {
-		global.LOG.Error("App %d not found", req.ID)
-		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
-	}
-
-	appName := app.Name
-
 	composeRemove := core.ComposeRemove{
-		Name:    appName,
+		Name:    req.ComposeName,
 		WorkDir: s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeRemove)

@@ -116,10 +116,18 @@ func (c DockerClient) listComposeProjects(workDir string) ([]string, error) {
 
 func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error) {
 	dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
-	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
-		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
-			return "", err
-		}
+
+	// 第一步：判断目录是否已存在，存在就报错
+	if _, err := os.Stat(dir); err == nil {
+		return "", errors.New("compose already exist")
+	} else if !os.IsNotExist(err) {
+		// 其他类型的错误（权限等）
+		return "", err
+	}
+
+	// 第二步：目录不存在时创建
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return "", err
 	}
 
 	composePath := fmt.Sprintf("%s/docker-compose.yaml", dir)
@@ -366,7 +374,7 @@ func (c DockerClient) ComposeTest(req model.ComposeCreate) (*model.ComposeTestRe
 		result.Error = "failed to init compose and env"
 		return &result, err
 	}
-	cmd := exec.Command("docker compose", "-f", composePath, "config")
+	cmd := exec.Command("docker", "compose", "-f", composePath, "config")
 	stdout, err := cmd.CombinedOutput()
 	if err != nil {
 		result.Error = string(stdout)
@@ -416,15 +424,11 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 	result.Log = logPath
 
 	defer file.Close()
-	cmd := exec.Command("docker compose", "-f", composePath, "up", "-d")
-	multiWriter := io.MultiWriter(os.Stdout, file)
-	cmd.Stdout = multiWriter
-	cmd.Stderr = multiWriter
-	if err := cmd.Run(); err != nil {
-		global.LOG.Error("docker compose up %s failed, err: %v", req.Name, err)
+	if stdout, err := up(composePath); err != nil {
+		global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, string(stdout), err)
 		_, _ = down(composePath, true)
 		_, _ = file.WriteString("docker compose up failed!")
-		return &result, err
+		return &result, errors.New(string(stdout))
 	}
 	global.LOG.Info("docker compose up %s successful!", req.Name)
 	_, _ = file.WriteString("docker compose up successful!")
