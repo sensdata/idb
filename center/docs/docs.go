@@ -13082,6 +13082,9 @@ const docTemplate = `{
                 "compose_content": {
                     "type": "string"
                 },
+                "compose_name": {
+                    "type": "string"
+                },
                 "extra_params": {
                     "type": "array",
                     "items": {
@@ -14333,8 +14336,8 @@ const docTemplate = `{
         "model.UninstallApp": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "integer"
+                "compose_name": {
+                    "type": "string"
                 }
             }
         },
