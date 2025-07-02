@@ -250,9 +250,9 @@
   };
 
   // 处理表格选择变化
-  const handleTableSelectionChange = () => {
-    // 如果需要处理表格选择，可以在这里添加逻辑
-    // 目前选择状态由 selected 管理
+  const handleTableSelectionChange = (selectedItems: any[]) => {
+    // 更新store中的选中状态，这样工具栏就会正确显示
+    store.handleSelected(selectedItems);
   };
 
   onMounted(async () => {

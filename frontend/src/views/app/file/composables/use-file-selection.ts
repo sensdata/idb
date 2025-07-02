@@ -137,7 +137,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
   };
 
   /**
-   * 单击处理：目录只选择，文件则打开
+   * 单击处理：目录只导航，文件则选择并打开
    */
   const handleSingleClickAction = (record: FileItem) => {
     if (record.is_dir) {
@@ -149,8 +149,14 @@ export const useFileSelection = (params: FileSelectionParams) => {
         setLoading(true);
       }
 
-      // 目录进行选择并打开，使用路由导航
-      store.handleSelected([record]);
+      // 目录导航时清除选中状态，但不影响表格的checkbox选择机制
+      // 只有当前选中的是通过单击选择的项目时才清除
+      if (
+        store.selected.length === 1 &&
+        store.selected[0].path === record.path
+      ) {
+        store.clearSelected();
+      }
 
       // 创建新的路由配置，不传递分页参数以重置page为1
       const routeConfig = createFileRouteWithPagination(
@@ -199,6 +205,10 @@ export const useFileSelection = (params: FileSelectionParams) => {
         );
         setLoading(true);
       }
+
+      // 目录双击也只进行导航，不添加到选中状态
+      // 清除当前选中状态
+      store.clearSelected();
 
       // 创建新的路由配置，不传递分页参数以重置page为1
       const routeConfig = createFileRouteWithPagination(
