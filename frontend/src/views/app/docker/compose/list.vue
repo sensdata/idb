@@ -12,6 +12,7 @@
       />
     </template>
   </idb-table>
+  <logs-modal ref="logsRef" />
   <edit-drawer ref="editRef" />
   <down-confirm-modal ref="downConfirmRef" @confirm="afterDownConfirm" />
 </template>
@@ -21,11 +22,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
+  import { COMPOSE_STATUS } from '@/config/enum';
   import {
     queryComposeApi,
     operateComposeApi,
     deleteComposeApi,
   } from '@/api/docker';
+  import LogsModal from './components/logs-modal.vue';
   import EditDrawer from './components/edit-drawer.vue';
   import DownConfirmModal from './components/down-confirm-modal.vue';
 
@@ -102,7 +105,7 @@
     name: string,
     operation: 'start' | 'stop' | 'restart' | 'up' | 'down',
     params?: {
-      delete_volumes?: boolean;
+      remove_volumes?: boolean;
     }
   ) => {
     try {
@@ -133,13 +136,14 @@
 
   const afterDownConfirm = async (params: {
     name: string;
-    delete_volumes: boolean;
+    remove_volumes: boolean;
   }) => {
     await handleOperate(params.name, 'down', {
-      delete_volumes: params.delete_volumes,
+      remove_volumes: params.remove_volumes,
     });
   };
 
+  const logsRef = ref<InstanceType<typeof LogsModal>>();
   const editRef = ref<InstanceType<typeof EditDrawer>>();
   const downConfirmRef = ref<InstanceType<typeof DownConfirmModal>>();
   const getOperationOptions = (record: any) => [
@@ -152,13 +156,32 @@
       },
     },
     {
+      text: t('app.docker.compose.list.operation.log'),
+      click: () => {
+        logsRef.value?.connect(record.config_files);
+        logsRef.value?.show();
+      },
+    },
+    {
       text: t('app.docker.compose.list.operation.start'),
+      visible: [
+        COMPOSE_STATUS.Exited,
+        COMPOSE_STATUS.Partial,
+        COMPOSE_STATUS.Dead,
+        COMPOSE_STATUS.Mixed,
+      ].includes(record.status),
       click: async () => {
         await handleOperate(record.name, 'start');
       },
     },
     {
       text: t('app.docker.compose.list.operation.stop'),
+      visible: [
+        COMPOSE_STATUS.Running,
+        COMPOSE_STATUS.Partial,
+        COMPOSE_STATUS.Dead,
+        COMPOSE_STATUS.Mixed,
+      ].includes(record.status),
       confirm: t('app.docker.compose.list.operation.stop.confirm'),
       click: async () => {
         await handleOperate(record.name, 'stop');
@@ -166,18 +189,35 @@
     },
     {
       text: t('app.docker.compose.list.operation.restart'),
+      visible: [
+        COMPOSE_STATUS.Running,
+        COMPOSE_STATUS.Partial,
+        COMPOSE_STATUS.Dead,
+        COMPOSE_STATUS.Mixed,
+      ].includes(record.status),
       click: async () => {
         await handleOperate(record.name, 'restart');
       },
     },
     {
       text: t('app.docker.compose.list.operation.up'),
+      visible: [COMPOSE_STATUS.Exited, COMPOSE_STATUS.Dead].includes(
+        record.status
+      ),
       click: async () => {
         await handleOperate(record.name, 'up');
       },
     },
     {
       text: t('app.docker.compose.list.operation.down'),
+      visible: [
+        COMPOSE_STATUS.Running,
+        COMPOSE_STATUS.Partial,
+        COMPOSE_STATUS.Dead,
+        COMPOSE_STATUS.Mixed,
+        COMPOSE_STATUS.Paused,
+        COMPOSE_STATUS.Restarting,
+      ].includes(record.status),
       click: async () => {
         downConfirmRef.value?.show(record.name);
       },
@@ -185,6 +225,7 @@
     {
       text: t('app.docker.compose.list.operation.delete'),
       confirm: t('app.docker.compose.list.operation.delete.confirm'),
+      visible: record.status !== COMPOSE_STATUS.Removing,
       click: async () => {
         loading.value = true;
         try {

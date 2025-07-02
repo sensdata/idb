@@ -36,6 +36,8 @@ export default {
   'app.docker.container.list.state.removing': 'Removing',
   'app.docker.container.list.state.exited': 'Stopped',
   'app.docker.container.list.state.dead': 'Dead',
+  'app.docker.container.recommendCompose':
+    'You are performing operations on a container managed by Compose, it is recommended to use Compose to manage',
   'app.docker.container.cpu': 'CPU',
   'app.docker.container.memory': 'Memory',
   'app.docker.container.prune.confirm': 'Prune unused images',

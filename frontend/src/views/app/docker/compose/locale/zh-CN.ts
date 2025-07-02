@@ -9,6 +9,7 @@ export default {
   'app.docker.compose.list.operation.up': '上线',
   'app.docker.compose.list.operation.down': '下线',
   'app.docker.compose.list.operation.edit': '编辑',
+  'app.docker.compose.list.operation.log': '日志',
   'app.docker.compose.list.operation.delete': '删除',
   'app.docker.compose.list.operation.success': '成功执行 {command}',
   'app.docker.compose.list.operation.failed': '执行失败 {command}，{message}',
@@ -17,11 +18,14 @@ export default {
     '停止并删除整个项目资源和数据',
   'app.docker.compose.list.operation.stop.confirm': '仅停止容器，不会删除容器',
   'app.docker.compose.down.confirm.message': '停止并删除容器',
-  'app.docker.compose.down.confirm.deleteVolumes': '删除数据卷',
+  'app.docker.compose.down.confirm.removeVolumes': '删除数据卷',
 
   'app.docker.compose.edit.title': '编辑 Compose',
   'app.docker.compose.edit.compose_content': 'compose.yaml',
   'app.docker.compose.edit.env_content': '.env',
   'app.docker.compose.edit.compose_content_required': '请输入 Compose 内容',
   'app.docker.compose.edit.success': '编辑成功',
+
+  'app.docker.compose.logsModal.title': '日志',
+  'app.docker.compose.logsModal.error': '获取日志失败',
 };

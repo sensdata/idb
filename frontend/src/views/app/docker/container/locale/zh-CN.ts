@@ -31,6 +31,8 @@ export default {
   'app.docker.container.list.state.removing': '移除中',
   'app.docker.container.list.state.exited': '已停止',
   'app.docker.container.list.state.dead': '已失效',
+  'app.docker.container.recommendCompose':
+    '你正在对 Compose 管理的容器执行操作，建议使用 Compose 管理',
   'app.docker.container.cpu': 'CPU',
   'app.docker.container.memory': '内存',
   'app.docker.container.prune.confirm': '删除所有已停止容器',

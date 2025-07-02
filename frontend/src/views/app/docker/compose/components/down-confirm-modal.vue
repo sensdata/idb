@@ -10,8 +10,8 @@
     <p>
       {{ t('app.docker.compose.down.confirm.message') }}
     </p>
-    <a-checkbox v-model="deleteVolumes">{{
-      t('app.docker.compose.down.confirm.deleteVolumes')
+    <a-checkbox v-model="removeVolumes">{{
+      t('app.docker.compose.down.confirm.removeVolumes')
     }}</a-checkbox>
   </a-modal>
 </template>
@@ -24,12 +24,12 @@
   const { t } = useI18n();
   const visible = ref(false);
 
-  const deleteVolumes = ref(false);
+  const removeVolumes = ref(false);
   const composeName = ref('');
   const show = (name: string) => {
     visible.value = true;
     composeName.value = name;
-    deleteVolumes.value = false;
+    removeVolumes.value = false;
   };
   const hide = () => {
     visible.value = false;
@@ -37,7 +37,7 @@
   const onOk = async () => {
     emit('confirm', {
       name: composeName.value,
-      delete_volumes: deleteVolumes.value,
+      remove_volumes: removeVolumes.value,
     });
   };
   const onCancel = hide;

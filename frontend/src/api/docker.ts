@@ -223,7 +223,7 @@ export const createComposeApi = (params: CreateCompose) =>
 export const operateComposeApi = (params: {
   name: string;
   operation: 'start' | 'stop' | 'restart' | 'up' | 'down';
-  delete_volumes?: boolean;
+  remove_volumes?: boolean;
 }) =>
   request.post<{
     success: boolean;

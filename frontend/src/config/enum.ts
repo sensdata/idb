@@ -77,3 +77,15 @@ export enum SERVICE_ACTION {
   Activate = 'activate',
   Deactivate = 'deactivate',
 }
+
+export enum COMPOSE_STATUS {
+  Running = 'running', // 所有容器运行中
+  Exited = 'exited', // 所有容器退出
+  Partial = 'partial', // 混合状态（有的 exited，有的 running）
+  Paused = 'paused', // 所有容器暂停
+  Restarting = 'restarting', // 所有容器都在重启
+  Removing = 'removing', // 所有容器都在被删除
+  Dead = 'dead', // 所有容器都是 dead
+  Mixed = 'mixed', // 多种状态混合（running + restarting + paused 等）
+  Unknown = 'unknown', // 状态未知或无容器
+}

@@ -389,16 +389,25 @@
     {
       text: t('app.docker.container.list.operation.start'),
       visible: record.state !== 'running',
+      confirm: record.compose
+        ? t('app.docker.container.recommendCompose')
+        : null,
       click: () => handleOperate(record.name, 'start'),
     },
     {
       text: t('app.docker.container.list.operation.stop'),
       visible: record.state === 'running',
+      confirm: record.compose
+        ? t('app.docker.container.recommendCompose')
+        : null,
       click: () => stopConfirmRef.value?.show(record.container_id),
     },
     {
       text: t('app.docker.container.list.operation.restart'),
       visible: record.state === 'running',
+      confirm: record.compose
+        ? t('app.docker.container.recommendCompose')
+        : null,
       click: () => handleOperate(record.name, 'restart'),
     },
     {
@@ -415,7 +424,10 @@
     },
     {
       text: t('app.docker.container.list.operation.delete'),
-      confirm: t('app.docker.container.list.operation.delete.confirm'),
+      // confirm: t('app.docker.container.list.operation.delete.confirm'),
+      confirm: record.compose
+        ? t('app.docker.container.recommendCompose')
+        : t('app.docker.container.list.operation.delete.confirm'),
       click: () => handleOperate(record.name, 'remove'),
     },
   ];
