@@ -64,6 +64,7 @@ var app = &cli.App{
 		*command.StatusCommand,
 		*command.ConfigCommand,
 		*command.UpdateCommand,
+		*command.ResetPasswordCommand,
 	},
 }
 

@@ -116,3 +116,28 @@ var UpdateCommand = &cli.Command{
 		return nil
 	},
 }
+
+var ResetPasswordCommand = &cli.Command{
+	Name:  "rst-pass",
+	Usage: "reset idb center password",
+	Action: func(c *cli.Context) error {
+		// 检查sock文件
+		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+		conn, err := net.Dial("unix", sockFile)
+		if err != nil {
+			return fmt.Errorf("failed to connect to center: %w", err)
+		}
+		defer conn.Close()
+		_, err = conn.Write([]byte("rst-pass"))
+		if err != nil {
+			return fmt.Errorf("failed to send command: %w", err)
+		}
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
+		fmt.Println(string(buf[:n]))
+		return nil
+	},
+}

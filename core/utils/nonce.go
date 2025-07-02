@@ -9,6 +9,7 @@ import (
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+const passCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789^&-_="
 
 var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -24,6 +25,14 @@ func GenerateNonce(length int) string {
 	b := make([]byte, length)
 	for i := range b {
 		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+func GeneratePassword(length int) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(passCharset))]
 	}
 	return string(b)
 }

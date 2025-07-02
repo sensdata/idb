@@ -229,6 +229,13 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 				} else {
 					conn.Write([]byte("Upgrade success"))
 				}
+			case "rst-pass":
+				newPass, err := c.ResetAdminPassword()
+				if err != nil {
+					conn.Write([]byte(fmt.Sprintf("Failed to reset password: %v", err)))
+				} else {
+					conn.Write([]byte(fmt.Sprintf("Password reset, please remember your new password: %s", newPass)))
+				}
 			default:
 				conn.Write([]byte("Unknown command"))
 			}
@@ -1427,6 +1434,26 @@ func (c *Center) updateHttpsKeyPath(keyPath string) error {
 
 func (c *Center) Upgrade() error {
 	return c.upgrade()
+}
+
+func (c *Center) ResetAdminPassword() (string, error) {
+	userRepo := repo.NewUserRepo()
+	user, err := userRepo.Get(userRepo.WithByName("admin"))
+	if err != nil {
+		return "", errors.New("failed to get admin user")
+	}
+
+	salt := utils.GenerateNonce(8)
+	newPass := utils.GeneratePassword(8)
+	passwordHash := utils.HashPassword(newPass, salt)
+	upMap := make(map[string]interface{})
+	upMap["password"] = passwordHash
+	upMap["salt"] = salt
+	if err := UserRepo.Update(user.ID, upMap); err != nil {
+		return "", errors.New("failed to reset admin password")
+	}
+
+	return newPass, nil
 }
 
 func (c *Center) upgrade() error {
