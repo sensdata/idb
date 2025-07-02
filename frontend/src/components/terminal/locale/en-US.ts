@@ -43,6 +43,7 @@ export default {
   'components.terminal.session.typePlaceholder': 'Select session type',
   'components.terminal.session.rename': 'Rename',
   'components.terminal.session.renamePlaceholder': 'Enter new session name',
+  'components.terminal.session.actions': 'Actions',
   'components.terminal.session.statusAttached': 'Active',
   'components.terminal.session.statusDetached': 'Background',
 

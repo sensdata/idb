@@ -39,6 +39,7 @@ export default {
   'components.terminal.session.typePlaceholder': '请选择会话类型',
   'components.terminal.session.rename': '重命名',
   'components.terminal.session.renamePlaceholder': '请输入新的会话名称',
+  'components.terminal.session.actions': '操作',
   'components.terminal.session.statusAttached': '活跃',
   'components.terminal.session.statusDetached': '后台',
 

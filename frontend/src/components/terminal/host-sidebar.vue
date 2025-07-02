@@ -219,38 +219,38 @@
   .host-sidebar {
     display: flex;
     flex-direction: column;
-    width: 240px;
+    width: 216px; /* 调整宽度以适应200px的item尺寸 */
     height: 100%;
     background: var(--color-bg-2);
-    border-right: 1px solid var(--color-border-2);
-    box-shadow: 2px 0 8px rgb(0 0 0 / 4%);
+    border: 1px solid var(--color-border-2); /* 添加完整边框 */
   }
 
   .sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 12px 12px;
+    padding: 16px 16px 12px; /* 左右间距调整为16px - 符合设计图 */
     background: var(--color-bg-1);
-    border-bottom: 1px solid var(--color-border-2);
+    border-bottom: 1px solid var(--color-border-2); /* 保留底部边框，用于分隔头部和列表 */
   }
 
   .header-content {
     display: flex;
-    gap: 6px;
     align-items: center;
   }
 
   .header-icon {
+    margin-right: 16px; /* 图标和文字之间16px间距 - 符合设计图 */
     font-size: 16px;
     color: var(--color-primary-6);
   }
 
   .sidebar-header h3 {
     margin: 0;
-    font-size: 14px;
     font-weight: 600;
     color: var(--color-text-1);
+
+    @apply text-base;
   }
 
   .refresh-btn {
@@ -273,12 +273,11 @@
     position: relative;
     display: flex;
     align-items: center;
-    padding: 10px 8px;
+    padding: 3px 8px 7px 8px; /* 上padding:3px, 下padding:7px */
     margin-bottom: 4px;
     cursor: pointer;
     background: var(--color-bg-1);
     border: 1px solid transparent;
-    border-radius: 6px;
     transition: all 0.2s ease;
   }
 
@@ -295,14 +294,11 @@
 
   .host-item:hover {
     border-color: var(--color-border-3);
-    box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
-    transform: translateY(-1px);
   }
 
   .host-item.active {
     background: var(--color-primary-light-1);
     border-color: var(--color-primary-light-3);
-    box-shadow: 0 2px 8px rgba(var(--primary-6), 0.15);
   }
 
   .host-item.active::before {
@@ -314,13 +310,13 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 24px; /* 减少avatar尺寸 */
+    height: 24px; /* 减少avatar尺寸 */
     margin-right: 8px;
-    font-size: 14px;
     color: var(--color-text-2);
     background: var(--color-fill-2);
-    border-radius: 6px;
+
+    @apply text-sm;
   }
 
   .host-item.active .host-avatar {
@@ -335,28 +331,31 @@
   }
 
   .host-name {
-    margin-bottom: 2px;
+    margin-bottom: 1px; /* 减少间距 */
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 13px;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.2; /* 减少行高 */
     color: var(--color-text-1);
     white-space: nowrap;
+
+    @apply text-base;
   }
 
   .host-addr {
     display: inline-block;
     max-width: 100%;
-    padding: 1px 4px;
+    padding: 2px 4px 1px 4px;
+    margin-top: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
-    font-size: 11px;
+    line-height: 1.1; /* 添加紧凑的行高 */
     color: var(--color-text-3);
     white-space: nowrap;
     background: var(--color-fill-1);
-    border-radius: 3px;
+
+    @apply text-sm;
   }
 
   .host-status {
@@ -365,24 +364,24 @@
 
   .status-dot {
     position: relative;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
   }
 
   .status-dot.online {
-    background: #00d084;
-    box-shadow: 0 0 0 1.5px rgb(0 208 132 / 25%);
+    background: #00b42a;
+    box-shadow: 0 0 0 1px rgb(0 180 42 / 25%);
   }
 
   .status-dot.online::after {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     content: '';
-    background: rgb(0 208 132 / 25%);
+    background: rgb(0 180 42 / 25%);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     animation: pulse 2s infinite;

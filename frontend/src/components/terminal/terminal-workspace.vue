@@ -669,7 +669,9 @@
 <style scoped>
   .terminal-workspace {
     display: flex;
+    gap: 8px; /* 使用flexbox gap替代margin，更加灵活 */
     height: 100%;
+    padding: 0 8px 8px 8px; /* 只在左右底部添加内边距，顶部与头部紧贴 */
     background: var(--color-bg-1);
   }
 
@@ -678,6 +680,8 @@
     flex: 1;
     flex-direction: column;
     min-width: 0;
+
+    /* 使用父容器的gap替代margin-left，更加灵活 */
   }
 
   .welcome-state {
@@ -707,11 +711,67 @@
   }
 
   .terminal-tabs :deep(.arco-tabs-pane) {
-    height: calc(100vh - var(--header-height, 140px));
+    height: calc(100vh - var(--header-height, 124px));
   }
 
   .terminal-tabs :deep(.arco-tabs-tab) {
     padding-right: 6px;
+  }
+
+  /* 符合MasterGo设计图的标签页样式 */
+  .terminal-tabs :deep(.arco-tabs-nav) {
+    height: 32px;
+    margin-bottom: 0;
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab) {
+    min-width: 84px;
+    height: 32px;
+    padding: 5px 16px;
+    margin-right: 0;
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab-title) {
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      sans-serif !important;
+    font-weight: 400 !important;
+    line-height: 22px !important;
+    color: var(--color-text-2) !important;
+
+    @apply text-base !important;
+  }
+
+  .terminal-tabs
+    :deep(.arco-tabs-tab.arco-tabs-tab-active .arco-tabs-tab-title) {
+    color: var(--color-primary-6) !important; /* 使用系统primary color变量 */
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab:hover .arco-tabs-tab-title) {
+    color: var(--color-primary-5) !important; /* 悬停状态使用primary-5 */
+  }
+
+  /* 确保选中状态样式优先级更高 - 多种选择器覆盖 */
+  .terminal-tabs
+    :deep(.arco-tabs-nav-tab.arco-tabs-nav-tab-active .arco-tabs-tab-title),
+  .terminal-tabs :deep(.arco-tabs-nav-tab-active .arco-tabs-tab-title),
+  .terminal-tabs :deep(.arco-tabs-tab-active .arco-tabs-tab-title) {
+    color: var(--color-primary-6) !important;
+  }
+
+  /* 悬停状态的额外选择器 */
+  .terminal-tabs :deep(.arco-tabs-nav-tab:hover .arco-tabs-tab-title),
+  .terminal-tabs :deep(.arco-tabs-nav-tab-active:hover .arco-tabs-tab-title) {
+    color: var(--color-primary-5) !important;
+  }
+
+  /* 标签页间距调整 */
+  .terminal-tabs :deep(.arco-tabs-tab):not(:last-child) {
+    margin-right: 2px;
+  }
+
+  /* 加号图标与标签页的间距 - 根据MasterGo设计规范 */
+  .terminal-tabs :deep(.arco-tabs-nav-extra) {
+    margin-left: 8px;
   }
 
   .terminal-container {
@@ -720,6 +780,7 @@
     flex: 1;
     flex-direction: column;
     height: 100%;
+    background: var(--color-bg-1); /* 添加背景色 */
   }
 
   .terminal-actions {

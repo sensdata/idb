@@ -1,5 +1,5 @@
 <template>
-  <div class="tab-title-container">
+  <div class="tab-title-container" @contextmenu.prevent="showContextMenu">
     <span v-if="!item.isRenaming" class="tab-title" @dblclick="handleRename">
       {{ item.title }}
     </span>
@@ -14,18 +14,65 @@
       @keyup.enter="finishRename"
       @keyup.esc="cancelRename"
     />
-    <a-dropdown position="bottom" @select="handleAction">
-      <span class="arco-icon-hover tab-action-btn">
+    <a-dropdown
+      v-if="!item.isRenaming"
+      position="bottom"
+      trigger="click"
+      @select="handleAction"
+    >
+      <span
+        class="tab-menu-btn"
+        :title="$t('components.terminal.session.actions')"
+        @click.stop
+      >
         <icon-down />
       </span>
       <template #content>
         <a-doption value="rename">
+          <template #icon>
+            <icon-edit />
+          </template>
           {{ $t('components.terminal.session.rename') }}
         </a-doption>
         <a-doption value="detach">
+          <template #icon>
+            <icon-disconnect />
+          </template>
           {{ $t('components.terminal.session.detach') }}
         </a-doption>
         <a-doption value="quit">
+          <template #icon>
+            <icon-close />
+          </template>
+          {{ $t('components.terminal.session.quit') }}
+        </a-doption>
+      </template>
+    </a-dropdown>
+
+    <a-dropdown
+      v-model:popup-visible="contextMenuVisible"
+      position="bottom"
+      :trigger="[]"
+      @select="handleAction"
+    >
+      <span style="display: none"></span>
+      <template #content>
+        <a-doption value="rename">
+          <template #icon>
+            <icon-edit />
+          </template>
+          {{ $t('components.terminal.session.rename') }}
+        </a-doption>
+        <a-doption value="detach">
+          <template #icon>
+            <icon-disconnect />
+          </template>
+          {{ $t('components.terminal.session.detach') }}
+        </a-doption>
+        <a-doption value="quit">
+          <template #icon>
+            <icon-close />
+          </template>
           {{ $t('components.terminal.session.quit') }}
         </a-doption>
       </template>
@@ -192,6 +239,12 @@
       logError('Failed to handle action:', error);
     }
   }
+
+  const contextMenuVisible = ref(false);
+
+  function showContextMenu(): void {
+    contextMenuVisible.value = true;
+  }
 </script>
 
 <style scoped>
@@ -202,14 +255,17 @@
   }
 
   .tab-title {
-    font-style: italic;
+    color: var(
+      --color-primary-6
+    ) !important; /* 默认使用primary color - 符合MasterGo设计 */
+
     cursor: pointer;
     user-select: none;
     transition: color 0.2s ease;
   }
 
   .tab-title:hover {
-    color: var(--color-text-1);
+    color: var(--color-primary-5) !important; /* 悬停状态使用primary-5颜色 */
   }
 
   .rename-input {
@@ -221,17 +277,41 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    font-size: 12px;
-    color: var(--color-text-3);
+    width: 16px; /* 与menu-btn保持一致 */
+    height: 16px; /* 与menu-btn保持一致 */
+    margin-left: 4px; /* 添加左边距 */
+    font-size: 10px;
+    color: var(--color-text-2); /* 统一使用text-2颜色变量 */
     cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.1s ease;
+    border-radius: 4px; /* 与menu-btn保持一致 */
+    transition: all 0.15s ease;
   }
 
   .tab-action-btn:hover {
     color: var(--color-text-1);
-    background-color: var(--color-fill-3);
+    background-color: var(--color-fill-2); /* 使用更明显的背景色 */
+    box-shadow: 0 2px 4px rgb(0 0 0 / 10%); /* 添加阴影 */
+    transform: scale(1.1); /* 轻微放大效果 */
+  }
+
+  .tab-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; /* 增加可点击区域 */
+    height: 16px; /* 增加可点击区域 */
+    margin-left: 4px; /* 添加左边距，避免与文字太近 */
+    font-size: 10px;
+    color: var(--color-text-2); /* 使用系统text-2颜色变量 - 符合MasterGo设计 */
+    cursor: pointer;
+    border-radius: 4px; /* 增加圆角 */
+    transition: all 0.15s ease;
+  }
+
+  .tab-menu-btn:hover {
+    color: var(--color-text-1);
+    background-color: var(--color-fill-2); /* 使用更明显的背景色 */
+    box-shadow: 0 2px 4px rgb(0 0 0 / 10%); /* 添加阴影 */
+    transform: scale(1.1); /* 轻微放大效果 */
   }
 </style>
