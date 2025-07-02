@@ -50,7 +50,7 @@
     z-index: 5;
     width: 240px;
     height: 100%;
-    padding: 4px 8px;
+    padding: 4px 0; /* 改为左右无padding，让紫色指示条能贴边显示 */
     overflow: auto;
     border-right: 1px solid var(--color-border-2);
     transition: width 0.3s ease;
