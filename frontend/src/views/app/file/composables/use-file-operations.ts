@@ -23,6 +23,7 @@ import { FileItem } from '@/components/file/file-editor-drawer/types';
 interface FileStore {
   pwd: string;
   selected: FileItem[];
+  clipboardItems: FileItem[];
   cutActive: boolean;
   clearSelected: () => void;
   handleOpen: (record: FileItem) => void;
@@ -159,10 +160,14 @@ export const useFileOperations = (params: FileOperationsParams) => {
   };
 
   const handlePaste = async () => {
+    if (!store.clipboardItems.length) {
+      return false;
+    }
+
     setLoading(true);
     try {
       await moveFileApi({
-        sources: store.selected.map((item: FileItem) => item.path),
+        sources: store.clipboardItems.map((item: FileItem) => item.path),
         dest: store.pwd,
         cover: false,
         type: store.cutActive ? 'cut' : 'copy',

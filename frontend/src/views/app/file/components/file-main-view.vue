@@ -80,7 +80,9 @@
           <icon-paste />
           <span class="ml-2">
             {{
-              $t('app.file.list.action.paste', { count: selectedItems.length })
+              $t('app.file.list.action.paste', {
+                count: props.clipboardCount || 0,
+              })
             }}
           </span>
         </a-button>
@@ -219,6 +221,7 @@
     selected: FileItem[];
     pasteVisible?: boolean;
     decompressVisible?: boolean;
+    clipboardCount?: number;
   }>();
 
   const emit = defineEmits<{

@@ -182,10 +182,10 @@ export const useFileNavigation = (
     if (record.is_dir) {
       navigateToPath(record.path);
 
-      // 更新store状态
+      // 更新store状态 - 清除选中状态，因为这是导航操作而不是选择操作
       store.$patch({
         current: record,
-        selected: [record] as FileItem[],
+        selected: [], // 导航时清除选中状态，不激活工具栏
         addressItems: [],
       });
     } else {

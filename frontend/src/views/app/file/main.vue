@@ -26,13 +26,14 @@
           :show-hidden="showHidden"
           :paste-visible="pasteVisible"
           :decompress-visible="decompressVisible"
+          :clipboard-count="store.clipboardItems.length"
           @update:show-hidden="updateShowHidden"
           @clear-selected="clearSelected"
           @create="handleCreate"
           @upload="handleUpload"
           @copy="handleCopy"
           @cut="handleCut"
-          @paste="handlePaste"
+          @paste="handlePasteWrapper"
           @back="handleBack"
           @compress="handleBatchCompress"
           @decompress="handleBatchDecompress"
@@ -253,6 +254,14 @@
   const handleTableSelectionChange = (selectedItems: any[]) => {
     // 更新store中的选中状态，这样工具栏就会正确显示
     store.handleSelected(selectedItems);
+  };
+
+  // 包装粘贴处理，成功后刷新目录
+  const handlePasteWrapper = async () => {
+    const success = await handlePaste();
+    if (success) {
+      reload();
+    }
   };
 
   onMounted(async () => {

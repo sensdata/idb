@@ -15,13 +15,16 @@ const useFileStore = defineStore('file-manage', {
     selected: [] as FileItem[],
     copyActive: false,
     cutActive: false,
+    clipboardItems: [] as FileItem[], // 存储被复制/剪切的文件
     logger: createLogger('FileStore'),
   }),
 
   getters: {
     pwd: (state) => state.current?.path || '/',
     pasteVisible(state) {
-      return (state.copyActive || state.cutActive) && state.selected.length > 0;
+      return (
+        (state.copyActive || state.cutActive) && state.clipboardItems.length > 0
+      );
     },
     decompressVisible(state) {
       return (
@@ -294,7 +297,8 @@ const useFileStore = defineStore('file-manage', {
         this.$state.current = item;
         this.$state.addressItems = [];
       }
-      this.$state.selected = [item];
+      // 导航时清除选中状态，不激活工具栏
+      this.$state.selected = [];
     },
 
     /**
@@ -359,22 +363,29 @@ const useFileStore = defineStore('file-manage', {
       this.$state.selected = [];
       this.$state.copyActive = false;
       this.$state.cutActive = false;
+      this.$state.clipboardItems = [];
     },
 
     /**
      * 处理复制操作
      */
     handleCopy() {
-      this.$state.cutActive = false;
-      this.$state.copyActive = true;
+      if (this.$state.selected.length > 0) {
+        this.$state.cutActive = false;
+        this.$state.copyActive = true;
+        this.$state.clipboardItems = [...this.$state.selected];
+      }
     },
 
     /**
      * 处理剪切操作
      */
     handleCut() {
-      this.$state.copyActive = false;
-      this.$state.cutActive = true;
+      if (this.$state.selected.length > 0) {
+        this.$state.copyActive = false;
+        this.$state.cutActive = true;
+        this.$state.clipboardItems = [...this.$state.selected];
+      }
     },
 
     /**
