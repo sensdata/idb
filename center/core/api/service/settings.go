@@ -288,9 +288,6 @@ func (s *SettingsService) updateBindPort(newPort int) error {
 }
 
 func (s *SettingsService) updateBindDomain(newDomain string) error {
-	if len(newDomain) == 0 {
-		return nil
-	}
 	oldDomain, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindDomain"))
 	if err != nil {
 		return err

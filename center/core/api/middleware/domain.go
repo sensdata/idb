@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/db/repo"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
 )
@@ -15,6 +16,7 @@ func BindDomain() gin.HandlerFunc {
 		settingRepo := repo.NewSettingsRepo()
 		status, err := settingRepo.Get(settingRepo.WithByKey("BindDomain"))
 		if err != nil {
+			global.LOG.Error("Failed to get bind domain: %v", err)
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 			return
 		}
@@ -29,6 +31,7 @@ func BindDomain() gin.HandlerFunc {
 		}
 
 		if domains != status.Value {
+			global.LOG.Error("domain not allowed, domain: %s, bind domain: %s", domains, status.Value)
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), errors.New("domain not allowed"))
 			return
 		}

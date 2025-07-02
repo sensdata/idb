@@ -122,6 +122,13 @@ func (c *Center) listenToUnix() {
 	defer func() {
 		global.LOG.Info("Unix listener closing")
 		listener.Close()
+
+		// 只在服务退出时清理 socket 文件
+		global.LOG.Info("Removing existing sock file")
+		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+		if err := os.Remove(sockFile); err != nil {
+			global.LOG.Error("Failed to remove existing sock file: %v", err)
+		}
 	}()
 
 	for {
@@ -148,13 +155,6 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 		// 断连
 		global.LOG.Info("Close unix conn")
 		conn.Close()
-
-		//删除sock文件
-		global.LOG.Info("Removing existing sock file")
-		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
-		if err := os.Remove(sockFile); err != nil {
-			global.LOG.Error("Failed to remove existing sock file: %v", err)
-		}
 
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in handleUnixConnection: %v", r)
@@ -1188,6 +1188,10 @@ func (c *Center) getServerSettings() (*core.SettingInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	bindDomain, err := settingRepo.Get(settingRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return nil, err
+	}
 	https, err := settingRepo.Get(settingRepo.WithByKey("Https"))
 	if err != nil {
 		return nil, err
@@ -1208,6 +1212,7 @@ func (c *Center) getServerSettings() (*core.SettingInfo, error) {
 	return &core.SettingInfo{
 		BindIP:        bindIP.Value,
 		BindPort:      bindPortValue,
+		BindDomain:    bindDomain.Value,
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
@@ -1238,20 +1243,24 @@ func (c *Center) updateServerSetting(key string, value string) error {
 	case "bind_ip":
 		err = c.updateBindIP(value)
 		if err != nil {
+			global.LOG.Error("update bind ip failed: %v", err)
 			return err
 		}
 	case "bind_port":
 		port, err := strconv.Atoi(value)
 		if err != nil {
+			global.LOG.Error("update bind port failed: %v", err)
 			return err
 		}
 		err = c.updateBindPort(port)
 		if err != nil {
+			global.LOG.Error("update bind port failed: %v", err)
 			return err
 		}
 	case "bind_domain":
 		err = c.updateBindDomain(value)
 		if err != nil {
+			global.LOG.Error("update bind domain failed: %v", err)
 			return err
 		}
 	case "protocal":
@@ -1261,21 +1270,25 @@ func (c *Center) updateServerSetting(key string, value string) error {
 		}
 		err = c.updateHttps(https)
 		if err != nil {
+			global.LOG.Error("update protocal failed: %v", err)
 			return err
 		}
 	case "https_cert_type":
 		err = c.updateHttpsCertType(value)
 		if err != nil {
+			global.LOG.Error("update https cert type failed: %v", err)
 			return err
 		}
 	case "https_cert_path":
 		err = c.updateHttpsCertPath(value)
 		if err != nil {
+			global.LOG.Error("update https cert path failed: %v", err)
 			return err
 		}
 	case "https_key_path":
 		err = c.updateHttpsKeyPath(value)
 		if err != nil {
+			global.LOG.Error("update https key path failed: %v", err)
 			return err
 		}
 	default:
@@ -1337,18 +1350,19 @@ func (c *Center) updateBindPort(newPort int) error {
 }
 
 func (c *Center) updateBindDomain(newDomain string) error {
-	if len(newDomain) == 0 {
-		return nil
+	domain := newDomain
+	if newDomain == "empty" {
+		domain = ""
 	}
 	settingsRepo := repo.NewSettingsRepo()
 	oldDomain, err := settingsRepo.Get(settingsRepo.WithByKey("BindDomain"))
 	if err != nil {
 		return err
 	}
-	if newDomain == oldDomain.Value {
+	if domain == oldDomain.Value {
 		return nil
 	}
-	return settingsRepo.Update("BindDomain", newDomain)
+	return settingsRepo.Update("BindDomain", domain)
 }
 
 func (c *Center) updateHttps(https string) error {
