@@ -140,6 +140,10 @@ func (s *SettingsService) Settings() (*model.SettingInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	bindDomain, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return nil, err
+	}
 	https, err := SettingsRepo.Get(SettingsRepo.WithByKey("Https"))
 	if err != nil {
 		return nil, err
@@ -160,6 +164,7 @@ func (s *SettingsService) Settings() (*model.SettingInfo, error) {
 	return &model.SettingInfo{
 		BindIP:        bindIP.Value,
 		BindPort:      bindPortValue,
+		BindDomain:    bindDomain.Value,
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
@@ -288,14 +293,18 @@ func (s *SettingsService) updateBindPort(newPort int) error {
 }
 
 func (s *SettingsService) updateBindDomain(newDomain string) error {
+	domain := newDomain
+	if newDomain == "empty" {
+		domain = ""
+	}
 	oldDomain, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindDomain"))
 	if err != nil {
 		return err
 	}
-	if newDomain == oldDomain.Value {
+	if domain == oldDomain.Value {
 		return nil
 	}
-	return SettingsRepo.Update("BindDomain", newDomain)
+	return SettingsRepo.Update("BindDomain", domain)
 }
 
 func (s *SettingsService) updateHttps(req model.UpdateSettingRequest) error {

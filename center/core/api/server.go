@@ -362,6 +362,10 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	bindDomain, err := settingRepo.Get(settingRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return nil, err
+	}
 	https, err := settingRepo.Get(settingRepo.WithByKey("Https"))
 	if err != nil {
 		return nil, err
@@ -382,6 +386,7 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	return &model.SettingInfo{
 		BindIP:        bindIP.Value,
 		BindPort:      bindPortValue,
+		BindDomain:    bindDomain.Value,
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
