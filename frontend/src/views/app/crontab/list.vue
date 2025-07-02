@@ -253,6 +253,17 @@
 
   // 获取定时任务列表
   const fetchCrontabList = async (fetchParams: Record<string, unknown>) => {
+    // 如果category为空或未设置，不发送请求
+    if (!params.value.category || params.value.category.trim() === '') {
+      // 返回空数据，避免API请求
+      return Promise.resolve({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: params.value.page_size,
+      });
+    }
+
     // 创建参数的副本，避免修改原始对象
     const requestParams = {
       ...fetchParams,
@@ -260,8 +271,23 @@
       category: params.value.category,
     };
 
-    // 始终使用v-model绑定的category值，确保与左侧目录树同步
-    return getCrontabListApi(requestParams as CrontabListApiParams);
+    try {
+      // 始终使用v-model绑定的category值，确保与左侧目录树同步
+      return await getCrontabListApi(requestParams as CrontabListApiParams);
+    } catch (error) {
+      // 如果是因为category参数问题导致的错误，返回空数据而不是抛出异常
+      if (error instanceof Error && error.message === 'OK') {
+        console.warn('Category parameter issue detected, returning empty data');
+        return Promise.resolve({
+          items: [],
+          total: 0,
+          page: 1,
+          page_size: params.value.page_size,
+        });
+      }
+      // 其他错误继续抛出
+      throw error;
+    }
   };
 
   // 重新加载表格数据
@@ -321,12 +347,11 @@
         return;
       }
 
-      // 确保分类值存在时才刷新
-      if (newCategory !== undefined && newCategory !== null) {
+      // 只有当分类值存在且不为空字符串时才刷新
+      if (newCategory && newCategory.trim() !== '') {
         reload();
       }
-    },
-    { immediate: true }
+    }
   );
 
   // 处理创建定时任务

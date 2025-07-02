@@ -108,7 +108,15 @@
       Message.success(t('app.crontab.category.message.delete_success'));
       reload();
     } catch (err: any) {
-      Message.error(err?.message);
+      // 如果是因为数据为空或分类不存在导致的错误，不显示错误信息
+      if (
+        err?.message &&
+        !err.message.includes('not found') &&
+        !err.message.includes('empty') &&
+        !err.message.includes('不存在')
+      ) {
+        Message.error(err.message);
+      }
     }
   };
 

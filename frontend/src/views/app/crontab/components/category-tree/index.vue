@@ -70,7 +70,18 @@
 
       return items.value;
     } catch (err: any) {
-      Message.error(err?.message);
+      // 如果是因为数据为空或分类不存在导致的错误，不显示错误信息
+      // 只有在真正的网络错误或其他严重错误时才显示
+      if (
+        err?.message &&
+        !err.message.includes('not found') &&
+        !err.message.includes('empty') &&
+        !err.message.includes('不存在')
+      ) {
+        Message.error(err.message);
+      }
+      // 即使出错也返回空数组，确保组件能正常工作
+      items.value = [];
       return [];
     }
   };
@@ -139,11 +150,11 @@
     align-items: center;
     justify-content: flex-start;
     height: 32px;
-    margin-bottom: 8px;
     padding-left: 10px;
+    margin-bottom: 8px;
     line-height: 32px;
-    border-radius: 4px;
     cursor: pointer;
+    border-radius: 4px;
   }
 
   .item:hover {
@@ -160,9 +171,9 @@
     left: -8px;
     width: 4px;
     height: 75%;
+    content: '';
     background-color: rgb(var(--primary-6));
     border-radius: 11px;
-    content: '';
   }
 
   .item-icon {
