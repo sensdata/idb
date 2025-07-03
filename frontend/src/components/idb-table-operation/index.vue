@@ -60,7 +60,7 @@
     text: string;
     disabled?: boolean;
     visible?: boolean;
-    confirm?: string;
+    confirm?: string | null;
     size?: 'mini' | 'medium' | 'large' | 'small';
     type?: 'dashed' | 'text' | 'outline' | 'primary' | 'secondary'; // type为button时默认为text，type为button-group时默认为primary
     status?: 'normal' | 'success' | 'warning' | 'danger'; // 仅按钮类型
