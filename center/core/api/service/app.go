@@ -634,55 +634,52 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		for _, param := range req.FormParams {
 			// 检查 key 是否在 validKeys 中
 			formField, exists := validKeys[param.Key]
-			if exists {
-				// 设置了校验规则
-				if formField.Validation != nil {
-					// 设置了正则匹配，优先正则匹配
-					if formField.Validation.Pattern != "" {
-						// 使用正则表达式校验
-						matched, err := regexp.MatchString(formField.Validation.Pattern, param.Value)
-						if err != nil {
-							global.LOG.Error("Invalid regex pattern: %v", err)
-							return &result, fmt.Errorf("invalid regex pattern for key %s: %v", param.Key, err)
-						}
-						if !matched {
-							global.LOG.Error("Value %s does not match the required pattern for key %s", param.Value, param.Key)
-							return &result, fmt.Errorf("invalid value for key %s", param.Key)
-						}
-						// 校验通过
-						continue
-					}
-					// 设置了长度限制
-					if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength != 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
-						if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
-							global.LOG.Error("Value %s does not has valid length for key %s", param.Value, param.Key)
-							return &result, fmt.Errorf("invalid value for key %s", param.Key)
-						}
-						// 校验通过
-						continue
-					}
-					// 是数值类型，且设置了值大小
-					if formField.Type == "number" && formField.Validation.MaxValue >= formField.Validation.MinValue {
-						paramValue, err := strconv.Atoi(param.Value)
-						if err != nil || (paramValue < formField.Validation.MinValue || paramValue > formField.Validation.MaxValue) {
-							global.LOG.Error("Value %s is not valid number for key %s", param.Value, param.Key)
-							return &result, fmt.Errorf("invalid number value for key %s", param.Key)
-						}
-					}
-				}
-				// 校验通过，传递值到envMap中，formField.Name -> envMap key
-				if _, exist := envMap[formField.Name]; exist {
-					// 密码类型，可能包含特殊字符，以单引号包含，避免转义错误
-					if formField.Type == "password" {
-						envMap[formField.Name] = fmt.Sprintf("'%s'", param.Value)
-					} else {
-						envMap[formField.Name] = param.Value
-					}
-				}
-			} else {
+			if !exists {
 				// 不存在，返回错误
 				global.LOG.Error("Invalid form key: %s", param.Key)
 				return &result, fmt.Errorf("invalid key: %s", param.Key)
+			}
+
+			// 设置了校验规则
+			if formField.Validation != nil {
+				// 设置了正则匹配，优先正则匹配
+				if formField.Validation.Pattern != "" {
+					// 使用正则表达式校验
+					matched, err := regexp.MatchString(formField.Validation.Pattern, param.Value)
+					if err != nil {
+						global.LOG.Error("Invalid regex pattern: %v", err)
+						return &result, fmt.Errorf("invalid regex pattern for key %s: %v", param.Key, err)
+					}
+					if !matched {
+						global.LOG.Error("Value %s does not match the required pattern for key %s", param.Value, param.Key)
+						return &result, fmt.Errorf("invalid value for key %s", param.Key)
+					}
+				}
+				// 设置了长度限制
+				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength != 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
+					if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
+						global.LOG.Error("Value %s does not has valid length for key %s", param.Value, param.Key)
+						return &result, fmt.Errorf("invalid value for key %s", param.Key)
+					}
+				}
+				// 是数值类型，且设置了值大小
+				if formField.Type == "number" && formField.Validation.MaxValue >= formField.Validation.MinValue {
+					paramValue, err := strconv.Atoi(param.Value)
+					if err != nil || (paramValue < formField.Validation.MinValue || paramValue > formField.Validation.MaxValue) {
+						global.LOG.Error("Value %s is not valid number for key %s", param.Value, param.Key)
+						return &result, fmt.Errorf("invalid number value for key %s", param.Key)
+					}
+				}
+			}
+
+			// 校验通过，传递值到envMap中，formField.Name -> envMap key
+			if _, exist := envMap[formField.Name]; exist {
+				// 密码类型，可能包含特殊字符，以单引号包含，避免转义错误
+				if formField.Type == "password" {
+					envMap[formField.Name] = fmt.Sprintf("'%s'", param.Value)
+				} else {
+					envMap[formField.Name] = param.Value
+				}
 			}
 		}
 	}
