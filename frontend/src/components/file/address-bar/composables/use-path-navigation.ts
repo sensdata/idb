@@ -1,6 +1,6 @@
 import { ref, Ref } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
-import { findCommonPrefix, getSearchPath, getSearchTerm } from '../utils';
+import { findCommonPrefix } from '../utils';
 import { DropdownOption } from './use-dropdown-navigation';
 import { EmitFn } from '../types';
 
@@ -24,7 +24,8 @@ export default function usePathNavigation(
   allOptions: Ref<DropdownOption[]>,
   popupVisible: Ref<boolean>,
   isSearching: Ref<boolean>,
-  triggerByTab: Ref<boolean>
+  triggerByTab: Ref<boolean>,
+  currentPath: Ref<string> // 添加当前路径参数
 ) {
   const lastTabTime = ref(0);
   const userTyping = ref(true);
@@ -38,7 +39,7 @@ export default function usePathNavigation(
     value.value = '';
     emit('clear');
     emit('search', {
-      path: '/',
+      path: currentPath.value, // 使用当前路径
       word: '',
     });
     popupVisible.value = false;
@@ -74,8 +75,9 @@ export default function usePathNavigation(
       triggerByTab.value = true;
       isSearching.value = true;
 
-      const searchPath = getSearchPath(value.value);
-      const searchTerm = getSearchTerm(value.value);
+      // 使用当前路径和输入值作为搜索词
+      const searchPath = currentPath.value;
+      const searchTerm = value.value.trim();
 
       emit('search', {
         path: searchPath,
@@ -84,19 +86,26 @@ export default function usePathNavigation(
       return;
     }
 
-    // 单个选项时只更新输入框值，不触发导航
+    // 单个选项时自动选择并导航
     if (allOptions.value.length === 1) {
       const option = allOptions.value[0];
-      const { basePath } = parseCurrentPath(value.value);
       const selectedValue = buildSelectedValue(option);
 
-      value.value = basePath + selectedValue;
+      // 构建完整路径：当前路径 + 选中的选项
+      const targetPath = `${currentPath.value}/${selectedValue}`.replace(
+        /\/+/g,
+        '/'
+      );
 
-      // 清理下拉状态，但不触发导航
+      // 清理下拉状态
       allOptions.value = [];
       isSearching.value = false;
       triggerByTab.value = false;
       popupVisible.value = false;
+      value.value = '';
+
+      // 触发导航
+      emit('goto', targetPath);
       return;
     }
 

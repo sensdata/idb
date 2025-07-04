@@ -3,7 +3,6 @@ import { debounce } from 'lodash';
 import { searchFileListApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import { useLogger } from '@/composables/use-logger';
-import { getSearchPath, getSearchTerm } from '../utils';
 import { DropdownOption } from './use-dropdown-navigation';
 
 // Constants
@@ -24,6 +23,7 @@ interface SearchEmitFunction {
 
 interface UseAddressBarSearchParams {
   value: Ref<string>;
+  currentPath: Ref<string>; // 添加当前路径参数
   emit: SearchEmitFunction;
   allOptions: Ref<DropdownOption[]>;
   popupVisible: Ref<boolean>;
@@ -31,6 +31,7 @@ interface UseAddressBarSearchParams {
 
 export default function useAddressBarSearch({
   value,
+  currentPath,
   emit,
   allOptions,
   popupVisible,
@@ -63,8 +64,9 @@ export default function useAddressBarSearch({
   const handleInputValueChange = debounce(() => {
     lastInputTime.value = Date.now();
 
-    const searchPath = getSearchPath(value.value);
-    const searchTerm = getSearchTerm(value.value);
+    // 使用当前路径作为搜索路径，输入值作为搜索词
+    const searchPath = currentPath.value;
+    const searchTerm = value.value.trim();
 
     searchWord.value = searchTerm;
     currentPage.value = 1;
@@ -86,7 +88,8 @@ export default function useAddressBarSearch({
     try {
       currentPage.value++;
 
-      const searchPath = getSearchPath(value.value);
+      // 使用当前路径作为搜索路径
+      const searchPath = currentPath.value;
 
       const data = await searchFileListApi({
         page: currentPage.value,
