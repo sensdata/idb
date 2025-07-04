@@ -122,17 +122,12 @@ export function useTableData(options: UseTableDataOptions) {
       // 错误处理
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-
-      // 如果错误消息是"OK"，说明可能是参数问题导致的，不显示错误弹窗
-      if (errorMessage !== 'OK') {
-        Message.error({
-          content: t('components.idbTable.error.loadFailed', {
-            error: errorMessage,
-          }),
-          duration: 5000,
-        });
-      }
-
+      Message.error({
+        content: t('components.idbTable.error.loadFailed', {
+          error: errorMessage,
+        }),
+        duration: 5000,
+      });
       // 保持现有数据，不清空
       renderData.value = renderData.value || [];
       logError('🔍 fetch failed:', error);

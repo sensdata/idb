@@ -10,7 +10,7 @@
       ref="gridRef"
       :params="params"
       :columns="columns"
-      :fetch="getCrontabRecordsApi"
+      :fetch="fetchCrontabRecords"
       :expandable="expandable"
       @expand="expand"
     >
@@ -52,7 +52,7 @@
   import { GlobalComponents, nextTick, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { formatTimeWithoutSeconds } from '@/utils/format';
-  import { getCrontabRecordsApi, getCrontabRunLogApi } from '@/api/crontab';
+  import { getCrontabRunLogApi } from '@/api/crontab';
   import LogsView from '@/components/logs-view/index.vue';
   import { Column } from '@/components/idb-table/types';
 
@@ -81,6 +81,15 @@
   }>({
     id: undefined,
   });
+
+  const fetchCrontabRecords = async () => {
+    return Promise.resolve({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 10,
+    });
+  };
 
   const columns: Column<CrontabRecord>[] = [
     {

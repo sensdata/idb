@@ -57,9 +57,7 @@ class Logger {
 
   // 错误日志
   logError(...args: LogParams): void {
-    if (this.isDev) {
-      console.error(this.prefix, ...args);
-    }
+    console.error(this.prefix, ...args);
   }
 }
 
