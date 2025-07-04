@@ -11,7 +11,7 @@ type App struct {
 	Description string       `yaml:"description" json:"description"`
 	Vendor      NameUrl      `yaml:"vendor" json:"vendor"`
 	Packager    NameUrl      `yaml:"packager" json:"packager"`
-	HasUpdate   bool         `yaml:"-" json:"has_update"`
+	HasUpgrade  bool         `yaml:"-" json:"has_upgrade"`
 	Versions    []AppVersion `json:"versions"`
 	Form        Form         `json:"form"`
 	Status      string       `json:"status"`
@@ -23,6 +23,7 @@ type AppVersion struct {
 	ComposeContent string `json:"compose_content"`
 	Status         string `json:"status"`
 	CreatedAt      string `json:"created_at"`
+	CanUpgrade     bool   `json:"can_upgrade"`
 }
 type NameUrl struct {
 	Name string `yaml:"name" json:"name"`

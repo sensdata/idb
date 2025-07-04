@@ -435,43 +435,45 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			global.LOG.Error("Error query app %s version, %v", compose.IdbName, err)
 			continue
 		}
-		hasUpdate := false
+
+		composeUpdVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
+		if err != nil {
+			global.LOG.Error("Failed to convert Compose update version: %v", err)
+			composeUpdVersion = 0
+		}
+		hasUpgrade := false
 		status := "uninstalled"
 		var versions []core.AppVersion
-		for _, version := range appVersions {
-			var createdAt string
-			versionStatus := "uninstalled"
-			if version.Version == compose.IdbVersion {
-				versionStatus = "installed"
+		for _, appVersion := range appVersions {
+			v := core.AppVersion{
+				ID:             appVersion.ID,
+				Version:        appVersion.Version,
+				UpdateVersion:  appVersion.UpdateVersion,
+				ComposeContent: appVersion.ComposeContent,
+				Status:         "uninstalled",
+				CreatedAt:      "",
+				CanUpgrade:     false,
+			}
+
+			if appVersion.Version == compose.IdbVersion {
 				status = "installed"
-				createdAt = compose.CreatedAt
+				v.Status = "installed"
+				v.CreatedAt = compose.CreatedAt
 			}
 
-			versions = append(versions, core.AppVersion{
-				ID:             version.ID,
-				Version:        version.Version,
-				UpdateVersion:  version.UpdateVersion,
-				ComposeContent: version.ComposeContent,
-				Status:         versionStatus,
-				CreatedAt:      createdAt,
-			})
-			if version.Version == compose.IdbVersion {
-				composeUpdtVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
-				if err != nil {
-					global.LOG.Error("Failed to convert Compose update version: %v", err)
-					composeUpdtVersion = 0
-				}
-
-				dbUpdtVersion, err := strconv.Atoi(version.UpdateVersion)
-				if err != nil {
-					global.LOG.Error("Failed to convert DB update version: %v", err)
-					dbUpdtVersion = 0
-				}
-
-				// 判断是否可以更新
-				hasUpdate = dbUpdtVersion > composeUpdtVersion
+			dbUpdVersion, err := strconv.Atoi(appVersion.UpdateVersion)
+			if err != nil {
+				global.LOG.Error("Failed to convert DB update version: %v", err)
+				dbUpdVersion = 0
 			}
+			v.CanUpgrade = dbUpdVersion > composeUpdVersion
+			if v.CanUpgrade {
+				hasUpgrade = true
+			}
+
+			versions = append(versions, v)
 		}
+
 		apps = append(apps, core.App{
 			ID:          appData.ID,
 			Type:        constant.TYPE_APP,
@@ -483,7 +485,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			Description: appData.Description,
 			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
 			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
-			HasUpdate:   hasUpdate,
+			HasUpgrade:  hasUpgrade,
 			Versions:    versions,
 			Status:      status,
 		})
