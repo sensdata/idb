@@ -107,9 +107,6 @@ export function actionCrontabApi(params: ActionCrontabParams) {
 export interface CrontabRunRecordsApiParams extends ApiListParams {
   id: number;
 }
-export function getCrontabRecordsApi(params: CrontabRunRecordsApiParams) {
-  return request.get('crontab/{host}/records', params);
-}
 
 export interface CrontabRunLogApiParams extends ApiListParams {
   id: number;

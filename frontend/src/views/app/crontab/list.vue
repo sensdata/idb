@@ -112,10 +112,10 @@
     deleteCrontabApi,
     getCrontabListApi,
     actionCrontabApi,
-    CrontabListApiParams,
   } from '@/api/crontab';
   import useLoading from '@/composables/loading';
   import { useConfirm } from '@/composables/confirm';
+  import usetCurrentHost from '@/composables/current-host';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import { usePeriodUtils } from './components/form-drawer/composables/use-period-utils';
@@ -264,6 +264,18 @@
       });
     }
 
+    // 检查hostId是否存在
+    const { currentHostId } = usetCurrentHost();
+    if (!currentHostId.value) {
+      console.warn('hostId is undefined, skipping API request');
+      return Promise.resolve({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: params.value.page_size,
+      });
+    }
+
     // 创建参数的副本，避免修改原始对象
     const requestParams = {
       ...fetchParams,
@@ -273,18 +285,9 @@
 
     try {
       // 始终使用v-model绑定的category值，确保与左侧目录树同步
-      return await getCrontabListApi(requestParams as CrontabListApiParams);
+      return await getCrontabListApi(requestParams);
     } catch (error) {
-      // 如果是因为category参数问题导致的错误，返回空数据而不是抛出异常
-      if (error instanceof Error && error.message === 'OK') {
-        console.warn('Category parameter issue detected, returning empty data');
-        return Promise.resolve({
-          items: [],
-          total: 0,
-          page: 1,
-          page_size: params.value.page_size,
-        });
-      }
+      console.error('getCrontabListApi error:', error);
       // 其他错误继续抛出
       throw error;
     }
