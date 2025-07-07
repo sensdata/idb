@@ -237,40 +237,91 @@
       };
 
       return () => (
-        <>
+        <div class="menu-container">
           {isAppRoute.value && (
-            <HostInfo collapsed={collapsed.value} class="mb-2" />
+            <div class="host-info-wrapper">
+              <HostInfo collapsed={collapsed.value} />
+            </div>
           )}
-          <a-menu
-            mode={topMenu.value ? 'horizontal' : 'vertical'}
-            v-model:collapsed={collapsed.value}
-            v-model:open-keys={openKeys.value}
-            show-collapse-button={appStore.device !== 'mobile'}
-            auto-open
-            selected-keys={selectedKey.value}
-            auto-open-selected={true}
-            level-indent={34}
-            style={{ width: '100%', flex: 1 }}
-            onCollapse={setCollapse}
-            onClickSubMenu={handleSubMenuClick}
-            onMenuItemClick={handleMenuItemClick}
-            onUpdate:openKeys={updateOpenKeys}
-          >
-            {renderSubMenu()}
-          </a-menu>
-        </>
+          <div class="menu-scroll">
+            <a-menu
+              mode={topMenu.value ? 'horizontal' : 'vertical'}
+              v-model:collapsed={collapsed.value}
+              v-model:open-keys={openKeys.value}
+              show-collapse-button={appStore.device !== 'mobile'}
+              auto-open
+              selected-keys={selectedKey.value}
+              auto-open-selected={true}
+              level-indent={34}
+              style={{ width: '100%' }}
+              onCollapse={setCollapse}
+              onClickSubMenu={handleSubMenuClick}
+              onMenuItemClick={handleMenuItemClick}
+              onUpdate:openKeys={updateOpenKeys}
+            >
+              {renderSubMenu()}
+            </a-menu>
+          </div>
+        </div>
       );
     },
   });
 </script>
 
 <style scoped lang="less">
+  .menu-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .host-info-wrapper {
+    flex: 0 0 auto;
+  }
+
+  .menu-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: visible;
+    position: relative;
+
+    :deep(.arco-menu) {
+      ::-webkit-scrollbar {
+        width: 12px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: var(--color-text-4);
+        background-clip: padding-box;
+        border: 4px solid transparent;
+        border-radius: 7px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-text-3);
+      }
+
+      // 确保子菜单能够正确显示
+      .arco-menu-inline,
+      .arco-menu-sub {
+        position: relative;
+        z-index: 1;
+      }
+
+      // 子菜单弹出层样式
+      .arco-menu-inline-content {
+        position: relative;
+        z-index: 2;
+      }
+    }
+  }
+
   :deep(.arco-menu) {
-    // 通用样式重置
-    .arco-menu-item,
-    .arco-menu-group-title,
-    .arco-menu-inline-header,
-    .arco-menu-pop-header {
+    // 一级菜单项样式
+    > .arco-menu-item,
+    > .arco-menu-group-title,
+    > .arco-menu-inline-header,
+    > .arco-menu-pop-header {
       box-sizing: border-box;
       height: 40px;
       line-height: 40px;
@@ -288,10 +339,44 @@
       }
     }
 
-    // 图标固定定位
-    .arco-menu-icon,
-    .arco-menu-item > .arco-icon,
-    .arco-menu-inline-header > .arco-icon {
+    // 子菜单项样式 - 使用自然缩进
+    .arco-menu-inline .arco-menu-item {
+      box-sizing: border-box;
+      height: 40px;
+      line-height: 40px;
+      position: relative;
+      padding-right: 20px !important;
+      display: flex;
+      align-items: center;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 3px;
+        height: 100%;
+        background-color: transparent;
+      }
+
+      // 确保缩进列表和内容在同一行
+      .arco-menu-indent-list {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .arco-menu-item-inner {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    // 图标固定定位 - 只对一级菜单
+    > .arco-menu-item > .arco-icon,
+    > .arco-menu-inline-header > .arco-icon {
       position: absolute;
       left: 16px;
       top: 50%;
