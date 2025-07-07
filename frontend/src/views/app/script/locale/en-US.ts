@@ -3,6 +3,8 @@ export default {
   'app.script.enum.type.global': 'Global',
 
   'app.script.category.all': 'All',
+  'app.script.category.tree.create': 'Create Now',
+  'app.script.category.tree.empty': 'No groups available',
 
   'app.script.list.column.name': 'Name',
   'app.script.list.column.mod_time': 'Modified Time',

@@ -56,7 +56,7 @@
     top: 0;
     bottom: 0;
     left: 0;
-    width: 240px;
+    width: 208px;
     height: 100%;
     padding: 4px 8px;
     overflow: auto;

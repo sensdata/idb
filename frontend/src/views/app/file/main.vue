@@ -351,28 +351,28 @@
   /* 桌面布局 */
   @media screen and (width >= 992px) {
     .file-layout {
-      padding-left: 240px;
+      padding-left: 208px;
     }
   }
 
   /* 平板设备 */
   @media screen and (width <= 991px) {
     .file-layout {
-      padding-left: 200px;
+      padding-left: 180px;
     }
   }
 
   /* 小型平板 */
   @media screen and (width <= 768px) {
     .file-layout {
-      padding-left: 180px;
+      padding-left: 160px;
     }
   }
 
   /* 手机设备 */
   @media screen and (width <= 576px) {
     .file-layout {
-      padding-left: 150px;
+      padding-left: 140px;
     }
   }
 

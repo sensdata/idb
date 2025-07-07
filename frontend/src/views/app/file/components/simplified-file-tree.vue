@@ -9,9 +9,6 @@
         @click="handleItemClick(item)"
         @dblclick="handleItemDoubleClick(item)"
       >
-        <!-- 选中状态的紫色指示条 -->
-        <div v-if="isSelected(item)" class="selection-indicator"></div>
-
         <div class="tree-item-container">
           <!-- 内容区域 -->
           <div class="tree-item-content">
@@ -91,7 +88,7 @@
   .simplified-file-tree {
     position: relative;
     width: 100%;
-    padding: 8px;
+    padding: 8px 4px 8px 16px;
     margin: 0;
   }
 
@@ -106,12 +103,37 @@
     position: relative;
     width: 100%;
     height: 32px;
-    padding: 0;
-    margin: 0;
+    padding: 0 12px;
+    margin-bottom: 8px;
     overflow: visible;
+    cursor: pointer;
     list-style: none;
     background: transparent;
     border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+  /* 悬停状态 */
+  .tree-item:hover {
+    background-color: var(--color-fill-1);
+  }
+
+  /* 选中状态背景 */
+  .tree-item.selected {
+    background-color: var(--color-fill-2);
+  }
+
+  /* 选中状态的紫色指示条 */
+  .tree-item.selected::before {
+    position: absolute;
+    top: 12.5%;
+    left: -8px;
+    width: 4px;
+    height: 75%;
+    content: '';
+    background-color: rgb(var(--primary-6));
+    border-radius: 2px;
   }
 
   /* 容器基础样式 */
@@ -121,43 +143,11 @@
     align-items: center;
     width: 100%;
     height: 32px;
-    padding: 0 12px;
+    padding: 0;
     margin: 0;
-    cursor: pointer;
+    background: transparent;
     border: none;
     border-radius: 0;
-    transition: background-color 0.2s ease;
-  }
-
-  /* 悬停状态 - 移除container上的背景 */
-  .tree-item:hover .tree-item-container {
-    background-color: transparent;
-  }
-
-  /* 选中状态的紫色指示条 - 细长胶囊形状 */
-  .selection-indicator {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 10;
-    display: block;
-    width: 4px;
-    height: 24px;
-    background-color: #6241d4;
-    border-radius: 2px;
-  }
-
-  /* 选中状态的背景 - 移除container上的背景，改为在content上设置 */
-  .tree-item.selected .tree-item-container {
-    background-color: transparent;
-    border: none;
-  }
-
-  /* 强制覆盖任何可能的选中状态样式 */
-  .tree-item.selected {
-    background-color: transparent;
-    border: none;
-    border-left: none;
   }
 
   /* 内容区域样式 */
@@ -168,23 +158,9 @@
     width: 100%;
     min-width: 0;
     height: 100%;
-    padding: 0 16px;
+    padding: 5px 8px;
     margin: 0;
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-    transition: box-shadow 0.2s ease;
-  }
-
-  /* 悬停时的背景和阴影效果 */
-  .tree-item:hover .tree-item-content {
-    background-color: rgb(229 230 235 / 50%);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-  }
-
-  /* 选中状态的背景和阴影效果 */
-  .tree-item.selected .tree-item-content {
-    background-color: #f2f3f5;
-    box-shadow: 0 2px 12px rgb(98 65 212 / 15%);
+    background: transparent;
   }
 
   /* 图标样式 */
@@ -207,38 +183,11 @@
   .tree-item-text {
     flex: 1;
     min-width: 0;
-    padding: 0;
-    margin: 0;
+    margin-left: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 14px;
     line-height: 22px;
-    color: #1d2129;
     white-space: nowrap;
-  }
-
-  /* 选中状态的文本颜色 */
-  .tree-item.selected .tree-item-text {
-    font-weight: 400;
-    color: #1d2129;
-  }
-
-  /* 悬停时的文本颜色 */
-  .tree-item:hover .tree-item-text {
-    color: #1d2129;
-  }
-
-  /* 确保紫色指示条可见 - 使用伪元素作为备用方案 */
-  .tree-item.selected::before {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 15;
-    display: block;
-    width: 4px;
-    height: 24px;
-    content: '';
-    background-color: #6241d4;
-    border-radius: 2px;
   }
 </style>

@@ -1,125 +1,114 @@
 <template>
-  <div class="service-main">
-    <div class="service-content">
-      <div class="service-left-panel">
-        <category-tree
-          ref="categoryTreeRef"
-          v-model:selected="params.category"
-          :type="type"
-        />
-      </div>
-      <div class="service-right-panel">
-        <idb-table
-          ref="gridRef"
-          class="service-table"
-          :loading="loading"
-          :params="params"
-          :columns="columns"
-          :fetch="fetchServiceList"
-          :auto-load="false"
-        >
-          <template #leftActions>
-            <a-button type="primary" @click="handleCreate">
-              <template #icon>
-                <icon-plus />
-              </template>
-              {{ $t('app.service.list.action.create') }}
-            </a-button>
-            <a-button @click="handleCategoryManage">
-              <template #icon>
-                <icon-settings />
-              </template>
-              {{ $t('app.service.category.manage.title') }}
+  <app-sidebar-layout>
+    <template #sidebar>
+      <category-tree
+        ref="categoryTreeRef"
+        v-model:selected-category="params.category"
+        :categories="categoryItems"
+        :show-title="false"
+        @create="handleCategoryCreate"
+      />
+    </template>
+    <template #main>
+      <idb-table
+        ref="gridRef"
+        class="service-table"
+        :loading="loading"
+        :params="params"
+        :columns="columns"
+        :fetch="fetchServiceList"
+        :auto-load="false"
+      >
+        <template #leftActions>
+          <a-button type="primary" @click="handleCreate">
+            <template #icon>
+              <icon-plus />
+            </template>
+            {{ $t('app.service.list.action.create') }}
+          </a-button>
+          <category-manage-button
+            :config="categoryManageConfig"
+            @ok="handleCategoryManageOk"
+          />
+          <a-button
+            v-if="type === SERVICE_TYPE.Global"
+            @click="handleSyncGlobal"
+          >
+            <template #icon>
+              <icon-sync />
+            </template>
+            {{ $t('app.service.list.action.sync') }}
+          </a-button>
+        </template>
+        <template #status="{ record }: { record: ServiceEntity }">
+          <div class="status-cell">
+            <a-tag :color="record.linked ? 'green' : 'gray'" class="status-tag">
+              {{
+                record.linked
+                  ? $t('app.service.list.status.activated')
+                  : $t('app.service.list.status.deactivated')
+              }}
+            </a-tag>
+          </div>
+        </template>
+        <template #operation="{ record }: { record: ServiceEntity }">
+          <div class="operation">
+            <a-button type="text" size="small" @click="handleEdit(record)">
+              {{ $t('common.edit') }}
             </a-button>
             <a-button
-              v-if="type === SERVICE_TYPE.Global"
-              @click="handleSyncGlobal"
+              type="text"
+              size="small"
+              @click="
+                handleAction(
+                  record,
+                  record.linked
+                    ? SERVICE_ACTION.Deactivate
+                    : SERVICE_ACTION.Activate
+                )
+              "
             >
-              <template #icon>
-                <icon-sync />
-              </template>
-              {{ $t('app.service.list.action.sync') }}
+              {{
+                record.linked
+                  ? $t('app.service.list.operation.deactivate')
+                  : $t('app.service.list.operation.activate')
+              }}
             </a-button>
-          </template>
-          <template #status="{ record }: { record: ServiceEntity }">
-            <div class="status-cell">
-              <a-tag
-                :color="record.linked ? 'green' : 'gray'"
-                class="status-tag"
-              >
-                {{
-                  record.linked
-                    ? $t('app.service.list.status.activated')
-                    : $t('app.service.list.status.deactivated')
-                }}
-              </a-tag>
-            </div>
-          </template>
-          <template #operation="{ record }: { record: ServiceEntity }">
-            <div class="operation">
-              <a-button type="text" size="small" @click="handleEdit(record)">
-                {{ $t('common.edit') }}
+            <a-button
+              type="text"
+              size="small"
+              status="danger"
+              @click="handleDelete(record)"
+            >
+              {{ $t('common.delete') }}
+            </a-button>
+            <a-dropdown>
+              <a-button type="text" size="small">
+                {{ $t('common.more') }}
+                <icon-down />
               </a-button>
-              <a-button
-                type="text"
-                size="small"
-                @click="
-                  handleAction(
-                    record,
-                    record.linked
-                      ? SERVICE_ACTION.Deactivate
-                      : SERVICE_ACTION.Activate
-                  )
-                "
-              >
-                {{
-                  record.linked
-                    ? $t('app.service.list.operation.deactivate')
-                    : $t('app.service.list.operation.activate')
-                }}
-              </a-button>
-              <a-button
-                type="text"
-                size="small"
-                status="danger"
-                @click="handleDelete(record)"
-              >
-                {{ $t('common.delete') }}
-              </a-button>
-              <a-dropdown>
-                <a-button type="text" size="small">
-                  {{ $t('common.more') }}
-                  <icon-down />
-                </a-button>
-                <template #content>
-                  <a-doption @click="handleViewLogs(record)">
-                    {{ $t('app.service.list.operation.logs') }}
-                  </a-doption>
-                  <a-doption @click="handleViewHistory(record)">
-                    {{ $t('app.service.list.operation.history') }}
-                  </a-doption>
-                </template>
-              </a-dropdown>
-            </div>
-          </template>
-        </idb-table>
-      </div>
-    </div>
-    <form-drawer
-      ref="formRef"
-      :type="type"
-      @ok="handleFormOk"
-      @category-change="handleCategoryChange"
-      @category-created="handleCategoryCreated"
-    />
-    <logs-drawer ref="logsRef" />
-    <history-drawer ref="historyRef" />
-    <category-manage
-      ref="categoryManageRef"
-      :type="type"
-      @ok="handleCategoryManageOk"
-    />
-  </div>
+              <template #content>
+                <a-doption @click="handleViewLogs(record)">
+                  {{ $t('app.service.list.operation.logs') }}
+                </a-doption>
+                <a-doption @click="handleViewHistory(record)">
+                  {{ $t('app.service.list.operation.history') }}
+                </a-doption>
+              </template>
+            </a-dropdown>
+          </div>
+        </template>
+      </idb-table>
+    </template>
+  </app-sidebar-layout>
+  <form-drawer
+    ref="formRef"
+    :type="type"
+    @ok="handleFormOk"
+    @category-change="handleCategoryChange"
+  />
+  <logs-drawer ref="logsRef" />
+  <history-drawer ref="historyRef" />
 </template>
 
 <script setup lang="ts">
@@ -130,21 +119,28 @@
     watch,
     onMounted,
     nextTick,
+    computed,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { SERVICE_TYPE, SERVICE_ACTION } from '@/config/enum';
   import { formatTime } from '@/utils/format';
   import { ServiceEntity } from '@/entity/Service';
-  import { syncGlobalServiceApi } from '@/api/service';
+  import {
+    syncGlobalServiceApi,
+    getServiceCategoryListApi,
+  } from '@/api/service';
   import { useConfirm } from '@/composables/confirm';
   import { useLogger } from '@/composables/use-logger';
+  import useCurrentHost from '@/composables/current-host';
+  import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
+  import CategoryTree from '@/components/idb-tree/category-tree.vue';
+  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
+  import { createServiceCategoryManageConfig } from './adapters/category-manage-adapter';
   import { useServiceList } from './composables/use-service-list';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import HistoryDrawer from './components/history-drawer/index.vue';
-  import CategoryTree from './components/category-tree/index.vue';
-  import CategoryManage from './components/category-manage/index.vue';
 
   // 定义组件引用类型接口
   interface FormDrawerInstance extends InstanceType<typeof FormDrawer> {
@@ -166,7 +162,8 @@
 
   const { t } = useI18n();
   const { confirm } = useConfirm();
-  const { logError } = useLogger('ServiceList');
+  const { logError, logInfo } = useLogger('ServiceList');
+  const { currentHostId } = useCurrentHost();
 
   // 使用组合式函数
   const {
@@ -177,10 +174,18 @@
     toggleServiceStatus,
   } = useServiceList(props.type);
 
+  // 分类管理配置
+  const categoryManageConfig = computed(() =>
+    createServiceCategoryManageConfig(props.type, currentHostId.value || 0)
+  );
+
+  // 分类数据状态
+  const categoryItems = ref<string[]>([]);
+  const categoryLoading = ref(false);
+
   // 组件引用
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
-  const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
   const formRef = ref<FormDrawerInstance>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const historyRef = ref<InstanceType<typeof HistoryDrawer>>();
@@ -245,6 +250,59 @@
       fixed: 'right' as const,
     },
   ];
+
+  /**
+   * 加载分类列表
+   */
+  const loadCategories = async () => {
+    const hostId = currentHostId.value;
+    if (!hostId) {
+      Message.error('Host ID is required');
+      return;
+    }
+
+    // 防止重复加载
+    if (categoryLoading.value) {
+      logInfo('分类正在加载中，跳过重复请求');
+      return;
+    }
+
+    logInfo('开始加载分类列表');
+    categoryLoading.value = true;
+    try {
+      const ret = await getServiceCategoryListApi({
+        type: props.type,
+        page: 1,
+        page_size: 1000,
+        host: hostId,
+      });
+      logInfo(`分类 API 返回数据:`, ret);
+
+      const newItems = [...ret.items.map((item) => item.name)];
+      logInfo(`处理后的分类列表:`, newItems);
+
+      // 如果当前选中的分类不在列表中，添加到列表中
+      if (params.value.category && !newItems.includes(params.value.category)) {
+        newItems.push(params.value.category);
+        logInfo(`添加当前选中分类到列表: ${params.value.category}`);
+      }
+
+      categoryItems.value = newItems;
+      logInfo(`分类列表已更新，当前选中: ${params.value.category}`);
+
+      // 如果没有选择任何分类且列表不为空，选择第一个分类
+      if (!params.value.category && newItems.length > 0) {
+        logInfo(`自动选择第一个分类: ${newItems[0]}`);
+        params.value.category = newItems[0];
+      }
+    } catch (err: any) {
+      logError('加载分类失败', err);
+      Message.error(err?.message || 'Failed to load categories');
+    } finally {
+      categoryLoading.value = false;
+      logInfo('分类加载完成');
+    }
+  };
 
   // 创建服务
   const handleCreate = () => {
@@ -334,32 +392,65 @@
     }
   };
 
-  // 分类管理
-  const handleCategoryManage = () => {
-    categoryManageRef.value?.show();
+  /**
+   * 处理分类创建
+   */
+  const handleCategoryCreate = () => {
+    // CategoryTree 组件自己会处理分类创建
+    // 这里不需要额外的逻辑
+  };
+
+  // 刷新并选择分类
+  const refreshAndSelectCategory = async (category: string) => {
+    lastManualCategory.value = category;
+    params.value.category = category;
+    await nextTick();
+    categoryTreeRef.value?.refresh();
+    gridRef.value?.reload();
+  };
+
+  // 处理新分类更新
+  const handleNewCategoryUpdate = async (newCategory: string) => {
+    try {
+      lastManualCategory.value = newCategory;
+      await nextTick();
+
+      // 重新加载分类列表以确保新分类在列表中
+      await loadCategories();
+
+      await refreshAndSelectCategory(newCategory);
+
+      await nextTick();
+      if (params.value.category !== newCategory) {
+        params.value.category = newCategory;
+        gridRef.value?.reload();
+      }
+
+      logInfo(`分类更新成功: ${newCategory}`);
+    } catch (error) {
+      logError('分类更新失败', error as Error);
+    }
   };
 
   // 表单提交成功回调
-  const handleFormOk = () => {
-    gridRef.value?.reload();
+  const handleFormOk = async (newCategory?: string) => {
+    if (newCategory) {
+      await handleNewCategoryUpdate(newCategory);
+    } else {
+      gridRef.value?.reload();
+    }
   };
 
   // 分类变更回调
-  const handleCategoryChange = (category: string) => {
-    lastManualCategory.value = category;
-    params.value.category = category;
-    gridRef.value?.reload();
-  };
-
-  // 分类创建成功回调
-  const handleCategoryCreated = () => {
-    // 刷新分类树以显示新创建的分类
-    categoryTreeRef.value?.refresh();
+  const handleCategoryChange = async (category: string) => {
+    if (category) {
+      await refreshAndSelectCategory(category);
+    }
   };
 
   // 分类管理成功回调
-  const handleCategoryManageOk = () => {
-    categoryTreeRef.value?.refresh();
+  const handleCategoryManageOk = async () => {
+    await loadCategories();
     gridRef.value?.reload();
   };
 
@@ -373,12 +464,23 @@
     });
   };
 
-  // 当分类选择后，自动加载数据
-  const handleCategorySelected = () => {
-    if (params.value.category) {
-      gridRef.value?.load();
+  // 监听器
+  watch(
+    () => params.value.category,
+    (newCategory, oldCategory) => {
+      logInfo(`监听器触发 - 分类变化: ${oldCategory} -> ${newCategory}`);
+      // 当分类变化时触发重新加载
+      // 包括从空变为有值，或从一个值变为另一个值
+      if (newCategory && newCategory !== oldCategory) {
+        logInfo(`触发表格重新加载，分类: ${newCategory}`);
+        gridRef.value?.reload();
+      } else {
+        logInfo(
+          `跳过表格重新加载，原因: newCategory=${newCategory}, oldCategory=${oldCategory}`
+        );
+      }
     }
-  };
+  );
 
   // 监听type变化
   watch(
@@ -393,49 +495,29 @@
     }
   );
 
-  // 监听分类变化
+  // 监听主机ID变化
   watch(
-    () => params.value.category,
-    () => {
-      params.value.page = 1;
-      handleCategorySelected();
+    () => currentHostId.value,
+    (newHostId) => {
+      params.value.host = newHostId;
     }
   );
 
   onMounted(() => {
-    categoryTreeRef.value?.refresh();
+    resetComponentsState();
+    loadCategories();
   });
 
   // 暴露方法给父组件
   defineExpose({
-    resetComponentsState,
+    resetComponentsState: () => {
+      resetComponentsState();
+      loadCategories(); // 重置状态时也要重新加载分类
+    },
   });
 </script>
 
 <style scoped>
-  .service-main {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .service-content {
-    display: flex;
-    flex: 1;
-    gap: 16px;
-    min-height: 0;
-  }
-
-  .service-left-panel {
-    flex-shrink: 0;
-    width: 200px;
-  }
-
-  .service-right-panel {
-    flex: 1;
-    min-width: 0;
-  }
-
   .service-table {
     height: 100%;
   }
