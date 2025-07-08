@@ -79,8 +79,13 @@
 
   const emit = defineEmits(['itemSelect', 'itemDoubleClick']);
 
-  const { pinnedDirectories, isPinned, unpinDirectory, updateDirectoryExists } =
-    usePinnedDirectories();
+  const {
+    pinnedDirectories,
+    isPinned,
+    unpinDirectory,
+    updateDirectoryExists,
+    pinnedPathsString,
+  } = usePinnedDirectories();
 
   const { logWarn } = useLogger('SimplifiedFileTree');
 
@@ -134,13 +139,16 @@
     fetchPinnedDirectoryInfo();
   });
 
-  // Watch pinnedDirectories for changes and refetch info when it changes
+  // Watch only for actual path changes, not metadata updates
+  // This prevents the race condition where updateDirectoryExists triggers unnecessary refetches
   watch(
-    () => pinnedDirectories.value,
-    () => {
-      fetchPinnedDirectoryInfo();
-    },
-    { deep: true }
+    () => pinnedPathsString.value,
+    (newPathsString, oldPathsString) => {
+      // Only refetch if the paths actually changed, not just metadata
+      if (newPathsString !== oldPathsString) {
+        fetchPinnedDirectoryInfo();
+      }
+    }
   );
 
   // Pinned directories (combination of root dirs that are pinned + fetched nested dirs)

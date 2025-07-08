@@ -80,6 +80,14 @@ export function usePinnedDirectories() {
     pinnedDirectories.value.map((dir) => dir.path)
   );
 
+  // Add a computed property for watching path changes only
+  const pinnedPathsString = computed(() =>
+    pinnedDirectories.value
+      .map((dir) => dir.path)
+      .sort()
+      .join('|')
+  );
+
   const isPinned = (path: string): boolean => {
     const normalizedPath = normalizePath(path);
     return pinnedPaths.value.includes(normalizedPath);
@@ -143,14 +151,19 @@ export function usePinnedDirectories() {
     );
 
     if (directoryIndex !== -1) {
-      // Create a new array with updated directory to ensure reactivity
-      const newArray = [...pinnedDirectories.value];
-      newArray[directoryIndex] = {
-        ...newArray[directoryIndex],
-        exists,
-        lastSeen: Date.now(),
-      };
-      pinnedDirectories.value = newArray;
+      const currentDir = pinnedDirectories.value[directoryIndex];
+
+      // Only update if the exists status actually changed
+      if (currentDir.exists !== exists) {
+        // Create a new array with updated directory to ensure reactivity
+        const newArray = [...pinnedDirectories.value];
+        newArray[directoryIndex] = {
+          ...newArray[directoryIndex],
+          exists,
+          lastSeen: Date.now(),
+        };
+        pinnedDirectories.value = newArray;
+      }
     }
   };
 
@@ -168,6 +181,7 @@ export function usePinnedDirectories() {
   return {
     pinnedDirectories: computed(() => pinnedDirectories.value),
     pinnedPaths,
+    pinnedPathsString, // For efficient watching of path changes only
     isPinned,
     pinDirectory,
     unpinDirectory,
