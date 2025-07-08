@@ -1,97 +1,69 @@
 <template>
-  <div class="crontab-main">
-    <div class="crontab-content">
-      <div class="crontab-left-panel">
-        <category-tree
-          ref="categoryTreeRef"
-          v-model:selected="params.category"
-          :type="type"
-        />
-      </div>
-      <div class="crontab-right-panel">
-        <idb-table
-          ref="gridRef"
-          class="crontab-table"
-          :loading="loading"
-          :params="params"
-          :columns="columns"
-          :fetch="fetchCrontabList"
-        >
-          <template #leftActions>
-            <a-button type="primary" @click="handleCreate">
-              <template #icon>
-                <icon-plus />
-              </template>
-              {{ $t('app.crontab.list.action.create') }}
-            </a-button>
-            <a-button @click="handleCategoryManage">
-              <template #icon>
-                <icon-settings />
-              </template>
-              {{ $t('app.crontab.category.manage.title') }}
-            </a-button>
-          </template>
-          <template #status="{ record }: { record: CrontabEntity }">
-            <div class="status-cell">
-              <a-tag
-                :color="record.linked ? 'green' : 'gray'"
-                class="status-tag"
-              >
-                {{
-                  record.linked
-                    ? $t('app.crontab.list.status.running')
-                    : $t('app.crontab.list.status.not_running')
-                }}
-              </a-tag>
-            </div>
-          </template>
-          <template #operation="{ record }: { record: CrontabEntity }">
-            <div class="operation">
-              <a-button type="text" size="small" @click="handleEdit(record)">
-                {{ $t('common.edit') }}
-              </a-button>
-              <a-button
-                type="text"
-                size="small"
-                @click="
-                  handleAction(
-                    record,
-                    record.linked ? 'deactivate' : 'activate'
-                  )
-                "
-              >
-                {{
-                  record.linked
-                    ? $t('app.crontab.list.operation.deactivate')
-                    : $t('app.crontab.list.operation.activate')
-                }}
-              </a-button>
-              <a-button
-                type="text"
-                size="small"
-                status="danger"
-                @click="handleDelete(record)"
-              >
-                {{ $t('common.delete') }}
-              </a-button>
-            </div>
-          </template>
-        </idb-table>
-      </div>
-    </div>
-    <form-drawer
-      ref="formRef"
-      :type="type"
-      @ok="handleFormOk"
-      @category-change="handleCategoryChange"
-    />
-    <logs-drawer ref="logsRef" />
-    <category-manage
-      ref="categoryManageRef"
-      :type="type"
-      @ok="handleCategoryManageOk"
-    />
-  </div>
+  <app-sidebar-layout>
+    <template #sidebar>
+      <category-tree
+        ref="categoryTreeRef"
+        v-model:selected-category="params.category"
+        :category-config="categoryConfig"
+        :enable-category-management="true"
+        :host-id="currentHostId"
+        :categories="categoryItems"
+        :show-title="false"
+        @create="handleCategoryCreate"
+        @category-created="handleCategoryCreated"
+        @category-updated="handleCategoryUpdated"
+        @category-deleted="handleCategoryDeleted"
+      />
+    </template>
+    <template #main>
+      <idb-table
+        ref="gridRef"
+        class="crontab-table"
+        :loading="loading"
+        :params="params"
+        :columns="columns"
+        :fetch="fetchCrontabList"
+      >
+        <template #leftActions>
+          <a-button type="primary" @click="handleCreate">
+            <template #icon>
+              <icon-plus />
+            </template>
+            {{ $t('app.crontab.list.action.create') }}
+          </a-button>
+          <category-manage-button
+            ref="categoryManageButtonRef"
+            :config="categoryManageConfig"
+            @ok="handleCategoryManageOk"
+          />
+        </template>
+        <template #status="{ record }: { record: CrontabEntity }">
+          <div class="status-cell">
+            <a-tag :color="record.linked ? 'green' : 'gray'" class="status-tag">
+              {{
+                record.linked
+                  ? $t('app.crontab.list.status.running')
+                  : $t('app.crontab.list.status.not_running')
+              }}
+            </a-tag>
+          </div>
+        </template>
+        <template #operation="{ record }: { record: CrontabEntity }">
+          <idb-table-operation
+            type="button"
+            :options="getCrontabOperationOptions(record)"
+          />
+        </template>
+      </idb-table>
+    </template>
+  </app-sidebar-layout>
+  <form-drawer
+    ref="formRef"
+    :type="type"
+    @ok="handleFormOk"
+    @category-change="handleCategoryChange"
+  />
+  <logs-drawer ref="logsRef" />
 </template>
 
 <script setup lang="ts">
@@ -102,6 +74,7 @@
     watch,
     onMounted,
     nextTick,
+    computed,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
@@ -112,15 +85,19 @@
     deleteCrontabApi,
     getCrontabListApi,
     actionCrontabApi,
+    getCrontabCategoryListApi,
   } from '@/api/crontab';
   import useLoading from '@/composables/loading';
   import { useConfirm } from '@/composables/confirm';
   import usetCurrentHost from '@/composables/current-host';
+  import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
+  import CategoryTree from '@/components/idb-tree/category-tree.vue';
+  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import { usePeriodUtils } from './components/form-drawer/composables/use-period-utils';
-  import CategoryTree from './components/category-tree/index.vue';
-  import CategoryManage from './components/category-manage/index.vue';
+  import { createCrontabCategoryConfig } from './adapters/category-adapter';
+  import { createCrontabCategoryManageConfig } from './adapters/category-manage-adapter';
 
   // 定义组件引用类型接口，提高类型安全性
   interface FormDrawerInstance extends InstanceType<typeof FormDrawer> {
@@ -153,10 +130,42 @@
   const { generateFormattedPeriodComment, parseCronExpression } =
     usePeriodUtils();
 
+  // 获取当前主机ID
+  const { currentHostId } = usetCurrentHost();
+
+  // 创建分类管理配置
+  const categoryConfig = computed(() =>
+    createCrontabCategoryConfig(props.type)
+  );
+
+  // 创建分类管理抽屉配置
+  const categoryManageConfig = computed(() =>
+    createCrontabCategoryManageConfig(props.type)
+  );
+
+  // 分类数据状态
+  const categoryItems = ref<string[]>([]);
+
+  // 加载分类列表
+  const loadCategories = async () => {
+    try {
+      const response = await getCrontabCategoryListApi({
+        type: props.type,
+        page: 1,
+        page_size: 1000,
+      });
+      categoryItems.value = response.items.map((item: any) => item.name);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      categoryItems.value = [];
+    }
+  };
+
   // 组件引用
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
-  const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
+  const categoryManageButtonRef =
+    ref<InstanceType<typeof CategoryManageButton>>();
   const formRef = ref<FormDrawerInstance>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const { loading, setLoading } = useLoading();
@@ -231,6 +240,7 @@
       dataIndex: 'period',
       title: t('app.crontab.list.column.period'),
       width: 150,
+      align: 'center' as const,
       render: ({ record }: { record: CrontabEntity }) =>
         extractPeriodFromRecord(record),
     },
@@ -238,6 +248,7 @@
       dataIndex: 'mod_time',
       title: t('app.crontab.list.column.mod_time'),
       width: 160,
+      align: 'center' as const,
       render: ({ record }: { record: CrontabEntity }) => {
         return formatTimeWithoutSeconds(record.mod_time);
       },
@@ -246,7 +257,7 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       width: 210,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'operation',
     },
   ];
@@ -265,7 +276,6 @@
     }
 
     // 检查hostId是否存在
-    const { currentHostId } = usetCurrentHost();
     if (!currentHostId.value) {
       console.warn('hostId is undefined, skipping API request');
       return Promise.resolve({
@@ -311,7 +321,7 @@
     // 刷新分类树并选择类别
     if (categoryTreeRef.value) {
       try {
-        await categoryTreeRef.value.reload();
+        await categoryTreeRef.value.refresh();
         await nextTick();
         categoryTreeRef.value.selectCategory(category);
         reload();
@@ -472,84 +482,45 @@
     }
   };
 
-  // 处理分类管理
-  const handleCategoryManage = () => {
-    categoryManageRef.value?.show();
-  };
+  // 获取操作按钮配置
+  const getCrontabOperationOptions = (record: CrontabEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: record.linked
+        ? t('app.crontab.list.operation.deactivate')
+        : t('app.crontab.list.operation.activate'),
+      click: () =>
+        handleAction(record, record.linked ? 'deactivate' : 'activate'),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      confirm: t('app.crontab.list.delete.confirm', { name: record.name }),
+      click: () => handleDelete(record),
+    },
+  ];
+
+  // 处理分类管理功能已集成到 CategoryManageButton 组件中
 
   // 处理分类管理确认
   const handleCategoryManageOk = () => {
+    // 重新加载分类列表
+    loadCategories();
     // 刷新左侧分类树
-    categoryTreeRef.value?.reload();
+    categoryTreeRef.value?.refresh();
     // 刷新表格数据
     reload();
   };
 
   // 从分类树中选择第一个可用分类
   const selectFirstAvailableCategory = () => {
-    if (!categoryTreeRef.value) return;
-
-    // 使用类型断言访问items
-    const categoryTree = categoryTreeRef.value as any;
-    if (!categoryTree.items?.value?.length) return;
-
-    const categories = categoryTree.items.value;
-    if (categories.length > 0) {
-      refreshAndSelectCategory(categories[0]);
-    }
-  };
-
-  // 选择合适的分类：优先使用当前分类，否则使用第一个可用分类
-  const selectAppropriateCategory = async (currentCategory: string) => {
-    if (currentCategory) {
-      // 恢复原始分类
-      lastManualCategory.value = currentCategory;
-      await refreshAndSelectCategory(currentCategory);
-      return;
-    }
-
-    if (!categoryTreeRef.value) return;
-
-    // 如果分类树有内容，使用第一个分类
-    const categoryTree = categoryTreeRef.value as any;
-    if (!categoryTree.items?.value?.length) return;
-
-    const categories = categoryTree.items.value;
-    if (categories.length > 0) {
-      const firstCategory = categories[0];
-      lastManualCategory.value = firstCategory;
-      await refreshAndSelectCategory(firstCategory);
-    }
-  };
-
-  // 重置所有组件状态
-  const resetComponentsState = async () => {
-    try {
-      // 保存当前分类
-      const currentCategory =
-        params.value.category || lastManualCategory.value || '';
-
-      // 暂时清空所有状态
-      params.value.category = '';
-      lastManualCategory.value = '';
-
-      // 强制刷新分类树
-      if (categoryTreeRef.value) {
-        await categoryTreeRef.value.reload();
-      }
-
-      // 等待DOM更新
-      await nextTick();
-
-      // 尝试选择分类
-      await selectAppropriateCategory(currentCategory);
-
-      // 确保表格数据更新
-      await nextTick();
-      reload();
-    } catch (e) {
-      // 如果重置失败，尝试回到默认分类
-      selectFirstAvailableCategory();
+    // 直接使用categoryItems.value而不是依赖组件内部状态
+    if (categoryItems.value && categoryItems.value.length > 0) {
+      const firstCategory = categoryItems.value[0];
+      refreshAndSelectCategory(firstCategory);
     }
   };
 
@@ -561,63 +532,76 @@
       refreshAndSelectCategory(category);
     } else {
       // 仅刷新分类树
-      categoryTreeRef.value?.reload();
+      categoryTreeRef.value?.refresh();
+    }
+  };
+
+  // 处理分类创建
+  const handleCategoryCreate = () => {
+    // 触发分类管理功能
+    categoryManageButtonRef.value?.show();
+  };
+
+  // 处理分类创建成功
+  const handleCategoryCreated = (categoryName: string) => {
+    // 重新加载分类列表
+    loadCategories();
+    // 选择新创建的分类
+    refreshAndSelectCategory(categoryName);
+  };
+
+  // 处理分类更新成功
+  const handleCategoryUpdated = (oldName: string, newName: string) => {
+    // 重新加载分类列表
+    loadCategories();
+    // 如果当前选中的是被更新的分类，则选择新名称
+    if (params.value.category === oldName) {
+      refreshAndSelectCategory(newName);
+    }
+  };
+
+  // 处理分类删除成功
+  const handleCategoryDeleted = (categoryName: string) => {
+    // 重新加载分类列表
+    loadCategories();
+    // 如果当前选中的是被删除的分类，则清空选择
+    if (params.value.category === categoryName) {
+      params.value.category = '';
+      selectFirstAvailableCategory();
     }
   };
 
   // 组件挂载完成后，确保分类初始化不会自动重置
   onMounted(async () => {
-    // 挂载时重置所有状态，确保新创建的页面状态正常
-    await resetComponentsState();
+    // 先加载分类列表
+    await loadCategories();
+
+    // 等待分类数据加载完成后再进行初始化
+    await nextTick();
+
+    // 如果有分类数据，直接选择第一个分类，避免复杂的重置逻辑
+    if (categoryItems.value && categoryItems.value.length > 0) {
+      const firstCategory = categoryItems.value[0];
+      lastManualCategory.value = firstCategory;
+      await refreshAndSelectCategory(firstCategory);
+    }
   });
 </script>
 
 <style scoped>
-  .crontab-main {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 170px);
-  }
-
-  .crontab-content {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .crontab-left-panel {
-    width: 200px;
-    padding: 16px 0;
-    overflow-y: auto;
-    border-right: 1px solid var(--color-border);
-  }
-
-  .crontab-right-panel {
-    flex: 1;
-    padding: 16px;
-    overflow: auto;
-  }
-
   .crontab-table {
     height: 100%;
   }
 
   .status-cell {
     display: flex;
+    align-items: center;
     justify-content: center;
   }
 
   .status-tag {
-    padding: 0 8px;
-  }
-
-  .operation {
-    display: flex;
-    justify-content: center;
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
   }
 </style>

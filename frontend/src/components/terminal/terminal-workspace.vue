@@ -671,7 +671,7 @@
     display: flex;
     gap: 8px; /* 使用flexbox gap替代margin，更加灵活 */
     height: 100%;
-    padding: 0 8px 8px 8px; /* 只在左右底部添加内边距，顶部与头部紧贴 */
+    padding: 0 8px 8px 0; /* 将左边距改为0，只保留右边和底部内边距 */
     background: var(--color-bg-1);
   }
 
@@ -786,7 +786,7 @@
   .terminal-actions {
     position: absolute;
     top: 0;
-    right: 12px;
+    right: 0;
     z-index: 10;
   }
 

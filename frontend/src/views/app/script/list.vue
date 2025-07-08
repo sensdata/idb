@@ -1,13 +1,15 @@
 <template>
-  <div class="script-layout">
-    <div class="script-sidebar">
+  <app-sidebar-layout>
+    <template #sidebar>
       <category-tree
         ref="categoryTreeRef"
-        v-model:selected="selectedCat"
-        :type="type"
+        v-model:selected-category="selectedCat"
+        :categories="categoryNames"
+        :show-title="false"
+        @create="handleCategoryCreate"
       />
-    </div>
-    <div class="script-main">
+    </template>
+    <template #main>
       <idb-table
         ref="gridRef"
         class="script-table"
@@ -24,67 +26,49 @@
             </template>
             {{ $t('app.script.list.action.create') }}
           </a-button>
-          <a-button type="outline" @click="handleGroupManage">
-            <template #icon>
-              <icon-list />
-            </template>
-            {{ $t('app.script.list.action.group_manage') }}
-          </a-button>
+          <category-manage-button
+            :config="categoryManageConfig"
+            @ok="handleCategoryManageOk"
+          />
         </template>
         <template #history_version="{ record }: { record: ScriptEntity }">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleHistoryVersion(record)"
-          >
+          <a-link @click="handleHistoryVersion(record)">
             {{ $t('app.script.list.operation.view_history') }}
-          </a-button>
+          </a-link>
         </template>
         <template #operation="{ record }: { record: ScriptEntity }">
-          <div class="operation">
-            <a-button type="text" size="small" @click="handleEdit(record)">
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button type="text" size="small" @click="handleRun(record)">
-              {{ $t('app.script.list.operation.run') }}
-            </a-button>
-            <a-button type="text" size="small" @click="handleLog(record)">
-              {{ $t('app.script.list.operation.log') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDelete(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getScriptOperationOptions(record)"
+          />
         </template>
       </idb-table>
-    </div>
-    <form-drawer
-      ref="formRef"
-      :type="type"
-      @ok="reload"
-      @category-change="handleCategoryChange"
-    />
-    <logs-drawer ref="logsRef" />
-    <logs-view-modal
-      ref="runResultModalRef"
-      :title="$t('app.script.run.result.title')"
-    />
-    <category-manage
-      ref="categoryManageRef"
-      :type="type"
-      @ok="handleCategoryManageOk"
-    />
-    <history-version ref="historyRef" :type="type" @ok="reload" />
-  </div>
+    </template>
+  </app-sidebar-layout>
+  <form-drawer
+    ref="formRef"
+    :type="type"
+    @ok="reload"
+    @category-change="handleCategoryChange"
+  />
+  <logs-drawer ref="logsRef" />
+  <logs-view-modal
+    ref="runResultModalRef"
+    :title="$t('app.script.run.result.title')"
+  />
+  <history-version ref="historyRef" :type="type" @ok="reload" />
 </template>
 
 <script setup lang="ts">
-  import { GlobalComponents, PropType, reactive, ref, watch } from 'vue';
+  import {
+    GlobalComponents,
+    PropType,
+    reactive,
+    ref,
+    watch,
+    onMounted,
+    computed,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { SCRIPT_TYPE } from '@/config/enum';
@@ -94,16 +78,19 @@
     deleteScriptApi,
     getScriptListApi,
     runScriptApi,
+    getScriptCategoryListApi,
   } from '@/api/script';
   import useLoading from '@/composables/loading';
   import { useConfirm } from '@/composables/confirm';
   import usetCurrentHost from '@/composables/current-host';
+  import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import LogsViewModal from '@/components/logs-view/modal.vue';
-  import CategoryTree from './components/category-tree/index.vue';
+  import CategoryTree from '@/components/idb-tree/category-tree.vue';
+  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
-  import CategoryManage from './components/category-manage/index.vue';
   import HistoryVersion from './components/history-version/index.vue';
+  import { createScriptCategoryManageConfig } from './adapters/category-manage-adapter';
 
   const props = defineProps({
     type: {
@@ -115,14 +102,23 @@
   const { t } = useI18n();
   const { currentHostId } = usetCurrentHost();
 
+  // Category data state
+  const categoryNames = ref<string[]>([]);
+  const categoryLoading = ref(false);
+
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref<InstanceType<typeof FormDrawer>>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const runResultModalRef = ref<InstanceType<typeof LogsViewModal>>();
-  const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
   const historyRef = ref<InstanceType<typeof HistoryVersion>>();
   const selectedCat = ref();
+
+  // Category management configuration
+  const categoryManageConfig = computed(() =>
+    createScriptCategoryManageConfig(props.type)
+  );
+
   watch(selectedCat, (val) => {
     if (val) {
       gridRef.value?.load({
@@ -130,6 +126,7 @@
       });
     }
   });
+
   const { loading, setLoading } = useLoading();
   const { confirm } = useConfirm();
   const params = reactive({
@@ -170,10 +167,52 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       width: 210,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'operation',
     },
   ];
+
+  /**
+   * Load categories list
+   */
+  const loadCategories = async () => {
+    const hostId = currentHostId.value;
+    if (!hostId) {
+      Message.error('Host ID is required');
+      return;
+    }
+
+    if (categoryLoading.value) {
+      return;
+    }
+
+    categoryLoading.value = true;
+    try {
+      const ret = await getScriptCategoryListApi({
+        page: 1,
+        page_size: 1000,
+        type: props.type,
+      });
+
+      const newItems = [...ret.items.map((item) => item.name)];
+
+      // If current selected category is not in the list, add it
+      if (selectedCat.value && !newItems.includes(selectedCat.value)) {
+        newItems.push(selectedCat.value);
+      }
+
+      categoryNames.value = newItems;
+
+      // Auto-select first category if none selected and list is not empty
+      if (!selectedCat.value && newItems.length > 0) {
+        selectedCat.value = newItems[0];
+      }
+    } catch (err: any) {
+      Message.error(err?.message || 'Failed to load categories');
+    } finally {
+      categoryLoading.value = false;
+    }
+  };
 
   const reload = () => {
     gridRef.value?.reload();
@@ -184,12 +223,8 @@
     formRef.value?.show();
   };
 
-  const handleGroupManage = () => {
-    categoryManageRef.value?.show();
-  };
-
   const handleCategoryManageOk = () => {
-    categoryTreeRef.value?.reload();
+    loadCategories();
   };
 
   const handleHistoryVersion = (record: ScriptEntity) => {
@@ -208,6 +243,7 @@
     formRef.value?.load();
     formRef.value?.show();
   };
+
   const handleRun = async (record: ScriptEntity) => {
     setLoading(true);
     try {
@@ -218,7 +254,6 @@
       if (!result.err) {
         runResultModalRef.value?.setContent(result.out);
         runResultModalRef.value?.show();
-        // Message.success(t('app.script.list.message.run_success'));
       } else {
         Message.error(result.err);
       }
@@ -226,11 +261,13 @@
       setLoading(false);
     }
   };
+
   const handleLog = (record: ScriptEntity) => {
     logsRef.value?.show({
       path: record.source,
     });
   };
+
   const handleDelete = async (record: ScriptEntity) => {
     if (
       await confirm({
@@ -253,42 +290,43 @@
     }
   };
 
+  // 获取操作按钮配置
+  const getScriptOperationOptions = (record: ScriptEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: t('app.script.list.operation.run'),
+      click: () => handleRun(record),
+    },
+    {
+      text: t('app.script.list.operation.log'),
+      click: () => handleLog(record),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      confirm: t('app.script.list.delete.confirm', { name: record.name }),
+      click: () => handleDelete(record),
+    },
+  ];
+
   const handleCategoryChange = () => {
-    categoryTreeRef.value?.reload();
+    loadCategories();
     gridRef.value?.reload();
   };
+
+  // Category management event handlers
+  const handleCategoryCreate = () => {
+    // 在分类为空时，可以触发创建分类的操作
+    // 现在使用 category-manage-button 组件内部处理
+  };
+
+  // Load categories on mount
+  onMounted(() => {
+    loadCategories();
+  });
 </script>
 
-<style scoped>
-  .script-layout {
-    position: relative;
-    min-height: calc(100vh - 240px);
-    padding-left: 240px;
-    margin-top: 20px;
-    border: 1px solid var(--color-border-2);
-    border-radius: 4px;
-  }
-
-  .script-sidebar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 240px;
-    height: 100%;
-    padding: 4px 8px;
-    overflow: auto;
-    border-right: 1px solid var(--color-border-2);
-  }
-
-  .script-main {
-    min-width: 0;
-    height: 100%;
-    padding: 20px;
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
-  }
-</style>
+<style scoped></style>

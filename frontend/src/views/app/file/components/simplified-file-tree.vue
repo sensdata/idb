@@ -1,19 +1,49 @@
 <template>
   <div class="simplified-file-tree">
     <ul class="tree-list">
+      <!-- Pinned directories section -->
+      <template v-if="pinnedItems.length > 0">
+        <li
+          v-for="item of pinnedItems"
+          :key="`pinned-${item.path}`"
+          class="tree-item pinned"
+          :class="{ selected: isSelected(item) }"
+          @click="handleItemClick(item)"
+          @dblclick="handleItemDoubleClick(item)"
+        >
+          <div class="tree-item-container">
+            <!-- Content area -->
+            <div class="tree-item-content" :title="item.path">
+              <div class="tree-item-icon">
+                <folder-icon />
+              </div>
+              <div class="tree-item-text">
+                {{ item.name }}
+              </div>
+              <div class="tree-item-unpin" @click.stop="handleUnpinClick(item)">
+                <icon-close class="unpin-icon" />
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- Separator between pinned and regular directories -->
+        <li class="tree-separator">
+          <div class="separator-line"></div>
+        </li>
+      </template>
+
+      <!-- Regular directories section -->
       <li
-        v-for="item of rootItems"
+        v-for="item of regularItems"
         :key="item.path"
         class="tree-item"
         :class="{ selected: isSelected(item) }"
         @click="handleItemClick(item)"
         @dblclick="handleItemDoubleClick(item)"
       >
-        <!-- 选中状态的紫色指示条 -->
-        <div v-if="isSelected(item)" class="selection-indicator"></div>
-
         <div class="tree-item-container">
-          <!-- 内容区域 -->
+          <!-- Content area -->
           <div class="tree-item-content">
             <div class="tree-item-icon">
               <folder-icon />
@@ -29,61 +59,193 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed } from 'vue';
+  import { computed, ref, onMounted, watch } from 'vue';
+  import { IconClose } from '@arco-design/web-vue/es/icon';
   import { SimpleFileInfoEntity } from '@/entity/FileInfo';
+  import { getDirectoryInfoApi } from '@/api/file';
+  import { useLogger } from '@/composables/use-logger';
   import FolderIcon from '@/assets/icons/color-folder.svg';
+  import { usePinnedDirectories } from '../composables/use-pinned-directories';
   import { FileTreeItem } from './file-tree/type';
 
   const props = defineProps<{
-    // 完整文件树
+    // Complete file tree
     items: FileTreeItem[];
-    // 是否显示隐藏文件/文件夹
+    // Whether to show hidden files/folders
     showHidden: boolean;
-    // 当前选中的项目
+    // Current selected item
     current: SimpleFileInfoEntity | null;
   }>();
 
   const emit = defineEmits(['itemSelect', 'itemDoubleClick']);
 
-  // 只显示根目录
-  const rootItems = computed(() => {
-    return props.items.filter(
-      (item) => item.is_dir && (props.showHidden || !item.is_hidden)
+  const {
+    pinnedDirectories,
+    isPinned,
+    unpinDirectory,
+    updateDirectoryExists,
+    pinnedPathsString,
+  } = usePinnedDirectories();
+
+  const { logWarn } = useLogger('SimplifiedFileTree');
+
+  // Get pinned directory items (including nested ones not in root)
+  const pinnedDirectoryItems = ref<FileTreeItem[]>([]);
+
+  // Fetch info for pinned directories that are not in the root items
+  const fetchPinnedDirectoryInfo = async () => {
+    const rootPaths = new Set(props.items.map((item) => item.path));
+    // Do NOT clear pinnedDirectoryItems.value here!
+    // const missingPinnedDirs: FileTreeItem[] = [];
+    // Use Promise.all to avoid await in loop
+    const pinnedDirPromises = pinnedDirectories.value
+      .filter((pinnedDir) => !rootPaths.has(pinnedDir.path))
+      .map(async (pinnedDir) => {
+        try {
+          const dirInfo = await getDirectoryInfoApi({ path: pinnedDir.path });
+          if (dirInfo && dirInfo.is_dir) {
+            updateDirectoryExists(pinnedDir.path, true);
+            return {
+              name: dirInfo.name,
+              path: dirInfo.path,
+              is_dir: dirInfo.is_dir as boolean,
+              extension: dirInfo.extension,
+              size: dirInfo.size,
+              is_hidden: dirInfo.is_hidden,
+            } as FileTreeItem;
+          }
+          updateDirectoryExists(pinnedDir.path, false);
+          return null;
+        } catch (error) {
+          logWarn(
+            `Failed to fetch pinned directory info: ${pinnedDir.path}`,
+            error
+          );
+          updateDirectoryExists(pinnedDir.path, false);
+          return null;
+        }
+      });
+
+    const results = await Promise.all(pinnedDirPromises);
+    const validResults = results.filter(
+      (item) => item !== null
+    ) as FileTreeItem[];
+    // Only update after fetch completes
+    pinnedDirectoryItems.value = validResults;
+  };
+
+  // Watch for changes in pinned directories and refetch when needed
+  onMounted(() => {
+    fetchPinnedDirectoryInfo();
+  });
+
+  // Watch only for actual path changes, not metadata updates
+  // This prevents the race condition where updateDirectoryExists triggers unnecessary refetches
+  watch(
+    () => pinnedPathsString.value,
+    (newPathsString, oldPathsString) => {
+      // Only refetch if the paths actually changed, not just metadata
+      if (newPathsString !== oldPathsString) {
+        fetchPinnedDirectoryInfo();
+      }
+    }
+  );
+
+  // Pinned directories (combination of root dirs that are pinned + fetched nested dirs)
+  const pinnedItems = computed(() => {
+    const rootPinnedItems = props.items.filter(
+      (item) =>
+        item.is_dir &&
+        isPinned(item.path) &&
+        (props.showHidden || !item.is_hidden)
+    );
+
+    // Create a map of existing items for quick lookup
+    const existingItemsMap = new Map<string, FileTreeItem>();
+
+    // Add root pinned items
+    rootPinnedItems.forEach((item) => {
+      existingItemsMap.set(item.path, item);
+    });
+
+    // Add fetched pinned directory items
+    pinnedDirectoryItems.value.forEach((item) => {
+      existingItemsMap.set(item.path, item);
+    });
+
+    // Ensure ALL pinned directories are included, even if they're not in current items
+    // This prevents disappearing during navigation
+    pinnedDirectories.value.forEach((pinnedDir) => {
+      if (pinnedDir.exists !== false && !existingItemsMap.has(pinnedDir.path)) {
+        // Create a minimal item representation for directories not currently loaded
+        const fallbackItem: FileTreeItem = {
+          name: pinnedDir.name,
+          path: pinnedDir.path,
+          is_dir: true,
+          extension: '',
+          size: 0,
+          is_hidden: false,
+        };
+        existingItemsMap.set(pinnedDir.path, fallbackItem);
+      }
+    });
+
+    // Convert map values to array and filter by showHidden
+    const allPinnedItems = Array.from(existingItemsMap.values()).filter(
+      (item) => props.showHidden || !item.is_hidden
+    );
+
+    return allPinnedItems.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        numeric: true,
+        caseFirst: 'lower',
+      })
     );
   });
 
-  // 检查项目是否被选中（通过比较路径）
+  // Regular directories (excluding pinned ones)
+  const regularItems = computed(() => {
+    return props.items
+      .filter(
+        (item) =>
+          item.is_dir &&
+          !isPinned(item.path) &&
+          (props.showHidden || !item.is_hidden)
+      )
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          caseFirst: 'lower',
+        })
+      );
+  });
+
+  // Check if item is selected (by comparing paths)
   const isSelected = (item: FileTreeItem) => {
     if (!props.current) return false;
 
-    // 获取当前路径和项目路径
+    // Get current path and item path
     const currentPath = props.current.path;
     const itemPath = item.path;
 
-    // 确保是精确匹配或者子目录匹配，避免前缀相同但不相关的目录被选中
-    // 例如：/lib 和 /lib.usr-is-merged 不应该互相影响
-    if (currentPath === itemPath) {
-      // 精确匹配 - 当前项就是选中的项
-      return true;
-    }
-
-    if (currentPath.startsWith(itemPath + '/')) {
-      // 子目录匹配 - 确保只有真正的父目录被高亮
-      // 添加'/'确保是真正的子目录，避免前缀问题
-      return true;
-    }
-
-    return false;
+    // Only highlight exact matches for pinned directories
+    // This prevents parent directories from being highlighted when in a subdirectory
+    return currentPath === itemPath;
   };
 
-  // 处理点击事件 - 发出选择事件
+  // Handle click event - emit selection event
   const handleItemClick = (item: FileTreeItem) => {
     emit('itemSelect', item);
   };
 
-  // 处理双击事件 - 发出双击事件
+  // Handle double-click event - emit double-click event
   const handleItemDoubleClick = (item: FileTreeItem) => {
     emit('itemDoubleClick', item);
+  };
+
+  // Handle unpin click event for pinned items
+  const handleUnpinClick = (item: FileTreeItem) => {
+    unpinDirectory(item.path);
   };
 </script>
 
@@ -91,7 +253,7 @@
   .simplified-file-tree {
     position: relative;
     width: 100%;
-    padding: 8px;
+    padding: 0.5rem 0.25rem 0.5rem 1rem;
     margin: 0;
   }
 
@@ -105,62 +267,68 @@
   .tree-item {
     position: relative;
     width: 100%;
-    height: 32px;
-    padding: 0;
-    margin: 0;
+    height: 2rem;
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
     overflow: visible;
+    cursor: pointer;
     list-style: none;
     background: transparent;
     border: none;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
   }
 
-  /* 容器基础样式 */
+  /* Pinned directory styling */
+  .tree-item.pinned {
+    background-color: rgba(var(--primary-1), 0.1);
+  }
+
+  /* Hover state */
+  .tree-item:hover {
+    background-color: var(--color-fill-1);
+  }
+
+  .tree-item.pinned:hover {
+    background-color: rgba(var(--primary-2), 0.2);
+  }
+
+  /* Selected state background */
+  .tree-item.selected {
+    background-color: var(--color-fill-2);
+  }
+
+  .tree-item.pinned.selected {
+    background-color: rgba(var(--primary-3), 0.3);
+  }
+
+  /* Selected state purple indicator */
+  .tree-item.selected::before {
+    position: absolute;
+    top: 12.5%;
+    left: -0.5rem;
+    width: 0.25rem;
+    height: 75%;
+    content: '';
+    background-color: rgb(var(--primary-6));
+    border-radius: 0.125rem;
+  }
+
+  /* Container base style */
   .tree-item-container {
     position: relative;
     display: flex;
     align-items: center;
     width: 100%;
-    height: 32px;
-    padding: 0 12px;
+    height: 2rem;
+    padding: 0;
     margin: 0;
-    cursor: pointer;
+    background: transparent;
     border: none;
     border-radius: 0;
-    transition: background-color 0.2s ease;
   }
 
-  /* 悬停状态 - 移除container上的背景 */
-  .tree-item:hover .tree-item-container {
-    background-color: transparent;
-  }
-
-  /* 选中状态的紫色指示条 - 细长胶囊形状 */
-  .selection-indicator {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 10;
-    display: block;
-    width: 4px;
-    height: 24px;
-    background-color: #6241d4;
-    border-radius: 2px;
-  }
-
-  /* 选中状态的背景 - 移除container上的背景，改为在content上设置 */
-  .tree-item.selected .tree-item-container {
-    background-color: transparent;
-    border: none;
-  }
-
-  /* 强制覆盖任何可能的选中状态样式 */
-  .tree-item.selected {
-    background-color: transparent;
-    border: none;
-    border-left: none;
-  }
-
-  /* 内容区域样式 */
+  /* Content area style */
   .tree-item-content {
     display: flex;
     flex: 1;
@@ -168,77 +336,97 @@
     width: 100%;
     min-width: 0;
     height: 100%;
-    padding: 0 16px;
+    padding: 0.3125rem 0.5rem;
     margin: 0;
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-    transition: box-shadow 0.2s ease;
+    background: transparent;
   }
 
-  /* 悬停时的背景和阴影效果 */
-  .tree-item:hover .tree-item-content {
-    background-color: rgb(229 230 235 / 50%);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
-  }
-
-  /* 选中状态的背景和阴影效果 */
-  .tree-item.selected .tree-item-content {
-    background-color: #f2f3f5;
-    box-shadow: 0 2px 12px rgb(98 65 212 / 15%);
-  }
-
-  /* 图标样式 */
+  /* Icon style */
   .tree-item-icon {
     display: flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
-    margin-right: 8px;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-right: 0.5rem;
   }
 
   .tree-item-icon :deep(svg) {
-    width: 14px;
-    height: 14px;
+    width: 0.875rem;
+    height: 0.875rem;
   }
 
-  /* 文本样式 */
+  /* Text style */
   .tree-item-text {
     flex: 1;
     min-width: 0;
-    padding: 0;
-    margin: 0;
+    margin-left: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 14px;
-    line-height: 22px;
-    color: #1d2129;
+    font-size: 1rem;
+    line-height: 1.375rem;
     white-space: nowrap;
   }
 
-  /* 选中状态的文本颜色 */
-  .tree-item.selected .tree-item-text {
-    font-weight: 400;
-    color: #1d2129;
+  /* Pin icon style */
+  .tree-item-pin {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.25rem;
+    opacity: 0.6;
   }
 
-  /* 悬停时的文本颜色 */
-  .tree-item:hover .tree-item-text {
-    color: #1d2129;
+  .pin-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: rgb(var(--primary-6));
   }
 
-  /* 确保紫色指示条可见 - 使用伪元素作为备用方案 */
-  .tree-item.selected::before {
+  /* Unpin icon style */
+  .tree-item-unpin {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.1rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .tree-item-unpin:hover {
+    opacity: 1;
+  }
+
+  .unpin-icon {
+    font-size: 0.75rem;
+    color: var(--color-text-2);
+  }
+
+  /* Separator styling */
+  .tree-separator {
+    position: relative;
+    width: 100%;
+    height: 0.5rem;
+    margin: 0.5rem 0;
+    pointer-events: none;
+    list-style: none;
+  }
+
+  .separator-line {
     position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 15;
-    display: block;
-    width: 4px;
-    height: 24px;
-    content: '';
-    background-color: #6241d4;
-    border-radius: 2px;
+    top: 50%;
+    right: 0.5rem;
+    left: 0.5rem;
+    height: 1px;
+    background-color: var(--color-border-2);
+    transform: translateY(-50%);
   }
 </style>

@@ -48,10 +48,10 @@
     bottom: 0;
     left: 0;
     z-index: 5;
-    width: 240px;
-    height: 100%;
+    width: 208px;
+    height: calc(100vh - 240px); /* 改为固定的视口相对高度，避免依赖父容器 */
     padding: 4px 0; /* 改为左右无padding，让紫色指示条能贴边显示 */
-    overflow: auto;
+    overflow: hidden auto; /* 隐藏水平滚动条 */ /* 明确指定垂直滚动 */
     border-right: 1px solid var(--color-border-2);
     transition: width 0.3s ease;
   }
@@ -59,21 +59,21 @@
   /* 平板设备 */
   @media screen and (width <= 991px) {
     .simplified-file-sidebar {
-      width: 200px;
+      width: 180px;
     }
   }
 
   /* 小型平板 */
   @media screen and (width <= 768px) {
     .simplified-file-sidebar {
-      width: 180px;
+      width: 160px;
     }
   }
 
   /* 手机设备 */
   @media screen and (width <= 576px) {
     .simplified-file-sidebar {
-      width: 150px;
+      width: 140px;
       padding: 4px 4px;
     }
   }

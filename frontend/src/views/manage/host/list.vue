@@ -53,7 +53,7 @@
         v-else
         class="inline-progress"
         :percent="+(record.mem / 100).toFixed(3)"
-        color="#0FC6C2"
+        :color="'var(--idbturquoise-6)'"
       />
     </template>
     <template #disk="{ record }: { record: HostItem }">
@@ -62,7 +62,7 @@
         v-else
         class="inline-progress"
         :percent="+(record.disk / 100).toFixed(3)"
-        color="#0FC6C2"
+        :color="'var(--idbturquoise-6)'"
       />
     </template>
     <template #network="{ record }: { record: HostItem }">

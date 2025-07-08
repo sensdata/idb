@@ -225,3 +225,11 @@ export function connectFileTailFollowApi(
 export function getFileHeadApi(data: ContentPartParams) {
   return request.get('files/{host}/head', data);
 }
+
+// Get directory info by path (for pinned directories)
+export function getDirectoryInfoApi(data: { path: string }) {
+  return request.get<FileInfoEntity>('files/{host}/detail', {
+    ...data,
+    expand: false, // We only need basic info, not contents
+  });
+}

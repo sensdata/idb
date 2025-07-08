@@ -23,7 +23,7 @@
         </template>
 
         <template #port="{ record }">
-          <a-tag color="blue">
+          <a-tag class="port-tag">
             {{ record.port }}
           </a-tag>
         </template>
@@ -39,7 +39,18 @@
               <a-tag
                 :color="getPortAccessInfo(record.port, address).color"
                 size="small"
-                class="access-status-tag"
+                :class="{
+                  'access-status-tag': true,
+                  'local-only-tag': getPortAccessInfo(record.port, address)
+                    .isLocalOnly,
+                  'accessible-tag':
+                    getPortAccessInfo(record.port, address).accessible &&
+                    !getPortAccessInfo(record.port, address).isLocalOnly,
+                  'restricted-access-tag':
+                    !getPortAccessInfo(record.port, address).accessible &&
+                    !getPortAccessInfo(record.port, address).isLocalOnly,
+                }"
+                class="font-medium"
               >
                 {{ getPortAccessInfo(record.port, address).text }}
               </a-tag>
@@ -49,17 +60,13 @@
 
         <template #actions="{ record }">
           <div class="actions-container">
-            <a-button
-              type="text"
-              size="small"
+            <a-link
               :disabled="isPortRuleExists(record.port)"
               @click="$emit('addPortRule', record.port)"
             >
-              <template #icon>
-                <icon-plus />
-              </template>
+              <icon-plus />
               {{ $t('app.nftables.button.configPort') }}
-            </a-button>
+            </a-link>
             <a-button
               v-if="isPortRuleExists(record.port)"
               type="text"
@@ -120,21 +127,21 @@
       dataIndex: 'port',
       slotName: 'port',
       width: 120,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('app.nftables.config.columns.addresses'),
       dataIndex: 'addresses',
       slotName: 'addresses',
       width: 300,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('common.operation'),
       dataIndex: 'actions',
       slotName: 'actions',
       width: 160,
-      align: 'center',
+      align: 'left',
     },
   ];
 
@@ -165,19 +172,19 @@
   .process-section {
     background: #fff;
     border: 1px solid var(--color-border-1);
-    border-radius: 6px;
-    padding: 20px;
-    margin-bottom: 20px;
+    border-radius: 0.429rem; /* 6px相对于14px根字体 (6/14=0.429) */
+    padding: 1.429rem; /* 20px相对于14px根字体 (20/14=1.429) */
+    margin-bottom: 1.429rem; /* 20px相对于14px根字体 (20/14=1.429) */
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 1.143rem; /* 16px相对于14px根字体 (16/14=1.143) */
 
       .section-title {
         margin: 0;
-        font-size: 16px;
+        font-size: 1.143rem; /* 16px相对于14px根字体 (16/14=1.143) */
         font-weight: 500;
         color: var(--color-text-1);
       }
@@ -188,20 +195,12 @@
         background: var(--color-bg-2);
         font-weight: 500;
         color: var(--color-text-1);
-        text-align: center;
+        text-align: left;
+        padding-left: 0;
       }
 
       :deep(.arco-table-td) {
-        padding: 12px;
-        text-align: center;
-      }
-
-      // 第一列（进程列）左对齐
-      :deep(.arco-table-th:first-child) {
-        text-align: left;
-      }
-
-      :deep(.arco-table-td:first-child) {
+        padding: 0.857rem 0.857rem 0.857rem 0; /* 12px相对于14px根字体 (12/14=0.857) */
         text-align: left;
       }
 
@@ -212,32 +211,128 @@
       .addresses-list {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 0.143rem; /* 2px相对于14px根字体 (2/14=0.143) */
         width: 100%;
+        align-items: flex-start;
 
         .address-row {
-          padding: 2px 0;
+          padding: 0.143rem 0; /* 2px相对于14px根字体 (2/14=0.143) */
           line-height: 1.4;
-          color: var(--color-text-2);
+          color: var(--color-text-1);
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 0.571rem; /* 8px相对于14px根字体 (8/14=0.571) */
           width: 100%;
-          justify-content: center;
+          justify-content: flex-start;
 
           .access-status-tag {
-            margin-left: 8px;
-            font-size: 10px;
+            margin-left: 0.571rem; /* 8px相对于14px根字体 (8/14=0.571) */
+            font-size: 0.714rem; /* 10px相对于14px根字体 (10/14=0.714) */
             flex-shrink: 0;
           }
+
+          .local-only-tag {
+            background-color: var(--idblue-1) !important;
+            color: var(--idblue-6) !important;
+            padding: 0.25em 0.67em !important;
+            border-radius: 0.167em;
+            font-size: 0.857rem; /* 12px相对于14px根字体 (12/14=0.857) */
+            line-height: 1.5;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            font-weight: 500;
+
+            // 覆盖 Arco Design 的默认样式
+            &.arco-tag {
+              min-width: auto;
+              max-width: none;
+            }
+          }
+
+          .restricted-access-tag {
+            background-color: var(
+              --idbred-1
+            ) !important; /* 浅红色背景: #FFECE8 */
+            color: var(--idbred-6) !important; /* 深红色文字: #F53F3F */
+            padding: 0.25em 0.67em !important;
+            border-radius: 0.167em;
+            font-size: 0.857rem; /* 12px相对于14px根字体 (12/14=0.857) */
+            line-height: 1.5;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            font-weight: 500;
+
+            // 覆盖 Arco Design 的默认样式
+            &.arco-tag {
+              min-width: auto;
+              max-width: none;
+            }
+          }
+
+          .accessible-tag {
+            background-color: var(
+              --idbturquoise-1
+            ) !important; /* 浅碧涛青背景: #E6FBF9 */
+            color: var(--idbturquoise-6) !important; /* 深碧涛青文字: #0FC6C2 */
+            padding: 0.25em 0.67em !important;
+            border-radius: 0.167em;
+            font-size: 0.857rem; /* 12px相对于14px根字体 (12/14=0.857) */
+            line-height: 1.5;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            font-weight: 500;
+
+            // 覆盖 Arco Design 的默认样式
+            &.arco-tag {
+              min-width: auto;
+              max-width: none;
+            }
+          }
+        }
+      }
+
+      .port-tag {
+        background-color: var(--idblue-1) !important;
+        color: var(--idblue-6) !important;
+        padding: 0.25em 0.67em !important; /* 使用em单位，相对于font-size */
+        border-radius: 0.167em; /* 相对于当前字体大小 */
+        font-size: 1rem; /* 14px相对于14px根字体 (14/14=1) */
+        line-height: 1.5; /* 标准相对行高 */
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-weight: 500;
+
+        // 覆盖 Arco Design 的默认样式
+        &.arco-tag {
+          min-width: auto;
+          max-width: none;
         }
       }
 
       .actions-container {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 4px;
+        justify-content: flex-start;
+        gap: 0.571rem; /* 8px相对于14px根字体 (8/14=0.571) */
+
+        .arco-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.286rem; /* 4px相对于14px根字体 (4/14=0.286) */
+          font-size: 1rem; /* 14px相对于14px根字体 (14/14=1) */
+        }
       }
     }
   }
@@ -245,37 +340,38 @@
   /* 响应式设计 */
   @media (max-width: 768px) {
     .process-section {
-      padding: 16px;
+      padding: 1.143rem; /* 16px相对于14px根字体 (16/14=1.143) */
 
       .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
+        gap: 0.857rem; /* 12px相对于14px根字体 (12/14=0.857) */
       }
     }
   }
 
   @media (max-width: 480px) {
     .process-section {
-      padding: 12px;
+      padding: 0.857rem; /* 12px相对于14px根字体 (12/14=0.857) */
 
       .process-table {
         .addresses-list {
           .address-row {
             flex-direction: column;
             align-items: flex-start;
-            gap: 4px;
+            gap: 0.286rem; /* 4px相对于14px根字体 (4/14=0.286) */
 
             .access-status-tag {
               margin-left: 0;
-              align-self: flex-end;
+              align-self: flex-start;
             }
           }
         }
 
         .actions-container {
           flex-direction: column;
-          gap: 2px;
+          align-items: flex-start;
+          gap: 0.286rem; /* 4px相对于14px根字体 (4/14=0.286) */
         }
       }
     }

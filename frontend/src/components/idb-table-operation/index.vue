@@ -92,7 +92,11 @@
 
 <style scoped>
   .idb-table-operation.type-button :deep(.arco-btn) {
-    padding-right: 4px;
-    padding-left: 4px;
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+  }
+
+  .idb-table-operation.type-button :deep(.arco-btn:first-child) {
+    padding-left: 0;
   }
 </style>

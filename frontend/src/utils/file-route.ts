@@ -9,14 +9,16 @@
  * @returns Vue Router 路由对象
  */
 export function createFileRoute(filePath: string, query?: Record<string, any>) {
-  const encodedPath = filePath === '/' ? '' : filePath.substring(1);
+  const finalQuery = { ...query };
+
+  // 将路径作为查询参数传递
+  if (filePath && filePath !== '/') {
+    finalQuery.path = filePath;
+  }
 
   return {
     name: 'file',
-    params: {
-      filePath: encodedPath,
-    },
-    query: query || {},
+    query: finalQuery,
   };
 }
 
@@ -35,8 +37,12 @@ export function createFileRouteWithPagination(
   },
   query?: Record<string, any>
 ) {
-  const encodedPath = filePath === '/' ? '' : filePath.substring(1);
   const finalQuery = { ...query };
+
+  // 将路径作为查询参数传递
+  if (filePath && filePath !== '/') {
+    finalQuery.path = filePath;
+  }
 
   // 只有当页码不是1时才添加到查询参数中
   if (pagination?.page && pagination.page > 1) {
@@ -50,30 +56,28 @@ export function createFileRouteWithPagination(
 
   return {
     name: 'file',
-    params: {
-      filePath: encodedPath,
-    },
     query: finalQuery,
   };
 }
 
 /**
- * 从路由参数中解析文件路径
- * @param routeParams 路由参数对象
+ * 从路由查询参数中解析文件路径
+ * @param routeQuery 路由查询参数对象
  * @returns 解析后的文件路径
  */
-export function parseFilePathFromRoute(routeParams: any): string {
-  const filePath = routeParams.filePath;
+export function parseFilePathFromRoute(routeQuery: any): string {
+  const filePath = routeQuery.path;
 
   if (!filePath || filePath === '') {
     return '/';
   }
 
   if (typeof filePath === 'string') {
+    // 确保路径以 / 开头
     return filePath.startsWith('/') ? filePath : `/${filePath}`;
   }
 
-  // 处理数组情况（Vue Router可能返回数组）
+  // 处理数组情况（虽然在查询参数中不太可能，但保持兼容性）
   if (Array.isArray(filePath)) {
     const joinedPath = filePath.join('/');
     return joinedPath.startsWith('/') ? joinedPath : `/${joinedPath}`;
@@ -114,10 +118,12 @@ export function generateFileManagementUrl(
     pageSize?: number;
   }
 ): string {
-  const encodedPath = filePath === '/' ? '' : filePath.substring(1);
-  let basePath = `/app/file${encodedPath ? `/${encodedPath}` : ''}`;
-
   const queryParams = new URLSearchParams();
+
+  // 添加路径参数
+  if (filePath && filePath !== '/') {
+    queryParams.set('path', filePath);
+  }
 
   if (options?.hostId) {
     queryParams.set('id', options.hostId.toString());
@@ -132,8 +138,10 @@ export function generateFileManagementUrl(
   }
 
   const queryString = queryParams.toString();
+  const basePath = '/app/file';
+
   if (queryString) {
-    basePath += `?${queryString}`;
+    return `${basePath}?${queryString}`;
   }
 
   return basePath;

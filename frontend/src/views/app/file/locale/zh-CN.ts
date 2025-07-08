@@ -40,6 +40,8 @@ export default {
   'app.file.list.operation.copyPath': '复制路径',
   'app.file.list.operation.download': '下载',
   'app.file.list.operation.property': '属性',
+  'app.file.list.operation.pin': '固定目录',
+  'app.file.list.operation.unpin': '取消固定',
   'app.file.list.operation.delete': '删除',
 
   'app.file.list.message.copyPathSuccess': '复制成功',

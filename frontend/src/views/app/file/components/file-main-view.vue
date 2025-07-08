@@ -1,97 +1,125 @@
 <template>
   <div class="file-main">
     <div class="toolbar">
-      <a-button-group class="idb-button-group">
-        <a-button @click="$emit('back')">
-          <icon-left />
-        </a-button>
-        <a-dropdown
-          position="bl"
-          @select="(key) => handleCreate(key as string)"
-        >
-          <a-button>
-            <icon-plus />
-            <span class="mx-2">{{ $t('app.file.list.action.create') }}</span>
-            <icon-caret-down />
+      <div class="toolbar-left">
+        <a-button-group class="idb-button-group">
+          <a-button @click="$emit('back')">
+            <icon-left />
+          </a-button>
+          <a-dropdown
+            position="bl"
+            @select="(key) => handleCreate(key as string)"
+          >
+            <a-button>
+              <icon-plus />
+              <span class="mx-2">{{ $t('app.file.list.action.create') }}</span>
+              <icon-caret-down />
+            </a-button>
+
+            <template #content>
+              <a-doption value="createFolder">
+                <template #icon>
+                  <icon-plus />
+                </template>
+                <template #default>
+                  <span class="ml-2">{{
+                    $t('app.file.list.action.createFolder')
+                  }}</span>
+                </template>
+              </a-doption>
+              <a-doption value="createFile">
+                <template #icon>
+                  <icon-plus />
+                </template>
+                <template #default>
+                  <span class="ml-2">{{
+                    $t('app.file.list.action.createFile')
+                  }}</span>
+                </template>
+              </a-doption>
+            </template>
+          </a-dropdown>
+          <a-button @click="$emit('upload')">
+            <icon-upload />
+            <span class="ml-2">{{ $t('app.file.list.action.upload') }}</span>
           </a-button>
 
-          <template #content>
-            <a-doption value="createFolder">
-              <template #icon>
-                <icon-plus />
-              </template>
-              <template #default>
-                <span class="ml-2">{{
-                  $t('app.file.list.action.createFolder')
-                }}</span>
-              </template>
-            </a-doption>
-            <a-doption value="createFile">
-              <template #icon>
-                <icon-plus />
-              </template>
-              <template #default>
-                <span class="ml-2">{{
-                  $t('app.file.list.action.createFile')
-                }}</span>
-              </template>
-            </a-doption>
-          </template>
-        </a-dropdown>
-        <a-button @click="$emit('upload')">
-          <icon-upload />
-          <span class="ml-2">{{ $t('app.file.list.action.upload') }}</span>
-        </a-button>
+          <a-button @click="$emit('terminal')">
+            <icon-code-square />
+            <span class="ml-2">{{ $t('app.file.list.action.terminal') }}</span>
+          </a-button>
+        </a-button-group>
 
-        <a-button @click="$emit('terminal')">
-          <icon-code-square />
-          <span class="ml-2">{{ $t('app.file.list.action.terminal') }}</span>
-        </a-button>
-      </a-button-group>
+        <a-button-group
+          v-if="selectedItems.length > 0"
+          class="idb-button-group ml-4"
+        >
+          <a-button @click="$emit('copy')">
+            <icon-copy />
+            <span class="ml-2">{{ $t('app.file.list.action.copy') }}</span>
+          </a-button>
+          <a-button @click="$emit('cut')">
+            <icon-scissor />
+            <span class="ml-2">{{ $t('app.file.list.action.cut') }}</span>
+          </a-button>
+          <a-button v-if="decompressVisible" @click="$emit('decompress')">
+            <decompression-icon />
+            <span class="ml-2">{{
+              $t('app.file.list.action.decompress')
+            }}</span>
+          </a-button>
+          <a-button v-else @click="$emit('compress')">
+            <compression-icon />
+            <span class="ml-2">{{ $t('app.file.list.action.compress') }}</span>
+          </a-button>
+          <a-button @click="$emit('delete')">
+            <icon-delete />
+            <span class="ml-2">{{ $t('app.file.list.action.delete') }}</span>
+          </a-button>
+        </a-button-group>
 
-      <a-button-group
-        v-if="selectedItems.length > 0"
-        class="idb-button-group ml-4"
-      >
-        <a-button @click="$emit('copy')">
-          <icon-copy />
-          <span class="ml-2">{{ $t('app.file.list.action.copy') }}</span>
-        </a-button>
-        <a-button @click="$emit('cut')">
-          <icon-scissor />
-          <span class="ml-2">{{ $t('app.file.list.action.cut') }}</span>
-        </a-button>
-        <a-button v-if="decompressVisible" @click="$emit('decompress')">
-          <decompression-icon />
-          <span class="ml-2">{{ $t('app.file.list.action.decompress') }}</span>
-        </a-button>
-        <a-button v-else @click="$emit('compress')">
-          <compression-icon />
-          <span class="ml-2">{{ $t('app.file.list.action.compress') }}</span>
-        </a-button>
-        <a-button @click="$emit('delete')">
-          <icon-delete />
-          <span class="ml-2">{{ $t('app.file.list.action.delete') }}</span>
-        </a-button>
-      </a-button-group>
+        <a-button-group v-if="pasteVisible" class="idb-button-group ml-4">
+          <a-button @click="$emit('paste')">
+            <icon-paste />
+            <span class="ml-2">
+              {{
+                $t('app.file.list.action.paste', {
+                  count: props.clipboardCount || 0,
+                })
+              }}
+            </span>
+          </a-button>
+          <a-button @click="$emit('clearSelected')">
+            <template #icon>
+              <icon-close />
+            </template>
+          </a-button>
+        </a-button-group>
+      </div>
 
-      <a-button-group v-if="pasteVisible" class="idb-button-group ml-4">
-        <a-button @click="$emit('paste')">
-          <icon-paste />
-          <span class="ml-2">
+      <!-- Pin current directory button on the right -->
+      <div class="toolbar-right">
+        <a-button
+          type="text"
+          size="small"
+          :class="{
+            'pin-button': true,
+            'pin-button-active': isCurrentDirectoryPinned,
+          }"
+          @click="toggleCurrentDirectoryPin"
+        >
+          <icon-pushpin />
+          <span class="ml-1 pin-button-text">
             {{
-              $t('app.file.list.action.paste', {
-                count: props.clipboardCount || 0,
-              })
+              $t(
+                isCurrentDirectoryPinned
+                  ? 'app.file.list.operation.unpin'
+                  : 'app.file.list.operation.pin'
+              )
             }}
           </span>
         </a-button>
-        <a-button @click="$emit('clearSelected')">
-          <template #icon>
-            <icon-close />
-          </template>
-        </a-button>
-      </a-button-group>
+      </div>
     </div>
     <idb-table
       ref="gridRef"
@@ -195,6 +223,7 @@
 <script lang="ts" setup>
   import { ref, GlobalComponents, watch, computed } from 'vue';
   import { debounce } from 'lodash';
+  import { IconPushpin } from '@arco-design/web-vue/es/icon';
   import { getFileListApi } from '@/api/file';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
@@ -202,6 +231,7 @@
   import DecompressionIcon from '@/assets/icons/decompression.svg';
   import { FileItem } from '@/components/file/file-editor-drawer/types';
   import { useLogger } from '@/composables/use-logger';
+  import { usePinnedDirectories } from '../composables/use-pinned-directories';
 
   interface TableColumn {
     dataIndex: string;
@@ -251,8 +281,33 @@
   // 初始化日志
   const { logInfo, logWarn } = useLogger('FileMainView');
 
+  // 初始化pin功能
+  const { isPinned, pinDirectory, unpinDirectory } = usePinnedDirectories();
+
   // 直接使用props中的状态
   const selectedItems = computed(() => props.selected || []);
+
+  // Get current directory path from params
+  const currentDirectoryPath = computed(() => {
+    return props.params?.path || '/';
+  });
+
+  // Check if current directory is pinned
+  const isCurrentDirectoryPinned = computed(() => {
+    return isPinned(currentDirectoryPath.value);
+  });
+
+  // Toggle pin status for current directory
+  const toggleCurrentDirectoryPin = () => {
+    const path = currentDirectoryPath.value;
+    if (isCurrentDirectoryPinned.value) {
+      unpinDirectory(path);
+    } else {
+      // Extract directory name from path for display
+      const name = path.split('/').filter(Boolean).pop() || 'root';
+      pinDirectory(path, name);
+    }
+  };
 
   // 事件处理直接向上传递，不维护内部状态
   const handleTableSelectionChange = (selected: FileItem[]) => {
@@ -367,17 +422,71 @@
   .toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .toolbar-left {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+  }
+
+  .toolbar-right {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  /* Pin button styling - subtle and less prominent */
+  .pin-button {
+    height: auto !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.8125rem;
+    color: var(--color-text-3) !important;
+    transition: all 0.2s ease;
+  }
+
+  .pin-button:hover {
+    color: var(--color-text-2) !important;
+    background-color: var(--color-fill-1) !important;
+  }
+
+  .pin-button-active {
+    color: rgb(var(--primary-6)) !important;
+  }
+
+  .pin-button-active:hover {
+    color: rgb(var(--primary-5)) !important;
+    background-color: rgba(var(--primary-1), 0.1) !important;
+  }
+
+  .pin-button-text {
+    margin-left: 0.25rem;
+    font-size: 0.75rem;
   }
 
   /* 小屏幕按钮文本显示调整 */
   @media screen and (width <= 768px) {
     .file-main {
-      padding: 15px;
+      padding: 0.9375rem;
+    }
+    .toolbar {
+      gap: 0.5rem;
+    }
+    .toolbar-left {
+      gap: 0.5rem;
     }
     .idb-button-group :deep(.arco-btn) span {
-      max-width: 80px;
+      max-width: 5rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pin-button-text {
+      max-width: 3rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -387,7 +496,16 @@
   /* 超小屏幕隐藏按钮文本 */
   @media screen and (width <= 576px) {
     .file-main {
-      padding: 10px;
+      padding: 0.625rem;
+    }
+    .toolbar {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    .toolbar-right {
+      justify-content: flex-end;
+      width: 100%;
     }
     .idb-button-group :deep(.arco-btn) span {
       display: none;
@@ -395,12 +513,18 @@
     .idb-button-group :deep(.arco-btn) svg {
       margin: 0;
     }
+    .pin-button-text {
+      display: none;
+    }
+    .pin-button :deep(svg) {
+      margin: 0;
+    }
   }
 
   /* 极小屏幕 */
   @media screen and (width <= 480px) {
     .file-main {
-      padding: 8px;
+      padding: 0.5rem;
     }
   }
 </style>

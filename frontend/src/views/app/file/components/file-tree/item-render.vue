@@ -121,8 +121,9 @@
     justify-content: flex-start;
     height: 32px;
     line-height: 32px;
-    border-radius: 4px;
     cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
   }
 
   /* 鼠标悬停高亮效果 */
@@ -142,9 +143,9 @@
     left: -8px;
     width: 4px;
     height: 75%;
-    background-color: rgb(var(--primary-6));
-    border-radius: 11px;
     content: '';
+    background-color: rgb(var(--primary-6));
+    border-radius: 2px;
   }
 
   /* 展开/折叠按钮区域 */
@@ -182,7 +183,7 @@
     width: 100%;
     min-width: 0;
     height: 100%;
-    padding: 5px 8px;
+    padding: 0 12px;
   }
 
   /* 图标样式 */
@@ -190,7 +191,7 @@
     display: flex;
     align-items: center;
     height: 100%;
-    padding: 5px 0;
+    padding: 0;
   }
 
   .tree-item-icon svg {
@@ -202,7 +203,7 @@
   .tree-item-text {
     flex: 1;
     min-width: 0;
-    margin-left: 8px;
+    margin-left: 0;
     font-size: 14px;
     line-height: 22px;
   }
@@ -212,9 +213,9 @@
     display: flex;
     place-items: center flex-start;
     height: 32px;
-    color: var(--color-text-3);
     font-size: 13px;
     line-height: 32px;
+    color: var(--color-text-3);
   }
 
   .tree-item-loading :deep(.arco-spin) {

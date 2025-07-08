@@ -32,18 +32,6 @@
         </template>
         {{ $t('app.nftables.ipBlacklist.rules.dropHint') }}
       </a-alert>
-
-      <!-- 操作按钮 -->
-      <div class="form-actions">
-        <a-space>
-          <a-button @click="handleCancel">
-            {{ $t('common.cancel') }}
-          </a-button>
-          <a-button type="primary" html-type="submit" :loading="loading">
-            {{ $t('common.add') }}
-          </a-button>
-        </a-space>
-      </div>
     </a-form>
   </div>
 </template>
@@ -159,10 +147,6 @@
     }
   };
 
-  const handleCancel = (): void => {
-    emit('cancel');
-  };
-
   // 暴露给模板的方法（如果需要）
   defineExpose({
     resetForm,
@@ -181,13 +165,6 @@
 
     .info-alert {
       margin-bottom: 16px;
-    }
-
-    .form-actions {
-      padding-top: 16px;
-      border-top: 1px solid var(--color-border-2);
-      text-align: right;
-      margin-top: 24px;
     }
 
     :deep(.arco-radio) {

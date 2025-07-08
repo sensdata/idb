@@ -41,6 +41,8 @@ export default {
   'app.file.list.operation.copyPath': 'Copy Path',
   'app.file.list.operation.download': 'Download',
   'app.file.list.operation.property': 'Properties',
+  'app.file.list.operation.pin': 'Pin Directory',
+  'app.file.list.operation.unpin': 'Unpin Directory',
   'app.file.list.operation.delete': 'Delete',
 
   'app.file.list.message.copyPathSuccess': 'Copy successful',

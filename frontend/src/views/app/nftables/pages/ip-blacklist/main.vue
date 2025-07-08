@@ -43,16 +43,31 @@
       v-model:visible="showRuleForm"
       :title="$t('app.nftables.drawer.addIPRule')"
       :width="500"
-      :footer="false"
       :mask-closable="true"
       placement="right"
       @cancel="handleRuleCancel"
     >
       <IPBlacklistRuleForm
+        ref="ruleFormRef"
         :loading="saving"
         @submit="handleRuleSubmit"
-        @cancel="handleRuleCancel"
       />
+      <template #footer>
+        <div class="drawer-footer">
+          <a-space>
+            <a-button @click="handleRuleCancel">
+              {{ $t('common.cancel') }}
+            </a-button>
+            <a-button
+              type="primary"
+              :loading="saving"
+              @click="handleRuleFormSubmit"
+            >
+              {{ $t('common.add') }}
+            </a-button>
+          </a-space>
+        </div>
+      </template>
     </a-drawer>
   </div>
 </template>
@@ -240,6 +255,33 @@
     showRuleForm.value = false;
   };
 
+  // 表单组件引用
+  const ruleFormRef = ref();
+
+  const handleRuleFormSubmit = async (): Promise<void> => {
+    // 触发表单验证并提交
+    try {
+      const errors = await ruleFormRef.value?.validate();
+      if (errors) {
+        return;
+      }
+      // 如果验证通过，构造规则数据并提交
+      const formData = ruleFormRef.value?.formData;
+      if (formData?.ip) {
+        const rule: IPBlacklistRule = {
+          ip: formData.ip.trim(),
+          type: ruleFormRef.value?.ipType || 'single',
+          action: 'drop' as const,
+          description: '',
+          createdAt: new Date().toISOString(),
+        };
+        await handleRuleSubmit(rule);
+      }
+    } catch (error) {
+      // 错误处理
+    }
+  };
+
   const handleRuleDelete = async (ip: string): Promise<void> => {
     if (!checkHostAvailable()) return;
 
@@ -323,6 +365,13 @@
         text-align: center;
       }
     }
+  }
+
+  // 抽屉底部按钮样式
+  .drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
   }
 
   // 响应式设计

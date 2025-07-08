@@ -1,13 +1,21 @@
 <template>
-  <div class="logrotate-layout">
-    <div class="logrotate-sidebar">
+  <app-sidebar-layout>
+    <template #sidebar>
       <category-tree
         ref="categoryTreeRef"
-        v-model:selected="params.category"
-        :type="type"
+        v-model:selected-category="params.category"
+        :category-config="categoryConfig"
+        :enable-category-management="true"
+        :host-id="currentHostId"
+        :categories="categoryItems"
+        :show-title="false"
+        @create="handleCategoryCreate"
+        @category-created="handleCategoryCreated"
+        @category-updated="handleCategoryUpdated"
+        @category-deleted="handleCategoryDeleted"
       />
-    </div>
-    <div class="logrotate-main">
+    </template>
+    <template #main>
       <idb-table
         ref="gridRef"
         class="logrotate-table"
@@ -24,12 +32,10 @@
             </template>
             {{ $t('app.logrotate.list.action.create') }}
           </a-button>
-          <a-button @click="handleCategoryManage">
-            <template #icon>
-              <icon-settings />
-            </template>
-            {{ $t('app.logrotate.category.manage.title') }}
-          </a-button>
+          <category-manage-button
+            :config="categoryManageConfig"
+            @ok="handleCategoryManageOk"
+          />
         </template>
 
         <template #status="{ record }: { record: LogrotateEntity }">
@@ -49,41 +55,14 @@
         </template>
 
         <template #operation="{ record }: { record: LogrotateEntity }">
-          <div class="operation">
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleEdit(record)"
-            >
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleActionClick(record)"
-            >
-              {{ getActionButtonInfo(record).text }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleHistory(record)"
-            >
-              {{ $t('app.logrotate.list.operation.history') }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              :status="BUTTON_STATUS_DANGER"
-              @click="handleDeleteClick(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getLogrotateOperationOptions(record)"
+          />
         </template>
       </idb-table>
-    </div>
-  </div>
+    </template>
+  </app-sidebar-layout>
 
   <!-- 子组件 -->
   <form-drawer
@@ -93,11 +72,6 @@
     @category-change="handleCategoryChange"
   />
   <history-drawer ref="historyRef" />
-  <category-manage
-    ref="categoryManageRef"
-    :type="type"
-    @ok="handleCategoryManageOk"
-  />
 </template>
 
 <script setup lang="ts">
@@ -111,34 +85,39 @@
    * - 支持查看历史记录
    */
 
-  import { PropType, ref, watch, onMounted, nextTick } from 'vue';
+  import { PropType, ref, watch, onMounted, nextTick, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { LOGROTATE_TYPE, LOGROTATE_FREQUENCY } from '@/config/enum';
   import { LogrotateEntity } from '@/entity/Logrotate';
   import { useLogger } from '@/composables/use-logger';
+  import { getLogrotateCategoriesApi } from '@/api/logrotate';
+  import { Message } from '@arco-design/web-vue';
+  import useCurrentHost from '@/composables/current-host';
+  import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
+  import CategoryTree from '@/components/idb-tree/category-tree.vue';
+  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
+  import { createLogrotateCategoryConfig } from './adapters/category-adapter';
+  import { createLogrotateCategoryManageConfig } from './adapters/category-manage-adapter';
   import FormDrawer from './components/form-drawer/index.vue';
   import HistoryDrawer from './components/history-drawer/index.vue';
-  import CategoryTree from './components/category-tree/index.vue';
-  import CategoryManage from './components/category-manage/index.vue';
 
   // 使用组合式函数
   import { useLogrotateList } from './composables/use-logrotate-list';
   import { useLogrotateColumns } from './composables/use-logrotate-columns';
   import { useLogrotateActions } from './composables/use-logrotate-actions';
   import { useCategoryManagement } from './composables/use-category-management';
-  import { LAYOUT_CONFIG } from './constants';
 
   // 常量定义
-  const BUTTON_SIZE = 'small' as const;
-  const BUTTON_TYPE_TEXT = 'text' as const;
   const BUTTON_TYPE_PRIMARY = 'primary' as const;
-  const BUTTON_STATUS_DANGER = 'danger' as const;
 
   // 国际化
   const { t } = useI18n();
 
   // 日志记录
   const { logError, logInfo } = useLogger('LogrotateList');
+
+  // Composables
+  const { currentHostId } = useCurrentHost();
 
   // 定义组件引用类型接口
   interface FormDrawerInstance extends InstanceType<typeof FormDrawer> {
@@ -164,10 +143,23 @@
     },
   });
 
+  // 分类管理配置
+  const categoryConfig = computed(() =>
+    createLogrotateCategoryConfig(props.type)
+  );
+
+  // 分类管理配置
+  const categoryManageConfig = computed(() =>
+    createLogrotateCategoryManageConfig(props.type, currentHostId.value || 0)
+  );
+
+  // 分类数据状态
+  const categoryItems = ref<string[]>([]);
+  const categoryLoading = ref(false);
+
   // 组件引用
   const gridRef = ref<GridInstance>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
-  const categoryManageRef = ref<InstanceType<typeof CategoryManage>>();
   const formRef = ref<FormDrawerInstance>();
   const historyRef = ref<InstanceType<typeof HistoryDrawer>>();
 
@@ -182,6 +174,54 @@
 
   const { columns } = useLogrotateColumns();
   const { getStatusInfo, getActionButtonInfo } = useLogrotateActions();
+
+  /**
+   * 加载分类列表
+   */
+  const loadCategories = async () => {
+    const hostId = currentHostId.value;
+    if (!hostId) {
+      Message.error('Host ID is required');
+      return;
+    }
+
+    // 防止重复加载
+    if (categoryLoading.value) {
+      logInfo('分类正在加载中，跳过重复请求');
+      return;
+    }
+
+    logInfo('开始加载分类列表');
+    categoryLoading.value = true;
+    try {
+      const ret = await getLogrotateCategoriesApi(props.type, 1, 1000, hostId);
+      logInfo(`分类 API 返回数据:`, ret);
+
+      const newItems = [...ret.items.map((item) => item.name)];
+      logInfo(`处理后的分类列表:`, newItems);
+
+      // 如果当前选中的分类不在列表中，添加到列表中
+      if (params.value.category && !newItems.includes(params.value.category)) {
+        newItems.push(params.value.category);
+        logInfo(`添加当前选中分类到列表: ${params.value.category}`);
+      }
+
+      categoryItems.value = newItems;
+      logInfo(`分类列表已更新，当前选中: ${params.value.category}`);
+
+      // 如果没有选择任何分类且列表不为空，选择第一个分类
+      if (!params.value.category && newItems.length > 0) {
+        logInfo(`自动选择第一个分类: ${newItems[0]}`);
+        params.value.category = newItems[0];
+      }
+    } catch (err: any) {
+      logError('加载分类失败', err);
+      Message.error(err?.message || 'Failed to load categories');
+    } finally {
+      categoryLoading.value = false;
+      logInfo('分类加载完成');
+    }
+  };
 
   // 格式化轮转数量，从 content 中解析实际值
   const formatCount = (record: LogrotateEntity): string => {
@@ -311,8 +351,60 @@
     });
   };
 
-  const handleCategoryManage = () => {
-    categoryManageRef.value?.show();
+  // 获取操作按钮配置
+  const getLogrotateOperationOptions = (record: LogrotateEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: getActionButtonInfo(record).text,
+      click: () => handleActionClick(record),
+    },
+    {
+      text: t('app.logrotate.list.operation.history'),
+      click: () => handleHistory(record),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      click: () => handleDeleteClick(record),
+    },
+  ];
+
+  /**
+   * 处理分类创建
+   */
+  const handleCategoryCreate = () => {
+    // CategoryTree 组件自己会处理分类创建
+    // 这里不需要额外的逻辑
+  };
+
+  /**
+   * 处理分类创建成功
+   */
+  const handleCategoryCreated = async (categoryName: string) => {
+    logInfo(`分类创建成功: ${categoryName}`);
+    await loadCategories();
+    gridRef.value?.reload();
+  };
+
+  /**
+   * 处理分类更新成功
+   */
+  const handleCategoryUpdated = async (oldName: string, newName: string) => {
+    logInfo(`分类更新成功: ${oldName} -> ${newName}`);
+    await loadCategories();
+    gridRef.value?.reload();
+  };
+
+  /**
+   * 处理分类删除成功
+   */
+  const handleCategoryDeleted = async (categoryName: string) => {
+    logInfo(`分类删除成功: ${categoryName}`);
+    await loadCategories();
+    gridRef.value?.reload();
   };
 
   const handleCategoryChange = async (category: string) => {
@@ -321,58 +413,19 @@
     }
   };
 
-  const handleCategoryManageOk = async () => {
-    try {
-      // First, clear the current category selection to prevent immediate invalid API calls
-      const previousCategory = params.value.category;
-      params.value.category = '';
-
-      // Next, refresh the category tree
-      if (categoryTreeRef.value) {
-        await categoryTreeRef.value.refresh();
-        logInfo('Category tree refreshed after category management');
-
-        // Only select the previous category if it still exists
-        if (
-          previousCategory &&
-          categoryTreeRef.value.items &&
-          categoryTreeRef.value.items.includes(previousCategory)
-        ) {
-          params.value.category = previousCategory;
-          logInfo(`Restored previous category selection: ${previousCategory}`);
-        } else if (previousCategory) {
-          logInfo(
-            `Previous category '${previousCategory}' no longer exists, selection cleared`
-          );
-        }
-      }
-
-      // Only after the category tree is refreshed and category selection is updated, reload the grid
-      // This prevents errors from trying to load a deleted category
-      gridRef.value?.reload();
-    } catch (error) {
-      logError('Error refreshing category tree', error as Error);
-    }
-  };
-
-  // 处理新分类的选择和更新
   const handleNewCategoryUpdate = async (newCategory: string) => {
     try {
       lastManualCategory.value = newCategory;
       await nextTick();
 
-      if (categoryTreeRef.value) {
-        categoryTreeRef.value.selectCategory(newCategory);
-      }
+      // 重新加载分类列表以确保新分类在列表中
+      await loadCategories();
 
       await refreshAndSelectCategory(newCategory);
 
       await nextTick();
       if (params.value.category !== newCategory) {
         params.value.category = newCategory;
-        if (categoryTreeRef.value) {
-          categoryTreeRef.value.selectCategory(newCategory);
-        }
         gridRef.value?.reload();
       }
 
@@ -388,6 +441,12 @@
     } else {
       gridRef.value?.reload();
     }
+  };
+
+  // 处理分类管理确认
+  const handleCategoryManageOk = async () => {
+    await loadCategories();
+    gridRef.value?.reload();
   };
 
   // 监听器
@@ -414,48 +473,27 @@
       params.value.type = newType;
       params.value.category = '';
       lastManualCategory.value = '';
-      // 类型变化时重置组件状态
+      // 类型变化时重置组件状态并重新加载分类
       resetComponentsState();
+      loadCategories();
     }
   );
 
   // 暴露方法给父组件
   defineExpose({
-    resetComponentsState,
+    resetComponentsState: () => {
+      resetComponentsState();
+      loadCategories(); // 重置状态时也要重新加载分类
+    },
   });
 
   onMounted(() => {
     resetComponentsState();
+    loadCategories(); // 组件挂载时加载分类列表
   });
 </script>
 
 <style scoped>
-  .logrotate-layout {
-    position: relative;
-    min-height: calc(100vh - 240px);
-    padding-left: 240px;
-    margin-top: 20px;
-    border: 1px solid var(--color-border-2);
-    border-radius: 4px;
-  }
-
-  .logrotate-sidebar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 240px;
-    height: 100%;
-    overflow: auto;
-    border-right: 1px solid var(--color-border-2);
-  }
-
-  .logrotate-main {
-    min-width: 0;
-    height: 100%;
-    padding: 20px;
-  }
-
   .logrotate-table {
     height: 100%;
   }
@@ -467,19 +505,5 @@
 
   .status-tag {
     margin: 0;
-  }
-
-  .operation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-    min-width: v-bind('LAYOUT_CONFIG.OPERATION_MIN_WIDTH + "px"');
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
   }
 </style>

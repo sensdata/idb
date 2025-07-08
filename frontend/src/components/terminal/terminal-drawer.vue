@@ -66,16 +66,27 @@
   };
 </script>
 
-<style scoped>
-  .terminal-drawer :deep(.arco-drawer-title) {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 98%;
-  }
+<style>
+  /* 
+ * 临时解决方案：修复 arco-drawer-body 的左边距问题
+ * 
+ * 问题描述：
+ * - Arco Design Vue 的 Drawer 组件目前只支持 drawer-style 属性
+ * - 不支持 body-style 属性来直接设置 drawer body 的样式
+ * - 使用 :deep() 深度选择器无法有效覆盖 arco-drawer-body 的样式
+ * 
+ * 相关 Issue：
+ * https://github.com/arco-design/arco-design-vue/issues/3184
+ * 
+ * 临时方案：
+ * 使用全局样式，但通过 .terminal-drawer 类选择器限制影响范围，
+ * 确保只影响终端抽屉组件，不会影响项目中的其他 drawer 组件
+ * 
+ * TODO：
+ * 当 Arco Design Vue 官方支持 body-style 属性时，应移除此临时方案
+ */
 
-  .terminal-drawer :deep(.arco-drawer-body) {
-    height: 100%;
-    padding: 0;
+  .terminal-drawer .arco-drawer-body {
+    padding-left: 0 !important;
   }
 </style>

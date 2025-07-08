@@ -223,6 +223,7 @@
     height: 100%;
     background: var(--color-bg-2);
     border: 1px solid var(--color-border-2); /* 添加完整边框 */
+    border-radius: var(--border-radius-small);
   }
 
   .sidebar-header {
@@ -278,6 +279,7 @@
     cursor: pointer;
     background: var(--color-bg-1);
     border: 1px solid transparent;
+    border-radius: var(--border-radius-small);
     transition: all 0.2s ease;
   }
 

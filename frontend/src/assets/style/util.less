@@ -31,6 +31,14 @@
   --idbautumn-2: #fdddc3;
   --idbautumn-1: #fff3e8;
 
+  // 警示红
+  --idbred-6: #f53f3f;
+  --idbred-5: #f75f5f;
+  --idbred-4: #cc2a2a;
+  --idbred-3: #fb9f9f;
+  --idbred-2: #fdc3c3;
+  --idbred-1: #ffece8;
+
   // 黄昏
   --idbdusk-6: #f7ba1e;
   --idbdusk-5: #f9cc45;
@@ -38,6 +46,14 @@
   --idbdusk-3: #fce996;
   --idbdusk-2: #edf4bf;
   --idbdusk-1: #fffce8;
+
+  // 碧涛青
+  --idbturquoise-6: #0fc6c2;
+  --idbturquoise-5: #3fd1ce;
+  --idbturquoise-4: #0ca19e;
+  --idbturquoise-3: #7fe4e1;
+  --idbturquoise-2: #bff1ef;
+  --idbturquoise-1: #e6fbf9;
 }
 
 each(range(6), {
@@ -66,11 +82,23 @@ each(range(6), {
   .bg-autumn-@{idx} {
     background-color: ~"var(--idbautumn-@{idx})";
   }
+  .red-@{idx} {
+    color: ~"var(--idbred-@{idx})";
+  }
+  .bg-red-@{idx} {
+    background-color: ~"var(--idbred-@{idx})";
+  }
   .dusk-@{idx} {
     color: ~"var(--idbdusk-@{idx})";
   }
   .bg-dusk-@{idx} {
     background-color: ~"var(--idbdusk-@{idx})";
+  }
+  .turquoise-@{idx} {
+    color: ~"var(--idbturquoise-@{idx})";
+  }
+  .bg-turquoise-@{idx} {
+    background-color: ~"var(--idbturquoise-@{idx})";
   }
 });
 

@@ -3,6 +3,8 @@ export default {
   'app.script.enum.type.global': '全局',
 
   'app.script.category.all': '全部',
+  'app.script.category.tree.create': '立即创建',
+  'app.script.category.tree.empty': '暂无分组',
 
   'app.script.list.column.name': '名称',
   'app.script.list.column.mod_time': '修改时间',

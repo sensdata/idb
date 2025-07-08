@@ -23,15 +23,10 @@
       </template>
 
       <template #operations="{ record }">
-        <a-space>
-          <a-button
-            type="text"
-            status="danger"
-            @click="() => handleRemove(record)"
-          >
-            {{ $t('app.ssh.publicKeys.remove') }}
-          </a-button>
-        </a-space>
+        <idb-table-operation
+          type="button"
+          :options="getOperationOptions(record)"
+        />
       </template>
     </idb-table>
   </div>
@@ -44,6 +39,7 @@
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
   import { AuthKeyInfo } from '@/views/app/ssh/types';
+  import IdbTableOperation from '@/components/idb-table-operation/index.vue';
 
   // Props 定义
   interface Props {
@@ -70,6 +66,15 @@
   const handleReload = () => emit('reload');
   const handleShowAddModal = () => emit('showAddModal');
   const handleRemove = (record: AuthKeyInfo) => emit('remove', record);
+
+  // 获取操作选项
+  const getOperationOptions = (record: AuthKeyInfo) => [
+    {
+      text: t('app.ssh.publicKeys.remove'),
+      status: 'danger' as const,
+      click: () => handleRemove(record),
+    },
+  ];
 
   // 表格数据源
   const dataSource = computed<ApiListResult<AuthKeyInfo>>(() => ({
@@ -100,6 +105,7 @@
       title: t('app.ssh.publicKeys.columns.operations'),
       dataIndex: 'operations',
       width: 100,
+      align: 'left' as const,
       slotName: 'operations',
     },
   ]);

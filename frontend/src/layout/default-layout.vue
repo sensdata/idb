@@ -163,22 +163,11 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: auto;
-    overflow-x: hidden;
-    :deep(.arco-menu) {
-      ::-webkit-scrollbar {
-        width: 12px;
-        height: 4px;
-      }
-      ::-webkit-scrollbar-thumb {
-        background-color: var(--color-text-4);
-        background-clip: padding-box;
-        border: 4px solid transparent;
-        border-radius: 7px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-text-3);
-      }
+    overflow: hidden;
+
+    // 确保子菜单能够正确显示
+    :deep(.arco-menu-inline) {
+      overflow: visible !important;
     }
   }
 

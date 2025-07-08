@@ -50,14 +50,21 @@
 
       <!-- 操作列 -->
       <template #operations="{ record }">
-        <a-button
-          type="text"
-          size="small"
-          status="danger"
-          @click="handleDelete(record.ip)"
-        >
-          {{ $t('common.delete') }}
-        </a-button>
+        <idb-table-operation
+          type="button"
+          :options="[
+            {
+              text: $t('common.delete'),
+              type: 'text',
+              size: 'small',
+              status: 'danger',
+              confirm: $t('app.nftables.ipBlacklist.rules.deleteConfirm', {
+                ip: record.ip,
+              }),
+              click: () => handleDelete(record.ip),
+            },
+          ]"
+        />
       </template>
     </idb-table>
   </div>
@@ -71,6 +78,7 @@
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
   import IdbTable from '@/components/idb-table/index.vue';
+  import IdbTableOperation from '@/components/idb-table-operation/index.vue';
   // IP黑名单规则接口
   export interface IPBlacklistRule {
     ip: string;
@@ -133,26 +141,27 @@
       sortable: {
         sortDirections: ['ascend', 'descend'],
       },
+      align: 'left',
     },
     {
       title: t('app.nftables.ipBlacklist.rules.type'),
       dataIndex: 'type',
       slotName: 'type',
       width: COLUMN_WIDTHS.type,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('app.nftables.ipBlacklist.rules.action'),
       dataIndex: 'status',
       slotName: 'status',
       width: COLUMN_WIDTHS.status,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('components.idbTable.columns.operations'),
       slotName: 'operations',
       width: COLUMN_WIDTHS.operations,
-      align: 'center',
+      align: 'left',
       fixed: 'right',
     },
   ]);
