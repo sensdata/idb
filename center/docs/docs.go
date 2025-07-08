@@ -10343,6 +10343,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/store/{host}/apps/upgrade": {
+            "post": {
+                "description": "Upgrade app",
+                "tags": [
+                    "App"
+                ],
+                "summary": "Upgrade app",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpgradeApp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/sysctl/info": {
             "get": {
                 "description": "插件信息",
@@ -14645,6 +14677,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "valid": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UpgradeApp": {
+            "type": "object",
+            "properties": {
+                "compose_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "upgrade_version_id": {
                     "type": "integer"
                 }
             }
