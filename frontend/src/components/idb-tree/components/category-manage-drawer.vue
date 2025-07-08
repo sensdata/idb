@@ -23,14 +23,10 @@
         </a-button>
       </template>
       <template #operation="{ record }">
-        <div class="operation">
-          <a-link @click="handleEdit(record)">
-            {{ $t('common.edit') }}
-          </a-link>
-          <a-link status="danger" @click="handleDelete(record)">
-            {{ $t('common.delete') }}
-          </a-link>
-        </div>
+        <idb-table-operation
+          type="button"
+          :options="getCategoryOperationOptions(record)"
+        />
       </template>
     </idb-table>
   </a-drawer>
@@ -41,7 +37,7 @@
   import { GlobalComponents, computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { useConfirm } from '@/composables/confirm';
+  import IdbTableOperation from '@/components/idb-table-operation/index.vue';
   import CategoryFormModal from './category-form-modal.vue';
   import type { CategoryManageConfig, Category } from '../types/category';
 
@@ -56,7 +52,6 @@
   const visible = ref(false);
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref();
-  const { confirm } = useConfirm();
 
   const defaultColumns = [
     {
@@ -97,7 +92,6 @@
     const categoryName = category[nameField];
 
     try {
-      await confirm(t('category.delete.confirm', { name: categoryName }));
       await props.config.api.delete({
         category: categoryName,
         ...(props.config.params || {}),
@@ -107,6 +101,25 @@
     } catch (err: any) {
       Message.error(err?.message);
     }
+  };
+
+  // 获取分类操作选项配置
+  const getCategoryOperationOptions = (record: Category) => {
+    const nameField = props.config.nameField || 'name';
+    const categoryName = record[nameField];
+
+    return [
+      {
+        text: t('common.edit'),
+        click: () => handleEdit(record),
+      },
+      {
+        text: t('common.delete'),
+        status: 'danger' as const,
+        confirm: t('category.delete.confirm', { name: categoryName }),
+        click: () => handleDelete(record),
+      },
+    ];
   };
 
   const show = () => {
@@ -124,12 +137,5 @@
 </script>
 
 <style scoped>
-  .operation {
-    display: flex;
-    gap: 12px;
-  }
-
-  .operation :first-child {
-    padding-left: 0;
-  }
+  /* 移除之前的操作按钮样式，使用 idb-table-operation 组件的内置样式 */
 </style>

@@ -32,34 +32,15 @@
           />
         </template>
         <template #history_version="{ record }: { record: ScriptEntity }">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleHistoryVersion(record)"
-          >
+          <a-link @click="handleHistoryVersion(record)">
             {{ $t('app.script.list.operation.view_history') }}
-          </a-button>
+          </a-link>
         </template>
         <template #operation="{ record }: { record: ScriptEntity }">
-          <div class="operation">
-            <a-button type="text" size="small" @click="handleEdit(record)">
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button type="text" size="small" @click="handleRun(record)">
-              {{ $t('app.script.list.operation.run') }}
-            </a-button>
-            <a-button type="text" size="small" @click="handleLog(record)">
-              {{ $t('app.script.list.operation.log') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDelete(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getScriptOperationOptions(record)"
+          />
         </template>
       </idb-table>
     </template>
@@ -186,7 +167,7 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       width: 210,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'operation',
     },
   ];
@@ -309,6 +290,28 @@
     }
   };
 
+  // 获取操作按钮配置
+  const getScriptOperationOptions = (record: ScriptEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: t('app.script.list.operation.run'),
+      click: () => handleRun(record),
+    },
+    {
+      text: t('app.script.list.operation.log'),
+      click: () => handleLog(record),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      confirm: t('app.script.list.delete.confirm', { name: record.name }),
+      click: () => handleDelete(record),
+    },
+  ];
+
   const handleCategoryChange = () => {
     loadCategories();
     gridRef.value?.reload();
@@ -326,9 +329,4 @@
   });
 </script>
 
-<style scoped>
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
-  }
-</style>
+<style scoped></style>

@@ -55,37 +55,10 @@
         </template>
 
         <template #operation="{ record }: { record: LogrotateEntity }">
-          <div class="operation">
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleEdit(record)"
-            >
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleActionClick(record)"
-            >
-              {{ getActionButtonInfo(record).text }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              @click="handleHistory(record)"
-            >
-              {{ $t('app.logrotate.list.operation.history') }}
-            </a-button>
-            <a-button
-              :type="BUTTON_TYPE_TEXT"
-              :size="BUTTON_SIZE"
-              :status="BUTTON_STATUS_DANGER"
-              @click="handleDeleteClick(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getLogrotateOperationOptions(record)"
+          />
         </template>
       </idb-table>
     </template>
@@ -133,13 +106,9 @@
   import { useLogrotateColumns } from './composables/use-logrotate-columns';
   import { useLogrotateActions } from './composables/use-logrotate-actions';
   import { useCategoryManagement } from './composables/use-category-management';
-  import { LAYOUT_CONFIG } from './constants';
 
   // 常量定义
-  const BUTTON_SIZE = 'small' as const;
-  const BUTTON_TYPE_TEXT = 'text' as const;
   const BUTTON_TYPE_PRIMARY = 'primary' as const;
-  const BUTTON_STATUS_DANGER = 'danger' as const;
 
   // 国际化
   const { t } = useI18n();
@@ -382,6 +351,27 @@
     });
   };
 
+  // 获取操作按钮配置
+  const getLogrotateOperationOptions = (record: LogrotateEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: getActionButtonInfo(record).text,
+      click: () => handleActionClick(record),
+    },
+    {
+      text: t('app.logrotate.list.operation.history'),
+      click: () => handleHistory(record),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      click: () => handleDeleteClick(record),
+    },
+  ];
+
   /**
    * 处理分类创建
    */
@@ -515,19 +505,5 @@
 
   .status-tag {
     margin: 0;
-  }
-
-  .operation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-    min-width: v-bind('LAYOUT_CONFIG.OPERATION_MIN_WIDTH + "px"');
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
   }
 </style>

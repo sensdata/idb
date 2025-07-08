@@ -74,7 +74,7 @@ export function useLogrotateColumns() {
       slotName: 'operation',
       width: COLUMN_WIDTHS.OPERATION,
       fixed: 'right' as const,
-      align: 'center' as const,
+      align: 'left' as const,
     },
   ]);
 

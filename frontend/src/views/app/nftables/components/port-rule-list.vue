@@ -80,19 +80,29 @@
 
       <!-- 操作列 -->
       <template #operations="{ record }">
-        <div class="operation">
-          <a-button type="text" size="small" @click="handleEdit(record)">
-            {{ $t('common.edit') }}
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            @click="handleDelete(record)"
-          >
-            {{ $t('common.delete') }}
-          </a-button>
-        </div>
+        <idb-table-operation
+          type="button"
+          :options="[
+            {
+              text: $t('common.edit'),
+              click: () => handleEdit(record),
+              type: 'text',
+              size: 'small',
+            },
+            {
+              text: $t('common.delete'),
+              click: () => handleDelete(record),
+              type: 'text',
+              size: 'small',
+              status: 'danger',
+              confirm: $t('app.nftables.rules.deleteConfirm', {
+                port: Array.isArray(record.port)
+                  ? record.port.join(', ')
+                  : record.port,
+              }),
+            },
+          ]"
+        />
       </template>
     </idb-table>
   </div>
@@ -160,14 +170,14 @@
       dataIndex: 'protocol',
       slotName: 'protocol',
       width: COLUMN_WIDTHS.protocol,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('app.nftables.config.rules.port'),
       dataIndex: 'port',
       slotName: 'port',
       width: COLUMN_WIDTHS.port,
-      align: 'center',
+      align: 'left',
       sortable: {
         sortDirections: ['ascend', 'descend'],
       },
@@ -177,19 +187,21 @@
       dataIndex: 'action',
       slotName: 'action',
       width: COLUMN_WIDTHS.action,
-      align: 'center',
+      align: 'left',
     },
     {
       title: t('app.nftables.config.rules.source'),
       dataIndex: 'source',
       slotName: 'source',
       width: COLUMN_WIDTHS.source,
+      align: 'left',
     },
     {
       title: t('app.nftables.form.advancedRules'),
       dataIndex: 'rules',
       slotName: 'advancedRules',
       width: 180,
+      align: 'left',
     },
     {
       title: t('app.nftables.config.rules.description'),
@@ -197,12 +209,13 @@
       slotName: 'description',
       ellipsis: true,
       tooltip: true,
+      align: 'left',
     },
     {
       title: t('components.idbTable.columns.operations'),
       slotName: 'operations',
       width: COLUMN_WIDTHS.operations,
-      align: 'center',
+      align: 'left',
       fixed: 'right',
     },
   ]);

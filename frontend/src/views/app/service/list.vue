@@ -52,51 +52,10 @@
           </div>
         </template>
         <template #operation="{ record }: { record: ServiceEntity }">
-          <div class="operation">
-            <a-button type="text" size="small" @click="handleEdit(record)">
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              @click="
-                handleAction(
-                  record,
-                  record.linked
-                    ? SERVICE_ACTION.Deactivate
-                    : SERVICE_ACTION.Activate
-                )
-              "
-            >
-              {{
-                record.linked
-                  ? $t('app.service.list.operation.deactivate')
-                  : $t('app.service.list.operation.activate')
-              }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDelete(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-            <a-dropdown>
-              <a-button type="text" size="small">
-                {{ $t('common.more') }}
-                <icon-down />
-              </a-button>
-              <template #content>
-                <a-doption @click="handleViewLogs(record)">
-                  {{ $t('app.service.list.operation.logs') }}
-                </a-doption>
-                <a-doption @click="handleViewHistory(record)">
-                  {{ $t('app.service.list.operation.history') }}
-                </a-doption>
-              </template>
-            </a-dropdown>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getServiceOperationOptions(record)"
+          />
         </template>
       </idb-table>
     </template>
@@ -246,7 +205,7 @@
       title: t('app.service.list.columns.operation'),
       slotName: 'operation',
       width: 240,
-      align: 'center' as const,
+      align: 'left' as const,
       fixed: 'right' as const,
     },
   ];
@@ -375,6 +334,37 @@
       gridRef.value?.reload();
     }
   };
+
+  // 获取操作按钮配置
+  const getServiceOperationOptions = (record: ServiceEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: record.linked
+        ? t('app.service.list.operation.deactivate')
+        : t('app.service.list.operation.activate'),
+      click: () =>
+        handleAction(
+          record,
+          record.linked ? SERVICE_ACTION.Deactivate : SERVICE_ACTION.Activate
+        ),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      click: () => handleDelete(record),
+    },
+    {
+      text: t('app.service.list.operation.logs'),
+      click: () => handleViewLogs(record),
+    },
+    {
+      text: t('app.service.list.operation.history'),
+      click: () => handleViewHistory(record),
+    },
+  ];
 
   // 同步全局仓库
   const handleSyncGlobal = async () => {
@@ -529,18 +519,5 @@
 
   .status-tag {
     margin: 0;
-  }
-
-  .operation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
   }
 </style>

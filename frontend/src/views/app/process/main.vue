@@ -7,19 +7,10 @@
     :fetch="getProcessListApi"
   >
     <template #operation="{ record }: { record: any }">
-      <div class="operation">
-        <a-button type="text" size="small" @click="handleDetail(record)">
-          {{ $t('app.process.list.operation.detail') }}
-        </a-button>
-        <a-button
-          type="text"
-          size="small"
-          status="danger"
-          @click="handleKill(record)"
-        >
-          {{ $t('app.process.list.operation.kill') }}
-        </a-button>
-      </div>
+      <idb-table-operation
+        type="button"
+        :options="getProcessOperationOptions(record)"
+      />
     </template>
   </idb-table>
   <detail-drawer ref="detailRef" />
@@ -96,7 +87,7 @@
       title: t('common.table.operation'),
       dataIndex: 'operation',
       width: 160,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'operation',
     },
   ];
@@ -130,11 +121,20 @@
       }
     }
   };
+
+  // 获取操作按钮配置
+  const getProcessOperationOptions = (record: any) => [
+    {
+      text: t('app.process.list.operation.detail'),
+      click: () => handleDetail(record),
+    },
+    {
+      text: t('app.process.list.operation.kill'),
+      status: 'danger' as const,
+      confirm: t('app.process.list.message.killConfirm', { pid: record.pid }),
+      click: () => handleKill(record),
+    },
+  ];
 </script>
 
-<style scoped>
-  .operation :deep(.arco-btn-size-small) {
-    padding-right: 4px;
-    padding-left: 4px;
-  }
-</style>
+<style scoped></style>

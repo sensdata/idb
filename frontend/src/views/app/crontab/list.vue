@@ -49,32 +49,10 @@
           </div>
         </template>
         <template #operation="{ record }: { record: CrontabEntity }">
-          <div class="operation">
-            <a-button type="text" size="small" @click="handleEdit(record)">
-              {{ $t('common.edit') }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              @click="
-                handleAction(record, record.linked ? 'deactivate' : 'activate')
-              "
-            >
-              {{
-                record.linked
-                  ? $t('app.crontab.list.operation.deactivate')
-                  : $t('app.crontab.list.operation.activate')
-              }}
-            </a-button>
-            <a-button
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDelete(record)"
-            >
-              {{ $t('common.delete') }}
-            </a-button>
-          </div>
+          <idb-table-operation
+            type="button"
+            :options="getCrontabOperationOptions(record)"
+          />
         </template>
       </idb-table>
     </template>
@@ -279,7 +257,7 @@
       dataIndex: 'operation',
       title: t('common.table.operation'),
       width: 210,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'operation',
     },
   ];
@@ -504,6 +482,27 @@
     }
   };
 
+  // 获取操作按钮配置
+  const getCrontabOperationOptions = (record: CrontabEntity) => [
+    {
+      text: t('common.edit'),
+      click: () => handleEdit(record),
+    },
+    {
+      text: record.linked
+        ? t('app.crontab.list.operation.deactivate')
+        : t('app.crontab.list.operation.activate'),
+      click: () =>
+        handleAction(record, record.linked ? 'deactivate' : 'activate'),
+    },
+    {
+      text: t('common.delete'),
+      status: 'danger' as const,
+      confirm: t('app.crontab.list.delete.confirm', { name: record.name }),
+      click: () => handleDelete(record),
+    },
+  ];
+
   // 处理分类管理功能已集成到 CategoryManageButton 组件中
 
   // 处理分类管理确认
@@ -524,54 +523,6 @@
       refreshAndSelectCategory(firstCategory);
     }
   };
-
-  // 选择合适的分类：优先使用当前分类，否则使用第一个可用分类 (目前未使用，但保留以备将来使用)
-  // const selectAppropriateCategory = async (currentCategory: string) => {
-  //   if (currentCategory) {
-  //     // 恢复原始分类
-  //     lastManualCategory.value = currentCategory;
-  //     await refreshAndSelectCategory(currentCategory);
-  //     return;
-  //   }
-
-  //   // 直接使用categoryItems.value而不是依赖组件内部状态
-  //   if (categoryItems.value && categoryItems.value.length > 0) {
-  //     const firstCategory = categoryItems.value[0];
-  //     lastManualCategory.value = firstCategory;
-  //     await refreshAndSelectCategory(firstCategory);
-  //   }
-  // };
-
-  // 重置所有组件状态 (目前未使用，但保留以备将来使用)
-  // const resetComponentsState = async () => {
-  //   try {
-  //     // 保存当前分类
-  //     const currentCategory =
-  //       params.value.category || lastManualCategory.value || '';
-
-  //     // 暂时清空所有状态
-  //     params.value.category = '';
-  //     lastManualCategory.value = '';
-
-  //     // 强制刷新分类树
-  //     if (categoryTreeRef.value) {
-  //       await categoryTreeRef.value.refresh();
-  //     }
-
-  //     // 等待DOM更新
-  //     await nextTick();
-
-  //     // 尝试选择分类
-  //     await selectAppropriateCategory(currentCategory);
-
-  //     // 确保表格数据更新
-  //     await nextTick();
-  //     reload();
-  //   } catch (e) {
-  //     // 如果重置失败，尝试回到默认分类
-  //     selectFirstAvailableCategory();
-  //   }
-  // };
 
   // 处理任务创建时分类变更
   const handleCategoryChange = (category: string) => {
@@ -652,44 +603,5 @@
     padding: 4px 8px;
     font-size: 12px;
     border-radius: 4px;
-  }
-
-  .operation {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .operation :deep(.arco-btn-size-small) {
-    padding: 4px 8px;
-    font-size: 12px;
-  }
-
-  /* 响应式表格操作按钮优化 */
-  @media screen and (width <= 768px) {
-    .operation {
-      flex-wrap: wrap;
-      gap: 2px;
-    }
-    .operation :deep(.arco-btn-size-small) {
-      padding: 2px 6px;
-      font-size: 11px;
-    }
-  }
-
-  @media screen and (width <= 576px) {
-    .operation :deep(.arco-btn-size-small) {
-      padding: 2px 4px;
-      font-size: 10px;
-    }
-  }
-
-  /* 小型手机设备下隐藏按钮文字，仅显示图标 */
-  @media screen and (width <= 480px) {
-    .operation :deep(.arco-btn-size-small) {
-      min-width: 24px;
-      padding: 2px;
-    }
   }
 </style>

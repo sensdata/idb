@@ -10,7 +10,7 @@
     </a-tooltip>
     <div class="process-details">
       <div class="process-name">{{ process }}</div>
-      <div v-if="pid" class="process-pid">PID: {{ pid }}</div>
+      <div v-if="pid" class="process-pid">PID:{{ pid }}</div>
     </div>
   </div>
 </template>
