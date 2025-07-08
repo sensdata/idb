@@ -403,14 +403,6 @@
       vertical-align: middle;
     }
 
-    // 降低箭头图标的优先级，避免干扰对齐
-    .arco-icon-down,
-    .arco-icon-right {
-      position: absolute;
-      right: 16px;
-      left: auto;
-    }
-
     // 确保整个菜单项可点击，而不仅是标题区域
     .arco-menu-inline-header {
       cursor: pointer;

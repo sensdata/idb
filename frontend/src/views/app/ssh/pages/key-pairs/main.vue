@@ -28,12 +28,9 @@
           </a-tag>
         </template>
         <template #operation="{ record }">
-          <KeyPairsTableActions
-            :record="record"
-            :status="SSHKeyStatus"
-            @download="handleDownload"
-            @toggle="handleToggleEnable"
-            @delete="handleDelete"
+          <idb-table-operation
+            type="button"
+            :options="getOperationOptions(record)"
           />
         </template>
       </idb-table>
@@ -78,7 +75,7 @@
     KeyBits,
     SSHKeyStatus,
   } from '@/views/app/ssh/types';
-  import KeyPairsTableActions from './components/key-pairs-table-actions.vue';
+  import IdbTableOperation from '@/components/idb-table-operation/index.vue';
   import KeyGenerateModal from './components/key-generate-modal.vue';
 
   interface EncryptionOption {
@@ -147,6 +144,11 @@
   // 将 Ref<boolean> 转换为 boolean，解决类型错误
   const keyFormLoading = computed(() => keyForm.loading.value);
 
+  // 检查SSH密钥是否启用
+  const isEnabled = (record: SSHKeyRecord): boolean => {
+    return record.status === SSHKeyStatus.ENABLED;
+  };
+
   // 文件下载工具函数
   const downloadFile = (data: Blob | any, filename: string): void => {
     const blob = data instanceof Blob ? data : new Blob([data]);
@@ -155,85 +157,6 @@
     link.download = filename;
     link.click();
     URL.revokeObjectURL(link.href);
-  };
-
-  // 检查SSH密钥是否启用
-  const isEnabled = (record: SSHKeyRecord): boolean => {
-    return record.status === SSHKeyStatus.ENABLED;
-  };
-
-  // 表格列定义
-  const columns = computed(() => [
-    {
-      title: t('app.ssh.keyPairs.columns.keyName'),
-      dataIndex: 'key_name',
-      width: 150,
-    },
-    {
-      title: t('app.ssh.keyPairs.columns.user'),
-      dataIndex: 'user',
-      width: 120,
-    },
-    {
-      title: t('app.ssh.keyPairs.columns.keyBits'),
-      dataIndex: 'key_bits',
-      width: 100,
-    },
-    {
-      title: t('app.ssh.keyPairs.columns.keyPath'),
-      dataIndex: 'private_key_path',
-      width: 200,
-    },
-    {
-      title: t('app.ssh.keyPairs.columns.fingerprint'),
-      dataIndex: 'fingerprint',
-      width: 180,
-      ellipsis: true,
-    },
-    {
-      title: t('app.ssh.keyPairs.columns.status'),
-      dataIndex: 'status',
-      width: 100,
-      slotName: 'enabled',
-    },
-    {
-      title: t('common.table.operation'),
-      dataIndex: 'operation',
-      width: 240,
-      align: 'center' as const,
-      slotName: 'operation',
-      fixed: 'right' as const,
-    },
-  ]);
-
-  // 获取SSH密钥列表
-  const getSSHKeysApi = async (
-    params: ApiListParams
-  ): Promise<ApiListResult<SSHKeyRecord>> => {
-    return executeApi(() => getSSHKeys(hostStore.currentId as number, params), {
-      errorMessage: t('app.ssh.keyPairs.operationFailed'),
-      defaultValue: {
-        total: 0,
-        items: [],
-        page: params.page || 1,
-        page_size: params.page_size || 20,
-      },
-    });
-  };
-
-  // 生成新密钥对
-  const handleGenerateKey = (): void => {
-    keyForm.resetForm();
-    generateModalVisible.value = true;
-  };
-
-  const handleGenerateConfirm = async (): Promise<void> => {
-    try {
-      await keyForm.submitForm();
-    } catch (error) {
-      logError('Form submission failed:', error);
-      Message.error(t('app.ssh.keyPairs.generateValidationFailed'));
-    }
   };
 
   // 启用/禁用SSH密钥
@@ -294,6 +217,102 @@
         },
         { errorMessage: t('app.ssh.keyPairs.operationFailed') }
       );
+    }
+  };
+
+  // 获取操作选项
+  const getOperationOptions = (record: SSHKeyRecord) => [
+    {
+      text: t('app.ssh.keyPairs.download'),
+      disabled: record.status !== SSHKeyStatus.ENABLED,
+      click: () => handleDownload(record),
+    },
+    {
+      text:
+        record.status === SSHKeyStatus.ENABLED
+          ? t('app.ssh.keyPairs.disable')
+          : t('app.ssh.keyPairs.enable'),
+      click: () =>
+        handleToggleEnable(record, record.status !== SSHKeyStatus.ENABLED),
+    },
+    {
+      text: t('app.ssh.keyPairs.delete'),
+      status: 'danger' as const,
+      click: () => handleDelete(record),
+    },
+  ];
+
+  // 表格列定义
+  const columns = computed(() => [
+    {
+      title: t('app.ssh.keyPairs.columns.keyName'),
+      dataIndex: 'key_name',
+      width: 150,
+    },
+    {
+      title: t('app.ssh.keyPairs.columns.user'),
+      dataIndex: 'user',
+      width: 120,
+    },
+    {
+      title: t('app.ssh.keyPairs.columns.keyBits'),
+      dataIndex: 'key_bits',
+      width: 100,
+    },
+    {
+      title: t('app.ssh.keyPairs.columns.keyPath'),
+      dataIndex: 'private_key_path',
+      width: 200,
+    },
+    {
+      title: t('app.ssh.keyPairs.columns.fingerprint'),
+      dataIndex: 'fingerprint',
+      width: 180,
+      ellipsis: true,
+    },
+    {
+      title: t('app.ssh.keyPairs.columns.status'),
+      dataIndex: 'status',
+      width: 100,
+      slotName: 'enabled',
+    },
+    {
+      title: t('common.table.operation'),
+      dataIndex: 'operation',
+      width: 240,
+      align: 'left' as const,
+      slotName: 'operation',
+      fixed: 'right' as const,
+    },
+  ]);
+
+  // 获取SSH密钥列表
+  const getSSHKeysApi = async (
+    params: ApiListParams
+  ): Promise<ApiListResult<SSHKeyRecord>> => {
+    return executeApi(() => getSSHKeys(hostStore.currentId as number, params), {
+      errorMessage: t('app.ssh.keyPairs.operationFailed'),
+      defaultValue: {
+        total: 0,
+        items: [],
+        page: params.page || 1,
+        page_size: params.page_size || 20,
+      },
+    });
+  };
+
+  // 生成新密钥对
+  const handleGenerateKey = (): void => {
+    keyForm.resetForm();
+    generateModalVisible.value = true;
+  };
+
+  const handleGenerateConfirm = async (): Promise<void> => {
+    try {
+      await keyForm.submitForm();
+    } catch (error) {
+      logError('Form submission failed:', error);
+      Message.error(t('app.ssh.keyPairs.generateValidationFailed'));
     }
   };
 </script>
