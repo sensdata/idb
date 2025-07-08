@@ -42,11 +42,16 @@
 
   const emit = defineEmits(['itemSelect', 'itemDoubleClick']);
 
-  // 只显示根目录
+  // 只显示根目录，并按字母表排序
   const rootItems = computed(() => {
-    return props.items.filter(
-      (item) => item.is_dir && (props.showHidden || !item.is_hidden)
-    );
+    return props.items
+      .filter((item) => item.is_dir && (props.showHidden || !item.is_hidden))
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          caseFirst: 'lower',
+        })
+      );
   });
 
   // 检查项目是否被选中（通过比较路径）
