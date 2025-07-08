@@ -228,20 +228,9 @@
     const currentPath = props.current.path;
     const itemPath = item.path;
 
-    // Ensure exact match or child directory match, avoid prefix issues
-    // Example: /lib and /lib.usr-is-merged should not affect each other
-    if (currentPath === itemPath) {
-      // Exact match - current item is the selected item
-      return true;
-    }
-
-    if (currentPath.startsWith(itemPath + '/')) {
-      // Child directory match - ensure only real parent directories are highlighted
-      // Add '/' to ensure it's a real subdirectory, avoiding prefix issues
-      return true;
-    }
-
-    return false;
+    // Only highlight exact matches for pinned directories
+    // This prevents parent directories from being highlighted when in a subdirectory
+    return currentPath === itemPath;
   };
 
   // Handle click event - emit selection event
