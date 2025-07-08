@@ -51,6 +51,7 @@ type IDockerService interface {
 	ComposeOperation(req model.ComposeOperation) error
 	ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error)
 	ComposeUpdate(req model.ComposeUpdate) error
+	ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCreateResult, error)
 
 	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)
 	ImageList() (*model.PageResult, error)

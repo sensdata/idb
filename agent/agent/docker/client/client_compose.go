@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/files"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
@@ -153,21 +154,29 @@ func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error
 	return composePath, nil
 }
 
-func (c DockerClient) initConf(req *model.ComposeCreate) error {
-	dir := filepath.Dir(req.ConfPath)
+func (c DockerClient) initConf(path string, content string, upgrade bool) error {
+	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
 		}
 	}
 
-	file, err := os.OpenFile(req.ConfPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	// 如果是升级，并且文件已存在，则跳过写入
+	if upgrade {
+		if _, err := os.Stat(path); err == nil {
+			global.LOG.Info("Conf file %s already exists during upgrade, skipping overwrite", path)
+			return nil
+		}
+	}
+
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 	write := bufio.NewWriter(file)
-	_, _ = write.WriteString(req.ConfContent)
+	_, _ = write.WriteString(content)
 	write.Flush()
 
 	return nil
@@ -399,7 +408,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 
 	// 写入conf
 	if req.ConfPath != "" && req.ConfContent != "" {
-		if err := c.initConf(&req); err != nil {
+		if err := c.initConf(req.ConfPath, req.ConfContent, false); err != nil {
 			global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
 			return &result, err
 		}
@@ -586,4 +595,93 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
 
 	global.LOG.Info("docker compose up %s successful!", req.Name)
 	return nil
+}
+
+func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
+	if utils.CheckIllegal(req.Name, req.WorkDir) {
+		return &result, errors.New(constant.ErrCmdIllegal)
+	}
+
+	composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
+	envPath := filepath.Join(req.WorkDir, req.Name, ".env")
+
+	// 先停止原compose
+	if stdout, err := down(composePath, true); err != nil {
+		return &result, fmt.Errorf("failed to docker compose down %s, err: %s", req.Name, string(stdout))
+	}
+
+	// 备份至 /WorkDir/Name/backup/serial/*
+	fo := files.NewFileOp()
+	backupID := time.Now().Format("20060102T150405")
+	backupDir := filepath.Join(req.WorkDir, req.Name, "backup", backupID)
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return nil, err
+	}
+	// 备份 .env
+	backupEnv := filepath.Join(backupDir, ".env")
+	fo.CopyFile(envPath, backupEnv)
+
+	// 备份 docker-compose.yaml
+	backupCompose := filepath.Join(backupDir, "docker-compose.yaml")
+	fo.CopyFile(composePath, backupCompose)
+	global.LOG.Info("backup compose and env to %s", backupDir)
+
+	// 写入conf
+	if req.ConfPath != "" && req.ConfContent != "" {
+		if err := c.initConf(req.ConfPath, req.ConfContent, true); err != nil {
+			global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
+			return &result, err
+		}
+		global.LOG.Info("init conf successful")
+	}
+
+	// 覆盖docker-compose.yaml
+	composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
+	if err != nil {
+		return &result, err
+	}
+	defer composeFile.Close()
+	write := bufio.NewWriter(composeFile)
+	_, _ = write.WriteString(req.ComposeContent)
+	write.Flush()
+
+	// 覆盖.env
+	envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
+	if err != nil {
+		return &result, err
+	}
+	defer envFile.Close()
+	write = bufio.NewWriter(envFile)
+	_, _ = write.WriteString(req.EnvContent)
+	write.Flush()
+
+	global.LOG.Info("config files has been replaced, try docker compose up %s", req.Name)
+
+	// 初始化日志
+	projectDir := filepath.Dir(composePath)
+	dockerLogDir := path.Join(projectDir, "docker_logs")
+	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
+			return &result, err
+		}
+	}
+	logPath := fmt.Sprintf("%s/compose_upgrade_%s_%s.log", dockerLogDir, req.Name, backupID)
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return &result, err
+	}
+	result.Log = logPath
+
+	defer file.Close()
+	if stdout, err := up(composePath); err != nil {
+		global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, string(stdout), err)
+		_, _ = down(composePath, true)
+		_, _ = file.WriteString("docker compose up failed!")
+		return &result, errors.New(string(stdout))
+	}
+	global.LOG.Info("docker compose up %s successful!", req.Name)
+	_, _ = file.WriteString("docker compose up successful!")
+
+	return &result, nil
 }

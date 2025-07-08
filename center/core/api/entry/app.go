@@ -178,3 +178,30 @@ func (b *BaseApi) UninstallApp(c *gin.Context) {
 	}
 	SuccessWithData(c, "")
 }
+
+// @Tags App
+// @Summary Upgrade app
+// @Description Upgrade app
+// @Param host path int true "Host ID"
+// @Param request body model.UpgradeApp true "request"
+// @Success 200
+// @Router /store/{host}/apps/upgrade [post]
+func (b *BaseApi) UpgradeApp(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	var req model.UpgradeApp
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := appService.AppUpgrade(uint64(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, result)
+}

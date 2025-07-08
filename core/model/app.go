@@ -56,3 +56,9 @@ type InstallApp struct {
 type UninstallApp struct {
 	ComposeName string `json:"compose_name"`
 }
+
+type UpgradeApp struct {
+	ID               uint   `json:"id"`
+	UpgradeVersionID uint   `json:"upgrade_version_id"`
+	ComposeName      string `json:"compose_name"`
+}

@@ -278,6 +278,15 @@ type ComposeUpdate struct {
 	WorkDir        string `json:"work_dir"`
 }
 
+type ComposeUpgrade struct {
+	Name           string `json:"name"`
+	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
+	ConfContent    string `json:"conf_content"`
+	ConfPath       string `json:"conf_path"`
+	WorkDir        string `json:"work_dir"`
+}
+
 type ComposeDetailReq struct {
 	Name    string `json:"name" validate:"required"`
 	WorkDir string `json:"work_dir"`

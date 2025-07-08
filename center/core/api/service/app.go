@@ -39,6 +39,7 @@ type IAppService interface {
 	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
 	AppUninstall(hostID uint64, req core.UninstallApp) error
+	AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error)
 }
 
 func NewIAppService() IAppService {
@@ -785,4 +786,131 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
 	return nil
+}
+
+func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error) {
+	var result core.ComposeCreateResult
+
+	// 查找应用
+	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
+	if err != nil {
+		global.LOG.Error("App %d not found", req.ID)
+		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+	var form core.Form
+	if err := yaml.Unmarshal([]byte(app.FormContent), &form); err != nil {
+		global.LOG.Error("Failed to unmarshal app form data: %v", err)
+		return &result, fmt.Errorf("unmarshal form err: %v", err)
+	}
+
+	// 找版本
+	version, err := AppVersionRepo.Get(AppVersionRepo.WithByID(req.UpgradeVersionID))
+	if err != nil {
+		global.LOG.Error("App version %d not found", req.UpgradeVersionID)
+		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	}
+
+	// 新版env
+	envMap, err := godotenv.Unmarshal(version.EnvContent)
+	if err != nil {
+		return &result, fmt.Errorf("unmarshal env err : %v", err)
+	}
+
+	// 旧版env
+	var composeDetailRsp core.ComposeDetailRsp
+	composeDetailReq := core.ComposeDetailReq{
+		Name:    req.ComposeName,
+		WorkDir: s.AppDir,
+	}
+	data, err := utils.ToJSONString(composeDetailReq)
+	if err != nil {
+		return &result, err
+	}
+	actionRequest := core.HostAction{
+		HostID: uint(hostID),
+		Action: core.Action{
+			Action: core.Docker_Compose_Detail,
+			Data:   data,
+		},
+	}
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return &result, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Docker_Compose_Detail failed")
+		return &result, fmt.Errorf("failed to query compose detail")
+	}
+	err = utils.FromJSONString(actionResponse.Data, &composeDetailRsp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose detail result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+	oldEnvMap, err := godotenv.Unmarshal(composeDetailRsp.EnvContent)
+	if err != nil {
+		return &result, fmt.Errorf("unmarshal env err : %v", err)
+	}
+
+	// 合并env，旧值覆盖
+	mergedEnvMap := map[string]string{}
+	for k, v := range envMap {
+		mergedEnvMap[k] = v
+	}
+	for k, v := range oldEnvMap {
+		mergedEnvMap[k] = v
+	}
+	// 转换成env内容
+	var envArray []string
+	for key, value := range mergedEnvMap {
+		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
+	}
+	envContent := strings.Join(envArray, "\n")
+
+	// 处理compose内容
+	composeContent := version.ComposeContent
+
+	// 处理conf
+	var confPath, confContent string
+	if confDir, exist := envMap[constant.IDB_service_config_path]; exist {
+		confPath = filepath.Join(confDir, version.ConfigName)
+		confContent = version.ConfigContent
+	}
+
+	composeUpgrade := core.ComposeUpgrade{
+		Name:           req.ComposeName,
+		ComposeContent: composeContent,
+		EnvContent:     envContent,
+		ConfContent:    confContent,
+		ConfPath:       confPath,
+		WorkDir:        s.AppDir,
+	}
+	data, err = utils.ToJSONString(composeUpgrade)
+	if err != nil {
+		return &result, err
+	}
+
+	actionRequest = core.HostAction{
+		HostID: uint(hostID),
+		Action: core.Action{
+			Action: core.Docker_Compose_Upgrade,
+			Data:   data,
+		},
+	}
+	actionResponse, err = conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Docker_Compose_Upgrade %v", err)
+		return &result, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Docker_Compose_Upgrade failed")
+		return &result, fmt.Errorf("failed to upgrade compose: %s", actionResponse.Data)
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose upgrade result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
 }

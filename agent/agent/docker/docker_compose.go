@@ -67,3 +67,12 @@ func (s *DockerService) ComposeUpdate(req model.ComposeUpdate) error {
 	defer client.Close()
 	return client.ComposeUpdate(req)
 }
+
+func (s *DockerService) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCreateResult, error) {
+	client, err := client.NewClient()
+	if err != nil {
+		return &model.ComposeCreateResult{}, err
+	}
+	defer client.Close()
+	return client.ComposeUpgrade(req)
+}
