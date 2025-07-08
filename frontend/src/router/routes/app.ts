@@ -127,7 +127,7 @@ const appRoutes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/app/file/:filePath(.*)*',
+    path: '/app/file',
     name: 'file',
     component: () => import('@/views/app/file/main.vue'),
     meta: {

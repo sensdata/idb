@@ -170,8 +170,8 @@
   // 表格参数（包含从URL解析的分页参数）
   const params = computed(() => {
     const paginationParams = parsePaginationFromRoute(route.query);
-    // 直接从路由参数解析路径，避免依赖store.pwd的时序问题
-    const currentPath = parseFilePathFromRoute(route.params);
+    // 直接从路由查询参数解析路径，避免依赖store.pwd的时序问题
+    const currentPath = parseFilePathFromRoute(route.query);
 
     const result = {
       show_hidden: showHidden.value,
@@ -270,7 +270,7 @@
       store.initTree();
 
       // 等待路径导航完成
-      const targetPath = parseFilePathFromRoute(route.params);
+      const targetPath = parseFilePathFromRoute(route.query);
 
       if (targetPath !== store.pwd) {
         // 如果当前路径与目标路径不同，等待导航完成
@@ -300,9 +300,9 @@
     }
   });
 
-  // 监听路径参数变化
+  // 监听路径查询参数变化
   watch(
-    () => parseFilePathFromRoute(route.params),
+    () => parseFilePathFromRoute(route.query),
     async (newPath, oldPath) => {
       // 只在路径真正变化时处理
       if (newPath !== oldPath && newPath !== store.pwd) {
