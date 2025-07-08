@@ -49,9 +49,9 @@
     left: 0;
     z-index: 5;
     width: 208px;
-    height: 100%;
+    height: calc(100vh - 240px); /* 改为固定的视口相对高度，避免依赖父容器 */
     padding: 4px 0; /* 改为左右无padding，让紫色指示条能贴边显示 */
-    overflow: auto;
+    overflow: hidden auto; /* 隐藏水平滚动条 */ /* 明确指定垂直滚动 */
     border-right: 1px solid var(--color-border-2);
     transition: width 0.3s ease;
   }
