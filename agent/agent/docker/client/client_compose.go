@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/agent/global"
@@ -222,18 +223,14 @@ func operate(filePath, operation string) (string, error) {
 }
 
 func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, error) {
-	var (
-		result    model.PageResult
-		records   []model.ComposeInfo
-		BackDatas []model.ComposeInfo
-	)
+	var result model.PageResult
 
 	if utils.CheckIllegal(req.Info, req.WorkDir) {
 		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	// 枚举所有的 container
-	list, err := c.cli.ContainerList(
+	// 获取所有容器
+	allContainers, err := c.cli.ContainerList(
 		context.Background(),
 		container.ListOptions{All: true},
 	)
@@ -241,125 +238,147 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 		return &result, err
 	}
 
-	// composeProjects, _ := c.listComposeProjects(req.WorkDir) // workDir下实际的项目，暂时不做限制
-	composeMap := make(map[string]*model.ComposeInfo)
-	for _, container := range list {
-		if projectName, workingDir, configFiles, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir); ok {
-			containerItem := model.ComposeContainer{
-				ContainerID: container.ID,
-				Name:        container.Names[0][1:],
-				State:       container.State,
-				CreateTime:  time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
-			}
-			confFiles := resolveComposeConfigPaths(workingDir, configFiles)
-			if compose, has := composeMap[projectName]; has {
-				compose.ContainerNumber++
-				compose.Containers = append(compose.Containers, containerItem)
-				composeMap[projectName] = compose
-				compose.ConfigFiles = mergeComposeConfigPaths(compose.ConfigFiles, confFiles)
-			} else {
-				composeItem := &model.ComposeInfo{
-					ContainerNumber: 1,
-					CreatedAt:       time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
-					ConfigFiles:     strings.Join(confFiles, ","),
-					Workdir:         workingDir,
-					Path:            workingDir,
-					Containers:      []model.ComposeContainer{containerItem},
-				}
-				idbType, ok := container.Labels[constant.IDBType]
-				if ok {
-					composeItem.IdbType = idbType
-				}
-				// 如果限制了类型
-				if req.IdbType != "" && idbType != req.IdbType {
-					global.LOG.Info("Container %s type %s, is not %s, ignoring", containerItem.Name, idbType, req.IdbType)
-					continue
-				}
-
-				idbName, ok := container.Labels[constant.IDBName]
-				if ok {
-					composeItem.IdbName = idbName
-				}
-				idbVersion, ok := container.Labels[constant.IDBVersion]
-				if ok {
-					composeItem.IdbVersion = idbVersion
-				}
-				idbUpdateVersion, ok := container.Labels[constant.IDBUpdateVersion]
-				if ok {
-					composeItem.IdbUpdateVersion = idbUpdateVersion
-				}
-				idbPanel, ok := container.Labels[constant.IDBPanel]
-				if ok {
-					composeItem.IdbPanel = idbPanel
-				}
-
-				composeMap[projectName] = composeItem
-			}
+	// 构建 容器workdir -> 容器列表 映射
+	containerMap := make(map[string][]types.Container)
+	for _, container := range allContainers {
+		_, workDir, _, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
+		if ok {
+			containerMap[workDir] = append(containerMap[workDir], container)
 		}
 	}
 
-	// 遍历计算状态
-	for name, compose := range composeMap {
-		statusCount := make(map[string]int)
-		for _, c := range compose.Containers {
-			state := c.State // e.g. "running", "exited"
-			statusCount[state]++
+	// 列出 req.WorkDir 下所有项目
+	projects, err := c.listComposeProjects(req.WorkDir)
+	if err != nil {
+		return &result, err
+	}
+
+	var records []model.ComposeInfo
+	for _, project := range projects {
+		// 项目路径
+		workDir := filepath.Join(req.WorkDir, project)
+		containers := containerMap[workDir]
+
+		info := model.ComposeInfo{
+			Name:        project,
+			Workdir:     req.WorkDir,
+			Path:        workDir,
+			Containers:  make([]model.ComposeContainer, 0),
+			CreatedAt:   "",
+			ConfigFiles: "",
 		}
 
+		confSet := make(map[string]struct{})
+		statusCount := make(map[string]int)
+
+		for _, container := range containers {
+			containerItem := model.ComposeContainer{
+				ContainerID: container.ID,
+				Name:        strings.TrimPrefix(container.Names[0], "/"),
+				State:       container.State,
+				CreateTime:  time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
+			}
+			info.Containers = append(info.Containers, containerItem)
+			info.ContainerNumber++
+
+			if info.CreatedAt == "" {
+				info.CreatedAt = containerItem.CreateTime
+			}
+
+			statusCount[container.State]++
+
+			// 合并配置路径
+			_, _, configFiles, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
+			if ok {
+				for _, f := range resolveComposeConfigPaths(workDir, configFiles) {
+					confSet[f] = struct{}{}
+				}
+			}
+
+			// 提取标签（首次有效即可）
+			if info.IdbType == "" {
+				info.IdbType = container.Labels[constant.IDBType]
+			}
+			if info.IdbName == "" {
+				info.IdbName = container.Labels[constant.IDBName]
+			}
+			if info.IdbVersion == "" {
+				info.IdbVersion = container.Labels[constant.IDBVersion]
+			}
+			if info.IdbUpdateVersion == "" {
+				info.IdbUpdateVersion = container.Labels[constant.IDBUpdateVersion]
+			}
+			if info.IdbPanel == "" {
+				info.IdbPanel = container.Labels[constant.IDBPanel]
+			}
+		}
+
+		// 组装状态
 		switch len(statusCount) {
 		case 0:
-			compose.Status = model.ComposeStatusUnknown
+			info.Status = model.ComposeStatusNotDeployed
 		case 1:
 			for state := range statusCount {
 				switch state {
 				case "running":
-					compose.Status = model.ComposeStatusRunning
+					info.Status = model.ComposeStatusRunning
 				case "exited":
-					compose.Status = model.ComposeStatusExited
+					info.Status = model.ComposeStatusExited
 				case "paused":
-					compose.Status = model.ComposeStatusPaused
+					info.Status = model.ComposeStatusPaused
 				case "restarting":
-					compose.Status = model.ComposeStatusRestarting
+					info.Status = model.ComposeStatusRestarting
 				case "removing":
-					compose.Status = model.ComposeStatusRemoving
+					info.Status = model.ComposeStatusRemoving
 				case "dead":
-					compose.Status = model.ComposeStatusDead
+					info.Status = model.ComposeStatusDead
 				default:
-					compose.Status = model.ComposeStatusUnknown
+					info.Status = model.ComposeStatusUnknown
 				}
 			}
 		default:
-			compose.Status = model.ComposeStatusMixed
+			info.Status = model.ComposeStatusMixed
 		}
-		compose.Name = name
-		records = append(records, *compose)
+
+		// 配置路径合并
+		if len(confSet) > 0 {
+			confList := make([]string, 0, len(confSet))
+			for f := range confSet {
+				confList = append(confList, f)
+			}
+			info.ConfigFiles = strings.Join(confList, ",")
+		}
+
+		// 筛选 idbType
+		if req.IdbType != "" && info.IdbType != req.IdbType {
+			continue
+		}
+		// 筛选关键字
+		if req.Info != "" && !strings.Contains(info.Name, req.Info) {
+			continue
+		}
+
+		records = append(records, info)
 	}
 
-	if len(req.Info) != 0 {
-		length, count := len(records), 0
-		for count < length {
-			if !strings.Contains(records[count].Name, req.Info) {
-				records = append(records[:count], records[(count+1):]...)
-				length--
-			} else {
-				count++
-			}
-		}
-	}
+	// 排序
 	sort.Slice(records, func(i, j int) bool {
 		return records[i].CreatedAt > records[j].CreatedAt
 	})
-	total, start, end := len(records), (req.Page-1)*req.PageSize, req.Page*req.PageSize
+
+	// 分页
+	total := len(records)
+	start := (req.Page - 1) * req.PageSize
+	end := req.Page * req.PageSize
 	if start > total {
-		BackDatas = make([]model.ComposeInfo, 0)
+		result.Items = []model.ComposeInfo{}
 	} else {
-		if end >= total {
+		if end > total {
 			end = total
 		}
-		BackDatas = records[start:end]
+		result.Items = records[start:end]
 	}
 	result.Total = int64(total)
-	result.Items = BackDatas
 	return &result, nil
 }
 
