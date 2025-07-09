@@ -13,8 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/compose-spec/compose-go/loader"
+	composeTypes "github.com/compose-spec/compose-go/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
@@ -241,9 +244,11 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 	// 构建 容器workdir -> 容器列表 映射
 	containerMap := make(map[string][]types.Container)
 	for _, container := range allContainers {
-		_, workDir, _, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
-		if ok {
-			containerMap[workDir] = append(containerMap[workDir], container)
+		if container.Labels != nil {
+			_, workDir, _, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
+			if ok {
+				containerMap[workDir] = append(containerMap[workDir], container)
+			}
 		}
 	}
 
@@ -271,73 +276,124 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 		confSet := make(map[string]struct{})
 		statusCount := make(map[string]int)
 
-		for _, container := range containers {
-			containerItem := model.ComposeContainer{
-				ContainerID: container.ID,
-				Name:        strings.TrimPrefix(container.Names[0], "/"),
-				State:       container.State,
-				CreateTime:  time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
-			}
-			info.Containers = append(info.Containers, containerItem)
-			info.ContainerNumber++
-
-			if info.CreatedAt == "" {
-				info.CreatedAt = containerItem.CreateTime
-			}
-
-			statusCount[container.State]++
-
-			// 合并配置路径
-			_, _, configFiles, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
-			if ok {
-				for _, f := range resolveComposeConfigPaths(workDir, configFiles) {
-					confSet[f] = struct{}{}
+		if len(containers) == 0 {
+			// 当未启动任何容器时，尝试从 docker-compose.yaml 中提取元信息
+			composePath := filepath.Join(workDir, "docker-compose.yaml")
+			envPath := filepath.Join(workDir, ".env")
+			envMap, _ := godotenv.Read(envPath)
+			project, err := loader.Load(composeTypes.ConfigDetails{
+				ConfigFiles: []composeTypes.ConfigFile{
+					{
+						Filename: composePath,
+					},
+				},
+				Environment: envMap,
+				WorkingDir:  workDir,
+			})
+			if err == nil {
+				for _, svc := range project.Services {
+					labels := svc.Labels
+					if info.IdbType == "" {
+						info.IdbType = labels["net.idb.type"]
+					}
+					if info.IdbName == "" {
+						info.IdbName = labels["net.idb.name"]
+					}
+					if info.IdbVersion == "" {
+						info.IdbVersion = labels["net.idb.version"]
+					}
+					if info.IdbUpdateVersion == "" {
+						info.IdbUpdateVersion = labels["net.idb.update_version"]
+					}
+					if info.IdbPanel == "" {
+						info.IdbPanel = labels["net.idb.panel"]
+					}
+					// 如果都已获取，提前退出
+					if info.IdbType != "" && info.IdbName != "" && info.IdbVersion != "" &&
+						info.IdbUpdateVersion != "" && info.IdbPanel != "" {
+						break
+					}
 				}
+			} else {
+				global.LOG.Error("Compose file load failed in %s: %v", workDir, err)
 			}
 
-			// 提取标签（首次有效即可）
-			if info.IdbType == "" {
-				info.IdbType = container.Labels[constant.IDBType]
-			}
-			if info.IdbName == "" {
-				info.IdbName = container.Labels[constant.IDBName]
-			}
-			if info.IdbVersion == "" {
-				info.IdbVersion = container.Labels[constant.IDBVersion]
-			}
-			if info.IdbUpdateVersion == "" {
-				info.IdbUpdateVersion = container.Labels[constant.IDBUpdateVersion]
-			}
-			if info.IdbPanel == "" {
-				info.IdbPanel = container.Labels[constant.IDBPanel]
-			}
-		}
-
-		// 组装状态
-		switch len(statusCount) {
-		case 0:
 			info.Status = model.ComposeStatusNotDeployed
-		case 1:
-			for state := range statusCount {
-				switch state {
-				case "running":
-					info.Status = model.ComposeStatusRunning
-				case "exited":
-					info.Status = model.ComposeStatusExited
-				case "paused":
-					info.Status = model.ComposeStatusPaused
-				case "restarting":
-					info.Status = model.ComposeStatusRestarting
-				case "removing":
-					info.Status = model.ComposeStatusRemoving
-				case "dead":
-					info.Status = model.ComposeStatusDead
-				default:
-					info.Status = model.ComposeStatusUnknown
+
+			if _, err := os.Stat(composePath); err == nil {
+				confSet[composePath] = struct{}{}
+			}
+		} else {
+			for _, container := range containers {
+				containerItem := model.ComposeContainer{
+					ContainerID: container.ID,
+					Name:        strings.TrimPrefix(container.Names[0], "/"),
+					State:       container.State,
+					CreateTime:  time.Unix(container.Created, 0).Format("2006-01-02 15:04:05"),
+				}
+				info.Containers = append(info.Containers, containerItem)
+				info.ContainerNumber++
+
+				if info.CreatedAt == "" {
+					info.CreatedAt = containerItem.CreateTime
+				}
+
+				statusCount[container.State]++
+
+				// 合并配置路径
+				if container.Labels != nil {
+					_, _, configFiles, ok := isContainerFromManagedCompose(container.Labels, req.WorkDir)
+					if ok {
+						for _, f := range resolveComposeConfigPaths(workDir, configFiles) {
+							confSet[f] = struct{}{}
+						}
+					}
+				}
+
+				// 提取标签（首次有效即可）
+				if info.IdbType == "" {
+					info.IdbType = container.Labels[constant.IDBType]
+				}
+				if info.IdbName == "" {
+					info.IdbName = container.Labels[constant.IDBName]
+				}
+				if info.IdbVersion == "" {
+					info.IdbVersion = container.Labels[constant.IDBVersion]
+				}
+				if info.IdbUpdateVersion == "" {
+					info.IdbUpdateVersion = container.Labels[constant.IDBUpdateVersion]
+				}
+				if info.IdbPanel == "" {
+					info.IdbPanel = container.Labels[constant.IDBPanel]
 				}
 			}
-		default:
-			info.Status = model.ComposeStatusMixed
+
+			// 组装状态
+			switch len(statusCount) {
+			case 0:
+				info.Status = model.ComposeStatusNotDeployed
+			case 1:
+				for state := range statusCount {
+					switch state {
+					case "running":
+						info.Status = model.ComposeStatusRunning
+					case "exited":
+						info.Status = model.ComposeStatusExited
+					case "paused":
+						info.Status = model.ComposeStatusPaused
+					case "restarting":
+						info.Status = model.ComposeStatusRestarting
+					case "removing":
+						info.Status = model.ComposeStatusRemoving
+					case "dead":
+						info.Status = model.ComposeStatusDead
+					default:
+						info.Status = model.ComposeStatusUnknown
+					}
+				}
+			default:
+				info.Status = model.ComposeStatusMixed
+			}
 		}
 
 		// 配置路径合并
