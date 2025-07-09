@@ -2084,6 +2084,15 @@ definitions:
     - name
     - valid
     type: object
+  model.UpgradeApp:
+    properties:
+      compose_name:
+        type: string
+      id:
+        type: integer
+      upgrade_version_id:
+        type: integer
+    type: object
   model.UserInfo:
     properties:
       created_at:
@@ -9072,6 +9081,27 @@ paths:
         "200":
           description: OK
       summary: Uninstall app
+      tags:
+      - App
+  /store/{host}/apps/upgrade:
+    post:
+      description: Upgrade app
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpgradeApp'
+      responses:
+        "200":
+          description: OK
+      summary: Upgrade app
       tags:
       - App
   /store/apps/sync:
