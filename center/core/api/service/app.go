@@ -478,7 +478,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 		apps = append(apps, core.App{
 			ID:          appData.ID,
 			Type:        constant.TYPE_APP,
-			Name:        appData.Name,
+			Name:        compose.Name,
 			DisplayName: appData.DisplayName,
 			Category:    appData.Category,
 			Tags:        strings.Split(appData.Tags, ","),
