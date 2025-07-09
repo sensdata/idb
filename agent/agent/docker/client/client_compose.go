@@ -695,11 +695,11 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 	}
 	// 备份 .env
 	backupEnv := filepath.Join(backupDir, ".env")
-	fo.CopyFile(envPath, backupEnv)
+	fo.Copy(envPath, backupEnv)
 
 	// 备份 docker-compose.yaml
 	backupCompose := filepath.Join(backupDir, "docker-compose.yaml")
-	fo.CopyFile(composePath, backupCompose)
+	fo.Copy(composePath, backupCompose)
 	global.LOG.Info("backup compose and env to %s", backupDir)
 
 	// 写入conf
