@@ -21,7 +21,8 @@ export default {
   'app.store.app.install.minLength': '最少输入{min}个字符',
   'app.store.app.install.maxLength': '最多输入{max}个字符',
   'app.store.app.install.pattern': '格式不正确',
-  'app.store.app.upgrade.confirm': '确定升级到版本{version}吗？',
+  'app.store.app.upgrade.confirm':
+    '将使用{version}的docker-compose.yml覆盖，请备份数据之后，再进行升级操作',
   'app.store.app.install.success': '应用安装成功',
   'app.store.app.upgrade.success': '应用升级成功',
 };

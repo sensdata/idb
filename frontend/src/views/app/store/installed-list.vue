@@ -49,6 +49,7 @@
                   type="primary"
                   shape="round"
                   size="small"
+                  :disabled="!item.has_upgrade"
                   @click="handleUpgrade(item)"
                 >
                   {{ $t('app.store.app.list.upgrade') }}
@@ -68,18 +69,21 @@
       />
     </div>
   </a-spin>
-  <upgrade-drawer ref="upgradeRef" />
+  <!-- <upgrade-drawer ref="upgradeRef" /> -->
 </template>
 
 <script setup lang="ts">
   import { onMounted, reactive, ref, toRaw } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { AppSimpleEntity } from '@/entity/App';
-  import { getInstalledAppListApi } from '@/api/store';
+  import { getInstalledAppListApi, upgradeAppApi } from '@/api/store';
   import { Message } from '@arco-design/web-vue';
   import { getHexColorByChar } from '@/helper/utils';
-  import UpgradeDrawer from './components/upgrade-drawer.vue';
+  import { useConfirm } from '@/composables/confirm';
+  // import UpgradeDrawer from './components/upgrade-drawer.vue';
 
+  const { t } = useI18n();
   const pagination = reactive({
     page: 1,
     page_size: 10,
@@ -88,7 +92,7 @@
 
   const items = ref<AppSimpleEntity[]>([]);
 
-  const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
+  // const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
 
@@ -128,10 +132,39 @@
     onSearch(searchValue.value);
   };
 
-  const handleUpgrade = (item: AppSimpleEntity) => {
-    upgradeRef.value?.setParams({ id: item.id });
-    upgradeRef.value?.load();
-    upgradeRef.value?.show();
+  const { confirm } = useConfirm();
+  const handleUpgrade = async (item: AppSimpleEntity) => {
+    // upgradeRef.value?.setParams({ id: item.id });
+    // upgradeRef.value?.load();
+    // upgradeRef.value?.show();
+    // 暂时没有输入，先直接一键升级
+    const upgradeVersion = item.versions.find((v) => v.can_upgrade)!;
+    if (!upgradeVersion) {
+      console.error('no upgrade version');
+      return;
+    }
+
+    if (
+      await confirm(
+        t('app.store.app.upgrade.confirm', {
+          version: upgradeVersion.version + '.' + upgradeVersion.update_version,
+        })
+      )
+    ) {
+      try {
+        loading.value = true;
+        await upgradeAppApi({
+          id: item.id,
+          upgrade_version_id: upgradeVersion.id,
+          compose_name: item.name,
+        });
+        Message.success(t('app.store.app.upgrade.success'));
+      } catch (err: any) {
+        Message.error(err?.message);
+      } finally {
+        loading.value = false;
+      }
+    }
   };
 
   defineExpose({

@@ -24,7 +24,7 @@ export default {
     'Please enter no more than {max} characters',
   'app.store.app.install.pattern': 'Invalid format',
   'app.store.app.upgrade.confirm':
-    'Are you sure to upgrade to version {version}?',
+    'The docker-compose.yml of version {version} will be used to overwrite, please backup the data before upgrading',
   'app.store.app.install.success': 'App installed successfully',
   'app.store.app.upgrade.success': 'App upgraded successfully',
 };
