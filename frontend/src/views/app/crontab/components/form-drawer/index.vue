@@ -537,23 +537,23 @@
     height: 300px;
     overflow: hidden;
     border: 1px solid var(--color-border-2);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 0.57rem;
+    box-shadow: 0 0.14rem 0.57rem rgba(0, 0, 0, 0.1);
   }
 
   :deep(.arco-form-item-label) {
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     color: #1d2129;
   }
 
   :deep(.arco-form-item) {
-    margin-bottom: 20px;
+    margin-bottom: 1.43rem;
   }
 
   :deep(.arco-radio-group) {
     .arco-radio-button {
-      margin-right: 16px;
+      margin-right: 1.14rem;
     }
   }
 </style>

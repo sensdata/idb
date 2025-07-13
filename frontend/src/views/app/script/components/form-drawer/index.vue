@@ -300,7 +300,7 @@
 <style scoped>
   .script-form {
     width: 100%;
-    padding: 0 4px;
+    padding: 0 0.286rem;
   }
 
   /* 表单分区 */
@@ -314,20 +314,20 @@
 
   /* 表单项样式 */
   .script-form :deep(.arco-form-item) {
-    margin-bottom: 20px;
+    margin-bottom: 1.429rem;
   }
 
   .script-form :deep(.arco-form-item-label) {
     padding: 0;
-    margin-bottom: 8px;
-    font-size: 14px;
+    margin-bottom: 0;
+    font-size: 1rem;
     font-weight: 500;
     color: var(--color-text-1);
   }
 
   /* 必填标记样式 - 使用ArcoDesign内置样式 */
   .script-form :deep(.arco-form-item-label-required-symbol) {
-    margin-right: 4px;
+    margin-right: 0.286rem;
     font-weight: bold;
     color: #f53f3f;
   }
@@ -339,8 +339,8 @@
 
   .form-input :deep(.arco-input),
   .form-input :deep(.arco-select-view) {
-    font-size: 14px;
-    border-radius: 6px;
+    font-size: 1rem;
+    border-radius: 0.429rem;
     transition: all 0.2s;
   }
 
@@ -356,21 +356,21 @@
 
   /* Type单选按钮组样式 */
   .form-item-type {
-    margin-bottom: 20px;
+    margin-bottom: 1.429rem;
   }
 
   .type-radio-group :deep(.arco-radio) {
-    margin-right: 24px;
+    margin-right: 1.714rem;
   }
 
   .type-radio-group :deep(.arco-radio-label) {
-    padding-left: 8px;
-    font-size: 14px;
+    padding-left: 0.571rem;
+    font-size: 1rem;
     color: var(--color-text-1);
   }
 
   .type-radio-group :deep(.arco-radio-button) {
-    border-radius: 6px;
+    border-radius: 0.429rem;
   }
 
   /* 内容编辑器样式 */
@@ -379,17 +379,17 @@
   }
 
   .content-form-item :deep(.arco-form-item-label) {
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .editor-container {
     position: relative;
     display: flex;
     width: 100%;
-    height: 450px;
+    height: 32.143rem;
     overflow: hidden;
-    border: 1px solid var(--color-border-2);
-    border-radius: 8px;
+    border: 0.071rem solid var(--color-border-2);
+    border-radius: 0.571rem;
     transition: border-color 0.2s ease;
   }
 
@@ -408,13 +408,13 @@
   }
 
   .editor-container :deep(.cm-editor) {
-    border-radius: 6px;
+    border-radius: 0.429rem;
   }
 
   /* 选择器下拉框样式优化 */
   .form-input :deep(.arco-select-option) {
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 0.571rem 0.857rem;
+    font-size: 1rem;
   }
 
   .form-input :deep(.arco-select-option:hover) {
@@ -432,9 +432,9 @@
   }
 
   /* 响应式布局 */
-  @media (width <= 768px) {
+  @media (width <= 54.857rem) {
     .editor-container {
-      height: 350px;
+      height: 25rem;
     }
   }
 </style>

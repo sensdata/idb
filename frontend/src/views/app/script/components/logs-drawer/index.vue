@@ -25,7 +25,11 @@
                   expandData[record.path].el = el;
                 }
               "
-              style="min-height: 30px; max-height: 400px; overflow: auto"
+              style="
+                min-height: 2.143rem;
+                max-height: 28.571rem;
+                overflow: auto;
+              "
             >
               <a-empty
                 v-if="

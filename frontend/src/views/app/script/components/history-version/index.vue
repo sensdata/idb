@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     :visible="visible"
-    width="500px"
+    width="35.714rem"
     :title="$t('app.script.history_version.title')"
     placement="right"
     :footer="false"

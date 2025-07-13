@@ -233,14 +233,14 @@
       dataIndex: 'status',
       title: t('app.crontab.list.column.status'),
       width: 120,
-      align: 'center' as const,
+      align: 'left' as const,
       slotName: 'status',
     },
     {
       dataIndex: 'period',
       title: t('app.crontab.list.column.period'),
       width: 150,
-      align: 'center' as const,
+      align: 'left' as const,
       render: ({ record }: { record: CrontabEntity }) =>
         extractPeriodFromRecord(record),
     },
@@ -248,7 +248,7 @@
       dataIndex: 'mod_time',
       title: t('app.crontab.list.column.mod_time'),
       width: 160,
-      align: 'center' as const,
+      align: 'left' as const,
       render: ({ record }: { record: CrontabEntity }) => {
         return formatTimeWithoutSeconds(record.mod_time);
       },
@@ -596,7 +596,7 @@
   .status-cell {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .status-tag {
