@@ -5,8 +5,11 @@
         ref="categoryTreeRef"
         v-model:selected-category="params.category"
         :categories="categoryItems"
-        :show-title="false"
+        :show-title="true"
+        :enable-category-management="true"
+        :category-manage-config="categoryManageConfig"
         @create="handleCategoryCreate"
+        @category-manage-ok="handleCategoryManageOk"
       />
     </template>
     <template #main>
@@ -26,10 +29,6 @@
             </template>
             {{ $t('app.service.list.action.create') }}
           </a-button>
-          <category-manage-button
-            :config="categoryManageConfig"
-            @ok="handleCategoryManageOk"
-          />
           <a-button
             v-if="type === SERVICE_TYPE.Global"
             @click="handleSyncGlobal"
@@ -94,7 +93,6 @@
   import useCurrentHost from '@/composables/current-host';
   import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
-  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import { createServiceCategoryManageConfig } from './adapters/category-manage-adapter';
   import { useServiceList } from './composables/use-service-list';
   import FormDrawer from './components/form-drawer/index.vue';

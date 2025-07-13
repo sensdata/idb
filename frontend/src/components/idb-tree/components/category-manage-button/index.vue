@@ -8,7 +8,6 @@
     <template #icon>
       <icon-settings />
     </template>
-    {{ buttonText }}
   </a-button>
 
   <!-- 分类管理抽屉 -->
@@ -20,8 +19,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { ref } from 'vue';
   import { IconSettings } from '@arco-design/web-vue/es/icon';
   import CategoryManageDrawer from '@/components/idb-tree/components/category-manage-drawer.vue';
   import type {
@@ -30,8 +28,7 @@
     CategoryManageButtonExposed,
   } from './types';
 
-  const { t } = useI18n();
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const props = withDefaults(defineProps<CategoryManageButtonProps>(), {
     size: 'medium',
     type: 'secondary',
@@ -42,14 +39,6 @@
 
   // 组件引用
   const categoryManageRef = ref<InstanceType<typeof CategoryManageDrawer>>();
-
-  // 计算按钮文本
-  const buttonText = computed(() => {
-    if (props.buttonText) {
-      return props.buttonText;
-    }
-    return t('category.manage.button');
-  });
 
   // 处理分类管理按钮点击
   const handleCategoryManage = () => {

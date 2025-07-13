@@ -11,8 +11,6 @@ import type { CategoryManageConfig } from '@/components/idb-tree/types/category'
 export interface CategoryManageButtonProps {
   /** 分类管理配置 */
   config: CategoryManageConfig;
-  /** 按钮文本（可选，默认使用通用的分类管理文本） */
-  buttonText?: string;
   /** 按钮大小 */
   size?: 'mini' | 'small' | 'medium' | 'large';
   /** 按钮类型 */

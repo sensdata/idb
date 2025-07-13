@@ -5,14 +5,16 @@
         ref="categoryTreeRef"
         v-model:selected-category="params.category"
         :category-config="categoryConfig"
+        :category-manage-config="categoryManageConfig"
         :enable-category-management="true"
         :host-id="currentHostId"
         :categories="categoryItems"
-        :show-title="false"
+        :show-title="true"
         @create="handleCategoryCreate"
         @category-created="handleCategoryCreated"
         @category-updated="handleCategoryUpdated"
         @category-deleted="handleCategoryDeleted"
+        @category-manage-ok="handleCategoryManageOk"
       />
     </template>
     <template #main>
@@ -31,11 +33,6 @@
             </template>
             {{ $t('app.crontab.list.action.create') }}
           </a-button>
-          <category-manage-button
-            ref="categoryManageButtonRef"
-            :config="categoryManageConfig"
-            @ok="handleCategoryManageOk"
-          />
         </template>
         <template #status="{ record }: { record: CrontabEntity }">
           <div class="status-cell">
@@ -92,7 +89,6 @@
   import usetCurrentHost from '@/composables/current-host';
   import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
-  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import { usePeriodUtils } from './components/form-drawer/composables/use-period-utils';
@@ -164,8 +160,6 @@
   // 组件引用
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const categoryTreeRef = ref<InstanceType<typeof CategoryTree>>();
-  const categoryManageButtonRef =
-    ref<InstanceType<typeof CategoryManageButton>>();
   const formRef = ref<FormDrawerInstance>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const { loading, setLoading } = useLoading();
@@ -539,7 +533,13 @@
   // 处理分类创建
   const handleCategoryCreate = () => {
     // 触发分类管理功能
-    categoryManageButtonRef.value?.show();
+    // 由于管理按钮现在在分类树头部，这里可以通过分类树组件访问
+    if (
+      categoryTreeRef.value &&
+      categoryTreeRef.value.categoryManageButtonRef
+    ) {
+      categoryTreeRef.value.categoryManageButtonRef.show();
+    }
   };
 
   // 处理分类创建成功

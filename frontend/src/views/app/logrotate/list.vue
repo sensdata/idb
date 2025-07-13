@@ -6,13 +6,15 @@
         v-model:selected-category="params.category"
         :category-config="categoryConfig"
         :enable-category-management="true"
+        :category-manage-config="categoryManageConfig"
         :host-id="currentHostId"
         :categories="categoryItems"
-        :show-title="false"
+        :show-title="true"
         @create="handleCategoryCreate"
         @category-created="handleCategoryCreated"
         @category-updated="handleCategoryUpdated"
         @category-deleted="handleCategoryDeleted"
+        @category-manage-ok="handleCategoryManageOk"
       />
     </template>
     <template #main>
@@ -32,10 +34,6 @@
             </template>
             {{ $t('app.logrotate.list.action.create') }}
           </a-button>
-          <category-manage-button
-            :config="categoryManageConfig"
-            @ok="handleCategoryManageOk"
-          />
         </template>
 
         <template #status="{ record }: { record: LogrotateEntity }">
@@ -95,7 +93,6 @@
   import useCurrentHost from '@/composables/current-host';
   import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
-  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import { createLogrotateCategoryConfig } from './adapters/category-adapter';
   import { createLogrotateCategoryManageConfig } from './adapters/category-manage-adapter';
   import FormDrawer from './components/form-drawer/index.vue';

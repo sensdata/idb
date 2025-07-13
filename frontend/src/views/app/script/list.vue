@@ -5,8 +5,11 @@
         ref="categoryTreeRef"
         v-model:selected-category="selectedCat"
         :categories="categoryNames"
-        :show-title="false"
+        :show-title="true"
+        :enable-category-management="true"
+        :category-manage-config="categoryManageConfig"
         @create="handleCategoryCreate"
+        @category-manage-ok="handleCategoryManageOk"
       />
     </template>
     <template #main>
@@ -26,10 +29,6 @@
             </template>
             {{ $t('app.script.list.action.create') }}
           </a-button>
-          <category-manage-button
-            :config="categoryManageConfig"
-            @ok="handleCategoryManageOk"
-          />
         </template>
         <template #history_version="{ record }: { record: ScriptEntity }">
           <a-link @click="handleHistoryVersion(record)">
@@ -86,7 +85,6 @@
   import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import LogsViewModal from '@/components/logs-view/modal.vue';
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
-  import CategoryManageButton from '@/components/idb-tree/components/category-manage-button/index.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
   import HistoryVersion from './components/history-version/index.vue';

@@ -12,7 +12,6 @@ export default {
   // 分类管理翻译
   'category.title': '分类',
   'category.manage.title': '分类管理',
-  'category.manage.button': '分类管理',
   'category.action.create': '创建分类',
   'category.action.edit': '编辑分类',
   'category.column.name': '分类名称',

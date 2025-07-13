@@ -5,6 +5,19 @@
       <div class="category-tree__header-title">
         {{ title || t('category.title') }}
       </div>
+      <!-- 分类管理按钮 -->
+      <div
+        v-if="enableCategoryManagement && categoryManageConfig"
+        class="category-tree__header-actions"
+      >
+        <category-manage-button
+          ref="categoryManageButtonRef"
+          size="small"
+          type="text"
+          :config="categoryManageConfig"
+          @ok="$emit('categoryManageOk')"
+        />
+      </div>
     </div>
 
     <!-- 主要的树形组件 -->
@@ -27,7 +40,9 @@
   import { useI18n } from 'vue-i18n';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import IdbTree from './index.vue';
+  import CategoryManageButton from './components/category-manage-button/index.vue';
   import { TreeItem, TreeProps, SelectedValue } from './types';
+  import type { CategoryManageConfig } from './types/category';
 
   interface Props extends Omit<TreeProps, 'items'> {
     /** 分类数据源 */
@@ -38,6 +53,10 @@
     title?: string;
     /** 选中的分类名称 */
     selectedCategory?: string;
+    /** 分类管理配置 */
+    categoryManageConfig?: CategoryManageConfig;
+    /** 是否启用分类管理模式 */
+    enableCategoryManagement?: boolean;
   }
 
   interface Emits {
@@ -47,6 +66,14 @@
     (e: 'doubleClick', item: TreeItem): void;
     (e: 'toggle', item: TreeItem, expanded: boolean): void;
     (e: 'create'): void;
+    /** 分类创建成功 */
+    (e: 'category-created', categoryName: string): void;
+    /** 分类更新成功 */
+    (e: 'category-updated', oldName: string, newName: string): void;
+    /** 分类删除成功 */
+    (e: 'category-deleted', categoryName: string): void;
+    /** 分类管理操作完成 */
+    (e: 'categoryManageOk'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -61,6 +88,7 @@
     defaultIcon: FolderIcon,
     showTitle: true,
     categories: () => [],
+    enableCategoryManagement: false,
   });
 
   const emit = defineEmits<Emits>();
@@ -70,6 +98,8 @@
 
   // 组件引用
   const treeRef = ref();
+  const categoryManageButtonRef =
+    ref<InstanceType<typeof CategoryManageButton>>();
 
   // 计算默认翻译文本
   const defaultEmptyText = computed(
@@ -99,7 +129,21 @@
 
   const treeProps = computed(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { categories, showTitle, title, selectedCategory, ...rest } = props;
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      categories,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      showTitle,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      title,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      selectedCategory,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      categoryManageConfig,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      enableCategoryManagement,
+      ...rest
+    } = props;
     return {
       ...rest,
       emptyText: defaultEmptyText.value,
@@ -187,6 +231,7 @@
     selectCategory,
     getCategories,
     getSelectedCategory,
+    categoryManageButtonRef,
   });
 </script>
 
@@ -198,15 +243,24 @@
   }
 
   .category-tree__header {
-    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
     background-color: var(--color-bg-1);
     border-bottom: 1px solid var(--color-border-2);
   }
 
   .category-tree__header-title {
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 500;
     color: var(--color-text-1);
+  }
+
+  .category-tree__header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
 
   .category-tree--managing {
