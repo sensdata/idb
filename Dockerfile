@@ -20,14 +20,22 @@ RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
 
 # ---------- 构建 agent (使用debian较低版本) ---------- #
 FROM debian:10 AS agent-builder
-# 安装依赖
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    gcc \
-    libc6-dev \
-    make \
-    sed
+
+# 设置为非交互模式，防止 tzdata 等包交互式安装
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 替换已过期的 buster 源为 archive 源，并安装构建依赖
+RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.debian.org|http://archive.debian.org|g' /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until && \
+    apt-get update && \
+    apt-get install -y \
+        curl \
+        git \
+        gcc \
+        libc6-dev \
+        make \
+        sed
 
 # 安装 golang
 RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.22.3.linux-amd64.tar.gz && \
