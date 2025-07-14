@@ -1,11 +1,16 @@
 package plugin
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 	"sync"
 
@@ -161,7 +166,87 @@ func (s *PluginServer) isPluginInstalled(e PluginEntry) bool {
 }
 
 func (s *PluginServer) installPlugin(e PluginEntry) error {
-	return fmt.Errorf("auto install not implemented for plugin %s", e.Name)
+	global.LOG.Info("downloading plugin %s from %s", e.Name, e.Url)
+
+	// 下载 .tar.gz 包
+	resp, err := http.Get(e.Url)
+	if err != nil {
+		return fmt.Errorf("failed to download plugin %s: %w", e.Name, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
+	}
+
+	// 创建插件目录
+	if err := os.MkdirAll(e.Path, 0755); err != nil {
+		return fmt.Errorf("failed to create plugin path %s: %w", e.Path, err)
+	}
+
+	// 解压 tar.gz 到 e.Path
+	if err := extractTarGz(resp.Body, e.Path); err != nil {
+		return fmt.Errorf("failed to extract plugin tar.gz: %w", err)
+	}
+
+	// 设置主执行文件为可执行
+	execPath := filepath.Join(e.Path, e.Name)
+	if err := os.Chmod(execPath, 0755); err != nil {
+		return fmt.Errorf("failed to chmod plugin exec file: %w", err)
+	}
+
+	global.LOG.Info("plugin %s installed at %s", e.Name, e.Path)
+	return nil
+}
+
+// 解压 tar.gz 到指定目录
+func extractTarGz(gzipStream io.Reader, dest string) error {
+	uncompressedStream, err := gzip.NewReader(gzipStream)
+	if err != nil {
+		return fmt.Errorf("gzip reader error: %w", err)
+	}
+	defer uncompressedStream.Close()
+
+	tarReader := tar.NewReader(uncompressedStream)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // 解压完毕
+		}
+		if err != nil {
+			return fmt.Errorf("tar read error: %w", err)
+		}
+
+		name := header.Name
+		relPath := filepath.Clean(name)
+		targetPath := filepath.Join(dest, relPath)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("mkdir error: %w", err)
+			}
+		case tar.TypeReg:
+			// 保证父目录存在
+			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+				return fmt.Errorf("mkdir for file error: %w", err)
+			}
+			outFile, err := os.Create(targetPath)
+			if err != nil {
+				return fmt.Errorf("create file error: %w", err)
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+				return fmt.Errorf("copy file error: %w", err)
+			}
+			outFile.Close()
+		default:
+			global.LOG.Warn("unsupported tar entry: %s", name)
+		}
+	}
+
+	return nil
 }
 
 func (s *PluginServer) loadPlugin(entry PluginEntry) error {
