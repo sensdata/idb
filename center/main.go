@@ -30,7 +30,6 @@ import (
 	"github.com/sensdata/idb/center/db/migration"
 	_ "github.com/sensdata/idb/center/docs"
 	"github.com/sensdata/idb/center/global"
-	"github.com/sensdata/idb/center/plugin"
 	"github.com/sensdata/idb/core/constant"
 	logger "github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/logstream"
@@ -169,14 +168,14 @@ func StartServices() error {
 	global.LOG.Info("Init api")
 	api.API.InitRouter()
 	// 注册插件
-	plugin.RegisterPlugins()
+	// plugin.RegisterPlugins()
 	// 启动apiServer
 	if err := api.API.Start(); err != nil {
 		global.LOG.Error("Failed to start api: %v", err)
 		return err
 	}
 	// 启动插件
-	plugin.StartPlugins()
+	// plugin.StartPlugins()
 
 	return nil
 }
