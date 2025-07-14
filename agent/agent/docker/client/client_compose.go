@@ -531,8 +531,8 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) (*model.ComposeCrea
 		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	// 初始化日志
-	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
+	// 初始化日志 (删除时，使用临时目录，因为compose目录会被清理)
+	dockerLogDir := filepath.Join(os.TempDir(), "idb_docker_logs")
 	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
 			return &result, errors.New("failed to mkdir docker_logs")
