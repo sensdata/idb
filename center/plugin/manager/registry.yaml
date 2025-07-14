@@ -1,4 +1,5 @@
 plugins:
   - name: scriptmanager
     path: /var/lib/idb/plugins/scriptmanager
+    url: https://static.sensdata.com/idb/release/v0.0.187/plugins/scriptmanager.tar.gz
     enabled: true
