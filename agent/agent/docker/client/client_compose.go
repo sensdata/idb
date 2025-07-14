@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -474,111 +473,219 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	// 写入docker-compose.yaml和.env
-	composePath, err := c.initComposeAndEnv(&req)
-	if err != nil {
-		return &result, err
-	}
-	global.LOG.Info("init compose and env successful")
-
-	// 写入conf
-	if req.ConfPath != "" && req.ConfContent != "" {
-		if err := c.initConf(req.ConfPath, req.ConfContent, false); err != nil {
-			global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
-			return &result, err
-		}
-		global.LOG.Info("init conf successful")
-	}
-
-	global.LOG.Info("try docker compose up %s", req.Name)
-
 	// 初始化日志
-	projectDir := filepath.Dir(composePath)
-	dockerLogDir := path.Join(projectDir, "docker_logs")
+	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
 	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
-			return &result, err
+			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_create_%s_%s.log", dockerLogDir, req.Name, time.Now().Format("20060102150405"))
+	logPath := fmt.Sprintf("%s/compose_create_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		return &result, err
+		return &result, errors.New("failed to create compose_create log")
 	}
 	result.Log = logPath
 
-	defer file.Close()
-	if stdout, err := up(composePath); err != nil {
-		global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, string(stdout), err)
-		_, _ = down(composePath, true)
-		_, _ = file.WriteString("docker compose up failed!")
-		return &result, errors.New(string(stdout))
-	}
-	global.LOG.Info("docker compose up %s successful!", req.Name)
-	_, _ = file.WriteString("docker compose up successful!")
+	// logger
+	logger := utils.NewStepLogger(file)
+
+	// 异步执行，写入日志
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic recovered: %v", r)
+				global.LOG.Error("ComposeCreate panic recovered: %v", r)
+			}
+			file.Close()
+		}()
+
+		// 写入docker-compose.yaml和.env
+		logger.Info("try init compose and env")
+		composePath, err := c.initComposeAndEnv(&req)
+		if err != nil {
+			logger.Error("init compose and env failed: %v", err)
+			global.LOG.Error("Failed to init compose and env, %v", err)
+			return
+		}
+		logger.Info("init compose and env successful")
+		global.LOG.Info("init compose and env successful")
+
+		// 写入conf
+		if req.ConfPath != "" && req.ConfContent != "" {
+			if err := c.initConf(req.ConfPath, req.ConfContent, false); err != nil {
+				logger.Error("init conf failed: %v", err)
+				global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
+				return
+			}
+			logger.Info("init conf successful")
+			global.LOG.Info("init conf successful")
+		}
+
+		logger.Info("try docker compose up %s", req.Name)
+		global.LOG.Info("try docker compose up %s", req.Name)
+
+		if stdout, err := up(composePath); err != nil {
+			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			_, _ = down(composePath, true)
+			return
+		}
+
+		logger.Info("docker compose up %s successful!", req.Name)
+		global.LOG.Info("docker compose up %s successful!", req.Name)
+	}()
 
 	return &result, nil
 }
 
-func (c DockerClient) ComposeRemove(req model.ComposeRemove) error {
+func (c DockerClient) ComposeRemove(req model.ComposeRemove) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
 	if utils.CheckIllegal(req.Name, req.WorkDir) {
-		return errors.New(constant.ErrCmdIllegal)
+		return &result, errors.New(constant.ErrCmdIllegal)
 	}
-	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
-	if _, err := os.Stat(composePath); err != nil {
-		global.LOG.Error("Compose file %s not found", composePath)
-		return fmt.Errorf("%s not found, %v", composePath, err)
-	}
-	if stdout, err := down(composePath, true); err != nil {
-		return errors.New(string(stdout))
-	}
-	global.LOG.Info("docker compose down %s successful", req.Name)
 
-	// 删除工作目录
-	dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
-	err := os.RemoveAll(dir)
+	// 初始化日志
+	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
+	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
+			return &result, errors.New("failed to mkdir docker_logs")
+		}
+	}
+	logPath := fmt.Sprintf("%s/compose_remove_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		return fmt.Errorf("failed to remove directory %s: %v", dir, err)
+		return &result, errors.New("failed to create compose_remove log")
 	}
+	result.Log = logPath
 
-	return nil
+	// logger
+	logger := utils.NewStepLogger(file)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic recovered: %v", r)
+				global.LOG.Error("ComposeRemove panic recovered: %v", r)
+			}
+			file.Close()
+		}()
+
+		logger.Info("try docker compose down %s", req.Name)
+		global.LOG.Info("try docker compose down %s", req.Name)
+
+		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		if _, err := os.Stat(composePath); err != nil {
+			logger.Error("Compose file %s not found", composePath)
+			global.LOG.Error("Compose file %s not found", composePath)
+			return
+		}
+		if stdout, err := down(composePath, true); err != nil {
+			logger.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			return
+		}
+		logger.Info("docker compose down %s successful", req.Name)
+		global.LOG.Info("docker compose down %s successful", req.Name)
+
+		// 删除工作目录
+		logger.Info("try remove work dir %s", req.WorkDir)
+		global.LOG.Info("try remove work dir %s", req.WorkDir)
+		dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
+		err := os.RemoveAll(dir)
+		if err != nil {
+			logger.Error("failed to remove directory %s: %v", dir, err)
+			global.LOG.Error("failed to remove directory %s: %v", dir, err)
+			return
+		}
+	}()
+
+	return &result, nil
 }
 
-func (c DockerClient) ComposeOperation(req model.ComposeOperation) error {
+func (c DockerClient) ComposeOperation(req model.ComposeOperation) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
 	if utils.CheckIllegal(req.Name, req.Operation, req.WorkDir) {
-		return errors.New(constant.ErrCmdIllegal)
+		return &result, errors.New(constant.ErrCmdIllegal)
 	}
-	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
-	if _, err := os.Stat(composePath); err != nil {
-		global.LOG.Error("Failed to load compose file %s", composePath)
-		return fmt.Errorf("load compose file failed, %v", err)
+
+	// 初始化日志
+	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
+	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
+			return &result, errors.New("failed to mkdir docker_logs")
+		}
 	}
-	switch req.Operation {
-	case "start":
-		if stdout, err := start(composePath); err != nil {
-			return errors.New(string(stdout))
-		}
-	case "stop":
-		if stdout, err := stop(composePath); err != nil {
-			return errors.New(string(stdout))
-		}
-	case "restart":
-		if stdout, err := restart(composePath); err != nil {
-			return errors.New(string(stdout))
-		}
-	case "up":
-		if stdout, err := up(composePath); err != nil {
-			return errors.New(string(stdout))
-		}
-	case "down":
-		if stdout, err := down(composePath, req.RemoveVolumes); err != nil {
-			return errors.New(string(stdout))
-		}
-	default:
-		return errors.New("invalid operation")
+	logPath := fmt.Sprintf("%s/compose_operation_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return &result, errors.New("failed to create compose_operation log")
 	}
-	global.LOG.Info("docker compose %s %s successful", req.Operation, req.Name)
-	return nil
+	result.Log = logPath
+
+	// logger
+	logger := utils.NewStepLogger(file)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic recovered: %v", r)
+				global.LOG.Error("ComposeOperation panic recovered: %v", r)
+			}
+			file.Close()
+		}()
+
+		logger.Info("try docker compose %s %s", req.Operation, req.Name)
+		global.LOG.Info("try docker compose %s %s", req.Operation, req.Name)
+
+		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		if _, err := os.Stat(composePath); err != nil {
+			logger.Error("Failed to load compose file %s", composePath)
+			global.LOG.Error("Failed to load compose file %s", composePath)
+			return
+		}
+
+		switch req.Operation {
+		case "start":
+			if stdout, err := start(composePath); err != nil {
+				logger.Error("docker compose start %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose start %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		case "stop":
+			if stdout, err := stop(composePath); err != nil {
+				logger.Error("docker compose stop %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose stop %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		case "restart":
+			if stdout, err := restart(composePath); err != nil {
+				logger.Error("docker compose restart %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose restart %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		case "up":
+			if stdout, err := up(composePath); err != nil {
+				logger.Error("docker compose up %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose up %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		case "down":
+			if stdout, err := down(composePath, req.RemoveVolumes); err != nil {
+				logger.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		default:
+			logger.Error("invalid operation %s", req.Operation)
+			global.LOG.Error("invalid operation %s", req.Operation)
+			return
+		}
+		logger.Info("docker compose %s %s successful", req.Operation, req.Name)
+		global.LOG.Info("docker compose %s %s successful", req.Operation, req.Name)
+	}()
+
+	return &result, nil
 }
 
 func (c DockerClient) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error) {
@@ -629,47 +736,94 @@ func (c DockerClient) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeD
 	return &rsp, nil
 }
 
-func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) error {
+func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
 	if utils.CheckIllegal(req.Name, req.WorkDir) {
-		return errors.New(constant.ErrCmdIllegal)
+		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
-
-	// 先停止原compose
-	if stdout, err := down(composePath, true); err != nil {
-		return fmt.Errorf("failed to docker compose down %s, err: %s", req.Name, string(stdout))
+	// 初始化日志
+	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
+	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
+			return &result, errors.New("failed to mkdir docker_logs")
+		}
 	}
-
-	// 覆盖docker-compose.yaml
-	composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
+	logPath := fmt.Sprintf("%s/compose_update_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		return err
+		return &result, errors.New("failed to create compose_update log")
 	}
-	defer composeFile.Close()
-	write := bufio.NewWriter(composeFile)
-	_, _ = write.WriteString(req.ComposeContent)
-	write.Flush()
+	result.Log = logPath
 
-	// 覆盖.env
-	envPath := fmt.Sprintf("%s/%s/.env", req.WorkDir, req.Name)
-	envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
-	if err != nil {
-		return err
-	}
-	defer envFile.Close()
-	write = bufio.NewWriter(envFile)
-	_, _ = write.WriteString(req.EnvContent)
-	write.Flush()
+	// logger
+	logger := utils.NewStepLogger(file)
 
-	global.LOG.Info("config files has been replaced, try docker compose up")
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic recovered: %v", r)
+				global.LOG.Error("ComposeUpdate panic recovered: %v", r)
+			}
+			file.Close()
+		}()
 
-	if stdout, err := up(composePath); err != nil {
-		return fmt.Errorf("docker compose up %s failed: %s", req.Name, string(stdout))
-	}
+		logger.Info("try docker compose down %s", req.Name)
+		global.LOG.Info("try docker compose down %s", req.Name)
 
-	global.LOG.Info("docker compose up %s successful!", req.Name)
-	return nil
+		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		if _, err := os.Stat(composePath); err != nil {
+			logger.Error("Compose file %s not found", composePath)
+			global.LOG.Error("Compose file %s not found", composePath)
+			return
+		}
+		if stdout, err := down(composePath, true); err != nil {
+			logger.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			return
+		}
+		logger.Info("docker compose down %s successful", req.Name)
+		global.LOG.Info("docker compose down %s successful", req.Name)
+
+		// 覆盖docker-compose.yaml
+		composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
+		if err != nil {
+			logger.Error("Failed to open compose file %s: %v", composePath, err)
+			global.LOG.Error("Failed to open compose file %s: %v", composePath, err)
+			return
+		}
+		defer composeFile.Close()
+		write := bufio.NewWriter(composeFile)
+		_, _ = write.WriteString(req.ComposeContent)
+		write.Flush()
+
+		// 覆盖.env
+		envPath := fmt.Sprintf("%s/%s/.env", req.WorkDir, req.Name)
+		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
+		if err != nil {
+			logger.Error("Failed to open env file %s: %v", envPath, err)
+			global.LOG.Error("Failed to open env file %s: %v", envPath, err)
+			return
+		}
+		defer envFile.Close()
+		write = bufio.NewWriter(envFile)
+		_, _ = write.WriteString(req.EnvContent)
+		write.Flush()
+
+		logger.Info("config files has been replaced, try docker compose up")
+		global.LOG.Info("config files has been replaced, try docker compose up")
+
+		if stdout, err := up(composePath); err != nil {
+			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			return
+		}
+
+		logger.Info("docker compose up %s successful!", req.Name)
+		global.LOG.Info("docker compose up %s successful!", req.Name)
+	}()
+
+	return &result, nil
 }
 
 func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCreateResult, error) {
@@ -678,85 +832,117 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 		return &result, errors.New(constant.ErrCmdIllegal)
 	}
 
-	composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
-	envPath := filepath.Join(req.WorkDir, req.Name, ".env")
-
-	// 先停止原compose
-	if stdout, err := down(composePath, true); err != nil {
-		return &result, fmt.Errorf("failed to docker compose down %s, err: %s", req.Name, string(stdout))
-	}
-
-	// 备份至 /WorkDir/Name/backup/serial/*
-	fo := files.NewFileOp()
-	backupID := time.Now().Format("20060102T150405")
-	backupDir := filepath.Join(req.WorkDir, req.Name, "backup", backupID)
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		return nil, err
-	}
-	// 备份 .env
-	backupEnv := filepath.Join(backupDir, ".env")
-	fo.Copy(envPath, backupEnv)
-
-	// 备份 docker-compose.yaml
-	backupCompose := filepath.Join(backupDir, "docker-compose.yaml")
-	fo.Copy(composePath, backupCompose)
-	global.LOG.Info("backup compose and env to %s", backupDir)
-
-	// 写入conf
-	if req.ConfPath != "" && req.ConfContent != "" {
-		if err := c.initConf(req.ConfPath, req.ConfContent, true); err != nil {
-			global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
-			return &result, err
-		}
-		global.LOG.Info("init conf successful")
-	}
-
-	// 覆盖docker-compose.yaml
-	composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
-	if err != nil {
-		return &result, err
-	}
-	defer composeFile.Close()
-	write := bufio.NewWriter(composeFile)
-	_, _ = write.WriteString(req.ComposeContent)
-	write.Flush()
-
-	// 覆盖.env
-	envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
-	if err != nil {
-		return &result, err
-	}
-	defer envFile.Close()
-	write = bufio.NewWriter(envFile)
-	_, _ = write.WriteString(req.EnvContent)
-	write.Flush()
-
-	global.LOG.Info("config files has been replaced, try docker compose up %s", req.Name)
-
 	// 初始化日志
-	projectDir := filepath.Dir(composePath)
-	dockerLogDir := path.Join(projectDir, "docker_logs")
+	dockerLogDir := filepath.Join(req.WorkDir, req.Name, "docker_logs")
 	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
-			return &result, err
+			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_upgrade_%s_%s.log", dockerLogDir, req.Name, backupID)
+	logPath := fmt.Sprintf("%s/compose_upgrade_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		return &result, err
+		return &result, errors.New("failed to create compose_upgrade log")
 	}
 	result.Log = logPath
 
-	defer file.Close()
-	if stdout, err := up(composePath); err != nil {
-		global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, string(stdout), err)
-		_, _ = down(composePath, true)
-		_, _ = file.WriteString("docker compose up failed!")
-		return &result, errors.New(string(stdout))
-	}
-	global.LOG.Info("docker compose up %s successful!", req.Name)
-	_, _ = file.WriteString("docker compose up successful!")
+	// logger
+	logger := utils.NewStepLogger(file)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic recovered: %v", r)
+				global.LOG.Error("ComposeUpgrade panic recovered: %v", r)
+			}
+			file.Close()
+		}()
+
+		logger.Info("try docker compose down %s", req.Name)
+		global.LOG.Info("try docker compose down %s", req.Name)
+
+		composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
+		envPath := filepath.Join(req.WorkDir, req.Name, ".env")
+
+		// 先停止原compose
+		if _, err := os.Stat(composePath); err != nil {
+			logger.Error("Compose file %s not found", composePath)
+			global.LOG.Error("Compose file %s not found", composePath)
+			return
+		}
+		if stdout, err := down(composePath, true); err != nil {
+			logger.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose down %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			return
+		}
+
+		// 备份至 /WorkDir/Name/backup/serial/*
+		fo := files.NewFileOp()
+		backupID := time.Now().Format("20060102T150405")
+		backupDir := filepath.Join(req.WorkDir, req.Name, "backup", backupID)
+		if err := os.MkdirAll(backupDir, 0755); err != nil {
+			logger.Error("Failed to mkdir backup dir %s, %v", backupDir, err)
+			global.LOG.Error("Failed to mkdir backup dir %s, %v", backupDir, err)
+			return
+		}
+		// 备份 .env
+		backupEnv := filepath.Join(backupDir, ".env")
+		fo.Copy(envPath, backupEnv)
+
+		// 备份 docker-compose.yaml
+		backupCompose := filepath.Join(backupDir, "docker-compose.yaml")
+		fo.Copy(composePath, backupCompose)
+
+		logger.Info("backup compose and env to %s", backupDir)
+		global.LOG.Info("backup compose and env to %s", backupDir)
+
+		// 写入conf
+		if req.ConfPath != "" && req.ConfContent != "" {
+			if err := c.initConf(req.ConfPath, req.ConfContent, true); err != nil {
+				logger.Error("Failed to init conf %s, %v", req.ConfPath, err)
+				global.LOG.Error("Failed to init conf %s, %v", req.ConfPath, err)
+				return
+			}
+			logger.Info("init conf successful")
+			global.LOG.Info("init conf successful")
+		}
+
+		// 覆盖docker-compose.yaml
+		composeFile, err := os.OpenFile(composePath, os.O_WRONLY|os.O_TRUNC, 0640)
+		if err != nil {
+			logger.Error("Failed to open compose file %s: %v", composePath, err)
+			global.LOG.Error("Failed to open compose file %s: %v", composePath, err)
+			return
+		}
+		defer composeFile.Close()
+		write := bufio.NewWriter(composeFile)
+		_, _ = write.WriteString(req.ComposeContent)
+		write.Flush()
+
+		// 覆盖.env
+		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
+		if err != nil {
+			logger.Error("Failed to open env file %s: %v", envPath, err)
+			global.LOG.Error("Failed to open env file %s: %v", envPath, err)
+			return
+		}
+		defer envFile.Close()
+		write = bufio.NewWriter(envFile)
+		_, _ = write.WriteString(req.EnvContent)
+		write.Flush()
+
+		logger.Info("config files has been replaced, try docker compose up %s", req.Name)
+		global.LOG.Info("config files has been replaced, try docker compose up %s", req.Name)
+
+		if stdout, err := up(composePath); err != nil {
+			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			return
+		}
+
+		logger.Info("docker compose up %s successful!", req.Name)
+		global.LOG.Info("docker compose up %s successful!", req.Name)
+	}()
 
 	return &result, nil
 }

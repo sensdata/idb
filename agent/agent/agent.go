@@ -2358,22 +2358,30 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := DockerService.ComposeRemove(req)
+		info, err := DockerService.ComposeRemove(req)
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, "")
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Docker_Compose_Operation:
 		var req model.ComposeOperation
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := DockerService.ComposeOperation(req)
+		info, err := DockerService.ComposeOperation(req)
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, "")
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Docker_Compose_Detail:
 		var req model.ComposeDetailReq
@@ -2395,11 +2403,15 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		err := DockerService.ComposeUpdate(req)
+		info, err := DockerService.ComposeUpdate(req)
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, "")
+		result, err := utils.ToJSONString(info)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Docker_Compose_Upgrade:
 		var req model.ComposeUpgrade

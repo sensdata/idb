@@ -157,7 +157,7 @@ func (b *BaseApi) InstallApp(c *gin.Context) {
 // @Description Uninstall app
 // @Param host path int true "Host ID"
 // @Param request body model.UninstallApp true "request"
-// @Success 200
+// @Success 200 {object} model.LogInfo
 // @Router /store/{host}/apps/uninstall [post]
 func (b *BaseApi) UninstallApp(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -171,12 +171,12 @@ func (b *BaseApi) UninstallApp(c *gin.Context) {
 		return
 	}
 
-	err = appService.AppUninstall(uint64(hostID), req)
+	result, err := appService.AppUninstall(uint64(hostID), req)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	SuccessWithData(c, "")
+	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
 }
 
 // @Tags App
@@ -184,7 +184,7 @@ func (b *BaseApi) UninstallApp(c *gin.Context) {
 // @Description Upgrade app
 // @Param host path int true "Host ID"
 // @Param request body model.UpgradeApp true "request"
-// @Success 200
+// @Success 200 {object} model.LogInfo
 // @Router /store/{host}/apps/upgrade [post]
 func (b *BaseApi) UpgradeApp(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -203,5 +203,5 @@ func (b *BaseApi) UpgradeApp(c *gin.Context) {
 		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
 		return
 	}
-	SuccessWithData(c, result)
+	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
 }

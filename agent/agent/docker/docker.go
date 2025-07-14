@@ -47,10 +47,10 @@ type IDockerService interface {
 	ComposePage(req model.QueryCompose) (*model.PageResult, error)
 	ComposeTest(req model.ComposeCreate) (*model.ComposeTestResult, error)
 	ComposeCreate(req model.ComposeCreate) (*model.ComposeCreateResult, error)
-	ComposeRemove(req model.ComposeRemove) error
-	ComposeOperation(req model.ComposeOperation) error
+	ComposeRemove(req model.ComposeRemove) (*model.ComposeCreateResult, error)
+	ComposeOperation(req model.ComposeOperation) (*model.ComposeCreateResult, error)
 	ComposeDetail(req model.ComposeDetailReq) (*model.ComposeDetailRsp, error)
-	ComposeUpdate(req model.ComposeUpdate) error
+	ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCreateResult, error)
 	ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCreateResult, error)
 
 	ImagePage(req model.SearchPageInfo) (*model.PageResult, error)

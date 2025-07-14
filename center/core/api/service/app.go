@@ -38,7 +38,7 @@ type IAppService interface {
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
-	AppUninstall(hostID uint64, req core.UninstallApp) error
+	AppUninstall(hostID uint64, req core.UninstallApp) (*core.ComposeCreateResult, error)
 	AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error)
 }
 
@@ -759,15 +759,15 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	return &result, nil
 }
 
-func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
-
+func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) (*core.ComposeCreateResult, error) {
+	var result core.ComposeCreateResult
 	composeRemove := core.ComposeRemove{
 		Name:    req.ComposeName,
 		WorkDir: s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeRemove)
 	if err != nil {
-		return err
+		return &result, err
 	}
 	actionRequest := core.HostAction{
 		HostID: uint(hostID),
@@ -779,13 +779,20 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) error {
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action Docker_Compose_Remove %v", err)
-		return err
+		return &result, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
-	return nil
+
+	err = utils.FromJSONString(actionResponse.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose remove result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
 }
 
 func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error) {
@@ -835,6 +842,7 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.Compo
 	}
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
+		global.LOG.Error("Failed to send action Docker_Compose_Detail %v", err)
 		return &result, err
 	}
 	if !actionResponse.Result {

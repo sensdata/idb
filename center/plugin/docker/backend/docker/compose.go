@@ -126,7 +126,8 @@ func (s *DockerMan) composeDetail(hostID uint64, req model.ComposeDetailReq) (*m
 	return &result, nil
 }
 
-func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error {
+func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
 	composeUpdate := model.ComposeUpdate{
 		Name:           req.Name,
 		ComposeContent: req.ComposeContent,
@@ -136,7 +137,7 @@ func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error 
 
 	data, err := utils.ToJSONString(composeUpdate)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	actionRequest := model.HostAction{
@@ -149,21 +150,28 @@ func (s *DockerMan) composeUpdate(hostID uint64, req model.CreateCompose) error 
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return fmt.Errorf("failed to update compose")
+		return &result, fmt.Errorf("failed to update compose")
 	}
 
-	return nil
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose update result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+
+	return &result, nil
 }
 
-func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) error {
+func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) (*model.ComposeCreateResult, error) {
+	var result model.ComposeCreateResult
 	data, err := utils.ToJSONString(req)
 	if err != nil {
-		return err
+		return &result, err
 	}
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
@@ -174,13 +182,18 @@ func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) error 
 	}
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		return err
+		return &result, err
 	}
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
-	return nil
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to compose remove result: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
+	}
+	return &result, nil
 }
 
 func (s *DockerMan) composeTest(hostID uint64, req model.CreateCompose) (*model.ComposeTestResult, error) {
@@ -262,7 +275,15 @@ func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) (*
 		global.LOG.Error("compose operation failed")
 		return &result, fmt.Errorf("failed to operate compose")
 	} else {
+		var composeCreateResult model.ComposeCreateResult
+		err = utils.FromJSONString(actionResponse.Data.Action.Data, &composeCreateResult)
+		if err != nil {
+			global.LOG.Error("Error unmarshaling data to compose create result: %v", err)
+			return &result, fmt.Errorf("json err: %v", err)
+		}
+
 		result.Message = constant.OperationSuccess
+		result.Extra = composeCreateResult.Log
 	}
 
 	return &result, nil

@@ -295,7 +295,7 @@ func (s *DockerMan) DockerStatus(c *gin.Context) {
 
 	result, err := s.dockerStatus(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -319,7 +319,7 @@ func (s *DockerMan) DockerConf(c *gin.Context) {
 
 	result, err := s.dockerConf(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -349,7 +349,7 @@ func (s *DockerMan) DockerUpdateConf(c *gin.Context) {
 
 	err = s.dockerUpdateConf(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -373,7 +373,7 @@ func (s *DockerMan) DockerConfRaw(c *gin.Context) {
 
 	result, err := s.dockerConfRaw(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -403,7 +403,7 @@ func (s *DockerMan) DockerUpdateConfRaw(c *gin.Context) {
 
 	err = s.dockerUpdateConfByFile(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -433,7 +433,7 @@ func (s *DockerMan) DockerUpdateLogOption(c *gin.Context) {
 
 	err = s.dockerUpdateLogOption(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -463,7 +463,7 @@ func (s *DockerMan) DockerUpdateIpv6Option(c *gin.Context) {
 
 	err = s.dockerUpdateIpv6Option(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -493,7 +493,7 @@ func (s *DockerMan) DockerOperation(c *gin.Context) {
 
 	err = s.dockerOperation(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -536,7 +536,7 @@ func (s *DockerMan) Inspect(c *gin.Context) {
 
 	result, err := s.inspect(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -566,7 +566,7 @@ func (s *DockerMan) Prune(c *gin.Context) {
 
 	result, err := s.prune(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -598,7 +598,7 @@ func (s *DockerMan) ComposeQuery(c *gin.Context) {
 	req.WorkDir = s.AppDir
 	result, err := s.composeQuery(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -628,7 +628,7 @@ func (s *DockerMan) ComposeCreate(c *gin.Context) {
 
 	result, err := s.composeCreate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -677,7 +677,7 @@ func (s *DockerMan) ComposeDetail(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param request body model.CreateCompose true "Compose edit details"
-// @Success 200
+// @Success 200 {object} model.ComposeCreateResult
 // @Router /docker/{host}/compose [put]
 func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -691,13 +691,13 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 		return
 	}
 
-	err = s.composeUpdate(hostID, req)
+	result, err := s.composeUpdate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -707,7 +707,7 @@ func (s *DockerMan) ComposeUpdate(c *gin.Context) {
 // @Produce json
 // @Param host path int true "Host ID"
 // @Param name query string true "Compose name"
-// @Success 200
+// @Success 200 {object} model.ComposeCreateResult
 // @Router /docker/{host}/compose [delete]
 func (s *DockerMan) ComposeDelete(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -723,13 +723,13 @@ func (s *DockerMan) ComposeDelete(c *gin.Context) {
 	}
 
 	req := model.ComposeRemove{Name: name, WorkDir: s.AppDir}
-	err = s.composeRemove(hostID, req)
+	result, err := s.composeRemove(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
-	helper.SuccessWithData(c, nil)
+	helper.SuccessWithData(c, result)
 }
 
 // @Tags Docker
@@ -755,7 +755,7 @@ func (s *DockerMan) ComposeTest(c *gin.Context) {
 
 	result, err := s.composeTest(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -785,7 +785,7 @@ func (s *DockerMan) ComposeOperation(c *gin.Context) {
 
 	result, err := s.composeOperation(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -840,7 +840,7 @@ func (s *DockerMan) ContainerQuery(c *gin.Context) {
 
 	result, err := s.containerQuery(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -864,7 +864,7 @@ func (s *DockerMan) ContainerNames(c *gin.Context) {
 
 	result, err := s.containerNames(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -888,7 +888,7 @@ func (s *DockerMan) ContainerUsages(c *gin.Context) {
 
 	result, err := s.containerUsages(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -919,7 +919,7 @@ func (s *DockerMan) ContainerUsage(c *gin.Context) {
 
 	result, err := s.containerUsage(hostID, containerID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -964,7 +964,7 @@ func (s *DockerMan) ContainerLimit(c *gin.Context) {
 
 	result, err := s.containerLimit(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -994,7 +994,7 @@ func (s *DockerMan) ContainerCreate(c *gin.Context) {
 
 	err = s.createContainer(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1024,7 +1024,7 @@ func (s *DockerMan) ContainerUpdate(c *gin.Context) {
 
 	err = s.updateContainer(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1054,7 +1054,7 @@ func (s *DockerMan) ContainerUpgrade(c *gin.Context) {
 
 	err = s.upgradeContainer(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1084,7 +1084,7 @@ func (s *DockerMan) ContainerRename(c *gin.Context) {
 
 	err = s.renameContainer(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1114,7 +1114,7 @@ func (s *DockerMan) ContainerOperation(c *gin.Context) {
 
 	result, err := s.operateContainer(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1145,7 +1145,7 @@ func (s *DockerMan) ContainerInfo(c *gin.Context) {
 
 	result, err := s.containerInfo(hostID, containerID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1176,7 +1176,7 @@ func (s *DockerMan) ContainerStats(c *gin.Context) {
 
 	result, err := s.containerStats(hostID, containerID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1207,7 +1207,7 @@ func (s *DockerMan) ContainerLogClean(c *gin.Context) {
 
 	err = s.containerLogClean(hostID, containerID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1320,7 +1320,7 @@ func (s *DockerMan) ImagePage(c *gin.Context) {
 
 	result, err := s.getImages(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1344,7 +1344,7 @@ func (s *DockerMan) ImageNames(c *gin.Context) {
 
 	result, err := s.imageNames(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1374,7 +1374,7 @@ func (s *DockerMan) ImageBuild(c *gin.Context) {
 
 	result, err := s.buildImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1404,7 +1404,7 @@ func (s *DockerMan) ImagePull(c *gin.Context) {
 
 	result, err := s.pullImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1434,7 +1434,7 @@ func (s *DockerMan) ImageLoad(c *gin.Context) {
 
 	result, err := s.loadImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1464,7 +1464,7 @@ func (s *DockerMan) ImageSave(c *gin.Context) {
 
 	result, err := s.exportImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1495,7 +1495,7 @@ func (s *DockerMan) ImagePush(c *gin.Context) {
 
 	result, err := s.pushImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1534,7 +1534,7 @@ func (s *DockerMan) ImageRemove(c *gin.Context) {
 
 	result, err := s.deleteImage(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1564,7 +1564,7 @@ func (s *DockerMan) ImageTag(c *gin.Context) {
 
 	err = s.setImageTag(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1596,7 +1596,7 @@ func (s *DockerMan) VolumePage(c *gin.Context) {
 
 	result, err := s.getVolumes(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1620,7 +1620,7 @@ func (s *DockerMan) VolumeNames(c *gin.Context) {
 
 	result, err := s.volumeNames(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1659,7 +1659,7 @@ func (s *DockerMan) VolumeDelete(c *gin.Context) {
 
 	err = s.deleteVolume(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1689,7 +1689,7 @@ func (s *DockerMan) VolumeCreate(c *gin.Context) {
 
 	err = s.createVolume(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1721,7 +1721,7 @@ func (s *DockerMan) NetworkPage(c *gin.Context) {
 
 	result, err := s.getNetworks(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1745,7 +1745,7 @@ func (s *DockerMan) NetworkNames(c *gin.Context) {
 
 	result, err := s.networkNames(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1784,7 +1784,7 @@ func (s *DockerMan) NetworkDelete(c *gin.Context) {
 
 	err = s.deleteNetwork(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 
@@ -1814,7 +1814,7 @@ func (s *DockerMan) NetworkCreate(c *gin.Context) {
 
 	err = s.createNetwork(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 

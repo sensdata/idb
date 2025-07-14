@@ -32,19 +32,19 @@ func (s *DockerService) ComposeCreate(req model.ComposeCreate) (*model.ComposeCr
 	return client.ComposeCreate(req)
 }
 
-func (s *DockerService) ComposeRemove(req model.ComposeRemove) error {
+func (s *DockerService) ComposeRemove(req model.ComposeRemove) (*model.ComposeCreateResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return err
+		return &model.ComposeCreateResult{}, err
 	}
 	defer client.Close()
 	return client.ComposeRemove(req)
 }
 
-func (s *DockerService) ComposeOperation(req model.ComposeOperation) error {
+func (s *DockerService) ComposeOperation(req model.ComposeOperation) (*model.ComposeCreateResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return err
+		return &model.ComposeCreateResult{}, err
 	}
 	defer client.Close()
 	return client.ComposeOperation(req)
@@ -59,10 +59,10 @@ func (s *DockerService) ComposeDetail(req model.ComposeDetailReq) (*model.Compos
 	return client.ComposeDetail(req)
 }
 
-func (s *DockerService) ComposeUpdate(req model.ComposeUpdate) error {
+func (s *DockerService) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCreateResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
-		return err
+		return &model.ComposeCreateResult{}, err
 	}
 	defer client.Close()
 	return client.ComposeUpdate(req)
