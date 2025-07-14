@@ -1,15 +1,17 @@
-package manager
+package plugin
 
 import (
 	"net/rpc"
 
 	hplugin "github.com/hashicorp/go-plugin"
 	"google.golang.org/grpc"
+
+	factory "github.com/sensdata/idb/center/core/plugin/factory"
 )
 
 type GRPCPlugin struct {
 	hplugin.GRPCPlugin
-	NewClient PluginFactory
+	NewClient factory.PluginFactory
 }
 
 func (p *GRPCPlugin) GRPCClient(b *hplugin.GRPCBroker, cc *grpc.ClientConn) (interface{}, error) {

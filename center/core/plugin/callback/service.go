@@ -3,7 +3,7 @@ package callback
 import (
 	"context"
 
-	"github.com/sensdata/idb/center/plugin/manager/callback/pb"
+	"github.com/sensdata/idb/center/core/plugin/callback/pb"
 )
 
 type CallbackServer struct {

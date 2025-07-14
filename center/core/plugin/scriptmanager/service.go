@@ -7,21 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 
-	"github.com/sensdata/idb/center/core/api"
-	"github.com/sensdata/idb/center/plugin/manager"
-	smpb "github.com/sensdata/idb/center/plugin/scriptmanager/pb"
+	"github.com/sensdata/idb/center/core/plugin"
+	"github.com/sensdata/idb/center/core/plugin/factory"
+	smpb "github.com/sensdata/idb/center/core/plugin/scriptmanager/pb"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
 )
 
 func init() {
-	manager.RegisterFactory("scriptmanager", func(cc *grpc.ClientConn) interface{} {
+	factory.RegisterFactory("scriptmanager", func(cc *grpc.ClientConn) interface{} {
 		return &ScriptManagerWrapper{
 			Client: NewGRPCClient(cc),
 		}
 	})
-
-	api.API.SetUpPluginRouters("plugin/scripts", NewScriptRouter().BuildRoutes())
 }
 
 func (h *ScriptRouter) GetScriptList(c *gin.Context) {
@@ -68,7 +66,7 @@ func (h *ScriptRouter) GetScriptList(c *gin.Context) {
 	}
 
 	// 获取插件客户端
-	plugin, err := manager.PluginMan.GetPlugin("scriptmanager")
+	plugin, err := plugin.PLUGINSERVER.GetPlugin("scriptmanager")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "plugin not found"})
 		return

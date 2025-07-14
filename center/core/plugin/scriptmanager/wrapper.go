@@ -3,7 +3,7 @@ package scriptmanager
 import (
 	"context"
 
-	smpb "github.com/sensdata/idb/center/plugin/scriptmanager/pb"
+	smpb "github.com/sensdata/idb/center/core/plugin/scriptmanager/pb"
 
 	"google.golang.org/grpc"
 )
