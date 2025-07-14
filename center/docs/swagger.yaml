@@ -3148,6 +3148,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeCreateResult'
       summary: Remove compose
       tags:
       - Docker
@@ -3232,6 +3234,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.ComposeCreateResult'
       summary: Update compose
       tags:
       - Docker
@@ -9080,6 +9084,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.LogInfo'
       summary: Uninstall app
       tags:
       - App
@@ -9101,6 +9107,8 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            $ref: '#/definitions/model.LogInfo'
       summary: Upgrade app
       tags:
       - App

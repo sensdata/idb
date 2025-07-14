@@ -1548,7 +1548,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
                     }
                 }
             },
@@ -1621,7 +1624,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
                     }
                 }
             }
@@ -10335,7 +10341,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LogInfo"
+                        }
                     }
                 }
             }
@@ -10367,7 +10376,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LogInfo"
+                        }
                     }
                 }
             }

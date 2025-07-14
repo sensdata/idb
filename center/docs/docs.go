@@ -1551,7 +1551,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
                     }
                 }
             },
@@ -1624,7 +1627,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ComposeCreateResult"
+                        }
                     }
                 }
             }
@@ -10338,7 +10344,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LogInfo"
+                        }
                     }
                 }
             }
@@ -10370,7 +10379,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.LogInfo"
+                        }
                     }
                 }
             }
