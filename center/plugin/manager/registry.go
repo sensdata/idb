@@ -13,6 +13,7 @@ type Registry struct {
 type PluginEntry struct {
 	Name    string `yaml:"name"`
 	Path    string `yaml:"path"`
+	Url     string `yaml:"url"`
 	Enabled bool   `yaml:"enabled"`
 }
 

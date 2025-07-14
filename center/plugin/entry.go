@@ -46,7 +46,8 @@ func RegisterPlugins() {
 	conn.InitializePlugins()
 
 	// 初始化插件管理器
-	if err := manager.Initialize(api.API.Router); err != nil {
+	manager.PluginMan = manager.NewPluginManager()
+	if err := manager.PluginMan.Initialize(api.API.Router); err != nil {
 		global.LOG.Error("Failed to initialize plugin manager: %v", err)
 	}
 }

@@ -4,7 +4,9 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"runtime/debug"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -22,8 +24,7 @@ type PluginInstance struct {
 }
 
 type PluginManager interface {
-	InitCallback()
-	LoadAll() error
+	Initialize(router *gin.Engine) error
 	GetPlugin(name string) (*PluginInstance, error)
 	IsAuthorized(name string) bool
 	ShutdownAll()
@@ -44,98 +45,52 @@ var PluginMan PluginManager
 //go:embed registry.yaml
 var registryData []byte
 
-func Initialize(router *gin.Engine) error {
+func NewPluginManager() PluginManager {
+	return &DefaultManager{
+		plugins: make(map[string]*PluginInstance),
+	}
+}
+
+func (m *DefaultManager) Initialize(router *gin.Engine) error {
+	global.LOG.Info("initializing plugin manager")
 	reg, err := LoadRegistry(registryData)
 	if err != nil {
+		global.LOG.Error("failed to load registry: %v", err)
 		return err
 	}
-	pm := &DefaultManager{
-		router:   router,
-		registry: reg,
-		plugins:  make(map[string]*PluginInstance),
-	}
-	pm.InitCallback()
-	if err := pm.LoadAll(); err != nil {
-		global.LOG.Error("Failed to load plugins: %v", err)
-		return err
-	}
-
-	PluginMan = pm
+	m.registry = reg
+	global.LOG.Info("registry loaded: %v", m.registry)
+	m.InitCallback()
+	go m.LoadAllAsync() // 异步加载插件
 	return nil
 }
 
+// 初始化callback服务
 func (m *DefaultManager) InitCallback() {
+	global.LOG.Info("initializing callback server")
 	m.callback = &callback.CallbackServer{}
 	m.broker = &hplugin.GRPCBroker{}
 	m.brokerID = m.broker.NextId()
+
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				global.LOG.Error("panic in callback server: %v", r)
+			}
+		}()
+		global.LOG.Info("starting callback server")
 		m.broker.AcceptAndServe(m.brokerID, func(opts []grpc.ServerOption) *grpc.Server {
+			defer func() {
+				if r := recover(); r != nil {
+					global.LOG.Error("panic in callback server: %v, stack: %s", r, debug.Stack())
+				}
+			}()
 			s := grpc.NewServer(opts...)
 			cbpb.RegisterCenterCallbackServer(s, m.callback)
 			return s
 		})
 	}()
-}
-
-// LoadAll 启动所有 enabled 插件，建立 gRPC 连接
-func (m *DefaultManager) LoadAll() error {
-	global.LOG.Info("loading plugins")
-	for _, entry := range m.registry.Plugins {
-		if !entry.Enabled {
-			global.LOG.Info("plugin %s is disabled", entry.Name)
-			continue
-		}
-
-		factory, ok := PluginFactories[entry.Name]
-		if !ok {
-			global.LOG.Info("loaplugin %s has no factory registered", entry.Name)
-			return fmt.Errorf("plugin %s has no factory registered", entry.Name)
-		}
-
-		// 日志提示
-		global.LOG.Info("loading plugin %s (%s)", entry.Name, entry.Path)
-
-		// 启动插件子进程
-		client := hplugin.NewClient(&hplugin.ClientConfig{
-			HandshakeConfig: hplugin.HandshakeConfig{
-				ProtocolVersion:  1,
-				MagicCookieKey:   "PLUGIN_NAME",
-				MagicCookieValue: entry.Name,
-			},
-			Cmd:              exec.Command(entry.Path),
-			AllowedProtocols: []hplugin.Protocol{hplugin.ProtocolGRPC},
-			Plugins: map[string]hplugin.Plugin{
-				"grpc": &GRPCPlugin{NewClient: factory},
-			},
-		})
-
-		rpcClient, err := client.Client()
-		if err != nil {
-			log.Printf("[plugin] failed to connect: %s: %v", entry.Name, err)
-			client.Kill()
-			continue
-		}
-
-		// 获取 grpc 插件接口
-		disp, err := rpcClient.Dispense("grpc")
-		if err != nil {
-			log.Printf("[plugin] failed to dispense: %s: %v", entry.Name, err)
-			client.Kill()
-			continue
-		}
-
-		m.mu.Lock()
-		m.plugins[entry.Name] = &PluginInstance{
-			Name:   entry.Name,
-			Client: client,
-			Stub:   disp,
-		}
-		m.mu.Unlock()
-
-		log.Printf("[plugin] loaded plugin: %s", entry.Name)
-	}
-
-	return nil
+	global.LOG.Info("initializing callback end")
 }
 
 // GetPlugin 返回已加载的插件实例
@@ -169,4 +124,91 @@ func (m *DefaultManager) ShutdownAll() {
 		p.Client.Kill()
 	}
 	m.plugins = map[string]*PluginInstance{}
+}
+
+// LoadAllAsync 异步加载插件，避免阻塞初始化流程
+func (m *DefaultManager) LoadAllAsync() {
+	global.LOG.Info("starting plugin async load...")
+	for _, entry := range m.registry.Plugins {
+		go func(e PluginEntry) {
+			if !e.Enabled {
+				global.LOG.Info("plugin %s is disabled", e.Name)
+				return
+			}
+
+			if !m.IsPluginInstalled(e) {
+				global.LOG.Info("plugin %s not installed, installing...", e.Name)
+				if err := m.InstallPlugin(e); err != nil {
+					global.LOG.Error("failed to install plugin %s: %v", e.Name, err)
+					return
+				}
+			}
+
+			if err := m.LoadPlugin(e); err != nil {
+				global.LOG.Error("failed to load plugin %s: %v", e.Name, err)
+				return
+			}
+
+			global.LOG.Info("plugin %s loaded successfully", e.Name)
+		}(entry)
+	}
+}
+
+// IsPluginInstalled 判断插件文件是否存在
+func (m *DefaultManager) IsPluginInstalled(e PluginEntry) bool {
+	info, err := os.Stat(e.Path)
+	return err == nil && !info.IsDir()
+}
+
+// InstallPlugin 安装插件（暂为占位，后续支持下载解压）
+func (m *DefaultManager) InstallPlugin(e PluginEntry) error {
+	return fmt.Errorf("auto install not implemented for plugin %s", e.Name)
+}
+
+// LoadPlugin 启动并注册插件
+func (m *DefaultManager) LoadPlugin(entry PluginEntry) error {
+	factory, ok := PluginFactories[entry.Name]
+	if !ok {
+		return fmt.Errorf("plugin %s has no factory registered", entry.Name)
+	}
+
+	cmd := exec.Command(entry.Path)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	client := hplugin.NewClient(&hplugin.ClientConfig{
+		HandshakeConfig: hplugin.HandshakeConfig{
+			ProtocolVersion:  1,
+			MagicCookieKey:   "PLUGIN_NAME",
+			MagicCookieValue: entry.Name,
+		},
+		Cmd:              cmd,
+		AllowedProtocols: []hplugin.Protocol{hplugin.ProtocolGRPC},
+		Plugins: map[string]hplugin.Plugin{
+			"grpc": &GRPCPlugin{NewClient: factory},
+		},
+		Managed: true,
+	})
+
+	rpcClient, err := client.Client()
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to connect to plugin %s: %w", entry.Name, err)
+	}
+
+	disp, err := rpcClient.Dispense("grpc")
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to dispense plugin %s: %w", entry.Name, err)
+	}
+
+	m.mu.Lock()
+	m.plugins[entry.Name] = &PluginInstance{
+		Name:   entry.Name,
+		Client: client,
+		Stub:   disp,
+	}
+	m.mu.Unlock()
+
+	return nil
 }
