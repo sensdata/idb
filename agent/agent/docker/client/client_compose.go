@@ -119,22 +119,8 @@ func (c DockerClient) listComposeProjects(workDir string) ([]string, error) {
 }
 
 func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error) {
-	dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
-
-	// 第一步：判断目录是否已存在，存在就报错
-	if _, err := os.Stat(dir); err == nil {
-		return "", errors.New("compose already exist")
-	} else if !os.IsNotExist(err) {
-		// 其他类型的错误（权限等）
-		return "", err
-	}
-
-	// 第二步：目录不存在时创建
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return "", err
-	}
-
-	composePath := fmt.Sprintf("%s/docker-compose.yaml", dir)
+	dir := filepath.Join(req.WorkDir, req.Name)
+	composePath := filepath.Join(dir, "docker-compose.yaml")
 	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
@@ -144,7 +130,7 @@ func (c DockerClient) initComposeAndEnv(req *model.ComposeCreate) (string, error
 	_, _ = write.WriteString(req.ComposeContent)
 	write.Flush()
 
-	envPath := fmt.Sprintf("%s/.env", dir)
+	envPath := filepath.Join(dir, ".env")
 	file, err = os.OpenFile(envPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
@@ -480,7 +466,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_create_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	logPath := filepath.Join(dockerLogDir, fmt.Sprintf("compose_create_%s.log", time.Now().Format("20060102150405")))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return &result, errors.New("failed to create compose_create log")
@@ -552,7 +538,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) (*model.ComposeCrea
 			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_remove_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	logPath := filepath.Join(dockerLogDir, fmt.Sprintf("compose_remove_%s.log", time.Now().Format("20060102150405")))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return &result, errors.New("failed to create compose_remove log")
@@ -574,7 +560,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) (*model.ComposeCrea
 		logger.Info("try docker compose down %s", req.Name)
 		global.LOG.Info("try docker compose down %s", req.Name)
 
-		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
 		if _, err := os.Stat(composePath); err != nil {
 			logger.Error("Compose file %s not found", composePath)
 			global.LOG.Error("Compose file %s not found", composePath)
@@ -591,7 +577,7 @@ func (c DockerClient) ComposeRemove(req model.ComposeRemove) (*model.ComposeCrea
 		// 删除工作目录
 		logger.Info("try remove work dir %s", req.WorkDir)
 		global.LOG.Info("try remove work dir %s", req.WorkDir)
-		dir := fmt.Sprintf("%s/%s", req.WorkDir, req.Name)
+		dir := filepath.Join(req.WorkDir, req.Name)
 		err := os.RemoveAll(dir)
 		if err != nil {
 			logger.Error("failed to remove directory %s: %v", dir, err)
@@ -616,7 +602,7 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) (*model.Compo
 			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_operation_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	logPath := filepath.Join(dockerLogDir, fmt.Sprintf("compose_operation_%s.log", time.Now().Format("20060102150405")))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return &result, errors.New("failed to create compose_operation log")
@@ -638,7 +624,7 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) (*model.Compo
 		logger.Info("try docker compose %s %s", req.Operation, req.Name)
 		global.LOG.Info("try docker compose %s %s", req.Operation, req.Name)
 
-		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
 		if _, err := os.Stat(composePath); err != nil {
 			logger.Error("Failed to load compose file %s", composePath)
 			global.LOG.Error("Failed to load compose file %s", composePath)
@@ -694,7 +680,7 @@ func (c DockerClient) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeD
 		return &rsp, errors.New(constant.ErrCmdIllegal)
 	}
 
-	composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+	composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
 	if _, err := os.Stat(composePath); err != nil {
 		global.LOG.Error("Failed to load compose file %s", composePath)
 		return &rsp, fmt.Errorf("load compose file failed, %v", err)
@@ -711,7 +697,7 @@ func (c DockerClient) ComposeDetail(req model.ComposeDetailReq) (*model.ComposeD
 	}
 	rsp.ComposeContent = string(composeBytes)
 	// 读取.env
-	envPath := fmt.Sprintf("%s/%s/.env", req.WorkDir, req.Name)
+	envPath := filepath.Join(req.WorkDir, req.Name, ".env")
 	envContent := ""
 	if _, err := os.Stat(envPath); err == nil {
 		envFile, err := os.Open(envPath)
@@ -749,7 +735,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_update_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	logPath := filepath.Join(dockerLogDir, fmt.Sprintf("compose_update_%s.log", time.Now().Format("20060102150405")))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return &result, errors.New("failed to create compose_update log")
@@ -771,7 +757,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 		logger.Info("try docker compose down %s", req.Name)
 		global.LOG.Info("try docker compose down %s", req.Name)
 
-		composePath := fmt.Sprintf("%s/%s/docker-compose.yaml", req.WorkDir, req.Name)
+		composePath := filepath.Join(req.WorkDir, req.Name, "docker-compose.yaml")
 		if _, err := os.Stat(composePath); err != nil {
 			logger.Error("Compose file %s not found", composePath)
 			global.LOG.Error("Compose file %s not found", composePath)
@@ -798,7 +784,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 		write.Flush()
 
 		// 覆盖.env
-		envPath := fmt.Sprintf("%s/%s/.env", req.WorkDir, req.Name)
+		envPath := filepath.Join(req.WorkDir, req.Name, ".env")
 		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
 		if err != nil {
 			logger.Error("Failed to open env file %s: %v", envPath, err)
@@ -839,7 +825,7 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 			return &result, errors.New("failed to mkdir docker_logs")
 		}
 	}
-	logPath := fmt.Sprintf("%s/compose_upgrade_%s.log", dockerLogDir, time.Now().Format("20060102150405"))
+	logPath := filepath.Join(dockerLogDir, fmt.Sprintf("compose_upgrade_%s.log", time.Now().Format("20060102150405")))
 	file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return &result, errors.New("failed to create compose_upgrade log")
