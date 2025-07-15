@@ -204,7 +204,6 @@
       slotName: 'operation',
       width: 240,
       align: 'left' as const,
-      fixed: 'right' as const,
     },
   ];
 

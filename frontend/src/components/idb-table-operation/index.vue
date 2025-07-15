@@ -82,6 +82,7 @@
   });
 
   const { confirm } = useConfirm();
+
   const handleClick = async (option: any, event: Event) => {
     if (option.confirm && !(await confirm(option.confirm))) {
       return;
@@ -92,11 +93,10 @@
 
 <style scoped>
   .idb-table-operation.type-button :deep(.arco-btn) {
-    padding-right: 0.25rem;
-    padding-left: 0.25rem;
-  }
+    padding-right: 0;
 
-  .idb-table-operation.type-button :deep(.arco-btn:first-child) {
+    /* 统一设置所有按钮的内边距为 0，使用外边距控制间距，解决按钮分行时左对齐的问题 */
     padding-left: 0;
+    margin-right: 0.5rem;
   }
 </style>
