@@ -317,6 +317,14 @@
   }
 
   :deep(.arco-menu) {
+    height: 100%;
+    overflow: hidden;
+
+    // 折叠按钮样式
+    .arco-menu-collapse-button {
+      z-index: 2;
+    }
+
     // 一级菜单项样式
     > .arco-menu-item,
     > .arco-menu-group-title,
