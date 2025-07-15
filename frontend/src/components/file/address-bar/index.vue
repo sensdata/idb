@@ -534,7 +534,39 @@
   });
 </script>
 
-<style scoped>
+<style scoped lang="less">
+  @import '@/assets/style/breakpoint.less';
+
+  // Variables
+  @container-height: 2.286rem;
+  @border-width: 0.071rem;
+  @border-radius: var(--border-radius-small, 0.286rem);
+  @transition-duration: 0.2s;
+  @padding-sm: 0.143rem;
+  @padding-md: 0.286rem;
+  @padding-lg: 0.286rem;
+  @padding-xl: 0.857rem;
+  @font-size-base: 1rem;
+  @font-size-sm: 0.857rem;
+  @font-size-xs: 0.714rem;
+
+  // Mixins
+  .flex-center() {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .transition(@property: all, @duration: @transition-duration, @timing: ease) {
+    transition: @property @duration @timing;
+  }
+
+  .button-state(@bg-color, @border-color, @text-color: currentcolor) {
+    background: @bg-color;
+    border-color: @border-color;
+    color: @text-color;
+  }
+
   .breadcrumb-address-bar {
     position: relative;
     width: 100%;
@@ -542,35 +574,27 @@
 
   .breadcrumb-container {
     position: relative;
-    display: flex;
-    align-items: center;
-    height: 32px;
+    .flex-center();
+    height: @container-height;
     padding: 0;
     overflow: hidden;
     background-color: var(--color-bg-2);
-    border: 1px solid var(--color-border-2);
-    border-radius: var(--border-radius-small, 4px);
-    transition: all 0.2s ease;
+    border: @border-width solid var(--color-border-2);
+    border-radius: @border-radius;
+    .transition();
+
+    &:hover {
+      border-color: var(--color-border-3);
+    }
+
+    &.is-focused,
+    &.has-content {
+      background: var(--color-primary-light-5);
+      border-color: var(--color-primary-light-3);
+    }
   }
 
-  /* 悬停状态 */
-  .breadcrumb-container:hover {
-    border-color: var(--color-border-3);
-  }
-
-  /* 聚焦状态 - 紫色主题 */
-  .breadcrumb-container.is-focused {
-    background: var(--color-primary-light-5);
-    border-color: var(--color-primary-light-3);
-  }
-
-  /* 有内容时的状态 - 紫色主题 */
-  .breadcrumb-container.has-content {
-    background: var(--color-primary-light-5);
-    border-color: var(--color-primary-light-3);
-  }
-
-  /* 自定义面包屑容器 */
+  // 自定义面包屑容器
   .custom-breadcrumb {
     display: flex;
     flex: 0 0 auto;
@@ -579,325 +603,354 @@
     height: 100%;
   }
 
-  /* 面包屑项通用样式 */
+  // 面包屑项通用样式
   .breadcrumb-item {
-    display: flex;
-    align-items: center;
-    padding: 2px 8px;
+    .flex-center();
+    padding: 0 @padding-lg;
     font-family: Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
-    line-height: 22px;
-    color: rgb(var(--primary-6)); /* #6241D4 */
+    font-size: @font-size-base;
+    line-height: 1.571rem;
+    color: rgb(var(--primary-6));
     cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.2s ease;
+    border-radius: @padding-sm;
+    .transition();
   }
 
-  /* Home 项样式 - 始终灰色背景 */
+  // Home 项样式 - 始终灰色背景
   .home-item {
     align-self: stretch;
-    height: 32px;
-    padding: 0 8px 0 12px;
-    background-color: var(--color-fill-2); /* #E5E6EB */
+    height: @container-height;
+    padding: 0 @padding-lg 0 @padding-xl;
+    background-color: var(--color-fill-2);
+    border-right: @border-width solid var(--color-border-2);
+
+    &:hover {
+      background-color: var(--color-fill-3);
+    }
+
+    // 第一个路径项添加左边距
+    + .breadcrumb-item.path-item {
+      margin-left: 0.429rem;
+    }
   }
 
-  .home-item:hover {
-    background-color: var(--color-fill-3); /* 悬停时稍深 */
+  // 路径项样式
+  .path-item {
+    &:hover {
+      background-color: var(--color-fill-2);
+    }
   }
 
-  /* 路径项样式 */
-  .path-item:hover {
-    background-color: var(--color-fill-2); /* #F2F3F5 */
-  }
-
-  /* 当前目录项样式 - 不可点击，无悬停效果 */
+  // 当前目录项样式 - 不可点击，无悬停效果
   .current-item {
-    color: var(--color-text-1); /* 使用深色文本颜色表示当前位置 */
+    color: var(--color-text-1);
     cursor: default;
+
+    &:hover {
+      background-color: transparent;
+    }
   }
 
-  .current-item:hover {
-    background-color: transparent; /* 无悬停背景 */
-  }
-
-  /* 面包屑分隔符 */
+  // 面包屑分隔符
   .breadcrumb-separator {
     flex-shrink: 0;
-    margin: 0 4px;
-    font-size: 12px;
-    color: var(--color-text-3); /* 更淡的颜色 */
+    margin: 0 @padding-md;
+    font-size: @font-size-sm;
+    color: var(--color-text-3);
   }
 
-  /* 面包屑文本 */
+  // 面包屑文本
   .breadcrumb-text {
     white-space: nowrap;
     user-select: none;
   }
 
-  /* Home 图标 */
+  // Home 图标
   .home-icon {
-    margin-right: 4px;
-    font-size: 14px;
+    margin-right: @padding-md;
+    font-size: @font-size-base;
   }
 
-  /* 输入容器样式 - 完全透明，无边框 */
+  // 输入容器样式 - 完全透明，无边框
   .path-input-container {
     display: flex;
     flex: 1;
     align-items: center;
-    min-width: 120px;
+    min-width: 8.571rem;
     background: transparent;
     border: none;
+
+    // 针对 arco-input-wrapper 移除所有默认样式 - 合并所有状态
+    :deep(.arco-input-wrapper) {
+      &,
+      &:hover,
+      &:focus,
+      &:focus-within,
+      &:active,
+      &.arco-input-focus,
+      &.arco-input-wrapper-focused,
+      &.arco-input-wrapper-focus {
+        padding: 0 !important;
+        outline: none !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
   }
 
-  /* 针对 arco-input-wrapper 移除所有默认样式 - 合并所有状态 */
-  .path-input-container :deep(.arco-input-wrapper),
-  .path-input-container :deep(.arco-input-wrapper:hover),
-  .path-input-container :deep(.arco-input-wrapper:focus),
-  .path-input-container :deep(.arco-input-wrapper:focus-within),
-  .path-input-container :deep(.arco-input-wrapper:active),
-  .path-input-container :deep(.arco-input-wrapper.arco-input-focus),
-  .path-input-container :deep(.arco-input-wrapper.arco-input-wrapper-focused),
-  .path-input-container :deep(.arco-input-wrapper.arco-input-wrapper-focus) {
-    padding: 0 !important;
-    outline: none !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  /* 输入框样式 */
+  // 输入框样式
   .breadcrumb-container .path-input {
     flex: 1;
     min-width: 0;
-    padding-right: 65px; /* 增加右侧padding为Go按钮和清除按钮留出空间 */
+    padding-right: 4.643rem;
     font-family: Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
+    font-size: @font-size-base;
     border-radius: 0;
   }
 
-  /* 合并输入框所有状态的样式 */
-  .path-input :deep(.arco-input),
-  .path-input :deep(.arco-input:hover),
-  .path-input :deep(.arco-input:focus) {
-    padding: 2px 65px 2px 8px; /* 增加右侧padding */
-    font-size: 14px;
-    line-height: 22px;
-    outline: none !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+  // 合并输入框所有状态的样式
+  .path-input {
+    :deep(.arco-input) {
+      &,
+      &:hover,
+      &:focus {
+        padding: 0 4.643rem 0 @padding-lg;
+        font-size: @font-size-base;
+        line-height: 1.571rem;
+        outline: none !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      color: var(--color-text-3);
+
+      &:focus {
+        color: var(--color-text-1);
+      }
+
+      &::placeholder {
+        color: var(--color-text-3);
+      }
+    }
+
+    :deep(.arco-input-wrapper) {
+      padding: 0 !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    // 清除按钮样式调整
+    :deep(.arco-input-clear-btn) {
+      position: absolute;
+      top: 50%;
+      right: 2.5rem;
+      z-index: 10;
+      .flex-center();
+      width: 1.429rem;
+      height: 1.429rem;
+      color: var(--color-text-3);
+      background: transparent;
+      border-radius: @padding-sm;
+      transform: translateY(-50%);
+
+      &:hover {
+        color: var(--color-text-2);
+        background: var(--color-fill-2);
+      }
+    }
   }
 
-  .path-input :deep(.arco-input) {
-    color: var(--color-text-3);
-  }
-
-  .path-input :deep(.arco-input:focus) {
-    color: var(--color-text-1);
-  }
-
-  .path-input :deep(.arco-input::placeholder) {
-    color: var(--color-text-3);
-  }
-
-  .path-input :deep(.arco-input-wrapper) {
-    padding: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-
-  /* 清除按钮样式调整 */
-  .path-input :deep(.arco-input-clear-btn) {
-    position: absolute;
-    top: 50%;
-    right: 35px; /* 定位在Go按钮左边 */
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    color: var(--color-text-3);
-    background: transparent;
-    border-radius: 2px;
-    transform: translateY(-50%);
-  }
-
-  .path-input :deep(.arco-input-clear-btn:hover) {
-    color: var(--color-text-2);
-    background: var(--color-fill-2);
-  }
-
-  /* Go按钮样式 - 增加高度 */
+  // Go按钮样式 - 增加高度
   .go-button {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
+    .flex-center();
+    width: @container-height;
     color: var(--color-text-2);
     cursor: pointer;
     background: var(--color-bg-1);
-    border: 1px solid var(--color-border-2);
-    border-radius: 2px;
-    transition: all 0.2s ease;
+    border: @border-width solid var(--color-border-2);
+    border-radius: @padding-sm;
+    .transition();
+
+    &--disabled {
+      color: var(--color-text-4);
+      cursor: not-allowed;
+      background: var(--color-fill-1);
+      border-color: var(--color-border-2);
+    }
+
+    // 默认悬停和激活状态 - 仅在没有激活类时应用
+    &:hover:not(.go-button--disabled):not(.go-button--active) {
+      background: var(--color-fill-2);
+      border-color: var(--color-border-3);
+    }
+
+    &:active:not(.go-button--disabled):not(.go-button--active) {
+      background: var(--color-fill-1);
+      border-color: var(--color-border-3);
+    }
+
+    :deep(.arco-icon) {
+      font-size: @font-size-base;
+      color: currentcolor;
+    }
   }
 
-  .go-button--disabled {
-    color: var(--color-text-4);
-    cursor: not-allowed;
-    background: var(--color-fill-1);
-    border-color: var(--color-border-2);
-  }
-
-  /* Go按钮激活状态 - 紫色主题，使用更高权重选择器减少 !important */
+  // Go按钮激活状态 - 紫色主题，使用更高权重选择器减少 !important
   .breadcrumb-container .go-button--active {
     color: white;
     cursor: pointer;
     background: rgb(var(--primary-6));
-    border: 1.5px solid rgb(var(--primary-6));
-    box-shadow: 0 0 12px rgba(var(--primary-6), 0.4);
+    border: 0.107rem solid rgb(var(--primary-6));
+    box-shadow: 0 0 0.857rem rgba(var(--primary-6), 0.4);
     animation: button-glow 2s ease-in-out infinite alternate;
+
+    &:hover {
+      background: rgb(var(--primary-5));
+      border-color: rgb(var(--primary-5));
+      box-shadow: 0 0 1.143rem rgba(var(--primary-5), 0.6);
+      animation: none;
+    }
+
+    &:active {
+      background: rgb(var(--primary-7));
+      border-color: rgb(var(--primary-7));
+      box-shadow: 0 0 0.571rem rgba(var(--primary-7), 0.8);
+      animation: none;
+    }
   }
 
-  .breadcrumb-container .go-button--active:hover {
-    background: rgb(var(--primary-5));
-    border-color: rgb(var(--primary-5));
-    box-shadow: 0 0 16px rgba(var(--primary-5), 0.6);
-    animation: none;
-  }
-
-  .breadcrumb-container .go-button--active:active {
-    background: rgb(var(--primary-7));
-    border-color: rgb(var(--primary-7));
-    box-shadow: 0 0 8px rgba(var(--primary-7), 0.8);
-    animation: none;
-  }
-
-  /* 呼吸动画效果 */
+  // 呼吸动画效果
   @keyframes button-glow {
     0% {
-      box-shadow: 0 0 8px rgba(var(--primary-6), 0.3);
+      box-shadow: 0 0 0.571rem rgba(var(--primary-6), 0.3);
     }
     100% {
-      box-shadow: 0 0 16px rgba(var(--primary-6), 0.6);
+      box-shadow: 0 0 1.143rem rgba(var(--primary-6), 0.6);
     }
   }
 
-  /* 默认悬停和激活状态 - 仅在没有激活类时应用 */
-  .go-button:hover:not(.go-button--disabled, .go-button--active) {
-    background: var(--color-fill-2);
-    border-color: var(--color-border-3);
-  }
-
-  .go-button:active:not(.go-button--disabled, .go-button--active) {
-    background: var(--color-fill-1);
-    border-color: var(--color-border-3);
-  }
-
-  .go-button :deep(.arco-icon) {
-    font-size: 14px;
-    color: currentcolor;
-  }
-
-  /* 响应式设计 */
-  @media (width <= 768px) {
+  // 响应式设计
+  @media (max-width: @screen-md) {
     .breadcrumb-container {
-      height: 32px;
+      height: @container-height;
       padding: 0;
     }
+
     .home-item {
-      padding: 0 6px 0 8px;
+      padding: 0 0.429rem 0 @padding-lg;
     }
+
     .home-icon-overlay {
       left: 0;
     }
+
     :deep(.arco-breadcrumb-item) {
-      font-size: 13px;
+      font-size: 0.929rem;
     }
+
     :deep(.arco-breadcrumb-item-link) {
-      padding: 2px 6px;
+      padding: 0 0.429rem;
     }
+
     .home-icon {
-      font-size: 12px;
+      font-size: @font-size-sm;
     }
+
     .home-text {
-      font-size: 13px;
+      font-size: 0.929rem;
     }
+
     :deep(.arco-breadcrumb-item-separator) {
-      margin: 0 2px;
-      font-size: 10px;
+      margin: 0 @padding-sm;
+      font-size: @font-size-xs;
     }
+
     .path-input-container {
       flex: 1;
-      min-width: 100px;
+      min-width: 7.143rem;
     }
+
     .go-button {
-      top: 2px;
-      right: 2px;
-      bottom: 2px;
-      width: 28px;
+      top: @padding-sm;
+      right: @padding-sm;
+      bottom: @padding-sm;
+      width: 2rem;
     }
+
     .path-input {
-      padding-right: 55px; /* 调整移动端padding */
-    }
-    .path-input :deep(.arco-input) {
-      padding: 2px 55px 2px 8px; /* 调整移动端padding */
-    }
-    .path-input :deep(.arco-input-clear-btn) {
-      right: 30px; /* 移动端清除按钮位置 */
+      padding-right: 3.929rem;
+
+      :deep(.arco-input) {
+        padding: 0 3.929rem 0 @padding-lg;
+      }
+
+      :deep(.arco-input-clear-btn) {
+        right: 2.143rem;
+      }
     }
   }
 
-  @media (width <= 576px) {
+  @media (max-width: @screen-sm) {
     .breadcrumb-container {
-      height: 32px;
+      height: @container-height;
       padding: 0;
     }
+
     .home-item {
-      padding: 0 6px 0 6px;
+      padding: 0 0.429rem 0 0.429rem;
     }
+
     .home-icon-overlay {
-      left: 0; /* 调整小屏幕左边距 */
+      left: 0;
     }
+
     .home-text {
-      font-size: 12px;
+      font-size: @font-size-sm;
     }
+
     .breadcrumb-text {
-      max-width: 80px;
+      max-width: 5.714rem;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .path-input-container {
       flex: 1;
-      min-width: 80px;
+      min-width: 5.714rem;
     }
+
     .go-button {
-      top: 1px;
-      right: 1px;
-      bottom: 1px;
-      width: 24px;
+      top: @border-width;
+      right: @border-width;
+      bottom: @border-width;
+      width: 1.714rem;
+
+      :deep(.arco-icon) {
+        font-size: @font-size-sm;
+      }
     }
-    .go-button :deep(.arco-icon) {
-      font-size: 12px;
-    }
+
     .path-input {
-      padding-right: 50px; /* 调整小屏幕padding */
-    }
-    .path-input :deep(.arco-input) {
-      padding: 2px 50px 2px 6px; /* 调整小屏幕padding */
-    }
-    .path-input :deep(.arco-input-clear-btn) {
-      right: 26px; /* 小屏幕清除按钮位置 */
+      padding-right: 3.571rem;
+
+      :deep(.arco-input) {
+        padding: 0 3.571rem 0 0.429rem;
+      }
+
+      :deep(.arco-input-clear-btn) {
+        right: 1.857rem;
+      }
     }
   }
 
-  /* 深色主题适配 */
+  // 深色主题适配
   @media (prefers-color-scheme: dark) {
     .breadcrumb-container {
       background-color: var(--color-bg-3);
