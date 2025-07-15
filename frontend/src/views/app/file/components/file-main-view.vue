@@ -401,14 +401,36 @@
   };
 </script>
 
-<style scoped>
+<style scoped lang="less">
+  @import '@/assets/style/mixin.less';
+
   .file-main {
     flex: 1;
     width: 100%;
     min-width: 0;
     height: 100%;
     padding: 20px;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Ensure table container has constrained height */
+  :deep(.arco-table-container) {
+    height: calc(100vh - 350px);
+    overflow-y: auto;
+
+    /* Apply custom scrollbar styling to table container */
+    .custom-scrollbar();
+  }
+
+  /* Specifically target the scrollbar container */
+  :deep(.arco-scrollbar-container.arco-table-content) {
+    max-height: calc(100vh - 350px);
+    overflow-y: auto;
+
+    /* Apply custom scrollbar styling */
+    .custom-scrollbar();
   }
 
   .name-cell svg {

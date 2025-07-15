@@ -249,7 +249,7 @@
   };
 </script>
 
-<style scoped>
+<style scoped lang="less">
   .simplified-file-tree {
     position: relative;
     width: 100%;

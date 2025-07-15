@@ -269,6 +269,8 @@
 </script>
 
 <style scoped lang="less">
+  @import '@/assets/style/mixin.less';
+
   .menu-container {
     display: flex;
     flex-direction: column;
@@ -287,19 +289,7 @@
     position: relative;
 
     :deep(.arco-menu) {
-      ::-webkit-scrollbar {
-        width: 12px;
-        height: 4px;
-      }
-      ::-webkit-scrollbar-thumb {
-        background-color: var(--color-text-4);
-        background-clip: padding-box;
-        border: 4px solid transparent;
-        border-radius: 7px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: var(--color-text-3);
-      }
+      .custom-scrollbar();
 
       // 确保子菜单能够正确显示
       .arco-menu-inline,

@@ -41,7 +41,9 @@
   };
 </script>
 
-<style scoped>
+<style scoped lang="less">
+  @import '@/assets/style/mixin.less';
+
   .simplified-file-sidebar {
     position: absolute;
     top: 0;
@@ -54,6 +56,9 @@
     overflow: hidden auto; /* 隐藏水平滚动条 */ /* 明确指定垂直滚动 */
     border-right: 1px solid var(--color-border-2);
     transition: width 0.3s ease;
+
+    /* Apply custom scrollbar styling using mixin */
+    .custom-scrollbar();
   }
 
   /* 平板设备 */
