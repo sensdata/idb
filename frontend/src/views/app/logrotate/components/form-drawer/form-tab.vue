@@ -126,7 +126,7 @@
       </a-col>
     </a-row>
 
-    <a-form-item field="notIfEmpty">
+    <a-form-item field="notIfEmpty" class="checkbox-group-item">
       <a-checkbox
         :model-value="formData.notIfEmpty"
         @update:model-value="(value) => updateFormData('notIfEmpty', value)"
@@ -202,14 +202,29 @@
   });
 </script>
 
-<style scoped>
+<style scoped lang="less">
   /* 轻量样式调整，不干扰默认功能 */
   :deep(.arco-checkbox) {
-    margin-bottom: 4px;
+    margin-bottom: 0.286rem;
   }
 
   :deep(.arco-checkbox-label) {
-    font-size: 14px;
+    font-size: 1rem;
+  }
+
+  /* 减少文件权限表单项的下边距 */
+  :deep(.arco-form-item.arco-form-item-layout-vertical) {
+    margin-bottom: 1.143rem; /* 16px / 14px */
+  }
+
+  /* 特别减少文件权限表单项的下边距 */
+  :deep(.arco-form-item.arco-form-item-layout-vertical:nth-of-type(4)) {
+    margin-bottom: 0.357rem; /* 5px / 14px */
+  }
+
+  /* 减少checkbox组合项的上边距，解决checkbox选项间隙过宽的问题 */
+  :deep(.checkbox-group-item.arco-form-item.arco-form-item-layout-vertical) {
+    margin-top: -1rem; /* 向上调整减少间距 */
   }
 
   /* 选中状态颜色调整 - 对于第三方组件库需要使用!important来确保样式生效 */
