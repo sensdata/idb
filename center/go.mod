@@ -113,7 +113,7 @@ require (
 	github.com/go-resty/resty/v2 v2.14.0
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gorilla/websocket v1.5.3
-	github.com/hashicorp/go-plugin v1.6.3
+	github.com/hashicorp/go-plugin v1.6.2
 	github.com/jinzhu/copier v0.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -136,5 +136,5 @@ require (
 	golang.org/x/text v0.26.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
