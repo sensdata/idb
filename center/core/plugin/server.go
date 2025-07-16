@@ -171,27 +171,32 @@ func (s *PluginServer) installPlugin(e PluginEntry) error {
 	// 下载 .tar.gz 包
 	resp, err := http.Get(e.Url)
 	if err != nil {
+		global.LOG.Error("failed to download plugin %s: %v", e.Name, err)
 		return fmt.Errorf("failed to download plugin %s: %w", e.Name, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		global.LOG.Error("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
 		return fmt.Errorf("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
 	}
 
 	// 创建插件目录
 	if err := os.MkdirAll(e.Path, 0755); err != nil {
+		global.LOG.Error("failed to create plugin path %s: %v", e.Path, err)
 		return fmt.Errorf("failed to create plugin path %s: %w", e.Path, err)
 	}
 
 	// 解压 tar.gz 到 e.Path
 	if err := extractTarGz(resp.Body, e.Path); err != nil {
+		global.LOG.Error("failed to extract plugin tar.gz: %v", err)
 		return fmt.Errorf("failed to extract plugin tar.gz: %w", err)
 	}
 
 	// 设置主执行文件为可执行
 	execPath := filepath.Join(e.Path, e.Name)
 	if err := os.Chmod(execPath, 0755); err != nil {
+		global.LOG.Error("failed to chmod plugin exec file: %v", err)
 		return fmt.Errorf("failed to chmod plugin exec file: %w", err)
 	}
 
@@ -250,14 +255,16 @@ func extractTarGz(gzipStream io.Reader, dest string) error {
 }
 
 func (s *PluginServer) loadPlugin(entry PluginEntry) error {
+	global.LOG.Info("starting to load plugin: %s (path: %s)", entry.Name, entry.Path)
+
 	factory, ok := factory.PluginFactories[entry.Name]
 	if !ok {
+		global.LOG.Error("no factory registered for plugin: %s", entry.Name)
 		return fmt.Errorf("plugin %s has no factory registered", entry.Name)
 	}
 
-	cmd := exec.Command(entry.Path)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	execPath := filepath.Join(entry.Path, entry.Name)
+	cmd := exec.Command(execPath)
 
 	client := hplugin.NewClient(&hplugin.ClientConfig{
 		HandshakeConfig: hplugin.HandshakeConfig{
@@ -271,19 +278,26 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 			"grpc": &GRPCPlugin{NewClient: factory},
 		},
 		Managed: true,
+		// 插件日志
+		SyncStdout: pluginLoggerWriter(entry.Name, "stdout"),
+		SyncStderr: pluginLoggerWriter(entry.Name, "stderr"),
 	})
 
 	rpcClient, err := client.Client()
 	if err != nil {
+		global.LOG.Error("failed to create rpc client for plugin %s: %v", entry.Name, err)
 		client.Kill()
 		return fmt.Errorf("failed to connect to plugin %s: %w", entry.Name, err)
 	}
+	global.LOG.Info("rpc client created for plugin: %s", entry.Name)
 
 	disp, err := rpcClient.Dispense("grpc")
 	if err != nil {
+		global.LOG.Error("failed to dispense grpc interface for plugin %s: %v", entry.Name, err)
 		client.Kill()
 		return fmt.Errorf("failed to dispense plugin %s: %w", entry.Name, err)
 	}
+	global.LOG.Info("dispense grpc interface successful for plugin: %s", entry.Name)
 
 	s.mu.Lock()
 	s.plugins[entry.Name] = &PluginInstance{
@@ -292,6 +306,8 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		Stub:   disp,
 	}
 	s.mu.Unlock()
+
+	global.LOG.Info("plugin %s fully registered and available", entry.Name)
 
 	return nil
 }

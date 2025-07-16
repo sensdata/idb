@@ -26,6 +26,7 @@ import (
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/command"
 	"github.com/sensdata/idb/center/core/conn"
+	"github.com/sensdata/idb/center/core/plugin"
 	"github.com/sensdata/idb/center/db"
 	"github.com/sensdata/idb/center/db/migration"
 	_ "github.com/sensdata/idb/center/docs"
@@ -176,6 +177,10 @@ func StartServices() error {
 	}
 	// 启动插件
 	// plugin.StartPlugins()
+	if err := plugin.PLUGINSERVER.Start(); err != nil {
+		global.LOG.Error("Failed to start plugins: %v", err)
+		return err
+	}
 
 	return nil
 }
