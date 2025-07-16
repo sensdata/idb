@@ -35,21 +35,18 @@ type PluginServer struct {
 	wg     sync.WaitGroup
 
 	registry *Registry
+	callback *callback.CallbackServer
 	plugins  map[string]*PluginInstance
 	mu       sync.RWMutex
-
-	callback   *callback.CallbackServer
-	broker     *hplugin.GRPCBroker
-	brokerID   uint32
-	grpcServer *grpc.Server
 }
 
 func NewPluginService() IPluginService {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &PluginServer{
-		ctx:     ctx,
-		cancel:  cancel,
-		plugins: make(map[string]*PluginInstance),
+		ctx:      ctx,
+		cancel:   cancel,
+		plugins:  make(map[string]*PluginInstance),
+		callback: &callback.CallbackServer{},
 	}
 }
 
@@ -71,9 +68,6 @@ func (s *PluginServer) Start() error {
 	s.wg.Add(1)
 	go s.loadPlugins()
 
-	s.wg.Add(1)
-	go s.initCallback()
-
 	return nil
 }
 
@@ -84,10 +78,6 @@ func (s *PluginServer) Stop() error {
 	s.wg.Wait()
 
 	s.stopPlugins()
-
-	if s.grpcServer != nil {
-		s.grpcServer.GracefulStop()
-	}
 
 	global.LOG.Info("plugin server stopped")
 	return nil
@@ -263,8 +253,12 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		return fmt.Errorf("plugin %s has no factory registered", entry.Name)
 	}
 
+	broker := &hplugin.GRPCBroker{}
+	brokerID := broker.NextId()
+
 	execPath := filepath.Join(entry.Path, entry.Name)
 	cmd := exec.Command(execPath)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("CALLBACK_BROKER_ID=%d", brokerID))
 
 	client := hplugin.NewClient(&hplugin.ClientConfig{
 		HandshakeConfig: hplugin.HandshakeConfig{
@@ -282,6 +276,22 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		SyncStdout: pluginLoggerWriter(entry.Name, "stdout"),
 		SyncStderr: pluginLoggerWriter(entry.Name, "stderr"),
 	})
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				global.LOG.Error("panic in callback server: %v, stack: %s", r, debug.Stack())
+			}
+		}()
+
+		broker.AcceptAndServe(brokerID, func(opts []grpc.ServerOption) *grpc.Server {
+			grpcServer := grpc.NewServer(opts...)
+			cbpb.RegisterCenterCallbackServer(grpcServer, s.callback)
+			return grpcServer
+		})
+	}()
 
 	rpcClient, err := client.Client()
 	if err != nil {
@@ -310,36 +320,4 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 	global.LOG.Info("plugin %s fully registered and available", entry.Name)
 
 	return nil
-}
-
-func (s *PluginServer) initCallback() {
-	defer s.wg.Done()
-	global.LOG.Info("initializing callback server")
-
-	defer func() {
-		if r := recover(); r != nil {
-			global.LOG.Error("panic in callback server: %v, stack: %s", r, debug.Stack())
-		}
-	}()
-
-	s.callback = &callback.CallbackServer{}
-	s.broker = &hplugin.GRPCBroker{}
-	s.brokerID = s.broker.NextId()
-
-	s.grpcServer = grpc.NewServer()
-	cbpb.RegisterCenterCallbackServer(s.grpcServer, s.callback)
-
-	// 用一个 goroutine 监听 context cancel 来优雅关闭 grpc server
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		<-s.ctx.Done()
-		if s.grpcServer != nil {
-			s.grpcServer.GracefulStop()
-		}
-	}()
-
-	s.broker.AcceptAndServe(s.brokerID, func(_ []grpc.ServerOption) *grpc.Server {
-		return s.grpcServer
-	})
 }
