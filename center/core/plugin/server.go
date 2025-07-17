@@ -11,15 +11,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime/debug"
 	"sync"
 
 	hplugin "github.com/hashicorp/go-plugin"
-	"github.com/sensdata/idb/center/core/plugin/callback"
-	cbpb "github.com/sensdata/idb/center/core/plugin/callback/pb"
 	factory "github.com/sensdata/idb/center/core/plugin/factory"
 	"github.com/sensdata/idb/center/global"
-	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
 
@@ -35,7 +31,6 @@ type PluginServer struct {
 	wg     sync.WaitGroup
 
 	registry *Registry
-	callback *callback.CallbackServer
 	plugins  map[string]*PluginInstance
 	mu       sync.RWMutex
 }
@@ -43,10 +38,9 @@ type PluginServer struct {
 func NewPluginService() IPluginService {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &PluginServer{
-		ctx:      ctx,
-		cancel:   cancel,
-		plugins:  make(map[string]*PluginInstance),
-		callback: &callback.CallbackServer{},
+		ctx:     ctx,
+		cancel:  cancel,
+		plugins: make(map[string]*PluginInstance),
 	}
 }
 
@@ -253,12 +247,8 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		return fmt.Errorf("plugin %s has no factory registered", entry.Name)
 	}
 
-	broker := &hplugin.GRPCBroker{}
-	brokerID := broker.NextId()
-
 	execPath := filepath.Join(entry.Path, entry.Name)
 	cmd := exec.Command(execPath)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("CALLBACK_BROKER_ID=%d", brokerID))
 
 	client := hplugin.NewClient(&hplugin.ClientConfig{
 		HandshakeConfig: hplugin.HandshakeConfig{
@@ -276,22 +266,6 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		SyncStdout: pluginLoggerWriter(entry.Name, "stdout"),
 		SyncStderr: pluginLoggerWriter(entry.Name, "stderr"),
 	})
-
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				global.LOG.Error("panic in callback server: %v, stack: %s", r, debug.Stack())
-			}
-		}()
-
-		broker.AcceptAndServe(brokerID, func(opts []grpc.ServerOption) *grpc.Server {
-			grpcServer := grpc.NewServer(opts...)
-			cbpb.RegisterCenterCallbackServer(grpcServer, s.callback)
-			return grpcServer
-		})
-	}()
 
 	rpcClient, err := client.Client()
 	if err != nil {
