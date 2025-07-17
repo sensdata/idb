@@ -106,3 +106,11 @@ type ImportCertificateRequest struct {
 	CsrPath       string `json:"csr_path"`
 	CompleteChain bool   `json:"complete_chain"`
 }
+
+type UpdateCertificateRequest struct {
+	Alias         string `json:"alias"`
+	CaType        int    `json:"ca_type"`
+	CaContent     string `json:"ca_content"`
+	CaPath        string `json:"ca_path"`
+	CompleteChain bool   `json:"complete_chain"`
+}

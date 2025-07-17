@@ -2550,6 +2550,17 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.CA_Update:
+		var req model.UpdateCertificateRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := CaService.UpdateCertificate(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	case model.Terminal_List:
 		var req model.TerminalRequest
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {

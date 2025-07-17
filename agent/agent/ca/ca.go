@@ -41,6 +41,7 @@ type ICaService interface {
 	CompleteCertificateChain(req model.CertificateInfoRequest) error
 	RemoveCertificate(req model.DeleteCertificateRequest) error
 	ImportCertificate(req model.ImportCertificateRequest) error
+	UpdateCertificate(req model.UpdateCertificateRequest) error
 }
 
 func NewICaService() ICaService {
@@ -656,6 +657,52 @@ func (s *CaService) ImportCertificate(req model.ImportCertificateRequest) error 
 
 	default:
 		global.LOG.Error("Invalid csr type")
+	}
+
+	return nil
+}
+
+func (s *CaService) UpdateCertificate(req model.UpdateCertificateRequest) error {
+	// 目录必须已经存在（与 ImportCertificate 相反）
+	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
+	if _, err := os.Stat(certificateDir); os.IsNotExist(err) {
+		return fmt.Errorf("Alias not found: %v", err)
+	}
+
+	// 保存新的证书（以当前时间戳命名）
+	timestamp := time.Now().Unix()
+	newCertPath := filepath.Join(certificateDir, fmt.Sprintf("%d.crt", timestamp))
+	switch req.CaType {
+	case 0, 1:
+		if err := os.WriteFile(newCertPath, []byte(req.CaContent), 0600); err != nil {
+			return fmt.Errorf("Failed to write new cert to %s: %w", newCertPath, err)
+		}
+	case 2:
+		caData, err := os.ReadFile(req.CaPath)
+		if err != nil {
+			return fmt.Errorf("Failed to read ca file: %w", err)
+		}
+		if err := os.WriteFile(newCertPath, caData, 0600); err != nil {
+			return fmt.Errorf("Failed to write ca file: %w", err)
+		}
+	default:
+		return fmt.Errorf("Invalid CaType: %d", req.CaType)
+	}
+
+	// 补齐证书链
+	if req.CompleteChain {
+		fullChain, err := s.completeCertificateChain(newCertPath)
+		if err != nil {
+			return fmt.Errorf("error to complete chain: %v", err)
+		}
+		if fullChain == "" {
+			return fmt.Errorf("failed to complete chain: %v", err)
+		}
+
+		// 将补齐的证书链写回覆盖原文件
+		if err := os.WriteFile(newCertPath, []byte(fullChain), 0600); err != nil {
+			return fmt.Errorf("failed to write full chain to file: %v", err)
+		}
 	}
 
 	return nil

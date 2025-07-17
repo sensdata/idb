@@ -674,3 +674,111 @@ func (s *CertificateMan) Import(c *gin.Context) {
 
 	helper.SuccessWithData(c, nil)
 }
+
+// @Tags Certificates
+// @Summary Update certificate
+// @Description Update certificate
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param alias formData string true "Alias"
+// @Param ca_type formData int true "Certificate import type"
+// @Param ca_file formData file false "Certificate file to import"
+// @Param ca_content formData string false "Certificate file content to import"
+// @Param ca_path formData string false "Local ca file path"
+// @Param complete_chain formData bool false "Complete certificate chain"
+// @Success 200
+// @Router /certificates/{host}/update [post]
+func (s *CertificateMan) Update(c *gin.Context) {
+	// 获取路径参数中的 Host ID
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	// 获取表单字段
+	alias := c.PostForm("alias") // 获取 alias 字段
+	if alias == "" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Alias is required", nil)
+		return
+	}
+
+	caType, err := strconv.ParseUint(c.PostForm("ca_type"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid ca_type value", err)
+		return
+	}
+
+	completeChain, err := strconv.ParseBool(c.PostForm("complete_chain"))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid complete_chain value", err)
+		return
+	}
+
+	// 获取表单中的文件内容
+	var (
+		caContent string
+		caPath    string
+	)
+
+	// 证书
+	switch caType {
+	// 上传文件
+	case 0:
+		file, err := c.FormFile("ca_file")
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Failed to read ca_file", err)
+			return
+		}
+		// 打开文件
+		srcFile, err := file.Open()
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to open ca_file", err)
+			return
+		}
+		defer srcFile.Close()
+		// 读取文件内容
+		buf, err := io.ReadAll(srcFile)
+		if err != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, "Failed to read ca_file content", err)
+			return
+		}
+		caContent = string(buf)
+
+	// 粘贴文件内容
+	case 1:
+		caContent = c.PostForm("ca_content")
+		if caContent == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "ca_content required", nil)
+			return
+		}
+
+	// 从本地文件导入
+	case 2:
+		caPath = c.PostForm("ca_path")
+		if caPath == "" {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "ca_path required", nil)
+			return
+		}
+
+	default:
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid ca_type value", nil)
+		return
+	}
+
+	req := model.UpdateCertificateRequest{
+		Alias:         alias,
+		CaType:        int(caType),
+		CaContent:     caContent,
+		CaPath:        caPath,
+		CompleteChain: completeChain,
+	}
+	err = s.updateCertificate(hostID, req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}

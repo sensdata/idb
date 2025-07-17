@@ -321,3 +321,30 @@ func (s *CertificateMan) importCertificate(hostID uint64, req model.ImportCertif
 
 	return nil
 }
+
+func (s *CertificateMan) updateCertificate(hostID uint64, req model.UpdateCertificateRequest) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.CA_Update,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("action failed")
+		return fmt.Errorf("failed to update ca")
+	}
+
+	return nil
+}

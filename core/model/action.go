@@ -132,6 +132,7 @@ const (
 	CA_Complete     string = "ca_complete"
 	CA_Remove       string = "ca_remove"
 	CA_Import       string = "ca_import"
+	CA_Update       string = "ca_update"
 
 	Terminal_List    string = "terminal_list"
 	Terminal_Detach  string = "terminal_detach"
