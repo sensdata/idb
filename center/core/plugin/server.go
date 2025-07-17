@@ -145,7 +145,8 @@ func (s *PluginServer) stopPlugins() {
 }
 
 func (s *PluginServer) isPluginInstalled(e PluginEntry) bool {
-	info, err := os.Stat(e.Path)
+	execPath := filepath.Join(e.Path, e.Name)
+	info, err := os.Stat(execPath)
 	return err == nil && !info.IsDir()
 }
 
@@ -269,6 +270,7 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 
 	rpcClient, err := client.Client()
 	if err != nil {
+		global.LOG.Error("plugin protocol used: %s", client.Protocol())
 		global.LOG.Error("failed to create rpc client for plugin %s: %v", entry.Name, err)
 		client.Kill()
 		return fmt.Errorf("failed to connect to plugin %s: %w", entry.Name, err)
