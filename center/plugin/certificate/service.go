@@ -476,6 +476,7 @@ func (s *CertificateMan) CompleteCertificate(c *gin.Context) {
 // @Param csr_file formData file false "Csr file to import"
 // @Param csr_content formData string false "Csr file content to import"
 // @Param csr_path formData string false "Local csr file path"
+// @Param complete_chain formData bool false "Complete certificate chain"
 // @Success 200
 // @Router /certificates/{host}/import [post]
 func (s *CertificateMan) Import(c *gin.Context) {
@@ -506,6 +507,12 @@ func (s *CertificateMan) Import(c *gin.Context) {
 	csrType, err := strconv.ParseUint(c.PostForm("csr_type"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid csr_type value", err)
+		return
+	}
+
+	completeChain, err := strconv.ParseBool(c.PostForm("complete_chain"))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid complete_chain value", err)
 		return
 	}
 
@@ -647,16 +654,17 @@ func (s *CertificateMan) Import(c *gin.Context) {
 	}
 
 	req := model.ImportCertificateRequest{
-		Alias:      alias,
-		KeyType:    int(keyType),
-		KeyContent: keyContent,
-		KeyPath:    keyPath,
-		CaType:     int(caType),
-		CaContent:  caContent,
-		CaPath:     caPath,
-		CsrType:    int(csrType),
-		CsrContent: csrContent,
-		CsrPath:    csrPath,
+		Alias:         alias,
+		KeyType:       int(keyType),
+		KeyContent:    keyContent,
+		KeyPath:       keyPath,
+		CaType:        int(caType),
+		CaContent:     caContent,
+		CaPath:        caPath,
+		CsrType:       int(csrType),
+		CsrContent:    csrContent,
+		CsrPath:       csrPath,
+		CompleteChain: completeChain,
 	}
 	err = s.importCertificate(hostID, req)
 	if err != nil {

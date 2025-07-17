@@ -422,7 +422,7 @@ func (s *CaService) CompleteCertificateChain(req model.CertificateInfoRequest) e
 	}
 
 	// 将补齐的证书链写回覆盖原文件
-	if err := os.WriteFile(req.Source, []byte(fullChain), 0644); err != nil {
+	if err := os.WriteFile(req.Source, []byte(fullChain), 0600); err != nil {
 		return fmt.Errorf("failed to write full chain to file: %v", err)
 	}
 
@@ -601,6 +601,22 @@ func (s *CaService) ImportCertificate(req model.ImportCertificateRequest) error 
 	default:
 		global.LOG.Error("Invalid ca type")
 		return fmt.Errorf("Invalid CaType: %d", req.CaType)
+	}
+
+	// 补齐证书链
+	if req.CompleteChain {
+		fullChain, err := s.completeCertificateChain(caPath)
+		if err != nil {
+			return fmt.Errorf("error to complete chain: %v", err)
+		}
+		if fullChain == "" {
+			return fmt.Errorf("failed to complete chain: %v", err)
+		}
+
+		// 将补齐的证书链写回覆盖原文件
+		if err := os.WriteFile(caPath, []byte(fullChain), 0600); err != nil {
+			return fmt.Errorf("failed to write full chain to file: %v", err)
+		}
 	}
 
 	// 根据csrType，将内容保存至alias.csr

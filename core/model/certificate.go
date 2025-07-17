@@ -94,14 +94,15 @@ type DeleteCertificateRequest struct {
 }
 
 type ImportCertificateRequest struct {
-	Alias      string `json:"alias"`
-	KeyType    int    `json:"key_type"`
-	KeyContent string `json:"key_content"`
-	KeyPath    string `json:"key_path"`
-	CaType     int    `json:"ca_type"`
-	CaContent  string `json:"ca_content"`
-	CaPath     string `json:"ca_path"`
-	CsrType    int    `json:"csr_type"`
-	CsrContent string `json:"csr_content"`
-	CsrPath    string `json:"csr_path"`
+	Alias         string `json:"alias"`
+	KeyType       int    `json:"key_type"`
+	KeyContent    string `json:"key_content"`
+	KeyPath       string `json:"key_path"`
+	CaType        int    `json:"ca_type"`
+	CaContent     string `json:"ca_content"`
+	CaPath        string `json:"ca_path"`
+	CsrType       int    `json:"csr_type"`
+	CsrContent    string `json:"csr_content"`
+	CsrPath       string `json:"csr_path"`
+	CompleteChain bool   `json:"complete_chain"`
 }
