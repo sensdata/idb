@@ -2490,6 +2490,10 @@ paths:
         in: formData
         name: csr_path
         type: string
+      - description: Complete certificate chain
+        in: formData
+        name: complete_chain
+        type: boolean
       produces:
       - application/json
       responses:
@@ -2521,6 +2525,51 @@ paths:
         "200":
           description: OK
       summary: Self sign certificate
+      tags:
+      - Certificates
+  /certificates/{host}/update:
+    post:
+      consumes:
+      - application/json
+      description: Update certificate
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Alias
+        in: formData
+        name: alias
+        required: true
+        type: string
+      - description: Certificate import type
+        in: formData
+        name: ca_type
+        required: true
+        type: integer
+      - description: Certificate file to import
+        in: formData
+        name: ca_file
+        type: file
+      - description: Certificate file content to import
+        in: formData
+        name: ca_content
+        type: string
+      - description: Local ca file path
+        in: formData
+        name: ca_path
+        type: string
+      - description: Complete certificate chain
+        in: formData
+        name: complete_chain
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update certificate
       tags:
       - Certificates
   /certificates/info:

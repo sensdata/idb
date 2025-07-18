@@ -527,6 +527,12 @@ const docTemplate = `{
                         "description": "Local csr file path",
                         "name": "csr_path",
                         "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Complete certificate chain",
+                        "name": "complete_chain",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -565,6 +571,73 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.SelfSignedRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/certificates/{host}/update": {
+            "post": {
+                "description": "Update certificate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Certificates"
+                ],
+                "summary": "Update certificate",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alias",
+                        "name": "alias",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Certificate import type",
+                        "name": "ca_type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Certificate file to import",
+                        "name": "ca_file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Certificate file content to import",
+                        "name": "ca_content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Local ca file path",
+                        "name": "ca_path",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Complete certificate chain",
+                        "name": "complete_chain",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
