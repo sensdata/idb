@@ -98,6 +98,7 @@ func (s *CertificateMan) Initialize() {
 			{Method: "POST", Path: "/:host/complete", Handler: s.CompleteCertificate},
 
 			{Method: "POST", Path: "/:host/import", Handler: s.Import},
+			{Method: "POST", Path: "/:host/update", Handler: s.Update},
 		},
 	)
 
