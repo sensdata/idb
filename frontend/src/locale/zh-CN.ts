@@ -4,6 +4,7 @@ import { LocaleModules } from './types';
 const locales: LocaleModules = import.meta.glob('./zh-CN/*.ts', {
   eager: true,
 });
+
 const viewLocales: LocaleModules = import.meta.glob('../views/**/zh-CN.ts', {
   eager: true,
 });
@@ -18,6 +19,7 @@ const routerLocales: LocaleModules = import.meta.glob('../router/**/zh-CN.ts', {
 });
 
 export default {
+  'menu.app.certificate': '证书管理',
   'locale.switchLocale': '切换为中文',
   ...localeMessageBox,
   ...Object.values({

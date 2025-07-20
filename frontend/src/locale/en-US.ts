@@ -5,6 +5,7 @@ import { LocaleModules } from './types';
 const locales: LocaleModules = import.meta.glob('./en-US/*.ts', {
   eager: true,
 });
+
 const viewLocales: LocaleModules = import.meta.glob('../views/**/en-US.ts', {
   eager: true,
 });
@@ -21,6 +22,7 @@ const routerLocales: LocaleModules = import.meta.glob('../router/**/en-US.ts', {
 export default {
   'menu.dashboard': 'Dashboard',
   'menu.profile': 'Profile',
+  'menu.app.certificate': 'Certificate Management',
   'locale.switchLocale': 'Switch to English',
   ...localeMessageBox,
   ...localeLogin,

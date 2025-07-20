@@ -286,6 +286,16 @@ const appRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/app/certificate',
+    name: 'certificate',
+    component: () => import('@/views/app/certificate/main.vue'),
+    meta: {
+      locale: 'menu.app.certificate',
+      requiresAuth: true,
+      icon: 'icon-safe',
+    },
+  },
+  {
     path: '/app/service',
     name: 'service',
     component: () => import('@/views/app/service/main.vue'),

@@ -33,6 +33,7 @@ export default {
   'common.modify': '修改',
   'common.save': '保存',
   'common.cancel': '取消',
+  'common.confirm': '确定',
   'common.discard': '放弃',
   'common.restore': '恢复',
   'common.more': '更多',
@@ -54,4 +55,7 @@ export default {
   'common.error.noHostSelected': '请选择主机',
   'common.error.unknown': '未知错误',
   'common.error.title': '错误',
+  'common.close': '关闭',
+  'common.optional': '可选',
+  'common.operations': '操作',
 };

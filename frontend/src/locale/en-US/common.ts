@@ -32,6 +32,7 @@ export default {
   'common.modify': 'Modify',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
+  'common.confirm': 'Confirm',
   'common.discard': 'Discard',
   'common.restore': 'Restore',
   'common.more': 'More',
@@ -49,4 +50,7 @@ export default {
   'common.error.noHostSelected': 'Please select a host',
   'common.error.unknown': 'Unknown error',
   'common.error.title': 'Error',
+  'common.close': 'Close',
+  'common.optional': 'Optional',
+  'common.operations': 'Operations',
 };
