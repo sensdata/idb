@@ -200,7 +200,7 @@
       formState.display_name = data.display_name;
       formState.version_id = data.versions[0]?.id;
       versionOptions.value = data.versions.map((v) => ({
-        label: v.version,
+        label: v.version + '.' + v.update_version,
         value: v.id,
       }));
       dynamicFields.value = data.form?.Fields || [];
