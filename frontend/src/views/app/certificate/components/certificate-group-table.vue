@@ -88,6 +88,13 @@
                 <a-button
                   type="text"
                   size="small"
+                  @click="$emit('updateCertificate', record.alias)"
+                >
+                  {{ $t('app.certificate.updateCertificate') }}
+                </a-button>
+                <a-button
+                  type="text"
+                  size="small"
                   status="danger"
                   @click="$emit('deleteCertificate', cert.source)"
                 >
@@ -131,6 +138,7 @@
     (e: 'viewDetail', source: string): void;
     (e: 'generateSelfSigned', alias: string): void;
     (e: 'completeChain', source: string): void;
+    (e: 'updateCertificate', alias: string): void;
     (e: 'deleteGroup', alias: string): void;
     (e: 'deleteCertificate', source: string): void;
     (e: 'viewPrivateKey', alias: string): void;

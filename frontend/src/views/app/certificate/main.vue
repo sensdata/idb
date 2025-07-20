@@ -1,7 +1,6 @@
 <template>
   <div class="certificate-page-container">
     <div class="header-container">
-      <h2 class="page-title">{{ $t('app.certificate.title') }}</h2>
       <div class="header-actions">
         <a-button type="primary" @click="showCreateGroupModal">
           <template #icon>
@@ -28,6 +27,7 @@
           @view-detail="handleViewDetail"
           @generate-self-signed="handleGenerateSelfSigned"
           @complete-chain="handleCompleteChain"
+          @update-certificate="handleUpdateCertificateModal"
           @delete-group="handleDeleteGroup"
           @delete-certificate="handleDeleteCertificate"
           @view-private-key="handleViewPrivateKey"
@@ -48,6 +48,14 @@
       v-model:visible="importModalVisible"
       :loading="submitLoading"
       @ok="handleImportCertificate"
+    />
+
+    <!-- 更新证书弹窗 -->
+    <UpdateCertificateModal
+      v-model:visible="updateModalVisible"
+      :loading="submitLoading"
+      :alias="selectedAlias"
+      @ok="handleUpdateCertificate"
     />
 
     <!-- 生成自签名证书弹窗 -->
@@ -105,6 +113,7 @@
     getPrivateKeyInfo,
     getCSRInfo,
     importCertificate,
+    updateCertificate,
     type CertificateGroup,
     type CertificateInfo,
     type PrivateKeyInfo,
@@ -116,6 +125,7 @@
   import CertificateGroupTable from './components/certificate-group-table.vue';
   import CreateCertificateDrawer from './components/create-certificate-drawer.vue';
   import ImportCertificateModal from './components/import-certificate-modal.vue';
+  import UpdateCertificateModal from './components/update-certificate-modal.vue';
   import SelfSignedCertificateModal from './components/self-signed-certificate-modal.vue';
   import CertificateDetailModal from './components/certificate-detail-modal.vue';
   import PrivateKeyModal from './components/private-key-modal.vue';
@@ -140,6 +150,7 @@
   // 弹窗状态
   const createGroupModalVisible = ref(false);
   const importModalVisible = ref(false);
+  const updateModalVisible = ref(false);
   const selfSignedModalVisible = ref(false);
   const detailModalVisible = ref(false);
   const privateKeyModalVisible = ref(false);
@@ -195,6 +206,12 @@
   // 显示导入证书弹窗
   const showImportModal = () => {
     importModalVisible.value = true;
+  };
+
+  // 显示更新证书弹窗
+  const handleUpdateCertificateModal = (alias: string) => {
+    selectedAlias.value = alias;
+    updateModalVisible.value = true;
   };
 
   // 处理创建证书组
@@ -262,6 +279,41 @@
     } catch (error) {
       // executeApi 已经处理了错误，这里不需要额外处理
       logError('Failed to import certificate:', error);
+    } finally {
+      submitLoading.value = false;
+    }
+  };
+
+  // 处理更新证书
+  const handleUpdateCertificate = async (formData: FormData) => {
+    if (!currentHostId.value) {
+      Message.error(t('app.certificate.error.noHost'));
+      return;
+    }
+
+    try {
+      submitLoading.value = true;
+      await executeApi(
+        () => updateCertificate(currentHostId.value as number, formData),
+        {
+          onSuccess: () => {
+            Message.success(t('app.certificate.updateSuccess'));
+            // 只有成功时才关闭弹窗和刷新列表
+            updateModalVisible.value = false;
+            fetchCertificateGroups();
+          },
+          onError: (error) => {
+            // 显示具体的错误信息
+            const errorMessage =
+              error.message || t('app.certificate.updateError');
+            Message.error(errorMessage);
+            logError('Failed to update certificate:', error);
+          },
+        }
+      );
+    } catch (error) {
+      // executeApi 已经处理了错误，这里不需要额外处理
+      logError('Failed to update certificate:', error);
     } finally {
       submitLoading.value = false;
     }
@@ -498,7 +550,8 @@
   .header-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
+    padding-right: 1.67rem;
     margin-bottom: 1.67rem;
   }
 

@@ -87,6 +87,15 @@ export interface ImportCertificateRequest {
   csr_type: number;
   csr_content?: string;
   csr_path?: string;
+  complete_chain?: boolean;
+}
+
+export interface UpdateCertificateRequest {
+  alias: string;
+  ca_type: number;
+  ca_content?: string;
+  ca_path?: string;
+  complete_chain?: boolean;
 }
 
 export interface GroupPkRequest {
@@ -212,6 +221,19 @@ export function completeCertificateChain(
  */
 export function importCertificate(hostId: number, formData: FormData) {
   return request.post(`/certificates/${hostId}/import`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
+/**
+ * 更新证书
+ * @param hostId - 主机ID
+ * @param formData - 表单数据
+ */
+export function updateCertificate(hostId: number, formData: FormData) {
+  return request.post(`/certificates/${hostId}/update`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

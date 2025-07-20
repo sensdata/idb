@@ -107,6 +107,21 @@
   .file-selector {
     display: inline-block;
     width: 100%;
+
+    :deep(.arco-input-group) {
+      display: flex;
+      gap: 0.5rem;
+
+      .arco-input-wrapper {
+        flex: 1;
+        border-radius: 0.375rem !important;
+      }
+
+      .arco-btn {
+        border-radius: 0.375rem !important;
+        flex-shrink: 0;
+      }
+    }
   }
 
   :deep(.file-selector-popover) {
