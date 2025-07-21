@@ -476,19 +476,20 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 		}
 
 		apps = append(apps, core.App{
-			ID:          appData.ID,
-			Type:        constant.TYPE_APP,
-			Name:        compose.Name,
-			DisplayName: appData.DisplayName,
-			Category:    appData.Category,
-			Tags:        strings.Split(appData.Tags, ","),
-			Title:       appData.Title,
-			Description: appData.Description,
-			Vendor:      core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
-			Packager:    core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
-			HasUpgrade:  hasUpgrade,
-			Versions:    versions,
-			Status:      status,
+			ID:             appData.ID,
+			Type:           constant.TYPE_APP,
+			Name:           compose.Name,
+			DisplayName:    appData.DisplayName,
+			Category:       appData.Category,
+			Tags:           strings.Split(appData.Tags, ","),
+			Title:          appData.Title,
+			Description:    appData.Description,
+			Vendor:         core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
+			Packager:       core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+			HasUpgrade:     hasUpgrade,
+			Versions:       versions,
+			CurrentVersion: fmt.Sprintf("%s.%d", compose.IdbVersion, compose.IdbUpdateVersion),
+			Status:         status,
 		})
 	}
 

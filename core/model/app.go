@@ -1,20 +1,21 @@
 package model
 
 type App struct {
-	ID          uint         `yaml:"-" json:"id"`
-	Type        string       `yaml:"type" json:"type"`
-	Name        string       `yaml:"name" json:"name"`
-	DisplayName string       `yaml:"display_name" json:"display_name"`
-	Category    string       `yaml:"category" json:"category"`
-	Tags        []string     `yaml:"tags" json:"tags"`
-	Title       string       `yaml:"title" json:"title"`
-	Description string       `yaml:"description" json:"description"`
-	Vendor      NameUrl      `yaml:"vendor" json:"vendor"`
-	Packager    NameUrl      `yaml:"packager" json:"packager"`
-	HasUpgrade  bool         `yaml:"-" json:"has_upgrade"`
-	Versions    []AppVersion `json:"versions"`
-	Form        Form         `json:"form"`
-	Status      string       `json:"status"`
+	ID             uint         `yaml:"-" json:"id"`
+	Type           string       `yaml:"type" json:"type"`
+	Name           string       `yaml:"name" json:"name"`
+	DisplayName    string       `yaml:"display_name" json:"display_name"`
+	Category       string       `yaml:"category" json:"category"`
+	Tags           []string     `yaml:"tags" json:"tags"`
+	Title          string       `yaml:"title" json:"title"`
+	Description    string       `yaml:"description" json:"description"`
+	Vendor         NameUrl      `yaml:"vendor" json:"vendor"`
+	Packager       NameUrl      `yaml:"packager" json:"packager"`
+	HasUpgrade     bool         `yaml:"-" json:"has_upgrade"`
+	Versions       []AppVersion `json:"versions"`
+	CurrentVersion string       `json:"current_version"`
+	Form           Form         `json:"form"`
+	Status         string       `json:"status"`
 }
 type AppVersion struct {
 	ID             uint   `json:"id"`
