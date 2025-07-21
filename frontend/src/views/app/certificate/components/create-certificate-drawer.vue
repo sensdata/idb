@@ -92,8 +92,13 @@
                     $t('app.certificate.form.keyAlgorithmPlaceholder')
                   "
                 >
-                  <a-option value="rsa">RSA</a-option>
-                  <a-option value="ecdsa">ECDSA</a-option>
+                  <a-option
+                    v-for="option in KEY_ALGORITHM_OPTIONS"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </a-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -177,6 +182,7 @@
   import { useI18n } from 'vue-i18n';
   import type { FormInstance } from '@arco-design/web-vue/es/form';
   import type { CreateGroupRequest } from '@/api/certificate';
+  import { KEY_ALGORITHM_OPTIONS, DEFAULT_KEY_ALGORITHM } from '../constants';
 
   // Props 定义
   interface Props {
@@ -209,7 +215,7 @@
     country: '',
     province: '',
     city: '',
-    key_algorithm: 'rsa',
+    key_algorithm: DEFAULT_KEY_ALGORITHM,
   });
 
   // 计算属性
@@ -275,7 +281,7 @@
       country: '',
       province: '',
       city: '',
-      key_algorithm: 'rsa',
+      key_algorithm: DEFAULT_KEY_ALGORITHM,
     };
     formRef.value?.resetFields();
   };

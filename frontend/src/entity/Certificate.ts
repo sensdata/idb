@@ -9,9 +9,11 @@ export enum CertificateStatus {
 }
 
 export enum KeyAlgorithm {
-  RSA = 'rsa',
-  ECDSA = 'ecdsa',
-  ED25519 = 'ed25519',
+  RSA_2048 = 'RSA 2048',
+  RSA_3072 = 'RSA 3072',
+  RSA_4096 = 'RSA 4096',
+  EC_256 = 'EC 256',
+  EC_384 = 'EC 384',
 }
 
 export enum ImportType {
