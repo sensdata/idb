@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.certificateDetail')"
-    :width="600"
+    :width="700"
     :footer="false"
   >
     <a-spin :loading="loading" class="w-full">

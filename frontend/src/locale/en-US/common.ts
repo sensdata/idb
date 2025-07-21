@@ -53,4 +53,6 @@ export default {
   'common.close': 'Close',
   'common.optional': 'Optional',
   'common.operations': 'Operations',
+  'common.expand': 'Expand',
+  'common.collapse': 'Collapse',
 };

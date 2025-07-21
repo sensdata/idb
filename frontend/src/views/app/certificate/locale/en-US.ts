@@ -5,11 +5,12 @@ export default {
   'app.certificate.updateCertificate': 'Update Certificate',
   'app.certificate.generateSelfSigned': 'Generate Self-Signed Certificate',
   'app.certificate.viewDetail': 'View Details',
+  'app.certificate.viewDetails': 'View Details',
   'app.certificate.completeChain': 'Complete Certificate Chain',
   'app.certificate.deleteGroup': 'Delete Certificate Group',
   'app.certificate.viewPrivateKey': 'View Private Key',
   'app.certificate.viewCSR': 'View CSR',
-  'app.certificate.certificateDetail': 'Certificate Details',
+  'app.certificate.certificateDetail': 'Certifiacate Details',
   'app.certificate.privateKeyInfo': 'Private Key Information',
   'app.certificate.csrInfo': 'CSR Information',
 
@@ -21,6 +22,7 @@ export default {
   'app.certificate.status': 'Status',
   'app.certificate.expiresOn': 'Expires On',
   'app.certificate.noCertificates': 'No certificates',
+  'app.certificate.certificatesCount': 'certificates',
 
   // Status
   'app.certificate.status.valid': 'Valid',

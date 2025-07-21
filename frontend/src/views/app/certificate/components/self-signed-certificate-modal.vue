@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.generateSelfSigned')"
-    :width="560"
+    :width="700"
     :footer="true"
     @cancel="handleCancel"
   >

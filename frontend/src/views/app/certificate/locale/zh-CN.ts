@@ -5,6 +5,7 @@ export default {
   'app.certificate.updateCertificate': '更新证书',
   'app.certificate.generateSelfSigned': '生成自签名证书',
   'app.certificate.viewDetail': '查看详情',
+  'app.certificate.viewDetails': '查看详情',
   'app.certificate.completeChain': '补齐证书链',
   'app.certificate.deleteGroup': '删除证书组',
   'app.certificate.viewPrivateKey': '查看私钥',
@@ -21,6 +22,7 @@ export default {
   'app.certificate.status': '状态',
   'app.certificate.expiresOn': '过期时间',
   'app.certificate.noCertificates': '暂无证书',
+  'app.certificate.certificatesCount': '个证书',
 
   // Status
   'app.certificate.status.valid': '有效',
