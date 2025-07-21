@@ -488,7 +488,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 			Packager:       core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
 			HasUpgrade:     hasUpgrade,
 			Versions:       versions,
-			CurrentVersion: fmt.Sprintf("%s.%d", compose.IdbVersion, compose.IdbUpdateVersion),
+			CurrentVersion: fmt.Sprintf("%s.%s", compose.IdbVersion, compose.IdbUpdateVersion),
 			Status:         status,
 		})
 	}
