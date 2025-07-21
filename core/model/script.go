@@ -2,6 +2,21 @@ package model
 
 import "time"
 
+type ScriptInfo struct {
+	Source    string `json:"source"`
+	Name      string `json:"name"`
+	Extension string `json:"extension"`
+	Content   string `json:"content"`
+	Size      int64  `json:"size"`
+	ModTime   string `json:"mod_time"`
+	Linked    bool   `json:"linked"`
+}
+
+type ScriptList struct {
+	Total int64         `json:"total"`
+	Items []*ScriptInfo `json:"items"`
+}
+
 type ExecuteScript struct {
 	ScriptPath string `json:"script_path" validate:"required"`
 }

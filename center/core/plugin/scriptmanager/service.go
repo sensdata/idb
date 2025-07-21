@@ -1,26 +1,16 @@
 package scriptmanager
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc"
 
 	"github.com/sensdata/idb/center/core/plugin"
-	"github.com/sensdata/idb/center/core/plugin/factory"
-	smpb "github.com/sensdata/idb/center/core/plugin/scriptmanager/pb"
+	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/helper"
+	"github.com/sensdata/idb/core/model"
 )
-
-func init() {
-	factory.RegisterFactory("scriptmanager", func(cc *grpc.ClientConn) interface{} {
-		return &ScriptManagerWrapper{
-			Client: NewGRPCClient(cc),
-		}
-	})
-}
 
 func (h *ScriptRouter) GetScriptList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
@@ -57,34 +47,33 @@ func (h *ScriptRouter) GetScriptList(c *gin.Context) {
 		return
 	}
 
-	req := &smpb.ListScriptsRequest{
-		HostId:   uint32(hostID),
+	req := model.QueryGitFile{
 		Type:     scriptType,
 		Category: category,
-		Page:     int32(page),
-		PageSize: int32(pageSize),
+		Page:     int(page),
+		PageSize: int(pageSize),
 	}
 
 	// 获取插件客户端
 	plugin, err := plugin.PLUGINSERVER.GetPlugin("scriptmanager")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "plugin not found"})
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
 	// 类型断言为 gRPC client
-	client, ok := plugin.Stub.(ScriptManagerWrapper)
+	client, ok := plugin.Stub.(shared.ScriptManager)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid plugin client"})
+		helper.ErrorWithDetail(c, constant.CodeFailed, "invalid plugin client", nil)
 		return
 	}
 
 	// 调用插件方法
-	resp, err := client.ListScripts(c.Request.Context(), req)
+	resp, err := client.ListScripts(hostID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	helper.SuccessWithData(c, resp)
 }

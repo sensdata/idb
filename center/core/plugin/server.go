@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"context"
 	_ "embed"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,8 +15,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
 	hplugin "github.com/hashicorp/go-plugin"
-	factory "github.com/sensdata/idb/center/core/plugin/factory"
+	"github.com/sensdata/idb/center/core/api/service"
+	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/center/global"
 	"gopkg.in/yaml.v2"
 )
@@ -96,6 +100,43 @@ func loadRegistry(data []byte) (*Registry, error) {
 }
 
 func (s *PluginServer) loadPlugins() {
+
+	settingService := service.NewISettingsService()
+	settingInfo, _ := settingService.Settings()
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+	host := global.Host
+	if settingInfo.BindDomain != "" && settingInfo.BindDomain != host {
+		host = settingInfo.BindDomain
+	}
+	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.BindPort)
+
+	initConfig := shared.PluginInitConfig{
+		API:   baseUrl,
+		HTTPS: scheme == "https",
+		Cert:  string(global.CertPem),
+		Key:   string(global.KeyPem),
+	}
+
+	// 转成 JSON
+	jsonBytes, err := json.Marshal(initConfig)
+	if err != nil {
+		global.LOG.Error("failed to marshal config: %v", err)
+		return
+	}
+
+	// Base64 编码
+	encoded := base64.StdEncoding.EncodeToString(jsonBytes)
+
+	// 写入临时文件
+	tmpFile := "/tmp/plugin_boot_config"
+	if err := os.WriteFile(tmpFile, []byte(encoded), 0644); err != nil {
+		global.LOG.Error("failed to write config file: %v", err)
+		return
+	}
+
 	defer s.wg.Done()
 	global.LOG.Info("loading plugins")
 	for _, entry := range s.registry.Plugins {
@@ -242,42 +283,33 @@ func extractTarGz(gzipStream io.Reader, dest string) error {
 func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 	global.LOG.Info("starting to load plugin: %s (path: %s)", entry.Name, entry.Path)
 
-	factory, ok := factory.PluginFactories[entry.Name]
-	if !ok {
-		global.LOG.Error("no factory registered for plugin: %s", entry.Name)
-		return fmt.Errorf("plugin %s has no factory registered", entry.Name)
-	}
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   "plugin",
+		Output: &PluginLogWriter{},
+		Level:  hclog.Debug,
+	})
 
 	execPath := filepath.Join(entry.Path, entry.Name)
-	cmd := exec.Command(execPath)
+	cmd := exec.Command(execPath, "--config", "/tmp/plugin_boot_config")
 
 	client := hplugin.NewClient(&hplugin.ClientConfig{
-		HandshakeConfig: hplugin.HandshakeConfig{
-			ProtocolVersion:  1,
-			MagicCookieKey:   "PLUGIN_NAME",
-			MagicCookieValue: entry.Name,
-		},
+		HandshakeConfig:  shared.Handshake,
+		Plugins:          shared.PluginMap,
 		Cmd:              cmd,
 		AllowedProtocols: []hplugin.Protocol{hplugin.ProtocolGRPC},
-		Plugins: map[string]hplugin.Plugin{
-			"grpc": &GRPCPlugin{NewClient: factory},
-		},
-		Managed: true,
-		// 插件日志
-		SyncStdout: pluginLoggerWriter(entry.Name, "stdout"),
-		SyncStderr: pluginLoggerWriter(entry.Name, "stderr"),
+		Logger:           logger,
 	})
 
 	rpcClient, err := client.Client()
 	if err != nil {
-		global.LOG.Error("plugin protocol used: %s", client.Protocol())
 		global.LOG.Error("failed to create rpc client for plugin %s: %v", entry.Name, err)
 		client.Kill()
 		return fmt.Errorf("failed to connect to plugin %s: %w", entry.Name, err)
 	}
 	global.LOG.Info("rpc client created for plugin: %s", entry.Name)
 
-	disp, err := rpcClient.Dispense("grpc")
+	// Request the plugin
+	raw, err := rpcClient.Dispense(entry.Name)
 	if err != nil {
 		global.LOG.Error("failed to dispense grpc interface for plugin %s: %v", entry.Name, err)
 		client.Kill()
@@ -289,7 +321,7 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 	s.plugins[entry.Name] = &PluginInstance{
 		Name:   entry.Name,
 		Client: client,
-		Stub:   disp,
+		Stub:   raw,
 	}
 	s.mu.Unlock()
 
