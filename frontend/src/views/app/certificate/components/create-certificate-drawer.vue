@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.createGroup')"
-    :width="600"
+    :width="700"
     :footer="true"
     @cancel="handleCancel"
   >

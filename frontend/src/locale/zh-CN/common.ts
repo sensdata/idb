@@ -58,4 +58,6 @@ export default {
   'common.close': '关闭',
   'common.optional': '可选',
   'common.operations': '操作',
+  'common.expand': '展开',
+  'common.collapse': '收起',
 };
