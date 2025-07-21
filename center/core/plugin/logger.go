@@ -1,31 +1,42 @@
 package plugin
 
 import (
-	"io"
+	"encoding/json"
 	"strings"
 
 	"github.com/sensdata/idb/center/global"
 )
 
-type pluginLogWriter struct {
-	name  string // 插件名
-	level string // "stdout" or "stderr"
+type PluginLogWriter struct {
 }
 
-func pluginLoggerWriter(name, level string) io.Writer {
-	return &pluginLogWriter{name: name, level: level}
-}
+func (w *PluginLogWriter) Write(p []byte) (n int, err error) {
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(p, &logEntry); err != nil {
+		return 0, err
+	}
 
-func (w *pluginLogWriter) Write(p []byte) (n int, err error) {
-	line := strings.TrimSuffix(string(p), "\n")
+	msgVal, ok1 := logEntry["msg"]
+	levelVal, ok2 := logEntry["level"]
+	if !ok1 || !ok2 {
+		global.LOG.Warn("plugin log missing fields", "raw", string(p))
+		return len(p), nil
+	}
 
-	switch w.level {
-	case "stdout":
-		global.LOG.Info("[plugin:%s stdout] %s", w.name, line)
-	case "stderr":
-		global.LOG.Error("[plugin:%s stderr] %s", w.name, line)
+	msg, _ := msgVal.(string)
+	level := strings.ToLower(levelVal.(string))
+
+	switch level {
+	case "trace", "debug":
+		global.LOG.Info("plugin", "msg", msg, "data", logEntry)
+	case "info":
+		global.LOG.Info("plugin", "msg", msg, "data", logEntry)
+	case "warn":
+		global.LOG.Warn("plugin", "msg", msg, "data", logEntry)
+	case "error":
+		global.LOG.Error("plugin", "msg", msg, "data", logEntry)
 	default:
-		global.LOG.Warn("[plugin:%s ???] %s", w.name, line)
+		global.LOG.Info("plugin", "msg", msg, "data", logEntry)
 	}
 
 	return len(p), nil

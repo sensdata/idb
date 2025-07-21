@@ -1,0 +1,24 @@
+package shared
+
+import (
+	"github.com/hashicorp/go-plugin"
+)
+
+// Handshake is a common handshake that is shared by plugin and host.
+var Handshake = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "PLUGIN_MAGIC",
+	MagicCookieValue: "idb_plugin_cookie",
+}
+
+// PluginMap is the map of plugins we can dispense.
+var PluginMap = map[string]plugin.Plugin{
+	"scriptmanager": &ScriptMangerPlugin{},
+}
+
+type PluginInitConfig struct {
+	API   string `json:"api"`
+	HTTPS bool   `json:"https"`
+	Cert  string `json:"cert"`
+	Key   string `json:"key"`
+}
