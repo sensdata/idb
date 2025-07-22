@@ -14,31 +14,22 @@ type ScriptManager interface {
 }
 
 type ScriptMangerPlugin struct {
-	plugin.NetRPCUnsupportedPlugin
+	plugin.Plugin
 	Impl ScriptManager
 }
 
 func (p *ScriptMangerPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	proto.RegisterScriptManagerServer(s, &ScriptManagerGRPCServer{
-		Impl:   p.Impl,
-		broker: broker,
-	})
+	proto.RegisterScriptManagerServer(s, &ScriptManagerGRPCServer{Impl: p.Impl})
 	return nil
 }
 
 func (p *ScriptMangerPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-	return &ScriptManagerGRPCClient{
-		client: proto.NewScriptManagerClient(c),
-		broker: broker,
-	}, nil
+	return &ScriptManagerGRPCClient{client: proto.NewScriptManagerClient(c)}, nil
 }
 
 var _ plugin.GRPCPlugin = &ScriptMangerPlugin{}
 
-type ScriptManagerGRPCClient struct {
-	broker *plugin.GRPCBroker
-	client proto.ScriptManagerClient
-}
+type ScriptManagerGRPCClient struct{ client proto.ScriptManagerClient }
 
 func (c *ScriptManagerGRPCClient) ListScripts(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	resp, err := c.client.ListScripts(context.Background(), &proto.ListScriptsRequest{
@@ -70,8 +61,7 @@ func (c *ScriptManagerGRPCClient) ListScripts(hostID uint64, req model.QueryGitF
 }
 
 type ScriptManagerGRPCServer struct {
-	Impl   ScriptManager
-	broker *plugin.GRPCBroker
+	Impl ScriptManager
 	*proto.UnimplementedScriptManagerServer
 }
 
