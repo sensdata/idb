@@ -315,6 +315,17 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		client.Kill()
 		return fmt.Errorf("failed to dispense plugin %s: %w", entry.Name, err)
 	}
+	if raw == nil {
+		global.LOG.Error("dispense returned nil for plugin: %s", entry.Name)
+		client.Kill()
+		return fmt.Errorf("dispense returned nil")
+	}
+	_, ok := raw.(shared.ScriptManager)
+	if !ok {
+		global.LOG.Error("dispensed plugin does not implement ScriptManager interface")
+		client.Kill()
+		return fmt.Errorf("invalid plugin type")
+	}
 	global.LOG.Info("dispense grpc interface successful for plugin: %s", entry.Name)
 
 	s.mu.Lock()

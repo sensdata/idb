@@ -29,9 +29,13 @@ func (p *ScriptMangerPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPC
 
 var _ plugin.GRPCPlugin = &ScriptMangerPlugin{}
 
-type ScriptManagerGRPCClient struct{ client proto.ScriptManagerClient }
+type ScriptManagerGRPCClient struct {
+	client proto.ScriptManagerClient
+}
 
-func (c *ScriptManagerGRPCClient) ListScripts(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+var _ ScriptManager = (*ScriptManagerGRPCClient)(nil)
+
+func (c *ScriptManagerGRPCClient) ListScripts(hostID uint64, req model.QueryGitFile) (*model.ScriptList, error) {
 	resp, err := c.client.ListScripts(context.Background(), &proto.ListScriptsRequest{
 		HostId:   uint32(hostID),
 		Type:     req.Type,
@@ -42,7 +46,7 @@ func (c *ScriptManagerGRPCClient) ListScripts(hostID uint64, req model.QueryGitF
 	if err != nil {
 		return nil, err
 	}
-	var result model.PageResult
+	var result model.ScriptList
 	result.Total = resp.Total
 	scripts := make([]*model.ScriptInfo, 0)
 	for _, item := range resp.Items {

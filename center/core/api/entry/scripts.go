@@ -6,11 +6,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/plugin"
 	"github.com/sensdata/idb/center/core/plugin/shared"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 )
 
 func (b *BaseApi) GetScriptList(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Error("get script list failed: %v", r)
+		}
+	}()
+
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
