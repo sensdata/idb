@@ -23,6 +23,7 @@ export interface AppEntity {
   type: string;
   name: string;
   display_name: string;
+  current_version: string;
   category: string;
   tags: string[];
   title: string;
@@ -35,7 +36,7 @@ export interface AppEntity {
     name: string;
     url: string;
   };
-  has_update: boolean;
+  has_upgrade: boolean;
   status: string;
   versions: Array<{
     id: number;
@@ -44,6 +45,7 @@ export interface AppEntity {
     compose_content: string;
     status: string;
     created_at: string;
+    can_upgrade?: boolean;
   }>;
   form: {
     Fields: AppFormField[];

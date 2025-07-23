@@ -48,7 +48,7 @@ export function useTableData(options: UseTableDataOptions) {
   const summaryData = ref<Record<string, any>>();
 
   const setData = (data: ApiListResult<any>) => {
-    renderData.value = data.items;
+    renderData.value = data.items || [];
     if (data.amount) {
       (data.amount as any)[rowKey] = t('components.idbTable.summaryText');
     }
