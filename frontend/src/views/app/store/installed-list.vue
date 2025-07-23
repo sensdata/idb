@@ -35,23 +35,31 @@
                 </h3>
                 <a-tag bordered class="text-gray-600 mb-2">
                   {{ $t('app.store.app.list.version') }}:
-                  {{ item.versions[0].version }}.{{
-                    item.versions[0].update_version
-                  }}
+                  {{ item.current_version }}
                 </a-tag>
                 <div class="text-gray-500 text-sm mb-2">
                   {{ $t('app.store.app.list.install_at') }}:
                   {{ item.versions[0].created_at }}
                 </div>
               </div>
-              <div class="item-actions">
+              <div class="item-actions flex flex-col gap-3">
                 <a-button
                   type="primary"
                   shape="round"
                   size="small"
+                  :disabled="!item.has_upgrade"
                   @click="handleUpgrade(item)"
                 >
                   {{ $t('app.store.app.list.upgrade') }}
+                </a-button>
+                <a-button
+                  type="primary"
+                  shape="round"
+                  status="danger"
+                  size="small"
+                  @click="handleUninstall(item)"
+                >
+                  {{ $t('app.store.app.list.uninstall') }}
                 </a-button>
               </div>
             </div>
@@ -68,18 +76,29 @@
       />
     </div>
   </a-spin>
-  <upgrade-drawer ref="upgradeRef" />
+  <!-- <upgrade-drawer ref="upgradeRef" /> -->
+  <upgrade-log ref="upgradeLogRef" />
+  <uninstall-log ref="uninstallLogRef" />
 </template>
 
 <script setup lang="ts">
   import { onMounted, reactive, ref, toRaw } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { AppSimpleEntity } from '@/entity/App';
-  import { getInstalledAppListApi } from '@/api/store';
+  import {
+    getInstalledAppListApi,
+    uninstallAppApi,
+    upgradeAppApi,
+  } from '@/api/store';
   import { Message } from '@arco-design/web-vue';
   import { getHexColorByChar } from '@/helper/utils';
-  import UpgradeDrawer from './components/upgrade-drawer.vue';
+  import { useConfirm } from '@/composables/confirm';
+  import UpgradeLog from './components/upgrade-log.vue';
+  import UninstallLog from './components/uninstall-log.vue';
+  // import UpgradeDrawer from './components/upgrade-drawer.vue';
 
+  const { t } = useI18n();
   const pagination = reactive({
     page: 1,
     page_size: 10,
@@ -88,7 +107,7 @@
 
   const items = ref<AppSimpleEntity[]>([]);
 
-  const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
+  // const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
 
@@ -128,10 +147,57 @@
     onSearch(searchValue.value);
   };
 
-  const handleUpgrade = (item: AppSimpleEntity) => {
-    upgradeRef.value?.setParams({ id: item.id });
-    upgradeRef.value?.load();
-    upgradeRef.value?.show();
+  const { confirm } = useConfirm();
+  const upgradeLogRef = ref<InstanceType<typeof UpgradeLog>>();
+  const handleUpgrade = async (item: AppSimpleEntity) => {
+    // upgradeRef.value?.setParams({ id: item.id });
+    // upgradeRef.value?.load();
+    // upgradeRef.value?.show();
+    // 暂时没有输入，先直接一键升级
+    const upgradeVersion = item.versions.find((v) => v.can_upgrade)!;
+    if (!upgradeVersion) {
+      console.error('no upgrade version');
+      return;
+    }
+
+    if (
+      await confirm(
+        t('app.store.app.upgrade.confirm', {
+          version: upgradeVersion.version + '.' + upgradeVersion.update_version,
+        })
+      )
+    ) {
+      try {
+        loading.value = true;
+        const res = await upgradeAppApi({
+          id: item.id,
+          upgrade_version_id: upgradeVersion.id,
+          compose_name: item.name,
+        });
+        upgradeLogRef.value?.logFileLogs(res.log_host, res.log_path);
+      } catch (err: any) {
+        Message.error(err?.message);
+      } finally {
+        loading.value = false;
+      }
+    }
+  };
+
+  const uninstallLogRef = ref<InstanceType<typeof UninstallLog>>();
+  const handleUninstall = async (item: AppSimpleEntity) => {
+    if (await confirm(t('app.store.app.uninstall.confirm'))) {
+      try {
+        loading.value = true;
+        const res = await uninstallAppApi({
+          id: item.id,
+        });
+        uninstallLogRef.value?.logFileLogs(res.log_host, res.log_path);
+      } catch (err: any) {
+        Message.error(err?.message);
+      } finally {
+        loading.value = false;
+      }
+    }
   };
 
   defineExpose({

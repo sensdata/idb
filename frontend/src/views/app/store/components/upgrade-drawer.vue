@@ -11,7 +11,7 @@
     <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
       <a-form-item
         :label="$t('app.store.app.install.version')"
-        field="version_id"
+        field="upgrade_version_id"
         :rules="[
           {
             required: true,
@@ -20,7 +20,7 @@
         ]"
       >
         <a-select
-          v-model="formState.version_id"
+          v-model="formState.upgrade_version_id"
           :options="versionOptions"
           :placeholder="$t('app.store.app.install.version.placeholder')"
         />
@@ -92,7 +92,7 @@
   const formRef = ref();
   const formState = reactive<Record<string, any>>({
     mode: 'form',
-    version_id: undefined,
+    upgrade_version_id: undefined,
   });
   const rules = reactive<Record<string, any>>({});
 
@@ -111,20 +111,21 @@
 
   const versionOptions = ref<{ label: string; value: number }[]>([]);
   const version = computed(() => {
-    return versionOptions.value.find((v) => v.value === formState.version_id)
-      ?.label;
+    return versionOptions.value.find(
+      (v) => v.value === formState.upgrade_version_id
+    )?.label;
   });
   const appDetail = ref<AppEntity | null>(null);
   const dynamicFields = ref<AppFormField[]>([]);
   const composeContent = ref<string>('');
   watch(
-    () => formState.version_id,
+    () => formState.upgrade_version_id,
     () => {
       if (!appDetail.value) {
         return;
       }
       const v = appDetail.value.versions.find(
-        (ver) => ver.id === formState.version_id
+        (ver) => ver.id === formState.upgrade_version_id
       );
       composeContent.value = v?.compose_content || '';
     }
@@ -205,7 +206,7 @@
       formState.display_name = data.display_name;
       formState.version_id = data.versions[0]?.id;
       versionOptions.value = data.versions.map((v) => ({
-        label: v.version,
+        label: v.version + '.' + v.update_version,
         value: v.id,
       }));
       dynamicFields.value = data.form?.Fields || [];
@@ -223,7 +224,8 @@
   const getData = () => {
     return {
       id: appDetail.value!.id,
-      version_id: formState.version_id,
+      compose_name: appDetail.value!.name,
+      upgrade_version_id: formState.upgrade_version_id,
       extra_params: [],
       compose_content: formState.mode === 'yaml' ? composeContent.value : '',
       form_params:

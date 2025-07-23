@@ -44,7 +44,12 @@ export function installAppApi(params: InstallAppParams) {
   }>('store/{host}/apps/install', params);
 }
 
-export function upgradeAppApi(params: InstallAppParams) {
+export interface UpgradeAppParams {
+  id: number;
+  upgrade_version_id: number;
+  compose_name: string;
+}
+export function upgradeAppApi(params: UpgradeAppParams) {
   return request.post<{
     log_host: number;
     log_path: string;

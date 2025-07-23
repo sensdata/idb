@@ -4,8 +4,9 @@ export default {
   'app.store.app.list.install': 'Install',
   'app.store.app.list.installed': 'Installed',
   'app.store.app.list.version': 'Version',
-  'app.store.app.list.install_at': 'Installed at',
   'app.store.app.list.upgrade': 'Upgrade',
+  'app.store.app.list.uninstall': 'Uninstall',
+  'app.store.app.list.install_at': 'Installed at',
   'app.store.app.syncAppList': 'Sync App List',
 
   'app.store.app.message.syncSuccess': 'App list updated successfully',
@@ -24,7 +25,29 @@ export default {
     'Please enter no more than {max} characters',
   'app.store.app.install.pattern': 'Invalid format',
   'app.store.app.upgrade.confirm':
-    'Are you sure to upgrade to version {version}?',
+    'The docker-compose.yml of version {version} will be used to overwrite, please backup the data before upgrading',
   'app.store.app.install.success': 'App installed successfully',
   'app.store.app.upgrade.success': 'App upgraded successfully',
+  'app.store.app.uninstall.confirm':
+    'Are you sure you want to uninstall the app?',
+
+  'app.store.upgradeLog.title': 'Upgrade App',
+  'app.store.upgradeLog.waitingForLogs': 'Waiting for logs...',
+  'app.store.upgradeLog.close': 'Close',
+  'app.store.upgradeLog.success': 'Upgrade success',
+  'app.store.upgradeLog.progress': 'Upgrading...',
+  'app.store.upgradeLog.failed': 'Upgrade failed',
+  'app.store.upgradeLog.timeout': 'Upgrade timeout',
+  'app.store.upgradeLog.logConnected': 'Connection success',
+  'app.store.upgradeLog.logConnectionFailed': 'Connection failed',
+
+  'app.store.uninstallLog.title': 'Uninstall App',
+  'app.store.uninstallLog.waitingForLogs': 'Waiting for logs...',
+  'app.store.uninstallLog.close': 'Close',
+  'app.store.uninstallLog.success': 'Uninstall success',
+  'app.store.uninstallLog.progress': 'Uninstalling...',
+  'app.store.uninstallLog.failed': 'Uninstall failed',
+  'app.store.uninstallLog.timeout': 'Uninstall timeout',
+  'app.store.uninstallLog.logConnected': 'Connection success',
+  'app.store.uninstallLog.logConnectionFailed': 'Connection failed',
 };

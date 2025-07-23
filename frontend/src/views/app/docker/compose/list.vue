@@ -229,7 +229,7 @@
       click: async () => {
         loading.value = true;
         try {
-          await deleteComposeApi(record.name);
+          await deleteComposeApi({ name: record.name });
           Message.success(t('common.message.operationSuccess'));
         } catch (err: any) {
           Message.error(err.message || t('common.message.operationError'));
