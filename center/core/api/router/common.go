@@ -21,5 +21,6 @@ func commonGroups() []CommonRouter {
 		&SettingsRouter{},
 		&LogManRouter{},
 		&PublicRouter{},
+		&ScriptsRouter{},
 	}
 }

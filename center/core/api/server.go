@@ -29,7 +29,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/sensdata/idb/center/core/api/middleware"
 	"github.com/sensdata/idb/center/core/api/router"
-	"github.com/sensdata/idb/center/core/plugin/scriptmanager"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
@@ -57,9 +56,6 @@ type tcpKeepAliveListener struct {
 func (s *ApiServer) InitRouter() {
 	// 注册 API 路由
 	s.setUpDefaultRouters()
-
-	// 注册插件路由
-	s.setUpPluginRouters()
 }
 
 func (s *ApiServer) Start() error {
@@ -439,10 +435,6 @@ func (s *ApiServer) setUpDefaultRouters() {
 
 	// 设置静态文件路由，确保可以访问 assets 目录
 	s.Router.Static("/assets", "/var/lib/idb/home/assets") // 处理 assets 目录
-}
-
-func (s *ApiServer) setUpPluginRouters() {
-	s.SetUpPluginRouters("plugin/scripts", scriptmanager.NewScriptRouter().BuildRoutes())
 }
 
 // SetUpPluginRouters sets up routers from plugins

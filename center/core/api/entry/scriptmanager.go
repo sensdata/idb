@@ -1,49 +1,47 @@
-package scriptmanager
+package entry
 
 import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-
 	"github.com/sensdata/idb/center/core/plugin"
 	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/core/constant"
-	"github.com/sensdata/idb/core/helper"
 	"github.com/sensdata/idb/core/model"
 )
 
-func (h *ScriptRouter) GetScriptList(c *gin.Context) {
+func (b *BaseApi) GetScriptList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
 
 	scriptType := c.Query("type")
 	if scriptType == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 	if scriptType != "global" && scriptType != "local" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
 	category := c.Query("category")
 	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
 		return
 	}
 
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
 		return
 	}
 
 	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
 		return
 	}
 
@@ -57,23 +55,23 @@ func (h *ScriptRouter) GetScriptList(c *gin.Context) {
 	// 获取插件客户端
 	plugin, err := plugin.PLUGINSERVER.GetPlugin("scriptmanager")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
 	// 类型断言为 gRPC client
 	client, ok := plugin.Stub.(shared.ScriptManager)
 	if !ok {
-		helper.ErrorWithDetail(c, constant.CodeFailed, "invalid plugin client", nil)
+		ErrorWithDetail(c, constant.CodeFailed, "invalid plugin client", nil)
 		return
 	}
 
 	// 调用插件方法
 	resp, err := client.ListScripts(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
-	helper.SuccessWithData(c, resp)
+	SuccessWithData(c, resp)
 }
