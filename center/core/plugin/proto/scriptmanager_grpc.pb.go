@@ -19,13 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ScriptManager_ListScripts_FullMethodName = "/proto.ScriptManager/ListScripts"
+	ScriptManager_ListCategories_FullMethodName = "/proto.ScriptManager/ListCategories"
+	ScriptManager_ListScripts_FullMethodName    = "/proto.ScriptManager/ListScripts"
 )
 
 // ScriptManagerClient is the client API for ScriptManager service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ScriptManagerClient interface {
+	ListCategories(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error)
 	ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error)
 }
 
@@ -35,6 +37,15 @@ type scriptManagerClient struct {
 
 func NewScriptManagerClient(cc grpc.ClientConnInterface) ScriptManagerClient {
 	return &scriptManagerClient{cc}
+}
+
+func (c *scriptManagerClient) ListCategories(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error) {
+	out := new(ListScriptsResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_ListCategories_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *scriptManagerClient) ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error) {
@@ -50,6 +61,7 @@ func (c *scriptManagerClient) ListScripts(ctx context.Context, in *ListScriptsRe
 // All implementations must embed UnimplementedScriptManagerServer
 // for forward compatibility
 type ScriptManagerServer interface {
+	ListCategories(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error)
 	ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error)
 	mustEmbedUnimplementedScriptManagerServer()
 }
@@ -58,6 +70,9 @@ type ScriptManagerServer interface {
 type UnimplementedScriptManagerServer struct {
 }
 
+func (UnimplementedScriptManagerServer) ListCategories(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListCategories not implemented")
+}
 func (UnimplementedScriptManagerServer) ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListScripts not implemented")
 }
@@ -72,6 +87,24 @@ type UnsafeScriptManagerServer interface {
 
 func RegisterScriptManagerServer(s grpc.ServiceRegistrar, srv ScriptManagerServer) {
 	s.RegisterService(&ScriptManager_ServiceDesc, srv)
+}
+
+func _ScriptManager_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListScriptsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).ListCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_ListCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).ListCategories(ctx, req.(*ListScriptsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ScriptManager_ListScripts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -99,6 +132,10 @@ var ScriptManager_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.ScriptManager",
 	HandlerType: (*ScriptManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListCategories",
+			Handler:    _ScriptManager_ListCategories_Handler,
+		},
 		{
 			MethodName: "ListScripts",
 			Handler:    _ScriptManager_ListScripts_Handler,

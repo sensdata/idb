@@ -13,6 +13,7 @@ func (s *ScriptsRouter) InitRouter(Router *gin.RouterGroup) {
 	scriptRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{
+		scriptRouter.GET("/:host/category", baseApi.GetScriptCategories)
 		scriptRouter.GET("/:host", baseApi.GetScriptList)
 	}
 }
