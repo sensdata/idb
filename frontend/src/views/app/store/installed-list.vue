@@ -35,9 +35,7 @@
                 </h3>
                 <a-tag bordered class="text-gray-600 mb-2">
                   {{ $t('app.store.app.list.version') }}:
-                  {{ item.versions[0].version }}.{{
-                    item.versions[0].update_version
-                  }}
+                  {{ item.current_version }}
                 </a-tag>
                 <div class="text-gray-500 text-sm mb-2">
                   {{ $t('app.store.app.list.install_at') }}:

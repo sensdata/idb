@@ -23,6 +23,7 @@ export interface AppEntity {
   type: string;
   name: string;
   display_name: string;
+  current_version: string;
   category: string;
   tags: string[];
   title: string;
