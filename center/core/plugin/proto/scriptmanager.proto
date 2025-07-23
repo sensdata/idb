@@ -3,6 +3,7 @@ package proto;
 option go_package = "../proto";
 
 service ScriptManager {
+  rpc ListCategories(ListScriptsRequest) returns (ListScriptsResponse);
   rpc ListScripts(ListScriptsRequest) returns (ListScriptsResponse);
 }
 
