@@ -19,7 +19,9 @@ import (
 	hplugin "github.com/hashicorp/go-plugin"
 	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/core/plugin/shared"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
+	"github.com/sensdata/idb/core/constant"
 	"gopkg.in/yaml.v2"
 )
 
@@ -101,6 +103,9 @@ func loadRegistry(data []byte) (*Registry, error) {
 
 func (s *PluginServer) loadPlugins() {
 
+	hostRepo := repo.NewHostRepo()
+	defaultHost, _ := hostRepo.Get(hostRepo.WithByDefault())
+
 	settingService := service.NewISettingsService()
 	settingInfo, _ := settingService.Settings()
 	scheme := "http"
@@ -114,10 +119,12 @@ func (s *PluginServer) loadPlugins() {
 	baseUrl := fmt.Sprintf("%s://%s:%d/api/v1", scheme, host, settingInfo.BindPort)
 
 	initConfig := shared.PluginInitConfig{
-		API:   baseUrl,
-		HTTPS: scheme == "https",
-		Cert:  string(global.CertPem),
-		Key:   string(global.KeyPem),
+		API:      baseUrl,
+		HTTPS:    scheme == "https",
+		Cert:     string(global.CertPem),
+		Key:      string(global.KeyPem),
+		WorkDir:  constant.CenterDataDir,
+		WorkHost: defaultHost.ID,
 	}
 
 	// 转成 JSON
@@ -284,9 +291,8 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 	global.LOG.Info("starting to load plugin: %s (path: %s)", entry.Name, entry.Path)
 
 	logger := hclog.New(&hclog.LoggerOptions{
-		Name:   "plugin",
 		Output: &PluginLogWriter{},
-		Level:  hclog.Debug,
+		Level:  hclog.Info,
 	})
 
 	execPath := filepath.Join(entry.Path, entry.Name)

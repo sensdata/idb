@@ -17,8 +17,10 @@ var PluginMap = map[string]plugin.Plugin{
 }
 
 type PluginInitConfig struct {
-	API   string `json:"api"`
-	HTTPS bool   `json:"https"`
-	Cert  string `json:"cert"`
-	Key   string `json:"key"`
+	API      string `json:"api"`
+	HTTPS    bool   `json:"https"`
+	Cert     string `json:"cert"`
+	Key      string `json:"key"`
+	WorkDir  string `json:"work_dir"`
+	WorkHost uint   `json:"work_host"`
 }
