@@ -11,6 +11,7 @@ func (s *ActionRouter) InitRouter(Router *gin.RouterGroup) {
 	actionRouter := Router.Group("actions")
 	baseApi := entry.ApiGroup
 	{
-		actionRouter.POST("", baseApi.SendAction) // 向目标设备发送action指令
+		actionRouter.POST("", baseApi.SendAction)               // 向目标设备发送action指令
+		actionRouter.POST("/task", baseApi.CreateLogStreamTask) // 创建日志流任务
 	}
 }

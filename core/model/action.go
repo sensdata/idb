@@ -161,3 +161,11 @@ type ActionResponse struct {
 	Message string     `json:"message"`
 	Data    HostAction `json:"data"`
 }
+
+type CreateTask struct {
+	LogPath string `json:"log_path"`
+}
+
+type CreateTaskResponse struct {
+	LogPath string `json:"log_path"`
+}
