@@ -4,15 +4,47 @@ option go_package = "../proto";
 
 service ScriptManager {
   rpc ListCategories(ListScriptsRequest) returns (ListScriptsResponse);
+  rpc CreateCategory(CreateScriptCategoryRequest) returns (CommonResponse);
+  rpc UpdateCategory(UpdateScriptCategoryRequest) returns (CommonResponse);
+  rpc DeleteCategory(CreateScriptCategoryRequest) returns (CommonResponse);
   rpc ListScripts(ListScriptsRequest) returns (ListScriptsResponse);
+  rpc GetScriptDetail(ScriptRequest) returns (ScriptInfo);
+  rpc CreateScript(CreateScriptRequest) returns (CommonResponse);
+  rpc UpdateScript(UpdateScriptRequest) returns (CommonResponse);
+  rpc DeleteScript(ScriptRequest) returns (CommonResponse);
+  rpc RestoreScript(RestoreScriptRequest) returns (CommonResponse);
+  rpc GetScriptHistory(ScriptHistoryRequest) returns (ScriptHistoryResponse);
+  rpc GetScriptDiff(ScriptDiffRequest) returns (ScriptDiffResponse);
+  rpc ScriptSync(ScriptSyncRequest) returns (CommonResponse);
+  rpc ScriptExec(ScriptExecRequest) returns (ScriptExecResponse);
+  rpc GetScriptRunLogs(ScriptRunLogsRequest) returns (ScriptRunLogsResponse);
+  rpc GetScriptRunLogDetail(ScriptRunLogDetailRequest) returns (ScriptRunLogDetailResponse);
+}
+
+message CommonResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message CreateScriptCategoryRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+}
+
+message UpdateScriptCategoryRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string new_name = 4;
 }
 
 message ListScriptsRequest {
-  uint32 host_id = 2;
-  string type = 3;
-  string category = 4;
-  int32 page = 5;
-  int32 page_size = 6;
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  int32 page = 4;
+  int32 page_size = 5;
 }
 
 message ScriptInfo {
@@ -28,4 +60,126 @@ message ScriptInfo {
 message ListScriptsResponse {
   int64 total = 1;
   repeated ScriptInfo items = 2;
+}
+
+message ScriptRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string name = 4;
+}
+
+message CreateScriptRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string name = 4;
+  string content = 5;
+}
+
+message UpdateScriptRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string new_category = 4;
+  string name = 5;
+  string new_name = 6;
+  string content = 7;
+}
+
+message RestoreScriptRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string name = 4;
+  string commit_hash = 5;
+}
+
+message ScriptHistoryRequest{
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string name = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+}
+
+message ScriptHistory {
+  string commit_hash = 1;
+  string author = 2;
+  string email = 3;
+  string date = 4;
+  string commit_message = 5;
+}
+
+message ScriptHistoryResponse {
+  int64 total = 1;
+  repeated ScriptHistory items = 2;
+}
+
+message ScriptDiffRequest {
+  uint32 host_id = 1;
+  string type = 2;
+  string category = 3;
+  string name = 4;
+  string commit_hash = 5;
+}
+
+message ScriptDiffResponse {
+  string content = 1;
+}
+
+message ScriptSyncRequest {
+  uint32 host_id = 1; 
+}
+
+message ScriptExecRequest {
+  uint32 host_id = 1; 
+  string script_path = 2;
+}
+
+message ScriptExecResponse {
+  uint32 log_host = 1;
+  string log_path = 2;
+  string start = 3;
+  string end = 4;
+  string out = 5;
+  string err = 6;
+}
+
+
+message ScriptRunLogsRequest {
+  uint32 host_id = 1;
+  string script_path = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message RunLogInfo {
+  string path = 1;
+  string name = 2;
+  string extension = 3;
+  int32 size = 4;
+  bool is_dir = 5;
+  bool is_hidden = 6;
+  string created_at = 7;
+}
+
+message ScriptRunLogsResponse {
+  int64 total = 1;
+  repeated RunLogInfo items = 2;
+}
+
+message ScriptRunLogDetailRequest {
+  uint32 host_id = 1; 
+  string log_path = 2;
+}
+
+message ScriptRunLogDetailResponse {
+  string source = 1;
+  string name = 2;
+  string extension = 3;
+  string content = 4;
+  int64 size = 5;
+  string mod_time = 6;
 }

@@ -19,8 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ScriptManager_ListCategories_FullMethodName = "/proto.ScriptManager/ListCategories"
-	ScriptManager_ListScripts_FullMethodName    = "/proto.ScriptManager/ListScripts"
+	ScriptManager_ListCategories_FullMethodName        = "/proto.ScriptManager/ListCategories"
+	ScriptManager_CreateCategory_FullMethodName        = "/proto.ScriptManager/CreateCategory"
+	ScriptManager_UpdateCategory_FullMethodName        = "/proto.ScriptManager/UpdateCategory"
+	ScriptManager_DeleteCategory_FullMethodName        = "/proto.ScriptManager/DeleteCategory"
+	ScriptManager_ListScripts_FullMethodName           = "/proto.ScriptManager/ListScripts"
+	ScriptManager_GetScriptDetail_FullMethodName       = "/proto.ScriptManager/GetScriptDetail"
+	ScriptManager_CreateScript_FullMethodName          = "/proto.ScriptManager/CreateScript"
+	ScriptManager_UpdateScript_FullMethodName          = "/proto.ScriptManager/UpdateScript"
+	ScriptManager_DeleteScript_FullMethodName          = "/proto.ScriptManager/DeleteScript"
+	ScriptManager_RestoreScript_FullMethodName         = "/proto.ScriptManager/RestoreScript"
+	ScriptManager_GetScriptHistory_FullMethodName      = "/proto.ScriptManager/GetScriptHistory"
+	ScriptManager_GetScriptDiff_FullMethodName         = "/proto.ScriptManager/GetScriptDiff"
+	ScriptManager_ScriptSync_FullMethodName            = "/proto.ScriptManager/ScriptSync"
+	ScriptManager_ScriptExec_FullMethodName            = "/proto.ScriptManager/ScriptExec"
+	ScriptManager_GetScriptRunLogs_FullMethodName      = "/proto.ScriptManager/GetScriptRunLogs"
+	ScriptManager_GetScriptRunLogDetail_FullMethodName = "/proto.ScriptManager/GetScriptRunLogDetail"
 )
 
 // ScriptManagerClient is the client API for ScriptManager service.
@@ -28,7 +42,21 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ScriptManagerClient interface {
 	ListCategories(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error)
+	CreateCategory(ctx context.Context, in *CreateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	UpdateCategory(ctx context.Context, in *UpdateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	DeleteCategory(ctx context.Context, in *CreateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error)
 	ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error)
+	GetScriptDetail(ctx context.Context, in *ScriptRequest, opts ...grpc.CallOption) (*ScriptInfo, error)
+	CreateScript(ctx context.Context, in *CreateScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	UpdateScript(ctx context.Context, in *UpdateScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	DeleteScript(ctx context.Context, in *ScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	RestoreScript(ctx context.Context, in *RestoreScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	GetScriptHistory(ctx context.Context, in *ScriptHistoryRequest, opts ...grpc.CallOption) (*ScriptHistoryResponse, error)
+	GetScriptDiff(ctx context.Context, in *ScriptDiffRequest, opts ...grpc.CallOption) (*ScriptDiffResponse, error)
+	ScriptSync(ctx context.Context, in *ScriptSyncRequest, opts ...grpc.CallOption) (*CommonResponse, error)
+	ScriptExec(ctx context.Context, in *ScriptExecRequest, opts ...grpc.CallOption) (*ScriptExecResponse, error)
+	GetScriptRunLogs(ctx context.Context, in *ScriptRunLogsRequest, opts ...grpc.CallOption) (*ScriptRunLogsResponse, error)
+	GetScriptRunLogDetail(ctx context.Context, in *ScriptRunLogDetailRequest, opts ...grpc.CallOption) (*ScriptRunLogDetailResponse, error)
 }
 
 type scriptManagerClient struct {
@@ -48,9 +76,135 @@ func (c *scriptManagerClient) ListCategories(ctx context.Context, in *ListScript
 	return out, nil
 }
 
+func (c *scriptManagerClient) CreateCategory(ctx context.Context, in *CreateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_CreateCategory_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) UpdateCategory(ctx context.Context, in *UpdateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_UpdateCategory_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) DeleteCategory(ctx context.Context, in *CreateScriptCategoryRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_DeleteCategory_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *scriptManagerClient) ListScripts(ctx context.Context, in *ListScriptsRequest, opts ...grpc.CallOption) (*ListScriptsResponse, error) {
 	out := new(ListScriptsResponse)
 	err := c.cc.Invoke(ctx, ScriptManager_ListScripts_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) GetScriptDetail(ctx context.Context, in *ScriptRequest, opts ...grpc.CallOption) (*ScriptInfo, error) {
+	out := new(ScriptInfo)
+	err := c.cc.Invoke(ctx, ScriptManager_GetScriptDetail_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) CreateScript(ctx context.Context, in *CreateScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_CreateScript_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) UpdateScript(ctx context.Context, in *UpdateScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_UpdateScript_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) DeleteScript(ctx context.Context, in *ScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_DeleteScript_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) RestoreScript(ctx context.Context, in *RestoreScriptRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_RestoreScript_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) GetScriptHistory(ctx context.Context, in *ScriptHistoryRequest, opts ...grpc.CallOption) (*ScriptHistoryResponse, error) {
+	out := new(ScriptHistoryResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_GetScriptHistory_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) GetScriptDiff(ctx context.Context, in *ScriptDiffRequest, opts ...grpc.CallOption) (*ScriptDiffResponse, error) {
+	out := new(ScriptDiffResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_GetScriptDiff_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) ScriptSync(ctx context.Context, in *ScriptSyncRequest, opts ...grpc.CallOption) (*CommonResponse, error) {
+	out := new(CommonResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_ScriptSync_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) ScriptExec(ctx context.Context, in *ScriptExecRequest, opts ...grpc.CallOption) (*ScriptExecResponse, error) {
+	out := new(ScriptExecResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_ScriptExec_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) GetScriptRunLogs(ctx context.Context, in *ScriptRunLogsRequest, opts ...grpc.CallOption) (*ScriptRunLogsResponse, error) {
+	out := new(ScriptRunLogsResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_GetScriptRunLogs_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scriptManagerClient) GetScriptRunLogDetail(ctx context.Context, in *ScriptRunLogDetailRequest, opts ...grpc.CallOption) (*ScriptRunLogDetailResponse, error) {
+	out := new(ScriptRunLogDetailResponse)
+	err := c.cc.Invoke(ctx, ScriptManager_GetScriptRunLogDetail_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +216,21 @@ func (c *scriptManagerClient) ListScripts(ctx context.Context, in *ListScriptsRe
 // for forward compatibility
 type ScriptManagerServer interface {
 	ListCategories(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error)
+	CreateCategory(context.Context, *CreateScriptCategoryRequest) (*CommonResponse, error)
+	UpdateCategory(context.Context, *UpdateScriptCategoryRequest) (*CommonResponse, error)
+	DeleteCategory(context.Context, *CreateScriptCategoryRequest) (*CommonResponse, error)
 	ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error)
+	GetScriptDetail(context.Context, *ScriptRequest) (*ScriptInfo, error)
+	CreateScript(context.Context, *CreateScriptRequest) (*CommonResponse, error)
+	UpdateScript(context.Context, *UpdateScriptRequest) (*CommonResponse, error)
+	DeleteScript(context.Context, *ScriptRequest) (*CommonResponse, error)
+	RestoreScript(context.Context, *RestoreScriptRequest) (*CommonResponse, error)
+	GetScriptHistory(context.Context, *ScriptHistoryRequest) (*ScriptHistoryResponse, error)
+	GetScriptDiff(context.Context, *ScriptDiffRequest) (*ScriptDiffResponse, error)
+	ScriptSync(context.Context, *ScriptSyncRequest) (*CommonResponse, error)
+	ScriptExec(context.Context, *ScriptExecRequest) (*ScriptExecResponse, error)
+	GetScriptRunLogs(context.Context, *ScriptRunLogsRequest) (*ScriptRunLogsResponse, error)
+	GetScriptRunLogDetail(context.Context, *ScriptRunLogDetailRequest) (*ScriptRunLogDetailResponse, error)
 	mustEmbedUnimplementedScriptManagerServer()
 }
 
@@ -73,8 +241,50 @@ type UnimplementedScriptManagerServer struct {
 func (UnimplementedScriptManagerServer) ListCategories(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListCategories not implemented")
 }
+func (UnimplementedScriptManagerServer) CreateCategory(context.Context, *CreateScriptCategoryRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCategory not implemented")
+}
+func (UnimplementedScriptManagerServer) UpdateCategory(context.Context, *UpdateScriptCategoryRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateCategory not implemented")
+}
+func (UnimplementedScriptManagerServer) DeleteCategory(context.Context, *CreateScriptCategoryRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteCategory not implemented")
+}
 func (UnimplementedScriptManagerServer) ListScripts(context.Context, *ListScriptsRequest) (*ListScriptsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListScripts not implemented")
+}
+func (UnimplementedScriptManagerServer) GetScriptDetail(context.Context, *ScriptRequest) (*ScriptInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScriptDetail not implemented")
+}
+func (UnimplementedScriptManagerServer) CreateScript(context.Context, *CreateScriptRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateScript not implemented")
+}
+func (UnimplementedScriptManagerServer) UpdateScript(context.Context, *UpdateScriptRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateScript not implemented")
+}
+func (UnimplementedScriptManagerServer) DeleteScript(context.Context, *ScriptRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteScript not implemented")
+}
+func (UnimplementedScriptManagerServer) RestoreScript(context.Context, *RestoreScriptRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestoreScript not implemented")
+}
+func (UnimplementedScriptManagerServer) GetScriptHistory(context.Context, *ScriptHistoryRequest) (*ScriptHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScriptHistory not implemented")
+}
+func (UnimplementedScriptManagerServer) GetScriptDiff(context.Context, *ScriptDiffRequest) (*ScriptDiffResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScriptDiff not implemented")
+}
+func (UnimplementedScriptManagerServer) ScriptSync(context.Context, *ScriptSyncRequest) (*CommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ScriptSync not implemented")
+}
+func (UnimplementedScriptManagerServer) ScriptExec(context.Context, *ScriptExecRequest) (*ScriptExecResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ScriptExec not implemented")
+}
+func (UnimplementedScriptManagerServer) GetScriptRunLogs(context.Context, *ScriptRunLogsRequest) (*ScriptRunLogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScriptRunLogs not implemented")
+}
+func (UnimplementedScriptManagerServer) GetScriptRunLogDetail(context.Context, *ScriptRunLogDetailRequest) (*ScriptRunLogDetailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetScriptRunLogDetail not implemented")
 }
 func (UnimplementedScriptManagerServer) mustEmbedUnimplementedScriptManagerServer() {}
 
@@ -107,6 +317,60 @@ func _ScriptManager_ListCategories_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScriptManager_CreateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateScriptCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).CreateCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_CreateCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).CreateCategory(ctx, req.(*CreateScriptCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_UpdateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateScriptCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).UpdateCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_UpdateCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).UpdateCategory(ctx, req.(*UpdateScriptCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_DeleteCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateScriptCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).DeleteCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_DeleteCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).DeleteCategory(ctx, req.(*CreateScriptCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ScriptManager_ListScripts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListScriptsRequest)
 	if err := dec(in); err != nil {
@@ -125,6 +389,204 @@ func _ScriptManager_ListScripts_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScriptManager_GetScriptDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).GetScriptDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_GetScriptDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).GetScriptDetail(ctx, req.(*ScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_CreateScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).CreateScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_CreateScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).CreateScript(ctx, req.(*CreateScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_UpdateScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).UpdateScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_UpdateScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).UpdateScript(ctx, req.(*UpdateScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_DeleteScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).DeleteScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_DeleteScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).DeleteScript(ctx, req.(*ScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_RestoreScript_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreScriptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).RestoreScript(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_RestoreScript_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).RestoreScript(ctx, req.(*RestoreScriptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_GetScriptHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).GetScriptHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_GetScriptHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).GetScriptHistory(ctx, req.(*ScriptHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_GetScriptDiff_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptDiffRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).GetScriptDiff(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_GetScriptDiff_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).GetScriptDiff(ctx, req.(*ScriptDiffRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_ScriptSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).ScriptSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_ScriptSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).ScriptSync(ctx, req.(*ScriptSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_ScriptExec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptExecRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).ScriptExec(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_ScriptExec_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).ScriptExec(ctx, req.(*ScriptExecRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_GetScriptRunLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptRunLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).GetScriptRunLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_GetScriptRunLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).GetScriptRunLogs(ctx, req.(*ScriptRunLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScriptManager_GetScriptRunLogDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScriptRunLogDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScriptManagerServer).GetScriptRunLogDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScriptManager_GetScriptRunLogDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScriptManagerServer).GetScriptRunLogDetail(ctx, req.(*ScriptRunLogDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScriptManager_ServiceDesc is the grpc.ServiceDesc for ScriptManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -137,8 +599,64 @@ var ScriptManager_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ScriptManager_ListCategories_Handler,
 		},
 		{
+			MethodName: "CreateCategory",
+			Handler:    _ScriptManager_CreateCategory_Handler,
+		},
+		{
+			MethodName: "UpdateCategory",
+			Handler:    _ScriptManager_UpdateCategory_Handler,
+		},
+		{
+			MethodName: "DeleteCategory",
+			Handler:    _ScriptManager_DeleteCategory_Handler,
+		},
+		{
 			MethodName: "ListScripts",
 			Handler:    _ScriptManager_ListScripts_Handler,
+		},
+		{
+			MethodName: "GetScriptDetail",
+			Handler:    _ScriptManager_GetScriptDetail_Handler,
+		},
+		{
+			MethodName: "CreateScript",
+			Handler:    _ScriptManager_CreateScript_Handler,
+		},
+		{
+			MethodName: "UpdateScript",
+			Handler:    _ScriptManager_UpdateScript_Handler,
+		},
+		{
+			MethodName: "DeleteScript",
+			Handler:    _ScriptManager_DeleteScript_Handler,
+		},
+		{
+			MethodName: "RestoreScript",
+			Handler:    _ScriptManager_RestoreScript_Handler,
+		},
+		{
+			MethodName: "GetScriptHistory",
+			Handler:    _ScriptManager_GetScriptHistory_Handler,
+		},
+		{
+			MethodName: "GetScriptDiff",
+			Handler:    _ScriptManager_GetScriptDiff_Handler,
+		},
+		{
+			MethodName: "ScriptSync",
+			Handler:    _ScriptManager_ScriptSync_Handler,
+		},
+		{
+			MethodName: "ScriptExec",
+			Handler:    _ScriptManager_ScriptExec_Handler,
+		},
+		{
+			MethodName: "GetScriptRunLogs",
+			Handler:    _ScriptManager_GetScriptRunLogs_Handler,
+		},
+		{
+			MethodName: "GetScriptRunLogDetail",
+			Handler:    _ScriptManager_GetScriptRunLogDetail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
