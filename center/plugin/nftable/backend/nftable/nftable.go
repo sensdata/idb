@@ -410,6 +410,15 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 	LOG.Info("Detect result: %v", scriptResult)
 	result.Active = strings.TrimSpace(scriptResult.Out)
 
+	// 获取状态时，异步检测一下仓库
+	go func() {
+		repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
+		s.checkRepo(
+			uint(hostID),
+			repoPath,
+		)
+	}()
+
 	return &result, nil
 }
 
