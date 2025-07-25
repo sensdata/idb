@@ -162,14 +162,17 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 		LOG.Info("default.nftable not exists in host %d", hostID)
 		var content string
 		// 获取 /etc/nftables.conf 内容
+		var sysExist bool
 		detail, err := s.fileContent(hostID, "/etc/nftables.conf")
 		if err != nil {
 			LOG.Error("Failed to get /etc/nftables.conf")
 			// 获取失败，以模板内容初始化
 			content = string(templateConf)
+			sysExist = false
 		} else {
 			// 获取成功，以/etc/nftables.conf的内容初始化
 			content = detail
+			sysExist = true
 		}
 		gitCreate := model.GitCreate{
 			HostID:       hostID,
@@ -198,6 +201,19 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 		if !actionResponse.Data.Action.Result {
 			LOG.Error("failed to create default.nftable")
 			return errors.New("failed to create default conf")
+		}
+
+		// /etc/nftables.conf不存在，创建它
+		if !sysExist {
+			createFile := model.FileCreate{
+				Source:  "/etc/nftables.conf",
+				Content: gitCreate.Content,
+			}
+			err := s.createFile(uint64(hostID), createFile)
+			if err != nil {
+				LOG.Error("Failed to create /etc/nftables.conf: %v", err)
+				return errors.New("failed to create /etc/nftables.conf")
+			}
 		}
 	}
 
