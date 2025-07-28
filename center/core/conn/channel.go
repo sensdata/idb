@@ -300,8 +300,11 @@ func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
 	if err != nil {
 		global.LOG.Error("Failed to send heartbeat message to %s: %v", agentID, err)
 		(*conn).Close()
-		delete(c.agentConns, agentID)
 		global.LOG.Info("close conn %s for heartbeat", agentID)
+		c.mu.Lock()
+		delete(c.agentConns, agentID)
+		c.mu.Unlock()
+		global.LOG.Info("delete conn %s for heartbeat", agentID)
 		return err
 	} else {
 		global.LOG.Info("Heartbeat sent to %s", agentID)
