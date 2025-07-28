@@ -3,7 +3,6 @@ package nftable
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -1715,111 +1714,198 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	result.Total = int64(len(status))
 	result.Items = status
 
-	// 查询 nft ruleset
-	command = "nft -j list ruleset"
+	// 获取 nft ruleset 文本版
+	command = "nft list ruleset"
 	commandResult, err = s.sendCommand(hostID, command)
 	if err != nil {
 		LOG.Error("Failed to get ruleset")
 		return &result, errors.New("get ruleset failed")
 	}
-	rulesetOutput := strings.TrimSpace(commandResult.Result)
-	var nftData map[string]interface{}
-	if err := json.Unmarshal([]byte(rulesetOutput), &nftData); err != nil {
-		LOG.Error("Failed to parse ruleset JSON: %v", err)
-		return &result, errors.New("faile to parse ruleset json")
+	rulesetText := commandResult.Result
+	if strings.TrimSpace(rulesetText) == "" {
+		LOG.Error("Empty ruleset text")
+		return &result, errors.New("empty ruleset")
 	}
 
-	rules, ok := nftData["nftables"].([]interface{})
-	if !ok {
-		LOG.Error("Unexpected nftables JSON structure")
-		return &result, errors.New("invalid ruleset json")
-	}
-
-	// 判断默认策略是否是 drop（保守）还是 accept
-	defaultPolicy := "accept"
-	for _, item := range rules {
-		if chain, ok := item.(map[string]interface{})["chain"]; ok {
-			cmap := chain.(map[string]interface{})
-			if name, ok := cmap["name"].(string); ok && name == "input" {
-				if policy, ok := cmap["policy"].(string); ok {
-					LOG.Info("Found input chain policy: %s", policy)
-					defaultPolicy = policy
-					break
-				}
-			}
-		}
-	}
-
+	// 解析规则，匹配端口状态
 	for i := range status {
-		verdict := matchPortVerdict(status[i].Port, rules)
+		verdict := matchPortVerdictFromText(rulesetText, status[i].Port)
 		LOG.Info("Checking port %d, verdict = %s", status[i].Port, verdict)
 		switch verdict {
-		case "Accept":
+		case "accept":
 			status[i].Status = "Accepted"
-		case "Drop", "Reject":
+		case "drop", "reject":
 			status[i].Status = "Rejected"
 		default:
-			if defaultPolicy == "drop" {
-				status[i].Status = "Rejected"
-			} else {
-				status[i].Status = "Accepted"
-			}
+			status[i].Status = "Unknown"
 		}
 	}
 
 	return &result, nil
 }
 
+// matchPortVerdictFromText 根据 nft ruleset 文本，按顺序解析所有表和input链的规则，
+func matchPortVerdictFromText(ruleset string, port int) string {
+	lines := strings.Split(ruleset, "\n")
+	portStr := strconv.Itoa(port)
+
+	insideChain := false
+	defaultPolicy := "accept" // 默认策略，具体可以改
+
+	for i := 0; i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+
+		if strings.HasPrefix(line, "chain input") {
+			insideChain = true
+			// 解析policy
+			// 形如: chain input { type filter hook input priority filter; policy drop;
+			// 取policy字段值
+			if idx := strings.Index(line, "policy "); idx != -1 {
+				// policy drop; 或 policy accept;
+				policyPart := line[idx+len("policy "):]
+				policyFields := strings.Fields(policyPart)
+				if len(policyFields) > 0 {
+					defaultPolicy = strings.Trim(policyFields[0], ";")
+					defaultPolicy = strings.ToLower(defaultPolicy)
+				}
+			}
+			continue
+		}
+
+		if insideChain {
+			// 出链条件是遇到单独的 "}" 行（可能有缩进）
+			if line == "}" {
+				insideChain = false
+				continue
+			}
+
+			// 规则行：尝试匹配 tcp dport 或 udp dport 规则
+			// 支持多端口：比如 "tcp dport { 22, 6379 } accept"
+			if strings.Contains(line, "tcp dport") || strings.Contains(line, "udp dport") {
+				// 正则匹配端口列表，示例格式：
+				// tcp dport 22 accept
+				// tcp dport { 22, 6379 } accept
+				// udp dport { 123, 456 } drop
+
+				// 提取端口列表的正则
+				// dport 后面可能跟一个单端口 或 { 多端口 }
+				re := regexp.MustCompile(`dport\s+(\{[^}]+\}|[0-9]+)`)
+				matches := re.FindStringSubmatch(line)
+				if len(matches) < 2 {
+					continue
+				}
+				portPart := matches[1]
+
+				// 提取端口列表
+				var ports []string
+				if strings.HasPrefix(portPart, "{") && strings.HasSuffix(portPart, "}") {
+					// 多端口，去掉花括号，分割逗号
+					portList := strings.Trim(portPart, "{} ")
+					for _, p := range strings.Split(portList, ",") {
+						ports = append(ports, strings.TrimSpace(p))
+					}
+				} else {
+					// 单端口
+					ports = []string{portPart}
+				}
+
+				// 判断当前端口是否在端口列表中
+				matched := false
+				for _, p := range ports {
+					if p == portStr {
+						matched = true
+						break
+					}
+				}
+
+				if !matched {
+					continue
+				}
+
+				// 匹配到端口，判断 verdict
+				if strings.HasSuffix(line, " accept") {
+					return "accept"
+				} else if strings.HasSuffix(line, " drop") {
+					return "drop"
+				} else if strings.HasSuffix(line, " reject") {
+					return "reject"
+				} else {
+					return "unknown"
+				}
+			}
+		}
+	}
+
+	// 遍历完input链规则没匹配到，返回默认策略
+	return defaultPolicy
+}
+
 func matchPortVerdict(port int, rules []interface{}) string {
 	for _, item := range rules {
-		ruleMap, ok := item.(map[string]interface{})["rule"].(map[string]interface{})
+		ruleObj, ok := item.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		exprList, ok := ruleMap["expr"].([]interface{})
-		if !ok {
-			continue
-		}
+		// 限定仅匹配 inet 表、input 链的规则
+		if ruleMeta, ok := ruleObj["rule"].(map[string]interface{}); ok {
+			// 校验所属链（chain）是否为 input
+			chain, ok := ruleMeta["chain"].(string)
+			if !ok || chain != "input" {
+				continue
+			}
+			// 校验所属表是否为 inet
+			table, ok := ruleMeta["table"].(string)
+			if !ok || table != "inet" {
+				continue
+			}
 
-		portMatched := false
-		verdictKind := ""
-
-		for _, expr := range exprList {
-			exprMap, ok := expr.(map[string]interface{})
+			// 提取表达式
+			exprList, ok := ruleMeta["expr"].([]interface{})
 			if !ok {
 				continue
 			}
 
-			// 处理 match
-			if match, ok := exprMap["match"].(map[string]interface{}); ok {
-				left, lok := match["left"].(map[string]interface{})
-				right, rok := match["right"].(float64)
+			portMatched := false
+			verdictKind := ""
 
-				if !lok || !rok {
+			for _, expr := range exprList {
+				exprMap, ok := expr.(map[string]interface{})
+				if !ok {
 					continue
 				}
 
-				if payload, ok := left["payload"].(map[string]interface{}); ok {
-					if payload["field"] == "dport" && int(right) == port {
-						portMatched = true
+				// 匹配 tcp dport
+				if match, ok := exprMap["match"].(map[string]interface{}); ok {
+					left, lok := match["left"].(map[string]interface{})
+					right, rok := match["right"].(float64)
+					if !lok || !rok {
+						continue
+					}
+
+					// 是 tcp dport 吗？
+					if payload, ok := left["payload"].(map[string]interface{}); ok {
+						if payload["protocol"] == "tcp" && payload["field"] == "dport" && int(right) == port {
+							portMatched = true
+						}
+					}
+				}
+
+				// 捕捉 verdict
+				if verdict, ok := exprMap["verdict"].(map[string]interface{}); ok {
+					if kind, ok := verdict["kind"].(string); ok {
+						verdictKind = cases.Title(language.English).String(kind)
 					}
 				}
 			}
 
-			// 处理 verdict
-			if verdict, ok := exprMap["verdict"].(map[string]interface{}); ok {
-				if kind, ok := verdict["kind"].(string); ok {
-					verdictKind = cases.Title(language.English).String(kind)
-				}
+			// 只有 dport 和 verdict 都存在才视为有效规则
+			if portMatched && verdictKind != "" {
+				LOG.Info("Port %d matched in table=inet chain=input, verdict=%s", port, verdictKind)
+				return verdictKind
 			}
 		}
-
-		if portMatched && verdictKind != "" {
-			return verdictKind
-		}
 	}
-
 	return "Unknown"
 }
 
@@ -2019,13 +2105,12 @@ func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (st
 		}
 
 		if insideChain {
-			// 删除当前端口的所有规则行
-			matched, _ := regexp.MatchString(fmt.Sprintf(`tcp dport %d( |$)`, newRule.Port), trimmed)
+			portPattern := fmt.Sprintf(`tcp dport\s+(\{[^}]*\}|%d)(\s|$)`, newRule.Port)
+			matched, _ := regexp.MatchString(portPattern, trimmed)
 			if matched {
 				continue
 			}
 			if trimmed == "}" {
-				// 插入新规则
 				for _, nl := range newLines {
 					output = append(output, "        "+nl)
 				}
