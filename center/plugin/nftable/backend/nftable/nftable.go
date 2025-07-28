@@ -2561,6 +2561,14 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		return errors.New("test failed")
 	}
 
+	// 生效前，清理idb-filter表
+	command = "nft delete table ip idb-filter"
+	commandResult, err = s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to delete table idb-filter")
+		return err
+	}
+
 	// 生效规则
 	command = "nft -f /etc/nftables.conf"
 	commandResult, err = s.sendCommand(uint(hostID), command)
