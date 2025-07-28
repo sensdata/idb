@@ -1735,16 +1735,35 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		return &result, errors.New("invalid ruleset json")
 	}
 
-	// 遍历每个待检查端口
+	// 判断默认策略是否是 drop（保守）还是 accept
+	defaultPolicy := "accept"
+	for _, item := range rules {
+		if chain, ok := item.(map[string]interface{})["chain"]; ok {
+			cmap := chain.(map[string]interface{})
+			if name, ok := cmap["name"].(string); ok && name == "input" {
+				if policy, ok := cmap["policy"].(string); ok {
+					LOG.Info("Found input chain policy: %s", policy)
+					defaultPolicy = policy
+					break
+				}
+			}
+		}
+	}
+
 	for i := range status {
 		verdict := matchPortVerdict(status[i].Port, rules)
+		LOG.Info("Checking port %d, verdict = %s", status[i].Port, verdict)
 		switch verdict {
 		case "Accept":
 			status[i].Status = "Accepted"
 		case "Drop", "Reject":
 			status[i].Status = "Rejected"
 		default:
-			status[i].Status = "Unknown"
+			if defaultPolicy == "drop" {
+				status[i].Status = "Rejected"
+			} else {
+				status[i].Status = "Accepted"
+			}
 		}
 	}
 
@@ -1752,21 +1771,19 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 }
 
 func matchPortVerdict(port int, rules []interface{}) string {
-	title := cases.Title(language.English)
-
 	for _, item := range rules {
-		ruleItem, ok := item.(map[string]interface{})["rule"]
+		ruleMap, ok := item.(map[string]interface{})["rule"].(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		exprList, ok := ruleItem.(map[string]interface{})["expr"].([]interface{})
+		exprList, ok := ruleMap["expr"].([]interface{})
 		if !ok {
 			continue
 		}
 
-		var portMatched bool
-		var verdictKind string
+		portMatched := false
+		verdictKind := ""
 
 		for _, expr := range exprList {
 			exprMap, ok := expr.(map[string]interface{})
@@ -1774,25 +1791,26 @@ func matchPortVerdict(port int, rules []interface{}) string {
 				continue
 			}
 
-			// 判断是否是 dport 匹配
+			// 处理 match
 			if match, ok := exprMap["match"].(map[string]interface{}); ok {
 				left, lok := match["left"].(map[string]interface{})
-				if !lok {
+				right, rok := match["right"].(float64)
+
+				if !lok || !rok {
 					continue
 				}
+
 				if payload, ok := left["payload"].(map[string]interface{}); ok {
-					if payload["field"] == "dport" {
-						if right, rok := match["right"].(float64); rok && int(right) == port {
-							portMatched = true
-						}
+					if payload["field"] == "dport" && int(right) == port {
+						portMatched = true
 					}
 				}
 			}
 
-			// 查找 verdict
-			if v, ok := exprMap["verdict"].(map[string]interface{}); ok {
-				if kind, ok := v["kind"].(string); ok {
-					verdictKind = title.String(kind)
+			// 处理 verdict
+			if verdict, ok := exprMap["verdict"].(map[string]interface{}); ok {
+				if kind, ok := verdict["kind"].(string); ok {
+					verdictKind = cases.Title(language.English).String(kind)
 				}
 			}
 		}
