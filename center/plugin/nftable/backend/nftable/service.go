@@ -126,6 +126,7 @@ func (s *NFTable) Initialize() {
 			{Method: "GET", Path: "/:host/process", Handler: s.GetProcessStatus},
 			{Method: "GET", Path: "/:host/port", Handler: s.GetPorts},
 			{Method: "POST", Path: "/:host/port/rules", Handler: s.SetPortRules},
+			{Method: "DELETE", Path: "/:host/port/rules", Handler: s.DeletePortRules},
 			{Method: "GET", Path: "/:host/ip/blacklist", Handler: s.GetIPBlacklist},
 			{Method: "POST", Path: "/:host/ip/blacklist", Handler: s.AddIPBlacklist},
 			{Method: "DELETE", Path: "/:host/ip/blacklist", Handler: s.DeleteIPBlacklist},
