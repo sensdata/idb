@@ -13,12 +13,16 @@ type SwitchOptions struct {
 	Option string `json:"option" validate:"required,oneof=nftables iptables"`
 }
 
+type PortAccessStatus struct {
+	Address string `json:"address"`
+	Status  string `json:"status" validate:"required,oneof=accepted rejected local-only restricted fully-accepted unknown"`
+}
+
 type ProcessStatus struct {
-	Process   string   `json:"process"`
-	Pid       int      `json:"pid"`
-	Port      int      `json:"port"`
-	Addresses []string `json:"addresses"`
-	Status    string   `json:"status"`
+	Process string             `json:"process"`
+	Pid     int                `json:"pid"`
+	Port    int                `json:"port"`
+	Access  []PortAccessStatus `json:"access"`
 }
 
 const (

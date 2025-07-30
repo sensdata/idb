@@ -15,8 +15,6 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 func (s *NFTable) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
@@ -1655,113 +1653,88 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 		}
 	}
 
-	status := []model.ProcessStatus{}
+	// 解析 nft ruleset
+	command = "nft list ruleset"
+	commandResult, err = s.sendCommand(hostID, command)
+	if err != nil {
+		return &result, errors.New("get ruleset failed")
+	}
+	rulesetText := strings.TrimSpace(commandResult.Result)
+	if rulesetText == "" {
+		return &result, errors.New("empty ruleset")
+	}
+
+	statusList := []model.ProcessStatus{}
 	scanner := bufio.NewScanner(bytes.NewReader([]byte(portInfos)))
 	re := regexp.MustCompile(`users:\(\("([^"]+)",pid=(\d+),.*?\)\)`)
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		LOG.Info("line: %s", line)
 		fields := strings.Fields(line)
 		if len(fields) < 4 {
-			LOG.Error("Invalid line: %s", line)
 			continue
 		}
 
 		addrPort := fields[3]
-		// IPv6 可能带中括号，也可能有 %interface，先处理
 		ip, portStr := parseAddrPort(addrPort)
 		if ip == "" || portStr == "" {
-			LOG.Error("Failed to parse address:port -> %s", addrPort)
 			continue
 		}
-
 		port, err := strconv.Atoi(portStr)
 		if err != nil {
-			LOG.Error("Invalid port: %s", portStr)
 			continue
 		}
 
-		// 提取进程名和 PID
 		procMatch := re.FindStringSubmatch(line)
 		if len(procMatch) != 3 {
-			LOG.Error("Invalid process info: %s", line)
 			continue
 		}
 		processName := procMatch[1]
-		pid, err := strconv.Atoi(procMatch[2])
-		if err != nil {
-			LOG.Error("Invalid PID: %s", procMatch[2])
-			continue
-		}
+		pid, _ := strconv.Atoi(procMatch[2])
 
 		var addresses []string
-		if ip == "*" || ip == "0.0.0.0" || ip == "" || ip == "::" {
+		if ip == "*" || ip == "0.0.0.0" || ip == "::" || ip == "" {
 			addresses = ips
 		} else {
 			addresses = []string{ip}
 		}
 
-		status = append(status, model.ProcessStatus{
-			Process:   processName,
-			Pid:       pid,
-			Port:      port,
-			Addresses: addresses,
-			Status:    "Unknown",
+		accesses := []model.PortAccessStatus{}
+		for _, addr := range addresses {
+			verdict := matchPortVerdictFromText(rulesetText, port)
+			accesses = append(accesses, model.PortAccessStatus{
+				Address: addr,
+				Status:  verdictToStatus(verdict),
+			})
+		}
+
+		statusList = append(statusList, model.ProcessStatus{
+			Process: processName,
+			Pid:     pid,
+			Port:    port,
+			Access:  refineAccessStatus(accesses),
 		})
 	}
 
-	result.Total = int64(len(status))
-	result.Items = status
-
-	// 获取 nft ruleset 文本版
-	command = "nft list ruleset"
-	commandResult, err = s.sendCommand(hostID, command)
-	if err != nil {
-		LOG.Error("Failed to get ruleset")
-		return &result, errors.New("get ruleset failed")
-	}
-	rulesetText := commandResult.Result
-	if strings.TrimSpace(rulesetText) == "" {
-		LOG.Error("Empty ruleset text")
-		return &result, errors.New("empty ruleset")
-	}
-
-	// 解析规则，匹配端口状态
-	for i := range status {
-		verdict := matchPortVerdictFromText(rulesetText, status[i].Port)
-		LOG.Info("Checking port %d, verdict = %s", status[i].Port, verdict)
-		switch verdict {
-		case "accept":
-			status[i].Status = "Accepted"
-		case "drop", "reject":
-			status[i].Status = "Rejected"
-		default:
-			status[i].Status = "Unknown"
-		}
-	}
-
+	result.Total = int64(len(statusList))
+	result.Items = statusList
 	return &result, nil
 }
 
-// matchPortVerdictFromText 根据 nft ruleset 文本，按顺序解析所有表和input链的规则，
+// matchPortVerdictFromText 根据 nft ruleset 文本，按顺序解析所有表和input链的规则
 func matchPortVerdictFromText(ruleset string, port int) string {
 	lines := strings.Split(ruleset, "\n")
 	portStr := strconv.Itoa(port)
 
 	insideChain := false
-	defaultPolicy := "accept" // 默认策略，具体可以改
+	defaultPolicy := "accept"
 
-	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
 
 		if strings.HasPrefix(line, "chain input") {
 			insideChain = true
-			// 解析policy
-			// 形如: chain input { type filter hook input priority filter; policy drop;
-			// 取policy字段值
 			if idx := strings.Index(line, "policy "); idx != -1 {
-				// policy drop; 或 policy accept;
 				policyPart := line[idx+len("policy "):]
 				policyFields := strings.Fields(policyPart)
 				if len(policyFields) > 0 {
@@ -1773,22 +1746,12 @@ func matchPortVerdictFromText(ruleset string, port int) string {
 		}
 
 		if insideChain {
-			// 出链条件是遇到单独的 "}" 行（可能有缩进）
 			if line == "}" {
 				insideChain = false
 				continue
 			}
 
-			// 规则行：尝试匹配 tcp dport 或 udp dport 规则
-			// 支持多端口：比如 "tcp dport { 22, 6379 } accept"
-			if strings.Contains(line, "tcp dport") || strings.Contains(line, "udp dport") {
-				// 正则匹配端口列表，示例格式：
-				// tcp dport 22 accept
-				// tcp dport { 22, 6379 } accept
-				// udp dport { 123, 456 } drop
-
-				// 提取端口列表的正则
-				// dport 后面可能跟一个单端口 或 { 多端口 }
+			if strings.Contains(line, "dport") {
 				re := regexp.MustCompile(`dport\s+(\{[^}]+\}|[0-9]+)`)
 				matches := re.FindStringSubmatch(line)
 				if len(matches) < 2 {
@@ -1796,117 +1759,77 @@ func matchPortVerdictFromText(ruleset string, port int) string {
 				}
 				portPart := matches[1]
 
-				// 提取端口列表
 				var ports []string
-				if strings.HasPrefix(portPart, "{") && strings.HasSuffix(portPart, "}") {
-					// 多端口，去掉花括号，分割逗号
+				if strings.HasPrefix(portPart, "{") {
 					portList := strings.Trim(portPart, "{} ")
 					for _, p := range strings.Split(portList, ",") {
 						ports = append(ports, strings.TrimSpace(p))
 					}
 				} else {
-					// 单端口
 					ports = []string{portPart}
 				}
 
-				// 判断当前端口是否在端口列表中
-				matched := false
 				for _, p := range ports {
 					if p == portStr {
-						matched = true
-						break
-					}
-				}
-
-				if !matched {
-					continue
-				}
-
-				// 匹配到端口，判断 verdict
-				if strings.HasSuffix(line, " accept") {
-					return "accept"
-				} else if strings.HasSuffix(line, " drop") {
-					return "drop"
-				} else if strings.HasSuffix(line, " reject") {
-					return "reject"
-				} else {
-					return "unknown"
-				}
-			}
-		}
-	}
-
-	// 遍历完input链规则没匹配到，返回默认策略
-	return defaultPolicy
-}
-
-func matchPortVerdict(port int, rules []interface{}) string {
-	for _, item := range rules {
-		ruleObj, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		// 限定仅匹配 inet 表、input 链的规则
-		if ruleMeta, ok := ruleObj["rule"].(map[string]interface{}); ok {
-			// 校验所属链（chain）是否为 input
-			chain, ok := ruleMeta["chain"].(string)
-			if !ok || chain != "input" {
-				continue
-			}
-			// 校验所属表是否为 inet
-			table, ok := ruleMeta["table"].(string)
-			if !ok || table != "inet" {
-				continue
-			}
-
-			// 提取表达式
-			exprList, ok := ruleMeta["expr"].([]interface{})
-			if !ok {
-				continue
-			}
-
-			portMatched := false
-			verdictKind := ""
-
-			for _, expr := range exprList {
-				exprMap, ok := expr.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				// 匹配 tcp dport
-				if match, ok := exprMap["match"].(map[string]interface{}); ok {
-					left, lok := match["left"].(map[string]interface{})
-					right, rok := match["right"].(float64)
-					if !lok || !rok {
-						continue
-					}
-
-					// 是 tcp dport 吗？
-					if payload, ok := left["payload"].(map[string]interface{}); ok {
-						if payload["protocol"] == "tcp" && payload["field"] == "dport" && int(right) == port {
-							portMatched = true
+						if strings.HasSuffix(line, " accept") {
+							return "accept"
+						} else if strings.HasSuffix(line, " drop") || strings.HasSuffix(line, " reject") {
+							return "reject"
 						}
 					}
 				}
-
-				// 捕捉 verdict
-				if verdict, ok := exprMap["verdict"].(map[string]interface{}); ok {
-					if kind, ok := verdict["kind"].(string); ok {
-						verdictKind = cases.Title(language.English).String(kind)
-					}
-				}
-			}
-
-			// 只有 dport 和 verdict 都存在才视为有效规则
-			if portMatched && verdictKind != "" {
-				LOG.Info("Port %d matched in table=inet chain=input, verdict=%s", port, verdictKind)
-				return verdictKind
 			}
 		}
 	}
-	return "Unknown"
+
+	return defaultPolicy
+}
+
+func verdictToStatus(verdict string) string {
+	switch verdict {
+	case "accept":
+		return "accepted"
+	case "drop", "reject":
+		return "rejected"
+	default:
+		return "unknown"
+	}
+}
+
+func refineAccessStatus(accesses []model.PortAccessStatus) []model.PortAccessStatus {
+	allAccepted := true
+	localOnly := true
+	someRejected := false
+
+	for _, a := range accesses {
+		if a.Status != "accepted" {
+			allAccepted = false
+		}
+		if a.Status == "rejected" {
+			someRejected = true
+		}
+		if !strings.HasPrefix(a.Address, "127.") && a.Address != "::1" {
+			localOnly = false
+		}
+	}
+
+	switch {
+	case allAccepted && localOnly:
+		for i := range accesses {
+			accesses[i].Status = "local-only"
+		}
+	case allAccepted:
+		for i := range accesses {
+			accesses[i].Status = "fully-accepted"
+		}
+	case someRejected:
+		for i := range accesses {
+			if accesses[i].Status == "accepted" {
+				accesses[i].Status = "restricted"
+			}
+		}
+	}
+	return accesses
 }
 
 // parseAddrPort 解析 IP:PORT 字符串，兼容 IPv6、带中括号、%interface 等情况
