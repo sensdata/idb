@@ -120,7 +120,7 @@ export function setPortRulesApi(data: SetPortRuleApiParams) {
 }
 
 export function deletePortRulesApi(params: { port: number }) {
-  return request.delete('/nftables/{host}/port/rules', { params });
+  return request.delete('/nftables/{host}/port/rules', params);
 }
 
 // IP黑名单管理相关接口

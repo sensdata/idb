@@ -112,7 +112,6 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { IconPlus, IconUser } from '@arco-design/web-vue/es/icon';
-  import { useConfirm } from '@/composables/confirm';
   import type { PortRule } from '@/api/nftables';
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
@@ -141,7 +140,6 @@
   }>();
 
   const { t } = useI18n();
-  const { confirm } = useConfirm();
 
   // 常量定义
   const PAGE_SIZE = 20;
@@ -292,16 +290,8 @@
     emit('edit', rule);
   };
 
-  const handleDelete = async (rule: PortRule) => {
-    const portText = Array.isArray(rule.port)
-      ? rule.port.join(', ')
-      : rule.port;
-    const confirmed = await confirm(
-      t('app.nftables.rules.deleteConfirm', { port: portText })
-    );
-    if (confirmed) {
-      emit('delete', rule);
-    }
+  const handleDelete = (rule: PortRule) => {
+    emit('delete', rule);
   };
 </script>
 
