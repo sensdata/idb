@@ -933,7 +933,7 @@ func (s *NFTable) ConfActivate(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Success 200 {object} model.PageResult
+// @Success 200 {object} model.PageResult{Items:[]model.ProcessStatus}
 // @Router /nftables/{host}/process [get]
 func (s *NFTable) GetProcessStatus(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
