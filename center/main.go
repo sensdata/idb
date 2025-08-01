@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/auth"
 	"github.com/sensdata/idb/center/config"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/command"
@@ -177,6 +178,14 @@ func StartServices() error {
 	}
 	// 启动插件
 	plugin.StartPlugins()
+
+	// 初始化auth
+	mode := auth.AuthModeLocal // 使用本地授权模式作为默认值
+	if err := auth.InitAuth(mode); err != nil {
+		global.LOG.Error("Failed to initialize auth: %v", err)
+		return err
+	}
+	global.LOG.Info("Auth initialized successfully with mode: %v", mode)
 
 	return nil
 }
