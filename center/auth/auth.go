@@ -1,5 +1,4 @@
 //go:build linux || darwin
-// +build linux darwin
 
 package auth
 
@@ -16,6 +15,7 @@ import "C"
 
 import (
 	"fmt"
+	"unsafe"
 )
 
 // 定义与C枚举对应的Go类型
@@ -46,5 +46,87 @@ func InitAuth(mode AuthMode) error {
 	if code != AuthOK {
 		return fmt.Errorf("auth initialization failed with code: %d", code)
 	}
+	return nil
+}
+
+// IssueLicense 颁发授权序列号(基于IP)
+// ip: 目标服务器公网IP
+// 返回: 序列号字符串和可能的错误
+func IssueLicense(ip string) (string, error) {
+	// 分配足够大的缓冲区，至少32字节
+	buf := make([]byte, 64)
+	cIp := C.CString(ip)
+	defer C.free(unsafe.Pointer(cIp))
+
+	code := C.issue_license(cIp, (*C.char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)))
+	if code != AuthOK {
+		return "", fmt.Errorf("failed to issue license with code: %d", code)
+	}
+
+	// 转换C字符串为Go字符串
+	return C.GoString((*C.char)(unsafe.Pointer(&buf[0]))), nil
+}
+
+// ReissueLicense 重新颁发授权序列号
+// oldIp: 旧服务器公网IP
+// newIp: 新服务器公网IP
+// oldSerial: 旧序列号
+// 返回: 新序列号字符串和可能的错误
+func ReissueLicense(oldIp, newIp, oldSerial string) (string, error) {
+	buf := make([]byte, 64)
+	cOldIp := C.CString(oldIp)
+	cNewIp := C.CString(newIp)
+	cOldSerial := C.CString(oldSerial)
+	defer func() {
+		C.free(unsafe.Pointer(cOldIp))
+		C.free(unsafe.Pointer(cNewIp))
+		C.free(unsafe.Pointer(cOldSerial))
+	}()
+
+	code := C.reissue_license(cOldIp, cNewIp, cOldSerial, (*C.char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)))
+	if code != AuthOK {
+		return "", fmt.Errorf("failed to reissue license with code: %d", code)
+	}
+
+	return C.GoString((*C.char)(unsafe.Pointer(&buf[0]))), nil
+}
+
+// BindLicense 绑定授权(验证序列号和IP，生成.linked文件)
+// ip: 目标服务器公网IP
+// serial: 用户提供的序列号
+// 返回: 可能的错误
+func BindLicense(ip, serial string) error {
+	cIp := C.CString(ip)
+	cSerial := C.CString(serial)
+	defer func() {
+		C.free(unsafe.Pointer(cIp))
+		C.free(unsafe.Pointer(cSerial))
+	}()
+
+	code := C.bind_license(cIp, cSerial)
+	if code != AuthOK {
+		return fmt.Errorf("failed to bind license with code: %d", code)
+	}
+
+	return nil
+}
+
+// VerifyLicense 验证授权(检查.linked文件存在且未过期)
+// ip: 目标服务器公网IP
+// serial: 用户提供的序列号
+// 返回: 可能的错误
+func VerifyLicense(ip, serial string) error {
+	cIp := C.CString(ip)
+	cSerial := C.CString(serial)
+	defer func() {
+		C.free(unsafe.Pointer(cIp))
+		C.free(unsafe.Pointer(cSerial))
+	}()
+
+	code := C.verify_license(cIp, cSerial)
+	if code != AuthOK {
+		return fmt.Errorf("license verification failed with code: %d", code)
+	}
+
 	return nil
 }
