@@ -26,6 +26,7 @@ func Init() {
 		AddTableSettings,
 		AddTableTimezone,
 		AddTableApp,
+		AddFieldSerialToHost,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -296,6 +297,18 @@ var AddTableApp = &gormigrate.Migration{
 			return err
 		}
 		global.LOG.Info("Table App added successfully")
+		return nil
+	},
+}
+
+var AddFieldSerialToHost = &gormigrate.Migration{
+	ID: "20250711-add-field-serial-to-host",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Adding field Serial to Host table")
+		if err := db.AutoMigrate(&model.Host{}); err != nil {
+			return err
+		}
+		global.LOG.Info("Field Serial added to Host table successfully")
 		return nil
 	},
 }

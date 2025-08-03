@@ -6,6 +6,7 @@ type HostInfo struct {
 	ID         uint      `json:"id"`
 	CreatedAt  time.Time `json:"created_at"`
 	Default    bool      `json:"default"`
+	Serial     string    `json:"serial"`
 	GroupInfo  GroupInfo `json:"group"`
 	Name       string    `json:"name"`
 	Addr       string    `json:"addr"`

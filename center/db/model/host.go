@@ -21,6 +21,7 @@ type Host struct {
 	Password   string `gorm:"type:varchar(64)" json:"password"`
 	PrivateKey string `gorm:"type:varchar(256)" json:"private_key"`
 	PassPhrase string `gorm:"type:varchar(256)" json:"pass_phrase"`
+	Serial     string `gorm:"type:varchar(128)" json:"serial"`
 
 	AgentAddr    string `gorm:"type:varchar(16);not null" json:"agent_addr"`
 	AgentPort    int    `gorm:"type:decimal;not null" json:"agent_port"`
