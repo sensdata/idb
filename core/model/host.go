@@ -49,6 +49,32 @@ type UpdateHost struct {
 	Name    string `json:"name" validate:"required"`
 }
 
+// Auth related models
+
+type IssueLicenseReq struct {
+	IP string `json:"ip" validate:"required,ip"`
+}
+
+type IssueLicenseResp struct {
+	Serial string `json:"serial"`
+}
+
+type ReissueLicenseReq struct {
+	OldIP     string `json:"old_ip" validate:"required,ip"`
+	NewIP     string `json:"new_ip" validate:"required,ip"`
+	OldSerial string `json:"old_serial" validate:"required"`
+}
+
+type BindLicenseReq struct {
+	IP     string `json:"ip" validate:"required,ip"`
+	Serial string `json:"serial" validate:"required"`
+}
+
+type VerifyLicenseReq struct {
+	IP     string `json:"ip" validate:"required,ip"`
+	Serial string `json:"serial" validate:"required"`
+}
+
 type UpdateHostSSH struct {
 	Addr       string `json:"addr" validate:"required"`
 	Port       int    `json:"port" validate:"required"`

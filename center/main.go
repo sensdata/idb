@@ -181,7 +181,7 @@ func StartServices() error {
 
 	// 初始化auth
 	mode := auth.AuthModeLocal // 使用本地授权模式作为默认值
-	if err := auth.InitAuth(mode); err != nil {
+	if err := auth.NewAuthService().InitAuth(mode); err != nil {
 		global.LOG.Error("Failed to initialize auth: %v", err)
 		return err
 	}

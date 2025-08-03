@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 
+	"github.com/sensdata/idb/center/auth"
 	"github.com/sensdata/idb/center/core/conn"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
@@ -23,7 +24,9 @@ import (
 	"github.com/sensdata/idb/core/utils"
 )
 
-type HostService struct{}
+type HostService struct {
+	authService auth.IAuthService
+}
 
 type IHostService interface {
 	ListGroup(req core.PageInfo) (*core.PageResult, error)
@@ -46,10 +49,16 @@ type IHostService interface {
 	AgentStatus(id uint) (*core.AgentStatus, error)
 	AgentStatusFollow(c *gin.Context) error
 	RestartAgent(id uint) error
+
+	IssueLicense(req core.IssueLicenseReq) (*core.IssueLicenseResp, error)
+	ReissueLicense(req core.ReissueLicenseReq) (*core.IssueLicenseResp, error)
+	BindLicense(req core.BindLicenseReq) error
 }
 
 func NewIHostService() IHostService {
-	return &HostService{}
+	return &HostService{
+		authService: auth.NewAuthService(),
+	}
 }
 
 // List host group
@@ -579,6 +588,46 @@ func (s *HostService) RestartAgent(id uint) error {
 
 	// restart
 	err = conn.SSH.RestartAgent(host)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IssueLicense 颁发授权序列号
+func (s *HostService) IssueLicense(req core.IssueLicenseReq) (*core.IssueLicenseResp, error) {
+	resp := &core.IssueLicenseResp{}
+
+	// 调用authService颁发序列号
+	serial, err := s.authService.IssueLicense(req.IP)
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Serial = serial
+	return resp, nil
+}
+
+// ReissueLicense 重新颁发授权序列号
+func (s *HostService) ReissueLicense(req core.ReissueLicenseReq) (*core.IssueLicenseResp, error) {
+	resp := &core.IssueLicenseResp{}
+
+	// 调用authService重新颁发序列号
+	serial, err := s.authService.ReissueLicense(req.OldIP, req.NewIP, req.OldSerial)
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Serial = serial
+	return resp, nil
+}
+
+// BindLicense 绑定授权序列号
+func (s *HostService) BindLicense(req core.BindLicenseReq) error {
+
+	// 调用authService绑定序列号
+	err := s.authService.BindLicense(req.IP, req.Serial)
 	if err != nil {
 		return err
 	}

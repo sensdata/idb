@@ -33,5 +33,9 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.GET("/:host/agent/status", baseApi.AgentStatus)              // 获取agent状态
 		hostRouter.GET("/:host/agent/status/follow", baseApi.AgentStatusFollow) // 追踪agent状态
 		hostRouter.POST("/:host/agent/restart", baseApi.RestartAgent)           // 重启agent
+		// Auth related routes
+		hostRouter.POST("/auth/issue", baseApi.IssueLicense)     // 颁发授权序列号
+		hostRouter.POST("/auth/reissue", baseApi.ReissueLicense) // 重新颁发授权序列号
+		hostRouter.POST("/auth/bind", baseApi.BindLicense)       // 绑定授权序列号
 	}
 }

@@ -18,6 +18,44 @@ import (
 	"unsafe"
 )
 
+// IAuthService 定义授权服务接口
+type IAuthService interface {
+	// InitAuth 初始化授权系统
+	InitAuth(mode AuthMode) error
+
+	// IssueLicense 颁发授权序列号(基于IP)
+	// ip: 目标服务器公网IP
+	// 返回: 序列号字符串和可能的错误
+	IssueLicense(ip string) (string, error)
+
+	// ReissueLicense 重新颁发授权序列号
+	// oldIp: 旧服务器公网IP
+	// newIp: 新服务器公网IP
+	// oldSerial: 旧序列号
+	// 返回: 新序列号字符串和可能的错误
+	ReissueLicense(oldIp, newIp, oldSerial string) (string, error)
+
+	// BindLicense 绑定授权(验证序列号和IP，生成.linked文件)
+	// ip: 目标服务器公网IP
+	// serial: 用户提供的序列号
+	// 返回: 可能的错误
+	BindLicense(ip, serial string) error
+
+	// VerifyLicense 验证授权(检查.linked文件存在且未过期)
+	// ip: 目标服务器公网IP
+	// serial: 用户提供的序列号
+	// 返回: 可能的错误
+	VerifyLicense(ip, serial string) error
+}
+
+// authService 实现IAuthService接口
+type authService struct{}
+
+// NewAuthService 创建一个新的授权服务实例
+func NewAuthService() IAuthService {
+	return &authService{}
+}
+
 // 定义与C枚举对应的Go类型
 type AuthMode C.AuthMode
 
@@ -41,7 +79,7 @@ const (
 )
 
 // InitAuth 初始化授权系统
-func InitAuth(mode AuthMode) error {
+func (s *authService) InitAuth(mode AuthMode) error {
 	code := C.init_auth(C.AuthMode(mode))
 	if code != AuthOK {
 		return fmt.Errorf("auth initialization failed with code: %d", code)
@@ -52,7 +90,7 @@ func InitAuth(mode AuthMode) error {
 // IssueLicense 颁发授权序列号(基于IP)
 // ip: 目标服务器公网IP
 // 返回: 序列号字符串和可能的错误
-func IssueLicense(ip string) (string, error) {
+func (s *authService) IssueLicense(ip string) (string, error) {
 	// 分配足够大的缓冲区，至少32字节
 	buf := make([]byte, 64)
 	cIp := C.CString(ip)
@@ -72,7 +110,7 @@ func IssueLicense(ip string) (string, error) {
 // newIp: 新服务器公网IP
 // oldSerial: 旧序列号
 // 返回: 新序列号字符串和可能的错误
-func ReissueLicense(oldIp, newIp, oldSerial string) (string, error) {
+func (s *authService) ReissueLicense(oldIp, newIp, oldSerial string) (string, error) {
 	buf := make([]byte, 64)
 	cOldIp := C.CString(oldIp)
 	cNewIp := C.CString(newIp)
@@ -95,7 +133,7 @@ func ReissueLicense(oldIp, newIp, oldSerial string) (string, error) {
 // ip: 目标服务器公网IP
 // serial: 用户提供的序列号
 // 返回: 可能的错误
-func BindLicense(ip, serial string) error {
+func (s *authService) BindLicense(ip, serial string) error {
 	cIp := C.CString(ip)
 	cSerial := C.CString(serial)
 	defer func() {
@@ -115,7 +153,7 @@ func BindLicense(ip, serial string) error {
 // ip: 目标服务器公网IP
 // serial: 用户提供的序列号
 // 返回: 可能的错误
-func VerifyLicense(ip, serial string) error {
+func (s *authService) VerifyLicense(ip, serial string) error {
 	cIp := C.CString(ip)
 	cSerial := C.CString(serial)
 	defer func() {

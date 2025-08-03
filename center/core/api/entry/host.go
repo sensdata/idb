@@ -478,3 +478,69 @@ func (b *BaseApi) RestartAgent(c *gin.Context) {
 	}
 	SuccessWithData(c, nil)
 }
+
+// @Tags Host
+// @Summary Issue license
+// @Description Issue authorization serial number based on IP
+// @Accept json
+// @Produce json
+// @Param request body model.IssueLicenseReq true "request"
+// @Success 200 {object} model.IssueLicenseResp
+// @Router /hosts/auth/issue [post]
+func (b *BaseApi) IssueLicense(c *gin.Context) {
+	var req model.IssueLicenseReq
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	resp, err := hostService.IssueLicense(req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, resp)
+}
+
+// @Tags Host
+// @Summary Reissue license
+// @Description Reissue authorization serial number when IP changes
+// @Accept json
+// @Produce json
+// @Param request body model.ReissueLicenseReq true "request"
+// @Success 200 {object} model.IssueLicenseResp
+// @Router /hosts/auth/reissue [post]
+func (b *BaseApi) ReissueLicense(c *gin.Context) {
+	var req model.ReissueLicenseReq
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	resp, err := hostService.ReissueLicense(req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, resp)
+}
+
+// @Tags Host
+// @Summary Bind license
+// @Description Bind authorization serial number with IP
+// @Accept json
+// @Produce json
+// @Param request body model.BindLicenseReq true "request"
+// @Success 200
+// @Router /hosts/auth/bind [post]
+func (b *BaseApi) BindLicense(c *gin.Context) {
+	var req model.BindLicenseReq
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err := hostService.BindLicense(req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
