@@ -635,5 +635,18 @@ func (s *HostService) BindLicense(req core.BindLicenseReq) error {
 		return err
 	}
 
+	// 更新host表中的serial字段
+	host, err := HostRepo.Get(HostRepo.WithByAddr(req.IP))
+	if err != nil {
+		return err
+	}
+
+	upMap := make(map[string]interface{})
+	upMap["serial"] = req.Serial
+	err = HostRepo.Update(host.ID, upMap)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
