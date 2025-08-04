@@ -67,7 +67,7 @@ type InspectResult struct {
 
 type Prune struct {
 	PruneType  string `json:"type" validate:"required,oneof=container image volume network buildcache"`
-	WithTagAll bool   `json:"with_tag_all"`
+	WithTagAll bool   `json:"with_tag_all" validate:"required"`
 }
 
 type PruneResult struct {
