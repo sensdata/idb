@@ -99,8 +99,10 @@ func (c DockerClient) listComposeProjects(workDir string) ([]string, error) {
 	var projects []string
 
 	// 检查workDir是否存在
-	if _, err := os.Stat(workDir); os.IsNotExist(err) {
-		return projects, fmt.Errorf("workDir %s does not exist", workDir)
+	if _, err := os.Stat(workDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(workDir, os.ModePerm); err != nil {
+			return projects, err
+		}
 	}
 
 	// 枚举workDir下的所有文件夹
