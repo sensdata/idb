@@ -31,28 +31,30 @@
         <template #addresses="{ record }">
           <div class="addresses-list">
             <div
-              v-for="(address, index) in record.addresses"
+              v-for="(accessItem, index) in record.access"
               :key="index"
               class="address-row"
             >
-              {{ address }}
+              {{ accessItem.address }}
               <a-tag
-                :color="getPortAccessInfo(record.port, address).color"
+                :color="getPortAccessInfoFromStatus(accessItem.status).color"
                 size="small"
                 :class="{
                   'access-status-tag': true,
-                  'local-only-tag': getPortAccessInfo(record.port, address)
-                    .isLocalOnly,
+                  'local-only-tag': getPortAccessInfoFromStatus(
+                    accessItem.status
+                  ).isLocalOnly,
                   'accessible-tag':
-                    getPortAccessInfo(record.port, address).accessible &&
-                    !getPortAccessInfo(record.port, address).isLocalOnly,
+                    getPortAccessInfoFromStatus(accessItem.status).accessible &&
+                    !getPortAccessInfoFromStatus(accessItem.status).isLocalOnly,
                   'restricted-access-tag':
-                    !getPortAccessInfo(record.port, address).accessible &&
-                    !getPortAccessInfo(record.port, address).isLocalOnly,
+                    !getPortAccessInfoFromStatus(accessItem.status)
+                      .accessible &&
+                    !getPortAccessInfoFromStatus(accessItem.status).isLocalOnly,
                 }"
                 class="font-medium"
               >
-                {{ getPortAccessInfo(record.port, address).text }}
+                {{ getPortAccessInfoFromStatus(accessItem.status).text }}
               </a-tag>
             </div>
           </div>
@@ -93,7 +95,7 @@
   import type { ApiListResult } from '@/types/global';
   import type { ProcessStatus, PortRuleSet } from '@/api/nftables';
   import ProcessInfo from './process-info.vue';
-  import { getPortAccessInfo as getPortAccessInfoUtil } from '../utils/config-parser';
+  import { getPortAccessInfoFromStatus as getPortAccessInfoFromStatusUtil } from '../utils/config-parser';
 
   interface Props {
     processData: ProcessStatus[];
@@ -158,9 +160,9 @@
     return props.portRules.some((rule) => rule.port === port);
   };
 
-  // 获取端口访问状态信息
-  const getPortAccessInfo = (port: number, address: string) => {
-    return getPortAccessInfoUtil(port, address, props.openPorts, t);
+  // 获取端口访问状态信息（基于API返回的状态）
+  const getPortAccessInfoFromStatus = (status: string) => {
+    return getPortAccessInfoFromStatusUtil(status, t);
   };
 
   defineExpose({

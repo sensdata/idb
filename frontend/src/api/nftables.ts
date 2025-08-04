@@ -5,11 +5,22 @@ import { ApiListResult } from '@/types/global';
 export type ConfigType = 'global' | 'local';
 
 // 接口定义
+export interface PortAccessStatus {
+  address: string;
+  status:
+    | 'local-only'
+    | 'fully-accepted'
+    | 'accepted'
+    | 'rejected'
+    | 'restricted'
+    | 'unknown';
+}
+
 export interface ProcessStatus {
+  process: string;
   pid: number;
   port: number;
-  process: string;
-  addresses: string[];
+  access: PortAccessStatus[];
 }
 
 export interface ProcessStatusResponse {

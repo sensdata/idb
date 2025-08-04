@@ -161,6 +161,10 @@ export default {
   'app.nftables.config.columns.port': '端口',
   'app.nftables.config.columns.addresses': '监听地址',
   'app.nftables.config.accessible': '可访问',
+  'app.nftables.config.fullyAccessible': '完全可访问',
+  'app.nftables.config.rejected': '已拒绝',
+  'app.nftables.config.restricted': '受限',
+  'app.nftables.config.unknown': '未知',
   'app.nftables.config.notAccessible': '受限',
   'app.nftables.config.localOnly': '仅本地',
 

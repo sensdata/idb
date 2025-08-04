@@ -257,7 +257,64 @@ export function parsePortRules(configContent: string): ParsedPortRule[] {
 }
 
 /**
- * 获取端口访问状态信息
+ * 获取端口访问状态信息（基于API返回的状态）
+ * @param status API返回的访问状态
+ * @param t 国际化函数
+ * @returns 端口访问信息
+ */
+export function getPortAccessInfoFromStatus(
+  status: string,
+  t: (key: string) => string
+): PortAccessInfo {
+  switch (status) {
+    case 'local-only':
+      return {
+        accessible: true,
+        isLocalOnly: true,
+        color: 'blue',
+        text: t('app.nftables.config.localOnly'),
+      };
+    case 'fully-accepted':
+      return {
+        accessible: true,
+        isLocalOnly: false,
+        color: 'green',
+        text: t('app.nftables.config.fullyAccessible'),
+      };
+    case 'accepted':
+      return {
+        accessible: true,
+        isLocalOnly: false,
+        color: 'green',
+        text: t('app.nftables.config.accessible'),
+      };
+    case 'rejected':
+      return {
+        accessible: false,
+        isLocalOnly: false,
+        color: 'red',
+        text: t('app.nftables.config.rejected'),
+      };
+    case 'restricted':
+      return {
+        accessible: false,
+        isLocalOnly: false,
+        color: 'orange',
+        text: t('app.nftables.config.restricted'),
+      };
+    case 'unknown':
+    default:
+      return {
+        accessible: false,
+        isLocalOnly: false,
+        color: 'gray',
+        text: t('app.nftables.config.unknown'),
+      };
+  }
+}
+
+/**
+ * 获取端口访问状态信息（旧版本，保持向后兼容）
  * @param port 端口号
  * @param address 地址
  * @param openPorts 开放端口集合

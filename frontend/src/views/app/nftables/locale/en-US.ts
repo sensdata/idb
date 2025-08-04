@@ -171,6 +171,10 @@ export default {
   'app.nftables.config.columns.port': 'Port',
   'app.nftables.config.columns.addresses': 'Listening Addresses',
   'app.nftables.config.accessible': 'Accessible',
+  'app.nftables.config.fullyAccessible': 'Fully Accessible',
+  'app.nftables.config.rejected': 'Rejected',
+  'app.nftables.config.restricted': 'Restricted',
+  'app.nftables.config.unknown': 'Unknown',
   'app.nftables.config.notAccessible': 'Restricted',
   'app.nftables.config.localOnly': 'Local Only',
 
