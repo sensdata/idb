@@ -1865,6 +1865,121 @@ func parseAddrPort(addrPort string) (string, string) {
 	return ip, port
 }
 
+func (s *NFTable) getBaseRules(hostID uint) (*model.BaseRules, error) {
+	var result model.BaseRules
+
+	// 获取 /etc/nftables.conf 内容
+	detail, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return &result, err
+	}
+	scanner := bufio.NewScanner(strings.NewReader(detail))
+	var lines []string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			lines = append(lines, line)
+		}
+	}
+	inputPolicy := parseInputPolicy(lines)
+	result.InputPolicy = inputPolicy
+	return &result, nil
+}
+
+func parseInputPolicy(lines []string) string {
+	insideInput := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideInput = true
+			continue
+		}
+
+		if insideInput {
+			if trimmed == "}" {
+				insideInput = false
+				continue
+			}
+
+			if strings.Contains(trimmed, "hook input") && strings.Contains(trimmed, "policy") {
+				policyParts := strings.Split(trimmed, "policy")
+				if len(policyParts) > 1 {
+					policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
+					return policy
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+func (s *NFTable) setBaseRules(hostID uint, req model.BaseRules) error {
+	// 获取 /etc/nftables.conf 内容
+	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
+	if err != nil {
+		LOG.Error("Failed to get conf detail")
+		return fmt.Errorf("failed to get conf detail %v", err)
+	}
+
+	// 设置 input policy
+	newConfContent, err := setInputPolicy(confContent, req.InputPolicy)
+	if err != nil {
+		LOG.Error("Failed to set input policy")
+		return fmt.Errorf("failed to set input policy %v", err)
+	}
+
+	// 更新并激活
+	return s.updateThenActivate(hostID, newConfContent)
+}
+
+func setInputPolicy(confContent string, newPolicy string) (string, error) {
+	lines := strings.Split(confContent, "\n")
+	var output []string
+	insideInput := false
+
+	// 使用正则匹配 policy 行
+	policyPattern := regexp.MustCompile(`(?i)^\s*(type\s+filter\s+hook\s+input.*?policy)\s+\w+;`)
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// 检测进入 input chain 块
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideInput = true
+			output = append(output, line)
+			continue
+		}
+
+		if insideInput {
+			// 结束 input chain
+			if trimmed == "}" {
+				insideInput = false
+			}
+
+			// 尝试匹配 policy 行
+			if policyPattern.MatchString(trimmed) {
+				// 保留缩进
+				indent := getIndent(line)
+				match := policyPattern.FindStringSubmatch(line)
+				if len(match) >= 2 {
+					newLine := indent + match[1] + " " + newPolicy + ";"
+					output = append(output, newLine)
+					continue
+				}
+			}
+		}
+
+		// 默认保留原始行
+		output = append(output, line)
+	}
+
+	return strings.Join(output, "\n"), nil
+}
+
 func (s *NFTable) getPorts(hostID uint) (*model.PageResult, error) {
 	var result model.PageResult
 
@@ -2322,8 +2437,7 @@ func parsePingStatus(lines []string) bool {
 				continue
 			}
 
-			if strings.HasPrefix(trimmed, "ip protocol icmp") &&
-				strings.Contains(trimmed, "icmp type echo-request") &&
+			if strings.Contains(trimmed, "icmp type echo-request") &&
 				(strings.Contains(trimmed, "drop") || strings.Contains(trimmed, "reject")) {
 				return false
 			}
@@ -2356,8 +2470,10 @@ func setPingStatus(confContent string, allowed bool) (string, error) {
 	lines := strings.Split(confContent, "\n")
 	var output []string
 	insideInput := false
-	ruleLine := "ip protocol icmp icmp type echo-request drop"
 	ruleExists := false
+
+	// 使用正则匹配 drop ping 行
+	pingDropPattern := regexp.MustCompile(`(?i)\bicmp type echo-request\b.*\b(drop|reject)\b`)
 
 	for i := 0; i < len(lines); i++ {
 		trimmed := strings.TrimSpace(lines[i])
@@ -2370,22 +2486,22 @@ func setPingStatus(confContent string, allowed bool) (string, error) {
 		}
 
 		if insideInput {
-			// 到达 input 区块末尾
 			if trimmed == "}" {
-				// 如果禁止 ping 且规则不存在，则插入规则
+				// 退出 input 区块
 				if !allowed && !ruleExists {
-					output = append(output, "        "+ruleLine)
+					// 获取上一行的缩进（如果有的话）
+					indent := detectIndent(lines, i)
+					output = append(output, indent+"ip protocol icmp icmp type echo-request drop")
 				}
 				insideInput = false
 				output = append(output, lines[i])
 				continue
 			}
 
-			// 检查是否是 drop ping 规则
-			if trimmed == ruleLine {
+			if pingDropPattern.MatchString(trimmed) {
 				ruleExists = true
-				// 如果允许 ping，需要删除这一行
 				if allowed {
+					// 跳过该行以删除
 					continue
 				}
 			}
@@ -2396,6 +2512,30 @@ func setPingStatus(confContent string, allowed bool) (string, error) {
 	}
 
 	return strings.Join(output, "\n"), nil
+}
+
+// 辅助函数：尽量从前一行推测缩进
+func detectIndent(lines []string, currentIndex int) string {
+	if currentIndex > 0 {
+		line := lines[currentIndex-1]
+		for i, ch := range line {
+			if ch != ' ' && ch != '\t' {
+				return line[:i]
+			}
+		}
+	}
+	// 默认 8 空格
+	return "        "
+}
+
+// 提取原行的缩进（空格或 tab）
+func getIndent(line string) string {
+	for i, ch := range line {
+		if ch != ' ' && ch != '\t' {
+			return line[:i]
+		}
+	}
+	return ""
 }
 
 func (s *NFTable) getConfRaw(hostID uint) (*model.ConfRaw, error) {

@@ -124,6 +124,8 @@ func (s *NFTable) Initialize() {
 			{Method: "POST", Path: "/:host/sync", Handler: s.SyncGlobal},
 			{Method: "POST", Path: "/:host/activate", Handler: s.ConfActivate},
 			{Method: "GET", Path: "/:host/process", Handler: s.GetProcessStatus},
+			{Method: "GET", Path: "/:host/base/rules", Handler: s.GetBaseRules},
+			{Method: "POST", Path: "/:host/base/rules", Handler: s.SetBaseRules},
 			{Method: "GET", Path: "/:host/port", Handler: s.GetPorts},
 			{Method: "POST", Path: "/:host/port/rules", Handler: s.SetPortRules},
 			{Method: "DELETE", Path: "/:host/port/rules", Handler: s.DeletePortRules},
@@ -947,6 +949,46 @@ func (s *NFTable) GetProcessStatus(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, status)
+}
+
+// @Tags nftables
+// @Summary Get base rules
+// @Description Get base rules
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200 {object} model.BaseRules
+// @Router /nftables/{host}/base/rules [get]
+func (s *NFTable) GetBaseRules(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	rules, err := s.getBaseRules(uint(hostID))
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, rules)
+}
+
+func (s *NFTable) SetBaseRules(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+	var req model.BaseRules
+	if err := helper.CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+	err = s.setBaseRules(uint(hostID), req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags nftables

@@ -31,6 +31,10 @@ const (
 	RuleDefault         string = "default"
 )
 
+type BaseRules struct {
+	InputPolicy string `json:"input_policy" validate:"required,oneof=drop accept reject"`
+}
+
 type RuleItem struct {
 	Type   string `json:"type" validate:"required,oneof=rate_limit concurrent_limit default"`
 	Rate   string `json:"rate,omitempty"`
