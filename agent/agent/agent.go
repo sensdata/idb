@@ -26,6 +26,7 @@ import (
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/agent/terminal"
 	"github.com/sensdata/idb/agent/config"
+	"github.com/sensdata/idb/agent/db"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
@@ -91,6 +92,9 @@ func (a *Agent) Start() error {
 
 	fmt.Println("Agent Starting")
 
+	// 初始化指纹
+	go a.initFingerprint()
+
 	// 启动 Unix 域套接字监听器
 	go a.listenToUnix()
 
@@ -110,6 +114,51 @@ func (a *Agent) Stop() error {
 	close(a.done)
 
 	return nil
+}
+
+func (a *Agent) initFingerprint() {
+	global.LOG.Info("init fingerprint")
+	fingerprint, err := a.collectFingerprint()
+	if err != nil {
+		global.LOG.Error("init fingerprint error: %v", err)
+		return
+	}
+	if err := db.FingerprintRepo.Set(fingerprint); err != nil {
+		global.LOG.Error("init fingerprint error: %v", err)
+	}
+	global.LOG.Info("init fingerprint success, fingerprint: %s", fingerprint.Fingerprint)
+}
+
+func (a *Agent) collectFingerprint() (*model.Fingerprint, error) {
+	var ip string
+	var hasPublicIP bool
+
+	pubIP, err := utils.GetPublicIP()
+	if err == nil && pubIP != "" {
+		ip = pubIP
+		hasPublicIP = true
+	} else {
+		priIP, err := utils.GetPrivateIP()
+		if err != nil {
+			return nil, fmt.Errorf("no usable IP found")
+		}
+		ip = priIP
+		hasPublicIP = false
+	}
+
+	mac, err := utils.GetMACAddress()
+	if err != nil {
+		return nil, err
+	}
+
+	fingerprint := utils.GenerateFingerprint(ip, mac)
+
+	return &model.Fingerprint{
+		IP:          ip,
+		MAC:         mac,
+		HasPublicIP: hasPublicIP,
+		Fingerprint: fingerprint,
+	}, nil
 }
 
 func (a *Agent) listenToUnix() {

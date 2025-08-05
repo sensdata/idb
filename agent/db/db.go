@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	CommonRepo   = repo.NewCommonRepo()
-	FavoriteRepo = repo.NewFavoriteRepo()
+	CommonRepo      = repo.NewCommonRepo()
+	FavoriteRepo    = repo.NewFavoriteRepo()
+	FingerprintRepo = repo.NewFingerprintRepo()
 )
 
 func Init(dataSourceName string) {

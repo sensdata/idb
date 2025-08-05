@@ -11,6 +11,7 @@ func Init() {
 	global.LOG.Info("db init begin")
 	m := gormigrate.New(global.DB, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		AddTableFavorite,
+		AddTableFingerprint,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -27,6 +28,18 @@ var AddTableFavorite = &gormigrate.Migration{
 			return err
 		}
 		global.LOG.Info("Table Favorite added successfully")
+		return nil
+	},
+}
+
+var AddTableFingerprint = &gormigrate.Migration{
+	ID: "20250805-add-table-fingerprint",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Adding table Fingerprint")
+		if err := db.AutoMigrate(&model.Fingerprint{}); err != nil {
+			return err
+		}
+		global.LOG.Info("Table Fingerprint added successfully")
 		return nil
 	},
 }
