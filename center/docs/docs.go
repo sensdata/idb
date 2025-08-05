@@ -6652,6 +6652,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/nftables/{host}/base/rules": {
+            "get": {
+                "description": "Get base rules",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Get base rules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.BaseRules"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set base rules",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nftables"
+                ],
+                "summary": "Set base rules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Base rules",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.BaseRules"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/nftables/{host}/category": {
             "get": {
                 "description": "List category",
@@ -11824,6 +11892,22 @@ const docTemplate = `{
                 }
             }
         },
+        "model.BaseRules": {
+            "type": "object",
+            "required": [
+                "input_policy"
+            ],
+            "properties": {
+                "input_policy": {
+                    "type": "string",
+                    "enum": [
+                        "drop",
+                        "accept",
+                        "reject"
+                    ]
+                }
+            }
+        },
         "model.BindIp": {
             "type": "object",
             "properties": {
@@ -13755,7 +13839,8 @@ const docTemplate = `{
         "model.Prune": {
             "type": "object",
             "required": [
-                "type"
+                "type",
+                "with_tag_all"
             ],
             "properties": {
                 "type": {

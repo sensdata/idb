@@ -973,6 +973,15 @@ func (s *NFTable) GetBaseRules(c *gin.Context) {
 	helper.SuccessWithData(c, rules)
 }
 
+// @Tags nftables
+// @Summary Set base rules
+// @Description Set base rules
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.BaseRules true "Base rules"
+// @Success 200
+// @Router /nftables/{host}/base/rules [post]
 func (s *NFTable) SetBaseRules(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {

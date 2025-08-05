@@ -102,6 +102,17 @@ definitions:
           $ref: '#/definitions/model.BindIp'
         type: array
     type: object
+  model.BaseRules:
+    properties:
+      input_policy:
+        enum:
+        - drop
+        - accept
+        - reject
+        type: string
+    required:
+    - input_policy
+    type: object
   model.BindIp:
     properties:
       ip:
@@ -1408,6 +1419,7 @@ definitions:
         type: boolean
     required:
     - type
+    - with_tag_all
     type: object
   model.PruneResult:
     properties:
@@ -6584,6 +6596,51 @@ paths:
         "200":
           description: OK
       summary: Activate or deactivate conf
+      tags:
+      - nftables
+  /nftables/{host}/base/rules:
+    get:
+      consumes:
+      - application/json
+      description: Get base rules
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.BaseRules'
+      summary: Get base rules
+      tags:
+      - nftables
+    post:
+      consumes:
+      - application/json
+      description: Set base rules
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Base rules
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.BaseRules'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set base rules
       tags:
       - nftables
   /nftables/{host}/category:
