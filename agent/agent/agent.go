@@ -118,15 +118,21 @@ func (a *Agent) Stop() error {
 
 func (a *Agent) initFingerprint() {
 	global.LOG.Info("init fingerprint")
-	fingerprint, err := a.collectFingerprint()
+	fingerprint, err := db.FingerprintRepo.GetFirst()
+	if fingerprint.ID > 0 {
+		global.LOG.Info("fingerprint already exists, skip init")
+		return
+	}
+
+	fingerprint, err = a.collectFingerprint()
 	if err != nil {
 		global.LOG.Error("init fingerprint error: %v", err)
 		return
 	}
-	if err := db.FingerprintRepo.Set(fingerprint); err != nil {
+	if err := db.FingerprintRepo.Create(fingerprint); err != nil {
 		global.LOG.Error("init fingerprint error: %v", err)
 	}
-	global.LOG.Info("init fingerprint success, fingerprint: %s", fingerprint.Fingerprint)
+	global.LOG.Info("init fingerprint success, fingerprint: %v", fingerprint)
 }
 
 func (a *Agent) collectFingerprint() (*model.Fingerprint, error) {
