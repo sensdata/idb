@@ -280,6 +280,40 @@ func (c *Center) ensureConnections() {
 	}
 }
 
+func (c *Center) activateHost(host *model.Host) {
+	global.LOG.Info("activateHost for host %d - %s", host.ID, host.Addr)
+	// 获取指纹
+	var fingerprint core.Fingerprint
+	actionRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_Fingerprint,
+			Data:   "",
+		},
+	}
+	actionResponse, err := c.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
+		return
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Host_Fingerprint failed")
+		return
+	}
+	err = utils.FromJSONString(actionResponse.Data, &fingerprint)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
+		return
+	}
+	// 如果已经验证过
+	if fingerprint.VerifyResult > 0 {
+		global.LOG.Info("host %d already verified, verify result %d", host.ID, fingerprint.VerifyResult)
+		return
+	}
+	// TODO: 如果未验证，使用auth插件验证
+
+}
+
 func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
 	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 
@@ -346,6 +380,11 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 
 	// 处理连接
 	go c.handleConnection(host, conn)
+
+	// 如果是default设备, 检查是否已激活
+	if host.IsDefault {
+		go c.activateHost(host)
+	}
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
