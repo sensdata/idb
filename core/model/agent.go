@@ -12,4 +12,5 @@ type Fingerprint struct {
 	Fingerprint  string    `gorm:"type:varchar(64);not null" json:"fingerprint"`
 	VerifyResult int       `gorm:"type:int;not null;default:0" json:"verify_result"`
 	VerifyTime   time.Time `gorm:"type:timestamp;default:null" json:"verify_time"`
+	ExpireTime   time.Time `gorm:"type:timestamp;default:null" json:"expire_time"`
 }
