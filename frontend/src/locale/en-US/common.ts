@@ -38,6 +38,9 @@ export default {
   'common.more': 'More',
   'common.refresh': 'Refresh',
   'common.button.retry': 'Retry',
+  'common.button.config': 'Config',
+  'common.button.save': 'Save',
+  'common.button.cancel': 'Cancel',
 
   'common.yes': 'Yes',
   'common.no': 'No',

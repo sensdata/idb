@@ -455,6 +455,35 @@ export default {
   'app.nftables.error.initializeFailed': 'Initialization failed',
   'app.nftables.error.deleteRuleFailed': 'Failed to delete rule',
 
+  // Base Rules Management
+  'app.nftables.baseRules.title': 'Base Rules',
+  'app.nftables.baseRules.tooltip':
+    'Configure firewall base policies that determine default traffic handling',
+  'app.nftables.baseRules.inputPolicy': 'Input Policy',
+  'app.nftables.baseRules.inputPolicyDescription':
+    'Set the default inbound traffic handling policy, affecting all unconfigured ports',
+
+  // Policy Options
+  'app.nftables.baseRules.accept': 'Accept',
+  'app.nftables.baseRules.acceptDesc':
+    'Allow all inbound traffic by default (lower security)',
+  'app.nftables.baseRules.drop': 'Drop',
+  'app.nftables.baseRules.dropDesc':
+    'Drop all inbound traffic by default (high security)',
+  'app.nftables.baseRules.reject': 'Reject',
+  'app.nftables.baseRules.rejectDesc':
+    'Reject all inbound traffic by default and return error message',
+
+  // Security Warning
+  'app.nftables.baseRules.warningTitle': 'Security Notice',
+  'app.nftables.baseRules.warningDescription':
+    'When using "Drop" policy, ensure necessary port rules are properly configured to avoid server access issues',
+
+  // Base Rules Messages
+  'app.nftables.message.baseRulesSaved': 'Base rules saved successfully',
+  'app.nftables.message.saveBaseRulesFailed': 'Failed to save base rules',
+  'app.nftables.message.fetchBaseRulesFailed': 'Failed to fetch base rules',
+
   // Additional messages
   'app.nftables.message.ruleAdded': 'Rule added successfully',
   'app.nftables.message.ruleUpdated': 'Rule updated successfully',

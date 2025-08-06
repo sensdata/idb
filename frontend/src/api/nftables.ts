@@ -118,7 +118,7 @@ export function getNftablesRawConfigApi() {
 
 // 更新nftables raw配置 API
 export function updateNftablesRawConfigApi(data: NftablesRawConfig) {
-  return request.put('/nftables/{host}/conf/raw', data);
+  return request.post('/nftables/{host}/conf/raw', data);
 }
 
 // 端口管理 API
@@ -173,4 +173,23 @@ export function getPingStatusApi() {
 // 设置 ping 状态
 export function setPingStatusApi(data: SetPingStatusRequest) {
   return request.post('/nftables/{host}/ping', data);
+}
+
+// Base Rules 管理相关接口
+export interface BaseRules {
+  input_policy: 'drop' | 'accept' | 'reject';
+}
+
+export interface SetBaseRulesRequest {
+  input_policy: 'drop' | 'accept' | 'reject';
+}
+
+// 获取基础规则
+export function getBaseRulesApi() {
+  return request.get<BaseRules>('/nftables/{host}/base/rules');
+}
+
+// 设置基础规则
+export function setBaseRulesApi(data: SetBaseRulesRequest) {
+  return request.post('/nftables/{host}/base/rules', data);
 }

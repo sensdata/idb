@@ -2,7 +2,13 @@
   <div class="ports-management-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h1 class="page-title">{{ $t('app.nftables.ports.pageTitle') }}</h1>
+      <div class="header-left">
+        <h1 class="page-title">{{ $t('app.nftables.ports.pageTitle') }}</h1>
+      </div>
+      <div class="header-right">
+        <!-- 基础规则配置 -->
+        <base-rules-config />
+      </div>
     </div>
 
     <div class="page-content">
@@ -80,6 +86,7 @@
   } from '@/api/nftables';
   import PortRuleForm from '../../components/port-rule-form.vue';
   import PortRuleList from '../../components/port-rule-list.vue';
+  import BaseRulesConfig from '../../components/base-rules-config.vue';
 
   // 国际化
   const { t } = useI18n();
@@ -240,20 +247,30 @@
     min-height: 100vh;
 
     .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 24px;
       border-bottom: 1px solid var(--color-border-2);
 
-      .page-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--color-text-1);
-        margin: 0 0 8px 0;
+      .header-left {
+        .page-title {
+          font-size: 24px;
+          font-weight: 600;
+          color: var(--color-text-1);
+          margin: 0 0 8px 0;
+        }
+
+        .page-description {
+          font-size: 14px;
+          color: var(--color-text-3);
+          margin: 0;
+        }
       }
 
-      .page-description {
-        font-size: 14px;
-        color: var(--color-text-3);
-        margin: 0;
+      .header-right {
+        display: flex;
+        align-items: center;
       }
     }
 
@@ -310,8 +327,15 @@
   @media (max-width: 768px) {
     .ports-management-page {
       .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
         padding-left: 12px;
         padding-right: 12px;
+
+        .header-right {
+          align-self: flex-end;
+        }
       }
 
       .page-content {

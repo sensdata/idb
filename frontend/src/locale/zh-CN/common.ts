@@ -39,6 +39,9 @@ export default {
   'common.more': '更多',
   'common.refresh': '刷新',
   'common.button.retry': '重试',
+  'common.button.config': '配置',
+  'common.button.save': '保存',
+  'common.button.cancel': '取消',
 
   'common.yes': '是',
   'common.no': '否',

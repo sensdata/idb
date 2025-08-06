@@ -446,4 +446,30 @@ export default {
   'app.nftables.error.deleteRuleFailed': '删除规则失败',
   'app.nftables.error.refreshConfigFailed': '刷新配置失败',
   'app.nftables.error.saveConfigFailed': '保存配置失败',
+
+  // 基础规则管理
+  'app.nftables.baseRules.title': '基础规则',
+  'app.nftables.baseRules.tooltip':
+    '配置防火墙的基础策略，决定默认的流量处理方式',
+  'app.nftables.baseRules.inputPolicy': '入站策略',
+  'app.nftables.baseRules.inputPolicyDescription':
+    '设置默认的入站流量处理策略，影响所有未明确配置的端口',
+
+  // 策略选项
+  'app.nftables.baseRules.accept': '允许',
+  'app.nftables.baseRules.acceptDesc': '默认允许所有入站流量（较低安全性）',
+  'app.nftables.baseRules.drop': '丢弃',
+  'app.nftables.baseRules.dropDesc': '默认丢弃所有入站流量（高安全性）',
+  'app.nftables.baseRules.reject': '拒绝',
+  'app.nftables.baseRules.rejectDesc': '默认拒绝所有入站流量并返回错误信息',
+
+  // 安全警告
+  'app.nftables.baseRules.warningTitle': '安全提示',
+  'app.nftables.baseRules.warningDescription':
+    '使用"丢弃"策略时，请确保已正确配置必要的端口规则，避免无法访问服务器',
+
+  // 基础规则相关消息
+  'app.nftables.message.baseRulesSaved': '基础规则保存成功',
+  'app.nftables.message.saveBaseRulesFailed': '基础规则保存失败',
+  'app.nftables.message.fetchBaseRulesFailed': '获取基础规则失败',
 };
