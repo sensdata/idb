@@ -8,7 +8,6 @@ import (
 	"github.com/sensdata/idb/center/plugin/fileman/backend/fileman"
 	"github.com/sensdata/idb/center/plugin/logrotate/backend/logrotate"
 	"github.com/sensdata/idb/center/plugin/nftable/backend/nftable"
-	"github.com/sensdata/idb/center/plugin/script/backend/scriptman"
 	"github.com/sensdata/idb/center/plugin/service/backend/serviceman"
 	"github.com/sensdata/idb/center/plugin/ssh/backend/sshman"
 	"github.com/sensdata/idb/center/plugin/sysinfo/backend/sysinfo"
@@ -25,8 +24,6 @@ func RegisterPlugins() {
 	conn.RegisterIdbPlugin(&sshman.SSHMan{})
 	// 注册sysctl
 	conn.RegisterIdbPlugin(&systemctl.SystemCtl{})
-	// 注册scripts
-	conn.RegisterIdbPlugin(&scriptman.ScriptMan{})
 	// 注册service
 	conn.RegisterIdbPlugin(&serviceman.ServiceMan{})
 	// 注册logrotate

@@ -9,7 +9,7 @@ import (
 type ScriptsRouter struct{}
 
 func (s *ScriptsRouter) InitRouter(Router *gin.RouterGroup) {
-	scriptRouter := Router.Group("pscripts")
+	scriptRouter := Router.Group("scripts")
 	scriptRouter.Use(middleware.NewJWT().JWTAuth())
 	baseApi := entry.ApiGroup
 	{

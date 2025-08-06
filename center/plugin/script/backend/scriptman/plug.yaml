@@ -1,4 +1,0 @@
-plugin:
-  name: "Script Management"
-  description: "This module provides script files management operations on device."
-  version: "1.0.0"
