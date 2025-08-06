@@ -575,18 +575,25 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	case message.ActionMessage: // 处理 Action 类型的消息
 		global.LOG.Info("recv action message: %s", msg.Data)
 
+		var actionData model.Action
+		if err := utils.FromJSONString(msg.Data, &actionData); err != nil {
+			global.LOG.Error("Failed to parse action message: %v", err)
+			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: err.Error()})
+			return
+		}
+
 		// 检查指纹
 		verifyResult, err := a.checkFingerprint()
 		if err != nil {
 			global.LOG.Error("Failed to check fingerprint: %v", err)
-			a.sendCmdResult(conn, msg.MsgID, "error")
+			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
 			return
 		}
 
-		result, err := a.processAction(verifyResult, msg.Data)
+		result, err := a.processAction(verifyResult, &actionData)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
-			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: err.Error()})
+			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
 		} else {
 			a.sendActionResult(conn, msg.MsgID, result)
 		}
@@ -1054,12 +1061,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	}
 }
 
-func (a *Agent) processAction(verifyResult int, data string) (*model.Action, error) {
-	var actionData model.Action
-	if err := utils.FromJSONString(data, &actionData); err != nil {
-		return nil, err
-	}
-
+func (a *Agent) processAction(verifyResult int, actionData *model.Action) (*model.Action, error) {
 	// TODO: 根据 verifyResult 对具体的业务做出限制
 	// Host_* action组都不受限，其他action组需要根据verifyResult来判断是否受限
 	switch actionData.Action {
@@ -1095,7 +1097,7 @@ func (a *Agent) processAction(verifyResult int, data string) (*model.Action, err
 	// fingerprint verify result
 	case model.Host_Fingerprint_Verify:
 		var fingerprint model.Fingerprint
-		if err := utils.FromJSONString(data, &fingerprint); err != nil {
+		if err := json.Unmarshal([]byte(actionData.Data), &fingerprint); err != nil {
 			return nil, err
 		}
 		if err := action.SaveFingerprintVerify(&fingerprint); err != nil {
