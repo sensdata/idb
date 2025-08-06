@@ -1079,6 +1079,30 @@ func (a *Agent) processAction(verifyResult int, data string) (*model.Action, err
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+	// 获取 fingerprint
+	case model.Host_Fingerprint:
+		fingerprint, err := action.GetFingerprint()
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := utils.ToJSONString(fingerprint)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	// fingerprint verify result
+	case model.Host_Fingerprint_Verify:
+		var fingerprint model.Fingerprint
+		if err := utils.FromJSONString(data, &fingerprint); err != nil {
+			return nil, err
+		}
+		if err := action.SaveFingerprintVerify(&fingerprint); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	// 获取overview
 	case model.SysInfo_OverView:
 		overview, err := action.GetOverview()

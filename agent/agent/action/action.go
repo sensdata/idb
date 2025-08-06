@@ -8,10 +8,40 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sensdata/idb/agent/db"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
+
+func GetFingerprint() (*model.Fingerprint, error) {
+	fingerprint, err := db.FingerprintRepo.GetFirst()
+	if err != nil {
+		global.LOG.Error("Failed to get fingerprint: %v", err)
+		return nil, fmt.Errorf("failed to get fingerprint: %w", err)
+	}
+	return fingerprint, nil
+}
+
+func SaveFingerprintVerify(fingerprint *model.Fingerprint) error {
+	// 先根据指纹值查找
+	fp, err := db.FingerprintRepo.GetFirst(
+		db.FingerprintRepo.WithByFingerprint(fingerprint.Fingerprint))
+	if err != nil {
+		return fmt.Errorf("failed to get fingerprint: %w", err)
+	}
+	// 更新验证结果
+	if err := db.FingerprintRepo.Update(
+		fp.ID,
+		map[string]interface{}{
+			"verify_result": fingerprint.VerifyResult,
+			"verify_time":   fingerprint.VerifyTime,
+			"expire_time":   fingerprint.ExpireTime,
+		}); err != nil {
+		return fmt.Errorf("failed to update fingerprint: %w", err)
+	}
+	return nil
+}
 
 func SetTime(req model.SetTimeReq) error {
 	// 将时间戳转换为时间对象
