@@ -515,6 +515,24 @@ func (a *Agent) resetConnection() {
 	a.resetConn <- struct{}{}
 }
 
+// 检查指纹，如果未验证或者验证结果是0，返回错误；如果已超过有效期，返回错误；否则返回验证结果
+func (a *Agent) checkFingerprint() (int, error) {
+	fingerprint, err := db.FingerprintRepo.GetFirst()
+	if err != nil {
+		global.LOG.Error("Failed to get fingerprint: %v", err)
+		return 0, fmt.Errorf("failed to get fingerprint: %w", err)
+	}
+	if fingerprint.VerifyResult == 0 {
+		global.LOG.Error("Fingerprint not verify")
+		return fingerprint.VerifyResult, fmt.Errorf("fingerprint not verify")
+	}
+	if fingerprint.ExpireTime.Before(time.Now()) {
+		global.LOG.Error("Fingerprint expire")
+		return fingerprint.VerifyResult, fmt.Errorf("fingerprint expire")
+	}
+	return fingerprint.VerifyResult, nil
+}
+
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	global.LOG.Info("Message: %v", msg)
 
@@ -525,6 +543,15 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
+
+		// 检查指纹
+		_, err := a.checkFingerprint()
+		if err != nil {
+			global.LOG.Error("Failed to check fingerprint: %v", err)
+			a.sendCmdResult(conn, msg.MsgID, "error")
+			return
+		}
+
 		if strings.Contains(msg.Data, message.Separator) {
 			commands := strings.Split(msg.Data, message.Separator)
 			results, err := shell.ExecuteCommands(commands)
@@ -547,7 +574,16 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 
 	case message.ActionMessage: // 处理 Action 类型的消息
 		global.LOG.Info("recv action message: %s", msg.Data)
-		result, err := a.processAction(msg.Data)
+
+		// 检查指纹
+		verifyResult, err := a.checkFingerprint()
+		if err != nil {
+			global.LOG.Error("Failed to check fingerprint: %v", err)
+			a.sendCmdResult(conn, msg.MsgID, "error")
+			return
+		}
+
+		result, err := a.processAction(verifyResult, msg.Data)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
 			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: "", Result: false, Data: err.Error()})
@@ -1018,12 +1054,14 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	}
 }
 
-func (a *Agent) processAction(data string) (*model.Action, error) {
+func (a *Agent) processAction(verifyResult int, data string) (*model.Action, error) {
 	var actionData model.Action
 	if err := utils.FromJSONString(data, &actionData); err != nil {
 		return nil, err
 	}
 
+	// TODO: 根据 verifyResult 对具体的业务做出限制
+	// Host_* action组都不受限，其他action组需要根据verifyResult来判断是否受限
 	switch actionData.Action {
 	// 获取host status
 	case model.Host_Status:
@@ -1033,6 +1071,7 @@ func (a *Agent) processAction(data string) (*model.Action, error) {
 		}
 		status.Rx = math.Round(a.rx*100) / 100
 		status.Tx = math.Round(a.tx*100) / 100
+		status.Activated = verifyResult > 0
 
 		result, err := utils.ToJSONString(status)
 		if err != nil {
