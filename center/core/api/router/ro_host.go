@@ -23,6 +23,7 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.DELETE("", baseApi.DeleteHost)                               // 删除设备
 		hostRouter.GET("/:host/status", baseApi.HostStatus)                     // 设备状态
 		hostRouter.GET("/:host/status/follow", baseApi.HostStatusFollow)        // 追踪设备状态
+		hostRouter.POST("/:host/activate", baseApi.ActivateHost)                // 激活设备
 		hostRouter.GET("/:host", baseApi.HostInfo)                              // 设备配置信息
 		hostRouter.PUT("/:host/conf/ssh", baseApi.UpdateHostSSH)                // 更新设备ssh配置
 		hostRouter.PUT("/:host/conf/agent", baseApi.UpdateHostAgent)            // 更新设备agent配置

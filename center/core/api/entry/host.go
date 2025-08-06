@@ -258,6 +258,28 @@ func (b *BaseApi) HostStatusFollow(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Activate host
+// @Description Activate host
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200
+// @Router /hosts/{host}/activate [post]
+func (b *BaseApi) ActivateHost(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	if err := hostService.ActivateHost(uint(hostID)); err != nil {
+		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		return
+	}
+	SuccessWithData(c, nil)
+}
+
+// @Tags Host
 // @Summary Update ssh config in host
 // @Description Update ssh config in host
 // @Accept json
