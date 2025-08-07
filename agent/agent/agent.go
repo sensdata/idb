@@ -516,7 +516,7 @@ func (a *Agent) resetConnection() {
 }
 
 // 检查指纹，如果未验证或者验证结果是0，返回错误；如果已超过有效期，返回错误；否则返回验证结果
-func (a *Agent) checkFingerprint() (int, error) {
+func (a *Agent) checkFingerprint() (int32, error) {
 	fingerprint, err := db.FingerprintRepo.GetFirst()
 	if err != nil {
 		global.LOG.Error("Failed to get fingerprint: %v", err)
@@ -1061,7 +1061,7 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	}
 }
 
-func (a *Agent) processAction(verifyResult int, actionData *model.Action) (*model.Action, error) {
+func (a *Agent) processAction(verifyResult int32, actionData *model.Action) (*model.Action, error) {
 	// TODO: 根据 verifyResult 对具体的业务做出限制
 	// Host_* action组都不受限，其他action组需要根据verifyResult来判断是否受限
 	switch actionData.Action {
