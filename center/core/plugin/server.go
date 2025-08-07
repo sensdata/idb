@@ -372,11 +372,23 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		client.Kill()
 		return fmt.Errorf("dispense returned nil")
 	}
-	_, ok := raw.(shared.ScriptManager)
-	if !ok {
-		global.LOG.Error("dispensed plugin does not implement ScriptManager interface")
+	// 动态检查插件类型
+	var ok bool
+	switch entry.Name {
+	case "auth":
+		_, ok = raw.(shared.Auth)
+	case "scriptmanager":
+		_, ok = raw.(shared.ScriptManager)
+	default:
+		// 对于未来的插件，可以在这里添加新的case
+		global.LOG.Error("unknown plugin type: %s", entry.Name)
 		client.Kill()
-		return fmt.Errorf("invalid plugin type")
+		return fmt.Errorf("unknown plugin type: %s", entry.Name)
+	}
+	if !ok {
+		global.LOG.Error("dispensed plugin %s does not implement the required interface", entry.Name)
+		client.Kill()
+		return fmt.Errorf("invalid plugin type for %s", entry.Name)
 	}
 	global.LOG.Info("dispense grpc interface successful for plugin: %s", entry.Name)
 
