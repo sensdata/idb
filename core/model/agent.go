@@ -10,7 +10,20 @@ type Fingerprint struct {
 	MAC          string    `gorm:"type:varchar(20);not null" json:"mac"`
 	HasPublicIP  bool      `gorm:"type:bool;not null;default:false" json:"has_public_ip"`
 	Fingerprint  string    `gorm:"type:varchar(64);not null" json:"fingerprint"`
-	VerifyResult int       `gorm:"type:int;not null;default:0" json:"verify_result"`
+	VerifyResult int32     `gorm:"type:int;not null;default:0" json:"verify_result"`
 	VerifyTime   time.Time `gorm:"type:timestamp;default:null" json:"verify_time"`
 	ExpireTime   time.Time `gorm:"type:timestamp;default:null" json:"expire_time"`
+}
+
+type VerifyRequest struct {
+	Fingerprint string `json:"fingerprint"`
+	IP          string `json:"ip"`
+	MAC         string `json:"mac"`
+}
+
+type VerifyResponse struct {
+	Fingerprint string `json:"fingerprint"`
+	Result      int32  `json:"result"`
+	VerifyTime  int64  `json:"verify_time"`
+	ExpireTime  int64  `json:"expire_time"`
 }

@@ -20,6 +20,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
+	"github.com/sensdata/idb/center/core/plugin"
+	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
@@ -44,6 +46,7 @@ type Center struct {
 type ICenter interface {
 	Start() error
 	Stop() error
+	ActivateHost(host *model.Host) error
 	ExecuteCommand(req core.Command) (string, error)
 	ExecuteCommandGroup(req core.CommandGroup) ([]string, error)
 	ExecuteAction(req core.HostAction) (*core.Action, error)
@@ -280,8 +283,26 @@ func (c *Center) ensureConnections() {
 	}
 }
 
-func (c *Center) activateHost(host *model.Host) {
-	global.LOG.Info("activateHost for host %d - %s", host.ID, host.Addr)
+func getAuthPlugin() (shared.Auth, error) {
+	// 获取插件客户端
+	plugin, err := plugin.PLUGINSERVER.GetPlugin("auth")
+	if err != nil {
+		return nil, err
+	}
+	// 类型断言为 gRPC client
+	client, ok := plugin.Stub.(shared.Auth)
+	if !ok {
+		return nil, errors.New("invalid plugin client")
+	}
+	return client, nil
+}
+
+func (c *Center) ActivateHost(host *model.Host) error {
+	return c.activateHost(host)
+}
+
+func (c *Center) activateHost(host *model.Host) error {
+	global.LOG.Info("activate host %d - %s begin", host.ID, host.Addr)
 	// 获取指纹
 	var fingerprint core.Fingerprint
 	actionRequest := core.HostAction{
@@ -294,24 +315,61 @@ func (c *Center) activateHost(host *model.Host) {
 	actionResponse, err := c.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
-		return
+		return fmt.Errorf("Failed to send action Host_Fingerprint %w", err)
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Host_Fingerprint failed")
-		return
+		return errors.New("action Host_Fingerprint failed")
 	}
 	err = utils.FromJSONString(actionResponse.Data, &fingerprint)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
-		return
+		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
 	}
-	// 如果已经验证过
-	if fingerprint.VerifyResult > 0 {
-		global.LOG.Info("host %d already verified, verify result %d", host.ID, fingerprint.VerifyResult)
-		return
-	}
-	// TODO: 如果未验证，使用auth插件验证
 
+	// 使用auth插件验证
+	auth, err := getAuthPlugin()
+	if err != nil {
+		global.LOG.Error("Failed to get auth plugin: %v", err)
+		return fmt.Errorf("Failed to get auth plugin: %w", err)
+	}
+	verifyResp, err := auth.VerifyFingerprint(core.VerifyRequest{
+		Fingerprint: fingerprint.Fingerprint,
+		IP:          fingerprint.IP,
+		MAC:         fingerprint.MAC,
+	})
+	if err != nil {
+		global.LOG.Error("Failed to verify fingerprint: %v", err)
+		return fmt.Errorf("Failed to verify fingerprint: %w", err)
+	}
+
+	// 将验证结果发给agent
+	fingerprint.VerifyResult = verifyResp.Result
+	fingerprint.VerifyTime = time.Unix(verifyResp.VerifyTime, 0)
+	fingerprint.ExpireTime = time.Unix(verifyResp.ExpireTime, 0)
+	data, err := utils.ToJSONString(fingerprint)
+	if err != nil {
+		global.LOG.Error("Error marshaling fingerprint to JSON: %v", err)
+		return fmt.Errorf("Error marshaling fingerprint to JSON: %w", err)
+	}
+	verifyRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_Fingerprint_Verify,
+			Data:   data,
+		},
+	}
+	verifyResponse, err := c.ExecuteAction(verifyRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Host_Fingerprint_Verify %v", err)
+		return fmt.Errorf("Failed to send action Host_Fingerprint_Verify %w", err)
+	}
+	if !verifyResponse.Result {
+		global.LOG.Error("action Host_Fingerprint_Verify failed")
+		return fmt.Errorf("action Host_Fingerprint_Verify failed")
+	}
+	global.LOG.Info("activate host %d - %s success", host.ID, host.Addr)
+	return nil
 }
 
 func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {

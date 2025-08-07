@@ -377,60 +377,8 @@ func (s *HostService) ActivateHost(id uint) error {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
-	// 获取指纹
-	fingerprintRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Fingerprint,
-			Data:   "",
-		},
-	}
-	fingerprintResponse, err := conn.CENTER.ExecuteAction(fingerprintRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
-		return err
-	}
-	if !fingerprintResponse.Result {
-		global.LOG.Error("action Host_Fingerprint failed")
-		return fmt.Errorf("failed to query fingerprint")
-	}
-
-	// 解析指纹
-	var fingerprint core.Fingerprint
-	if err := utils.FromJSONString(fingerprintResponse.Data, &fingerprint); err != nil {
-		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
-		return fmt.Errorf("json err: %v", err)
-	}
-
-	// TODO: 使用auth插件验证指纹
-
-	// 将验证结果发给agent
-	fingerprint.VerifyResult = 1
-	fingerprint.VerifyTime = time.Now()
-	fingerprint.ExpireTime = time.Now().Add(365 * 24 * time.Hour)
-	data, err := utils.ToJSONString(fingerprint)
-	if err != nil {
-		global.LOG.Error("Error marshaling fingerprint to JSON: %v", err)
-		return fmt.Errorf("json err: %v", err)
-	}
-	verifyRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Fingerprint_Verify,
-			Data:   data,
-		},
-	}
-	verifyResponse, err := conn.CENTER.ExecuteAction(verifyRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_Fingerprint_Verify %v", err)
-		return err
-	}
-	if !verifyResponse.Result {
-		global.LOG.Error("action Host_Fingerprint_Verify failed")
-		return fmt.Errorf("failed to notify verify result to agent")
-	}
-
-	return nil
+	// 激活host
+	return conn.CENTER.ActivateHost(&host)
 }
 
 func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {

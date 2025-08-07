@@ -1,0 +1,20 @@
+syntax = "proto3";
+package proto;
+option go_package = "../proto";
+
+service Auth {
+    rpc VerifyFingerprint (VerifyFingerprintRequest) returns (VerifyFingerprintResponse) {}
+}
+
+message VerifyFingerprintRequest {
+    string fingerprint = 1;
+    string ip = 2;
+    string mac = 3;
+}
+
+message VerifyFingerprintResponse {
+    string fingerprint = 1;
+    int32 result = 2;
+    int64 verify_time = 3;
+    int64 expire_time = 4;
+}

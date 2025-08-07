@@ -13,15 +13,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
 	hplugin "github.com/hashicorp/go-plugin"
-	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
+	"github.com/sensdata/idb/core/model"
 	"gopkg.in/yaml.v2"
 )
 
@@ -101,13 +102,58 @@ func loadRegistry(data []byte) (*Registry, error) {
 	return &reg, nil
 }
 
+func (s *PluginServer) Settings() (*model.SettingInfo, error) {
+	SettingsRepo := repo.NewSettingsRepo()
+	bindIP, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindIP"))
+	if err != nil {
+		return nil, err
+	}
+	bindPort, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindPort"))
+	if err != nil {
+		return nil, err
+	}
+	bindPortValue, err := strconv.Atoi(bindPort.Value)
+	if err != nil {
+		return nil, err
+	}
+	bindDomain, err := SettingsRepo.Get(SettingsRepo.WithByKey("BindDomain"))
+	if err != nil {
+		return nil, err
+	}
+	https, err := SettingsRepo.Get(SettingsRepo.WithByKey("Https"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertType, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsCertType"))
+	if err != nil {
+		return nil, err
+	}
+	httpsCertPath, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsCertPath"))
+	if err != nil {
+		return nil, err
+	}
+	httpsKeyPath, err := SettingsRepo.Get(SettingsRepo.WithByKey("HttpsKeyPath"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.SettingInfo{
+		BindIP:        bindIP.Value,
+		BindPort:      bindPortValue,
+		BindDomain:    bindDomain.Value,
+		Https:         https.Value,
+		HttpsCertType: httpsCertType.Value,
+		HttpsCertPath: httpsCertPath.Value,
+		HttpsKeyPath:  httpsKeyPath.Value,
+	}, nil
+}
+
 func (s *PluginServer) loadPlugins() {
 
 	hostRepo := repo.NewHostRepo()
 	defaultHost, _ := hostRepo.Get(hostRepo.WithByDefault())
 
-	settingService := service.NewISettingsService()
-	settingInfo, _ := settingService.Settings()
+	settingInfo, _ := s.Settings()
 	scheme := "http"
 	if settingInfo.Https == "yes" {
 		scheme = "https"

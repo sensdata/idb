@@ -1,4 +1,8 @@
 plugins:
+  - name: auth
+    path: /var/lib/idb/plugins/auth
+    url: https://static.sensdata.com/idb/plugins/auth/latest.tar.gz
+    enabled: true
   - name: scriptmanager
     path: /var/lib/idb/plugins/scriptmanager
     url: https://static.sensdata.com/idb/plugins/scriptmanager/latest.tar.gz
