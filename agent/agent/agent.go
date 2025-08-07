@@ -516,21 +516,21 @@ func (a *Agent) resetConnection() {
 }
 
 // 检查指纹，如果未验证或者验证结果是0，返回错误；如果已超过有效期，返回错误；否则返回验证结果
-func (a *Agent) checkFingerprint() (int32, error) {
+func (a *Agent) checkFingerprint() (*model.Fingerprint, error) {
 	fingerprint, err := db.FingerprintRepo.GetFirst()
 	if err != nil {
 		global.LOG.Error("Failed to get fingerprint: %v", err)
-		return 0, fmt.Errorf("failed to get fingerprint: %w", err)
+		return nil, fmt.Errorf("failed to get fingerprint: %w", err)
 	}
-	if fingerprint.VerifyResult == 0 {
+	if !fingerprint.VerifyTime.IsZero() && fingerprint.VerifyResult == 0 {
 		global.LOG.Error("Fingerprint not verify")
-		return fingerprint.VerifyResult, fmt.Errorf("fingerprint not verify")
+		return fingerprint, fmt.Errorf("fingerprint not verify")
 	}
-	if fingerprint.ExpireTime.Before(time.Now()) {
+	if !fingerprint.ExpireTime.IsZero() && fingerprint.ExpireTime.Before(time.Now()) {
 		global.LOG.Error("Fingerprint expire")
-		return fingerprint.VerifyResult, fmt.Errorf("fingerprint expire")
+		return fingerprint, fmt.Errorf("fingerprint expire")
 	}
-	return fingerprint.VerifyResult, nil
+	return fingerprint, nil
 }
 
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
@@ -583,14 +583,14 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 		}
 
 		// 检查指纹
-		verifyResult, err := a.checkFingerprint()
+		fingerprint, err := a.checkFingerprint()
 		if err != nil {
 			global.LOG.Error("Failed to check fingerprint: %v", err)
 			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
 			return
 		}
 
-		result, err := a.processAction(verifyResult, &actionData)
+		result, err := a.processAction(fingerprint.VerifyResult, &actionData)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
 			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
