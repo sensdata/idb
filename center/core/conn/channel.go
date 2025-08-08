@@ -327,48 +327,136 @@ func (c *Center) activateHost(host *model.Host) error {
 		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
 	}
 
-	// 使用auth插件验证
+	// 使用auth插件注册
 	auth, err := getAuthPlugin()
 	if err != nil {
 		global.LOG.Error("Failed to get auth plugin: %v", err)
 		return fmt.Errorf("Failed to get auth plugin: %w", err)
 	}
-	verifyResp, err := auth.VerifyFingerprint(core.VerifyRequest{
+	registerResp, err := auth.RegisterFingerprint(core.RegisterFingerprintReq{
 		Fingerprint: fingerprint.Fingerprint,
-		IP:          fingerprint.IP,
-		MAC:         fingerprint.MAC,
+		Ip:          fingerprint.IP,
+		Mac:         fingerprint.MAC,
 	})
 	if err != nil {
 		global.LOG.Error("Failed to verify fingerprint: %v", err)
 		return fmt.Errorf("Failed to verify fingerprint: %w", err)
 	}
 
-	// 将验证结果发给agent
-	fingerprint.VerifyResult = verifyResp.Result
-	fingerprint.VerifyTime = time.Unix(verifyResp.VerifyTime, 0)
-	fingerprint.ExpireTime = time.Unix(verifyResp.ExpireTime, 0)
+	// 将注册结果发给agent
+	fingerprint.License = registerResp.License
+	fingerprint.Signature = registerResp.Signature
+
 	data, err := utils.ToJSONString(fingerprint)
 	if err != nil {
 		global.LOG.Error("Error marshaling fingerprint to JSON: %v", err)
 		return fmt.Errorf("Error marshaling fingerprint to JSON: %w", err)
 	}
+	licenseRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_License,
+			Data:   data,
+		},
+	}
+	licenseResponse, err := c.ExecuteAction(licenseRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Host_License %v", err)
+		return fmt.Errorf("Failed to send action Host_License %w", err)
+	}
+	if !licenseResponse.Result {
+		global.LOG.Error("action Host_License failed")
+		return fmt.Errorf("action Host_License failed")
+	}
+	global.LOG.Info("activate host %d - %s success", host.ID, host.Addr)
+	return nil
+}
+
+func (c *Center) checkLicense(host *model.Host, timestamp string) error {
+	// 将timestamp转换为int64再转为last_verify_at
+	timestampInt, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		global.LOG.Error("Error parsing timestamp: %v", err)
+		return fmt.Errorf("Error parsing timestamp: %w", err)
+	}
+	// 如果是0，说明还未获取license
+	if timestampInt == 0 {
+		global.LOG.Info("host %d - %s not get license", host.ID, host.Addr)
+		return nil
+	}
+
+	// 判断last_verify_at是否已经过去24小时，如果是，则检查license
+	lastVerifyAt := time.Unix(timestampInt, 0)
+	if time.Since(lastVerifyAt) < 24*time.Hour {
+		global.LOG.Info("host %d - %s no need check license", host.ID, host.Addr)
+		return nil
+	}
+
+	global.LOG.Info("host %d - %s check license", host.ID, host.Addr)
+
+	// 获取指纹
+	var fingerprint core.Fingerprint
+	actionRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_Fingerprint,
+			Data:   "",
+		},
+	}
+	actionResponse, err := c.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
+		return fmt.Errorf("Failed to send action Host_Fingerprint %w", err)
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Host_Fingerprint failed")
+		return errors.New("action Host_Fingerprint failed")
+	}
+	err = utils.FromJSONString(actionResponse.Data, &fingerprint)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
+		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
+	}
+
+	// 使用auth插件验证
+	auth, err := getAuthPlugin()
+	if err != nil {
+		global.LOG.Error("Failed to get auth plugin: %v", err)
+		return fmt.Errorf("Failed to get auth plugin: %w", err)
+	}
+	verifyResp, err := auth.VerifyLicense(core.VerifyLicenseRequest{
+		License:   fingerprint.License,
+		Signature: fingerprint.Signature,
+	})
+	if err != nil {
+		global.LOG.Error("Failed to verify fingerprint: %v", err)
+		return fmt.Errorf("Failed to verify fingerprint: %w", err)
+	}
+
+	// 将验证结果发送给agent
+	verifyRespData, err := utils.ToJSONString(verifyResp)
+	if err != nil {
+		global.LOG.Error("Error marshaling verifyResp to JSON: %v", err)
+		return fmt.Errorf("Error marshaling verifyResp to JSON: %w", err)
+	}
 	verifyRequest := core.HostAction{
 		HostID: host.ID,
 		Action: core.Action{
-			Action: core.Host_Fingerprint_Verify,
-			Data:   data,
+			Action: core.Host_License_Verify,
+			Data:   verifyRespData,
 		},
 	}
 	verifyResponse, err := c.ExecuteAction(verifyRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action Host_Fingerprint_Verify %v", err)
-		return fmt.Errorf("Failed to send action Host_Fingerprint_Verify %w", err)
+		global.LOG.Error("Failed to send action Host_License_Verify %v", err)
+		return fmt.Errorf("Failed to send action Host_License_Verify %w", err)
 	}
 	if !verifyResponse.Result {
-		global.LOG.Error("action Host_Fingerprint_Verify failed")
-		return fmt.Errorf("action Host_Fingerprint_Verify failed")
+		global.LOG.Error("action Host_License_Verify failed")
+		return fmt.Errorf("action Host_License_Verify failed")
 	}
-	global.LOG.Info("activate host %d - %s success", host.ID, host.Addr)
+
+	global.LOG.Info("host %d verify license success", host.ID)
 	return nil
 }
 
@@ -559,6 +647,10 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		case "Remove":
 			// 移除agent
 			go c.removeAgent(host)
+		// Heartbeat:timestamp
+		default:
+			// 截取 timestamp
+			go c.checkLicense(host, strings.TrimPrefix(msg.Data, "Heartbeat:"))
 		}
 
 	case message.CmdMessage: // 收到Cmd 类型的回复

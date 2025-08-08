@@ -66,6 +66,9 @@ type Agent struct {
 	readerMu   sync.RWMutex
 }
 
+//go:embed idbauth.pub.b64
+var PRVK []byte
+
 //go:embed screen_install.sh
 var installScreenShell []byte
 
@@ -515,22 +518,16 @@ func (a *Agent) resetConnection() {
 	a.resetConn <- struct{}{}
 }
 
-// 检查指纹，如果未验证或者验证结果是0，返回错误；如果已超过有效期，返回错误；否则返回验证结果
-func (a *Agent) checkFingerprint() (*model.Fingerprint, error) {
-	fingerprint, err := db.FingerprintRepo.GetFirst()
-	if err != nil {
-		global.LOG.Error("Failed to get fingerprint: %v", err)
-		return nil, fmt.Errorf("failed to get fingerprint: %w", err)
+// 检查缓存的证书
+func (a *Agent) checkLicense() error {
+	if global.License == nil {
+		return fmt.Errorf("no license")
 	}
-	if !fingerprint.VerifyTime.IsZero() && fingerprint.VerifyResult == 0 {
-		global.LOG.Error("Fingerprint not verify")
-		return fingerprint, fmt.Errorf("fingerprint not verify")
+	if !global.License.ExpireAt.IsZero() && global.License.ExpireAt.Before(time.Now()) {
+		global.LOG.Error("License expire")
+		return fmt.Errorf("license expire")
 	}
-	if !fingerprint.ExpireTime.IsZero() && fingerprint.ExpireTime.Before(time.Now()) {
-		global.LOG.Error("Fingerprint expire")
-		return fingerprint, fmt.Errorf("fingerprint expire")
-	}
-	return fingerprint, nil
+	return nil
 }
 
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
@@ -539,15 +536,22 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 回复心跳
 		global.LOG.Info("Heartbeat from %s", conn.RemoteAddr().String())
-		a.sendHeartbeat(conn, "Heartbeat")
+		var timestamp int64
+		fp, err := db.FingerprintRepo.GetFirst()
+		if err != nil {
+			timestamp = 0
+		} else {
+			timestamp = fp.LastVerifyAt.Unix()
+		}
+		a.sendHeartbeat(conn, fmt.Sprintf("Heartbeat:%d", timestamp))
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
 
 		// 检查指纹
-		_, err := a.checkFingerprint()
+		err := a.checkLicense()
 		if err != nil {
-			global.LOG.Error("Failed to check fingerprint: %v", err)
+			global.LOG.Error("Failed to check license: %v", err)
 			a.sendCmdResult(conn, msg.MsgID, "error")
 			return
 		}
@@ -583,14 +587,14 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 		}
 
 		// 检查指纹
-		fingerprint, err := a.checkFingerprint()
+		err := a.checkLicense()
 		if err != nil {
-			global.LOG.Error("Failed to check fingerprint: %v", err)
+			global.LOG.Error("Failed to check license: %v", err)
 			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
 			return
 		}
 
-		result, err := a.processAction(fingerprint.VerifyResult, &actionData)
+		result, err := a.processAction(&actionData)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
 			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
@@ -1061,9 +1065,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	}
 }
 
-func (a *Agent) processAction(verifyResult int32, actionData *model.Action) (*model.Action, error) {
-	// TODO: 根据 verifyResult 对具体的业务做出限制
-	// Host_* action组都不受限，其他action组需要根据verifyResult来判断是否受限
+func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
+	// TODO: 根据 licenseType 对具体的业务做出限制
+	// Host_* action组都不受限，其他action组需要根据licenseType来判断是否受限
 	switch actionData.Action {
 	// 获取host status
 	case model.Host_Status:
@@ -1073,7 +1077,7 @@ func (a *Agent) processAction(verifyResult int32, actionData *model.Action) (*mo
 		}
 		status.Rx = math.Round(a.rx*100) / 100
 		status.Tx = math.Round(a.tx*100) / 100
-		status.Activated = verifyResult > 0
+		status.Activated = !global.License.IssuedAt.IsZero()
 
 		result, err := utils.ToJSONString(status)
 		if err != nil {
@@ -1094,13 +1098,24 @@ func (a *Agent) processAction(verifyResult int32, actionData *model.Action) (*mo
 		}
 		return actionSuccessResult(actionData.Action, result)
 
-	// fingerprint verify result
-	case model.Host_Fingerprint_Verify:
+	// license result
+	case model.Host_License:
 		var fingerprint model.Fingerprint
 		if err := json.Unmarshal([]byte(actionData.Data), &fingerprint); err != nil {
 			return nil, err
 		}
-		if err := action.SaveFingerprintVerify(&fingerprint); err != nil {
+		if err := action.SaveLicense(&fingerprint, string(PRVK)); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	// license verify result
+	case model.Host_License_Verify:
+		var verifyResp model.VerifyLicenseResponse
+		if err := json.Unmarshal([]byte(actionData.Data), &verifyResp); err != nil {
+			return nil, err
+		}
+		if err := action.UpdateLicense(&verifyResp); err != nil {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, "")

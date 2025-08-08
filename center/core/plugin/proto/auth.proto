@@ -3,18 +3,28 @@ package proto;
 option go_package = "../proto";
 
 service Auth {
-    rpc VerifyFingerprint (VerifyFingerprintRequest) returns (VerifyFingerprintResponse) {}
+    rpc RegisterFingerprint (RegisterFingerprintRequest) returns (RegisterFingerprintResponse) {}
+    rpc VerifyLicense (VerifyLicenseRequest) returns (VerifyLicenseResponse) {}
 }
 
-message VerifyFingerprintRequest {
-    string fingerprint = 1;
-    string ip = 2;
-    string mac = 3;
+message RegisterFingerprintRequest {
+    string ip = 1;
+    string mac = 2;
+    string fingerprint = 3;
 }
 
-message VerifyFingerprintResponse {
-    string fingerprint = 1;
-    int32 result = 2;
-    int64 verify_time = 3;
-    int64 expire_time = 4;
+message RegisterFingerprintResponse {
+    string license = 1;
+    string signature = 2;
+}
+
+message VerifyLicenseRequest {
+    string license = 1;
+    string signature = 2;
+}
+
+message VerifyLicenseResponse {
+    bool valid = 1;
+    int32 license_type = 2;
+    string expire_at = 3;
 }

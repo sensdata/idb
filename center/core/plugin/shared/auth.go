@@ -10,7 +10,8 @@ import (
 )
 
 type Auth interface {
-	VerifyFingerprint(req model.VerifyRequest) (*model.VerifyResponse, error)
+	RegisterFingerprint(req model.RegisterFingerprintReq) (*model.RegisterFingerprintRsp, error)
+	VerifyLicense(req model.VerifyLicenseRequest) (*model.VerifyLicenseResponse, error)
 }
 
 type AuthPlugin struct {
@@ -35,20 +36,33 @@ type AuthGRPCClient struct {
 
 var _ Auth = (*AuthGRPCClient)(nil)
 
-func (c *AuthGRPCClient) VerifyFingerprint(req model.VerifyRequest) (*model.VerifyResponse, error) {
-	resp, err := c.client.VerifyFingerprint(context.Background(), &proto.VerifyFingerprintRequest{
+func (c *AuthGRPCClient) RegisterFingerprint(req model.RegisterFingerprintReq) (*model.RegisterFingerprintRsp, error) {
+	resp, err := c.client.RegisterFingerprint(context.Background(), &proto.RegisterFingerprintRequest{
+		Ip:          req.Ip,
+		Mac:         req.Mac,
 		Fingerprint: req.Fingerprint,
-		Ip:          req.IP,
-		Mac:         req.MAC,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &model.VerifyResponse{
-		Fingerprint: resp.Fingerprint,
-		Result:      resp.Result,
-		VerifyTime:  resp.VerifyTime,
-		ExpireTime:  resp.ExpireTime,
+	return &model.RegisterFingerprintRsp{
+		License:   resp.License,
+		Signature: resp.Signature,
+	}, nil
+}
+
+func (c *AuthGRPCClient) VerifyLicense(req model.VerifyLicenseRequest) (*model.VerifyLicenseResponse, error) {
+	resp, err := c.client.VerifyLicense(context.Background(), &proto.VerifyLicenseRequest{
+		License:   req.License,
+		Signature: req.Signature,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.VerifyLicenseResponse{
+		Valid:       resp.Valid,
+		LicenseType: resp.LicenseType,
+		ExpireAt:    resp.ExpireAt,
 	}, nil
 }
 
@@ -57,19 +71,32 @@ type AuthGRPCServer struct {
 	*proto.UnimplementedAuthServer
 }
 
-func (s *AuthGRPCServer) VerifyFingerprint(ctx context.Context, req *proto.VerifyFingerprintRequest) (*proto.VerifyFingerprintResponse, error) {
-	resp, err := s.Impl.VerifyFingerprint(model.VerifyRequest{
+func (s *AuthGRPCServer) RegisterFingerprint(ctx context.Context, req *proto.RegisterFingerprintRequest) (*proto.RegisterFingerprintResponse, error) {
+	resp, err := s.Impl.RegisterFingerprint(model.RegisterFingerprintReq{
+		Ip:          req.Ip,
+		Mac:         req.Mac,
 		Fingerprint: req.Fingerprint,
-		IP:          req.Ip,
-		MAC:         req.Mac,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &proto.VerifyFingerprintResponse{
-		Fingerprint: resp.Fingerprint,
-		Result:      resp.Result,
-		VerifyTime:  resp.VerifyTime,
-		ExpireTime:  resp.ExpireTime,
+	return &proto.RegisterFingerprintResponse{
+		License:   resp.License,
+		Signature: resp.Signature,
+	}, nil
+}
+
+func (s *AuthGRPCServer) VerifyLicense(ctx context.Context, req *proto.VerifyLicenseRequest) (*proto.VerifyLicenseResponse, error) {
+	resp, err := s.Impl.VerifyLicense(model.VerifyLicenseRequest{
+		License:   req.License,
+		Signature: req.Signature,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &proto.VerifyLicenseResponse{
+		Valid:       resp.Valid,
+		LicenseType: resp.LicenseType,
+		ExpireAt:    resp.ExpireAt,
 	}, nil
 }

@@ -1,8 +1,12 @@
 package utils
 
 import (
+	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -70,4 +74,28 @@ func GenerateFingerprint(ip, mac string) string {
 	data := ip + "|" + mac
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
+}
+
+func VerifyLicenseSignature(license string, signature string, publicKeyBase64 string) error {
+	pubBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
+	if err != nil {
+		return err
+	}
+
+	// 编码 license 对象为 JSON
+	licenseJSON, err := json.Marshal(license)
+	if err != nil {
+		return err
+	}
+
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		return err
+	}
+
+	if !ed25519.Verify(pubBytes, licenseJSON, sigBytes) {
+		return errors.New("license signature verification failed")
+	}
+
+	return nil
 }

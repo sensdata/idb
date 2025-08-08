@@ -1,6 +1,8 @@
 package action
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -23,8 +25,13 @@ func GetFingerprint() (*model.Fingerprint, error) {
 	return fingerprint, nil
 }
 
-func SaveFingerprintVerify(fingerprint *model.Fingerprint) error {
-	// 先根据指纹值查找
+func SaveLicense(fingerprint *model.Fingerprint, privateKey string) error {
+	// 先验证签名
+	if err := utils.VerifyLicenseSignature(fingerprint.License, fingerprint.Signature, privateKey); err != nil {
+		return fmt.Errorf("failed to verify license signature: %w", err)
+	}
+
+	// 根据指纹值查找
 	fp, err := db.FingerprintRepo.GetFirst(
 		db.FingerprintRepo.WithByFingerprint(fingerprint.Fingerprint))
 	if err != nil {
@@ -34,12 +41,53 @@ func SaveFingerprintVerify(fingerprint *model.Fingerprint) error {
 	if err := db.FingerprintRepo.Update(
 		fp.ID,
 		map[string]interface{}{
-			"verify_result": fingerprint.VerifyResult,
-			"verify_time":   fingerprint.VerifyTime,
-			"expire_time":   fingerprint.ExpireTime,
+			"license":        fingerprint.License,
+			"signature":      fingerprint.Signature,
+			"last_verify_at": time.Now(), //首次获取，设置验证时间为本地时间
 		}); err != nil {
-		return fmt.Errorf("failed to update fingerprint: %w", err)
+		return fmt.Errorf("failed to save license: %w", err)
 	}
+
+	// Base64 decode license
+	licenseBytes, err := base64.StdEncoding.DecodeString(fingerprint.License)
+	if err != nil {
+		return fmt.Errorf("failed to decode license: %w", err)
+	}
+
+	// Parse JSON
+	if err := json.Unmarshal(licenseBytes, global.License); err != nil {
+		return fmt.Errorf("failed to parse license: %w", err)
+	}
+
+	return nil
+}
+
+func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
+	if !verifyResp.Valid {
+		// TODO: 验证失败时，进行一些管控
+		return fmt.Errorf("license is invalid")
+	}
+	// 更新缓存
+	global.License.LicenseType = verifyResp.LicenseType
+	expireAt, err := time.Parse("2006-01-02 15:04:05", verifyResp.ExpireAt)
+	if err != nil {
+		return fmt.Errorf("failed to parse expire time: %w", err)
+	}
+	global.License.ExpireAt = expireAt
+
+	//更新校验时间
+	fp, err := db.FingerprintRepo.GetFirst()
+	if err != nil {
+		return fmt.Errorf("failed to get fingerprint: %w", err)
+	}
+	if err := db.FingerprintRepo.Update(
+		fp.ID,
+		map[string]interface{}{
+			"last_verify_at": time.Now(),
+		}); err != nil {
+		return fmt.Errorf("failed to update last_verify_at: %w", err)
+	}
+
 	return nil
 }
 

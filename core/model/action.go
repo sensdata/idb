@@ -1,9 +1,10 @@
 package model
 
 const (
-	Host_Status             string = "host_status"
-	Host_Fingerprint        string = "host_fingerprint"
-	Host_Fingerprint_Verify string = "host_fingerprint_verify"
+	Host_Status         string = "host_status"
+	Host_Fingerprint    string = "host_fingerprint"
+	Host_License        string = "host_license"
+	Host_License_Verify string = "host_license_verify"
 
 	SysInfo_OverView         string = "sysinfo_overview"
 	SysInfo_Network          string = "sysinfo_network"
