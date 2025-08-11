@@ -5205,6 +5205,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/hosts/{host}/activate": {
+            "post": {
+                "description": "Activate host",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Activate host",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/hosts/{host}/agent/install": {
             "post": {
                 "description": "Install agent in host",
@@ -7734,55 +7763,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.About"
-                        }
-                    }
-                }
-            }
-        },
-        "/scripts/info": {
-            "get": {
-                "description": "Get plugin information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Get plugin info",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/plugin.PluginInfo"
-                        }
-                    }
-                }
-            }
-        },
-        "/scripts/menu": {
-            "get": {
-                "description": "Get plugin menu items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Script"
-                ],
-                "summary": "Get plugin menu",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/plugin.MenuItem"
-                            }
                         }
                     }
                 }
@@ -13135,6 +13115,10 @@ const docTemplate = `{
         "model.HostStatus": {
             "type": "object",
             "properties": {
+                "activated": {
+                    "description": "是否已激活: verify_result \u003e 0",
+                    "type": "boolean"
+                },
                 "cpu": {
                     "type": "number"
                 },
