@@ -25,6 +25,17 @@ func getScriptManager() (shared.ScriptManager, error) {
 	return client, nil
 }
 
+// @Tags Script
+// @Summary List category
+// @Description List category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host}/category [get]
 func (b *BaseApi) GetScriptCategories(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -78,6 +89,15 @@ func (b *BaseApi) GetScriptCategories(c *gin.Context) {
 	SuccessWithData(c, resp)
 }
 
+// @Tags Script
+// @Summary Create category
+// @Description Create category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitCategory true "Category creation details"
+// @Success 200
+// @Router /scripts/{host}/category [post]
 func (b *BaseApi) CreateScriptCategory(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -105,6 +125,15 @@ func (b *BaseApi) CreateScriptCategory(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Update category
+// @Description Update category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitCategory true "category edit details"
+// @Success 200
+// @Router /scripts/{host}/category [put]
 func (b *BaseApi) UpdateScriptCategory(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -132,6 +161,16 @@ func (b *BaseApi) UpdateScriptCategory(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Delete category
+// @Description Delete category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Success 200
+// @Router /scripts/{host}/category [delete]
 func (b *BaseApi) DeleteScriptCategory(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -175,6 +214,18 @@ func (b *BaseApi) DeleteScriptCategory(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary List scripts
+// @Description Get list of scripts in a directory
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host} [get]
 func (b *BaseApi) GetScriptList(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -234,6 +285,17 @@ func (b *BaseApi) GetScriptList(c *gin.Context) {
 	SuccessWithData(c, resp)
 }
 
+// @Tags Script
+// @Summary Get script detail
+// @Description Get detail of a script file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Success 200 {object} model.GitFile
+// @Router /scripts/{host}/detail [get]
 func (b *BaseApi) GetScriptDetail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -285,6 +347,15 @@ func (b *BaseApi) GetScriptDetail(c *gin.Context) {
 	SuccessWithData(c, detail)
 }
 
+// @Tags Script
+// @Summary Create script file or category
+// @Description Create a new script file or category
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.CreateGitFile true "Script file creation details"
+// @Success 200
+// @Router /scripts/{host} [post]
 func (b *BaseApi) CreateScript(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -312,6 +383,15 @@ func (b *BaseApi) CreateScript(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Update script file content
+// @Description Update the content of a script file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.UpdateGitFile true "Script file edit details"
+// @Success 200
+// @Router /scripts/{host} [put]
 func (b *BaseApi) UpdateScript(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -339,6 +419,17 @@ func (b *BaseApi) UpdateScript(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Delete script file
+// @Description Delete  a script file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param name query string true "File name"
+// @Success 200
+// @Router /scripts/{host} [delete]
 func (b *BaseApi) DeleteScript(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -389,6 +480,15 @@ func (b *BaseApi) DeleteScript(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Restore script file
+// @Description Restore script file to specified version
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.RestoreGitFile true "Script file restore details"
+// @Success 200
+// @Router /scripts/{host}/restore [put]
 func (b *BaseApi) RestoreScript(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -416,6 +516,19 @@ func (b *BaseApi) RestoreScript(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Get script histories
+// @Description Get histories of a script file
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host}/history [get]
 func (b *BaseApi) GetScriptHistories(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -481,6 +594,18 @@ func (b *BaseApi) GetScriptHistories(c *gin.Context) {
 	SuccessWithData(c, detail)
 }
 
+// @Tags Script
+// @Summary Get script diff
+// @Description Get script diff compare to specfied version
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param type query string true "Type (options: 'global', 'local')"
+// @Param category query string true "Category (directory under 'global' or 'local')"
+// @Param name query string true "Script file name"
+// @Param commit query string true "Commit hash"
+// @Success 200 {string} string
+// @Router /scripts/{host}/diff [get]
 func (b *BaseApi) GetScriptDiff(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -539,6 +664,14 @@ func (b *BaseApi) GetScriptDiff(c *gin.Context) {
 	SuccessWithData(c, detail)
 }
 
+// @Tags Script
+// @Summary Sync global repository to specified host
+// @Description Sync global repository to specified host
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Success 200
+// @Router /scripts/{host}/sync [post]
 func (b *BaseApi) ScriptSync(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -561,6 +694,15 @@ func (b *BaseApi) ScriptSync(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
+// @Tags Script
+// @Summary Execute script
+// @Description Execute script
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param request body model.ExecuteScript true "Script file creation details"
+// @Success 200 {object} model.ScriptResult
+// @Router /scripts/{host}/run [post]
 func (b *BaseApi) ScriptExec(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -588,6 +730,17 @@ func (b *BaseApi) ScriptExec(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
+// @Tags Script
+// @Summary Get run logs of script
+// @Description Get run logs of script
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string false "Script path"
+// @Param page query uint true "Page"
+// @Param page_size query uint true "Page size"
+// @Success 200 {object} model.PageResult
+// @Router /scripts/{host}/run/logs [get]
 func (b *BaseApi) GetScriptRunLogs(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
@@ -628,6 +781,15 @@ func (b *BaseApi) GetScriptRunLogs(c *gin.Context) {
 	SuccessWithData(c, result)
 }
 
+// @Tags Script
+// @Summary Get run log detail
+// @Description Get run log detail
+// @Accept json
+// @Produce json
+// @Param host path uint true "Host ID"
+// @Param path query string true "Log path"
+// @Success 200 {object} model.GitFile
+// @Router /scripts/{host}/run/logs/detail [get]
 func (b *BaseApi) GetScriptRunLogDetail(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
