@@ -3,9 +3,10 @@ package utils
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -76,26 +77,51 @@ func GenerateFingerprint(ip, mac string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func VerifyLicenseSignature(license string, signature string, publicKeyBase64 string) error {
-	pubBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
+func VerifyLicenseSignature(licenseB64 string, signatureB64 string, publicKeyB64 []byte) error {
+	pubBytes, err := DecodeEd25519PublicKey(publicKeyB64)
 	if err != nil {
 		return err
 	}
 
-	// 编码 license 对象为 JSON
-	licenseJSON, err := json.Marshal(license)
+	licenseBytes, err := base64.StdEncoding.DecodeString(licenseB64)
 	if err != nil {
 		return err
 	}
 
-	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	sigBytes, err := base64.StdEncoding.DecodeString(signatureB64)
 	if err != nil {
 		return err
 	}
 
-	if !ed25519.Verify(pubBytes, licenseJSON, sigBytes) {
+	if !ed25519.Verify(pubBytes, licenseBytes, sigBytes) {
 		return errors.New("license signature verification failed")
 	}
-
 	return nil
+}
+
+func DecodeEd25519PublicKey(b64pem []byte) ([]byte, error) {
+	// 先 base64 decode
+	pemBytes, err := base64.StdEncoding.DecodeString(string(b64pem))
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析 PEM
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block")
+	}
+
+	// 从 PKIX DER 转 Ed25519 公钥
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKey, ok := pub.(ed25519.PublicKey)
+	if !ok {
+		return nil, errors.New("not Ed25519 public key")
+	}
+
+	return pubKey, nil
 }

@@ -67,7 +67,7 @@ type Agent struct {
 }
 
 //go:embed idbauth.pub.b64
-var PRVK []byte
+var PK []byte
 
 //go:embed screen_install.sh
 var installScreenShell []byte
@@ -1104,7 +1104,7 @@ func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
 		if err := json.Unmarshal([]byte(actionData.Data), &fingerprint); err != nil {
 			return nil, err
 		}
-		if err := action.SaveLicense(&fingerprint, string(PRVK)); err != nil {
+		if err := action.SaveLicense(&fingerprint, PK); err != nil {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, "")

@@ -25,9 +25,15 @@ func GetFingerprint() (*model.Fingerprint, error) {
 	return fingerprint, nil
 }
 
-func SaveLicense(fingerprint *model.Fingerprint, privateKey string) error {
+func SaveLicense(fingerprint *model.Fingerprint, publicKeyB64 []byte) error {
+	defer func() {
+		if err := recover(); err != nil {
+			global.LOG.Error("SaveLicense failed: %v", err)
+		}
+	}()
+
 	// 先验证签名
-	if err := utils.VerifyLicenseSignature(fingerprint.License, fingerprint.Signature, privateKey); err != nil {
+	if err := utils.VerifyLicenseSignature(fingerprint.License, fingerprint.Signature, publicKeyB64); err != nil {
 		return fmt.Errorf("failed to verify license signature: %w", err)
 	}
 
@@ -69,7 +75,7 @@ func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
 	}
 	// 更新缓存
 	global.License.LicenseType = verifyResp.LicenseType
-	expireAt, err := time.Parse("2006-01-02 15:04:05", verifyResp.ExpireAt)
+	expireAt, err := time.Parse(time.RFC3339, verifyResp.ExpireAt)
 	if err != nil {
 		return fmt.Errorf("failed to parse expire time: %w", err)
 	}
