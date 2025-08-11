@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---------- 生成证书和密钥 ---------- #
-FROM golang:1.22 AS certs-builder
+FROM golang:1.23.4 AS certs-builder
 WORKDIR /app/certs
 COPY ssl.cnf ./
 # 生成 PKCS#8 格式的私钥
@@ -38,7 +38,7 @@ RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /
         sed
 
 # 安装 golang
-RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.22.3.linux-amd64.tar.gz && \
+RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go
     
@@ -83,7 +83,7 @@ RUN mkdir -p /app/agent-pkg && \
 RUN echo "${VERSION}" > /app/idb-agent.version
 
 # ---------- 构建 center ---------- #
-FROM golang:1.22 AS center-builder
+FROM golang:1.23.4 AS center-builder
 # 环境变量
 ENV CGO_ENABLED=1
 # 编译参数
