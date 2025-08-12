@@ -126,7 +126,11 @@
       </a-col>
     </a-row>
 
-    <a-form-item field="notIfEmpty" class="checkbox-group-item">
+    <a-form-item
+      field="notIfEmpty"
+      class="checkbox-group-item"
+      style="margin-top: -8px; margin-bottom: 12px"
+    >
       <a-checkbox
         :model-value="formData.notIfEmpty"
         @update:model-value="(value) => updateFormData('notIfEmpty', value)"
@@ -222,9 +226,10 @@
     margin-bottom: 0.357rem; /* 5px / 14px */
   }
 
-  /* 减少checkbox组合项的上边距，解决checkbox选项间隙过宽的问题 */
-  :deep(.checkbox-group-item.arco-form-item.arco-form-item-layout-vertical) {
-    margin-top: -1rem; /* 向上调整减少间距 */
+  /* 更具体的选择器，确保样式生效 */
+  :deep(.checkbox-group-item) {
+    margin-top: -1.5rem !important;
+    margin-bottom: 0.8rem !important;
   }
 
   /* 选中状态颜色调整 - 对于第三方组件库需要使用!important来确保样式生效 */
