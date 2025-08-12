@@ -7,6 +7,7 @@ export interface HostGroupEntity extends BaseEntity {
 }
 
 export interface HostStatusDo {
+  activated: boolean;
   cpu: number;
   disk: number;
   mem: number;

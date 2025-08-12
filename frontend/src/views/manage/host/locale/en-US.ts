@@ -7,6 +7,7 @@ export default {
   'manage.host.list.column.addr': 'Host Address',
   'manage.host.list.column.group_name': 'Group',
   'manage.host.list.column.agent': 'Agent',
+  'manage.host.list.column.activated': 'Activation Status',
   'manage.host.list.column.cpu': 'CPU',
   'manage.host.list.column.memory': 'Memory',
   'manage.host.list.column.disk': 'Storage',
@@ -22,6 +23,7 @@ export default {
   'manage.host.list.operation.restart': 'Restart',
   'manage.host.list.operation.delete': 'Delete',
   'manage.host.list.operation.updateSSH': 'SSH Config',
+  'manage.host.list.operation.activate': 'Activate',
   'manage.host.list.restart.confirm':
     'Are you sure to restart the selected host?',
   'manage.host.list.restart.success': 'Restart successfully',
@@ -31,6 +33,10 @@ export default {
   'manage.host.list.agent.online': 'Online',
   'manage.host.list.agent.offline': 'Offline',
   'manage.host.list.agent.uninstalled': 'Uninstalled',
+  'manage.host.list.activated.yes': 'Activated',
+  'manage.host.list.activated.no': 'Not Activated',
+  'manage.host.list.activate.success': 'Activation successful',
+  'manage.host.list.activate.error': 'Activation failed',
 
   'manage.host.form.title.create': 'Create Host',
   'manage.host.form.title.edit': 'Host Settings',

@@ -30,6 +30,17 @@
         >{{ $t('manage.host.list.agent.offline') }}</div
       >
     </template>
+    <template #activated="{ record }: { record: HostItem }">
+      <div v-if="record.statusReady">
+        <div v-if="record.activated" class="color-success">
+          {{ $t('manage.host.list.activated.yes') }}
+        </div>
+        <div v-else class="color-warning">
+          {{ $t('manage.host.list.activated.no') }}
+        </div>
+      </div>
+      <div v-else class="color-text-3">-</div>
+    </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
       <div>
@@ -99,6 +110,7 @@
     restartHostAgentApi,
     getHostAgentStatusApi,
     connectHostStatusFollowApi,
+    activateHostApi,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
@@ -149,6 +161,12 @@
       slotName: 'agent',
     },
     {
+      dataIndex: 'activated',
+      title: t('manage.host.list.column.activated'),
+      width: 100,
+      slotName: 'activated',
+    },
+    {
       dataIndex: 'cpu',
       title: t('manage.host.list.column.cpu'),
       width: 110,
@@ -180,8 +198,109 @@
     },
   ];
 
+  const tableRef = ref();
+  const dataRef = ref<ApiListResult<HostItem>>();
+  const isLoading = ref(false);
+  const sseMap = ref<Map<number, EventSource>>(new Map());
+
+  const fetchListStatus = async () => {
+    if (!dataRef.value?.items || isLoading.value) {
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      // 处理所有节点，每个节点只发送一个请求
+      const requests = dataRef.value.items.map(async (item) => {
+        // 根据节点的安装状态选择不同的API
+        if (item.agent_status?.status === 'installed') {
+          // 已安装代理的节点：获取监控数据
+          try {
+            const statusData = await getHostStatusApi(item.id);
+            if (statusData) {
+              // 更新监控数据
+              item.activated = statusData.activated;
+              item.cpu = statusData.cpu;
+              item.disk = statusData.disk;
+              item.mem = statusData.mem;
+              item.mem_total = statusData.mem_total;
+              item.mem_used = statusData.mem_used;
+              item.rx = statusData.rx;
+              item.tx = statusData.tx;
+              item.statusReady = true;
+
+              // 成功获取数据意味着代理在线
+              if (item.agent_status) {
+                item.agent_status.connected = 'online';
+              }
+            }
+          } catch (error) {
+            console.error('获取节点状态数据失败', item.id);
+            // 如果请求失败，将代理标记为离线，但保持已安装状态
+            if (item.agent_status) {
+              item.agent_status.connected = 'offline';
+            }
+          }
+        } else {
+          // 未安装代理的节点：更新代理状态和激活状态
+          try {
+            const agentStatus = await getHostAgentStatusApi(item.id);
+            if (agentStatus) {
+              item.agent_status = {
+                status: agentStatus.status || 'unknown',
+                connected: agentStatus.connected || 'offline',
+              };
+            }
+          } catch (error) {
+            // 出错时设置默认状态
+            item.agent_status = {
+              status: 'unknown',
+              connected: 'offline',
+            };
+          }
+
+          // 尝试获取激活状态（即使没有安装代理）
+          try {
+            const statusData = await getHostStatusApi(item.id);
+            if (statusData) {
+              item.activated = statusData.activated;
+              item.statusReady = true;
+            }
+          } catch (error) {
+            // 如果无法获取状态，默认为未激活
+            item.activated = false;
+            item.statusReady = true;
+          }
+        }
+      });
+
+      // 等待所有请求完成
+      await Promise.all(requests);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const getOperationOptions = (record: HostItem) => {
     return [
+      {
+        text: t('manage.host.list.operation.activate'),
+        visible: record.statusReady && !record.activated && !record.default,
+        click: async () => {
+          try {
+            await activateHostApi(record.id);
+            Message.success(t('manage.host.list.activate.success'));
+            await fetchListStatus();
+          } catch (error: any) {
+            Message.error(
+              error?.message || t('manage.host.list.activate.error')
+            );
+          }
+        },
+      },
       {
         text: t('manage.host.list.operation.goto'),
         click: () => {
@@ -255,6 +374,7 @@
           }
         },
       },
+
       {
         text: t('manage.host.list.operation.delete'),
         confirm: t('manage.host.list.delete.confirm'),
@@ -268,78 +388,6 @@
         },
       },
     ];
-  };
-
-  const tableRef = ref();
-  const dataRef = ref<ApiListResult<HostItem>>();
-  const isLoading = ref(false);
-  const sseMap = ref<Map<number, EventSource>>(new Map());
-
-  const fetchListStatus = async () => {
-    if (!dataRef.value?.items || isLoading.value) {
-      return;
-    }
-
-    isLoading.value = true;
-
-    try {
-      // 处理所有节点，每个节点只发送一个请求
-      const requests = dataRef.value.items.map(async (item) => {
-        // 根据节点的安装状态选择不同的API
-        if (item.agent_status?.status === 'installed') {
-          // 已安装代理的节点：获取监控数据
-          try {
-            const statusData = await getHostStatusApi(item.id);
-            if (statusData) {
-              // 更新监控数据
-              item.cpu = statusData.cpu;
-              item.disk = statusData.disk;
-              item.mem = statusData.mem;
-              item.mem_total = statusData.mem_total;
-              item.mem_used = statusData.mem_used;
-              item.rx = statusData.rx;
-              item.tx = statusData.tx;
-              item.statusReady = true;
-
-              // 成功获取数据意味着代理在线
-              if (item.agent_status) {
-                item.agent_status.connected = 'online';
-              }
-            }
-          } catch (error) {
-            console.error('获取节点状态数据失败', item.id);
-            // 如果请求失败，将代理标记为离线，但保持已安装状态
-            if (item.agent_status) {
-              item.agent_status.connected = 'offline';
-            }
-          }
-        } else {
-          // 未安装代理的节点：只更新代理状态
-          try {
-            const agentStatus = await getHostAgentStatusApi(item.id);
-            if (agentStatus) {
-              item.agent_status = {
-                status: agentStatus.status || 'unknown',
-                connected: agentStatus.connected || 'offline',
-              };
-            }
-          } catch (error) {
-            // 出错时设置默认状态
-            item.agent_status = {
-              status: 'unknown',
-              connected: 'offline',
-            };
-          }
-        }
-      });
-
-      // 等待所有请求完成
-      await Promise.all(requests);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      isLoading.value = false;
-    }
   };
 
   const reload = () => {
@@ -371,6 +419,7 @@
         es.addEventListener('status', (event) => {
           try {
             const statusData = JSON.parse(event.data);
+            item.activated = statusData.activated;
             item.cpu = statusData.cpu;
             item.disk = statusData.disk;
             item.mem = statusData.mem;
@@ -409,6 +458,28 @@
   const afterFetchHook = async (data: ApiListResult<HostItem>) => {
     dataRef.value = data;
     await fetchListStatus();
+
+    // Auto-activate default hosts if they are not already activated
+    if (dataRef.value?.items) {
+      const autoActivatePromises = dataRef.value.items
+        .filter((item) => item.default && item.statusReady && !item.activated)
+        .map(async (item) => {
+          try {
+            await activateHostApi(item.id);
+            item.activated = true; // Update the local state immediately
+          } catch (error) {
+            console.error(
+              `Failed to auto-activate default host ${item.id}:`,
+              error
+            );
+          }
+        });
+
+      if (autoActivatePromises.length > 0) {
+        await Promise.all(autoActivatePromises);
+      }
+    }
+
     startSSEForHosts();
     return data;
   };

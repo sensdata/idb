@@ -120,3 +120,7 @@ export const getHostAgentStatusApi = (
 export const restartHostAgentApi = (hostId: number): Promise<void> => {
   return request.post(`hosts/${hostId}/agent/restart`);
 };
+
+export const activateHostApi = (hostId: number): Promise<void> => {
+  return request.post(`hosts/${hostId}/activate`);
+};
