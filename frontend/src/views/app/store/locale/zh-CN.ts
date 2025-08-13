@@ -5,6 +5,7 @@ export default {
   'app.store.app.list.installed': '已安装',
   'app.store.app.list.upgrade': '升级',
   'app.store.app.list.uninstall': '卸载',
+  'app.store.app.list.hasUpgrade': '有更新',
   'app.store.app.list.version': '版本',
   'app.store.app.list.install_at': '安装时间',
   'app.store.app.syncAppList': '同步应用列表',
@@ -25,6 +26,11 @@ export default {
   'app.store.app.upgrade.confirm':
     '将使用{version}的docker-compose.yml覆盖，请备份数据之后，再进行升级操作',
   'app.store.app.install.success': '应用安装成功',
+  'app.store.app.install.success.confirm.title': '安装成功',
+  'app.store.app.install.success.confirm.content':
+    '应用已成功安装！是否跳转到容器管理页面查看？',
+  'app.store.app.install.success.confirm.ok': '跳转到容器管理',
+  'app.store.app.install.success.confirm.cancel': '留在当前页面',
   'app.store.app.upgrade.success': '应用升级成功',
   'app.store.app.uninstall.confirm': '确定要卸载应用吗？',
 

@@ -73,8 +73,9 @@
 <script lang="ts" setup>
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import useLoading from '@/composables/loading';
-  import { Message } from '@arco-design/web-vue';
+  import { Message, Modal } from '@arco-design/web-vue';
   import { getAppDetailApi, installAppApi } from '@/api/store';
   import type { AppEntity, AppFormField } from '@/entity/App';
   import { Codemirror } from 'vue-codemirror';
@@ -83,6 +84,7 @@
   import { oneDark } from '@codemirror/theme-one-dark';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const emit = defineEmits(['ok']);
 
@@ -245,7 +247,23 @@
       setLoading(true);
       const data = getData();
       await installAppApi(data);
-      Message.success(t('app.store.app.install.success'));
+
+      // 显示安装成功的确认对话框
+      Modal.confirm({
+        title: t('app.store.app.install.success.confirm.title'),
+        content: t('app.store.app.install.success.confirm.content'),
+        okText: t('app.store.app.install.success.confirm.ok'),
+        cancelText: t('app.store.app.install.success.confirm.cancel'),
+        onOk: () => {
+          // 跳转到容器管理页面
+          router.push('/app/docker/container');
+        },
+        onCancel: () => {
+          // 用户选择留在当前页面，显示成功消息
+          Message.success(t('app.store.app.install.success'));
+        },
+      });
+
       emit('ok');
       hide();
     } catch (err: any) {

@@ -25,4 +25,17 @@ export default {
   'login.form.forgetPassword': 'Forgot password',
   'login.form.login': 'login',
   'login.form.register': 'register account',
+
+  // Forgot password modal
+  'login.forgotPassword.modal.title': 'Password Reset Instructions',
+  'login.forgotPassword.modal.message':
+    'Password reset must be performed on the server side. Please contact your system administrator or follow these steps:',
+  'login.forgotPassword.modal.instructionsTitle': 'Reset Steps:',
+  'login.forgotPassword.modal.step1': 'Log in to the iDB server',
+  'login.forgotPassword.modal.step2': 'Ensure iDB service is running',
+  'login.forgotPassword.modal.step3': 'Execute the password reset command',
+  'login.forgotPassword.modal.commandTitle': 'Reset Command:',
+  'login.forgotPassword.modal.understood': 'Got it',
+  'login.forgotPassword.modal.note':
+    'Note: A new random password will be generated after command execution. Please save it securely.',
 };
