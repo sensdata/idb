@@ -43,7 +43,7 @@ func (b *BaseApi) ListHostGroup(c *gin.Context) {
 // @Router /hosts/groups [post]
 func (b *BaseApi) CreateHostGroup(c *gin.Context) {
 	var req model.CreateGroup
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 

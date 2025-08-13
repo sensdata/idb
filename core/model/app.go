@@ -35,12 +35,12 @@ type RemoveApp struct {
 }
 type QueryApp struct {
 	PageInfo
-	Name     string `json:"name"`
-	Category string `json:"category"`
+	Name     string `form:"name" json:"name"`
+	Category string `form:"category" json:"category"`
 }
 type QueryInstalledApp struct {
 	PageInfo
-	Name string `json:"name"`
+	Name string `form:"name" json:"name"`
 }
 type QueryAppDetail struct {
 	ID uint `json:"id"`

@@ -1,15 +1,15 @@
 package model
 
 type PageInfo struct {
-	Page     int `form:"page" validate:"required"`
-	PageSize int `form:"page_size" validate:"required"`
+	Page     int `form:"page" json:"page" validate:"required"`
+	PageSize int `form:"page_size" json:"page_size" validate:"required"`
 }
 
 type SearchPageInfo struct {
 	PageInfo
-	Info    string `form:"info"`
-	OrderBy string `form:"order_by"`
-	Order   string `form:"order"`
+	Info    string `form:"info" json:"info"`
+	OrderBy string `form:"order_by" json:"order_by"`
+	Order   string `form:"order" json:"order"`
 }
 
 type PageResult struct {

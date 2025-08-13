@@ -378,7 +378,7 @@ func (s *AppService) AppPage(hostID uint64, req core.QueryApp) (*core.PageResult
 		opts = append(opts, CommonRepo.WithLikeName(req.Name))
 	}
 	if req.Category != "" {
-		opts = append(opts, AppRepo.WithByName(req.Name))
+		opts = append(opts, AppRepo.WithByCategory(req.Category))
 	}
 	total, apps, err := AppRepo.Page(req.Page, req.PageSize, opts...)
 	if err != nil {

@@ -78,10 +78,10 @@ type PruneResult struct {
 // container
 type QueryContainer struct {
 	PageInfo
-	Info    string `form:"info"`
-	State   string `form:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
-	OrderBy string `form:"order_by"`
-	Order   string `form:"order"`
+	Info    string `form:"info" json:"info"`
+	State   string `form:"state" json:"state" validate:"required,oneof=all created running paused restarting removing exited dead"`
+	OrderBy string `form:"order_by" json:"order_by"`
+	Order   string `form:"order" json:"order"`
 }
 
 type ContainerInfo struct {
@@ -225,7 +225,7 @@ type ComposeContainer struct {
 
 type QueryCompose struct {
 	PageInfo
-	Info    string `form:"info"`
+	Info    string `form:"info" json:"info"`
 	WorkDir string `json:"work_dir"`
 	IdbType string `json:"idb_type"`
 }

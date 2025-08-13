@@ -79,8 +79,8 @@ type GenerateLoad struct {
 
 type SearchSSHLog struct {
 	PageInfo
-	Info   string `form:"info"`
-	Status string `form:"status"`
+	Info   string `form:"info" json:"info"`
+	Status string `form:"status" json:"status"`
 }
 type SSHLog struct {
 	Logs            []SSHHistory `json:"logs"`
