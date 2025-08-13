@@ -5,6 +5,7 @@ export default {
   'app.store.app.list.installed': '已安装',
   'app.store.app.list.upgrade': '升级',
   'app.store.app.list.uninstall': '卸载',
+  'app.store.app.list.hasUpgrade': '有更新',
   'app.store.app.list.version': '版本',
   'app.store.app.list.install_at': '安装时间',
   'app.store.app.syncAppList': '同步应用列表',

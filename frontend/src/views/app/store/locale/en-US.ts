@@ -6,6 +6,7 @@ export default {
   'app.store.app.list.version': 'Version',
   'app.store.app.list.upgrade': 'Upgrade',
   'app.store.app.list.uninstall': 'Uninstall',
+  'app.store.app.list.hasUpgrade': 'Update Available',
   'app.store.app.list.install_at': 'Installed at',
   'app.store.app.syncAppList': 'Sync App List',
 
