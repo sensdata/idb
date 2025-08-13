@@ -193,23 +193,6 @@
     }
 
     .process-table {
-      :deep(.arco-table-th) {
-        background: var(--color-bg-2);
-        font-weight: 500;
-        color: var(--color-text-1);
-        text-align: left;
-        padding-left: 0;
-      }
-
-      :deep(.arco-table-td) {
-        padding: 0.857rem 0.857rem 0.857rem 0; /* 12px相对于14px根字体 (12/14=0.857) */
-        text-align: left;
-      }
-
-      :deep(.arco-table-tr):hover {
-        background: var(--color-bg-1);
-      }
-
       .addresses-list {
         display: flex;
         flex-direction: column;
