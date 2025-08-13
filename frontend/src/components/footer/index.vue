@@ -35,7 +35,7 @@
           </template>
         </a-dropdown>
         <span class="color-primary"> {{ $t('footer.licence') }}</span>
-        <span class="color-primary">API</span>
+        <a-link href="/api/v1/swagger/index.html" target="_blank"> API </a-link>
       </a-space>
     </div>
   </a-layout-footer>
