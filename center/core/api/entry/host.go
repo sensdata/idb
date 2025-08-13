@@ -72,7 +72,7 @@ func (b *BaseApi) UpdateHostGroup(c *gin.Context) {
 	upMap := make(map[string]interface{})
 	upMap["group_name"] = req.GroupName
 	if err := hostService.UpdateGroup(req.ID, upMap); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -93,7 +93,7 @@ func (b *BaseApi) DeleteHostGroup(c *gin.Context) {
 		return
 	}
 	if err := hostService.DeleteGroup([]uint{uint(groupID)}); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -140,7 +140,7 @@ func (b *BaseApi) CreateHost(c *gin.Context) {
 
 	result, err := hostService.Create(req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -165,7 +165,7 @@ func (b *BaseApi) UpdateHost(c *gin.Context) {
 	upMap["name"] = req.Name
 	upMap["group_id"] = req.GroupID
 	if err := hostService.Update(req.ID, upMap); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -187,7 +187,7 @@ func (b *BaseApi) DeleteHost(c *gin.Context) {
 	}
 
 	if err := hostService.Delete(uint(hostID)); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -273,7 +273,7 @@ func (b *BaseApi) ActivateHost(c *gin.Context) {
 	}
 
 	if err := hostService.ActivateHost(uint(hostID)); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -301,7 +301,7 @@ func (b *BaseApi) UpdateHostSSH(c *gin.Context) {
 	}
 
 	if err := hostService.UpdateSSH(uint(hostID), req); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -329,7 +329,7 @@ func (b *BaseApi) UpdateHostAgent(c *gin.Context) {
 	}
 
 	if err := hostService.UpdateAgent(uint(hostID), req); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)

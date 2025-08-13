@@ -94,7 +94,7 @@ func (b *BaseApi) UpdateSettings(c *gin.Context) {
 
 	rsp, err := settingsService.Update(req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, rsp)
@@ -110,7 +110,7 @@ func (b *BaseApi) UpdateSettings(c *gin.Context) {
 func (b *BaseApi) Upgrade(c *gin.Context) {
 	err := settingsService.Upgrade()
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)

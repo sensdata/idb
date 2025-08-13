@@ -203,7 +203,7 @@ func (s *SSHMan) GetSSHConfig(c *gin.Context) {
 
 	info, err := s.getSSHConfig(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, info)
@@ -231,7 +231,7 @@ func (s *SSHMan) UpdateSSHConfig(c *gin.Context) {
 	}
 
 	if err := s.updateSSH(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithOutData(c)
@@ -254,7 +254,7 @@ func (s *SSHMan) GetSSHConfigContent(c *gin.Context) {
 
 	info, err := s.getSSHConfigContent(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, info)
@@ -281,7 +281,7 @@ func (s *SSHMan) UpdateSSHConfigContent(c *gin.Context) {
 	}
 
 	if err := s.updateSSHContent(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -309,7 +309,7 @@ func (s *SSHMan) OperateSSH(c *gin.Context) {
 	}
 
 	if err := s.operateSSH(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -337,7 +337,7 @@ func (s *SSHMan) CreateKey(c *gin.Context) {
 	}
 
 	if err := s.createKey(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -367,7 +367,7 @@ func (s *SSHMan) ListKey(c *gin.Context) {
 
 	data, err := s.listKeys(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, data)
@@ -395,7 +395,7 @@ func (s *SSHMan) EnableKey(c *gin.Context) {
 	}
 
 	if err := s.enableKey(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -433,7 +433,7 @@ func (s *SSHMan) RemoveKey(c *gin.Context) {
 	}
 
 	if err := s.removeKey(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -461,7 +461,7 @@ func (s *SSHMan) DownloadPrivateKey(c *gin.Context) {
 	}
 
 	if err := s.downloadFile(c, uint(hostID), source); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 }
@@ -488,7 +488,7 @@ func (s *SSHMan) SetKeyPassword(c *gin.Context) {
 	}
 
 	if err := s.setKeyPassword(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -516,7 +516,7 @@ func (s *SSHMan) UpdateKeyPassword(c *gin.Context) {
 	}
 
 	if err := s.updateKeyPassword(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -544,7 +544,7 @@ func (s *SSHMan) ClearKeyPassword(c *gin.Context) {
 	}
 
 	if err := s.clearKeyPassword(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -567,7 +567,7 @@ func (s *SSHMan) ListAuthKey(c *gin.Context) {
 
 	data, err := s.listAuthKeys(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, data)
@@ -595,7 +595,7 @@ func (s *SSHMan) AddAuthKey(c *gin.Context) {
 	}
 
 	if err := s.addAuthKey(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -628,7 +628,7 @@ func (s *SSHMan) RemoveAuthKey(c *gin.Context) {
 	}
 
 	if err := s.removeAuthKey(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -660,7 +660,7 @@ func (s *SSHMan) LoadSSHLogs(c *gin.Context) {
 
 	data, err := s.loadLog(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, data)

@@ -48,7 +48,7 @@ func (b *BaseApi) CreateUser(c *gin.Context) {
 
 	result, err := userService.Create(req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -73,7 +73,7 @@ func (b *BaseApi) UpdateUser(c *gin.Context) {
 	upMap["group_id"] = req.GroupID
 	upMap["valid"] = req.Valid
 	if err := userService.Update(req.ID, upMap); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -95,7 +95,7 @@ func (b *BaseApi) DeleteUser(c *gin.Context) {
 	}
 
 	if err := userService.Delete([]uint{uint(userID)}); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -118,7 +118,7 @@ func (b *BaseApi) ValidUser(c *gin.Context) {
 	upMap := make(map[string]interface{})
 	upMap["valid"] = req.Valid
 	if err := userService.Update(req.ID, upMap); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -139,7 +139,7 @@ func (b *BaseApi) ChangePassword(c *gin.Context) {
 	}
 
 	if err := userService.ChangePassword(req); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)

@@ -227,7 +227,7 @@ func (s *SysInfo) GetOverview(c *gin.Context) {
 
 	overview, err := s.getOverview(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, overview)
@@ -250,7 +250,7 @@ func (s *SysInfo) GetNetwork(c *gin.Context) {
 
 	network, err := s.getNetwork(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, network)
@@ -273,7 +273,7 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 
 	system, err := s.getSystemInfo(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, system)
@@ -297,7 +297,7 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 
 	hardware, err := s.getHardware(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, hardware)
@@ -324,7 +324,7 @@ func (s *SysInfo) GetSysSettings(c *gin.Context) {
 
 	settings, err := s.getSystemSettings(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, settings)

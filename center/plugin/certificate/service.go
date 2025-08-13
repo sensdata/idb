@@ -201,7 +201,7 @@ func (s *CertificateMan) Groups(c *gin.Context) {
 
 	groups, err := s.groups(hostID)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -231,7 +231,7 @@ func (s *CertificateMan) CreateGroup(c *gin.Context) {
 
 	err = s.createGroup(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -263,7 +263,7 @@ func (s *CertificateMan) DeleteGroup(c *gin.Context) {
 	req := model.DeleteGroupRequest{Alias: alias}
 	err = s.deleteGroup(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -295,7 +295,7 @@ func (s *CertificateMan) GroupPk(c *gin.Context) {
 	req := model.GroupPkRequest{Alias: alias}
 	key, err := s.groupPk(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -327,7 +327,7 @@ func (s *CertificateMan) GroupCsr(c *gin.Context) {
 	req := model.GroupPkRequest{Alias: alias}
 	csr, err := s.groupCsr(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -359,7 +359,7 @@ func (s *CertificateMan) GetCertificate(c *gin.Context) {
 	req := model.CertificateInfoRequest{Source: source}
 	detail, err := s.getCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -391,7 +391,7 @@ func (s *CertificateMan) DeleteCertificate(c *gin.Context) {
 	req := model.DeleteCertificateRequest{Source: source}
 	err = s.deleteCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -421,7 +421,7 @@ func (s *CertificateMan) SelfSignCertificate(c *gin.Context) {
 
 	err = s.selfSignCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -451,7 +451,7 @@ func (s *CertificateMan) CompleteCertificate(c *gin.Context) {
 
 	err = s.completeCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -669,7 +669,7 @@ func (s *CertificateMan) Import(c *gin.Context) {
 	}
 	err = s.importCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -777,7 +777,7 @@ func (s *CertificateMan) Update(c *gin.Context) {
 	}
 	err = s.updateCertificate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 

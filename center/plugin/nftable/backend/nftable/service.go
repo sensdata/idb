@@ -895,7 +895,7 @@ func (s *NFTable) SyncGlobal(c *gin.Context) {
 
 	err = s.syncGlobal(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)

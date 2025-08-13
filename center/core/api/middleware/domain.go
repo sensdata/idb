@@ -17,7 +17,7 @@ func BindDomain() gin.HandlerFunc {
 		status, err := settingRepo.Get(settingRepo.WithByKey("BindDomain"))
 		if err != nil {
 			global.LOG.Error("Failed to get bind domain: %v", err)
-			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+			helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 			return
 		}
 		if len(status.Value) == 0 {

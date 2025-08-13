@@ -1289,7 +1289,7 @@ func (s *DockerMan) QuitSession(c *gin.Context) {
 
 	err = s.quitContainerSession(token, uint(hostID), req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, "")

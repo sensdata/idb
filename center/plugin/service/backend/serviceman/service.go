@@ -268,7 +268,7 @@ func (s *ServiceMan) GetCategories(c *gin.Context) {
 
 	categories, err := s.getCategories(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (s *ServiceMan) CreateCategory(c *gin.Context) {
 	}
 	err = s.createCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -325,7 +325,7 @@ func (s *ServiceMan) UpdateCategory(c *gin.Context) {
 	}
 	err = s.updateCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -371,7 +371,7 @@ func (s *ServiceMan) DeleteCategory(c *gin.Context) {
 
 	err = s.deleteCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -434,7 +434,7 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 
 	services, err := s.getServiceList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -463,7 +463,7 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 	}
 	err = s.create(hostID, req, ".service")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -517,7 +517,7 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 
 	detail, err := s.getContent(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -546,7 +546,7 @@ func (s *ServiceMan) UpdateContent(c *gin.Context) {
 	}
 	err = s.update(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -596,7 +596,7 @@ func (s *ServiceMan) GetForm(c *gin.Context) {
 
 	detail, err := s.getForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -625,7 +625,7 @@ func (s *ServiceMan) CreateForm(c *gin.Context) {
 	}
 	err = s.createForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -653,7 +653,7 @@ func (s *ServiceMan) UpdateForm(c *gin.Context) {
 	}
 	err = s.updateForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -707,7 +707,7 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 
 	err = s.delete(hostID, req, ".service")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -736,7 +736,7 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 	}
 	err = s.restore(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -806,7 +806,7 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 
 	logs, err := s.getServiceLog(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -869,7 +869,7 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 
 	diff, err := s.getServiceDiff(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -893,7 +893,7 @@ func (s *ServiceMan) SyncGlobal(c *gin.Context) {
 
 	err = s.syncGlobal(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -921,7 +921,7 @@ func (s *ServiceMan) ServiceActivate(c *gin.Context) {
 	}
 	err = s.serviceActivate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)

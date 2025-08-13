@@ -267,7 +267,7 @@ func (s *LogRotate) GetCategories(c *gin.Context) {
 
 	categories, err := s.getCategories(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (s *LogRotate) CreateCategory(c *gin.Context) {
 	}
 	err = s.createCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -324,7 +324,7 @@ func (s *LogRotate) UpdateCategory(c *gin.Context) {
 	}
 	err = s.updateCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -370,7 +370,7 @@ func (s *LogRotate) DeleteCategory(c *gin.Context) {
 
 	err = s.deleteCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -433,7 +433,7 @@ func (s *LogRotate) GetConfList(c *gin.Context) {
 
 	services, err := s.getConfList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -462,7 +462,7 @@ func (s *LogRotate) CreateContent(c *gin.Context) {
 	}
 	err = s.create(hostID, req, ".logrotate")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -516,7 +516,7 @@ func (s *LogRotate) GetContent(c *gin.Context) {
 
 	detail, err := s.getContent(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -545,7 +545,7 @@ func (s *LogRotate) UpdateContent(c *gin.Context) {
 	}
 	err = s.update(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -595,7 +595,7 @@ func (s *LogRotate) GetForm(c *gin.Context) {
 
 	detail, err := s.getForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -624,7 +624,7 @@ func (s *LogRotate) CreateForm(c *gin.Context) {
 	}
 	err = s.createForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -652,7 +652,7 @@ func (s *LogRotate) UpdateForm(c *gin.Context) {
 	}
 	err = s.updateForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -706,7 +706,7 @@ func (s *LogRotate) Delete(c *gin.Context) {
 
 	err = s.delete(hostID, req, ".logrotate")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -735,7 +735,7 @@ func (s *LogRotate) Restore(c *gin.Context) {
 	}
 	err = s.restore(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -805,7 +805,7 @@ func (s *LogRotate) GetConfLog(c *gin.Context) {
 
 	logs, err := s.getConfLog(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -868,7 +868,7 @@ func (s *LogRotate) GetConfDiff(c *gin.Context) {
 
 	diff, err := s.getConfDiff(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -892,7 +892,7 @@ func (s *LogRotate) SyncGlobal(c *gin.Context) {
 
 	err = s.syncGlobal(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -920,7 +920,7 @@ func (s *LogRotate) ConfActivate(c *gin.Context) {
 	}
 	err = s.confActivate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)

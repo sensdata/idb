@@ -48,7 +48,7 @@ func (b *BaseApi) CreateGroup(c *gin.Context) {
 
 	result, err := groupService.Create(req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -71,7 +71,7 @@ func (b *BaseApi) UpdateGroup(c *gin.Context) {
 	upMap := make(map[string]interface{})
 	upMap["group_name"] = req.GroupName
 	if err := groupService.Update(req.ID, upMap); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)
@@ -93,7 +93,7 @@ func (b *BaseApi) DeleteGroup(c *gin.Context) {
 	}
 
 	if err := groupService.Delete([]uint{uint(groupID)}); err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, nil)

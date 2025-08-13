@@ -16,7 +16,7 @@ import (
 func (b *BaseApi) SyncApp(c *gin.Context) {
 	err := appService.SyncApp()
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, "")
@@ -62,7 +62,7 @@ func (b *BaseApi) AppPage(c *gin.Context) {
 
 	result, err := appService.AppPage(hostID, req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -90,7 +90,7 @@ func (b *BaseApi) AppDetail(c *gin.Context) {
 
 	result, err := appService.AppDetail(hostID, model.QueryAppDetail{ID: uint(appID)})
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -119,7 +119,7 @@ func (b *BaseApi) InstalledAppPage(c *gin.Context) {
 
 	result, err := appService.InstalledAppPage(hostID, req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -173,7 +173,7 @@ func (b *BaseApi) UninstallApp(c *gin.Context) {
 
 	result, err := appService.AppUninstall(uint64(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
@@ -200,7 +200,7 @@ func (b *BaseApi) UpgradeApp(c *gin.Context) {
 
 	result, err := appService.AppUpgrade(uint64(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})

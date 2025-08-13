@@ -85,7 +85,7 @@ func (b *BaseApi) TerminalSessions(c *gin.Context) {
 
 	result, err := terminalService.Sessions(uint(hostID), sessionType)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -113,7 +113,7 @@ func (b *BaseApi) PruneSessions(c *gin.Context) {
 	}
 	result, err := terminalService.Prune(uint(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)
@@ -144,7 +144,7 @@ func (b *BaseApi) DetachSession(c *gin.Context) {
 
 	err = terminalService.Detach(token, uint(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, "")
@@ -175,7 +175,7 @@ func (b *BaseApi) QuitSession(c *gin.Context) {
 
 	err = terminalService.Quit(token, uint(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, "")
@@ -206,7 +206,7 @@ func (b *BaseApi) RenameSession(c *gin.Context) {
 
 	err = terminalService.Rename(token, uint(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, "")
@@ -235,7 +235,7 @@ func (b *BaseApi) InstallTerminal(c *gin.Context) {
 
 	result, err := terminalService.Install(uint(hostID), req)
 	if err != nil {
-		ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	SuccessWithData(c, result)

@@ -268,7 +268,7 @@ func (s *CronTab) GetCategories(c *gin.Context) {
 
 	categories, err := s.getCategories(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (s *CronTab) CreateCategory(c *gin.Context) {
 	}
 	err = s.createCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -325,7 +325,7 @@ func (s *CronTab) UpdateCategory(c *gin.Context) {
 	}
 	err = s.updateCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -371,7 +371,7 @@ func (s *CronTab) DeleteCategory(c *gin.Context) {
 
 	err = s.deleteCategory(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -434,7 +434,7 @@ func (s *CronTab) GetConfList(c *gin.Context) {
 
 	services, err := s.getConfList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -463,7 +463,7 @@ func (s *CronTab) CreateContent(c *gin.Context) {
 	}
 	err = s.create(hostID, req, ".crontab")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -517,7 +517,7 @@ func (s *CronTab) GetContent(c *gin.Context) {
 
 	detail, err := s.getContent(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -546,7 +546,7 @@ func (s *CronTab) UpdateContent(c *gin.Context) {
 	}
 	err = s.update(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -596,7 +596,7 @@ func (s *CronTab) GetForm(c *gin.Context) {
 
 	detail, err := s.getForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -625,7 +625,7 @@ func (s *CronTab) CreateForm(c *gin.Context) {
 	}
 	err = s.createForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -653,7 +653,7 @@ func (s *CronTab) UpdateForm(c *gin.Context) {
 	}
 	err = s.updateForm(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -707,7 +707,7 @@ func (s *CronTab) Delete(c *gin.Context) {
 
 	err = s.delete(hostID, req, ".crontab")
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -736,7 +736,7 @@ func (s *CronTab) Restore(c *gin.Context) {
 	}
 	err = s.restore(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -806,7 +806,7 @@ func (s *CronTab) GetConfLog(c *gin.Context) {
 
 	logs, err := s.getConfLog(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -869,7 +869,7 @@ func (s *CronTab) GetConfDiff(c *gin.Context) {
 
 	diff, err := s.getConfDiff(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -893,7 +893,7 @@ func (s *CronTab) SyncGlobal(c *gin.Context) {
 
 	err = s.syncGlobal(uint(hostID))
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -921,7 +921,7 @@ func (s *CronTab) ConfActivate(c *gin.Context) {
 	}
 	err = s.confActivate(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrInternalServer.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)

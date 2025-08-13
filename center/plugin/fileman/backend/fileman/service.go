@@ -249,7 +249,7 @@ func (s *FileMan) GetFileTree(c *gin.Context) {
 
 	tree, err := s.getFileTree(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -306,7 +306,7 @@ func (s *FileMan) GetFileList(c *gin.Context) {
 
 	files, err := s.getFileList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -371,7 +371,7 @@ func (s *FileMan) SearchFile(c *gin.Context) {
 
 	files, err := s.searchFile(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -400,7 +400,7 @@ func (s *FileMan) CreateFile(c *gin.Context) {
 	}
 	err = s.create(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -438,7 +438,7 @@ func (s *FileMan) DeleteFile(c *gin.Context) {
 
 	err = s.delete(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -474,7 +474,7 @@ func (s *FileMan) BatchDeleteFile(c *gin.Context) {
 
 	err = s.batchDelete(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 
@@ -503,7 +503,7 @@ func (s *FileMan) CompressFile(c *gin.Context) {
 	}
 	err = s.compress(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -530,7 +530,7 @@ func (s *FileMan) DeCompressFile(c *gin.Context) {
 	}
 	err = s.decompress(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -568,7 +568,7 @@ func (s *FileMan) GetDetail(c *gin.Context) {
 
 	info, err := s.getContent(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, info)
@@ -605,7 +605,7 @@ func (s *FileMan) Head(c *gin.Context) {
 
 	info, err := s.getContentPart(uint(hostID), path, numbers, io.SeekStart)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, info)
@@ -642,7 +642,7 @@ func (s *FileMan) Tail(c *gin.Context) {
 
 	info, err := s.getContentPart(uint(hostID), path, -numbers, io.SeekEnd)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, info)
@@ -689,7 +689,7 @@ func (s *FileMan) SaveContent(c *gin.Context) {
 	}
 
 	if err := s.saveContent(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -732,7 +732,7 @@ func (s *FileMan) Upload(c *gin.Context) {
 	file := files[0]
 
 	if err := s.uploadFile(uint(hostID), path, file); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -760,7 +760,7 @@ func (s *FileMan) Download(c *gin.Context) {
 	}
 
 	if err := s.downloadFile(c, uint(hostID), source); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 }
@@ -793,7 +793,7 @@ func (s *FileMan) Size(c *gin.Context) {
 
 	res, err := s.dirSize(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, res)
@@ -821,7 +821,7 @@ func (s *FileMan) ChangeFileName(c *gin.Context) {
 	}
 
 	if err := s.changeName(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -865,7 +865,7 @@ func (s *FileMan) MoveFile(c *gin.Context) {
 	}
 
 	if err := s.mvFile(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, nil)
@@ -892,7 +892,7 @@ func (s *FileMan) ChangeFileOwner(c *gin.Context) {
 		return
 	}
 	if err := s.changeOwner(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithOutData(c)
@@ -920,7 +920,7 @@ func (s *FileMan) ChangeFileMode(c *gin.Context) {
 	}
 	err = s.changeMode(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithOutData(c)
@@ -947,7 +947,7 @@ func (s *FileMan) BatchChangeMode(c *gin.Context) {
 		return
 	}
 	if err := s.batchChangeMode(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 	}
 	helper.SuccessWithOutData(c)
 }
@@ -973,7 +973,7 @@ func (s *FileMan) BatchChangeOwner(c *gin.Context) {
 		return
 	}
 	if err := s.batchChangeOwner(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 	}
 	helper.SuccessWithOutData(c)
 }
@@ -1016,7 +1016,7 @@ func (s *FileMan) GetFavoriteList(c *gin.Context) {
 
 	result, err := s.getFavoriteList(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, result)
@@ -1044,7 +1044,7 @@ func (s *FileMan) CreateFavorite(c *gin.Context) {
 	}
 	favorite, err := s.createFavorite(hostID, req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithData(c, favorite)
@@ -1077,7 +1077,7 @@ func (s *FileMan) DeleteFavorite(c *gin.Context) {
 	}
 
 	if err := s.deleteFavorite(hostID, req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, err.Error(), err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
 	helper.SuccessWithOutData(c)
