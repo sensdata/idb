@@ -24,4 +24,17 @@ export default {
   'login.form.forgetPassword': '忘记密码',
   'login.form.login': '登录',
   'login.form.register': '注册账号',
+
+  // 忘记密码模态框
+  'login.forgotPassword.modal.title': '密码重置说明',
+  'login.forgotPassword.modal.message':
+    '密码重置需要在服务器内部执行，请联系系统管理员或按照以下步骤操作：',
+  'login.forgotPassword.modal.instructionsTitle': '重置步骤：',
+  'login.forgotPassword.modal.step1': '登录到 iDB 服务器',
+  'login.forgotPassword.modal.step2': '确保 iDB 服务正在运行',
+  'login.forgotPassword.modal.step3': '执行密码重置命令',
+  'login.forgotPassword.modal.commandTitle': '重置命令：',
+  'login.forgotPassword.modal.understood': '我知道了',
+  'login.forgotPassword.modal.note':
+    '注意：命令执行后会生成新的随机密码，请妥善保存。',
 };

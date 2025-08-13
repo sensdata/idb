@@ -54,7 +54,9 @@
           >
             {{ $t('login.form.rememberPassword') }}
           </a-checkbox>
-          <a-link>{{ $t('login.form.forgetPassword') }}</a-link>
+          <a-link @click="showForgotPasswordModal">
+            {{ $t('login.form.forgetPassword') }}
+          </a-link>
         </div>
         <a-button
           type="primary"
@@ -70,6 +72,9 @@
         </a-button> -->
       </a-space>
     </a-form>
+
+    <!-- 忘记密码模态框 -->
+    <ForgotPasswordModal v-model:visible="forgotPasswordModalVisible" />
   </div>
 </template>
 
@@ -84,6 +89,7 @@
   import useLoading from '@/composables/loading';
   import type { LoginDataDo } from '@/api/user';
   import { DEFAULT_ROUTE_NAME } from '@/router/constants';
+  import ForgotPasswordModal from './forgot-password-modal.vue';
 
   function serialize(str: string): string {
     const encoded = btoa(str);
@@ -104,6 +110,9 @@
   const errorMessage = ref('');
   const { loading, setLoading } = useLoading();
   const userStore = useUserStore();
+
+  // 忘记密码模态框状态
+  const forgotPasswordModalVisible = ref(false);
 
   const loginConfig = useStorage('login-config', {
     name: 'admin',
@@ -162,6 +171,11 @@
   };
   const setRememberPassword = (value: boolean) => {
     loginConfig.value.rememberPassword = value;
+  };
+
+  // 显示忘记密码模态框
+  const showForgotPasswordModal = () => {
+    forgotPasswordModalVisible.value = true;
   };
 </script>
 
