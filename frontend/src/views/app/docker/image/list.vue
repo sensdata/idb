@@ -150,7 +150,7 @@
     {
       dataIndex: 'operation',
       title: t('common.table.operation'),
-      align: 'center' as const,
+      align: 'left' as const,
       width: 120,
       slotName: 'operation',
     },
