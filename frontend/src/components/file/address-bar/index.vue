@@ -628,8 +628,8 @@
       background-color: var(--color-fill-3);
     }
 
-    // 第一个路径项添加左边距
-    + .breadcrumb-item.path-item {
+    // 第一个路径项添加左边距（不管是path-item还是current-item）
+    + .breadcrumb-item {
       margin-left: 0.429rem;
     }
   }
