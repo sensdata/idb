@@ -28,6 +28,11 @@ export default {
   'app.store.app.upgrade.confirm':
     'The docker-compose.yml of version {version} will be used to overwrite, please backup the data before upgrading',
   'app.store.app.install.success': 'App installed successfully',
+  'app.store.app.install.success.confirm.title': 'Installation Successful',
+  'app.store.app.install.success.confirm.content':
+    'The app has been successfully installed! Would you like to go to the container management page to view it?',
+  'app.store.app.install.success.confirm.ok': 'Go to Container Management',
+  'app.store.app.install.success.confirm.cancel': 'Stay on Current Page',
   'app.store.app.upgrade.success': 'App upgraded successfully',
   'app.store.app.uninstall.confirm':
     'Are you sure you want to uninstall the app?',
