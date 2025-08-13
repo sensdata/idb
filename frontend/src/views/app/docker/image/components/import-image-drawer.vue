@@ -8,10 +8,16 @@
     @before-ok="onBeforeOk"
     @cancel="onCancel"
   >
-    <a-form ref="formRef" :model="formState" :rules="rules">
+    <a-form
+      ref="formRef"
+      :model="formState"
+      :rules="rules"
+      :labelAlign="'left'"
+    >
       <a-form-item
         field="path"
         :label="t('app.docker.image.form.path')"
+        label-col-flex="80px"
         :rules="[
           {
             required: true,
