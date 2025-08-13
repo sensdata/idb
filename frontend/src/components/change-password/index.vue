@@ -6,7 +6,14 @@
     @cancel="handleCancel"
     @ok="handleOk"
   >
-    <a-form ref="formRef" :model="model" :rules="rules">
+    <a-form
+      ref="formRef"
+      :model="model"
+      :rules="rules"
+      :label-col-props="formLayoutProps.labelColProps"
+      :wrapper-col-props="formLayoutProps.wrapperColProps"
+      label-align="left"
+    >
       <a-form-item
         field="old_password"
         :label="$t('components.changePassword.old')"
@@ -45,18 +52,36 @@
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref } from 'vue';
+  import { reactive, ref, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { changePasswordApi } from '@/api/user';
   import { useUserStore } from '@/store';
   import useVisible from '@/composables/visible';
   import useLoading from '@/composables/loading';
+  import useLocale from '@/composables/locale';
 
   const userStore = useUserStore();
   const { t } = useI18n();
+  const { currentLocale } = useLocale();
   const { visible, show } = useVisible();
   const { loading, showLoading, hideLoading } = useLoading();
+
+  // 根据当前语言动态调整表单布局
+  const formLayoutProps = computed(() => {
+    // 英文标签较长，需要更多空间
+    if (currentLocale.value === 'en-US') {
+      return {
+        labelColProps: { span: 8 },
+        wrapperColProps: { span: 16 },
+      };
+    }
+    // 中文标签较短，可以使用较小的空间
+    return {
+      labelColProps: { span: 5 },
+      wrapperColProps: { span: 18 },
+    };
+  });
 
   const formRef = ref();
   const model = reactive({

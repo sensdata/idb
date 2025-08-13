@@ -2,7 +2,9 @@
   <div class="navbar">
     <div class="left-side">
       <a-space>
-        <img class="logo" alt="logo" :src="LogoImage" />
+        <router-link to="/manage/host" class="logo-link">
+          <img class="logo" alt="logo" :src="LogoImage" />
+        </router-link>
         <icon-menu-fold
           v-if="!topMenu && appStore.device === 'mobile'"
           style="font-size: 22px; cursor: pointer"
@@ -221,6 +223,11 @@
     display: flex;
     align-items: center;
     padding-left: 20px;
+    .logo-link {
+      display: inline-block;
+      cursor: pointer;
+      text-decoration: none;
+    }
     .logo {
       height: 28px;
     }
