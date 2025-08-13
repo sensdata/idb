@@ -1,5 +1,4 @@
 import { RouteRecordRaw } from 'vue-router';
-import DeskTopIcon from '@/assets/icons/desktop.svg?raw';
 
 const manageRoutes: RouteRecordRaw[] = [
   {
@@ -8,7 +7,7 @@ const manageRoutes: RouteRecordRaw[] = [
     meta: {
       locale: 'menu.manage.host',
       requiresAuth: true,
-      icon: DeskTopIcon,
+      icon: 'icon-desktop',
     },
     component: () => import('@/views/manage/host/list.vue'),
   },
