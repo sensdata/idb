@@ -187,7 +187,7 @@
           :popup-max-height="false"
           @select="(key) => handleOperation(key as string, record)"
         >
-          <a-button type="text">
+          <a-button type="text" class="operation-button">
             <icon-settings />
             <icon-caret-down class="ml-4" />
           </a-button>
@@ -438,6 +438,11 @@
     height: 14px;
     margin-right: 8px;
     vertical-align: top;
+  }
+
+  /* 操作列按钮样式 */
+  .operation-button {
+    padding-left: 0 !important;
   }
 
   /* 响应式按钮组样式 */
