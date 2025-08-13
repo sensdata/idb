@@ -165,7 +165,7 @@
       return;
     }
     try {
-      await pruneApi({ type: 'image' });
+      await pruneApi({ type: 'image', with_tag_all: true });
       Message.success(t('app.docker.image.prune.success'));
       reload();
     } catch (e: any) {

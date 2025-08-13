@@ -180,7 +180,7 @@ export interface NetworkCreate {
 
 export interface PruneParams {
   type: 'container' | 'image' | 'volume' | 'network' | 'buildcache';
-  with_tag_all?: boolean;
+  with_tag_all: boolean;
 }
 
 export interface PruneResult {

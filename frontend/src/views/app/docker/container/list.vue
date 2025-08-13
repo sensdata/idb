@@ -322,7 +322,7 @@
       return;
     }
     try {
-      await pruneApi({ type: 'container' });
+      await pruneApi({ type: 'container', with_tag_all: true });
       Message.success(t('app.docker.container.prune.success'));
       reload();
     } catch (e: any) {
