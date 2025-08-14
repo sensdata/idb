@@ -77,8 +77,8 @@
     </div>
   </a-spin>
   <!-- <upgrade-drawer ref="upgradeRef" /> -->
-  <upgrade-log ref="upgradeLogRef" />
-  <uninstall-log ref="uninstallLogRef" />
+  <upgrade-log ref="upgradeLogRef" @ok="load" />
+  <uninstall-log ref="uninstallLogRef" @ok="load" />
 </template>
 
 <script setup lang="ts">
@@ -190,8 +190,10 @@
         loading.value = true;
         const res = await uninstallAppApi({
           id: item.id,
+          compose_name: item.name,
         });
         uninstallLogRef.value?.logFileLogs(res.log_host, res.log_path);
+        uninstallLogRef.value?.show();
       } catch (err: any) {
         Message.error(err?.message);
       } finally {

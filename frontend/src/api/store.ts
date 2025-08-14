@@ -56,6 +56,13 @@ export function upgradeAppApi(params: UpgradeAppParams) {
   }>('store/{host}/apps/upgrade', params);
 }
 
-export function uninstallAppApi(params: { id: number }) {
-  return request.post('store/{host}/apps/uninstall', params);
+export interface UninstallAppParams {
+  id: number;
+  compose_name: string;
+}
+export function uninstallAppApi(params: UninstallAppParams) {
+  return request.post<{
+    log_host: number;
+    log_path: string;
+  }>('store/{host}/apps/uninstall', params);
 }

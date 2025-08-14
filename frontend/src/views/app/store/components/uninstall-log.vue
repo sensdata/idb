@@ -34,6 +34,7 @@
   import useVisible from '@/composables/visible';
   import { Message } from '@arco-design/web-vue';
   import { resolveApiUrl } from '@/helper/api-helper';
+  import { once } from 'lodash';
 
   const emit = defineEmits(['ok', 'cancel']);
   const { t } = useI18n();
@@ -50,6 +51,9 @@
   );
   const logContentRef = ref<HTMLElement | null>(null);
 
+  // 成功处理函数，使用 lodash.once 确保只执行一次
+  let handleSuccessOnce: (() => void) | null = null;
+
   const scrollToBottom = async () => {
     await nextTick();
     if (logContentRef.value) {
@@ -61,10 +65,6 @@
     scrollToBottom();
   });
 
-  const addLog = (log: LogItem) => {
-    logs.value.push(log);
-  };
-
   const clearLogs = () => {
     logs.value = [];
   };
@@ -75,9 +75,34 @@
     status.value = newStatus;
   };
 
+  const createSuccessHandler = () => {
+    const baseHandler = () => {
+      setStatus('completed');
+      Message.success(t('app.store.uninstallLog.success'));
+      emit('ok');
+    };
+
+    return once(baseHandler);
+  };
+
+  const addLog = (log: LogItem) => {
+    logs.value.push(log);
+
+    // 基于 Agent 端的具体日志内容检测卸载成功
+    const message = log.message;
+    if (
+      (message.includes('docker compose down') &&
+        message.includes('successful')) ||
+      message.includes('try remove work dir')
+    ) {
+      handleSuccessOnce?.();
+    }
+  };
+
   const reset = () => {
     clearLogs();
     setStatus('installing');
+    handleSuccessOnce = createSuccessHandler();
   };
 
   const processLogData = (data: string): LogItem => {
@@ -208,9 +233,7 @@
         if (statusValue === 'success') {
           clearInterval(timer);
           eventSource.close();
-          setStatus('completed');
-          Message.success(t('app.store.uninstallLog.success'));
-          emit('ok');
+          handleSuccessOnce?.();
         } else if (statusValue === 'failed' || statusValue === 'canceled') {
           clearInterval(timer);
           eventSource.close();
@@ -268,9 +291,7 @@
     eventSource.addEventListener('close', () => {
       clearInterval(timer);
       eventSource.close();
-      setStatus('completed');
-      Message.success(t('app.store.uninstallLog.installSuccess'));
-      emit('ok');
+      handleSuccessOnce?.();
     });
 
     eventSource.addEventListener('error', (event) => {
@@ -310,9 +331,7 @@
     eventSource.addEventListener('end', () => {
       clearInterval(timer);
       eventSource.close();
-      setStatus('completed');
-      Message.success(t('app.store.uninstallLog.installSuccess'));
-      emit('ok');
+      handleSuccessOnce?.();
     });
   };
 

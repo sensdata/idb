@@ -223,6 +223,7 @@
         showLoading();
         const res = await uninstallAppApi({
           id: item.id,
+          compose_name: item.name,
         });
         uninstallLogRef.value?.logFileLogs(res.log_host, res.log_path);
         uninstallLogRef.value?.show();
