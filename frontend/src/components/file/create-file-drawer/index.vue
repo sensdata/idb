@@ -17,11 +17,11 @@
       <a-form-item
         field="name"
         :label="$t('components.file.createFileDrawer.name')"
-        label-col-flex="80px"
+        label-col-flex="70px"
       >
         <a-input v-model="formState.name" />
       </a-form-item>
-      <a-form-item field="is_link" label=" " label-col-flex="80px">
+      <a-form-item field="is_link" label="" label-col-flex="70px">
         <a-checkbox v-model="formState.is_link">
           {{ $t('components.file.createFileDrawer.is_link') }}
         </a-checkbox>
@@ -30,7 +30,7 @@
         v-if="formState.is_link"
         field="is_link"
         :label="$t('components.file.createFileDrawer.link_type')"
-        label-col-flex="80px"
+        label-col-flex="70px"
       >
         <a-radio-group v-model="formState.link_type">
           <a-radio value="soft">{{
@@ -45,7 +45,7 @@
         v-if="formState.is_link"
         field="link_path"
         :label="$t('components.file.createFileDrawer.link_path')"
-        label-col-flex="85px"
+        label-col-flex="70px"
       >
         <a-input v-model="formState.link_path" />
       </a-form-item>

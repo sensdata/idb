@@ -17,11 +17,11 @@
       <a-form-item
         field="name"
         :label="$t('components.file.createFolderDrawer.name')"
-        label-col-flex="120px"
+        label-col-flex="90px"
       >
         <a-input v-model="formState.name" />
       </a-form-item>
-      <a-form-item field="set_mode" label=" " label-col-flex="120px">
+      <a-form-item field="set_mode" label=" " label-col-flex="90px">
         <a-checkbox v-model="formState.set_mode">
           {{ $t('components.file.createFolderDrawer.set_mode') }}
         </a-checkbox>
@@ -30,7 +30,7 @@
         <a-form-item
           field="owner_access"
           :label="$t('components.file.createFolderDrawer.owner_access')"
-          label-col-flex="120px"
+          label-col-flex="90px"
         >
           <a-checkbox-group
             v-model="formState.owner_access"
@@ -40,7 +40,7 @@
         <a-form-item
           field="group_access"
           :label="$t('components.file.createFolderDrawer.group_access')"
-          label-col-flex="120px"
+          label-col-flex="90px"
         >
           <a-checkbox-group
             v-model="formState.group_access"
@@ -50,7 +50,7 @@
         <a-form-item
           field="other_access"
           :label="$t('components.file.createFolderDrawer.other_access')"
-          label-col-flex="120px"
+          label-col-flex="90px"
         >
           <a-checkbox-group
             v-model="formState.other_access"
@@ -60,7 +60,7 @@
         <a-form-item
           field="mode"
           :label="$t('components.file.createFolderDrawer.mode')"
-          label-col-flex="120px"
+          label-col-flex="90px"
         >
           <a-input v-model="formState.mode" class="w-60" :max-length="4" />
         </a-form-item>

@@ -64,9 +64,13 @@
           name: item.name,
         });
       };
-      const findMenuOpenKeys = (target: string) => {
+      const findMenuOpenKeys = (
+        target: string,
+        targetMenuTree?: RouteRecordRaw[]
+      ) => {
         const result: string[] = [];
         let isFind = false;
+        const searchTree = targetMenuTree || menuTree.value;
         const backtrack = (item: RouteRecordRaw, keys: string[]) => {
           if (item.name === target) {
             isFind = true;
@@ -79,7 +83,7 @@
             });
           }
         };
-        menuTree.value.forEach((el: RouteRecordRaw) => {
+        searchTree.forEach((el: RouteRecordRaw) => {
           if (isFind) return; // Performance optimization
           backtrack(el, [el.name as string]);
         });
@@ -172,8 +176,15 @@
       listenerRouteChange((newRoute) => {
         const { requiresAuth, activeMenu, hideInMenu } = newRoute.meta;
         if (requiresAuth && (!hideInMenu || activeMenu)) {
+          // 根据新路由确定应该使用哪个菜单树
+          const isNewRouteApp = newRoute.fullPath.startsWith('/app');
+          const targetMenuTree = isNewRouteApp
+            ? appMenuTree.value
+            : manageMenuTree.value;
+
           const menuOpenKeys = findMenuOpenKeys(
-            (activeMenu || newRoute.name) as string
+            (activeMenu || newRoute.name) as string,
+            targetMenuTree
           );
 
           const keySet = new Set([...menuOpenKeys, ...openKeys.value]);
