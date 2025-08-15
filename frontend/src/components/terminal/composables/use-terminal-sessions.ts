@@ -94,7 +94,7 @@ export function useTerminalSessions() {
     }
   }
 
-  // 创建第一个会话（智能选择attach或start）
+  // 创建第一个会话（利用后端自动选择逻辑）
   async function createFirstSession(
     host: HostEntity
   ): Promise<SessionCreationResult> {
@@ -105,62 +105,13 @@ export function useTerminalSessions() {
       };
     }
 
-    try {
-      // 先查询服务器上的会话
-      const serverSessions = await getAllHostSessions(host.id);
-      logWarn(
-        `Found ${serverSessions.length} sessions on server for host ${host.id}`
-      );
-
-      // 查找detached状态的会话
-      const detachedSessions = serverSessions.filter(
-        (session) => session.status?.toLowerCase() === 'detached'
-      );
-
-      if (detachedSessions.length > 0) {
-        // 选择最新的detached会话
-        const latestSession = detachedSessions.reduce((latest, current) => {
-          // 如果有时间信息，选择最新的；否则选择第一个
-          if (latest.time && current.time) {
-            return new Date(current.time) > new Date(latest.time)
-              ? current
-              : latest;
-          }
-          return latest;
-        });
-
-        // 确保选择的会话确实有sessionId
-        if (latestSession.session) {
-          logWarn(
-            `Will attach to detached session: ${latestSession.session} (${latestSession.name})`
-          );
-          return {
-            type: 'attach',
-            sessionId: latestSession.session,
-          };
-        }
-        logWarn(
-          'Selected detached session has no sessionId, will create new session'
-        );
-        return {
-          type: 'start',
-        };
-      }
-      // 没有detached会话，创建新会话
-      logWarn('No detached sessions found, will create new session');
-      return {
-        type: 'start',
-      };
-    } catch (error) {
-      logError(
-        'Failed to query server sessions for createFirstSession:',
-        error
-      );
-      // 查询失败，降级为创建新会话
-      return {
-        type: 'start',
-      };
-    }
+    // 直接返回 attach 类型，不指定 sessionId
+    // 后端会自动选择最新的 detached 会话进行 attach
+    // 如果没有可用的 detached 会话，后端会自动降级为创建新会话
+    return {
+      type: 'attach',
+      // sessionId 为空，让后端自动处理
+    };
   }
 
   // 清理函数（可选，用于组件卸载时清理状态）
