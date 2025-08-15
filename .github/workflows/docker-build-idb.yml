@@ -10,7 +10,9 @@ on:
         description: "Specify the version tag for the build (e.g., v1.0.0)"
         required: false  # 手动触发时允许不传递版本号
         default: "manual"  # 如果手动触发时没有传递版本号，默认使用 "manual"
-        
+
+run-name: Build IDB - ${{ github.event.inputs.version || github.ref_name }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
