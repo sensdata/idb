@@ -1,5 +1,5 @@
 <template>
-  <div class="tab-title-container" @contextmenu.prevent="showContextMenu">
+  <div class="tab-title-container">
     <span v-if="!item.isRenaming" class="tab-title" @dblclick="handleRename">
       {{ item.title }}
     </span>
@@ -27,35 +27,6 @@
       >
         <icon-down />
       </span>
-      <template #content>
-        <a-doption value="rename">
-          <template #icon>
-            <icon-edit />
-          </template>
-          {{ $t('components.terminal.session.rename') }}
-        </a-doption>
-        <a-doption value="detach">
-          <template #icon>
-            <icon-disconnect />
-          </template>
-          {{ $t('components.terminal.session.detach') }}
-        </a-doption>
-        <a-doption value="quit">
-          <template #icon>
-            <icon-close />
-          </template>
-          {{ $t('components.terminal.session.quit') }}
-        </a-doption>
-      </template>
-    </a-dropdown>
-
-    <a-dropdown
-      v-model:popup-visible="contextMenuVisible"
-      position="bottom"
-      :trigger="[]"
-      @select="handleAction"
-    >
-      <span style="display: none"></span>
       <template #content>
         <a-doption value="rename">
           <template #icon>
@@ -238,12 +209,6 @@
     } catch (error) {
       logError('Failed to handle action:', error);
     }
-  }
-
-  const contextMenuVisible = ref(false);
-
-  function showContextMenu(): void {
-    contextMenuVisible.value = true;
   }
 </script>
 

@@ -139,20 +139,18 @@
     }, 5e3);
   }
 
-  const onResize = () => {
+  // 处理窗口大小变化时的终端尺寸调整
+  const handleResize = () => {
     fitRef.value?.fit();
     if (termRef.value) {
       const { cols, rows } = termRef.value;
       sendWsMsg({ type: MsgType.Resize, cols, rows });
     }
   };
-  const onResizeDebounce = debounce(onResize, 500);
-  function addResizeListener() {
-    window.addEventListener('resize', onResizeDebounce);
-  }
-  function removeResizeListener() {
-    window.removeEventListener('resize', onResizeDebounce);
-  }
+
+  const debouncedResize = debounce(handleResize, 150);
+
+  let resizeObserver: ResizeObserver | undefined;
 
   // 使用类型系统解决循环引用问题
   type WebSocketInitializer = (term: Terminal) => void;
@@ -235,7 +233,7 @@
       if (props.sendHeartbeat) {
         autoSendHeartbeat();
       }
-      onResize();
+      handleResize();
     };
     wsRef.value.onmessage = onWsMsgReceived;
   };
@@ -272,7 +270,12 @@
     });
     fitRef.value.fit();
     termRef.value.focus();
-    addResizeListener();
+    if (domRef.value) {
+      resizeObserver = new ResizeObserver(() => {
+        debouncedResize();
+      });
+      resizeObserver.observe(domRef.value);
+    }
     initWebSocket(termRef.value);
   }
 
@@ -291,7 +294,8 @@
   });
 
   function dispose() {
-    removeResizeListener();
+    resizeObserver?.disconnect();
+    resizeObserver = undefined;
     disconnectWs();
     if (timerRef.value) {
       clearInterval(timerRef.value);
@@ -300,9 +304,31 @@
     termRef.value?.dispose();
   }
 
-  function focus() {
+  // 聚焦终端
+  const focus = () => {
     termRef.value?.focus();
-  }
+  };
+
+  // 适配终端尺寸
+  const fit = () => {
+    fitRef.value?.fit();
+  };
+
+  // 强制重新适配终端尺寸，解决标签页切换后的显示问题
+  const forceRefit = () => {
+    if (!fitRef.value || !termRef.value) return;
+
+    // 使用双重 requestAnimationFrame 确保DOM完全更新
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        fitRef.value?.fit();
+        if (termRef.value) {
+          const { cols, rows } = termRef.value;
+          sendWsMsg({ type: MsgType.Resize, cols, rows });
+        }
+      });
+    });
+  };
 
   onMounted(() => {
     initTerminal();
@@ -315,6 +341,8 @@
     sendWsMsg,
     dispose,
     focus,
+    fit,
+    forceRefit,
   });
 </script>
 

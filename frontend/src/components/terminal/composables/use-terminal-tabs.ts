@@ -1,4 +1,4 @@
-import { ref, onUnmounted, watch, computed } from 'vue';
+import { ref, onUnmounted, watch, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash';
 import { useLogger } from '@/composables/use-logger';
@@ -8,6 +8,8 @@ import { useTerminalPersistence } from './use-terminal-persistence';
 // 定义终端引用的接口，避免使用any
 export interface TerminalRef {
   focus: () => void;
+  fit: () => void;
+  forceRefit: () => void;
   dispose: () => void;
   sendWsMsg: (payload: Partial<SendMsgDo>) => void;
 }
@@ -36,10 +38,32 @@ export interface AddItemOptions {
 }
 
 export function useTerminalTabs() {
-  const terms = ref<TermSessionItem[]>([]);
+  // 保存所有主机的终端会话
+  const allTerms = ref<TermSessionItem[]>([]);
+
+  // 当前主机ID，用于过滤显示的会话
+  const currentHostId = ref<number>();
+
+  // 缓存每个主机的会话，避免重复计算
+  const hostTermsCache = ref<Map<number, TermSessionItem[]>>(new Map());
+
+  // 当前主机的终端会话（计算属性，基于allTerms过滤）
+  const terms = computed(() => {
+    if (!currentHostId.value) return [];
+
+    const currentTerms = allTerms.value.filter(
+      (item) => item.hostId === currentHostId.value
+    );
+
+    // 更新缓存
+    hostTermsCache.value.set(currentHostId.value, currentTerms);
+
+    return currentTerms;
+  });
+
   const activeKey = ref<string>();
   const { t } = useI18n();
-  const { logError } = useLogger('TerminalTabs');
+  const { logError, logWarn } = useLogger('TerminalTabs');
   const {
     saveHostSessionState,
     loadHostSessionState,
@@ -49,7 +73,7 @@ export function useTerminalTabs() {
   } = useTerminalPersistence();
 
   // 终端标签页数量限制
-  const MAX_TABS = 10;
+  const MAX_TABS = 5;
 
   // 获取活跃的终端项（使用computed优化性能）
   const activeItem = computed(() => {
@@ -61,33 +85,32 @@ export function useTerminalTabs() {
     return `term_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   };
 
-  // 当前主机ID，用于持久化
-  const currentHostId = ref<number>();
-
   // 保存当前状态到持久化存储
-  const saveCurrentState = (): void => {
-    // 如果没有任何会话，则不需要保存
-    if (terms.value.length === 0) return;
+  const saveCurrentState = (hostId?: number): void => {
+    const targetHostId = hostId || currentHostId.value;
+    if (!targetHostId) return;
 
-    // 从当前会话中获取主机信息（所有会话应该属于同一个主机）
-    const firstTerm = terms.value[0];
+    // 获取指定主机的会话
+    const hostTerms = allTerms.value.filter(
+      (item) => item.hostId === targetHostId
+    );
+    if (hostTerms.length === 0) return;
+
+    // 从会话中获取主机信息
+    const firstTerm = hostTerms[0];
     if (!firstTerm) return;
 
-    const hostId = firstTerm.hostId;
     const hostName = firstTerm.hostName;
 
-    // 验证所有会话都属于同一个主机
-    const allSameHost = terms.value.every((term) => term.hostId === hostId);
-    if (!allSameHost) {
-      logError('Found terms from different hosts, cannot save state safely');
-      return;
-    }
-
     try {
-      saveHostSessionState(hostId, hostName, terms.value, activeKey.value);
-
-      // 更新内部的 currentHostId 以保持同步
-      currentHostId.value = hostId;
+      // 保存指定主机的会话
+      saveHostSessionState(
+        targetHostId,
+        hostName,
+        hostTerms,
+        targetHostId === currentHostId.value ? activeKey.value : undefined
+      );
+      logWarn(`Saved ${hostTerms.length} sessions for host ${targetHostId}`);
     } catch (error) {
       logError('Failed to save terminal state:', error);
     }
@@ -96,11 +119,11 @@ export function useTerminalTabs() {
   // 添加新的终端会话
   const addItem = (options: AddItemOptions): string => {
     try {
-      // 检查当前主机的标签页数量限制
-      const currentHostTabs = terms.value.filter(
+      // 检查指定主机的标签页数量限制
+      const hostTabs = allTerms.value.filter(
         (item) => item.hostId === options.hostId
       );
-      if (currentHostTabs.length >= MAX_TABS) {
+      if (hostTabs.length >= MAX_TABS) {
         throw new Error(
           t('components.terminal.session.tabLimitReached', { max: MAX_TABS })
         );
@@ -119,14 +142,26 @@ export function useTerminalTabs() {
         sessionName: options.sessionName,
       };
 
-      terms.value.push(newItem);
-      activeKey.value = key;
+      // 添加到所有会话列表
+      allTerms.value.push(newItem);
+
+      // 如果是当前主机的会话，设置为活跃
+      if (options.hostId === currentHostId.value) {
+        activeKey.value = key;
+      }
 
       // 立即保存状态（对于有sessionId的attach类型会话）
-      if (options.type === 'attach' && options.sessionId) {
+      if (
+        options.type === 'attach' &&
+        options.sessionId &&
+        options.hostId === currentHostId.value
+      ) {
         saveCurrentState();
       }
 
+      logWarn(
+        `Added session ${key} for host ${options.hostId} (current: ${currentHostId.value})`
+      );
       return key;
     } catch (error) {
       logError('Failed to add terminal item:', error);
@@ -137,13 +172,13 @@ export function useTerminalTabs() {
   // 移除终端会话
   const removeItem = (key: string | number): void => {
     try {
-      const index = terms.value.findIndex((item) => item.key === key);
+      const index = allTerms.value.findIndex((item) => item.key === key);
       if (index === -1) {
         return;
       }
 
       // 安全地清理终端引用
-      const item = terms.value[index];
+      const item = allTerms.value[index];
       if (item.termRef?.dispose) {
         try {
           item.termRef.dispose();
@@ -152,68 +187,135 @@ export function useTerminalTabs() {
         }
       }
 
-      // 使用splice而不是直接修改length
-      terms.value.splice(index, 1);
+      // 从所有会话列表中移除
+      allTerms.value.splice(index, 1);
 
-      // 更新活跃的key
+      // 清理缓存
+      hostTermsCache.value.clear();
+
+      // 更新活跃的key（只考虑当前主机的会话）
       if (key === activeKey.value) {
-        const newActiveIndex = Math.min(index, terms.value.length - 1);
-        activeKey.value = terms.value[newActiveIndex]?.key;
+        const currentHostTerms = terms.value;
+        const newActiveIndex = Math.min(index, currentHostTerms.length - 1);
+        activeKey.value = currentHostTerms[newActiveIndex]?.key;
       }
+
+      logWarn(`Removed session ${key}`);
     } catch (error) {
       logError('Failed to remove terminal item:', error);
     }
   };
 
-  // 聚焦当前活跃的终端
+  // 聚焦当前活跃的终端并适配尺寸
   const focus = (): void => {
+    const terminal = activeItem.value?.termRef;
+    if (!terminal?.focus) return;
+
     try {
-      if (activeItem.value?.termRef?.focus) {
-        activeItem.value.termRef.focus();
+      terminal.focus();
+
+      // 切换标签页时重新适配终端尺寸，解决显示问题
+      if (terminal.fit) {
+        requestAnimationFrame(() => {
+          terminal.fit?.();
+        });
       }
     } catch (error) {
       logError('Failed to focus terminal:', error);
     }
   };
 
-  // 设置终端引用
-  const setTerminalRef = (el: unknown, item: TermSessionItem): void => {
-    if (
-      el &&
+  // 验证并设置终端引用
+  const isValidTerminalRef = (el: unknown): el is TerminalRef => {
+    return (
+      el !== null &&
       typeof el === 'object' &&
       'focus' in el &&
+      'fit' in el &&
+      'forceRefit' in el &&
       'dispose' in el &&
       'sendWsMsg' in el &&
       typeof (el as any).focus === 'function' &&
+      typeof (el as any).fit === 'function' &&
+      typeof (el as any).forceRefit === 'function' &&
       typeof (el as any).dispose === 'function' &&
       typeof (el as any).sendWsMsg === 'function'
-    ) {
-      item.termRef = el as TerminalRef;
+    );
+  };
+
+  // 设置终端引用
+  const setTerminalRef = (el: unknown, item: TermSessionItem): void => {
+    if (isValidTerminalRef(el)) {
+      item.termRef = el;
     } else if (el === null) {
       // 清理引用
       item.termRef = undefined;
     }
   };
 
-  // 清空所有终端
-  const clearAll = (): void => {
+  // 清空终端会话
+  const clearAll = (options?: { hostId?: number; dispose?: boolean }): void => {
     try {
-      // 安全地清理所有终端引用
-      terms.value.forEach((item) => {
-        if (item.termRef?.dispose) {
-          try {
-            item.termRef.dispose();
-          } catch (error) {
-            logError('Error disposing terminal during clear all:', error);
-          }
-        }
-      });
+      const { hostId, dispose = true } = options || {};
 
-      // 清空数组
-      terms.value.splice(0);
-      activeKey.value = undefined;
+      if (hostId) {
+        // 清空指定主机的会话
+        const hostTerms = allTerms.value.filter(
+          (item) => item.hostId === hostId
+        );
+
+        if (dispose) {
+          // 安全地清理指定主机的终端引用
+          hostTerms.forEach((item) => {
+            if (item.termRef?.dispose) {
+              try {
+                item.termRef.dispose();
+              } catch (error) {
+                logError('Error disposing terminal during clear host:', error);
+              }
+            }
+          });
+        }
+
+        // 从所有会话中移除指定主机的会话
+        allTerms.value = allTerms.value.filter(
+          (item) => item.hostId !== hostId
+        );
+
+        // 如果清空的是当前主机，重置activeKey
+        if (hostId === currentHostId.value) {
+          activeKey.value = undefined;
+        }
+
+        logWarn(
+          `Cleared ${hostTerms.length} sessions for host ${hostId} (dispose: ${dispose})`
+        );
+      } else {
+        // 清空所有会话
+        if (dispose) {
+          // 安全地清理所有终端引用
+          allTerms.value.forEach((item) => {
+            if (item.termRef?.dispose) {
+              try {
+                item.termRef.dispose();
+              } catch (error) {
+                logError('Error disposing terminal during clear all:', error);
+              }
+            }
+          });
+        }
+
+        // 清空数组
+        allTerms.value.splice(0);
+        activeKey.value = undefined;
+
+        // 清理缓存
+        hostTermsCache.value.clear();
+
+        logWarn(`Cleared all sessions (dispose: ${dispose})`);
+      }
     } catch (error) {
-      logError('Failed to clear all terminals:', error);
+      logError('Failed to clear terminals:', error);
     }
   };
 
@@ -229,7 +331,7 @@ export function useTerminalTabs() {
 
   // 获取指定主机的标签页数量
   const getHostTabsCount = (hostId: number): number => {
-    return terms.value.filter((item) => item.hostId === hostId).length;
+    return allTerms.value.filter((item) => item.hostId === hostId).length;
   };
 
   // 检查指定主机是否可以添加新标签页
@@ -269,8 +371,8 @@ export function useTerminalTabs() {
         // 如果无法查询服务器会话，仍然尝试恢复，但标记为不确定状态
       }
 
-      // 清空当前会话
-      clearAll();
+      // 清空指定主机的现有会话（但不断开连接）
+      clearAll({ hostId, dispose: false });
 
       // 智能恢复会话：只恢复可以真正attach到原会话的标签页
       let restoredCount = 0;
@@ -353,7 +455,7 @@ export function useTerminalTabs() {
             hostName, // 确保使用正确的hostName
             termRef: undefined, // 这个会在组件中设置
           };
-          terms.value.push(newItem);
+          allTerms.value.push(newItem);
           restoredCount++;
         }
       });
@@ -379,17 +481,16 @@ export function useTerminalTabs() {
         }
       }
 
-      // 恢复活跃的标签页
+      // 恢复活跃的标签页（只考虑当前主机的会话）
+      const currentHostTerms = terms.value;
       if (
         savedState.activeKey &&
-        terms.value.some((item) => item.key === savedState.activeKey)
+        currentHostTerms.some((item) => item.key === savedState.activeKey)
       ) {
         activeKey.value = savedState.activeKey;
-      } else if (terms.value.length > 0) {
-        activeKey.value = terms.value[0].key;
+      } else if (currentHostTerms.length > 0) {
+        activeKey.value = currentHostTerms[0].key;
       }
-
-      currentHostId.value = hostId;
 
       return restoredCount > 0;
     } catch (error) {
@@ -411,9 +512,11 @@ export function useTerminalTabs() {
   // 监听会话变化，自动保存状态
   const debouncedSaveState = debounce(
     () => {
-      saveCurrentState();
+      if (currentHostId.value) {
+        saveCurrentState(currentHostId.value);
+      }
     },
-    1000,
+    500, // 减少防抖时间，提高响应性
     {
       leading: false, // 不在开始时执行
       trailing: true, // 在结束时执行
@@ -440,6 +543,32 @@ export function useTerminalTabs() {
     }
   };
 
+  // 切换主机功能 - 保持后台会话连接
+  const switchToHost = (hostId: number): void => {
+    const previousHostId = currentHostId.value;
+
+    // 异步保存当前主机状态，不阻塞切换
+    if (previousHostId && terms.value.length > 0) {
+      // 使用 nextTick 在视图更新后保存上一个主机的状态，确保保存目标正确
+      nextTick(() => {
+        saveCurrentState(previousHostId);
+      });
+    }
+
+    // 立即切换到新主机
+    currentHostId.value = hostId;
+
+    // 立即更新activeKey到新主机的第一个会话
+    const newHostTerms = allTerms.value.filter(
+      (item) => item.hostId === hostId
+    );
+    if (newHostTerms.length > 0) {
+      activeKey.value = newHostTerms[0].key;
+    } else {
+      activeKey.value = undefined;
+    }
+  };
+
   // 组件卸载时清理资源
   onUnmounted(() => {
     // 先保存当前状态（在清理之前）
@@ -453,8 +582,8 @@ export function useTerminalTabs() {
     // 停止监听
     stopWatchingTerms();
 
-    // 最后清理终端
-    clearAll();
+    // 最后清理终端（真正断开连接）
+    clearAll({ dispose: true });
   });
 
   return {
@@ -477,5 +606,8 @@ export function useTerminalTabs() {
     hasRestoredSessions,
     saveCurrentState,
     clearHostSessions,
+    // 新增的主机切换功能
+    switchToHost,
+    allTerms, // 暴露所有会话用于调试
   };
 }

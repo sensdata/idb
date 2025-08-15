@@ -44,14 +44,39 @@
           >
             <template #extra>
               <session-add-popover
+                v-if="canAddNewTab"
                 v-model:visible="popoverVisible"
                 :current-host-id="currentHostId"
                 @add-session="handleAddSession"
               />
             </template>
 
-            <!-- 终端标签页内容 -->
+            <!-- 终端标签页内容 - 只显示当前主机的会话标签 -->
             <a-tab-pane v-for="item of terms" :key="item.key">
+              <template #title>
+                <terminal-tab-title
+                  :item="item"
+                  @action="handleTabAction"
+                  @rename="handleTabRename"
+                />
+              </template>
+              <!-- 标签页内容为空，实际终端在下面渲染 -->
+            </a-tab-pane>
+          </a-tabs>
+
+          <!-- 所有终端组件 - 保持在DOM中，通过CSS控制显示 -->
+          <div class="terminal-content">
+            <div
+              v-for="item of allTerms"
+              :key="item.key"
+              class="terminal-wrapper"
+              :class="{
+                'terminal-active':
+                  item.hostId === currentHostId && item.key === activeKey,
+                'terminal-hidden':
+                  item.hostId !== currentHostId || item.key !== activeKey,
+              }"
+            >
               <terminal
                 :ref="(el) => setTerminalRef(el, item)"
                 :host-id="item.hostId"
@@ -61,21 +86,15 @@
                 @wsopen="() => handleWsOpen(item)"
                 @session="(data) => handleSessionName(item, data)"
               />
-              <template #title>
-                <terminal-tab-title
-                  :item="item"
-                  @action="handleTabAction"
-                  @rename="handleTabRename"
-                />
-              </template>
-            </a-tab-pane>
-          </a-tabs>
+            </div>
+          </div>
 
-          <!-- 加载状态 -->
+          <!-- 加载状态 - 绝对定位覆盖在终端内容区域上 -->
           <loading-state
             v-if="
               terms.length === 0 && (isCreatingSession || isRestoringSession)
             "
+            class="terminal-loading-overlay"
             :text-key="
               isRestoringSession
                 ? 'components.terminal.workspace.restoringSession'
@@ -136,6 +155,10 @@
     setCurrentHost,
     restoreHostSessions,
     saveCurrentState,
+    switchToHost,
+    allTerms,
+    canAddTab,
+    MAX_TABS,
   } = useTerminalTabs();
 
   const { createFirstSession, getAllHostSessions } = useTerminalSessions();
@@ -150,6 +173,11 @@
   const currentHost = computed(() =>
     hostStore.items.find((item) => item.id === currentHostId.value)
   );
+
+  // 计算是否可以添加新标签页
+  const canAddNewTab = computed(() => {
+    return currentHostId.value ? canAddTab(currentHostId.value) : false;
+  });
 
   // 处理标签页操作
   async function handleTabAction(
@@ -239,16 +267,9 @@
       };
 
       // 保存更新后的状态到缓存
-      logWarn(
-        `About to save state after rename: hostId=${updatedItem.hostId}, sessionId=${updatedItem.sessionId}, newTitle="${updatedItem.title}"`
-      );
       saveCurrentState();
 
       Message.success(t('components.terminal.session.renameSuccess'));
-
-      logWarn(
-        `Successfully renamed session ${updatedItem.sessionId} to "${updatedItem.title}" for host ${updatedItem.hostId}`
-      );
     } catch (error) {
       logError('Failed to rename terminal session:', error);
       Message.error(t('components.terminal.session.renameFailed'));
@@ -308,15 +329,8 @@
         const originalSessionName =
           item.originalSessionName || item.sessionName || '';
 
-        logWarn(
-          `Attaching to session ${item.sessionId} with original name: "${originalSessionName}"`
-        );
-
         // 检查sessionId是否有效（只有在attach类型时才需要sessionId）
         if (!item.sessionId) {
-          logWarn(
-            'SessionId is empty, this might be a restored session that needs to be re-attached'
-          );
           // 对于没有sessionId的attach类型，可能需要转换为start类型
           // 或者让服务器处理这种情况
         }
@@ -326,10 +340,6 @@
           session: item.sessionId || '', // 允许空的sessionId，让服务器处理
           data: originalSessionName, // 传递原始的服务器会话名称，确保能正确附加
         });
-
-        logWarn(
-          `Sent attach message for session "${item.sessionId}" (empty sessionId will be handled by server)`
-        );
       }
     } catch (error) {
       logError('Failed to send WebSocket message:', error);
@@ -356,10 +366,6 @@
       item.title === t('components.terminal.session.connecting');
     const hasExistingSession = Boolean(item.sessionId);
 
-    logWarn(
-      `handleSessionName: current title="${item.title}", isConnecting=${isConnectingTitle}, hasExisting=${hasExistingSession}, serverName="${data.sessionName}"`
-    );
-
     // 检查sessionId是否发生了变化（可能表明attach失败，服务器创建了新session）
     if (
       hasExistingSession &&
@@ -377,15 +383,11 @@
     if (isConnectingTitle || (!item.isCustomTitle && !hasExistingSession)) {
       item.title = data.sessionName;
       item.isCustomTitle = false; // 标记为非自定义标题
-      logWarn(`Updated title from server: "${data.sessionName}"`);
     } else {
-      logWarn(
-        `Keeping existing title: "${item.title}", ignoring server name: "${data.sessionName}"`
-      );
+      // 保持现有标题，忽略服务器名称
     }
 
-    // 更新sessionId和sessionName（但记录原始值用于调试）
-    const originalSessionId = item.sessionId;
+    // 更新sessionId和sessionName
     item.sessionId = data.sessionId;
 
     // 保存原始的服务器会话名称，用于会话恢复
@@ -393,12 +395,6 @@
       item.originalSessionName = data.sessionName;
     }
     item.sessionName = data.sessionName;
-
-    if (originalSessionId && originalSessionId !== data.sessionId) {
-      logWarn(
-        `SessionId updated from ${originalSessionId} to ${data.sessionId}`
-      );
-    }
 
     // 保存更新后的会话信息到缓存
     saveCurrentState();
@@ -449,73 +445,61 @@
   // 处理主机选择
   async function handleHostSelect(host: HostEntity): Promise<void> {
     try {
-      // 如果当前有其他主机的会话，先保存当前状态
-      if (
-        currentHostId.value &&
-        currentHostId.value !== host.id &&
-        terms.value.length > 0
-      ) {
-        saveCurrentState();
-        logWarn(
-          `Saved ${terms.value.length} sessions for previous host ${currentHostId.value}`
-        );
+      // 如果是同一个主机，不需要切换
+      if (currentHostId.value === host.id) {
+        return;
       }
 
-      // 清空当前所有会话（切换主机时必须清空）
-      clearAll();
-
-      // 设置新的主机
+      // 立即切换UI显示，让用户感觉响应迅速
+      switchToHost(host.id);
       currentHostId.value = host.id;
       hostStore.setCurrentId(host.id);
       setCurrentHost(host.id);
 
-      // 尝试恢复新主机的保存的会话
-      isRestoringSession.value = true; // 开始恢复会话
-      try {
-        const restored = await restoreHostSessions(
-          host.id,
-          host.name,
-          getAllHostSessions
-        );
+      // 检查新主机是否已有运行中的会话
+      const existingSessions = terms.value;
 
-        if (restored) {
-          // 成功恢复会话，显示提示信息
-          Message.success(
-            t('components.terminal.session.sessionsRestored', {
-              count: terms.value.length,
-            })
-          );
-
-          // 恢复会话后，需要等待所有终端组件渲染完成
-          await nextTick();
-
-          // 为每个恢复的会话重新建立WebSocket连接
-          // 由于termRef需要在组件渲染后才能设置，这里等待一段时间再尝试连接
-          terms.value.forEach((item, index) => {
-            setTimeout(() => {
-              if (item.termRef) {
-                handleWsOpen(item);
-              } else {
-                // 如果termRef还没有设置，再等待一下
-                setTimeout(() => {
-                  if (item.termRef) {
-                    handleWsOpen(item);
-                  }
-                }, 200);
-              }
-            }, 100 + index * 50); // 错开每个连接的时间
-          });
-
-          logWarn(
-            `Successfully restored ${terms.value.length} sessions for host ${host.name}`
-          );
-        } else {
-          // 没有保存的会话，创建默认会话
-          await handleCreateFirstSession();
-        }
-      } finally {
-        isRestoringSession.value = false; // 恢复会话结束
+      if (existingSessions.length > 0) {
+        // 已有运行中的会话，直接显示（连接由子组件自行维护）
+        return;
       }
+
+      // 没有运行中的会话，异步处理会话恢复，不阻塞UI切换
+      nextTick(async () => {
+        isRestoringSession.value = true;
+        try {
+          const restored = await restoreHostSessions(
+            host.id,
+            host.name,
+            getAllHostSessions
+          );
+
+          if (restored) {
+            // 成功恢复会话，显示提示信息
+            Message.success(
+              t('components.terminal.session.sessionsRestored', {
+                count: terms.value.length,
+              })
+            );
+
+            // 依赖子组件的 wsopen 事件来发送 Start/Attach，无需额外延迟处理
+            // Terminal 子组件在 WebSocket 打开时会触发 wsopen 事件，父组件监听后调用 handleWsOpen(item)
+          } else {
+            // 没有保存的会话，创建默认会话
+            await handleCreateFirstSession();
+          }
+        } catch (error) {
+          logError('Failed to restore sessions:', error);
+          // 恢复失败时，尝试创建默认会话
+          try {
+            await handleCreateFirstSession();
+          } catch (fallbackError) {
+            logError('Failed to create fallback session:', fallbackError);
+          }
+        } finally {
+          isRestoringSession.value = false;
+        }
+      });
     } catch (error) {
       logError('Failed to select host:', error);
       // 如果是标签页数量限制错误，显示具体错误信息
@@ -523,13 +507,6 @@
         Message.error(error.message);
       } else {
         Message.error(t('components.terminal.workspace.hostSelectFailed'));
-
-        // 恢复失败时，尝试创建默认会话
-        try {
-          await handleCreateFirstSession();
-        } catch (fallbackError) {
-          logError('Failed to create fallback session:', fallbackError);
-        }
       }
     }
   }
@@ -561,13 +538,18 @@
     }
   };
 
-  // 监听活跃标签页变化
+  // 监听活跃标签页变化，确保终端正确显示和适配尺寸
   const stopWatchingActiveKey = watch(activeKey, (val) => {
-    if (val) {
-      nextTick(() => {
-        focus();
+    if (!val) return;
+
+    nextTick(() => {
+      focus();
+      // 使用 requestAnimationFrame 确保终端完全显示后再次适配尺寸
+      requestAnimationFrame(() => {
+        const activeItem = terms.value.find((item) => item.key === val);
+        activeItem?.termRef?.forceRefit?.();
       });
-    }
+    });
   });
 
   // 监听hostStore的当前主机变化
@@ -618,9 +600,17 @@
 
   // 组件卸载时清理
   onUnmounted(() => {
+    // 保存当前状态
+    if (currentHostId.value && terms.value.length > 0) {
+      saveCurrentState();
+    }
+
     stopWatchingActiveKey();
     stopWatchingHostStore();
-    clearAll();
+
+    // 只在真正关闭应用时才断开所有连接
+    // 这里可以根据需要决定是否保持后台连接
+    clearAll({ dispose: true });
   });
 
   // 处理终端会话清理
@@ -654,6 +644,8 @@
     isPruningSessions,
     isRestoringSession,
     currentHost,
+    canAddNewTab,
+    MAX_TABS,
     handleTabAction,
     handleTabRename,
     handleAddSession,
@@ -669,9 +661,9 @@
 <style scoped>
   .terminal-workspace {
     display: flex;
-    gap: 8px; /* 使用flexbox gap替代margin，更加灵活 */
+    gap: 8px;
     height: 100%;
-    padding: 0 8px 8px 0; /* 将左边距改为0，只保留右边和底部内边距 */
+    padding: 0 8px 8px 0;
     background: var(--color-bg-1);
   }
 
@@ -680,8 +672,6 @@
     flex: 1;
     flex-direction: column;
     min-width: 0;
-
-    /* 使用父容器的gap替代margin-left，更加灵活 */
   }
 
   .welcome-state {
@@ -718,7 +708,6 @@
     padding-right: 6px;
   }
 
-  /* 符合MasterGo设计图的标签页样式 */
   .terminal-tabs :deep(.arco-tabs-nav) {
     height: 32px;
     margin-bottom: 0;
@@ -750,26 +739,18 @@
     color: var(--color-primary-5) !important; /* 悬停状态使用primary-5 */
   }
 
-  /* 确保选中状态样式优先级更高 - 多种选择器覆盖 */
-  .terminal-tabs
-    :deep(.arco-tabs-nav-tab.arco-tabs-nav-tab-active .arco-tabs-tab-title),
-  .terminal-tabs :deep(.arco-tabs-nav-tab-active .arco-tabs-tab-title),
   .terminal-tabs :deep(.arco-tabs-tab-active .arco-tabs-tab-title) {
     color: var(--color-primary-6) !important;
   }
 
-  /* 悬停状态的额外选择器 */
-  .terminal-tabs :deep(.arco-tabs-nav-tab:hover .arco-tabs-tab-title),
-  .terminal-tabs :deep(.arco-tabs-nav-tab-active:hover .arco-tabs-tab-title) {
+  .terminal-tabs :deep(.arco-tabs-tab:hover .arco-tabs-tab-title) {
     color: var(--color-primary-5) !important;
   }
 
-  /* 标签页间距调整 */
   .terminal-tabs :deep(.arco-tabs-tab):not(:last-child) {
     margin-right: 2px;
   }
 
-  /* 加号图标与标签页的间距 - 根据MasterGo设计规范 */
   .terminal-tabs :deep(.arco-tabs-nav-extra) {
     margin-left: 8px;
   }
@@ -780,7 +761,7 @@
     flex: 1;
     flex-direction: column;
     height: 100%;
-    background: var(--color-bg-1); /* 添加背景色 */
+    background: var(--color-bg-1);
   }
 
   .terminal-actions {
@@ -801,5 +782,57 @@
     color: var(--color-text-1);
     background: rgb(255 255 255 / 95%);
     border-color: var(--color-border-3);
+  }
+
+  /* 隐藏标签页内容，使用独立的终端内容区域 */
+  .terminal-tabs :deep(.arco-tabs-content),
+  .terminal-tabs :deep(.arco-tabs-content-list),
+  .terminal-tabs :deep(.arco-tabs-pane) {
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .terminal-content {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 40px);
+  }
+
+  .terminal-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .terminal-active {
+    z-index: 1;
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .terminal-hidden {
+    z-index: 0;
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .terminal-loading-overlay {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    height: calc(100% - 40px);
+    background: var(--color-bg-1);
+  }
+
+  .terminal-loading-overlay :deep(.loading-state) {
+    min-height: 100%;
+    padding: 0;
   }
 </style>
