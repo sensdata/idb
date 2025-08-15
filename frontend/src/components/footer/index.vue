@@ -3,13 +3,19 @@
     <div class="left">
       <span class="color-primary">Powered by iDB</span>
       <span class="ml-2.5">{{ $t('footer.currentVersion') }}</span>
-      <span
-        class="ml-1 color-primary"
-        :class="{ 'cursor-pointer': !isCheckingUpdate }"
+      <span class="ml-1 color-primary">{{ version }}</span>
+      <a-divider direction="vertical" margin="8px" />
+      <a-link
+        v-if="!isCheckingUpdate"
+        class="check-update-link"
         @click="checkUpdate"
-        >{{ version }}</span
       >
-      <a-spin v-if="isCheckingUpdate" class="ml-1 scale-75" />
+        {{ $t('footer.checkUpdate') }}
+      </a-link>
+      <span v-else class="checking-update">
+        <a-spin class="mr-1 scale-75" />
+        {{ $t('footer.checkUpdate') }}
+      </span>
     </div>
     <div class="right">
       <a-space size="small">
@@ -106,6 +112,12 @@
             }
           }, 1000);
         }
+      } else {
+        // 没有新版本时显示提示
+        Message.success({
+          content: t('footer.checkUpdateNoUpdate'),
+          duration: 3000,
+        });
       }
     } catch (error) {
       console.error(error);
@@ -150,5 +162,22 @@
     width: 16px;
     height: 16px;
     vertical-align: top;
+  }
+
+  .check-update-link {
+    font-size: 12px;
+    color: var(--color-text-3);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+
+  .checking-update {
+    font-size: 12px;
+    color: var(--color-text-3);
+    display: flex;
+    align-items: center;
   }
 </style>
