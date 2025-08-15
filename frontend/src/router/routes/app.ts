@@ -1,6 +1,4 @@
 import { RouteRecordRaw } from 'vue-router';
-import HomeIcon from '@/assets/icons/home.svg?raw';
-import FileIcon from '@/assets/icons/folder.svg?raw';
 
 const appRoutes: RouteRecordRaw[] = [
   {
@@ -9,7 +7,7 @@ const appRoutes: RouteRecordRaw[] = [
     meta: {
       locale: 'menu.app.sysinfo',
       requiresAuth: true,
-      icon: HomeIcon,
+      icon: 'icon-home',
     },
     redirect: '/app/sysinfo/overview',
     children: [
@@ -133,7 +131,7 @@ const appRoutes: RouteRecordRaw[] = [
     meta: {
       locale: 'menu.app.file',
       requiresAuth: true,
-      icon: FileIcon,
+      icon: 'icon-folder',
     },
   },
   {
