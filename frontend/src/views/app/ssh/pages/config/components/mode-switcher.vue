@@ -8,7 +8,6 @@
 </template>
 
 <script lang="ts" setup>
-  import { defineProps, defineEmits } from 'vue';
   import type { ConfigMode } from '../types';
 
   defineProps<{

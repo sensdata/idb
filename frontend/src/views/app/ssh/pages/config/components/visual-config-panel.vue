@@ -134,7 +134,6 @@
 </template>
 
 <script lang="ts" setup>
-  import { defineProps, defineEmits } from 'vue';
   import { IconSettings } from '@arco-design/web-vue/es/icon';
   import type { SSHConfig, LoadingStates } from '../types';
 

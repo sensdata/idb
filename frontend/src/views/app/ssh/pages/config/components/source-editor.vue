@@ -31,7 +31,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, watch, defineProps, defineEmits, computed } from 'vue';
+  import { ref, watch, computed } from 'vue';
   import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
   import { shell } from '@codemirror/legacy-modes/mode/shell';

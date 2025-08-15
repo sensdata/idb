@@ -18,7 +18,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { defineProps, defineEmits, defineExpose, ref, computed } from 'vue';
+  import { ref, computed } from 'vue';
   import { useLogger } from '@/composables/use-logger';
   import SourceEditor from './source-editor.vue';
   import { EditorRefType } from '../types';

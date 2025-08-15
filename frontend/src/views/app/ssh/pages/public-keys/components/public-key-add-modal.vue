@@ -51,7 +51,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, defineProps, defineEmits, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FormInstance } from '@arco-design/web-vue';
   import { useForm } from '@/composables/use-form';
