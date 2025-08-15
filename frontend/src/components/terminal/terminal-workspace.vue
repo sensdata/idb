@@ -241,14 +241,14 @@
 
     const originalItem = terms.value[index];
 
-    // 如果没有真正改变名称，或者没有sessionId，则只更新前端状态
+    // 如果没有真正改变名称，或者没有sessionId，则只更新前端状态（就地修改对象，避免替换数组项导致状态丢失）
     if (!updatedItem.sessionId || updatedItem.title === originalItem.title) {
-      terms.value[index] = { ...originalItem, isRenaming: false };
+      originalItem.isRenaming = false;
       return;
     }
 
-    // 先退出重命名模式，显示原来的标题，等API完成后再更新
-    terms.value[index] = { ...originalItem, isRenaming: false };
+    // 先退出重命名模式，显示原来的标题，等API完成后再更新（就地修改）
+    originalItem.isRenaming = false;
 
     try {
       // 调用后端API重命名session
@@ -257,14 +257,10 @@
         data: updatedItem.title,
       });
 
-      // 成功后更新为新标题，但保持原始的sessionName不变
-      terms.value[index] = {
-        ...originalItem,
-        title: updatedItem.title,
-        isCustomTitle: true, // 标记为用户自定义标题
-        isRenaming: false,
-        // 注意：不修改sessionName，保持服务器端的原始会话名称
-      };
+      // 成功后更新为新标题，但保持原始的sessionName不变（就地修改，确保影响到 allTerms 中的同一对象）
+      originalItem.title = updatedItem.title;
+      originalItem.isCustomTitle = true; // 标记为用户自定义标题
+      originalItem.isRenaming = false;
 
       // 保存更新后的状态到缓存
       saveCurrentState();
