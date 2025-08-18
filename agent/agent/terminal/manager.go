@@ -288,7 +288,8 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	var sessions []model.SessionInfo
 
 	// 执行命令以列出所有的 screen 会话
-	cmd := exec.Command("screen", "-ls")
+	layout := "01/02/2006 03:04:05 PM"
+	cmd := exec.Command("bash", "-c", "LC_TIME=en_US.UTF-8 screen -ls")
 	output, err := cmd.Output()
 	if strings.Contains(string(output), "No Sockets found") {
 		return sessions, nil
@@ -329,7 +330,7 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 				continue
 			}
 
-			parsedTime, err := time.Parse("01/02/2006 03:04:05 PM", timeStr)
+			parsedTime, err := time.Parse(layout, timeStr)
 			if err != nil {
 				global.LOG.Error("Error parsing time: %v", err)
 				continue
