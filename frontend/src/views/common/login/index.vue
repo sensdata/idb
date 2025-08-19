@@ -78,7 +78,11 @@
       margin: 30px 0 10px 30px;
       padding: 72px 100px;
       color: #fff;
-      background: #060c3c;
+      background-color: #060c3c;
+      background-image: url('./src/assets/background.png');
+      background-repeat: no-repeat;
+      background-position: left -182px top -133px;
+      background-size: 1643px 1209px;
       border-radius: 30px;
       .logo {
         display: block;
