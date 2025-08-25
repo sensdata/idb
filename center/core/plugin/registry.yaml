@@ -7,3 +7,7 @@ plugins:
     path: /var/lib/idb/plugins/scriptmanager
     url: https://static.sensdata.com/idb/plugins/scriptmanager/latest.tar.gz
     enabled: true
+  - name: mysqlmanager
+    path: /var/lib/idb/plugins/mysqlmanager
+    url: https://static.sensdata.com/idb/plugins/mysqlmanager/latest.tar.gz
+    enabled: true

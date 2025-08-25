@@ -15,6 +15,7 @@ var Handshake = plugin.HandshakeConfig{
 var PluginMap = map[string]plugin.Plugin{
 	"auth":          &AuthPlugin{},
 	"scriptmanager": &ScriptMangerPlugin{},
+	"mysqlmanager":  &MysqlManagerPlugin{},
 }
 
 type PluginInitConfig struct {
