@@ -279,21 +279,25 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 			})
 			if err == nil {
 				for _, svc := range project.Services {
+					// 从svc.Ports中提取宿主机端口
+					ports := c.extractHostPortsFromServicePortConfig(svc.Ports)
+					info.HostPorts = append(info.HostPorts, ports...)
+
 					labels := svc.Labels
 					if info.IdbType == "" {
-						info.IdbType = labels["net.idb.type"]
+						info.IdbType = labels[constant.IDBType]
 					}
 					if info.IdbName == "" {
-						info.IdbName = labels["net.idb.name"]
+						info.IdbName = labels[constant.IDBName]
 					}
 					if info.IdbVersion == "" {
-						info.IdbVersion = labels["net.idb.version"]
+						info.IdbVersion = labels[constant.IDBVersion]
 					}
 					if info.IdbUpdateVersion == "" {
-						info.IdbUpdateVersion = labels["net.idb.update_version"]
+						info.IdbUpdateVersion = labels[constant.IDBUpdateVersion]
 					}
 					if info.IdbPanel == "" {
-						info.IdbPanel = labels["net.idb.panel"]
+						info.IdbPanel = labels[constant.IDBPanel]
 					}
 					// 如果都已获取，提前退出
 					if info.IdbType != "" && info.IdbName != "" && info.IdbVersion != "" &&
@@ -312,6 +316,10 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 			}
 		} else {
 			for _, container := range containers {
+				// 从container.Ports中提取宿主机端口
+				ports := c.extractHostPortsFromTypesPort(container.Ports)
+				info.HostPorts = append(info.HostPorts, ports...)
+
 				containerItem := model.ComposeContainer{
 					ContainerID: container.ID,
 					Name:        strings.TrimPrefix(container.Names[0], "/"),

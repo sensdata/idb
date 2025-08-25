@@ -214,6 +214,7 @@ type ComposeInfo struct {
 	Path             string             `json:"path"`
 	Status           ComposeStatus      `json:"status"`
 	Containers       []ComposeContainer `json:"containers"`
+	HostPorts        []string           `json:"host_ports"`
 }
 
 type ComposeContainer struct {

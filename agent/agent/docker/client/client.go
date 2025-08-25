@@ -21,6 +21,7 @@ import (
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils/common"
 
+	composeTypes "github.com/compose-spec/compose-go/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -362,6 +363,37 @@ func (c DockerClient) loadVolumeBinds(binds []types.MountPoint) []model.VolumeHe
 		datas = append(datas, volumeItem)
 	}
 	return datas
+}
+
+func (c DockerClient) extractHostPortsFromServicePortConfig(ports []composeTypes.ServicePortConfig) []string {
+	var result []string
+	seen := make(map[uint16]struct{})
+	for _, sp := range ports {
+		if sp.Published != "" {
+			if p, err := strconv.Atoi(sp.Published); err == nil {
+				port := uint16(p)
+				if _, ok := seen[port]; !ok {
+					result = append(result, strconv.Itoa(int(port)))
+					seen[port] = struct{}{}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func (c DockerClient) extractHostPortsFromTypesPort(ports []types.Port) []string {
+	var result []string
+	seen := make(map[uint16]struct{})
+	for _, p := range ports {
+		if p.PublicPort != 0 {
+			if _, ok := seen[p.PublicPort]; !ok {
+				result = append(result, strconv.Itoa(int(p.PublicPort)))
+				seen[p.PublicPort] = struct{}{}
+			}
+		}
+	}
+	return result
 }
 
 func (c DockerClient) loadContainerPort(ports []types.Port) []string {
