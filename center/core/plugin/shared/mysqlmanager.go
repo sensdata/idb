@@ -50,7 +50,7 @@ func (c *MysqlManagerGRPCClient) GetComposes(hostID uint64, req model.GetCompose
 	}
 	var result model.GetComposesResponse
 	for _, item := range resp.Items {
-		result.Composes = append(result.Composes, &model.ComposesInfo{
+		result.Composes = append(result.Composes, &model.ComposeBrief{
 			Name:    item.Name,
 			Version: item.Version,
 			Port:    item.Port,

@@ -7,10 +7,10 @@ type GetComposesRequest struct {
 
 type GetComposesResponse struct {
 	Total    int             `json:"total"`
-	Composes []*ComposesInfo `json:"composes"`
+	Composes []*ComposeBrief `json:"composes"`
 }
 
-type ComposesInfo struct {
+type ComposeBrief struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Port    string `json:"port"`
