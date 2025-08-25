@@ -22,5 +22,6 @@ func commonGroups() []CommonRouter {
 		&LogManRouter{},
 		&PublicRouter{},
 		&ScriptsRouter{},
+		&MysqlRouter{},
 	}
 }
