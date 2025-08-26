@@ -189,6 +189,15 @@ definitions:
     - old_password
     - password
     type: object
+  model.ComposeBrief:
+    properties:
+      name:
+        type: string
+      port:
+        type: string
+      version:
+        type: string
+    type: object
   model.ComposeCreateResult:
     properties:
       log:
@@ -850,6 +859,22 @@ definitions:
     - key_bits
     - key_name
     type: object
+  model.GetComposesResponse:
+    properties:
+      composes:
+        items:
+          $ref: '#/definitions/model.ComposeBrief'
+        type: array
+      total:
+        type: integer
+    type: object
+  model.GetConfResponse:
+    properties:
+      content:
+        type: string
+      path:
+        type: string
+    type: object
   model.GitFile:
     properties:
       content:
@@ -1287,6 +1312,19 @@ definitions:
     - name
     - operation
     type: object
+  model.OperateRequest:
+    properties:
+      name:
+        type: string
+      operation:
+        enum:
+        - start
+        - stop
+        - restart
+        type: string
+    required:
+    - operation
+    type: object
   model.OperateServiceReq:
     properties:
       operation:
@@ -1697,6 +1735,13 @@ definitions:
       result:
         type: string
     type: object
+  model.SetConfRequest:
+    properties:
+      content:
+        type: string
+      name:
+        type: string
+    type: object
   model.SetKeyPassword:
     properties:
       key_name:
@@ -1706,6 +1751,13 @@ definitions:
     required:
     - key_name
     - password
+    type: object
+  model.SetPortRequest:
+    properties:
+      name:
+        type: string
+      port:
+        type: string
     type: object
   model.SetPortRule:
     properties:
@@ -6520,6 +6572,137 @@ paths:
       summary: Connect to log stream
       tags:
       - Log
+  /mysql/{host}:
+    get:
+      consumes:
+      - application/json
+      description: List mysql compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetComposesResponse'
+      summary: List mysql compose
+      tags:
+      - Mysql
+  /mysql/{host}/conf:
+    get:
+      consumes:
+      - application/json
+      description: Get mysql conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetConfResponse'
+      summary: Get mysql conf
+      tags:
+      - Mysql
+    post:
+      consumes:
+      - application/json
+      description: Set mysql conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetConfRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set mysql conf
+      tags:
+      - Mysql
+  /mysql/{host}/operation:
+    post:
+      consumes:
+      - application/json
+      description: Operation mysql compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Operation mysql compose
+      tags:
+      - Mysql
+  /mysql/{host}/port:
+    post:
+      consumes:
+      - application/json
+      description: Set mysql port
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetPortRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set mysql port
+      tags:
+      - Mysql
   /nftables/{host}:
     delete:
       consumes:
