@@ -14,6 +14,7 @@ type ComposeBrief struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Port    string `json:"port"`
+	Status  string `json:"status"`
 }
 
 type OperateRequest struct {

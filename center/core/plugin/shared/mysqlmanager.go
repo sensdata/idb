@@ -54,6 +54,7 @@ func (c *MysqlManagerGRPCClient) GetComposes(hostID uint64, req model.GetCompose
 			Name:    item.Name,
 			Version: item.Version,
 			Port:    item.Port,
+			Status:  item.Status,
 		})
 	}
 	result.Total = int(resp.Total)
@@ -132,6 +133,7 @@ func (s *MysqlManagerGRPCServer) GetComposes(ctx context.Context, req *proto.Get
 			Name:    item.Name,
 			Version: item.Version,
 			Port:    item.Port,
+			Status:  item.Status,
 		})
 	}
 	resp.Total = int64(result.Total)

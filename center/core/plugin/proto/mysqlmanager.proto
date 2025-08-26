@@ -30,6 +30,7 @@ message ComposesInfo {
     string name = 1;
     string version = 2;
     string port = 3;
+    string status = 4;
 }
 
 message OperationRequest {
