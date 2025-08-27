@@ -16,6 +16,8 @@ var PluginMap = map[string]plugin.Plugin{
 	"auth":          &AuthPlugin{},
 	"scriptmanager": &ScriptMangerPlugin{},
 	"mysqlmanager":  &MysqlManagerPlugin{},
+	"postgresql":    &PostgreSqlPlugin{},
+	"redis":         &RedisPlugin{},
 }
 
 type PluginInitConfig struct {

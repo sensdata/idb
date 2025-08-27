@@ -11,3 +11,11 @@ plugins:
     path: /var/lib/idb/plugins/mysqlmanager
     url: https://static.sensdata.com/idb/plugins/mysqlmanager/latest.tar.gz
     enabled: true
+  - name: postgresql
+    path: /var/lib/idb/plugins/postgresql
+    url: https://static.sensdata.com/idb/plugins/postgresql/latest.tar.gz
+    enabled: true
+  - name: redis
+    path: /var/lib/idb/plugins/redis
+    url: https://static.sensdata.com/idb/plugins/redis/latest.tar.gz
+    enabled: true

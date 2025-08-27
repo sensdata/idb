@@ -1,0 +1,62 @@
+syntax = "proto3";
+package proto;
+option go_package = "../proto";
+
+service PostgreSql {
+    rpc PGGetComposes(PGGetComposesRequest) returns (PGGetComposesResponse);
+    rpc PGOperation(PGOperationRequest) returns (PGCommonResponse);
+    rpc PGSetPort(PGSetPortRequest) returns (PGCommonResponse);
+    rpc PGGetConf(PGGetConfRequest) returns (PGGetConfResponse);
+    rpc PGSetConf(PGSetConfRequest) returns (PGCommonResponse);
+}
+
+message PGCommonResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message PGGetComposesRequest {
+    uint32 host_id = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+}
+
+message PGGetComposesResponse {
+    int64 total = 1;
+    repeated PGComposesInfo items = 2;
+}
+
+message PGComposesInfo {
+    string name = 1;
+    string version = 2;
+    string port = 3;
+    string status = 4;
+}
+
+message PGOperationRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string operation = 3;
+}
+
+message PGSetPortRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string port = 3;
+}
+
+message PGGetConfRequest {
+    uint32 host_id = 1;
+    string name = 2;
+}
+
+message PGGetConfResponse {
+    string content = 1;
+}
+
+message PGSetConfRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string content = 3;
+}
+

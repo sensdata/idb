@@ -381,6 +381,10 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		_, ok = raw.(shared.ScriptManager)
 	case "mysqlmanager":
 		_, ok = raw.(shared.MysqlManager)
+	case "postgresql":
+		_, ok = raw.(shared.PostgreSql)
+	case "redis":
+		_, ok = raw.(shared.Redis)
 	default:
 		// 对于未来的插件，可以在这里添加新的case
 		global.LOG.Error("unknown plugin type: %s", entry.Name)
