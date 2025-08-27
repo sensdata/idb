@@ -15,6 +15,7 @@
   import { ref, watch, computed } from 'vue';
   import { StreamLanguage } from '@codemirror/language';
   import { simpleMode } from '@codemirror/legacy-modes/mode/simple-mode';
+  import { EditorView } from '@codemirror/view';
   import CodeEditor from '@/components/code-editor/index.vue';
 
   const props = defineProps({
@@ -29,9 +30,7 @@
     if (editorRef.value?.editorView) {
       const view = editorRef.value.editorView;
       view.dispatch({
-        effects: view.state.reconfigure({
-          scrollIntoView: view.state.doc.length,
-        }),
+        effects: EditorView.scrollIntoView(view.state.doc.length),
       });
     }
   };
