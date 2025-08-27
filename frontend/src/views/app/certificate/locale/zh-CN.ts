@@ -141,6 +141,7 @@ export default {
   'app.certificate.issuerInfo': '签发机构信息',
   'app.certificate.notBefore': '生效时间',
   'app.certificate.notAfter': '过期时间',
+  'app.certificate.keyAlgorithm': '密钥算法',
   'app.certificate.keySize': '密钥长度',
   'app.certificate.isCA': '是否为CA证书',
   'app.certificate.source': '文件路径',

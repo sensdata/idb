@@ -153,6 +153,7 @@ export default {
   'app.certificate.issuerInfo': 'Issuer Information',
   'app.certificate.notBefore': 'Valid From',
   'app.certificate.notAfter': 'Valid Until',
+  'app.certificate.keyAlgorithm': 'Key Algorithm',
   'app.certificate.keySize': 'Key Size',
   'app.certificate.isCA': 'Is CA Certificate',
   'app.certificate.source': 'File Path',
