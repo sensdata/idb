@@ -254,8 +254,10 @@
       height: 32px;
       border-radius: 2px;
       cursor: pointer;
+      color: var(--color-text-2);
       &:hover {
         background-color: var(--color-fill-2);
+        color: var(--color-text-1);
       }
     }
   }

@@ -281,7 +281,7 @@
 
   /* Pinned directory styling */
   .tree-item.pinned {
-    background-color: rgba(var(--primary-1), 0.1);
+    background-color: var(--idblue-1);
   }
 
   /* Hover state */
@@ -290,7 +290,7 @@
   }
 
   .tree-item.pinned:hover {
-    background-color: rgba(var(--primary-2), 0.2);
+    background-color: var(--idblue-2);
   }
 
   /* Selected state background */
@@ -299,7 +299,7 @@
   }
 
   .tree-item.pinned.selected {
-    background-color: rgba(var(--primary-3), 0.3);
+    background-color: var(--idblue-3);
   }
 
   /* Selected state purple indicator */
@@ -363,6 +363,7 @@
     min-width: 0;
     margin-left: 0;
     overflow: hidden;
+    color: var(--color-text-1);
     text-overflow: ellipsis;
     font-size: 1rem;
     line-height: 1.375rem;

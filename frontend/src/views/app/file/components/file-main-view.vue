@@ -149,12 +149,15 @@
         >
           <folder-icon v-if="record.is_dir && !record.is_symlink" />
           <file-icon v-if="!record.is_dir && !record.is_symlink" />
-          <icon-link v-if="record.is_symlink" style="color: #1890ff" />
-          <span class="color-primary cursor-pointer min-w-0 flex-1 truncate">
+          <icon-link v-if="record.is_symlink" style="color: var(--idblue-6)" />
+          <span
+            class="cursor-pointer min-w-0 flex-1 truncate"
+            style="color: var(--color-text-1)"
+          >
             {{ record.name }}
             <template v-if="record.is_symlink">
-              <span class="text-gray-500 ml-1">→</span>
-              <span class="text-gray-500 ml-1 italic">{{
+              <span class="ml-1" style="color: var(--color-text-3)">→</span>
+              <span class="ml-1 italic" style="color: var(--color-text-3)">{{
                 record.link_path
               }}</span>
             </template>

@@ -804,24 +804,24 @@
 
   // Go按钮激活状态 - 紫色主题，使用更高权重选择器减少 !important
   .breadcrumb-container .go-button--active {
-    color: white;
+    color: var(--color-text-1);
     cursor: pointer;
     background: rgb(var(--primary-6));
     border: 0.107rem solid rgb(var(--primary-6));
-    box-shadow: 0 0 0.857rem rgba(var(--primary-6), 0.4);
+    box-shadow: 0 0 0.857rem var(--idb-overlay-medium);
     animation: button-glow 2s ease-in-out infinite alternate;
 
     &:hover {
       background: rgb(var(--primary-5));
       border-color: rgb(var(--primary-5));
-      box-shadow: 0 0 1.143rem rgba(var(--primary-5), 0.6);
+      box-shadow: 0 0 1.143rem var(--idb-overlay-dark);
       animation: none;
     }
 
     &:active {
       background: rgb(var(--primary-7));
       border-color: rgb(var(--primary-7));
-      box-shadow: 0 0 0.571rem rgba(var(--primary-7), 0.8);
+      box-shadow: 0 0 0.571rem var(--idb-overlay-dark);
       animation: none;
     }
   }
@@ -829,10 +829,10 @@
   // 呼吸动画效果
   @keyframes button-glow {
     0% {
-      box-shadow: 0 0 0.571rem rgba(var(--primary-6), 0.3);
+      box-shadow: 0 0 0.571rem var(--idb-overlay-light);
     }
     100% {
-      box-shadow: 0 0 1.143rem rgba(var(--primary-6), 0.6);
+      box-shadow: 0 0 1.143rem var(--idb-overlay-dark);
     }
   }
 

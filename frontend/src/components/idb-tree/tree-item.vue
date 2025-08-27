@@ -267,6 +267,7 @@
     text-overflow: ellipsis;
     font-size: 14px;
     line-height: 22px;
+    color: var(--color-text-1);
     white-space: nowrap;
   }
 
@@ -275,9 +276,7 @@
     margin-left: 8px;
   }
 
-  .idb-tree-item__children {
-    /* 子项容器，无需额外样式 */
-  }
+  /* .idb-tree-item__children - 子项容器，无需额外样式 */
 
   /* 层级缩进样式 */
   .idb-tree-item.level-0 {

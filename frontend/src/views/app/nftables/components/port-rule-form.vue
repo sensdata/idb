@@ -709,10 +709,10 @@
     .form-section {
       margin-bottom: 24px;
       padding: 20px;
-      background: #fff;
+      background: var(--color-bg-2);
       border: 1px solid var(--color-border-2);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 2px 8px var(--color-fill-1);
 
       .section-header {
         display: flex;
@@ -747,7 +747,7 @@
             &:hover {
               border-color: var(--color-primary-light-4);
               background: var(--color-fill-1);
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+              box-shadow: 0 2px 8px var(--color-fill-2);
             }
 
             &.active {
@@ -802,7 +802,7 @@
             &:hover {
               border-color: var(--color-primary-light-4);
               background: var(--color-fill-1);
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+              box-shadow: 0 2px 8px var(--color-fill-2);
             }
 
             &.active {

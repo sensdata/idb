@@ -343,8 +343,8 @@
     margin: 0 0 1.33rem 0;
     font-size: 1.33rem;
     font-weight: 600;
-    color: #1d2129;
-    border-bottom: 1px solid #e5e6eb;
+    color: var(--color-text-1);
+    border-bottom: 1px solid var(--color-border-2);
   }
 
   :deep(.arco-form-item) {

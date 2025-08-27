@@ -77,8 +77,8 @@
       width: 720px;
       margin: 30px 0 10px 30px;
       padding: 72px 100px;
-      color: #fff;
-      background-color: #060c3c;
+      color: var(--idb-brand-text);
+      background-color: var(--idb-brand-bg);
       background-image: url('./src/assets/background.png');
       background-repeat: no-repeat;
       background-position: left -182px top -133px;

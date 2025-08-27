@@ -214,17 +214,27 @@
     loadingButton.value = null;
   };
 
-  // 视图模式颜色映射
+  // 视图模式颜色映射 - 使用CSS变量
   const getViewModeColor = (mode: ContentViewMode): string => {
+    // 获取CSS变量值
+    const getCSSVar = (varName: string) => {
+      if (typeof window !== 'undefined') {
+        return getComputedStyle(document.documentElement)
+          .getPropertyValue(varName)
+          .trim();
+      }
+      return '';
+    };
+
     switch (mode) {
       case 'head':
-        return '#00B42A';
+        return getCSSVar('--idbgreen-6') || '#00B42A';
       case 'tail':
-        return '#165DFF';
+        return getCSSVar('--idblue-6') || '#165DFF';
       case 'follow':
-        return '#F53F3F';
+        return getCSSVar('--idbred-6') || '#F53F3F';
       default:
-        return '#86909C';
+        return getCSSVar('--color-text-3') || '#86909C';
     }
   };
 

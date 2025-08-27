@@ -255,7 +255,7 @@
   .tab-action-btn:hover {
     color: var(--color-text-1);
     background-color: var(--color-fill-2); /* 使用更明显的背景色 */
-    box-shadow: 0 2px 4px rgb(0 0 0 / 10%); /* 添加阴影 */
+    box-shadow: 0 2px 4px var(--color-fill-1); /* 添加阴影 */
     transform: scale(1.1); /* 轻微放大效果 */
   }
 

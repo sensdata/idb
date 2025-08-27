@@ -81,7 +81,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: var(--color-bg-1);
+    opacity: 0.8;
     display: flex;
     flex-direction: column;
     align-items: center;

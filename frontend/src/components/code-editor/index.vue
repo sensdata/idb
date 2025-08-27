@@ -185,7 +185,8 @@
   /* 深色模式适配 */
   @media (prefers-color-scheme: dark) {
     .loading-container {
-      background-color: rgb(0 0 0 / 60%);
+      background-color: var(--color-bg-1);
+      opacity: 0.6;
     }
   }
 </style>

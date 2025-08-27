@@ -59,40 +59,40 @@
         height: 22px;
       }
 
-      // 不同进程类型的颜色
+      // 不同进程类型的颜色 - 使用品牌色系统
       &.process-icon-database {
-        background: rgba(255, 193, 7, 0.1);
-        color: #ffc107;
+        background: var(--idbdusk-1);
+        color: var(--idbdusk-6);
       }
 
       &.process-icon-server {
-        background: rgba(40, 167, 69, 0.1);
-        color: #28a745;
+        background: var(--idbgreen-1);
+        color: var(--idbgreen-6);
       }
 
       &.process-icon-container {
-        background: rgba(0, 123, 255, 0.1);
-        color: #007bff;
+        background: var(--idblue-1);
+        color: var(--idblue-6);
       }
 
       &.process-icon-network {
-        background: rgba(23, 162, 184, 0.1);
-        color: #17a2b8;
+        background: var(--idbturquoise-1);
+        color: var(--idbturquoise-6);
       }
 
       &.process-icon-security {
-        background: rgba(220, 53, 69, 0.1);
-        color: #dc3545;
+        background: var(--idbred-1);
+        color: var(--idbred-6);
       }
 
       &.process-icon-development {
-        background: rgba(111, 66, 193, 0.1);
-        color: #6f42c1;
+        background: var(--idbautumn-1);
+        color: var(--idbautumn-6);
       }
 
       &.process-icon-system {
-        background: rgba(108, 117, 125, 0.1);
-        color: #6c757d;
+        background: var(--color-fill-1);
+        color: var(--color-text-3);
       }
 
       &.process-icon-default {

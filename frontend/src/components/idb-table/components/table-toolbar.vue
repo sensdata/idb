@@ -195,11 +195,17 @@
   .action-icon {
     margin-left: 12px;
     cursor: pointer;
+    color: var(--color-text-2);
+    transition: color 0.2s ease;
+  }
+
+  .action-icon:hover {
+    color: var(--color-text-1);
   }
 
   .active {
-    color: #0960bd;
-    background-color: #e3f4fc;
+    color: rgb(var(--primary-6));
+    background-color: var(--color-primary-light-1);
   }
 
   .setting {

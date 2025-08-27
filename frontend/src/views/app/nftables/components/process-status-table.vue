@@ -172,7 +172,7 @@
 
 <style scoped lang="less">
   .process-section {
-    background: #fff;
+    background: var(--color-bg-2);
     border: 1px solid var(--color-border-1);
     border-radius: 0.429rem; /* 6px相对于14px根字体 (6/14=0.429) */
     padding: 1.429rem; /* 20px相对于14px根字体 (20/14=1.429) */

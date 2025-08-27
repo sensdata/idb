@@ -316,7 +316,7 @@
     border-radius: 6px;
     position: relative;
     border: 1px solid var(--color-border-2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px var(--color-fill-2);
   }
 
   .header-container {
@@ -343,7 +343,7 @@
   }
 
   .content-container {
-    background-color: #fff;
+    background-color: var(--color-bg-2);
     border-radius: 4px;
     border: 1px solid var(--color-border-2);
     padding: 16px 20px;
@@ -355,7 +355,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #fff;
+    background-color: var(--color-bg-2);
     border-radius: 4px;
     border: 1px solid var(--color-border-2);
     padding: 40px 20px;

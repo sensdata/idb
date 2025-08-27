@@ -234,17 +234,17 @@
 
   /* 选中状态颜色调整 - 对于第三方组件库需要使用!important来确保样式生效 */
   :deep(.arco-checkbox-checked .arco-checkbox-icon) {
-    background-color: #165dff !important;
-    border-color: #165dff !important;
+    background-color: var(--idblue-6) !important;
+    border-color: var(--idblue-6) !important;
   }
 
   :deep(.arco-checkbox-checked .arco-checkbox-icon .arco-checkbox-icon-check) {
-    color: white !important;
+    color: var(--idb-brand-text) !important;
   }
 
   /* 悬停状态 */
   :deep(.arco-checkbox:not(.arco-checkbox-disabled):hover .arco-checkbox-icon) {
-    border-color: #165dff !important;
+    border-color: var(--idblue-6) !important;
   }
 
   /* 聚焦状态 */
@@ -252,7 +252,7 @@
       .arco-checkbox:not(.arco-checkbox-disabled).arco-checkbox-focus
         .arco-checkbox-icon
     ) {
-    border-color: #165dff !important;
-    box-shadow: 0 0 0 2px rgb(22 93 255 / 10%) !important;
+    border-color: var(--idblue-6) !important;
+    box-shadow: 0 0 0 2px var(--idblue-1) !important;
   }
 </style>

@@ -27,7 +27,19 @@ export function compareVersion(version1: string, version2: string) {
 }
 
 export function getRandomColor() {
-  return '#' + (0x1000000 + Math.random() * 0xffffff).toString(16).substr(1, 6);
+  // 从品牌色系统中随机选择一个颜色，而不是生成随机十六进制
+  const brandColors = [
+    'var(--idblue-6)',
+    'var(--idbgreen-6)',
+    'var(--idbcyan-6)',
+    'var(--idbautumn-6)',
+    'var(--idbred-6)',
+    'var(--idbdusk-6)',
+    'var(--idbturquoise-6)',
+  ];
+
+  const randomIndex = Math.floor(Math.random() * brandColors.length);
+  return brandColors[randomIndex];
 }
 
 export function hslToHex(h: number, s: number, l: number) {
@@ -47,7 +59,18 @@ export function hslToHex(h: number, s: number, l: number) {
 }
 
 export function getHexColorByChar(char: string) {
-  const defaultColor = '#cccccc';
+  // 使用CSS变量作为默认颜色，优先使用系统色，回退到品牌定义的灰色
+  const defaultColor =
+    typeof window !== 'undefined'
+      ? getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-text-4')
+          .trim() ||
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--idb-fallback-gray')
+          .trim() ||
+        '#cccccc'
+      : '#cccccc';
+
   if (!char || typeof char !== 'string') {
     return defaultColor;
   }

@@ -40,65 +40,65 @@
   const sessionIdRef = ref<string>();
   const { confirm } = useConfirm();
 
-  // 计算终端主题
+  // 计算终端主题 - 使用CSS变量替代硬编码颜色
   const terminalTheme = computed(() => {
     const isDark = appStore.theme === 'dark';
 
     if (isDark) {
-      // 深色主题
+      // 深色主题 - 使用CSS变量
       return {
-        background: '#1a1a1a',
-        foreground: '#e8e8e8',
-        cursor: '#ffffff',
-        cursorAccent: '#1a1a1a',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        background: 'var(--color-bg-1)',
+        foreground: 'var(--color-text-1)',
+        cursor: 'var(--color-text-1)',
+        cursorAccent: 'var(--color-bg-1)',
+        selectionBackground: 'var(--color-fill-3)',
         selectionForeground: undefined,
-        // ANSI 颜色
-        black: '#2e3436',
-        red: '#cc0000',
-        green: '#4e9a06',
-        yellow: '#c4a000',
-        blue: '#3465a4',
-        magenta: '#75507b',
-        cyan: '#06989a',
-        white: '#d3d7cf',
-        // 亮色 ANSI 颜色
-        brightBlack: '#555753',
-        brightRed: '#ef2929',
-        brightGreen: '#8ae234',
-        brightYellow: '#fce94f',
-        brightBlue: '#729fcf',
-        brightMagenta: '#ad7fa8',
-        brightCyan: '#34e2e2',
-        brightWhite: '#eeeeec',
+        // ANSI 颜色 - 使用品牌色和系统色
+        black: 'var(--color-text-4)',
+        red: 'var(--idbred-6)',
+        green: 'var(--idbgreen-6)',
+        yellow: 'var(--idbdusk-6)',
+        blue: 'var(--idblue-6)',
+        magenta: 'var(--idbautumn-6)',
+        cyan: 'var(--idbturquoise-6)',
+        white: 'var(--color-text-2)',
+        // 亮色 ANSI 颜色 - 使用浅色变体
+        brightBlack: 'var(--color-text-3)',
+        brightRed: 'var(--idbred-5)',
+        brightGreen: 'var(--idbgreen-5)',
+        brightYellow: 'var(--idbdusk-5)',
+        brightBlue: 'var(--idblue-5)',
+        brightMagenta: 'var(--idbautumn-5)',
+        brightCyan: 'var(--idbturquoise-5)',
+        brightWhite: 'var(--color-text-1)',
       };
     }
-    // 亮色主题 - 也使用黑色背景
+    // 亮色主题 - 使用浅色背景
     return {
-      background: '#1a1a1a',
-      foreground: '#e8e8e8',
-      cursor: '#ffffff',
-      cursorAccent: '#1a1a1a',
-      selectionBackground: 'rgba(255, 255, 255, 0.3)',
+      background: 'var(--color-bg-2)',
+      foreground: 'var(--color-text-1)',
+      cursor: 'var(--color-text-1)',
+      cursorAccent: 'var(--color-bg-2)',
+      selectionBackground: 'var(--color-fill-2)',
       selectionForeground: undefined,
-      // ANSI 颜色 - 明亮配色适合黑色背景
-      black: '#2e3436',
-      red: '#cc0000',
-      green: '#4e9a06',
-      yellow: '#c4a000',
-      blue: '#3465a4',
-      magenta: '#75507b',
-      cyan: '#06989a',
-      white: '#d3d7cf',
-      // 亮色 ANSI 颜色 - 在黑色背景上的明亮色彩
-      brightBlack: '#555753',
-      brightRed: '#ef2929',
-      brightGreen: '#8ae234',
-      brightYellow: '#fce94f',
-      brightBlue: '#729fcf',
-      brightMagenta: '#ad7fa8',
-      brightCyan: '#34e2e2',
-      brightWhite: '#ffffff',
+      // ANSI 颜色 - 适合浅色背景的深色配色
+      black: 'var(--color-text-1)',
+      red: 'var(--idbred-6)',
+      green: 'var(--idbgreen-6)',
+      yellow: 'var(--idbdusk-6)',
+      blue: 'var(--idblue-6)',
+      magenta: 'var(--idbautumn-6)',
+      cyan: 'var(--idbturquoise-6)',
+      white: 'var(--color-text-4)',
+      // 亮色 ANSI 颜色 - 使用深色变体以在浅色背景上显示
+      brightBlack: 'var(--color-text-2)',
+      brightRed: 'var(--idbred-4)',
+      brightGreen: 'var(--idbgreen-4)',
+      brightYellow: 'var(--idbdusk-4)',
+      brightBlue: 'var(--idblue-4)',
+      brightMagenta: 'var(--idbautumn-4)',
+      brightCyan: 'var(--idbturquoise-4)',
+      brightWhite: 'var(--color-text-1)',
     };
   });
 
@@ -356,12 +356,12 @@
     padding: 8px 16px;
   }
 
-  /* 强制覆盖默认颜色样式，解决白条问题 - 始终使用深色背景 */
+  /* 强制覆盖默认颜色样式，使用CSS变量 */
   .xterm-container :deep(.xterm-bg-257) {
-    background-color: #1a1a1a !important;
+    background-color: var(--color-bg-1) !important;
   }
 
   .xterm-container :deep(.xterm-fg-257) {
-    color: #e8e8e8 !important;
+    color: var(--color-text-1) !important;
   }
 </style>

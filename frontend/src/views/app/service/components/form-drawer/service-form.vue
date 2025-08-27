@@ -244,7 +244,7 @@
   /* 使用深度选择器覆盖Arco Design组件样式 */
   .service_form
     :deep(.service-type-group .arco-radio-group-button .arco-radio) {
-    background-color: #fff;
+    background-color: var(--color-bg-2);
   }
 
   .service_form
@@ -254,7 +254,7 @@
         .arco-radio
         .arco-radio-button
     ) {
-    background-color: #fff;
+    background-color: var(--color-bg-2);
     border-color: var(--color-border-2);
   }
 

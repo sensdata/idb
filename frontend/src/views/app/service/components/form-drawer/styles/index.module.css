@@ -11,10 +11,10 @@
 
 .form_section {
   padding: 16px;
-  background-color: #fff;
+  background-color: var(--color-bg-2);
   border: 1px solid var(--color-border-2);
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
+  box-shadow: 0 2px 4px var(--color-fill-1);
 }
 
 .section_title {
@@ -65,10 +65,10 @@
 
 .advanced_section_container {
   padding: 0;
-  background-color: #fff;
+  background-color: var(--color-bg-2);
   border: 1px solid var(--color-border-2);
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
+  box-shadow: 0 2px 4px var(--color-fill-1);
 }
 
 .advanced_section_container .section_header {
@@ -98,7 +98,7 @@
   min-width: 140px;
   padding: 12px;
   cursor: pointer;
-  background-color: #fff;
+  background-color: var(--color-bg-2);
   border: 1px solid var(--color-border-2);
   border-radius: 4px;
   transition: all 0.2s ease;
@@ -107,14 +107,14 @@
 .service_type_card:hover {
   background-color: var(--color-fill-1);
   border-color: var(--color-border-3);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 8%);
+  box-shadow: 0 2px 6px var(--color-fill-2);
   transform: translateY(-1px);
 }
 
 .service_type_card_active {
   background-color: var(--color-primary-light-1);
   border-color: var(--color-primary-light-3);
-  box-shadow: 0 2px 6px rgba(var(--primary-6), 0.15);
+  box-shadow: 0 2px 6px var(--idblue-1);
 }
 
 .service_type_card_active:hover {

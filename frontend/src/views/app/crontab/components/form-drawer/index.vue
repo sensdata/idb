@@ -538,13 +538,13 @@
     overflow: hidden;
     border: 1px solid var(--color-border-2);
     border-radius: 0.57rem;
-    box-shadow: 0 0.14rem 0.57rem rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0.14rem 0.57rem var(--color-fill-2);
   }
 
   :deep(.arco-form-item-label) {
     font-weight: 500;
     margin-bottom: 0;
-    color: #1d2129;
+    color: var(--color-text-1);
   }
 
   :deep(.arco-form-item) {

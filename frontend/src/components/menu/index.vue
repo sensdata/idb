@@ -384,13 +384,29 @@
     }
 
     // 图标固定定位 - 只对一级菜单
-    > .arco-menu-item > .arco-icon,
-    > .arco-menu-inline-header > .arco-icon {
+    > .arco-menu-item > .arco-menu-icon,
+    > .arco-menu-inline-header > .arco-menu-icon {
       position: absolute;
       left: 16px;
       top: 50%;
       transform: translateY(-50%);
       margin: 0;
+    }
+
+    // 菜单图标颜色 - 基础状态
+    .arco-menu-icon svg {
+      color: var(--color-text-2);
+    }
+
+    // 菜单项悬停状态图标颜色
+    .arco-menu-item:hover .arco-menu-icon svg,
+    .arco-menu-inline-header:hover .arco-menu-icon svg {
+      color: var(--color-text-1);
+    }
+
+    // 菜单项选中状态图标颜色
+    .arco-menu-item.arco-menu-selected .arco-menu-icon svg {
+      color: rgb(var(--primary-6));
     }
 
     // 确保文本内容对齐
