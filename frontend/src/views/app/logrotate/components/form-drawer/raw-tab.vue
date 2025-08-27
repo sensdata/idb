@@ -1,14 +1,12 @@
 <template>
   <div class="raw-editor">
     <div class="editor-container">
-      <codemirror
+      <CodeEditor
         :model-value="content"
-        :placeholder="$t('app.logrotate.form.raw_placeholder')"
+        :file="logrotateFile"
         :autofocus="true"
         :indent-with-tab="true"
         :tab-size="2"
-        :extensions="extensions"
-        class="raw-codemirror"
         @update:model-value="handleContentChange"
       />
     </div>
@@ -16,11 +14,12 @@
 </template>
 
 <script setup lang="ts">
-  import { Codemirror } from 'vue-codemirror';
+  import { computed } from 'vue';
+  import CodeEditor from '@/components/code-editor/index.vue';
 
   interface Props {
     content: string;
-    extensions: any[];
+    extensions?: any[]; // 保留 extensions 属性以保持向后兼容，但不再使用
   }
 
   const emit = defineEmits<{
@@ -28,6 +27,12 @@
   }>();
 
   defineProps<Props>();
+
+  // 创建虚拟文件对象，用于自动语法高亮
+  const logrotateFile = computed(() => ({
+    name: 'logrotate',
+    path: '/etc/logrotate.d/logrotate',
+  }));
 
   const handleContentChange = (value: string) => {
     emit('update:content', value);
@@ -51,7 +56,14 @@
     border-radius: 4px;
   }
 
-  .raw-codemirror {
+  /* CodeEditor 组件样式调整 */
+  .editor-container :deep(.code-editor) {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+  }
+
+  .editor-container :deep(.cm-editor) {
     width: 100%;
     height: 100%;
     min-height: 400px;
@@ -61,24 +73,18 @@
     line-height: 1.5;
   }
 
-  .raw-codemirror :deep(.cm-editor) {
-    width: 100%;
-    height: 100%;
-    min-height: 400px;
-  }
-
-  .raw-codemirror :deep(.cm-scroller) {
+  .editor-container :deep(.cm-scroller) {
     height: 100%;
     min-height: 400px;
     overflow: auto;
   }
 
-  .raw-codemirror :deep(.cm-content) {
+  .editor-container :deep(.cm-content) {
     min-height: 400px;
     padding: 12px;
   }
 
-  .raw-codemirror :deep(.cm-focused) {
+  .editor-container :deep(.cm-focused) {
     outline: none;
   }
 </style>

@@ -32,8 +32,10 @@
   import { Codemirror } from 'vue-codemirror';
   import { EditorView } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
+  import { oneDark } from '@codemirror/theme-one-dark';
   import { IconLoading } from '@arco-design/web-vue/es/icon';
   import { useI18n } from 'vue-i18n';
+  import useThemes from '@/composables/themes';
   import useEditorConfig from './composables/use-editor-config';
   import type { EditorProps, EditorEmits } from './types';
 
@@ -52,6 +54,7 @@
   const emit = defineEmits<EditorEmits>();
 
   const { t } = useI18n();
+  const { isDark } = useThemes();
   const editorView = shallowRef<EditorView>();
 
   // 使用编辑器配置
@@ -59,9 +62,15 @@
     computed(() => props.file)
   );
 
-  // 合并扩展 - 添加 basicSetup 作为基础配置
+  // 合并扩展 - 添加 basicSetup 和主题配置
   const computedExtensions = computed(() => {
-    return [basicSetup, ...configExtensions.value, ...props.extensions];
+    const themeExtensions = isDark.value ? [oneDark] : [];
+    return [
+      basicSetup,
+      ...themeExtensions,
+      ...configExtensions.value,
+      ...props.extensions,
+    ];
   });
 
   // 默认加载文本
@@ -187,6 +196,40 @@
     .loading-container {
       background-color: var(--color-bg-1);
       opacity: 0.6;
+    }
+  }
+
+  /* 暗黑模式下的编辑器样式 */
+  body[arco-theme='dark'] {
+    :deep(.cm-editor) {
+      color: var(--color-text-1);
+      background-color: var(--color-bg-2);
+    }
+    :deep(.cm-gutters) {
+      background-color: var(--color-bg-3);
+      border-right: 1px solid var(--color-border-2);
+    }
+    :deep(.cm-lineNumbers .cm-gutterElement) {
+      color: var(--color-text-3);
+    }
+    :deep(.cm-activeLineGutter) {
+      background-color: var(--color-bg-3);
+    }
+    :deep(.cm-activeLine) {
+      background-color: var(--color-fill-1);
+    }
+    :deep(.cm-content) {
+      color: var(--color-text-1);
+      background-color: var(--color-bg-2);
+    }
+    :deep(.cm-cursor) {
+      border-left-color: var(--color-text-1);
+    }
+    :deep(.cm-selectionBackground) {
+      background-color: var(--color-fill-3) !important;
+    }
+    .loading-container {
+      background-color: rgb(var(--color-bg-1) / 80%);
     }
   }
 </style>

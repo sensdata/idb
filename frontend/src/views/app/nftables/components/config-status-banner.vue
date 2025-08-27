@@ -13,7 +13,11 @@
         <a-space>
           <span>{{ configTypeLabel }}</span>
           <a-tag
-            :color="isCurrentConfigActive ? 'green' : 'orange'"
+            :color="
+              isCurrentConfigActive
+                ? 'rgb(var(--success-6))'
+                : 'rgb(var(--warning-6))'
+            "
             size="small"
           >
             {{ statusLabel }}

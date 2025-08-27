@@ -34,7 +34,13 @@
             {{ certificate.key_size }} bits
           </a-descriptions-item>
           <a-descriptions-item :label="$t('app.certificate.isCA')">
-            <a-tag :color="certificate.is_ca ? 'green' : 'gray'">
+            <a-tag
+              :color="
+                certificate.is_ca
+                  ? 'rgb(var(--success-6))'
+                  : 'rgb(var(--gray-6, 120,120,120))'
+              "
+            >
               {{ certificate.is_ca ? $t('common.yes') : $t('common.no') }}
             </a-tag>
           </a-descriptions-item>
@@ -164,25 +170,25 @@
 
   // 获取证书状态颜色
   const getStatusColor = () => {
-    if (!props.certificate) return 'gray';
+    if (!props.certificate) return 'rgb(var(--color-text-4))';
 
     const now = new Date();
     const notAfter = new Date(props.certificate.not_after);
     const notBefore = new Date(props.certificate.not_before);
 
     if (now > notAfter) {
-      return 'red'; // 已过期
+      return 'rgb(var(--danger-6))'; // 已过期
     }
     if (now < notBefore) {
-      return 'orange'; // 尚未生效
+      return 'rgb(var(--warning-6))'; // 尚未生效
     }
     const daysUntilExpiry = Math.ceil(
       (notAfter.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysUntilExpiry <= 30) {
-      return 'orange'; // 即将过期
+      return 'rgb(var(--warning-6))'; // 即将过期
     }
-    return 'green'; // 有效
+    return 'rgb(var(--success-6))'; // 有效
   };
 
   // 获取证书状态文本

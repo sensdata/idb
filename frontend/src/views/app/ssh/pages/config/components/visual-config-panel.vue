@@ -257,13 +257,13 @@
 
       .setting-btn {
         padding: 0 8px;
-        color: #8250df;
+        color: rgb(var(--primary-6));
         background: none;
         border: none;
         box-shadow: none;
 
         &:hover {
-          color: #9e77e3;
+          color: rgb(var(--primary-5));
           background: none;
         }
       }

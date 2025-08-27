@@ -8,7 +8,11 @@
         }}</a-tag>
         <a-tag
           v-if="sshStore.config"
-          :color="sshStore.config.auto_start ? 'green' : 'gray'"
+          :color="
+            sshStore.config.auto_start
+              ? 'rgb(var(--success-6))'
+              : 'rgb(var(--color-text-4))'
+          "
           size="medium"
         >
           {{ autoStartText }}

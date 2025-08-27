@@ -22,7 +22,7 @@
         field="driver"
         :label="t('app.docker.volume.create.form.driver')"
       >
-        <a-tag color="green">local</a-tag>
+        <a-tag :color="'rgb(var(--success-6))'">local</a-tag>
       </a-form-item>
       <a-form-item
         field="options"

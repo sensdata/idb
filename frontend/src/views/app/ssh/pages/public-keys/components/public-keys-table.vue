@@ -122,11 +122,11 @@
   }
 
   .generate-key-btn {
-    background-color: #6c52fa;
+    background-color: rgb(var(--primary-6));
 
     &:hover,
     &:focus {
-      background-color: #8b74ff;
+      background-color: rgb(var(--primary-5));
     }
   }
 </style>

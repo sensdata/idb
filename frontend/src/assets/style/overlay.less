@@ -22,3 +22,89 @@
     }
   }
 }
+
+/* 全局修复：暗黑模式下 a-input-number / a-input(text) 的背景、边框与文字颜色 */
+body[arco-theme='dark'] {
+  /* a-input-number */
+  .arco-input-number {
+    background-color: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+  }
+  .arco-input-number:hover {
+    border-color: var(--color-border-3);
+  }
+  .arco-input-number:focus-within {
+    border-color: var(--color-border-3);
+    box-shadow: 0 0 0 2px var(--color-primary-light-1);
+  }
+  .arco-input-number-input {
+    color: var(--color-text-1);
+    background-color: transparent;
+  }
+  .arco-input-number-input::placeholder {
+    color: var(--color-text-3);
+  }
+
+  /* a-input(text) */
+  .arco-input-wrapper {
+    background-color: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+  }
+  .arco-input-wrapper:hover {
+    border-color: var(--color-border-3);
+  }
+  .arco-input-wrapper:focus-within {
+    border-color: var(--color-border-3);
+    box-shadow: 0 0 0 2px var(--color-primary-light-1);
+  }
+  .arco-input {
+    color: var(--color-text-1);
+    background-color: transparent;
+  }
+  .arco-input::placeholder {
+    color: var(--color-text-3);
+  }
+
+  /* a-select */
+  .arco-select-view,
+  .arco-select {
+    background-color: var(--color-bg-2) !important;
+    border: 1px solid var(--color-border-2) !important;
+  }
+  .arco-select-view:hover {
+    border-color: var(--color-border-3) !important;
+  }
+  .arco-select-view.arco-select-view-focus {
+    border-color: var(--color-border-3) !important;
+    box-shadow: 0 0 0 2px var(--color-primary-light-1) !important;
+  }
+  .arco-select-view-value,
+  .arco-select-view-input input {
+    color: var(--color-text-1) !important;
+    background-color: transparent !important;
+  }
+  .arco-select-view-placeholder,
+  .arco-select-view-input input::placeholder {
+    color: var(--color-text-3) !important;
+  }
+
+  /* a-textarea */
+  .arco-textarea-wrapper {
+    background-color: var(--color-bg-2) !important;
+    border: 1px solid var(--color-border-2) !important;
+  }
+  .arco-textarea-wrapper:hover {
+    border-color: var(--color-border-3) !important;
+  }
+  .arco-textarea-wrapper:focus-within {
+    border-color: var(--color-border-3) !important;
+    box-shadow: 0 0 0 2px var(--color-primary-light-1) !important;
+  }
+  .arco-textarea {
+    color: var(--color-text-1) !important;
+    background-color: transparent !important;
+  }
+  .arco-textarea::placeholder {
+    color: var(--color-text-3) !important;
+  }
+}

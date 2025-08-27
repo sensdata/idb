@@ -43,7 +43,7 @@
 
       <!-- 状态列 -->
       <template #status>
-        <a-tag color="red" size="small">
+        <a-tag :color="'rgb(var(--danger-6))'" size="small">
           {{ $t('app.nftables.ipBlacklist.action.drop') }}
         </a-tag>
       </template>

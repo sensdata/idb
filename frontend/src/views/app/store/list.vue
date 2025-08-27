@@ -43,7 +43,7 @@
                   <div class="mb-4 text-sm text-gray-500 line-clamp-2">
                     {{ item.description }}
                   </div>
-                  <a-tag color="arcoblue">{{ item.category }}</a-tag>
+                  <a-tag color="blue">{{ item.category }}</a-tag>
                 </template>
                 <!-- 已安装应用显示版本和安装时间 -->
                 <template v-else>

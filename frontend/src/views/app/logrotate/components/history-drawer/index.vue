@@ -26,7 +26,7 @@
                 <a-tag size="small">{{ formatCommit(record.commit) }}</a-tag>
                 <a-tag
                   v-if="rowIndex === 0"
-                  color="green"
+                  :color="'rgb(var(--success-6))'"
                   size="small"
                   class="current-tag"
                 >

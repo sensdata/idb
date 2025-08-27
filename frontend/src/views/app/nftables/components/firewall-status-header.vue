@@ -5,8 +5,8 @@
         v-if="firewallStatus"
         :color="
           statusInfo.installStatusText === $t('app.nftables.status.installed')
-            ? 'green'
-            : 'red'
+            ? 'rgb(var(--success-6))'
+            : 'rgb(var(--danger-6))'
         "
         size="small"
       >

@@ -1,13 +1,13 @@
 <template>
   <div class="service-raw">
     <div class="raw-content">
-      <codemirror
+      <code-editor
         :model-value="content"
-        :placeholder="$t('app.service.form.field.content')"
         :autofocus="true"
         :indent-with-tab="true"
         :tab-size="2"
         :extensions="serviceExtensions"
+        :file="serviceFile"
         class="service-codemirror"
         @update:model-value="handleContentChange"
       />
@@ -16,12 +16,12 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { Codemirror } from 'vue-codemirror';
+  import { ref, computed } from 'vue';
   import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
   import { useLogger } from '@/composables/use-logger';
   import { SERVICE_TYPE } from '@/config/enum';
   import { ServiceEntity } from '@/entity/Service';
+  import CodeEditor from '@/components/code-editor/index.vue';
 
   const props = defineProps<{
     type: SERVICE_TYPE;
@@ -40,6 +40,12 @@
 
   // 日志记录
   const { logDebug } = useLogger('ServiceRaw');
+
+  // 创建 service 文件对象
+  const serviceFile = computed(() => ({
+    name: `${props.record?.name || 'service'}.service`,
+    path: `/etc/systemd/system/${props.record?.name || 'service'}.service`,
+  }));
 
   // 使用编辑器配置获取service扩展
   const { getServiceExtensions } = useEditorConfig(ref(null));

@@ -45,21 +45,16 @@
           },
         ]"
       >
-        <codemirror
-          v-model="formState.docker_file_content"
-          :placeholder="
-            t('app.docker.image.form.docker_file_content.placeholder')
-          "
-          :style="{ width: '100%', height: '400px' }"
-          theme="cobalt"
-          :tabSize="4"
-          :extensions="extensions"
-          autofocus
-          indent-with-tab
-          line-wrapping
-          match-brackets
-          style-active-line
-        />
+        <div style="width: 100%; height: 400px">
+          <code-editor
+            v-model="formState.docker_file_content"
+            :tab-size="4"
+            :extensions="extensions"
+            :autofocus="true"
+            :indent-with-tab="true"
+            :file="dockerFileObj"
+          />
+        </div>
       </a-form-item>
       <a-form-item
         v-if="formState.mode === 'file'"
@@ -91,15 +86,14 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue';
   import { buildImageApi } from '@/api/docker';
-  import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
   import { dockerFile } from '@codemirror/legacy-modes/mode/dockerfile';
-  import { oneDark } from '@codemirror/theme-one-dark';
+  import CodeEditor from '@/components/code-editor/index.vue';
   import FileSelector from '@/components/file/file-selector/index.vue';
 
   const emit = defineEmits(['success']);
@@ -107,7 +101,14 @@
   const visible = ref(false);
   const loading = ref(false);
   const formRef = ref<FormInstance>();
-  const extensions = [StreamLanguage.define(dockerFile), oneDark];
+
+  // 创建 Dockerfile 文件对象
+  const dockerFileObj = computed(() => ({
+    name: 'Dockerfile',
+    path: '/tmp/Dockerfile',
+  }));
+
+  const extensions = [StreamLanguage.define(dockerFile)];
   const formState = reactive({
     name: '',
     mode: 'edit',

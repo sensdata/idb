@@ -54,16 +54,16 @@
     <!-- 编辑器 -->
     <div v-else class="editor-container">
       <div class="editor-wrapper">
-        <codemirror
+        <code-editor
           v-model="content"
-          :placeholder="$t('app.nftables.config.editor.placeholder')"
           :autofocus="true"
           :indent-with-tab="true"
           :tab-size="2"
           :extensions="editorExtensions"
+          :read-only="saving"
+          :file="nftablesFile"
           class="nftables-editor"
-          :disabled="saving"
-          @ready="handleEditorReady"
+          @editor-ready="handleEditorReady"
         />
 
         <!-- 保存中的遮罩层 -->
@@ -77,20 +77,28 @@
       <div class="editor-footer">
         <div class="editor-info">
           <a-space size="small">
-            <a-tag color="blue" size="small">
+            <a-tag :color="'rgb(var(--primary-6))'" size="small">
               <template #icon>
                 <icon-file />
               </template>
               /etc/nftables.conf
             </a-tag>
 
-            <a-tag v-if="content" color="gray" size="small">
+            <a-tag
+              v-if="content"
+              :color="'rgb(var(--color-text-4))'"
+              size="small"
+            >
               {{
                 $t('app.nftables.config.editor.lineCount', { count: lineCount })
               }}
             </a-tag>
 
-            <a-tag v-if="hasChanges" color="orange" size="small">
+            <a-tag
+              v-if="hasChanges"
+              :color="'rgb(var(--warning-6))'"
+              size="small"
+            >
               <template #icon>
                 <icon-edit />
               </template>
@@ -111,9 +119,7 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-  import { Codemirror } from 'vue-codemirror';
   import { EditorView } from '@codemirror/view';
-  import { basicSetup } from 'codemirror';
   import { Message, Modal } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import {
@@ -125,6 +131,7 @@
   import { useLogger } from '@/composables/use-logger';
   import useCurrentHost from '@/composables/current-host';
   import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
+  import CodeEditor from '@/components/code-editor/index.vue';
   import {
     getNftablesRawConfigApi,
     updateNftablesRawConfigApi,
@@ -142,6 +149,12 @@
 
   // 编辑器配置
   const { getNftablesExtensions } = useEditorConfig(ref(null));
+
+  // 创建 nftables 文件对象
+  const nftablesFile = computed(() => ({
+    name: 'nftables.conf',
+    path: '/etc/nftables.conf',
+  }));
 
   // 响应式状态
   const loading = ref<boolean>(false);
@@ -161,46 +174,7 @@
   });
 
   // CodeMirror 扩展配置
-  const editorExtensions = computed(() => [
-    basicSetup,
-    ...getNftablesExtensions(),
-    EditorView.theme({
-      '&': {
-        fontSize: '14px',
-        fontFamily:
-          'Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace',
-      },
-      '.cm-content': {
-        padding: '16px',
-        minHeight: '500px',
-        lineHeight: '1.6',
-      },
-      '.cm-focused': {
-        outline: 'none',
-      },
-      '.cm-editor': {
-        border: '1px solid var(--color-border-2)',
-        borderRadius: '8px',
-        backgroundColor: 'var(--color-bg-1)',
-      },
-      '.cm-editor.cm-focused': {
-        borderColor: 'var(--color-primary)',
-        boxShadow: '0 0 0 2px var(--color-primary-light-4)',
-      },
-      '.cm-scroller': {
-        fontFamily:
-          'Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro, monospace',
-      },
-      '.cm-gutters': {
-        backgroundColor: 'var(--color-bg-2)',
-        border: 'none',
-      },
-      '.cm-lineNumbers .cm-gutterElement': {
-        color: 'var(--color-text-3)',
-      },
-    }),
-    EditorView.lineWrapping,
-  ]);
+  const editorExtensions = computed(() => [...getNftablesExtensions()]);
 
   // 获取 nftables 原始配置
   const fetchNftablesRawConfig = async (): Promise<void> => {
@@ -436,7 +410,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.8);
+        background: var(--color-mask-bg, rgba(255, 255, 255, 0.8));
         backdrop-filter: blur(2px);
         z-index: 10;
         gap: 12px;

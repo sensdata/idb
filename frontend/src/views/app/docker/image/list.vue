@@ -17,10 +17,10 @@
       </div>
     </template>
     <template #state="{ record }">
-      <a-tag v-if="record.is_used" color="green">
+      <a-tag v-if="record.is_used" :color="'rgb(var(--success-6))'">
         {{ $t('app.docker.image.list.state.used') }}
       </a-tag>
-      <a-tag v-else color="gray">
+      <a-tag v-else :color="'rgb(var(--color-text-4))'">
         {{ $t('app.docker.image.list.state.unused') }}
       </a-tag>
     </template>

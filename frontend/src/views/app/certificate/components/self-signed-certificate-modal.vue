@@ -305,7 +305,7 @@
   :deep(.arco-form-item-help) {
     margin-top: 0.33rem;
     font-size: 1rem;
-    color: #6b7280;
+    color: var(--color-text-3);
   }
 
   :deep(.arco-input) {

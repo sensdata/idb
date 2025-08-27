@@ -43,7 +43,13 @@
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.status') }}</div>
             <div class="col3">
-              <a-tag :color="network.status === 'up' ? 'green' : 'red'">
+              <a-tag
+                :color="
+                  network.status === 'up'
+                    ? 'rgb(var(--success-6))'
+                    : 'rgb(var(--danger-6))'
+                "
+              >
                 {{
                   network.status === 'up'
                     ? $t('app.sysinfo.network.status_enabled')

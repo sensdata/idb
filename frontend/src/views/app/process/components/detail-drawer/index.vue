@@ -36,7 +36,6 @@
             <CodeEditor
               :model-value="infoRef?.env || ''"
               :file="{ name: 'env', path: '/tmp/env' }"
-              :extensions="lightThemeExtensions"
               :readonly="true"
             />
           </div>
@@ -240,6 +239,6 @@
     overflow: hidden;
     border: 1px solid var(--color-border-2);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+    box-shadow: 0 2px 8px var(--idb-shadow-light);
   }
 </style>

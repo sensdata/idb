@@ -50,7 +50,9 @@
         <div class="col2"> {{ formatTime(data.boot_time) }} </div>
         <div class="col3"></div>
         <div class="col4">
-          <a-tag color="blue">{{ $t('app.sysinfo.overview.tag.busy') }}</a-tag>
+          <a-tag :color="'rgb(var(--primary-6))'">{{
+            $t('app.sysinfo.overview.tag.busy')
+          }}</a-tag>
         </div>
       </div>
       <div class="line">
@@ -64,7 +66,7 @@
         <div class="col2">{{ formatSeconds(data.idle_time) }}</div>
         <div class="col3"></div>
         <div class="col4">
-          <a-tag color="green">{{
+          <a-tag :color="'rgb(var(--success-6))'">{{
             $t('app.sysinfo.overview.tag.label_free', {
               free: (data.idle_rate || 0) + '%',
             })
@@ -128,11 +130,15 @@
             <div class="col2">{{ $t('app.sysinfo.overview.memory_free') }}</div>
             <div class="col3">{{ data.memory_usage?.free }}</div>
             <div class="col4">
-              <a-tag v-if="data.memory_usage?.free_rate" color="gold">{{
-                $t('app.sysinfo.overview.tag.leave_unused', {
-                  used: data.memory_usage.free_rate.toFixed(2) + '%',
-                })
-              }}</a-tag>
+              <a-tag
+                v-if="data.memory_usage?.free_rate"
+                :color="'rgb(var(--warning-6))'"
+                >{{
+                  $t('app.sysinfo.overview.tag.leave_unused', {
+                    used: data.memory_usage.free_rate.toFixed(2) + '%',
+                  })
+                }}</a-tag
+              >
             </div>
           </div>
           <div class="subline">

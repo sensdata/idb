@@ -14,14 +14,14 @@
       </a-button>
     </div>
     <div class="editor-container">
-      <codemirror
+      <code-editor
         v-model="localConfig"
-        :placeholder="$t('app.ssh.source.placeholder')"
         :indent-with-tab="true"
-        :tabSize="2"
+        :tab-size="2"
         :extensions="extensions"
+        :read-only="loading"
+        :file="sshConfigFile"
         class="source-editor"
-        :disabled="loading"
       />
     </div>
     <div class="source-info">
@@ -32,12 +32,11 @@
 
 <script lang="ts" setup>
   import { ref, watch, computed } from 'vue';
-  import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
   import { shell } from '@codemirror/legacy-modes/mode/shell';
-  import { oneDark } from '@codemirror/theme-one-dark';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
+  import CodeEditor from '@/components/code-editor/index.vue';
 
   const { t } = useI18n();
 
@@ -60,7 +59,13 @@
 
   const localConfig = ref(props.config);
 
-  const extensions = [StreamLanguage.define(shell), oneDark];
+  // 创建 SSH 配置文件对象
+  const sshConfigFile = computed(() => ({
+    name: 'sshd_config',
+    path: '/etc/ssh/sshd_config',
+  }));
+
+  const extensions = [StreamLanguage.define(shell)];
 
   // 计算是否有未保存的更改
   const hasChanges = computed(() => {

@@ -46,7 +46,13 @@
         </template>
       </template>
       <template #status="{ record }">
-        <a-tag :color="record.status === 'success' ? 'green' : 'red'">
+        <a-tag
+          :color="
+            record.status === 'success'
+              ? 'rgb(var(--success-6))'
+              : 'rgb(var(--danger-6))'
+          "
+        >
           {{ $t(`app.script.logs.status.${record.status}`) }}
         </a-tag>
       </template>

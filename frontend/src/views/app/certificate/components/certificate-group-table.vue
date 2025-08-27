@@ -9,15 +9,6 @@
       :columns="columns"
       @reload="handleReload"
     >
-      <template #leftActions>
-        <a-button type="primary" @click="$emit('reload')">
-          <template #icon>
-            <icon-refresh />
-          </template>
-          {{ $t('common.refresh') }}
-        </a-button>
-      </template>
-
       <template #alias="{ record }">
         <div class="alias-cell">
           <a-typography-text strong>{{ record.alias }}</a-typography-text>
@@ -251,7 +242,6 @@
 <script lang="ts" setup>
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { IconRefresh } from '@arco-design/web-vue/es/icon';
   import type { Column } from '@/components/idb-table/types';
   import type { CertificateGroup } from '@/api/certificate';
   import IdbTableOperation from '@/components/idb-table-operation/index.vue';
@@ -410,13 +400,13 @@
   const getCertificateStatusColor = (status: string) => {
     switch (status) {
       case 'valid':
-        return 'green';
+        return 'rgb(var(--success-6))';
       case 'expired':
-        return 'red';
+        return 'rgb(var(--danger-6))';
       case 'expiring_soon':
-        return 'orange';
+        return 'rgb(var(--warning-6))';
       default:
-        return 'gray';
+        return 'rgb(var(--color-text-4))';
     }
   };
 
@@ -489,7 +479,7 @@
   .cert-count {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--color-text-1);
     white-space: nowrap;
   }
 
@@ -510,7 +500,7 @@
     font-size: 0.8125rem;
     font-style: italic;
     line-height: 1.4;
-    color: #6b7280;
+    color: var(--color-text-3);
   }
 
   .single-certificate {
@@ -541,7 +531,7 @@
   .domain-name {
     font-size: 0.9375rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text-1);
   }
 
   .cert-meta {
@@ -553,7 +543,7 @@
 
   .expiry-info {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--color-text-3);
   }
 
   .alt-names-inline {
@@ -581,8 +571,8 @@
   .modal-cert-item {
     padding: 1.5rem;
     margin-bottom: 1rem;
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
     border-radius: 0.5rem;
   }
 
@@ -607,7 +597,7 @@
     margin: 0;
     font-size: 1.125rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--color-text-1);
   }
 
   .modal-cert-actions {
@@ -632,8 +622,8 @@
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #6b7280;
-    background: #f3f4f6;
+    color: var(--color-text-3);
+    background: var(--color-fill-2);
     border-radius: 0.25rem;
   }
 
@@ -646,7 +636,7 @@
   .alt-names-label {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--color-text-2);
   }
 
   .alt-names-list {
@@ -657,18 +647,18 @@
 
   .modal-alt-tag {
     font-size: 0.75rem;
-    color: #1e40af;
-    background: #eff6ff;
-    border: 1px solid #dbeafe;
+    color: var(--idblue-6);
+    background: var(--idblue-1);
+    border: 1px solid var(--idblue-2);
   }
 
   :deep(.arco-dropdown-option.danger-option) {
-    color: #f56565;
+    color: var(--idbred-6);
   }
 
   :deep(.arco-dropdown-option.danger-option:hover) {
-    color: #c53030;
-    background-color: #fed7d7;
+    color: var(--idbred-4);
+    background-color: var(--idbred-1);
   }
 
   /* Certificate Details Drawer */
@@ -684,7 +674,7 @@
 
   .domain-name {
     font-weight: 500;
-    color: #1f2937;
+    color: var(--color-text-1);
   }
 
   .domain-meta {
@@ -695,22 +685,13 @@
 
   .expiry-date {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--color-text-3);
   }
 
   .table-actions {
     display: flex;
     gap: 0.25rem;
     justify-content: flex-end;
-  }
-
-  :deep(.arco-table-td) {
-    padding: 12px 16px !important;
-  }
-
-  :deep(.arco-table-th) {
-    font-weight: 600 !important;
-    background-color: #fafafa !important;
   }
 
   /* Ensure drawer width is respected */

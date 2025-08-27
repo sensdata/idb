@@ -16,51 +16,55 @@
         $t('app.docker.compose.edit.env_content')
       }}</a-radio>
     </a-radio-group>
-    <codemirror
+    <code-editor
       v-if="formState.active === 'compose_content'"
       v-model="formState.compose_content"
-      theme="cobalt"
-      :tabSize="4"
+      :tab-size="4"
       :extensions="yamlExtensions"
-      autofocus
-      indent-with-tab
-      line-wrapping
-      match-brackets
-      style-active-line
+      :autofocus="true"
+      :indent-with-tab="true"
+      :file="composeFile"
     />
-    <codemirror
+    <code-editor
       v-else
       v-model="formState.env_content"
-      theme="cobalt"
-      :tabSize="4"
+      :tab-size="4"
       :extensions="propExtension"
-      autofocus
-      indent-with-tab
-      line-wrapping
-      match-brackets
-      style-active-line
+      :autofocus="true"
+      :indent-with-tab="true"
+      :file="envFile"
     />
   </a-drawer>
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref } from 'vue';
+  import { reactive, ref, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { Message } from '@arco-design/web-vue';
-  import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
   import { yaml } from '@codemirror/legacy-modes/mode/yaml';
   import { properties } from '@codemirror/legacy-modes/mode/properties';
-  import { oneDark } from '@codemirror/theme-one-dark';
+  import CodeEditor from '@/components/code-editor/index.vue';
   import { getComposeDetailApi, updateComposeApi } from '@/api/docker';
 
   const { t } = useI18n();
 
   const emit = defineEmits(['ok']);
 
-  const yamlExtensions = [StreamLanguage.define(yaml), oneDark];
-  const propExtension = [StreamLanguage.define(properties), oneDark];
+  // 创建文件对象
+  const composeFile = computed(() => ({
+    name: 'docker-compose.yml',
+    path: '/tmp/docker-compose.yml',
+  }));
+
+  const envFile = computed(() => ({
+    name: '.env',
+    path: '/tmp/.env',
+  }));
+
+  const yamlExtensions = [StreamLanguage.define(yaml)];
+  const propExtension = [StreamLanguage.define(properties)];
 
   const visible = ref(false);
   const { loading, setLoading } = useLoading(false);

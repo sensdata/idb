@@ -230,7 +230,7 @@
   }
 
   .error-text {
-    color: #f53f3f !important;
+    color: var(--idbred-6) !important;
     font-weight: 500;
   }
 

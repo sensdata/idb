@@ -19,7 +19,13 @@
           </a-button>
         </template>
         <template #enabled="{ record }">
-          <a-tag :color="isEnabled(record) ? 'green' : 'gray'">
+          <a-tag
+            :color="
+              isEnabled(record)
+                ? 'rgb(var(--success-6))'
+                : 'rgb(var(--color-text-4))'
+            "
+          >
             {{
               isEnabled(record)
                 ? $t('app.ssh.keyPairs.enabled')

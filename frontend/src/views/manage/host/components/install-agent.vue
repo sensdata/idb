@@ -100,15 +100,15 @@
   const statusColor = computed(() => {
     switch (status.value) {
       case 'installing':
-        return 'orange';
+        return 'rgb(var(--warning-6))';
       case 'completed':
-        return 'green';
+        return 'rgb(var(--success-6))';
       case 'failed':
-        return 'red';
+        return 'rgb(var(--danger-6))';
       case 'timeout':
-        return 'arcoblue';
+        return 'rgb(var(--primary-6))';
       default:
-        return 'arcoblue';
+        return 'rgb(var(--primary-6))';
     }
   });
 
@@ -492,19 +492,19 @@
   }
 
   .log-message.debug {
-    color: #6c757d;
+    color: var(--color-text-3);
   }
 
   .log-message.info {
-    color: #212529;
+    color: var(--color-text-1);
   }
 
   .log-message.warn {
-    color: #ffc107;
+    color: var(--idbdusk-6);
   }
 
   .log-message.error {
-    color: #dc3545;
+    color: var(--idbred-6);
   }
 
   .empty-log {

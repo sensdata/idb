@@ -24,10 +24,7 @@
         </a-tab-pane>
 
         <a-tab-pane key="raw" :title="$t('app.logrotate.mode.raw')">
-          <RawTab
-            v-model:content="rawContent"
-            :extensions="logrotateExtensions"
-          />
+          <RawTab v-model:content="rawContent" />
         </a-tab-pane>
       </a-tabs>
 
@@ -51,10 +48,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, watch } from 'vue';
+  import { computed, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
-  import useEditorConfig from '@/components/code-editor/composables/use-editor-config';
   import { LOGROTATE_TYPE } from '@/config/enum';
 
   // 组合式API
@@ -134,10 +130,6 @@
     updateForm,
     formData
   );
-
-  // 编辑器扩展
-  const { getLogrotateExtensions } = useEditorConfig(ref(null));
-  const logrotateExtensions = getLogrotateExtensions();
 
   // 取消操作
   const handleCancel = () => {

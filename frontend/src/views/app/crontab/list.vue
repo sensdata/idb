@@ -36,7 +36,14 @@
         </template>
         <template #status="{ record }: { record: CrontabEntity }">
           <div class="status-cell">
-            <a-tag :color="record.linked ? 'green' : 'gray'" class="status-tag">
+            <a-tag
+              :color="
+                record.linked
+                  ? 'rgb(var(--success-6))'
+                  : 'rgb(var(--color-text-4))'
+              "
+              class="status-tag"
+            >
               {{
                 record.linked
                   ? $t('app.crontab.list.status.running')

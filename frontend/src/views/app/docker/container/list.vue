@@ -165,7 +165,7 @@
         const { color, text } = stateMap[
           record.state as keyof typeof stateMap
         ] || {
-          color: '#ccc',
+          color: 'var(--color-text-4)',
           text: record.state,
         };
 

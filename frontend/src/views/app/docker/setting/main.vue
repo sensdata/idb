@@ -4,19 +4,23 @@
       <a-card hoverable size="small">
         <div class="flex w-full flex-col gap-4 md:flex-row">
           <div class="flex flex-wrap gap-4">
-            <a-tag color="#67c23a">Docker</a-tag>
+            <a-tag :color="'rgb(var(--success-6))'">Docker</a-tag>
             <a-tag
               v-if="formState.status === 'Running'"
-              color="lime"
+              :color="'rgb(var(--success-6))'"
               bordered
               class="rounded-file"
             >
               {{ $t('app.docker.setting.status.running') }}
             </a-tag>
-            <a-tag v-if="formState.status === 'stopped'" color="gray" bordered>
+            <a-tag
+              v-if="formState.status === 'stopped'"
+              :color="'rgb(var(--color-text-4))'"
+              bordered
+            >
               {{ $t('app.docker.setting.status.stopped') }}
             </a-tag>
-            <a-tag color="blue">
+            <a-tag :color="'rgb(var(--primary-6))'">
               {{ $t('app.docker.setting.version') }}: {{ formState.version }}
             </a-tag>
           </div>
@@ -196,18 +200,16 @@
           </a-form-item>
         </a-form>
         <div v-else class="mt-4 w-[600px]">
-          <codemirror
-            v-model="daemonJsonContent"
-            :style="{ width: '100%', height: '400px' }"
-            theme="cobalt"
-            :tabSize="4"
-            :extensions="extensions"
-            autofocus
-            indent-with-tab
-            line-wrapping
-            match-brackets
-            style-active-line
-          />
+          <div style="width: 100%; height: 400px">
+            <code-editor
+              v-model="daemonJsonContent"
+              :tab-size="4"
+              :extensions="extensions"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :file="jsonFile"
+            />
+          </div>
           <div class="mt-4">
             <a-button type="primary" @click="handleSaveJson">
               {{ $t('common.save') }}
@@ -233,12 +235,11 @@
     updateDockerConfApi,
     updateDockerConfRawApi,
   } from '@/api/docker';
-  import { onMounted, reactive, ref, watch } from 'vue';
+  import { onMounted, reactive, ref, watch, computed } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useConfirm } from '@/composables/confirm';
-  import { Codemirror } from 'vue-codemirror';
   import { json } from '@codemirror/lang-json';
-  import { oneDark } from '@codemirror/theme-one-dark';
+  import CodeEditor from '@/components/code-editor/index.vue';
   import LogDrawer from './components/log.vue';
   import MirrorDrawer from './components/mirror.vue';
   import RegistryDrawer from './components/registry.vue';
@@ -266,7 +267,14 @@
   });
   const mode = ref('form');
   const daemonJsonContent = ref('');
-  const extensions = [json(), oneDark];
+
+  // 创建 JSON 文件对象
+  const jsonFile = computed(() => ({
+    name: 'daemon.json',
+    path: '/etc/docker/daemon.json',
+  }));
+
+  const extensions = [json()];
   const { confirm } = useConfirm();
   const { t } = useI18n();
 

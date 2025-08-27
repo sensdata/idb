@@ -38,7 +38,7 @@
                 </a-tag>
                 <a-tag
                   v-if="isCurrentVersion(rowIndex)"
-                  color="green"
+                  :color="'rgb(var(--success-6))'"
                   size="small"
                   class="current-tag"
                   :aria-label="$t('app.service.history.current.aria_label')"

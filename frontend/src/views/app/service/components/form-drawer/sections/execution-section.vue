@@ -191,6 +191,6 @@
   .form-help {
     margin-top: -12px;
     font-size: 12px;
-    color: rgb(0 0 0 / 45%);
+    color: var(--color-text-3);
   }
 </style>

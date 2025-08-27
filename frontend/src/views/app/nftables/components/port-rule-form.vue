@@ -274,17 +274,19 @@
                     >
                       <a-select v-model="rule.action">
                         <a-option value="accept">
-                          <a-tag color="green" size="small">
+                          <a-tag :color="'rgb(var(--success-6))'" size="small">
                             {{ $t('app.nftables.config.rules.allow') }}
                           </a-tag>
                         </a-option>
                         <a-option value="drop">
-                          <a-tag color="red" size="small">
+                          <a-tag :color="'rgb(var(--danger-6))'" size="small">
                             {{ $t('app.nftables.config.rules.deny') }}
                           </a-tag>
                         </a-option>
                         <a-option value="reject">
-                          <a-tag color="orange" size="small"> REJECT </a-tag>
+                          <a-tag :color="'rgb(var(--warning-6))'" size="small">
+                            REJECT
+                          </a-tag>
                         </a-option>
                       </a-select>
                     </a-form-item>

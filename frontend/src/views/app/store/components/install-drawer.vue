@@ -53,42 +53,45 @@
         </template>
       </template>
       <template v-if="formState.mode === 'yaml'">
-        <codemirror
-          v-model="composeContent"
-          theme="cobalt"
-          :style="{ width: '100%', height: '400px' }"
-          :tabSize="4"
-          :extensions="extensions"
-          autofocus
-          indent-with-tab
-          line-wrapping
-          match-brackets
-          style-active-line
-        />
+        <div style="width: 100%; height: 400px">
+          <code-editor
+            v-model="composeContent"
+            :tab-size="4"
+            :extensions="extensions"
+            :autofocus="true"
+            :indent-with-tab="true"
+            :file="yamlFile"
+          />
+        </div>
       </template>
     </a-form>
   </a-drawer>
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref, watch } from 'vue';
+  import { reactive, ref, watch, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import useLoading from '@/composables/loading';
   import { Message, Modal } from '@arco-design/web-vue';
   import { getAppDetailApi, installAppApi } from '@/api/store';
   import type { AppEntity, AppFormField } from '@/entity/App';
-  import { Codemirror } from 'vue-codemirror';
   import { StreamLanguage } from '@codemirror/language';
   import { yaml } from '@codemirror/legacy-modes/mode/yaml';
-  import { oneDark } from '@codemirror/theme-one-dark';
+  import CodeEditor from '@/components/code-editor/index.vue';
 
   const { t } = useI18n();
   const router = useRouter();
 
   const emit = defineEmits(['ok']);
 
-  const extensions = [StreamLanguage.define(yaml), oneDark];
+  // 创建 YAML 文件对象
+  const yamlFile = computed(() => ({
+    name: 'docker-compose.yml',
+    path: '/tmp/docker-compose.yml',
+  }));
+
+  const extensions = [StreamLanguage.define(yaml)];
 
   const formRef = ref();
   const formState = reactive<Record<string, any>>({

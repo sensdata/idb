@@ -568,7 +568,8 @@
 
   .content-container {
     padding: 1.67rem;
-    background: white;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
     border-radius: 0.67rem;
   }
 </style>

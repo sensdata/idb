@@ -329,7 +329,7 @@
   .script-form :deep(.arco-form-item-label-required-symbol) {
     margin-right: 0.286rem;
     font-weight: bold;
-    color: #f53f3f;
+    color: var(--idbred-6);
   }
 
   /* 统一输入框样式 */
@@ -399,12 +399,12 @@
   }
 
   .editor-container:has(.cm-focused) {
-    border-color: #722ed1;
+    border-color: var(--color-primary);
   }
 
   /* 兼容性回退 - 如果浏览器不支持:has()选择器 */
   .editor-container :deep(.cm-editor.cm-focused) {
-    border-color: #722ed1;
+    border-color: var(--color-primary);
   }
 
   .editor-container :deep(.cm-editor) {
