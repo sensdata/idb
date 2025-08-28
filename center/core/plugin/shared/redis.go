@@ -115,7 +115,7 @@ type RedisGRPCServer struct {
 	*proto.UnimplementedRedisServer
 }
 
-func (s *RedisGRPCServer) GetComposes(ctx context.Context, req *proto.RedisGetComposesRequest) (*proto.RedisGetComposesResponse, error) {
+func (s *RedisGRPCServer) RedisGetComposes(ctx context.Context, req *proto.RedisGetComposesRequest) (*proto.RedisGetComposesResponse, error) {
 	var resp proto.RedisGetComposesResponse
 
 	result, err := s.Impl.GetComposes(
@@ -140,7 +140,7 @@ func (s *RedisGRPCServer) GetComposes(ctx context.Context, req *proto.RedisGetCo
 	return &resp, nil
 }
 
-func (s *RedisGRPCServer) Operation(ctx context.Context, req *proto.RedisOperationRequest) (*proto.RedisCommonResponse, error) {
+func (s *RedisGRPCServer) RedisOperation(ctx context.Context, req *proto.RedisOperationRequest) (*proto.RedisCommonResponse, error) {
 	var resp proto.RedisCommonResponse
 
 	err := s.Impl.Operation(
@@ -158,7 +158,7 @@ func (s *RedisGRPCServer) Operation(ctx context.Context, req *proto.RedisOperati
 	return &resp, nil
 }
 
-func (s *RedisGRPCServer) SetPort(ctx context.Context, req *proto.RedisSetPortRequest) (*proto.RedisCommonResponse, error) {
+func (s *RedisGRPCServer) RedisSetPort(ctx context.Context, req *proto.RedisSetPortRequest) (*proto.RedisCommonResponse, error) {
 	var resp proto.RedisCommonResponse
 
 	err := s.Impl.SetPort(
@@ -176,7 +176,7 @@ func (s *RedisGRPCServer) SetPort(ctx context.Context, req *proto.RedisSetPortRe
 	return &resp, nil
 }
 
-func (s *RedisGRPCServer) GetConf(ctx context.Context, req *proto.RedisGetConfRequest) (*proto.RedisGetConfResponse, error) {
+func (s *RedisGRPCServer) RedisGetConf(ctx context.Context, req *proto.RedisGetConfRequest) (*proto.RedisGetConfResponse, error) {
 	result, err := s.Impl.GetConf(
 		uint64(req.HostId),
 		model.GetConfRequest{
@@ -191,7 +191,7 @@ func (s *RedisGRPCServer) GetConf(ctx context.Context, req *proto.RedisGetConfRe
 	}, nil
 }
 
-func (s *RedisGRPCServer) SetConf(ctx context.Context, req *proto.RedisSetConfRequest) (*proto.RedisCommonResponse, error) {
+func (s *RedisGRPCServer) RedisSetConf(ctx context.Context, req *proto.RedisSetConfRequest) (*proto.RedisCommonResponse, error) {
 	var resp proto.RedisCommonResponse
 
 	err := s.Impl.SetConf(

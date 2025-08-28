@@ -115,7 +115,7 @@ type PostgreSqlGRPCServer struct {
 	*proto.UnimplementedPostgreSqlServer
 }
 
-func (s *PostgreSqlGRPCServer) GetComposes(ctx context.Context, req *proto.PGGetComposesRequest) (*proto.PGGetComposesResponse, error) {
+func (s *PostgreSqlGRPCServer) PGGetComposes(ctx context.Context, req *proto.PGGetComposesRequest) (*proto.PGGetComposesResponse, error) {
 	var resp proto.PGGetComposesResponse
 
 	result, err := s.Impl.GetComposes(
@@ -140,7 +140,7 @@ func (s *PostgreSqlGRPCServer) GetComposes(ctx context.Context, req *proto.PGGet
 	return &resp, nil
 }
 
-func (s *PostgreSqlGRPCServer) Operation(ctx context.Context, req *proto.PGOperationRequest) (*proto.PGCommonResponse, error) {
+func (s *PostgreSqlGRPCServer) PGOperation(ctx context.Context, req *proto.PGOperationRequest) (*proto.PGCommonResponse, error) {
 	var resp proto.PGCommonResponse
 
 	err := s.Impl.Operation(
@@ -158,7 +158,7 @@ func (s *PostgreSqlGRPCServer) Operation(ctx context.Context, req *proto.PGOpera
 	return &resp, nil
 }
 
-func (s *PostgreSqlGRPCServer) SetPort(ctx context.Context, req *proto.PGSetPortRequest) (*proto.PGCommonResponse, error) {
+func (s *PostgreSqlGRPCServer) PGSetPort(ctx context.Context, req *proto.PGSetPortRequest) (*proto.PGCommonResponse, error) {
 	var resp proto.PGCommonResponse
 
 	err := s.Impl.SetPort(
@@ -176,7 +176,7 @@ func (s *PostgreSqlGRPCServer) SetPort(ctx context.Context, req *proto.PGSetPort
 	return &resp, nil
 }
 
-func (s *PostgreSqlGRPCServer) GetConf(ctx context.Context, req *proto.PGGetConfRequest) (*proto.PGGetConfResponse, error) {
+func (s *PostgreSqlGRPCServer) PGGetConf(ctx context.Context, req *proto.PGGetConfRequest) (*proto.PGGetConfResponse, error) {
 	result, err := s.Impl.GetConf(
 		uint64(req.HostId),
 		model.GetConfRequest{
@@ -191,7 +191,7 @@ func (s *PostgreSqlGRPCServer) GetConf(ctx context.Context, req *proto.PGGetConf
 	}, nil
 }
 
-func (s *PostgreSqlGRPCServer) SetConf(ctx context.Context, req *proto.PGSetConfRequest) (*proto.PGCommonResponse, error) {
+func (s *PostgreSqlGRPCServer) PGSetConf(ctx context.Context, req *proto.PGSetConfRequest) (*proto.PGCommonResponse, error) {
 	var resp proto.PGCommonResponse
 
 	err := s.Impl.SetConf(
