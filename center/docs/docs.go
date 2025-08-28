@@ -7942,6 +7942,203 @@ const docTemplate = `{
                 }
             }
         },
+        "/postgresql/{host}": {
+            "get": {
+                "description": "List postgresql compose",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "PostgreSql"
+                ],
+                "summary": "List postgresql compose",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetComposesResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/postgresql/{host}/conf": {
+            "get": {
+                "description": "Get postgresql conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "PostgreSql"
+                ],
+                "summary": "Get postgresql conf",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetConfResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set postgresql conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "PostgreSql"
+                ],
+                "summary": "Set postgresql conf",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetConfRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/postgresql/{host}/operation": {
+            "post": {
+                "description": "Operation postgresql compose",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "PostgreSql"
+                ],
+                "summary": "Operation postgresql compose",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.OperateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/postgresql/{host}/port": {
+            "post": {
+                "description": "Set postgresql port",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "PostgreSql"
+                ],
+                "summary": "Set postgresql port",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetPortRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/public/version": {
             "get": {
                 "description": "Get current server version",
@@ -7961,6 +8158,203 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.About"
                         }
+                    }
+                }
+            }
+        },
+        "/redis/{host}": {
+            "get": {
+                "description": "List redis compose",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "List redis compose",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetComposesResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/redis/{host}/conf": {
+            "get": {
+                "description": "Get redis conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Get redis conf",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetConfResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set redis conf",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Set redis conf",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetConfRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/redis/{host}/operation": {
+            "post": {
+                "description": "Operation redis compose",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Operation redis compose",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.OperateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/redis/{host}/port": {
+            "post": {
+                "description": "Set redis port",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Set redis port",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetPortRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -12206,6 +12600,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "port": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "version": {

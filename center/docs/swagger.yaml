@@ -195,6 +195,8 @@ definitions:
         type: string
       port:
         type: string
+      status:
+        type: string
       version:
         type: string
     type: object
@@ -7546,6 +7548,137 @@ paths:
       summary: Get plugin menu
       tags:
       - nftables
+  /postgresql/{host}:
+    get:
+      consumes:
+      - application/json
+      description: List postgresql compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetComposesResponse'
+      summary: List postgresql compose
+      tags:
+      - PostgreSql
+  /postgresql/{host}/conf:
+    get:
+      consumes:
+      - application/json
+      description: Get postgresql conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetConfResponse'
+      summary: Get postgresql conf
+      tags:
+      - PostgreSql
+    post:
+      consumes:
+      - application/json
+      description: Set postgresql conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetConfRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set postgresql conf
+      tags:
+      - PostgreSql
+  /postgresql/{host}/operation:
+    post:
+      consumes:
+      - application/json
+      description: Operation postgresql compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Operation postgresql compose
+      tags:
+      - PostgreSql
+  /postgresql/{host}/port:
+    post:
+      consumes:
+      - application/json
+      description: Set postgresql port
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetPortRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set postgresql port
+      tags:
+      - PostgreSql
   /public/version:
     get:
       consumes:
@@ -7561,6 +7694,137 @@ paths:
       summary: Get current server version
       tags:
       - Public
+  /redis/{host}:
+    get:
+      consumes:
+      - application/json
+      description: List redis compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetComposesResponse'
+      summary: List redis compose
+      tags:
+      - Redis
+  /redis/{host}/conf:
+    get:
+      consumes:
+      - application/json
+      description: Get redis conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetConfResponse'
+      summary: Get redis conf
+      tags:
+      - Redis
+    post:
+      consumes:
+      - application/json
+      description: Set redis conf
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetConfRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set redis conf
+      tags:
+      - Redis
+  /redis/{host}/operation:
+    post:
+      consumes:
+      - application/json
+      description: Operation redis compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Operation redis compose
+      tags:
+      - Redis
+  /redis/{host}/port:
+    post:
+      consumes:
+      - application/json
+      description: Set redis port
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetPortRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set redis port
+      tags:
+      - Redis
   /scripts/{host}:
     delete:
       consumes:
