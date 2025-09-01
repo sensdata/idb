@@ -8,6 +8,10 @@ service MysqlManager {
     rpc SetPort(SetPortRequest) returns (MysqlCommonResponse);
     rpc GetConf(GetConfRequest) returns (GetConfResponse);
     rpc SetConf(SetConfRequest) returns (MysqlCommonResponse);
+    rpc GetRemoteAccess(GetRemoteAccessRequest) returns (GetRemoteAccessResponse);
+    rpc SetRemoteAccess(SetRemoteAccessRequest) returns (MysqlCommonResponse);
+    rpc GetRootPassword(GetRootPasswordRequest) returns (GetRootPasswordResponse);
+    rpc SetRootPassword(SetRootPasswordRequest) returns (MysqlCommonResponse);
 }
 
 message MysqlCommonResponse {
@@ -60,3 +64,32 @@ message SetConfRequest {
     string content = 3;
 }
 
+message GetRemoteAccessRequest {
+    uint32 host_id = 1;
+    string name = 2;
+}
+
+message GetRemoteAccessResponse {
+    bool remote_access = 1;
+}
+
+message SetRemoteAccessRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    bool remote_access = 3;
+}
+
+message GetRootPasswordRequest {
+    uint32 host_id = 1;
+    string name = 2;
+}
+
+message GetRootPasswordResponse {
+    string pass = 1;
+}
+
+message SetRootPasswordRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string new_pass = 3;
+}

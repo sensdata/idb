@@ -15,6 +15,10 @@ type MysqlManager interface {
 	SetPort(hostID uint64, req model.SetPortRequest) error
 	GetConf(hostID uint64, req model.GetConfRequest) (*model.GetConfResponse, error)
 	SetConf(hostID uint64, req model.SetConfRequest) error
+	GetRemoteAccess(hostID uint64, req model.GetRemoteAccessRequest) (*model.GetRemoteAccessResponse, error)
+	SetRemoteAccess(hostID uint64, req model.SetRemoteAccessRequest) error
+	GetRootPassword(hostID uint64, req model.GetRootPasswordRequest) (*model.GetRootPasswordResponse, error)
+	SetRootPassword(hostID uint64, req model.SetRootPasswordRequest) error
 }
 
 type MysqlManagerPlugin struct {
@@ -103,6 +107,56 @@ func (c *MysqlManagerGRPCClient) SetConf(hostID uint64, req model.SetConfRequest
 		HostId:  uint32(hostID),
 		Name:    req.Name,
 		Content: req.Content,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *MysqlManagerGRPCClient) GetRemoteAccess(hostID uint64, req model.GetRemoteAccessRequest) (*model.GetRemoteAccessResponse, error) {
+	resp, err := c.client.GetRemoteAccess(context.Background(), &proto.GetRemoteAccessRequest{
+		HostId: uint32(hostID),
+		Name:   req.Name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.GetRemoteAccessResponse{
+		RemoteAccess: resp.RemoteAccess,
+	}, nil
+}
+
+func (c *MysqlManagerGRPCClient) SetRemoteAccess(hostID uint64, req model.SetRemoteAccessRequest) error {
+	_, err := c.client.SetRemoteAccess(context.Background(), &proto.SetRemoteAccessRequest{
+		HostId:       uint32(hostID),
+		Name:         req.Name,
+		RemoteAccess: req.RemoteAccess,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *MysqlManagerGRPCClient) GetRootPassword(hostID uint64, req model.GetRootPasswordRequest) (*model.GetRootPasswordResponse, error) {
+	resp, err := c.client.GetRootPassword(context.Background(), &proto.GetRootPasswordRequest{
+		HostId: uint32(hostID),
+		Name:   req.Name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.GetRootPasswordResponse{
+		Password: resp.Pass,
+	}, nil
+}
+
+func (c *MysqlManagerGRPCClient) SetRootPassword(hostID uint64, req model.SetRootPasswordRequest) error {
+	_, err := c.client.SetRootPassword(context.Background(), &proto.SetRootPasswordRequest{
+		HostId:  uint32(hostID),
+		Name:    req.Name,
+		NewPass: req.NewPass,
 	})
 	if err != nil {
 		return err
@@ -199,6 +253,72 @@ func (s *MysqlManagerGRPCServer) SetConf(ctx context.Context, req *proto.SetConf
 		model.SetConfRequest{
 			Name:    req.Name,
 			Content: req.Content,
+		},
+	)
+	if err != nil {
+		return &resp, err
+	}
+	resp.Success = true
+	resp.Error = ""
+	return &resp, nil
+}
+
+func (s *MysqlManagerGRPCServer) GetRemoteAccess(ctx context.Context, req *proto.GetRemoteAccessRequest) (*proto.GetRemoteAccessResponse, error) {
+	result, err := s.Impl.GetRemoteAccess(
+		uint64(req.HostId),
+		model.GetRemoteAccessRequest{
+			Name: req.Name,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.GetRemoteAccessResponse{
+		RemoteAccess: result.RemoteAccess,
+	}, nil
+}
+
+func (s *MysqlManagerGRPCServer) SetRemoteAccess(ctx context.Context, req *proto.SetRemoteAccessRequest) (*proto.MysqlCommonResponse, error) {
+	var resp proto.MysqlCommonResponse
+
+	err := s.Impl.SetRemoteAccess(
+		uint64(req.HostId),
+		model.SetRemoteAccessRequest{
+			Name:         req.Name,
+			RemoteAccess: req.RemoteAccess,
+		},
+	)
+	if err != nil {
+		return &resp, err
+	}
+	resp.Success = true
+	resp.Error = ""
+	return &resp, nil
+}
+
+func (s *MysqlManagerGRPCServer) GetRootPassword(ctx context.Context, req *proto.GetRootPasswordRequest) (*proto.GetRootPasswordResponse, error) {
+	result, err := s.Impl.GetRootPassword(
+		uint64(req.HostId),
+		model.GetRootPasswordRequest{
+			Name: req.Name,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.GetRootPasswordResponse{
+		Pass: result.Password,
+	}, nil
+}
+
+func (s *MysqlManagerGRPCServer) SetRootPassword(ctx context.Context, req *proto.SetRootPasswordRequest) (*proto.MysqlCommonResponse, error) {
+	var resp proto.MysqlCommonResponse
+
+	err := s.Impl.SetRootPassword(
+		uint64(req.HostId),
+		model.SetRootPasswordRequest{
+			Name:    req.Name,
+			NewPass: req.NewPass,
 		},
 	)
 	if err != nil {

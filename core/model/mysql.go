@@ -40,3 +40,29 @@ type SetConfRequest struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
+
+type GetRemoteAccessRequest struct {
+	Name string `json:"name"`
+}
+
+type GetRemoteAccessResponse struct {
+	RemoteAccess bool `json:"remote_access"`
+}
+
+type SetRemoteAccessRequest struct {
+	Name         string `json:"name"`
+	RemoteAccess bool   `json:"remote_access"`
+}
+
+type GetRootPasswordRequest struct {
+	Name string `json:"name"`
+}
+
+type GetRootPasswordResponse struct {
+	Password string `json:"password"`
+}
+
+type SetRootPasswordRequest struct {
+	Name    string `json:"name"`
+	NewPass string `json:"new_pass"`
+}

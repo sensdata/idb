@@ -232,3 +232,165 @@ func (a *BaseApi) MysqlSetConf(c *gin.Context) {
 
 	SuccessWithData(c, nil)
 }
+
+// @Tags Mysql
+// @Summary Get mysql remote access
+// @Description Get mysql remote access
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param name query string true "name"
+// @Success 200 {object} model.GetRemoteAccessResponse
+// @Router /mysql/{host}/remote_access [get]
+func (a *BaseApi) MysqlGetRemoteAccess(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", nil)
+		return
+	}
+
+	req := model.GetRemoteAccessRequest{
+		Name: name,
+	}
+
+	// 获取插件
+	client, err := getMysqlManager()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	resp, err := client.GetRemoteAccess(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, resp)
+}
+
+// @Tags Mysql
+// @Summary Set mysql remote access
+// @Description Set mysql remote access
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param req body model.SetRemoteAccessRequest true "req"
+// @Success 200
+// @Router /mysql/{host}/remote_access [post]
+func (a *BaseApi) MysqlSetRemoteAccess(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetRemoteAccessRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	// 获取插件
+	client, err := getMysqlManager()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	err = client.SetRemoteAccess(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, nil)
+}
+
+// @Tags Mysql
+// @Summary Get mysql root password
+// @Description Get mysql root password
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param name query string true "name"
+// @Success 200 {object} model.GetRootPasswordResponse
+// @Router /mysql/{host}/password [get]
+func (a *BaseApi) MysqlGetRootPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", nil)
+		return
+	}
+
+	req := model.GetRootPasswordRequest{
+		Name: name,
+	}
+
+	// 获取插件
+	client, err := getMysqlManager()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	resp, err := client.GetRootPassword(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, resp)
+}
+
+// @Tags Mysql
+// @Summary Set mysql root password
+// @Description Set mysql root password
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param req body model.SetRootPasswordRequest true "req"
+// @Success 200
+// @Router /mysql/{host}/password [post]
+func (a *BaseApi) MysqlSetRootPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetRootPasswordRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	// 获取插件
+	client, err := getMysqlManager()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	err = client.SetRootPassword(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, nil)
+}
