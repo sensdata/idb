@@ -1,5 +1,59 @@
-# idb
+# iDB
 
-# build api docs
-cd center
-swag init --parseDependency --parseInternal
+**基于 Go 语言构建的轻量级自托管运维平台**  
+为开发者和小型团队而设计：一站式服务器管理与数据库快速部署工具
+
+[![License](https://img.shields.io/badge/license-Source%20Available-blue.svg)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/sensdb/idb)](https://hub.docker.com/r/sensdb/idb)
+
+---
+
+## ✨ 特性
+
+- **统一管理**：无侵入式管理防火墙、SSH、日志轮转、计划任务、证书、服务
+- **即插即用**：基于 Docker，一键启动与管理 MySQL、PostgreSQL、Redis 等数据库，支持备份与恢复
+- **监控与安全**：实时查看服务器与 Docker 容器资源占用，异常预警
+- **多主机节点**：免费多主机基础管理，支持跨节点 Web 命令终端，以及以上所有功能
+
+---
+
+## 📦 安装
+
+### 一键安装
+```bash
+curl -fsSL https://static.sensdata.com/idb/release/install.sh | bash
+```
+
+---
+
+## 🖥 支持的系统与平台
+
+- **系统**：Ubuntu、Debian、CentOS、Rocky Linux、Kylin、UnionTech 等
+- **云平台**：AWS、Azure、Google Cloud、阿里云、腾讯云、华为云、UCloud 等
+
+---
+
+## 📚 文档
+
+详细使用说明请查看：[https://idb.net](https://idb.net)
+
+
+---
+
+## 📊 数据
+
+- **Docker 下载量**：1 万+
+
+---
+
+## 📜 License
+本项目为 **源代码可见（Source-Available）** 软件：  
+可免费查看与使用，但禁止修改、再分发，以及未经授权的商业化使用。  
+详情请查看 [LICENSE](LICENSE)。
+
+---
+
+## 📬 联系
+
+- 官网：[https://idb.net](https://idb.net)
+- Email：support@sensdata.com
