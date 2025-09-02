@@ -27,4 +27,5 @@ type PluginInitConfig struct {
 	Key      string `json:"key"`
 	WorkDir  string `json:"work_dir"`
 	WorkHost uint   `json:"work_host"`
+	AppDir   string `json:"app_dir"`
 }

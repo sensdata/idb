@@ -169,8 +169,9 @@ func (s *PluginServer) loadPlugins() {
 		HTTPS:    scheme == "https",
 		Cert:     string(global.CertPem),
 		Key:      string(global.KeyPem),
-		WorkDir:  constant.CenterDataDir,
+		WorkDir:  constant.CenterBinDir,
 		WorkHost: defaultHost.ID,
+		AppDir:   constant.AgentDockerDir,
 	}
 
 	// 转成 JSON
