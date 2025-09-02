@@ -34,6 +34,7 @@
   import Feature3Icon from '@/assets/icons/feature3.svg';
   import Feature4Icon from '@/assets/icons/feature4.svg';
   import Footer from '@/components/footer/index.vue';
+
   import LoginForm from './components/login-form.vue';
 
   const { t } = useI18n();
@@ -79,7 +80,7 @@
       padding: 72px 100px;
       color: var(--idb-brand-text);
       background-color: var(--idb-brand-bg);
-      background-image: url('./src/assets/background.png');
+      background-image: url('@/assets/background.png');
       background-repeat: no-repeat;
       background-position: left -182px top -133px;
       background-size: 1643px 1209px;
