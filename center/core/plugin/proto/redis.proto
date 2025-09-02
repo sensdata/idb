@@ -8,6 +8,10 @@ service Redis {
     rpc RedisSetPort(RedisSetPortRequest) returns (RedisCommonResponse);
     rpc RedisGetConf(RedisGetConfRequest) returns (RedisGetConfResponse);
     rpc RedisSetConf(RedisSetConfRequest) returns (RedisCommonResponse);
+    rpc RedisGetRemoteAccess(RedisGetRemoteAccessRequest) returns (RedisGetRemoteAccessResponse);
+    rpc RedisSetRemoteAccess(RedisSetRemoteAccessRequest) returns (RedisCommonResponse);
+    rpc RedisGetRootPassword(RedisGetRootPasswordRequest) returns (RedisGetRootPasswordResponse);
+    rpc RedisSetRootPassword(RedisSetRootPasswordRequest) returns (RedisCommonResponse);
 }
 
 message RedisCommonResponse {
@@ -60,3 +64,32 @@ message RedisSetConfRequest {
     string content = 3;
 }
 
+message RedisGetRemoteAccessRequest {
+    uint32 host_id = 1;
+    string name = 2;
+}
+
+message RedisGetRemoteAccessResponse {
+    bool remote_access = 1;
+}
+
+message RedisSetRemoteAccessRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    bool remote_access = 3;
+}
+
+message RedisGetRootPasswordRequest {
+    uint32 host_id = 1;
+    string name = 2;
+}
+
+message RedisGetRootPasswordResponse {
+    string pass = 1;
+}
+
+message RedisSetRootPasswordRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string new_pass = 3;
+}

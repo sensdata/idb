@@ -19,11 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Redis_RedisGetComposes_FullMethodName = "/proto.Redis/RedisGetComposes"
-	Redis_RedisOperation_FullMethodName   = "/proto.Redis/RedisOperation"
-	Redis_RedisSetPort_FullMethodName     = "/proto.Redis/RedisSetPort"
-	Redis_RedisGetConf_FullMethodName     = "/proto.Redis/RedisGetConf"
-	Redis_RedisSetConf_FullMethodName     = "/proto.Redis/RedisSetConf"
+	Redis_RedisGetComposes_FullMethodName     = "/proto.Redis/RedisGetComposes"
+	Redis_RedisOperation_FullMethodName       = "/proto.Redis/RedisOperation"
+	Redis_RedisSetPort_FullMethodName         = "/proto.Redis/RedisSetPort"
+	Redis_RedisGetConf_FullMethodName         = "/proto.Redis/RedisGetConf"
+	Redis_RedisSetConf_FullMethodName         = "/proto.Redis/RedisSetConf"
+	Redis_RedisGetRemoteAccess_FullMethodName = "/proto.Redis/RedisGetRemoteAccess"
+	Redis_RedisSetRemoteAccess_FullMethodName = "/proto.Redis/RedisSetRemoteAccess"
+	Redis_RedisGetRootPassword_FullMethodName = "/proto.Redis/RedisGetRootPassword"
+	Redis_RedisSetRootPassword_FullMethodName = "/proto.Redis/RedisSetRootPassword"
 )
 
 // RedisClient is the client API for Redis service.
@@ -35,6 +39,10 @@ type RedisClient interface {
 	RedisSetPort(ctx context.Context, in *RedisSetPortRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error)
 	RedisGetConf(ctx context.Context, in *RedisGetConfRequest, opts ...grpc.CallOption) (*RedisGetConfResponse, error)
 	RedisSetConf(ctx context.Context, in *RedisSetConfRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error)
+	RedisGetRemoteAccess(ctx context.Context, in *RedisGetRemoteAccessRequest, opts ...grpc.CallOption) (*RedisGetRemoteAccessResponse, error)
+	RedisSetRemoteAccess(ctx context.Context, in *RedisSetRemoteAccessRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error)
+	RedisGetRootPassword(ctx context.Context, in *RedisGetRootPasswordRequest, opts ...grpc.CallOption) (*RedisGetRootPasswordResponse, error)
+	RedisSetRootPassword(ctx context.Context, in *RedisSetRootPasswordRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error)
 }
 
 type redisClient struct {
@@ -90,6 +98,42 @@ func (c *redisClient) RedisSetConf(ctx context.Context, in *RedisSetConfRequest,
 	return out, nil
 }
 
+func (c *redisClient) RedisGetRemoteAccess(ctx context.Context, in *RedisGetRemoteAccessRequest, opts ...grpc.CallOption) (*RedisGetRemoteAccessResponse, error) {
+	out := new(RedisGetRemoteAccessResponse)
+	err := c.cc.Invoke(ctx, Redis_RedisGetRemoteAccess_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *redisClient) RedisSetRemoteAccess(ctx context.Context, in *RedisSetRemoteAccessRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error) {
+	out := new(RedisCommonResponse)
+	err := c.cc.Invoke(ctx, Redis_RedisSetRemoteAccess_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *redisClient) RedisGetRootPassword(ctx context.Context, in *RedisGetRootPasswordRequest, opts ...grpc.CallOption) (*RedisGetRootPasswordResponse, error) {
+	out := new(RedisGetRootPasswordResponse)
+	err := c.cc.Invoke(ctx, Redis_RedisGetRootPassword_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *redisClient) RedisSetRootPassword(ctx context.Context, in *RedisSetRootPasswordRequest, opts ...grpc.CallOption) (*RedisCommonResponse, error) {
+	out := new(RedisCommonResponse)
+	err := c.cc.Invoke(ctx, Redis_RedisSetRootPassword_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RedisServer is the server API for Redis service.
 // All implementations must embed UnimplementedRedisServer
 // for forward compatibility
@@ -99,6 +143,10 @@ type RedisServer interface {
 	RedisSetPort(context.Context, *RedisSetPortRequest) (*RedisCommonResponse, error)
 	RedisGetConf(context.Context, *RedisGetConfRequest) (*RedisGetConfResponse, error)
 	RedisSetConf(context.Context, *RedisSetConfRequest) (*RedisCommonResponse, error)
+	RedisGetRemoteAccess(context.Context, *RedisGetRemoteAccessRequest) (*RedisGetRemoteAccessResponse, error)
+	RedisSetRemoteAccess(context.Context, *RedisSetRemoteAccessRequest) (*RedisCommonResponse, error)
+	RedisGetRootPassword(context.Context, *RedisGetRootPasswordRequest) (*RedisGetRootPasswordResponse, error)
+	RedisSetRootPassword(context.Context, *RedisSetRootPasswordRequest) (*RedisCommonResponse, error)
 	mustEmbedUnimplementedRedisServer()
 }
 
@@ -120,6 +168,18 @@ func (UnimplementedRedisServer) RedisGetConf(context.Context, *RedisGetConfReque
 }
 func (UnimplementedRedisServer) RedisSetConf(context.Context, *RedisSetConfRequest) (*RedisCommonResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RedisSetConf not implemented")
+}
+func (UnimplementedRedisServer) RedisGetRemoteAccess(context.Context, *RedisGetRemoteAccessRequest) (*RedisGetRemoteAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedisGetRemoteAccess not implemented")
+}
+func (UnimplementedRedisServer) RedisSetRemoteAccess(context.Context, *RedisSetRemoteAccessRequest) (*RedisCommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedisSetRemoteAccess not implemented")
+}
+func (UnimplementedRedisServer) RedisGetRootPassword(context.Context, *RedisGetRootPasswordRequest) (*RedisGetRootPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedisGetRootPassword not implemented")
+}
+func (UnimplementedRedisServer) RedisSetRootPassword(context.Context, *RedisSetRootPasswordRequest) (*RedisCommonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedisSetRootPassword not implemented")
 }
 func (UnimplementedRedisServer) mustEmbedUnimplementedRedisServer() {}
 
@@ -224,6 +284,78 @@ func _Redis_RedisSetConf_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Redis_RedisGetRemoteAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedisGetRemoteAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RedisServer).RedisGetRemoteAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Redis_RedisGetRemoteAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RedisServer).RedisGetRemoteAccess(ctx, req.(*RedisGetRemoteAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Redis_RedisSetRemoteAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedisSetRemoteAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RedisServer).RedisSetRemoteAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Redis_RedisSetRemoteAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RedisServer).RedisSetRemoteAccess(ctx, req.(*RedisSetRemoteAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Redis_RedisGetRootPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedisGetRootPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RedisServer).RedisGetRootPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Redis_RedisGetRootPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RedisServer).RedisGetRootPassword(ctx, req.(*RedisGetRootPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Redis_RedisSetRootPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedisSetRootPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RedisServer).RedisSetRootPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Redis_RedisSetRootPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RedisServer).RedisSetRootPassword(ctx, req.(*RedisSetRootPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Redis_ServiceDesc is the grpc.ServiceDesc for Redis service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -250,6 +382,22 @@ var Redis_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RedisSetConf",
 			Handler:    _Redis_RedisSetConf_Handler,
+		},
+		{
+			MethodName: "RedisGetRemoteAccess",
+			Handler:    _Redis_RedisGetRemoteAccess_Handler,
+		},
+		{
+			MethodName: "RedisSetRemoteAccess",
+			Handler:    _Redis_RedisSetRemoteAccess_Handler,
+		},
+		{
+			MethodName: "RedisGetRootPassword",
+			Handler:    _Redis_RedisGetRootPassword_Handler,
+		},
+		{
+			MethodName: "RedisSetRootPassword",
+			Handler:    _Redis_RedisSetRootPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

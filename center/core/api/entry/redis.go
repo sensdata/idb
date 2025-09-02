@@ -232,3 +232,165 @@ func (a *BaseApi) RedisSetConf(c *gin.Context) {
 
 	SuccessWithData(c, nil)
 }
+
+// @Tags Redis
+// @Summary Get redis remote access
+// @Description Get redis remote access
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param name query string true "name"
+// @Success 200 {object} model.GetRemoteAccessResponse
+// @Router /redis/{host}/remote_access [get]
+func (a *BaseApi) RedisGetRemoteAccess(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", nil)
+		return
+	}
+
+	req := model.GetRemoteAccessRequest{
+		Name: name,
+	}
+
+	// 获取插件
+	client, err := getRedis()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	resp, err := client.GetRemoteAccess(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, resp)
+}
+
+// @Tags Redis
+// @Summary Set redis remote access
+// @Description Set redis remote access
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param req body model.SetRemoteAccessRequest true "req"
+// @Success 200
+// @Router /redis/{host}/remote_access [post]
+func (a *BaseApi) RedisSetRemoteAccess(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetRemoteAccessRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	// 获取插件
+	client, err := getRedis()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	err = client.SetRemoteAccess(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, nil)
+}
+
+// @Tags Redis
+// @Summary Get redis root password
+// @Description Get redis root password
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param name query string true "name"
+// @Success 200 {object} model.GetRootPasswordResponse
+// @Router /redis/{host}/password [get]
+func (a *BaseApi) RedisGetRootPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", nil)
+		return
+	}
+
+	req := model.GetRootPasswordRequest{
+		Name: name,
+	}
+
+	// 获取插件
+	client, err := getRedis()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	resp, err := client.GetRootPassword(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, resp)
+}
+
+// @Tags Redis
+// @Summary Set redis root password
+// @Description Set redis root password
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param req body model.SetRootPasswordRequest true "req"
+// @Success 200
+// @Router /redis/{host}/password [post]
+func (a *BaseApi) RedisSetRootPassword(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.SetRootPasswordRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	// 获取插件
+	client, err := getRedis()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	err = client.SetRootPassword(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, nil)
+}

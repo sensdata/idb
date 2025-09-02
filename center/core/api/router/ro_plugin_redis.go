@@ -18,5 +18,9 @@ func (s *RedisRouter) InitRouter(Router *gin.RouterGroup) {
 		redisRouter.POST("/:host/port", baseApi.RedisSetPort)
 		redisRouter.GET("/:host/conf", baseApi.RedisGetConf)
 		redisRouter.POST("/:host/conf", baseApi.RedisSetConf)
+		redisRouter.GET("/:host/remote_access", baseApi.RedisGetRemoteAccess)
+		redisRouter.POST("/:host/remote_access", baseApi.RedisSetRemoteAccess)
+		redisRouter.GET("/:host/password", baseApi.RedisGetRootPassword)
+		redisRouter.POST("/:host/password", baseApi.RedisSetRootPassword)
 	}
 }
