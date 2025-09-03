@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -246,12 +247,37 @@ func (s *PluginServer) isPluginInstalled(e PluginEntry) bool {
 }
 
 func (s *PluginServer) installPlugin(e PluginEntry) error {
-	global.LOG.Info("downloading plugin %s from %s", e.Name, e.Url)
+	global.LOG.Info("fetching latest version info for plugin %s from %s", e.Name, e.Url)
 
-	// 下载 .tar.gz 包
+	// 先获取 latest 文件内容（版本号）
 	resp, err := http.Get(e.Url)
 	if err != nil {
-		global.LOG.Error("failed to download plugin %s: %v", e.Name, err)
+		return fmt.Errorf("failed to fetch latest version info for plugin %s: %w", e.Name, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected HTTP status %d when fetching latest version info for plugin %s", resp.StatusCode, e.Name)
+	}
+
+	latestBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read latest version info for plugin %s: %w", e.Name, err)
+	}
+	latest := strings.TrimSpace(string(latestBytes))
+	if latest == "" {
+		return fmt.Errorf("latest version info for plugin %s is empty", e.Name)
+	}
+
+	// 拼接真实的 tar.gz 下载地址
+	tarballURL := fmt.Sprintf("https://static.sensdata.com/idb/plugins/%s/%s/%s.tar.gz",
+		e.Name, latest, e.Name)
+
+	global.LOG.Info("downloading plugin %s version %s from %s", e.Name, latest, tarballURL)
+
+	// 下载 tar.gz 包
+	resp, err = http.Get(tarballURL)
+	if err != nil {
 		return fmt.Errorf("failed to download plugin %s: %w", e.Name, err)
 	}
 	defer resp.Body.Close()

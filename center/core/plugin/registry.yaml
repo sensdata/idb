@@ -1,21 +1,21 @@
 plugins:
   - name: auth
     path: /var/lib/idb/data/plugins/auth
-    url: https://static.sensdata.com/idb/plugins/auth/latest.tar.gz
+    url: https://static.sensdata.com/idb/plugins/auth/latest
     enabled: true
   - name: scriptmanager
     path: /var/lib/idb/data/plugins/scriptmanager
-    url: https://static.sensdata.com/idb/plugins/scriptmanager/latest.tar.gz
+    url: https://static.sensdata.com/idb/plugins/scriptmanager/latest
     enabled: true
   - name: mysqlmanager
     path: /var/lib/idb/data/plugins/mysqlmanager
-    url: https://static.sensdata.com/idb/plugins/mysqlmanager/latest.tar.gz
+    url: https://static.sensdata.com/idb/plugins/mysqlmanager/latest
     enabled: true
   - name: postgresql
     path: /var/lib/idb/data/plugins/postgresql
-    url: https://static.sensdata.com/idb/plugins/postgresql/latest.tar.gz
+    url: https://static.sensdata.com/idb/plugins/postgresql/latest
     enabled: true
   - name: redis
     path: /var/lib/idb/data/plugins/redis
-    url: https://static.sensdata.com/idb/plugins/redis/latest.tar.gz
+    url: https://static.sensdata.com/idb/plugins/redis/latest
     enabled: true
