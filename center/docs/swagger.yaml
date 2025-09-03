@@ -877,6 +877,16 @@ definitions:
       path:
         type: string
     type: object
+  model.GetRemoteAccessResponse:
+    properties:
+      remote_access:
+        type: boolean
+    type: object
+  model.GetRootPasswordResponse:
+    properties:
+      password:
+        type: string
+    type: object
   model.GitFile:
     properties:
       content:
@@ -1769,6 +1779,20 @@ definitions:
         items:
           $ref: '#/definitions/model.RuleItem'
         type: array
+    type: object
+  model.SetRemoteAccessRequest:
+    properties:
+      name:
+        type: string
+      remote_access:
+        type: boolean
+    type: object
+  model.SetRootPasswordRequest:
+    properties:
+      name:
+        type: string
+      new_pass:
+        type: string
     type: object
   model.SetTimeReq:
     properties:
@@ -6680,6 +6704,56 @@ paths:
       summary: Operation mysql compose
       tags:
       - Mysql
+  /mysql/{host}/password:
+    get:
+      consumes:
+      - application/json
+      description: Get mysql root password
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetRootPasswordResponse'
+      summary: Get mysql root password
+      tags:
+      - Mysql
+    post:
+      consumes:
+      - application/json
+      description: Set mysql root password
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetRootPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set mysql root password
+      tags:
+      - Mysql
   /mysql/{host}/port:
     post:
       consumes:
@@ -6703,6 +6777,56 @@ paths:
         "200":
           description: OK
       summary: Set mysql port
+      tags:
+      - Mysql
+  /mysql/{host}/remote_access:
+    get:
+      consumes:
+      - application/json
+      description: Get mysql remote access
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetRemoteAccessResponse'
+      summary: Get mysql remote access
+      tags:
+      - Mysql
+    post:
+      consumes:
+      - application/json
+      description: Set mysql remote access
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetRemoteAccessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set mysql remote access
       tags:
       - Mysql
   /nftables/{host}:
@@ -7800,6 +7924,56 @@ paths:
       summary: Operation redis compose
       tags:
       - Redis
+  /redis/{host}/password:
+    get:
+      consumes:
+      - application/json
+      description: Get redis root password
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetRootPasswordResponse'
+      summary: Get redis root password
+      tags:
+      - Redis
+    post:
+      consumes:
+      - application/json
+      description: Set redis root password
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetRootPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set redis root password
+      tags:
+      - Redis
   /redis/{host}/port:
     post:
       consumes:
@@ -7823,6 +7997,56 @@ paths:
         "200":
           description: OK
       summary: Set redis port
+      tags:
+      - Redis
+  /redis/{host}/remote_access:
+    get:
+      consumes:
+      - application/json
+      description: Get redis remote access
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetRemoteAccessResponse'
+      summary: Get redis remote access
+      tags:
+      - Redis
+    post:
+      consumes:
+      - application/json
+      description: Set redis remote access
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetRemoteAccessRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set redis remote access
       tags:
       - Redis
   /scripts/{host}:

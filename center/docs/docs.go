@@ -6645,6 +6645,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/mysql/{host}/password": {
+            "get": {
+                "description": "Get mysql root password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mysql"
+                ],
+                "summary": "Get mysql root password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetRootPasswordResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set mysql root password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mysql"
+                ],
+                "summary": "Set mysql root password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetRootPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/mysql/{host}/port": {
             "post": {
                 "description": "Set mysql port",
@@ -6673,6 +6748,81 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.SetPortRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/mysql/{host}/remote_access": {
+            "get": {
+                "description": "Get mysql remote access",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mysql"
+                ],
+                "summary": "Get mysql remote access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetRemoteAccessResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set mysql remote access",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mysql"
+                ],
+                "summary": "Set mysql remote access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetRemoteAccessRequest"
                         }
                     }
                 ],
@@ -8321,6 +8471,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/redis/{host}/password": {
+            "get": {
+                "description": "Get redis root password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Get redis root password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetRootPasswordResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set redis root password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Set redis root password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetRootPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/redis/{host}/port": {
             "post": {
                 "description": "Set redis port",
@@ -8349,6 +8574,81 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/model.SetPortRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/redis/{host}/remote_access": {
+            "get": {
+                "description": "Get redis remote access",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Get redis remote access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetRemoteAccessResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Set redis remote access",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Redis"
+                ],
+                "summary": "Set redis remote access",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "req",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SetRemoteAccessRequest"
                         }
                     }
                 ],
@@ -13615,6 +13915,22 @@ const docTemplate = `{
                 }
             }
         },
+        "model.GetRemoteAccessResponse": {
+            "type": "object",
+            "properties": {
+                "remote_access": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.GetRootPasswordResponse": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "model.GitFile": {
             "type": "object",
             "properties": {
@@ -14948,6 +15264,28 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.RuleItem"
                     }
+                }
+            }
+        },
+        "model.SetRemoteAccessRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "remote_access": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.SetRootPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "new_pass": {
+                    "type": "string"
                 }
             }
         },
