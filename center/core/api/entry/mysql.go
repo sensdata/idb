@@ -394,3 +394,46 @@ func (a *BaseApi) MysqlSetRootPassword(c *gin.Context) {
 
 	SuccessWithData(c, nil)
 }
+
+// @Tags Mysql
+// @Summary Get mysql connection info
+// @Description Get mysql connection info
+// @Accept json
+// @Produce json
+// @Param host path string true "host"
+// @Param name query string true "name"
+// @Success 200 {object} model.GetConnectionInfoResponse
+// @Router /mysql/{host}/connection [get]
+func (a *BaseApi) MysqlGetConnectionInfo(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	name := c.Query("name")
+	if name == "" {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid name", nil)
+		return
+	}
+
+	req := model.GetConnectionInfoRequest{
+		Name: name,
+	}
+
+	// 获取插件
+	client, err := getMysqlManager()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	// 调用插件方法
+	resp, err := client.GetConnectionInfo(hostID, req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, resp)
+}

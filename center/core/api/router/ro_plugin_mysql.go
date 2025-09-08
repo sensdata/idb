@@ -22,5 +22,6 @@ func (s *MysqlRouter) InitRouter(Router *gin.RouterGroup) {
 		mysqlRouter.POST("/:host/remote_access", baseApi.MysqlSetRemoteAccess)
 		mysqlRouter.GET("/:host/password", baseApi.MysqlGetRootPassword)
 		mysqlRouter.POST("/:host/password", baseApi.MysqlSetRootPassword)
+		mysqlRouter.GET("/:host/connection", baseApi.MysqlGetConnectionInfo)
 	}
 }

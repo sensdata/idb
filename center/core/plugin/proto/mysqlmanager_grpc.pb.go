@@ -19,15 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	MysqlManager_GetComposes_FullMethodName     = "/proto.MysqlManager/GetComposes"
-	MysqlManager_Operation_FullMethodName       = "/proto.MysqlManager/Operation"
-	MysqlManager_SetPort_FullMethodName         = "/proto.MysqlManager/SetPort"
-	MysqlManager_GetConf_FullMethodName         = "/proto.MysqlManager/GetConf"
-	MysqlManager_SetConf_FullMethodName         = "/proto.MysqlManager/SetConf"
-	MysqlManager_GetRemoteAccess_FullMethodName = "/proto.MysqlManager/GetRemoteAccess"
-	MysqlManager_SetRemoteAccess_FullMethodName = "/proto.MysqlManager/SetRemoteAccess"
-	MysqlManager_GetRootPassword_FullMethodName = "/proto.MysqlManager/GetRootPassword"
-	MysqlManager_SetRootPassword_FullMethodName = "/proto.MysqlManager/SetRootPassword"
+	MysqlManager_GetComposes_FullMethodName       = "/proto.MysqlManager/GetComposes"
+	MysqlManager_Operation_FullMethodName         = "/proto.MysqlManager/Operation"
+	MysqlManager_SetPort_FullMethodName           = "/proto.MysqlManager/SetPort"
+	MysqlManager_GetConf_FullMethodName           = "/proto.MysqlManager/GetConf"
+	MysqlManager_SetConf_FullMethodName           = "/proto.MysqlManager/SetConf"
+	MysqlManager_GetRemoteAccess_FullMethodName   = "/proto.MysqlManager/GetRemoteAccess"
+	MysqlManager_SetRemoteAccess_FullMethodName   = "/proto.MysqlManager/SetRemoteAccess"
+	MysqlManager_GetRootPassword_FullMethodName   = "/proto.MysqlManager/GetRootPassword"
+	MysqlManager_SetRootPassword_FullMethodName   = "/proto.MysqlManager/SetRootPassword"
+	MysqlManager_GetConnectionInfo_FullMethodName = "/proto.MysqlManager/GetConnectionInfo"
 )
 
 // MysqlManagerClient is the client API for MysqlManager service.
@@ -43,6 +44,7 @@ type MysqlManagerClient interface {
 	SetRemoteAccess(ctx context.Context, in *SetRemoteAccessRequest, opts ...grpc.CallOption) (*MysqlCommonResponse, error)
 	GetRootPassword(ctx context.Context, in *GetRootPasswordRequest, opts ...grpc.CallOption) (*GetRootPasswordResponse, error)
 	SetRootPassword(ctx context.Context, in *SetRootPasswordRequest, opts ...grpc.CallOption) (*MysqlCommonResponse, error)
+	GetConnectionInfo(ctx context.Context, in *GetConnectionInfoRequest, opts ...grpc.CallOption) (*GetConnectionInfoResponse, error)
 }
 
 type mysqlManagerClient struct {
@@ -134,6 +136,15 @@ func (c *mysqlManagerClient) SetRootPassword(ctx context.Context, in *SetRootPas
 	return out, nil
 }
 
+func (c *mysqlManagerClient) GetConnectionInfo(ctx context.Context, in *GetConnectionInfoRequest, opts ...grpc.CallOption) (*GetConnectionInfoResponse, error) {
+	out := new(GetConnectionInfoResponse)
+	err := c.cc.Invoke(ctx, MysqlManager_GetConnectionInfo_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MysqlManagerServer is the server API for MysqlManager service.
 // All implementations must embed UnimplementedMysqlManagerServer
 // for forward compatibility
@@ -147,6 +158,7 @@ type MysqlManagerServer interface {
 	SetRemoteAccess(context.Context, *SetRemoteAccessRequest) (*MysqlCommonResponse, error)
 	GetRootPassword(context.Context, *GetRootPasswordRequest) (*GetRootPasswordResponse, error)
 	SetRootPassword(context.Context, *SetRootPasswordRequest) (*MysqlCommonResponse, error)
+	GetConnectionInfo(context.Context, *GetConnectionInfoRequest) (*GetConnectionInfoResponse, error)
 	mustEmbedUnimplementedMysqlManagerServer()
 }
 
@@ -180,6 +192,9 @@ func (UnimplementedMysqlManagerServer) GetRootPassword(context.Context, *GetRoot
 }
 func (UnimplementedMysqlManagerServer) SetRootPassword(context.Context, *SetRootPasswordRequest) (*MysqlCommonResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetRootPassword not implemented")
+}
+func (UnimplementedMysqlManagerServer) GetConnectionInfo(context.Context, *GetConnectionInfoRequest) (*GetConnectionInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetConnectionInfo not implemented")
 }
 func (UnimplementedMysqlManagerServer) mustEmbedUnimplementedMysqlManagerServer() {}
 
@@ -356,6 +371,24 @@ func _MysqlManager_SetRootPassword_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MysqlManager_GetConnectionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConnectionInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MysqlManagerServer).GetConnectionInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MysqlManager_GetConnectionInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MysqlManagerServer).GetConnectionInfo(ctx, req.(*GetConnectionInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MysqlManager_ServiceDesc is the grpc.ServiceDesc for MysqlManager service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -398,6 +431,10 @@ var MysqlManager_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetRootPassword",
 			Handler:    _MysqlManager_SetRootPassword_Handler,
+		},
+		{
+			MethodName: "GetConnectionInfo",
+			Handler:    _MysqlManager_GetConnectionInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

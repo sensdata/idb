@@ -19,6 +19,7 @@ type MysqlManager interface {
 	SetRemoteAccess(hostID uint64, req model.SetRemoteAccessRequest) error
 	GetRootPassword(hostID uint64, req model.GetRootPasswordRequest) (*model.GetRootPasswordResponse, error)
 	SetRootPassword(hostID uint64, req model.SetRootPasswordRequest) error
+	GetConnectionInfo(hostID uint64, req model.GetConnectionInfoRequest) (*model.GetConnectionInfoResponse, error)
 }
 
 type MysqlManagerPlugin struct {
@@ -162,6 +163,26 @@ func (c *MysqlManagerGRPCClient) SetRootPassword(hostID uint64, req model.SetRoo
 		return err
 	}
 	return nil
+}
+
+func (c *MysqlManagerGRPCClient) GetConnectionInfo(hostID uint64, req model.GetConnectionInfoRequest) (*model.GetConnectionInfoResponse, error) {
+	resp, err := c.client.GetConnectionInfo(context.Background(), &proto.GetConnectionInfoRequest{
+		HostId: uint32(hostID),
+		Name:   req.Name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &model.GetConnectionInfoResponse{
+		ContainerConnection: model.ConnectionInfo{
+			Host: resp.ContainerConnection.Host,
+			Port: resp.ContainerConnection.Port,
+		},
+		PublicConnection: model.ConnectionInfo{
+			Host: resp.PublicConnection.Host,
+			Port: resp.PublicConnection.Port,
+		},
+	}, nil
 }
 
 type MysqlManagerGRPCServer struct {
@@ -327,4 +348,26 @@ func (s *MysqlManagerGRPCServer) SetRootPassword(ctx context.Context, req *proto
 	resp.Success = true
 	resp.Error = ""
 	return &resp, nil
+}
+
+func (s *MysqlManagerGRPCServer) GetConnectionInfo(ctx context.Context, req *proto.GetConnectionInfoRequest) (*proto.GetConnectionInfoResponse, error) {
+	result, err := s.Impl.GetConnectionInfo(
+		uint64(req.HostId),
+		model.GetConnectionInfoRequest{
+			Name: req.Name,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.GetConnectionInfoResponse{
+		ContainerConnection: &proto.Connection{
+			Host: result.ContainerConnection.Host,
+			Port: result.ContainerConnection.Port,
+		},
+		PublicConnection: &proto.Connection{
+			Host: result.PublicConnection.Host,
+			Port: result.PublicConnection.Port,
+		},
+	}, nil
 }

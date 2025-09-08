@@ -11,10 +11,11 @@ type GetComposesResponse struct {
 }
 
 type ComposeBrief struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Port    string `json:"port"`
-	Status  string `json:"status"`
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Container string `json:"container"`
+	Port      string `json:"port"`
+	Status    string `json:"status"`
 }
 
 type OperateRequest struct {
@@ -65,4 +66,18 @@ type GetRootPasswordResponse struct {
 type SetRootPasswordRequest struct {
 	Name    string `json:"name"`
 	NewPass string `json:"new_pass"`
+}
+
+type GetConnectionInfoRequest struct {
+	Name string `json:"name"`
+}
+
+type ConnectionInfo struct {
+	Host string `json:"host"`
+	Port string `json:"port"`
+}
+
+type GetConnectionInfoResponse struct {
+	ContainerConnection ConnectionInfo `json:"container_connection"`
+	PublicConnection    ConnectionInfo `json:"public_connection"`
 }
