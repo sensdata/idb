@@ -362,7 +362,7 @@ func (s *AppService) AppPage(hostID uint64, req core.QueryApp) (*core.PageResult
 	var result core.PageResult
 
 	// 查询host上已安装的应用
-	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, s.AppDir)
+	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, "", s.AppDir)
 	if err != nil {
 		global.LOG.Error("Error query compose in host %d, %v", hostID, err)
 		return &result, err
@@ -412,7 +412,7 @@ func (s *AppService) AppPage(hostID uint64, req core.QueryApp) (*core.PageResult
 func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error) {
 	var result core.PageResult
 
-	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, s.AppDir)
+	composeInfos, err := s.composePageInHost(uint(hostID), req.Name, "", s.AppDir)
 	if err != nil {
 		global.LOG.Error("Error query compose in host %d, %v", hostID, err)
 		return &result, err
@@ -509,13 +509,14 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 	return &result, nil
 }
 
-func (s *AppService) composePageInHost(hostID uint, info string, workDir string) ([]core.ComposeInfo, error) {
+func (s *AppService) composePageInHost(hostID uint, info string, name string, workDir string) ([]core.ComposeInfo, error) {
 	var result []core.ComposeInfo
 	queryCompose := core.QueryCompose{
 		PageInfo: core.PageInfo{Page: 1, PageSize: 10000}, // get all
 		Info:     info,
 		WorkDir:  workDir,
 		IdbType:  constant.TYPE_APP,
+		IdbName:  name,
 	}
 	data, err := utils.ToJSONString(queryCompose)
 	if err != nil {

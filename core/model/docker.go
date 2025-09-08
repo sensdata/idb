@@ -229,6 +229,7 @@ type QueryCompose struct {
 	Info    string `form:"info" json:"info"`
 	WorkDir string `json:"work_dir"`
 	IdbType string `json:"idb_type"`
+	IdbName string `json:"idb_name"`
 }
 
 type ComposeTestResult struct {

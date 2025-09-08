@@ -404,6 +404,10 @@ func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, er
 		if req.IdbType != "" && info.IdbType != req.IdbType {
 			continue
 		}
+		// 筛选名称
+		if req.IdbName != "" && info.IdbName != req.IdbName {
+			continue
+		}
 		// 筛选关键字
 		if req.Info != "" && !strings.Contains(info.Name, req.Info) {
 			continue
