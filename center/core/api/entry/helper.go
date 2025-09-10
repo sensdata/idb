@@ -16,6 +16,10 @@ import (
 )
 
 func ErrorWithDetail(ctx *gin.Context, code int, msg string, err error) {
+	if err == nil {
+		err = errors.New("")
+	}
+
 	res := model.Response{
 		Code:    code,
 		Message: msg,

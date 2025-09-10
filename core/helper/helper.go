@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -52,9 +53,14 @@ func CheckBind(req interface{}, c *gin.Context) error {
 }
 
 func ErrorWithDetail(ctx *gin.Context, code int, msg string, err error) {
+	if err == nil {
+		err = errors.New("")
+	}
+
 	res := model.Response{
 		Code:    code,
 		Message: msg,
+		Data:    err.Error(),
 	}
 	ctx.JSON(http.StatusOK, res)
 	ctx.Abort()
