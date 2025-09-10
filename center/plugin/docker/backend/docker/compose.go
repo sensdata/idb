@@ -42,7 +42,7 @@ func (s *DockerMan) composeQuery(hostID uint64, req model.QueryCompose) (*model.
 
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action failed")
-		return &result, fmt.Errorf("failed to query compose")
+		return &result, errors.New(actionResponse.Data.Action.Data)
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)

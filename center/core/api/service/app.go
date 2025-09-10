@@ -536,7 +536,7 @@ func (s *AppService) composePageInHost(hostID uint, info string, name string, wo
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Page failed")
-		return result, fmt.Errorf("failed to query compose")
+		return result, errors.New(actionResponse.Data)
 	}
 	var composeResult core.PageResult
 	err = utils.FromJSONString(actionResponse.Data, &composeResult)
