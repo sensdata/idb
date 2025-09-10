@@ -21,7 +21,7 @@
 
 ### 一键安装
 ```bash
-curl -fsSL https://static.sensdata.com/idb/release/install.sh | bash
+curl -fsSL https://static.sensdata.com/idb/release/install.sh | sudo bash
 ```
 
 ---

@@ -24,7 +24,7 @@ log "======================= 开始安装 ======================="
 
 function Check_Root() {
     if [[ $EUID -ne 0 ]]; then
-        echo "请使用 root 或 sudo 权限运行此脚本"
+        log "请使用 root 或 sudo 权限运行此脚本"
         exit 1
     fi
 }
@@ -42,7 +42,7 @@ function Check_Architecture() {
     # elif [[ $osCheck =~ 's390x' ]];then
     #     architecture="s390x"
     else
-        echo "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
+        log "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
         exit 1
     fi
 }
@@ -54,6 +54,7 @@ function Configure_Docker_Mirror() {
         cat > /etc/docker/daemon.json <<EOF
 {
     "registry-mirrors": [
+	    "https://docker.1ms.run",
         "https://docker.1panel.live",
         "https://hub.fast360.xyz",
         "https://docker-0.unsee.tech",
@@ -85,125 +86,113 @@ function Install_Docker(){
                 "https://mirrors.cernet.edu.cn/docker-ce"
             )
 
-            get_average_delay() {
-                local source=$1
-                local total_delay=0
-                local iterations=3
+            # 测试源的延迟和可用性
+            test_source() {
+                local url=$1
+                local test_url="$url/linux/ubuntu/dists/"
+                local delay=$(curl -o /dev/null -s -w "%{time_total}" --connect-timeout 3 --max-time 5 "$test_url")
+                local code=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 5 "$test_url")
 
-                for ((i = 0; i < iterations; i++)); do
-                    delay=$(curl -o /dev/null -s -w "%{time_total}\n" "$source")
-                    total_delay=$(awk "BEGIN {print $total_delay + $delay}")
-                done
-
-                average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
-                echo "$average_delay"
+                # 如果返回码不是 200，则认为不可用
+                if [[ "$code" != "200" ]]; then
+                    echo "fail"
+                else
+                    echo "$delay"
+                fi
             }
 
-            min_delay=${#sources[@]}
+            min_delay=99999
             selected_source=""
 
             for source in "${sources[@]}"; do
-                average_delay=$(get_average_delay "$source")
-
-                if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
-                    min_delay=$average_delay
+                result=$(test_source "$source")
+                if [[ "$result" == "fail" ]]; then
+                    log "$source 不可用，跳过"
+                    continue
+                fi
+                log "$source 延迟: ${result}s"
+                if (( $(awk 'BEGIN {print '"$result"' < '"$min_delay"'}') )); then
+                    min_delay=$result
                     selected_source=$source
                 fi
             done
 
             if [ -n "$selected_source" ]; then
-                echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
+                log "选择延迟最低且可用的源: $selected_source (延迟 ${min_delay}s)"
                 export DOWNLOAD_URL="$selected_source"
-                curl -fsSL "https://get.docker.com" -o get-docker.sh
-                sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-                log "... 启动 docker"
-                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-                docker_config_folder="/etc/docker"
-                if [[ ! -d "$docker_config_folder" ]];then
-                    mkdir -p "$docker_config_folder"
-                fi
-
-                docker version >/dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
-                    log "docker 安装失败"
-                    exit 1
-                else
-                    log "docker 安装成功"
-                    Configure_Docker_Mirror  # 配置镜像加速
-                fi
             else
-                log "无法选择源进行安装"
-                exit 1
+                log "所有国内源不可用，fallback 到官方源 https://download.docker.com"
+                export DOWNLOAD_URL="https://download.docker.com"
             fi
         else
             log "非中国大陆地区，无需更改源"
             export DOWNLOAD_URL="https://download.docker.com"
-            curl -fsSL "https://get.docker.com" -o get-docker.sh
-            sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-            log "... 启动 docker"
-            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-            docker_config_folder="/etc/docker"
-            if [[ ! -d "$docker_config_folder" ]];then
-                mkdir -p "$docker_config_folder"
-            fi
-
-            docker version >/dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                log "docker 安装失败"
-                exit 1
-            else
-                log "docker 安装成功"
-            fi
         fi
+
+        # 安装 docker
+        curl -fsSL "https://get.docker.com" -o get-docker.sh
+        sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+        log "... 启动 docker"
+        systemctl enable docker
+        systemctl daemon-reload
+        systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+        docker_config_folder="/etc/docker"
+        [[ ! -d "$docker_config_folder" ]] && mkdir -p "$docker_config_folder"
+
+        if ! docker version >/dev/null 2>&1; then
+            log "docker 安装失败"
+            exit 1
+        fi
+        log "docker 安装成功"
+        Configure_Docker_Mirror
     fi
 }
 
 function Install_Compose(){
-    docker-compose version >/dev/null 2>&1
+    # 检查 docker compose 是否可用
+    docker compose version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        log "... 在线安装 docker-compose"
-        
-        arch=$(uname -m)
-        if [ "$arch" == 'armv7l' ]; then
-            arch='armv7'
-        fi
-        curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr '[:upper:]' '[:lower:]')-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        if [[ ! -f /usr/local/bin/docker-compose ]];then
-            log "docker-compose 下载失败，请稍候重试"
-            exit 1
-        fi
-        chmod +x /usr/local/bin/docker-compose
-        ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+        log "... 在线安装 Docker Compose 插件"
 
-        docker-compose version >/dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            log "docker-compose 安装失败"
+        mkdir -p ~/.docker/cli-plugins
+        COMPOSE_VERSION="v2.26.1"
+        OS=$(uname | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+            x86_64) ARCH="amd64";;
+            aarch64|arm64) ARCH="arm64";;
+            armv7l) ARCH="armv7";;
+            *) log "不支持的架构 $ARCH"; exit 1;;
+        esac
+
+        COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
+
+        log "下载 docker compose 插件..."
+        curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
+            log "docker compose 下载失败"
             exit 1
-        else
-            log "docker-compose 安装成功"
-        fi
+        }
+
+        chmod +x ~/.docker/cli-plugins/docker-compose
+        ln -sf ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+        docker compose version >/dev/null 2>&1 || {
+            log "Docker Compose 插件安装失败"
+            exit 1
+        }
+        log "Docker Compose 插件安装成功"
     else
-        compose_v=`docker-compose -v`
-        if [[ $compose_v =~ 'docker-compose' ]];then
-            read -p "检测到已安装 Docker Compose 版本较低（需大于等于 v2.0.0 版本），是否升级 [y/n] : " UPGRADE_DOCKER_COMPOSE
-            if [[ "$UPGRADE_DOCKER_COMPOSE" == "Y" ]] || [[ "$UPGRADE_DOCKER_COMPOSE" == "y" ]]; then
-                rm -rf /usr/local/bin/docker-compose /usr/bin/docker-compose
-                Install_Compose
-            else
-                log "Docker Compose 版本为 $compose_v，可能会影响应用商店的正常使用"
-            fi
-        else
-            log "检测到 Docker Compose 已安装，跳过安装步骤"
-        fi
+        compose_v=$(docker compose version 2>/dev/null)
+        log "检测到 Docker Compose 已安装: $compose_v"
     fi
 }
 
 function Check_Installation() {
-    if docker ps -a -q -f name=idb >/dev/null 2>&1; then
+    local containers
+    containers=$(docker ps -a -q -f name=idb)
+    if [[ -n "$containers" ]]; then
         log "检测到已安装的 IDB 容器"
         read -p "是否要升级安装？这将备份现有数据 [y/n]: " UPGRADE_IDB
         if [[ "$UPGRADE_IDB" == "Y" ]] || [[ "$UPGRADE_IDB" == "y" ]]; then
@@ -332,18 +321,18 @@ function Set_Port(){
         fi
 
         if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
-            echo "错误：输入的端口号必须在 1 到 65535 之间"
+            log "错误：输入的端口号必须在 1 到 65535 之间"
             continue
         fi
 
         if command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口${PANEL_PORT}被占用，请重新输入..."
+                log "端口${PANEL_PORT}被占用，请重新输入..."
                 continue
             fi
         elif command -v netstat >/dev/null 2>&1; then
             if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口${PANEL_PORT}被占用，请重新输入..."
+                log "端口${PANEL_PORT}被占用，请重新输入..."
                 continue
             fi
         fi
@@ -388,7 +377,7 @@ function Set_Container_Port(){
         fi
 
         if ! [[ "$CONTAINER_PORT" =~ ^[1-9][0-9]{0,4}$ && "$CONTAINER_PORT" -le 65535 ]]; then
-            echo "错误：输入的端口号必须在 1 到 65535 之间"
+            log "错误：输入的端口号必须在 1 到 65535 之间"
             continue
         fi
 
@@ -402,7 +391,7 @@ function Install_IDB() {
     VERSION=$(curl -s https://static.sensdata.com/idb/release/latest)
 
     if [[ "x${VERSION}" == "x" ]];then
-        echo "获取最新版本失败，请稍候重试"
+        log "获取最新版本失败，请稍候重试"
         exit 1
     fi
 
@@ -443,9 +432,21 @@ function Install_IDB() {
     log "正在启动 IDB..."
     cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
     
-    docker-compose up -d 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    docker compose up -d 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "启动 IDB 失败，请检查 docker-compose 配置。"
+        exit 1
+    fi
+
+    # 检查容器是否真的起来了
+    if ! docker ps -a --format '{{.Names}}' | grep -q '^idb$'; then
+        log "IDB 容器未成功创建，请检查日志：docker compose logs"
+        exit 1
+    fi
+
+    # 进一步确认容器是否是 running 状态
+    if ! docker inspect -f '{{.State.Running}}' idb 2>/dev/null | grep -q true; then
+        log "IDB 容器未处于运行状态，请检查日志：docker compose logs idb"
         exit 1
     fi
 
@@ -480,7 +481,7 @@ function Install_IDB() {
         log "旧版本配置存在，则覆盖当前版本配置"
         cp "/etc/idb-agent/idb-agent.conf" "idb-agent.conf"
     fi
-    sudo bash ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    bash ./install-agent.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
     if [[ $? -ne 0 ]]; then
         log "执行 install-agent.sh 失败，请检查脚本内容。"
         exit 1
@@ -505,7 +506,7 @@ function Get_Ip(){
         LOCAL_IP="127.0.0.1"
     fi
 
-    PUBLIC_IP=`curl -s https://api64.ipify.org`
+    PUBLIC_IP=$(curl -s https://api64.ipify.org)
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
