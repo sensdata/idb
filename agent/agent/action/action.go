@@ -561,16 +561,33 @@ func GetSystemSettings() (*model.SystemSettings, error) {
 	}
 
 	// 获取最大文件打开数量
+	// 读取 systemd 配置
 	confFile := "/etc/systemd/system.conf"
 	if cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, confFile); err == nil {
-		noFile := cfg.Section("Manager").Key("DefaultLimitNOFILE").String()
-		if noFile != "" {
+		if noFile := cfg.Section("Manager").Key("DefaultLimitNOFILE").String(); noFile != "" {
 			if maxOpenFilesInt, err = strconv.Atoi(noFile); err != nil {
-				return nil, fmt.Errorf("parse DefaultLimitNOFILE failed: %v", err)
+				maxOpenFilesInt = 0
 			}
 		}
 	}
-
+	// fallback：读取当前 shell 的ulimit值或系统最大值
+	if maxOpenFilesInt == 0 {
+		if out, err := utils.Exec("ulimit -n"); err == nil {
+			if v, err := strconv.Atoi(strings.TrimSpace(out)); err == nil {
+				maxOpenFilesInt = v
+			}
+		}
+	}
+	if maxOpenFilesInt == 0 {
+		if data, err := os.ReadFile("/proc/sys/fs/file-max"); err == nil {
+			if v, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
+				maxOpenFilesInt = v
+			}
+		}
+	}
+	if maxOpenFilesInt == 0 {
+		maxOpenFilesInt = 65535
+	}
 	return &model.SystemSettings{
 		MaxWatchFiles: maxWatchFilesInt,
 		MaxOpenFiles:  maxOpenFilesInt,
