@@ -14,7 +14,7 @@ echo "开始卸载..."
 
 # 停止并删除所有的容器
 echo "停止并删除容器..."
-docker-compose -f $DIR/docker-compose.yaml down --remove-orphans
+docker compose -f $DIR/docker-compose.yaml down --remove-orphans
 
 # 删除相关的 Docker 镜像
 echo "清理 Docker 镜像..."

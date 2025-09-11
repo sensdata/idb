@@ -155,12 +155,12 @@ function Upgrade_IDB() {
     
     # 启动新版本容器
     cd "${PANEL_DIR}" || exit 1
-    docker-compose up -d
+    docker compose up -d
     
     if [[ $? -ne 0 ]]; then
         log "启动新版本失败，开始回滚..."
         Restore_Data
-        docker-compose up -d
+        docker compose up -d
         exit 1
     fi
     
