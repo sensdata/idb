@@ -14,6 +14,7 @@ import (
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
+	"gopkg.in/ini.v1"
 )
 
 func GetFingerprint() (*model.Fingerprint, error) {
@@ -506,53 +507,36 @@ func UpdateSystemSettings(req model.UpdateSystemSettingsReq) error {
 			return fmt.Errorf("set max watch files failed: %v", err)
 		}
 
-		// 检查 sysctl.d 目录是否存在
-		if _, err := os.Stat("/etc/sysctl.d"); err == nil {
-			content := fmt.Sprintf("fs.inotify.max_user_watches = %d\n", req.MaxWatchFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee /etc/sysctl.d/90-max-watches.conf", content)); err != nil {
-				return fmt.Errorf("persist max watch files setting failed: %v", err)
-			}
-		} else {
-			// 如果不存在，则追加到 sysctl.conf
-			content := fmt.Sprintf("\nfs.inotify.max_user_watches = %d\n", req.MaxWatchFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a /etc/sysctl.conf", content)); err != nil {
-				return fmt.Errorf("persist max watch files setting failed: %v", err)
-			}
+		// 持久化到 sysctl.d
+		confFile := "/etc/sysctl.d/90-max-watches.conf"
+		content := fmt.Sprintf("fs.inotify.max_user_watches = %d\n", req.MaxWatchFiles)
+		if err := os.WriteFile(confFile, []byte(content), 0644); err != nil {
+			return fmt.Errorf("persist max watch files setting failed: %v", err)
 		}
 	}
 
 	// 修改最大文件打开数量
 	if req.MaxOpenFiles > 0 {
-		// 修改系统级别的限制
-		if err := utils.ExecCmd(fmt.Sprintf("sudo sysctl -w fs.file-max=%d", req.MaxOpenFiles)); err != nil {
-			return fmt.Errorf("set system max open files failed: %v", err)
+		confFile := "/etc/systemd/system.conf"
+		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, confFile)
+		if err != nil {
+			// 文件不存在 → 创建
+			cfg = ini.Empty()
 		}
-
-		// 检查 limits.d 目录是否存在
-		if _, err := os.Stat("/etc/security/limits.d"); err == nil {
-			limits := fmt.Sprintf("* soft nofile %d\n* hard nofile %d\n", req.MaxOpenFiles, req.MaxOpenFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee /etc/security/limits.d/90-max-files.conf", limits)); err != nil {
-				return fmt.Errorf("set user max open files failed: %v", err)
-			}
+		sec := cfg.Section("Manager")
+		if k := sec.Key("DefaultLimitNOFILE"); k != nil && k.Value() != "" {
+			k.SetValue(strconv.Itoa(req.MaxOpenFiles))
 		} else {
-			// 如果不存在，则追加到 limits.conf
-			limits := fmt.Sprintf("\n* soft nofile %d\n* hard nofile %d\n", req.MaxOpenFiles, req.MaxOpenFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a /etc/security/limits.conf", limits)); err != nil {
-				return fmt.Errorf("set user max open files failed: %v", err)
+			if _, err := sec.NewKey("DefaultLimitNOFILE", strconv.Itoa(req.MaxOpenFiles)); err != nil {
+				return fmt.Errorf("failed to create key DefaultLimitNOFILE: %w", err)
 			}
 		}
-
-		// 系统级别设置永久生效
-		if _, err := os.Stat("/etc/sysctl.d"); err == nil {
-			content := fmt.Sprintf("fs.file-max = %d\n", req.MaxOpenFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee /etc/sysctl.d/90-max-files.conf", content)); err != nil {
-				return fmt.Errorf("persist system max open files setting failed: %v", err)
-			}
-		} else {
-			content := fmt.Sprintf("\nfs.file-max = %d\n", req.MaxOpenFiles)
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a /etc/sysctl.conf", content)); err != nil {
-				return fmt.Errorf("persist system max open files setting failed: %v", err)
-			}
+		if err := cfg.SaveTo(confFile); err != nil {
+			return fmt.Errorf("update system.conf failed: %v", err)
+		}
+		// 让 systemd 立即重新加载配置
+		if err := utils.ExecCmd("sudo systemctl daemon-reexec"); err != nil {
+			return fmt.Errorf("reload systemd daemon failed: %v", err)
 		}
 	}
 
@@ -568,42 +552,22 @@ func GetSystemSettings() (*model.SystemSettings, error) {
 	var maxWatchFilesInt, maxOpenFilesInt int
 
 	// 获取最大监控文件个数
-	// 首先尝试从 sysctl 获取
-	maxWatchFiles, err := utils.Exec("sysctl -n fs.inotify.max_user_watches")
+	data, err := os.ReadFile("/proc/sys/fs/inotify/max_user_watches")
 	if err != nil {
-		// 如果失败，尝试直接读取 proc 文件系统
-		maxWatchFiles, err = utils.Exec("cat /proc/sys/fs/inotify/max_user_watches")
-		if err != nil {
-			return nil, fmt.Errorf("get max watch files failed: %v", err)
-		}
+		return nil, fmt.Errorf("get max watch files failed: %v", err)
 	}
-	maxWatchFiles = strings.TrimSpace(maxWatchFiles)
-	if maxWatchFiles != "" {
-		maxWatchFilesInt, err = strconv.Atoi(maxWatchFiles)
-		if err != nil {
-			return nil, fmt.Errorf("parse max watch files failed: %v", err)
-		}
+	if maxWatchFilesInt, err = strconv.Atoi(strings.TrimSpace(string(data))); err != nil {
+		return nil, fmt.Errorf("parse max watch files failed: %v", err)
 	}
 
 	// 获取最大文件打开数量
-	// 首先尝试从 sysctl 获取
-	maxOpenFiles, err := utils.Exec("sysctl -n fs.file-max")
-	if err != nil {
-		// 如果失败，尝试直接读取 proc 文件系统
-		maxOpenFiles, err = utils.Exec("cat /proc/sys/fs/file-max")
-		if err != nil {
-			// 如果还是失败，尝试从 ulimit 获取
-			maxOpenFiles, err = utils.Exec("ulimit -n")
-			if err != nil {
-				return nil, fmt.Errorf("get max open files failed: %v", err)
+	confFile := "/etc/systemd/system.conf"
+	if cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, confFile); err == nil {
+		noFile := cfg.Section("Manager").Key("DefaultLimitNOFILE").String()
+		if noFile != "" {
+			if maxOpenFilesInt, err = strconv.Atoi(noFile); err != nil {
+				return nil, fmt.Errorf("parse DefaultLimitNOFILE failed: %v", err)
 			}
-		}
-	}
-	maxOpenFiles = strings.TrimSpace(maxOpenFiles)
-	if maxOpenFiles != "" {
-		maxOpenFilesInt, err = strconv.Atoi(maxOpenFiles)
-		if err != nil {
-			return nil, fmt.Errorf("parse max open files failed: %v", err)
 		}
 	}
 
