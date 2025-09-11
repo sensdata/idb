@@ -26,6 +26,26 @@ func GetFingerprint() (*model.Fingerprint, error) {
 	return fingerprint, nil
 }
 
+func InitLicense() error {
+	// 查找fp
+	fp, err := db.FingerprintRepo.GetFirst()
+	if err != nil {
+		return fmt.Errorf("failed to get fingerprint: %w", err)
+	}
+	// 拿到licencePayload
+	var licensePayload model.LicensePayload
+	licenseBytes, err := base64.StdEncoding.DecodeString(fp.License)
+	if err != nil {
+		return fmt.Errorf("failed to decode license: %w", err)
+	}
+	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
+		return fmt.Errorf("failed to parse license: %w", err)
+	}
+	// 更新缓存
+	global.SetLicense(&licensePayload)
+	return nil
+}
+
 func SaveLicense(fingerprint *model.Fingerprint, publicKeyB64 []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
@@ -62,9 +82,11 @@ func SaveLicense(fingerprint *model.Fingerprint, publicKeyB64 []byte) error {
 	}
 
 	// Parse JSON
-	if err := json.Unmarshal(licenseBytes, global.License); err != nil {
+	var licensePayload model.LicensePayload
+	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
 		return fmt.Errorf("failed to parse license: %w", err)
 	}
+	global.SetLicense(&licensePayload)
 
 	return nil
 }
@@ -74,27 +96,45 @@ func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
 		// TODO: 验证失败时，进行一些管控
 		return fmt.Errorf("license is invalid")
 	}
-	// 更新缓存
-	global.License.LicenseType = verifyResp.LicenseType
+
+	// 解析过期时间
 	expireAt, err := time.Parse(time.RFC3339, verifyResp.ExpireAt)
 	if err != nil {
 		return fmt.Errorf("failed to parse expire time: %w", err)
 	}
-	global.License.ExpireAt = expireAt
 
-	//更新校验时间
+	// 查找fp
 	fp, err := db.FingerprintRepo.GetFirst()
 	if err != nil {
 		return fmt.Errorf("failed to get fingerprint: %w", err)
 	}
+
+	// 更新 license 内容
+	var licensePayload model.LicensePayload
+	licenseBytes, err := base64.StdEncoding.DecodeString(fp.License)
+	if err != nil {
+		return fmt.Errorf("failed to decode license: %w", err)
+	}
+	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
+		return fmt.Errorf("failed to parse license: %w", err)
+	}
+	licensePayload.LicenseType = verifyResp.LicenseType
+	licensePayload.ExpireAt = expireAt
+
+	licenseJson, err := utils.ToJSONString(licensePayload)
+	license := base64.StdEncoding.EncodeToString([]byte(licenseJson))
+
 	if err := db.FingerprintRepo.Update(
 		fp.ID,
 		map[string]interface{}{
 			"last_verify_at": time.Now(),
+			"license":        license,
 		}); err != nil {
-		return fmt.Errorf("failed to update last_verify_at: %w", err)
+		return fmt.Errorf("failed to update fingerprint: %w", err)
 	}
 
+	// 更新缓存
+	global.SetLicense(&licensePayload)
 	return nil
 }
 

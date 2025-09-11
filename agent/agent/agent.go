@@ -123,7 +123,12 @@ func (a *Agent) initFingerprint() {
 	global.LOG.Info("init fingerprint")
 	fingerprint, err := db.FingerprintRepo.GetFirst()
 	if fingerprint.ID > 0 {
-		global.LOG.Info("fingerprint already exists, skip init")
+		global.LOG.Info("fingerprint already exists")
+
+		// 初始化 global.License
+		if err := action.InitLicense(); err != nil {
+			global.LOG.Error("init license error: %v", err)
+		}
 		return
 	}
 
@@ -520,10 +525,11 @@ func (a *Agent) resetConnection() {
 
 // 检查缓存的证书
 func (a *Agent) checkLicense() error {
-	if global.License == nil {
+	license := global.GetLicense()
+	if license == nil {
 		return fmt.Errorf("no license")
 	}
-	if !global.License.ExpireAt.IsZero() && global.License.ExpireAt.Before(time.Now()) {
+	if !license.ExpireAt.IsZero() && license.ExpireAt.Before(time.Now()) {
 		global.LOG.Error("License expire")
 		return fmt.Errorf("license expire")
 	}
@@ -1071,13 +1077,19 @@ func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
 	switch actionData.Action {
 	// 获取host status
 	case model.Host_Status:
+		activated := false
+		license := global.GetLicense()
+		if license != nil {
+			activated = !license.IssuedAt.IsZero()
+		}
+
 		status, err := action.GetStatus()
 		if err != nil {
 			return nil, err
 		}
 		status.Rx = math.Round(a.rx*100) / 100
 		status.Tx = math.Round(a.tx*100) / 100
-		status.Activated = !global.License.IssuedAt.IsZero()
+		status.Activated = activated
 
 		result, err := utils.ToJSONString(status)
 		if err != nil {
