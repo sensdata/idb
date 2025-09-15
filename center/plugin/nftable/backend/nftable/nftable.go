@@ -1734,14 +1734,6 @@ func matchPortVerdictFromText(ruleset string, port int) string {
 
 		if strings.HasPrefix(line, "chain input") {
 			insideChain = true
-			if idx := strings.Index(line, "policy "); idx != -1 {
-				policyPart := line[idx+len("policy "):]
-				policyFields := strings.Fields(policyPart)
-				if len(policyFields) > 0 {
-					defaultPolicy = strings.Trim(policyFields[0], ";")
-					defaultPolicy = strings.ToLower(defaultPolicy)
-				}
-			}
 			continue
 		}
 
@@ -1749,6 +1741,15 @@ func matchPortVerdictFromText(ruleset string, port int) string {
 			if line == "}" {
 				insideChain = false
 				continue
+			}
+
+			// 解析 hook input 中的 policy
+			if strings.Contains(line, "hook input") && strings.Contains(line, "policy") {
+				policyParts := strings.Split(line, "policy")
+				if len(policyParts) > 1 {
+					policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
+					defaultPolicy = strings.ToLower(policy)
+				}
 			}
 
 			if strings.Contains(line, "dport") {
