@@ -5,6 +5,14 @@
     :columns="columns"
     :fetch="queryComposeApi"
   >
+    <template #leftActions>
+      <a-button type="primary" @click="createRef?.show()">
+        <template #icon>
+          <icon-plus />
+        </template>
+        {{ $t('app.docker.compose.list.action.add') }}
+      </a-button>
+    </template>
     <template #operation="{ record }">
       <idb-table-operation
         type="button"
@@ -14,6 +22,7 @@
   </idb-table>
   <logs-modal ref="logsRef" />
   <edit-drawer ref="editRef" />
+  <create-drawer ref="createRef" @success="reload" />
   <down-confirm-modal ref="downConfirmRef" @confirm="afterDownConfirm" />
 </template>
 
@@ -30,6 +39,7 @@
   } from '@/api/docker';
   import LogsModal from './components/logs-modal.vue';
   import EditDrawer from './components/edit-drawer.vue';
+  import CreateDrawer from './components/create-drawer.vue';
   import DownConfirmModal from './components/down-confirm-modal.vue';
 
   const { t } = useI18n();
@@ -145,6 +155,7 @@
 
   const logsRef = ref<InstanceType<typeof LogsModal>>();
   const editRef = ref<InstanceType<typeof EditDrawer>>();
+  const createRef = ref<InstanceType<typeof CreateDrawer>>();
   const downConfirmRef = ref<InstanceType<typeof DownConfirmModal>>();
   const getOperationOptions = (record: any) => [
     {
@@ -231,6 +242,7 @@
         try {
           await deleteComposeApi({ name: record.name });
           Message.success(t('common.message.operationSuccess'));
+          reload();
         } catch (err: any) {
           Message.error(err.message || t('common.message.operationError'));
         } finally {

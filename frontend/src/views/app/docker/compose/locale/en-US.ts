@@ -28,4 +28,12 @@ export default {
   'app.docker.compose.edit.compose_content_required':
     'Please enter the Compose content',
   'app.docker.compose.edit.success': 'Edit successfully',
+
+  'app.docker.compose.create.title': 'Create Compose',
+  'app.docker.compose.create.form.name': 'Project Name',
+  'app.docker.compose.create.form.name.placeholder':
+    'Please enter project name',
+  'app.docker.compose.create.form.name.required': 'Please enter project name',
+  'app.docker.compose.create.test': 'Test Config',
+  'app.docker.compose.create.submit': 'Create and Start',
 };

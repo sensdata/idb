@@ -26,6 +26,13 @@ export default {
   'app.docker.compose.edit.compose_content_required': '请输入 Compose 内容',
   'app.docker.compose.edit.success': '编辑成功',
 
+  'app.docker.compose.create.title': '新建 Compose',
+  'app.docker.compose.create.form.name': '项目名称',
+  'app.docker.compose.create.form.name.placeholder': '请输入项目名称',
+  'app.docker.compose.create.form.name.required': '请输入项目名称',
+  'app.docker.compose.create.test': '测试配置',
+  'app.docker.compose.create.submit': '创建并启动',
+
   'app.docker.compose.logsModal.title': '日志',
   'app.docker.compose.logsModal.error': '获取日志失败',
 };
