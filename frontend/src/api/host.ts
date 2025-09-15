@@ -38,7 +38,7 @@ export const updateHostSSHApi = (
 };
 
 export function deleteHostApi(id: number) {
-  return request.delete('hosts/delete', { id });
+  return request.delete('hosts', { id });
 }
 
 export function getHostGroupListApi(params: ApiListParams) {

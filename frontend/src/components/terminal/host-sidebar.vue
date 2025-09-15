@@ -203,9 +203,8 @@
   });
 
   onMounted(() => {
-    if (hosts.value.length === 0) {
-      refreshHosts();
-    }
+    // 始终在挂载时刷新一次，确保新增主机能及时显示
+    refreshHosts();
     startPolling(1);
   });
 
