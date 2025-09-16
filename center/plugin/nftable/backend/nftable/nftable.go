@@ -168,7 +168,7 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 			sysExist = false
 		} else {
 			// 获取成功，以/etc/nftables.conf的内容初始化
-			content = detail
+			content = removeFlushRuleset(detail)
 			sysExist = true
 		}
 		gitCreate := model.GitCreate{
@@ -350,7 +350,24 @@ func (s *NFTable) checkConfContent(content string) (string, error) {
 			return "", err
 		}
 	}
+	// 清理 flush ruleset
+	safeContent = removeFlushRuleset(safeContent)
 	return safeContent, nil
+}
+
+// 清理掉规则中的 flush ruleset 行
+func removeFlushRuleset(content string) string {
+	lines := strings.Split(content, "\n")
+	var filtered []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		// 跳过 flush ruleset 行
+		if strings.HasPrefix(trimmed, "flush ruleset") {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	return strings.Join(filtered, "\n")
 }
 
 func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
