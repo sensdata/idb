@@ -19,3 +19,7 @@ plugins:
     path: /var/lib/idb/data/plugins/redis
     url: https://static.sensdata.com/idb/plugins/redis/latest
     enabled: true
+  - name: idb-rsync
+    path: /var/lib/idb/data/plugins/idb-rsync
+    url: https://static.sensdata.com/idb/plugins/idb-rsync/latest
+    enabled: true

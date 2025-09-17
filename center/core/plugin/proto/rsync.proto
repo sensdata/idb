@@ -1,0 +1,68 @@
+syntax = "proto3";
+package proto;
+option go_package = "../proto";
+
+service Rsync {
+    rpc RsyncListTask (RsyncListTaskRequest) returns (RsyncListTaskResponse) {}
+    rpc RsyncCreateTask (RsyncCreateTaskRequest) returns (RsyncCreateTaskResponse) {}
+    rpc RsyncQueryTask (RsyncQueryTaskRequest) returns (RsyncTaskInfo) {}
+    rpc RsyncCancelTask (RsyncCancelTaskRequest) returns (RsyncCommonResponse) {}
+    rpc RsyncDeleteTask (RsyncDeleteTaskRequest) returns (RsyncCommonResponse) {}
+    rpc RsyncRetryTask (RsyncRetryTaskRequest) returns (RsyncCommonResponse) {}
+}
+
+message RsyncCommonResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message RsyncListTaskRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+}
+
+message RsyncListTaskResponse {
+    int64 total = 1;
+    repeated RsyncTaskInfo items = 2;
+}
+
+message RsyncTaskInfo {
+    string id = 1;
+    string src = 2;
+    string dst = 3;
+    string cache_dir = 4;
+    string mode = 5;
+    string status = 6;
+    int32 progress = 7;
+    string step = 8;
+    string start_time = 9;
+    string end_time = 10;
+    string error = 11;
+    string last_log = 12;
+}
+
+message RsyncCreateTaskRequest {
+    string src = 1;
+    string dst = 2;
+    string mode = 3;
+}
+
+message RsyncCreateTaskResponse {
+    string id = 1;
+}
+
+message RsyncQueryTaskRequest {
+    string id = 1;
+}
+
+message RsyncCancelTaskRequest {
+    string id = 1;
+}
+
+message RsyncDeleteTaskRequest {
+    string id = 1;
+}
+
+message RsyncRetryTaskRequest {
+    string id = 1;
+}
