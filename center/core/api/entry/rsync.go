@@ -69,13 +69,13 @@ func (a *BaseApi) RsyncListTask(c *gin.Context) {
 // @Description Query rsync task
 // @Accept json
 // @Produce json
-// @Param task_id query string true "Task ID"
+// @Param id query string true "Task ID"
 // @Success 200 {object} model.RsyncTaskInfo
 // @Router /rsync/task/query [get]
 func (a *BaseApi) RsyncQueryTask(c *gin.Context) {
-	taskID := c.Query("task_id")
+	taskID := c.Query("id")
 	if taskID == "" {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid task_id", nil)
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
 		return
 	}
 
