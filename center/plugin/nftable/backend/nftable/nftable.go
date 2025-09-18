@@ -1649,7 +1649,7 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	}
 
 	// 获取本机 IP 地址
-	command = "ip -o -4 addr show | awk '$2 ~ /^lo$|^eth[0-9]+$|^enp[0-9s]+$/ { print $4 }' | cut -d/ -f1"
+	command = "ip -o addr show | awk '{print $4}' | cut -d/ -f1"
 	commandResult, err = s.sendCommand(hostID, command)
 	if err != nil {
 		LOG.Error("Failed to get IP info")
