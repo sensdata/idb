@@ -14,20 +14,20 @@ type DNSInfo struct {
 
 // 网络接口
 type NetworkInterface struct {
-	Name    string      `json:"name"`    //名称
-	Status  string      `json:"status"`  //状态
-	Mac     string      `json:"mac"`     //mac地址
-	Proto   string      `json:"proto"`   //分配方式
-	Address AddressInfo `json:"address"` //地址信息
-	Traffic TrafficInfo `json:"traffic"` //流量信息
+	Name    string        `json:"name"`    //名称
+	Status  string        `json:"status"`  //状态
+	Mac     string        `json:"mac"`     //mac地址
+	Proto   string        `json:"proto"`   //分配方式
+	Address []AddressInfo `json:"address"` // 多个地址信息
+	Traffic TrafficInfo   `json:"traffic"` //流量信息
 }
 
 // 地址信息
 type AddressInfo struct {
-	Type string `json:"type"` //类型
-	Ip   string `json:"ip"`   //ip地址
-	Mask string `json:"mask"` //子网掩码
-	Gate string `json:"gate"` //网关
+	Type string   `json:"type"` //类型
+	Ip   string   `json:"ip"`   //ip地址
+	Mask string   `json:"mask"` //子网掩码
+	Gate []string `json:"gate"` // 网关数组
 }
 
 // 流量信息

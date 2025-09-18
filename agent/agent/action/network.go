@@ -135,75 +135,60 @@ func parseDNSConfig(file *os.File) (*model.DNSInfo, error) {
 }
 
 func getNetwork() ([]model.NetworkInterface, error) {
-	var interfaces = []model.NetworkInterface{}
+	var interfaces []model.NetworkInterface
+
+	gateways, _ := getInterfaceGateways()
 
 	// 获取所有网络接口
 	links, err := netlink.LinkList()
 	if err != nil {
-		fmt.Println("Error fetching links:", err)
-		return interfaces, err
+		return interfaces, fmt.Errorf("error fetching links: %v", err)
 	}
 
 	for _, link := range links {
-		// 获取接口的名字
 		name := link.Attrs().Name
 		mac := link.Attrs().HardwareAddr.String()
 
-		// 获取接口的IP地址和子网掩码
-		address := ""
-		mask := ""
-		ipType := ""
-		addrs, err := netlink.AddrList(link, unix.AF_UNSPEC)
-		if err != nil {
-			fmt.Println("Error fetching addresses:", err)
-		} else {
-			if len(addrs) > 0 {
-				addr := addrs[0]
-				address = addr.IP.String()
-				mask = net.IP(addr.Mask).String()
-
-				// 判断IP类型
-				if addr.IP.To4() != nil {
-					ipType = "IPv4"
-				} else {
-					ipType = "IPv6"
-				}
-			}
-		}
-
-		// 获取默认网关（对于所有接口，实际上需要遍历路由表找到带有默认路由的接口）
-		gateway := ""
-		routes, err := netlink.RouteList(link, unix.AF_UNSPEC)
-		if err != nil {
-			fmt.Println("Error fetching routes:", err)
-		} else {
-			if len(routes) > 0 {
-				route := routes[0]
-				if route.Dst == nil {
-					gateway = route.Gw.String()
-				}
-			}
-		}
-
-		stat := link.Attrs().Statistics
-		fmt.Printf("Tx: %d, Rx: %d", stat.TxBytes, stat.RxBytes)
-
-		// 获取接口状态
 		status := "down"
 		if link.Attrs().Flags&net.FlagUp != 0 {
 			status = "up"
 		}
 
+		var addrInfos []model.AddressInfo
+		addrs, err := netlink.AddrList(link, unix.AF_UNSPEC)
+		if err == nil {
+			for _, addr := range addrs {
+				ip := addr.IP.String()
+				mask := net.IP(addr.Mask).String()
+				ipType := "IPv6"
+				if addr.IP.To4() != nil {
+					ipType = "IPv4"
+				}
+
+				// 匹配同网段的网关
+				var matchedGateways []string
+				for _, gw := range gateways[name] {
+					if isSameSubnet(ip, mask, gw) {
+						matchedGateways = append(matchedGateways, gw)
+					}
+				}
+
+				addrInfos = append(addrInfos, model.AddressInfo{
+					Type: ipType,
+					Ip:   ip,
+					Mask: mask,
+					Gate: matchedGateways,
+				})
+			}
+		}
+
+		stat := link.Attrs().Statistics
+
 		interfaces = append(interfaces, model.NetworkInterface{
-			Name:   name,
-			Mac:    mac,
-			Status: status,
-			Address: model.AddressInfo{
-				Type: ipType,
-				Ip:   address,
-				Mask: mask,
-				Gate: gateway,
-			},
+			Name:    name,
+			Mac:     mac,
+			Status:  status,
+			Address: addrInfos,
 			Traffic: model.TrafficInfo{
 				Rx:      utils.FormatMemorySize(stat.RxBytes),
 				RxBytes: int(stat.RxBytes),
@@ -212,5 +197,74 @@ func getNetwork() ([]model.NetworkInterface, error) {
 			},
 		})
 	}
+
 	return interfaces, nil
+}
+
+// 判断 IP 是否在网段中
+func isSameSubnet(ipStr, maskStr, gwStr string) bool {
+	ip := net.ParseIP(ipStr)
+	gw := net.ParseIP(gwStr)
+	if ip == nil || gw == nil {
+		return false
+	}
+
+	// IPv4
+	if ip.To4() != nil && gw.To4() != nil {
+		mask := net.IPMask(net.ParseIP(maskStr).To4())
+		if mask == nil {
+			return false
+		}
+		ipNet := &net.IPNet{
+			IP:   ip.Mask(mask),
+			Mask: mask,
+		}
+		return ipNet.Contains(gw)
+	}
+
+	// IPv6
+	if ip.To16() != nil && gw.To16() != nil && ip.To4() == nil && gw.To4() == nil {
+		ones, _ := net.IPMask(net.ParseIP(maskStr).To16()).Size()
+		ipNet := &net.IPNet{
+			IP:   ip.Mask(net.CIDRMask(ones, 128)),
+			Mask: net.CIDRMask(ones, 128),
+		}
+		return ipNet.Contains(gw)
+	}
+
+	return false
+}
+
+// 获取每个接口的网关数组
+func getInterfaceGateways() (map[string][]string, error) {
+	gateways := make(map[string][]string)
+	routes, err := netlink.RouteList(nil, unix.AF_UNSPEC)
+	if err != nil {
+		return gateways, err
+	}
+
+	for _, route := range routes {
+		if route.Gw != nil && route.LinkIndex > 0 {
+			link, err := netlink.LinkByIndex(route.LinkIndex)
+			if err != nil {
+				continue
+			}
+			name := link.Attrs().Name
+			gw := route.Gw.String()
+
+			// 去重
+			exists := false
+			for _, g := range gateways[name] {
+				if g == gw {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				gateways[name] = append(gateways[name], gw)
+			}
+		}
+	}
+
+	return gateways, nil
 }
