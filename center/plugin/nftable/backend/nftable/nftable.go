@@ -1649,26 +1649,58 @@ func (s *NFTable) getProcessStatus(hostID uint) (*model.PageResult, error) {
 	}
 
 	// 获取本机 IP 地址
-	command = "ip -o addr show | awk '{print $4}' | cut -d/ -f1"
-	commandResult, err = s.sendCommand(hostID, command)
-	if err != nil {
-		LOG.Error("Failed to get IP info")
-		return &result, errors.New("get ip info failed")
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.SysInfo_Network,
+			Data:   "",
+		},
 	}
-	ipInfos := strings.TrimSpace(commandResult.Result)
-	LOG.Info("IP info: %s", ipInfos)
-	if ipInfos == "" {
-		LOG.Error("No IP info")
-		return &result, errors.New("no ip info")
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to send SysInfo_Network action: %v", err)
+		return &result, err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		global.LOG.Error("failed to get network info")
+		return &result, fmt.Errorf("failed to get network info")
+	}
+
+	var network model.NetworkInfo
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &network)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to network info: %v", err)
+		return &result, fmt.Errorf("json err: %v", err)
 	}
 
 	var ips []string
-	for _, ip := range strings.Split(ipInfos, "\n") {
-		ip = strings.TrimSpace(ip)
-		if ip != "" {
-			ips = append(ips, ip)
+	for _, ni := range network.Networks {
+		for _, addr := range ni.Address {
+			ips = append(ips, addr.Ip)
 		}
 	}
+	// command = "ip -o addr show | awk '{print $4}' | cut -d/ -f1"
+	// commandResult, err = s.sendCommand(hostID, command)
+	// if err != nil {
+	// 	LOG.Error("Failed to get IP info")
+	// 	return &result, errors.New("get ip info failed")
+	// }
+	// ipInfos := strings.TrimSpace(commandResult.Result)
+	// LOG.Info("IP info: %s", ipInfos)
+	// if ipInfos == "" {
+	// 	LOG.Error("No IP info")
+	// 	return &result, errors.New("no ip info")
+	// }
+
+	// var ips []string
+	// for _, ip := range strings.Split(ipInfos, "\n") {
+	// 	ip = strings.TrimSpace(ip)
+	// 	if ip != "" {
+	// 		ips = append(ips, ip)
+	// 	}
+	// }
 
 	// 解析 nft ruleset
 	command = "nft list ruleset"
