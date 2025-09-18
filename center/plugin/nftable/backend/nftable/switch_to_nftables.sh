@@ -25,7 +25,7 @@ enable_nftables() {
 
 # 写入规则文件并加载
 load_idb_nftables_rules() {
-    RULES_FILE="/etc/nftables.idb.nft"
+    RULES_FILE="/etc/nftables.conf"
 
     if [[ -s "$RULES_FILE" ]]; then
         echo "Skip: $RULES_FILE already exists and is not empty, not overwriting."
