@@ -12,11 +12,22 @@ disable_nftables() {
     fi
 }
 
-# 启用并启动 iptables 服务
+# 启用并启动 iptables 服务（兼容 RHEL 和 Debian 系）
 enable_iptables() {
     echo "Enabling and starting iptables..."
-    systemctl enable iptables
-    systemctl start iptables
+
+    if systemctl list-unit-files | grep -q "^iptables.service"; then
+        systemctl enable iptables
+        systemctl start iptables
+    elif systemctl list-unit-files | grep -q "^netfilter-persistent.service"; then
+        systemctl enable netfilter-persistent
+        systemctl start netfilter-persistent
+    else
+        echo "No iptables systemd unit found."
+        echo "👉 RHEL/CentOS: yum install -y iptables-services"
+        echo "👉 Debian/Ubuntu: apt install -y iptables-persistent"
+        exit 1
+    fi
 }
 
 # 添加规则以放通必要端口

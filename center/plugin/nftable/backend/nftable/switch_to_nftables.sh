@@ -7,8 +7,12 @@ disable_iptables() {
         echo "Stopping and disabling iptables..."
         systemctl stop iptables
         systemctl disable iptables
+    elif systemctl is-active --quiet netfilter-persistent; then
+        echo "Stopping and disabling netfilter-persistent..."
+        systemctl stop netfilter-persistent
+        systemctl disable netfilter-persistent
     else
-        echo "iptables is already stopped and disabled."
+        echo "iptables service not active."
     fi
 }
 
@@ -21,16 +25,13 @@ enable_nftables() {
 
 # 写入规则文件并加载
 load_idb_nftables_rules() {
-    RULES_FILE="/etc/nftables.conf"
+    RULES_FILE="/etc/nftables.idb.nft"
 
     if [[ -s "$RULES_FILE" ]]; then
         echo "Skip: $RULES_FILE already exists and is not empty, not overwriting."
-        return
-    fi
-
-    echo "Writing idb-filter rules to $RULES_FILE..."
-
-    cat > "$RULES_FILE" <<EOF
+    else
+        echo "Writing idb-filter rules to $RULES_FILE..."
+        cat > "$RULES_FILE" <<EOF
 table ip idb-filter {
     chain input {
         type filter hook input priority 0; policy drop;
@@ -56,6 +57,7 @@ table ip idb-filter {
     }
 }
 EOF
+    fi
 
     echo "Loading rules from $RULES_FILE..."
     nft -f "$RULES_FILE"
