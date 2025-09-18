@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/core/plugin"
 	"github.com/sensdata/idb/center/core/plugin/shared"
+	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/model"
 )
@@ -98,13 +99,24 @@ func (a *BaseApi) RsyncQueryTask(c *gin.Context) {
 // @Description Create rsync task
 // @Accept json
 // @Produce json
-// @Param task body model.RsyncCreateTaskRequest true "Task"
+// @Param task body model.RsyncCreateTask true "Task"
 // @Success 200 {object} model.RsyncCreateTaskResponse
 // @Router /rsync/task [post]
 func (a *BaseApi) RsyncCreateTask(c *gin.Context) {
-	var req model.RsyncCreateTaskRequest
+	var req model.RsyncCreateTask
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
+	}
+
+	// 查找host
+	hostRepo := repo.NewHostRepo()
+	srcHost, err := hostRepo.Get(hostRepo.WithByID(uint(req.SrcHostId)))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+	}
+	dstHost, err := hostRepo.Get(hostRepo.WithByID(uint(req.DstHostId)))
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 	}
 
 	client, err := getRsync()
@@ -112,7 +124,25 @@ func (a *BaseApi) RsyncCreateTask(c *gin.Context) {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
-	resp, err := client.CreateTask(&req)
+	resp, err := client.CreateTask(&model.RsyncCreateTaskRequest{
+		Mode: req.Mode,
+		Src:  req.Src,
+		Dst:  req.Dst,
+		SrcHost: model.RsyncHost{
+			Host:     srcHost.Addr,
+			Port:     srcHost.Port,
+			User:     srcHost.User,
+			Password: srcHost.Password,
+			KeyPath:  srcHost.PrivateKey,
+		},
+		DstHost: model.RsyncHost{
+			Host:     dstHost.Addr,
+			Port:     dstHost.Port,
+			User:     dstHost.User,
+			Password: dstHost.Password,
+			KeyPath:  dstHost.PrivateKey,
+		},
+	})
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return

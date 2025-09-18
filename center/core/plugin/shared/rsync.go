@@ -71,8 +71,22 @@ func (c *RsyncGRPCClient) ListTask(req *model.RsyncListTaskRequest) (*model.Rsyn
 
 func (c *RsyncGRPCClient) CreateTask(req *model.RsyncCreateTaskRequest) (*model.RsyncCreateTaskResponse, error) {
 	resp, err := c.client.RsyncCreateTask(context.Background(), &proto.RsyncCreateTaskRequest{
-		Src:  req.Src,
-		Dst:  req.Dst,
+		Src: req.Src,
+		SrcHost: &proto.RsyncHost{
+			Host:     req.SrcHost.Host,
+			Port:     int32(req.SrcHost.Port),
+			User:     req.SrcHost.User,
+			KeyPath:  req.SrcHost.KeyPath,
+			Password: req.SrcHost.Password,
+		},
+		Dst: req.Dst,
+		DstHost: &proto.RsyncHost{
+			Host:     req.DstHost.Host,
+			Port:     int32(req.DstHost.Port),
+			User:     req.DstHost.User,
+			KeyPath:  req.DstHost.KeyPath,
+			Password: req.DstHost.Password,
+		},
 		Mode: req.Mode,
 	})
 	if err != nil {
@@ -175,8 +189,22 @@ func (s *RsyncGRPCServer) RsyncCreateTask(ctx context.Context, req *proto.RsyncC
 	var resp proto.RsyncCreateTaskResponse
 
 	result, err := s.Impl.CreateTask(&model.RsyncCreateTaskRequest{
-		Src:  req.Src,
-		Dst:  req.Dst,
+		Src: req.Src,
+		SrcHost: model.RsyncHost{
+			Host:     req.SrcHost.Host,
+			Port:     int(req.SrcHost.Port),
+			User:     req.SrcHost.User,
+			KeyPath:  req.SrcHost.KeyPath,
+			Password: req.SrcHost.Password,
+		},
+		Dst: req.Dst,
+		DstHost: model.RsyncHost{
+			Host:     req.DstHost.Host,
+			Port:     int(req.DstHost.Port),
+			User:     req.DstHost.User,
+			KeyPath:  req.DstHost.KeyPath,
+			Password: req.DstHost.Password,
+		},
 		Mode: req.Mode,
 	})
 	if err != nil {

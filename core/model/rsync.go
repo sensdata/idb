@@ -25,10 +25,28 @@ type RsyncTaskInfo struct {
 	LastLog   string `json:"last_log"`
 }
 
+type RsyncHost struct {
+	Host     string `json:"host"`     // ip or hostname
+	Port     int    `json:"port"`     // ssh port
+	User     string `json:"user"`     // ssh user
+	KeyPath  string `json:"key_path"` // optional private key path on center
+	Password string `json:"password"` // optional (not recommended to store plaintext)
+}
+
 type RsyncCreateTaskRequest struct {
-	Src  string `json:"src"`
-	Dst  string `json:"dst"`
-	Mode string `json:"mode"`
+	Src     string    `json:"src"`
+	SrcHost RsyncHost `json:"src_host"`
+	Dst     string    `json:"dst"`
+	DstHost RsyncHost `json:"dst_host"`
+	Mode    string    `json:"mode"`
+}
+
+type RsyncCreateTask struct {
+	SrcHostId int    `json:"src_host_id" validate:"required"`
+	Src       string `json:"src" validate:"required"`
+	DstHostId int    `json:"dst_host_id" validate:"required"`
+	Dst       string `json:"dst" validate:"required"`
+	Mode      string `json:"mode" validate:"required,oneof=copy incremental"`
 }
 
 type RsyncCreateTaskResponse struct {

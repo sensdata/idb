@@ -41,10 +41,20 @@ message RsyncTaskInfo {
     string last_log = 12;
 }
 
+message RsyncHost {
+    string host = 1;
+    int32 port = 2;
+    string user = 3;
+    string key_path = 4;
+    string password = 5;
+}
+
 message RsyncCreateTaskRequest {
     string src = 1;
-    string dst = 2;
-    string mode = 3;
+    RsyncHost src_host = 2;
+    string dst = 3;
+    RsyncHost dst_host = 4;
+    string mode = 5;
 }
 
 message RsyncCreateTaskResponse {
