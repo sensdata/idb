@@ -592,14 +592,6 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 			return
 		}
 
-		// 检查指纹
-		err := a.checkLicense()
-		if err != nil {
-			global.LOG.Error("Failed to check license: %v", err)
-			a.sendActionResult(conn, msg.MsgID, &model.Action{Action: actionData.Action, Result: false, Data: err.Error()})
-			return
-		}
-
 		result, err := a.processAction(&actionData)
 		if err != nil {
 			global.LOG.Error("Failed to process action: %v", err)
@@ -1072,8 +1064,17 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 }
 
 func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
-	// TODO: 根据 licenseType 对具体的业务做出限制
-	// Host_* action组都不受限，其他action组需要根据licenseType来判断是否受限
+	switch actionData.Action {
+	// Host_* action 不受限
+	case model.Host_Status, model.Host_Fingerprint, model.Host_License, model.Host_License_Verify:
+		return a.processBasicAction(actionData)
+	// 其他 action 需要校验 licence 并根据 licenseType 来判断业务是否受限
+	default:
+		return a.processBusinessAction(actionData)
+	}
+}
+
+func (a *Agent) processBasicAction(actionData *model.Action) (*model.Action, error) {
 	switch actionData.Action {
 	// 获取host status
 	case model.Host_Status:
@@ -1131,7 +1132,22 @@ func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
 			return nil, err
 		}
 		return actionSuccessResult(actionData.Action, "")
+	default:
+		return nil, nil
+	}
+}
 
+func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, error) {
+	// 检查指纹
+	err := a.checkLicense()
+	if err != nil {
+		global.LOG.Error("Failed to check license: %v", err)
+		return nil, err
+	}
+
+	// TODO: 根据 licenseType 对具体的业务做出限制
+	// license := global.GetLicense()
+	switch actionData.Action {
 	// 获取overview
 	case model.SysInfo_OverView:
 		overview, err := action.GetOverview()
