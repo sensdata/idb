@@ -1792,12 +1792,15 @@ func matchPortVerdictFromText(ruleset string, port int) string {
 				continue
 			}
 
-			// 解析 hook input 中的 policy
-			if strings.Contains(line, "hook input") && strings.Contains(line, "policy") {
-				policyParts := strings.Split(line, "policy")
-				if len(policyParts) > 1 {
-					policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
-					defaultPolicy = strings.ToLower(policy)
+			if strings.Contains(line, "hook input") {
+				if strings.Contains(line, "policy") {
+					policyParts := strings.Split(line, "policy")
+					if len(policyParts) > 1 {
+						policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
+						defaultPolicy = strings.ToLower(policy)
+					}
+				} else {
+					defaultPolicy = "accept"
 				}
 			}
 
@@ -1954,11 +1957,15 @@ func parseInputPolicy(lines []string) string {
 				continue
 			}
 
-			if strings.Contains(trimmed, "hook input") && strings.Contains(trimmed, "policy") {
-				policyParts := strings.Split(trimmed, "policy")
-				if len(policyParts) > 1 {
-					policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
-					return policy
+			if strings.Contains(trimmed, "hook input") {
+				if strings.Contains(trimmed, "policy") {
+					policyParts := strings.Split(trimmed, "policy")
+					if len(policyParts) > 1 {
+						policy := strings.TrimSpace(strings.TrimSuffix(policyParts[1], ";"))
+						return strings.ToLower(policy)
+					}
+				} else {
+					return "accept"
 				}
 			}
 		}
@@ -1991,9 +1998,6 @@ func setInputPolicy(confContent string, newPolicy string) (string, error) {
 	var output []string
 	insideInput := false
 
-	// 使用正则匹配 policy 行
-	policyPattern := regexp.MustCompile(`(?i)^\s*(type\s+filter\s+hook\s+input.*?policy)\s+\w+;`)
-
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
@@ -2011,15 +2015,20 @@ func setInputPolicy(confContent string, newPolicy string) (string, error) {
 			}
 
 			// 尝试匹配 policy 行
-			if policyPattern.MatchString(trimmed) {
-				// 保留缩进
+			if strings.Contains(trimmed, "hook input") {
 				indent := getIndent(line)
-				match := policyPattern.FindStringSubmatch(line)
-				if len(match) >= 2 {
-					newLine := indent + match[1] + " " + newPolicy + ";"
+
+				if strings.Contains(trimmed, "policy") {
+					// 已有 policy → 替换
+					beforePolicy := strings.Split(trimmed, "policy")[0]
+					newLine := indent + strings.TrimSpace(beforePolicy) + " policy " + newPolicy + ";"
 					output = append(output, newLine)
-					continue
+				} else {
+					// 没有 policy → 添加
+					newLine := indent + trimmed + " policy " + newPolicy + ";"
+					output = append(output, newLine)
 				}
+				continue
 			}
 		}
 
