@@ -82,13 +82,23 @@ func (s *ScreenSession) Start() error {
 	}
 	s.pty = ptyFile
 
-	// delay
-	time.Sleep(200 * time.Millisecond)
-
 	// find session id
-	sessionID, err := s.getSessionID(s.Name)
-	if err != nil {
-		return fmt.Errorf("failed to find session: %v", err)
+	var sessionID string
+	found := false
+	for i := 0; i < 5; i++ {
+		// delay
+		time.Sleep(400 * time.Millisecond)
+		id, err := s.getSessionID(s.Name)
+		if err != nil {
+			global.LOG.Error("failed to get session %s id: %v", s.Name, err)
+			continue
+		}
+		sessionID = id
+		found = true
+		global.LOG.Info("Found session ID %s for session name %s", id, s.Name)
+	}
+	if !found {
+		return fmt.Errorf("SessionID not found")
 	}
 	s.Session = sessionID
 
@@ -243,12 +253,11 @@ func (s *ScreenSession) genSessionName() (string, error) {
 
 func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
 	// 执行 screen -ls 命令获取所有会话列表
-	output, err := exec.Command("screen", "-ls").Output()
+	output, err := exec.Command("bash", "-c", "screen -ls").Output()
 	if strings.Contains(string(output), "No Sockets found") {
 		return "", fmt.Errorf("no session found")
 	}
 	if err != nil {
-		global.LOG.Error("failed to list sessions: %v", err)
 		return "", fmt.Errorf("failed to list sessions: %v", err)
 	}
 
@@ -268,7 +277,7 @@ func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("session %s not found", sessionName)
+	return "", fmt.Errorf("session %s id not found", sessionName)
 }
 
 // func (s *ScreenSession) findSessionId(name string) (string, error) {
