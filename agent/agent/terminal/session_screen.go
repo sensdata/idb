@@ -87,7 +87,7 @@ func (s *ScreenSession) Start() error {
 	found := false
 	for i := 0; i < 5; i++ {
 		// delay
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		id, err := s.getSessionID(s.Name)
 		if err != nil {
 			global.LOG.Error("failed to get session %s id: %v", s.Name, err)
