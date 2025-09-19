@@ -403,6 +403,9 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 		upMap["pass_phrase"] = req.PassPhrase
 	}
 
+	// agent连接地址也改掉
+	upMap["agent_addr"] = req.Addr
+
 	return HostRepo.Update(host.ID, upMap)
 }
 
