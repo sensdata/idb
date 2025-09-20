@@ -121,6 +121,8 @@ RUN apt-get update && apt-get install -y \
     lsof \
     net-tools \
     ca-certificates \
+    rsync \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建 center 必要的目录结构
