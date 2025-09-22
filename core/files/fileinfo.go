@@ -313,7 +313,7 @@ func (f *FileInfo) getContent() error {
 		return nil
 	}
 	if len(cByte) > 0 && DetectBinary(cByte) {
-		return errors.New(constant.ErrFileCanNotRead)
+		return errors.New(constant.ErrReadBinFile)
 	}
 	f.Content = string(cByte)
 	return nil
@@ -350,7 +350,7 @@ func (f *FileInfo) getContentPart(lines int64, whence int) (string, error) {
 		}
 		content := strings.Join(result, "\n")
 		if DetectBinary([]byte(content)) {
-			return "", errors.New(constant.ErrFileCanNotRead)
+			return "", errors.New(constant.ErrReadBinFile)
 		}
 		return content, nil
 
@@ -414,7 +414,7 @@ func (f *FileInfo) getContentPart(lines int64, whence int) (string, error) {
 
 		content := strings.Join(lines, "\n")
 		if DetectBinary([]byte(content)) {
-			return "", errors.New(constant.ErrFileCanNotRead)
+			return "", errors.New(constant.ErrReadBinFile)
 		}
 		return content, nil
 
@@ -424,17 +424,26 @@ func (f *FileInfo) getContentPart(lines int64, whence int) (string, error) {
 }
 
 func DetectBinary(buf []byte) bool {
-	whiteByte := 0
+	// 空文件不视为二进制
+	if len(buf) == 0 {
+		return false
+	}
+
+	// 最多检查前1024字节
 	n := min(1024, len(buf))
+
+	// 统计可打印字符数量
+	printableChars := 0
 	for i := 0; i < n; i++ {
-		if (buf[i] >= 0x20) || buf[i] == 9 || buf[i] == 10 || buf[i] == 13 {
-			whiteByte++
-		} else if buf[i] <= 6 || (buf[i] >= 14 && buf[i] <= 31) {
-			return true
+		// 可打印字符范围和常见控制字符(制表符、换行符、回车符)
+		if (buf[i] >= 0x20 && buf[i] <= 0x7E) ||
+			buf[i] == 9 || buf[i] == 10 || buf[i] == 13 {
+			printableChars++
 		}
 	}
 
-	return whiteByte < 1
+	// 如果超过80%是可打印字符，则视为文本文件
+	return float64(printableChars)/float64(n) < 0.8
 }
 
 func min(x, y int) int {

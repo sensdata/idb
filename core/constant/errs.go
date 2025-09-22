@@ -74,6 +74,7 @@ var (
 	ErrFileRead         = "ErrFileRead"
 	ErrFavoriteExist    = "ErrFavoriteExist"
 	ErrFileCanNotRead   = "ErrFileCanNotRead"
+	ErrReadBinFile      = "ErrReadBinFile"
 	ErrFileToLarge      = "ErrFileToLarge"
 )
 
