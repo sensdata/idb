@@ -137,12 +137,16 @@
     updateNftablesRawConfigApi,
     type NftablesRawConfig,
   } from '@/api/nftables';
+  import { useNftablesConfig } from '../../composables/use-nftables-config';
 
   // 国际化
   const { t } = useI18n();
 
   // 日志记录
   const { logError, logInfo } = useLogger('NftablesFileEditor');
+
+  // 获取配置应用后的刷新方法
+  const { handleConfigApplied } = useNftablesConfig();
 
   // 当前主机
   const { currentHostId } = useCurrentHost();
@@ -237,6 +241,9 @@
 
       Message.success(t('app.nftables.message.configSaved'));
       logInfo('Successfully saved nftables raw config');
+
+      // 配置应用成功后刷新当前配置列表
+      await handleConfigApplied();
     } catch (error) {
       logError('Failed to save nftables raw config:', error);
       hasError.value = true;

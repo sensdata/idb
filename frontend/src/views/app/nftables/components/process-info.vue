@@ -17,7 +17,7 @@
 
 <script lang="ts" setup>
   import { computed } from 'vue';
-  import { useProcessIcons } from '../pages/process-config/composables/use-process-icons';
+  import { useProcessIcons } from '../pages/config/composables/use-process-icons';
 
   const props = defineProps<{
     process: string;

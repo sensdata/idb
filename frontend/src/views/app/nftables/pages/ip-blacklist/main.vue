@@ -85,6 +85,7 @@
     type IPBlacklistRequest,
     type DeleteIPBlacklistRequest,
   } from '@/api/nftables';
+  import { useNftablesConfig } from '../../composables/use-nftables-config';
   import IPBlacklistRuleForm from '../../components/ip-blacklist-rule-form.vue';
   import IPBlacklistRuleList from '../../components/ip-blacklist-rule-list.vue';
 
@@ -105,6 +106,9 @@
 
   // 日志记录
   const { logError } = useLogger('NftablesIPBlacklistPage');
+
+  // 获取配置应用后的刷新方法
+  const { handleConfigApplied } = useNftablesConfig();
 
   // 响应式状态
   const loading = ref<boolean>(false);
@@ -219,6 +223,9 @@
       await addIPBlacklistApi(request);
 
       Message.success(t('app.nftables.message.configSaved'));
+
+      // 配置应用成功后刷新当前配置列表
+      await handleConfigApplied();
     } catch (error) {
       logError('Failed to save IP blacklist rule:', error);
       hasError.value = true;

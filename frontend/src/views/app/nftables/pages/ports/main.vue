@@ -104,6 +104,7 @@
     setPortRulesApi,
     deletePortRulesApi,
   } from '@/api/nftables';
+  import { useNftablesConfig } from '../../composables/use-nftables-config';
 
   import PortRuleForm from '../../components/port-rule-form.vue';
   import PortRuleList from '../../components/port-rule-list.vue';
@@ -116,6 +117,9 @@
 
   // 日志记录
   const { logError } = useLogger('NftablesPortsPage');
+
+  // 获取配置应用后的刷新方法
+  const { handleConfigApplied } = useNftablesConfig();
 
   // 响应式状态
   const loading = ref<boolean>(false);
@@ -200,6 +204,10 @@
       await setPortRulesApi({ port: portValue, rules: rulesLocal });
 
       Message.success(t('app.nftables.message.configSaved'));
+
+      // 配置应用成功后刷新当前配置列表
+      await handleConfigApplied();
+
       return true;
     } catch (error) {
       logError('Failed to save port rule:', error);

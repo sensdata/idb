@@ -198,8 +198,7 @@ const appRoutes: RouteRecordRaw[] = [
       {
         path: 'config',
         name: 'nftables-config',
-        component: () =>
-          import('@/views/app/nftables/pages/process-config/main.vue'),
+        component: () => import('@/views/app/nftables/pages/config/main.vue'),
         meta: {
           locale: 'menu.app.nftables.config',
           requiresAuth: true,

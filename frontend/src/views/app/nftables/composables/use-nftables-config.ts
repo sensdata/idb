@@ -155,6 +155,15 @@ export function useNftablesConfig() {
     await Promise.all([fetchProcessData(true), fetchPortRules()]);
   };
 
+  // 配置应用后的刷新（用于防火墙配置应用完成后刷新列表）
+  const handleConfigApplied = async () => {
+    await Promise.all([
+      fetchFirewallStatus(),
+      fetchProcessData(),
+      fetchPortRules(),
+    ]);
+  };
+
   // 监听主机ID变化
   watch(
     () => hostStore.currentId,
@@ -187,5 +196,6 @@ export function useNftablesConfig() {
     handleStatusRefresh,
     handleSwitch,
     handleReload,
+    handleConfigApplied,
   };
 }

@@ -107,6 +107,7 @@
     handleSwitch,
     handleReload,
     fetchPortRules,
+    handleConfigApplied,
   } = useNftablesConfig();
 
   // 端口规则编辑相关状态
@@ -177,6 +178,10 @@
       await setPortRulesApi({ port: portValue, rules: rulesLocal });
 
       Message.success(t('app.nftables.message.configSaved'));
+
+      // 配置应用成功后刷新当前配置列表
+      await handleConfigApplied();
+
       return true;
     } catch (error) {
       logError('Failed to save port rule:', error);

@@ -143,12 +143,16 @@
     IconCloseCircle,
     IconMinusCircle,
   } from '@arco-design/web-vue/es/icon';
+  import { useNftablesConfig } from '../composables/use-nftables-config';
 
   // 国际化
   const { t } = useI18n();
 
   // 日志记录
   const { logError, logInfo } = useLogger('BaseRulesConfig');
+
+  // 获取配置应用后的刷新方法
+  const { handleConfigApplied } = useNftablesConfig();
 
   // 响应式状态
   const loading = ref<boolean>(false);
@@ -217,6 +221,9 @@
 
       Message.success(t('app.nftables.message.baseRulesSaved'));
       logInfo('Base rules saved successfully:', request);
+
+      // 配置应用成功后刷新当前配置列表
+      await handleConfigApplied();
     } catch (error) {
       logError('Failed to save base rules:', error);
       Message.error(t('app.nftables.message.saveBaseRulesFailed'));
