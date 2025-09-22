@@ -48,31 +48,29 @@ export function getSysInfoOverviewtApi() {
 export interface SysInfoNetworkRes {
   dns: {
     retry: number;
-    servers: [string];
+    servers: string[];
     timeout: number;
   };
-  networks: [
-    {
-      address: {
-        gate: string;
-        ip: string;
-        mask: string;
-        type: string;
-      };
-      mac: string;
-      name: string;
-      proto: string;
-      status: string;
-      traffic: {
-        rx: string;
-        rx_bytes: number;
-        rx_speed: string;
-        tx: string;
-        tx_bytes: number;
-        tx_speed: string;
-      };
-    }
-  ];
+  networks: Array<{
+    address: Array<{
+      gate: string | null;
+      ip: string;
+      mask: string | null;
+      type: string; // e.g., IPv4/IPv6
+    }>;
+    mac: string;
+    name: string;
+    proto: string; // dhcp | static
+    status: string; // up | down
+    traffic: {
+      rx: string;
+      rx_bytes: number;
+      rx_speed: string;
+      tx: string;
+      tx_bytes: number;
+      tx_speed: string;
+    };
+  }>;
 }
 export function getSysInfoNetworkApi() {
   return request.get<SysInfoNetworkRes>('sysinfo/{host}/network');

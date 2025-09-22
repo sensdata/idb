@@ -97,7 +97,7 @@
             <div class="col3">
               <a-table
                 :columns="ipColumns"
-                :data="[network.address]"
+                :data="network.address || []"
                 :pagination="false"
                 size="small"
               />
@@ -151,12 +151,7 @@
     },
     networks: [
       {
-        address: {
-          gate: '',
-          ip: '',
-          mask: '',
-          type: '',
-        },
+        address: [],
         mac: '',
         name: '',
         proto: '',
