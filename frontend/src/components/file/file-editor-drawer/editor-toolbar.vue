@@ -11,7 +11,13 @@
         }}
       </a-button>
 
-      <a-button type="outline" size="small" @click="toggleEditMode">
+      <!-- 只有在完整视图模式下才显示编辑按钮 -->
+      <a-button
+        v-if="viewMode === 'full'"
+        type="outline"
+        size="small"
+        @click="toggleEditMode"
+      >
         <icon-edit v-if="readOnly" />
         <icon-eye v-else />
         {{
@@ -37,6 +43,7 @@
     drawerWidth: number;
     isFullScreen: boolean;
     readOnly?: boolean;
+    viewMode?: string; // 添加视图模式属性
   }
 
   const { t } = useI18n();

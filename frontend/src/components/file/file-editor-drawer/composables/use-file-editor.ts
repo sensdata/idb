@@ -158,8 +158,16 @@ export default function useFileEditor() {
       // 处理错误
       eventSource.value.addEventListener('error', (event) => {
         logError('File follow error:', event);
-        Message.error(t('app.file.editor.followError'));
+        // 显示更详细的错误信息
+        let errorMessage = t('app.file.editor.followError');
+        if (event instanceof ErrorEvent && event.message) {
+          errorMessage = `${t('app.file.editor.followError')}: ${
+            event.message
+          }`;
+        }
+        Message.error(errorMessage);
         stopFollowMode();
+        setLoading(false); // 确保停止加载状态
       });
 
       // 连接成功后
@@ -169,8 +177,14 @@ export default function useFileEditor() {
       };
     } catch (error) {
       logError('Failed to start follow mode:', error);
-      Message.error(t('app.file.editor.followFailed'));
+      // 显示更详细的错误信息
+      let errorMessage = t('app.file.editor.followFailed');
+      if (error instanceof Error) {
+        errorMessage = `${t('app.file.editor.followFailed')}: ${error.message}`;
+      }
+      Message.error(errorMessage);
       stopFollowMode();
+      setLoading(false); // 确保在错误时也停止加载状态
     }
   };
 
@@ -241,14 +255,33 @@ export default function useFileEditor() {
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // 尝试解析错误响应
+        let errorMessage = t('app.file.editor.loadFailed');
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = `${t('app.file.editor.loadFailed')}: ${
+              errorData.message
+            }`;
+          }
+        } catch {
+          // 如果无法解析JSON，使用HTTP状态信息
+          errorMessage = `${t('app.file.editor.loadFailed')}: HTTP ${
+            response.status
+          } ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const fileContent = await response.text();
       content.value = fileContent;
       originalContent.value = fileContent;
     } catch (error) {
-      Message.error(t('app.file.editor.loadFailed'));
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('app.file.editor.loadFailed');
+      Message.error(errorMessage);
       logError('Failed to load file content:', error);
       content.value = '';
       originalContent.value = '';
@@ -298,7 +331,21 @@ export default function useFileEditor() {
         const response = await fetch(apiUrl);
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // 尝试解析错误响应
+          let errorMessage = t('app.file.editor.loadFailed');
+          try {
+            const errorData = await response.json();
+            if (errorData.message) {
+              errorMessage = `${t('app.file.editor.loadFailed')}: ${
+                errorData.message
+              }`;
+            }
+          } catch {
+            errorMessage = `${t('app.file.editor.loadFailed')}: HTTP ${
+              response.status
+            } ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
 
         const fileContent = await response.text();
@@ -336,8 +383,14 @@ export default function useFileEditor() {
         });
       }
     } catch (error) {
-      Message.error(t('app.file.editor.loadFailed'));
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t('app.file.editor.loadFailed');
+      Message.error(errorMessage);
       logError('Failed to change view mode:', error);
+      // 发生错误时，恢复之前的内容和视图模式
+      // 这样用户可以继续使用之前的内容，而不是看到空白
     } finally {
       setLoading(false);
     }
@@ -365,7 +418,12 @@ export default function useFileEditor() {
       Message.success(t('app.file.editor.saveSuccess'));
       return true;
     } catch (error) {
-      Message.error(t('app.file.editor.saveFailed'));
+      // 显示更详细的错误信息
+      let errorMessage = t('app.file.editor.saveFailed');
+      if (error instanceof Error) {
+        errorMessage = `${t('app.file.editor.saveFailed')}: ${error.message}`;
+      }
+      Message.error(errorMessage);
       logError('Failed to save file:', error);
       return false;
     } finally {

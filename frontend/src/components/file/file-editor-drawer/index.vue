@@ -42,6 +42,7 @@
             :drawer-width="drawerWidth"
             :is-full-screen="isFullScreen"
             :read-only="readOnly"
+            :view-mode="viewMode"
             @update:drawer-width="setDrawerWidth"
             @toggle-full-screen="toggleFullScreen"
             @toggle-edit-mode="toggleEditMode"
@@ -246,8 +247,8 @@
 
   // ----- 弹窗控制函数 -----
   const handleCancel = async () => {
-    // 如果文件已编辑但未保存，提示用户
-    if (isEdited.value) {
+    // 仅当处于编辑模式且有未保存更改时才进行二次确认
+    if (!readOnly.value && isEdited.value) {
       const result = await confirm({
         title: t('app.file.editor.unsavedChanges'),
         content: t('app.file.editor.confirmClose'),
@@ -262,7 +263,7 @@
     // 确保停止实时追踪连接
     cleanup();
 
-    // 重置编辑模式为只读
+    // 无论如何关闭时都回到只读模式
     readOnly.value = true;
 
     // 关闭抽屉，但不触发ok事件，从而不会导致页面刷新
@@ -281,10 +282,15 @@
     if (readOnly.value) return; // 只读模式不允许保存
 
     try {
-      await saveFile();
-      emit('ok');
+      const success = await saveFile();
+      // 只有保存成功时才触发ok事件关闭抽屉
+      if (success) {
+        emit('ok');
+      }
+      // 如果保存失败，saveFile内部已经显示了错误信息，这里不需要额外处理
     } catch (error) {
       console.error('保存文件失败:', error);
+      // 保存失败时不关闭抽屉，让用户可以重试或查看错误信息
     }
   };
 
