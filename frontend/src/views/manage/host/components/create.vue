@@ -223,16 +223,30 @@
         page: 1,
         page_size: 1000,
       });
-      groupOptions.value = [
-        {
-          label: t('manage.host.form.group.default'),
-          value: 0,
-        },
-        ...ret.items.map((item: any) => ({
-          label: item.group_name,
+      // 将接口返回的实际 default 组与“默认分组”文案合并展示
+      let defaultGroupId: number | undefined;
+      groupOptions.value = ret.items.map((item: any) => {
+        const isDefault = String(item.group_name).toLowerCase() === 'default';
+        if (isDefault) defaultGroupId = item.id;
+        return {
+          label: isDefault
+            ? (t('manage.host.form.group.default') as string)
+            : item.group_name,
           value: item.id,
-        })),
-      ];
+        } as SelectOption;
+      });
+
+      // 未手动选择时，自动选中真实的 default 组，避免提交 group_id=0
+      if (defaultGroupId !== undefined) {
+        model.group_id = defaultGroupId;
+      } else if (ret.items?.length > 0) {
+        // 兜底：选中第一个分组；如果没有任何分组，则保持未选择状态
+        model.group_id = ret.items[0].id;
+      } else {
+        // 无分组时，置空，避免传 0
+        // @ts-ignore
+        model.group_id = undefined;
+      }
     } catch (err: any) {
       Message.error(err?.message);
     } finally {

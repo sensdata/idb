@@ -382,6 +382,7 @@
           try {
             await deleteHostApi(record.id);
             Message.success(t('manage.host.list.delete.success'));
+            tableRef.value?.reload();
           } catch (error: any) {
             Message.error(error?.message);
           }
