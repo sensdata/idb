@@ -168,9 +168,16 @@ func (s *NFTable) checkRepo(hostID uint, repoPath string) error {
 			sysExist = false
 		} else {
 			// 获取成功，以/etc/nftables.conf的内容初始化
-			content = removeFlushRuleset(detail)
+			content = detail
 			sysExist = true
 		}
+		// 检查content 是否包含默认规则
+		content, err = s.checkConfContent(content)
+		if err != nil {
+			LOG.Error("Failed to check conf content: %v", err)
+			return err
+		}
+
 		gitCreate := model.GitCreate{
 			HostID:       hostID,
 			RepoPath:     repoPath,
@@ -423,13 +430,13 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 
 	actionResponse, err := s.sendAction(actionRequest)
 	if err != nil {
-		LOG.Error("Failed to run switch script")
-		return &result, errors.New("failed to run switch script")
+		LOG.Error("Failed to run detect script")
+		return &result, errors.New("failed to run detect script")
 	}
 
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
-		return &result, errors.New("failed to run switch script")
+		return &result, errors.New("failed to run detect script")
 	}
 
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &scriptResult)
@@ -439,15 +446,6 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 	}
 	LOG.Info("Detect result: %v", scriptResult)
 	result.Active = strings.TrimSpace(scriptResult.Out)
-
-	// 获取状态时，异步检测一下仓库
-	go func() {
-		repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
-		s.checkRepo(
-			uint(hostID),
-			repoPath,
-		)
-	}()
 
 	return &result, nil
 }
@@ -637,6 +635,20 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 	out := strings.TrimSpace(result.Out)
 	if !strings.HasSuffix(out, "Success") {
 		return errors.New("switch failed")
+	}
+
+	// 切换到nftables后，刷一次配置
+	if req.Option == "nftables" {
+		raw, err := s.getConfRaw(uint(hostID))
+		if err != nil {
+			LOG.Error("Failed to get conf")
+			return err
+		}
+		err = s.setConfRaw(uint(hostID), model.ConfRaw{Content: raw.Content})
+		if err != nil {
+			LOG.Error("Failed to set conf")
+			return err
+		}
 	}
 
 	return nil
@@ -2620,47 +2632,7 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		return err
 	}
 
-	// 更新 /local/default/default.nftable
-	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	relativePath := "default/default.nftable"
-
-	// 检查repo
-	err = s.checkRepo(hostID, repoPath)
-	if err != nil {
-		return err
-	}
-
-	// 更新
-	gitUpdate := model.GitUpdate{
-		HostID:          hostID,
-		RepoPath:        repoPath,
-		RelativePath:    relativePath,
-		NewRelativePath: "",
-		Dir:             false,
-		Content:         safeContent,
-	}
-	data, err := utils.ToJSONString(gitUpdate)
-	if err != nil {
-		return err
-	}
-	actionRequest := model.HostAction{
-		HostID: gitUpdate.HostID,
-		Action: model.Action{
-			Action: model.Git_Update,
-			Data:   data,
-		},
-	}
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		LOG.Error("failed to send action Git_Update")
-		return fmt.Errorf("failed to send action Git_Update %v", err)
-	}
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("failed to update conf file")
-		return errors.New("failed to update conf file")
-	}
-
-	// 覆盖 /etc/nftables.conf内容
+	// Step1: 覆盖 /etc/nftables.conf内容
 	editFile := model.FileEdit{
 		Source:  "/etc/nftables.conf",
 		Content: safeContent,
@@ -2701,6 +2673,46 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 	LOG.Info("Conf enable result: %s", commandResult.Result)
 	if commandResult.Result != "" {
 		return errors.New("enable failed")
+	}
+
+	// Step2: 更新 /local/default/default.nftable
+	repoPath := filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	relativePath := "default/default.nftable"
+
+	// 检查repo
+	err = s.checkRepo(hostID, repoPath)
+	if err != nil {
+		return err
+	}
+
+	// 更新
+	gitUpdate := model.GitUpdate{
+		HostID:          hostID,
+		RepoPath:        repoPath,
+		RelativePath:    relativePath,
+		NewRelativePath: "",
+		Dir:             false,
+		Content:         safeContent,
+	}
+	data, err := utils.ToJSONString(gitUpdate)
+	if err != nil {
+		return err
+	}
+	actionRequest := model.HostAction{
+		HostID: gitUpdate.HostID,
+		Action: model.Action{
+			Action: model.Git_Update,
+			Data:   data,
+		},
+	}
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("failed to send action Git_Update")
+		return fmt.Errorf("failed to send action Git_Update %v", err)
+	}
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("failed to update conf file")
+		return errors.New("failed to update conf file")
 	}
 
 	return nil
