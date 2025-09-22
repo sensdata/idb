@@ -73,6 +73,17 @@ export function useTableData(options: UseTableDataOptions) {
       return;
     }
 
+    // 防止重复调用：如果已经在加载中，则跳过
+    if (loading.value) {
+      logDebug('🔍 load function called but already loading, skipping:', {
+        hasNewParams: !!newParams,
+        newParams,
+        currentLoading: loading.value,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     logDebug('🔍 load function called:', {
       hasNewParams: !!newParams,
       newParams,
