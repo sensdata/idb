@@ -114,10 +114,7 @@
         }
       } else {
         // 没有新版本时显示提示
-        Message.success({
-          content: t('footer.checkUpdateNoUpdate'),
-          duration: 3000,
-        });
+        Message.success(t('footer.checkUpdateNoUpdate'));
       }
     } catch (error) {
       console.error(error);

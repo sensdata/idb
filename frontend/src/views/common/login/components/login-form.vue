@@ -164,6 +164,7 @@
           : '';
       } catch (err) {
         errorMessage.value = (err as Error).message;
+        Message.error(errorMessage.value || 'Login failed');
       } finally {
         setLoading(false);
       }
