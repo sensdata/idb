@@ -122,6 +122,8 @@ export default {
   'app.nftables.config.form.desc':
     'Configure port rules through form interface, simple and intuitive',
   'app.nftables.form.portHelp': 'Single port: 80, Port list: 80, 443, 9918',
+  'app.nftables.form.portRangeHelp': 'Supports port ranges, e.g. 8000-9000',
+
   'app.nftables.form.updateRule': 'Update Rule',
   'app.nftables.form.cancel': 'Cancel',
   'app.nftables.form.sourceOptional': 'Source (Optional)',
@@ -435,6 +437,12 @@ export default {
   'app.nftables.form.concurrentHelpText':
     'Maximum number of concurrent connections allowed',
 
+  'app.nftables.validation.portOrRange':
+    'Enter a port or port range, e.g. 8080 or 8000-9000',
+
+  'app.nftables.validation.portRangeOrder':
+    'Range start must be less than or equal to end',
+
   // Form validation
   'app.nftables.validation.portRequired': 'Please enter port number',
   'app.nftables.validation.portRange': 'Port number must be between 1-65535',
@@ -491,6 +499,9 @@ export default {
   'app.nftables.message.configRefreshed':
     'Configuration refreshed successfully',
   'app.nftables.message.operationFailed': 'Operation failed',
+  'app.nftables.message.batchNotSupported':
+    'Batch port submission is not supported in the current version. Please select a single port.',
+
   'app.nftables.message.actionRequired': 'Please select an action',
   'app.nftables.message.protocolRequired': 'Please select a protocol type',
   'app.nftables.message.noHost': 'No host available',

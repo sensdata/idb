@@ -37,19 +37,39 @@
           : $t('app.nftables.drawer.addRule')
       "
       :width="700"
-      :footer="false"
       :mask-closable="true"
       placement="right"
       class="port-rule-drawer"
       @cancel="handleRuleCancel"
     >
       <port-rule-form
+        ref="portRuleFormRef"
         :loading="saving"
         :editing-rule="editingRule"
         :port-readonly="!!editingRule"
         @submit="handleRuleSubmit"
         @cancel="handleRuleCancel"
       />
+      <template #footer>
+        <div class="drawer-footer">
+          <a-space>
+            <a-button @click="handleRuleCancel">{{
+              $t('common.cancel')
+            }}</a-button>
+            <a-button
+              type="primary"
+              :loading="saving"
+              @click="portRuleFormRef?.submitForm?.()"
+            >
+              {{
+                editingRule
+                  ? $t('app.nftables.form.updateRule')
+                  : $t('app.nftables.button.addRule')
+              }}
+            </a-button>
+          </a-space>
+        </div>
+      </template>
     </a-drawer>
   </div>
 </template>
@@ -68,6 +88,8 @@
   import FirewallStatusHeader from '../../components/firewall-status-header.vue';
   import ProcessStatusTable from '../../components/process-status-table.vue';
   import PortRuleForm from '../../components/port-rule-form.vue';
+
+  const portRuleFormRef = ref<InstanceType<typeof PortRuleForm>>();
 
   const { t } = useI18n();
   const { logError } = useLogger('NftablesConfigPage');
@@ -119,33 +141,47 @@
   };
 
   // 保存端口规则
-  const savePortRule = async (rule: PortRule): Promise<void> => {
+  const savePortRule = async (rule: PortRule): Promise<boolean> => {
     try {
       saving.value = true;
 
-      // 构造API参数
-      const apiParams: SetPortRuleApiParams = {
-        port: typeof rule.port === 'number' ? rule.port : rule.port[0],
-        rules: rule.rules || [],
-      };
-
-      // 如果没有高级规则但有基础action，创建默认规则
-      if (!apiParams.rules.length && rule.action) {
-        apiParams.rules = [
-          {
-            type: 'default',
-            action: rule.action,
-          },
-        ];
+      // 构造规则（避免嵌套三元）
+      const rulesLocal: SetPortRuleApiParams['rules'] = [];
+      if (rule.rules && rule.rules.length) {
+        rulesLocal.push(...rule.rules);
+      } else if (rule.action) {
+        rulesLocal.push({ type: 'default', action: rule.action });
       }
 
-      await setPortRulesApi(apiParams);
+      // 当前版本不支持批量端口提交：如检测到端口段或多个端口，直接提示并中止
+      let portValue: number | null = null;
+      if (typeof rule.port === 'number') {
+        portValue = rule.port;
+      } else if (Array.isArray(rule.port)) {
+        const arr = rule.port as number[];
+        if (arr.length !== 1) {
+          Message.error(
+            (t && t('app.nftables.message.batchNotSupported')) ||
+              '当前版本暂不支持批量端口提交，请选择单个端口'
+          );
+          return false; // avoid double error message
+        }
+        portValue = arr[0];
+      }
+
+      if (portValue == null) {
+        Message.error(t('app.nftables.message.operationFailed'));
+        return false; // avoid double error message
+      }
+
+      await setPortRulesApi({ port: portValue, rules: rulesLocal });
 
       Message.success(t('app.nftables.message.configSaved'));
+      return true;
     } catch (error) {
       logError('Failed to save port rule:', error);
       Message.error(t('app.nftables.message.operationFailed'));
-      throw error;
+      return false;
     } finally {
       saving.value = false;
     }
@@ -168,7 +204,8 @@
   const handleRuleSubmit = async (rule: PortRule): Promise<void> => {
     try {
       // 保存规则到服务器
-      await savePortRule(rule);
+      const ok = await savePortRule(rule);
+      if (!ok) return; // stop on validation or api failure
 
       // 刷新端口规则列表
       await fetchPortRules();
@@ -237,5 +274,13 @@
   /* Drawer边框样式 */
   :deep(.port-rule-drawer .arco-drawer-body) {
     border-left: 1px solid var(--color-border-2);
+  }
+
+  .drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+    margin-top: 24px;
+    border-top: 1px solid var(--color-border-2);
   }
 </style>

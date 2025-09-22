@@ -53,18 +53,38 @@
           ? $t('app.nftables.drawer.editRule')
           : $t('app.nftables.drawer.addRule')
       "
-      :width="500"
-      :footer="false"
+      :width="'35.714rem'"
       :mask-closable="true"
       placement="right"
       @cancel="handleRuleCancel"
     >
       <port-rule-form
+        ref="portRuleFormRef"
         :loading="saving"
         :editing-rule="editingRule"
         @submit="handleRuleSubmit"
         @cancel="handleRuleCancel"
       />
+      <template #footer>
+        <div class="drawer-footer">
+          <a-space>
+            <a-button @click="handleRuleCancel">{{
+              $t('common.cancel')
+            }}</a-button>
+            <a-button
+              type="primary"
+              :loading="saving"
+              @click="portRuleFormRef?.submitForm?.()"
+            >
+              {{
+                editingRule
+                  ? $t('app.nftables.form.updateRule')
+                  : $t('app.nftables.button.addRule')
+              }}
+            </a-button>
+          </a-space>
+        </div>
+      </template>
     </a-drawer>
   </div>
 </template>
@@ -84,9 +104,12 @@
     setPortRulesApi,
     deletePortRulesApi,
   } from '@/api/nftables';
+
   import PortRuleForm from '../../components/port-rule-form.vue';
   import PortRuleList from '../../components/port-rule-list.vue';
   import BaseRulesConfig from '../../components/base-rules-config.vue';
+
+  const portRuleFormRef = ref<InstanceType<typeof PortRuleForm>>();
 
   // 国际化
   const { t } = useI18n();
@@ -139,36 +162,51 @@
   };
 
   // 保存单个端口规则
-  const savePortRule = async (rule: PortRule): Promise<void> => {
+  const savePortRule = async (rule: PortRule): Promise<boolean> => {
     try {
       saving.value = true;
       hasError.value = false;
 
-      // 构造API参数
-      const apiParams: SetPortRuleApiParams = {
-        port: typeof rule.port === 'number' ? rule.port : rule.port[0],
-        rules: rule.rules || [],
-      };
-
-      // 如果没有高级规则但有基础action，创建默认规则
-      if (!apiParams.rules.length && rule.action) {
-        apiParams.rules = [
-          {
-            type: 'default',
-            action: rule.action,
-          },
-        ];
+      // 构造规则（避免嵌套三元）
+      const rulesLocal: SetPortRuleApiParams['rules'] = [];
+      if (rule.rules && rule.rules.length) {
+        rulesLocal.push(...rule.rules);
+      } else if (rule.action) {
+        rulesLocal.push({ type: 'default', action: rule.action });
       }
 
-      await setPortRulesApi(apiParams);
+      // 当前版本不支持批量端口提交：如检测到端口段或多个端口，直接提示并中止
+      let portValue: number | null = null;
+      if (typeof rule.port === 'number') {
+        portValue = rule.port;
+      } else if (Array.isArray(rule.port)) {
+        const arr = rule.port as number[];
+        if (arr.length !== 1) {
+          Message.error(
+            (t && t('app.nftables.message.batchNotSupported')) ||
+              '当前版本暂不支持批量端口提交，请选择单个端口'
+          );
+          return false; // avoid double error message
+        }
+        portValue = arr[0];
+      }
+
+      // 逐个端口保存
+      if (portValue == null) {
+        Message.error(t('app.nftables.message.operationFailed'));
+        return false; // avoid double error message
+      }
+
+      await setPortRulesApi({ port: portValue, rules: rulesLocal });
 
       Message.success(t('app.nftables.message.configSaved'));
+      return true;
     } catch (error) {
       logError('Failed to save port rule:', error);
       hasError.value = true;
       errorMessage.value = t('app.nftables.error.saveConfigFailed');
       Message.error(t('app.nftables.message.operationFailed'));
-      throw error;
+      return false;
     } finally {
       saving.value = false;
     }
@@ -188,7 +226,8 @@
   const handleRuleSubmit = async (rule: PortRule): Promise<void> => {
     try {
       // 保存规则到服务器
-      await savePortRule(rule);
+      const ok = await savePortRule(rule);
+      if (!ok) return; // stop on validation or api failure
 
       // 刷新端口规则列表
       await fetchPortRules();
@@ -250,19 +289,19 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 24px;
+      padding: 1.714rem; // 24px -> rem
       border-bottom: 1px solid var(--color-border-2);
 
       .header-left {
         .page-title {
-          font-size: 24px;
+          font-size: 1.714rem; // 24px -> rem
           font-weight: 600;
           color: var(--color-text-1);
-          margin: 0 0 8px 0;
+          margin: 0 0 0.571rem 0; // 8px -> rem
         }
 
         .page-description {
-          font-size: 14px;
+          font-size: 1rem; // 14px -> rem (root 14px)
           color: var(--color-text-3);
           margin: 0;
         }
@@ -275,19 +314,19 @@
     }
 
     .page-content {
-      padding: 16px 0;
+      padding: 1.143rem 0; // 16px -> rem
 
       .loading-container {
-        padding: 60px 24px;
-        min-height: 400px;
+        padding: 4.286rem 1.714rem; // 60px 24px -> rem
+        min-height: 28.571rem; // 400px -> rem
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
 
         .loading-text {
-          margin-top: 16px;
-          font-size: 14px;
+          margin-top: 1.143rem; // 16px -> rem
+          font-size: 1rem; // 14px -> rem
           color: var(--color-text-3);
           font-weight: 400;
         }
@@ -295,13 +334,13 @@
 
       .rules-management-container {
         background: var(--color-bg-2);
-        border-radius: 6px;
-        padding: 16px;
-        margin: 16px 24px 0;
+        border-radius: 0.429rem; // 6px -> rem
+        padding: 1.143rem; // 16px -> rem
+        margin: 1.143rem 1.714rem 0; // 16px 24px 0 -> rem
       }
 
       .error-state {
-        margin-top: 40px;
+        margin-top: 2.857rem; // 40px -> rem
         text-align: center;
       }
     }
@@ -311,27 +350,28 @@
   @media (max-width: 1024px) {
     .ports-management-page {
       .page-header {
-        padding-left: 16px;
-        padding-right: 16px;
+        padding-left: 1.143rem; // 16px -> rem
+        padding-right: 1.143rem; // 16px -> rem
       }
 
       .page-content {
         .rules-management-container {
-          margin-left: 16px;
-          margin-right: 16px;
+          margin-left: 1.143rem; // 16px -> rem
+          margin-right: 1.143rem; // 16px -> rem
         }
       }
     }
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: @screen-md) {
+    // 768px -> 使用系统断点变量
     .ports-management-page {
       .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
-        padding-left: 12px;
-        padding-right: 12px;
+        gap: 1.143rem; // 16px -> rem
+        padding-left: 0.857rem; // 12px -> rem
+        padding-right: 0.857rem; // 12px -> rem
 
         .header-right {
           align-self: flex-end;
@@ -340,11 +380,19 @@
 
       .page-content {
         .rules-management-container {
-          margin-left: 12px;
-          margin-right: 12px;
-          padding: 12px;
+          margin-left: 0.857rem; // 12px -> rem
+          margin-right: 0.857rem; // 12px -> rem
+          padding: 0.857rem; // 12px -> rem
         }
       }
     }
+  }
+
+  .drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 16px;
+    margin-top: 24px;
+    border-top: 1px solid var(--color-border-2);
   }
 </style>

@@ -114,6 +114,8 @@ export default {
   'app.nftables.config.form.title': '表单配置',
   'app.nftables.config.form.desc': '通过表单界面配置端口规则，操作简单直观',
   'app.nftables.form.portHelp': '单个端口：80，端口列表：80, 443, 9918',
+  'app.nftables.form.portRangeHelp': '支持端口段，例如 8000-9000',
+
   'app.nftables.form.updateRule': '更新规则',
   'app.nftables.form.cancel': '取消',
   'app.nftables.form.sourceOptional': '来源（可选）',
@@ -345,6 +347,9 @@ export default {
   'app.nftables.message.actionRequired': '请选择动作',
   'app.nftables.message.protocolRequired': '请选择协议类型',
 
+  'app.nftables.message.batchNotSupported':
+    '当前版本暂不支持批量端口提交，请选择单个端口',
+
   'app.nftables.message.noHost': '没有可用的主机',
 
   // 编辑器相关
@@ -430,7 +435,12 @@ export default {
   'app.nftables.form.concurrentHelpText': '同时允许的最大连接数',
 
   // 表单验证
+  'app.nftables.validation.portOrRange':
+    '请输入端口或端口段，例如 8080 或 8000-9000',
+
   'app.nftables.validation.portRequired': '请输入端口号',
+  'app.nftables.validation.portRangeOrder': '端口段起始值需小于或等于结束值',
+
   'app.nftables.validation.portRange': '端口号必须在 1-65535 之间',
   'app.nftables.validation.protocolRequired': '请选择协议类型',
   'app.nftables.validation.actionRequired': '请选择动作',

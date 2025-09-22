@@ -22,11 +22,8 @@
                 field="port"
                 :label="$t('app.nftables.config.rules.port')"
               >
-                <a-input-number
+                <a-input
                   v-model="form.port"
-                  :min="1"
-                  :max="65535"
-                  :precision="0"
                   :placeholder="$t('app.nftables.config.rules.portPlaceholder')"
                   :readonly="props.portReadonly"
                   :disabled="props.portReadonly"
@@ -35,6 +32,9 @@
                 <template #extra>
                   <div class="field-help">
                     {{ $t('app.nftables.form.portHelp') }}
+                  </div>
+                  <div class="field-help">
+                    {{ $t('app.nftables.form.portRangeHelp') }}
                   </div>
                 </template>
               </a-form-item>
@@ -353,28 +353,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 表单操作按钮 -->
-      <div class="form-actions">
-        <a-space size="large">
-          <a-button size="large" @click="handleCancel">
-            {{ $t('app.nftables.form.cancel') }}
-          </a-button>
-
-          <a-button
-            type="primary"
-            html-type="submit"
-            :loading="loading"
-            size="large"
-          >
-            {{
-              editingRule
-                ? $t('app.nftables.form.updateRule')
-                : $t('app.nftables.button.addRule')
-            }}
-          </a-button>
-        </a-space>
-      </div>
     </a-form>
   </div>
 </template>
@@ -395,10 +373,13 @@
   } from '@arco-design/web-vue/es/icon';
   import type { FormInstance, FieldRule } from '@arco-design/web-vue';
   import type { PortRule, RuleItem } from '@/api/nftables';
+  import trim from 'lodash/trim';
+  import toInteger from 'lodash/toInteger';
+  import inRange from 'lodash/inRange';
 
   // 表单专用类型
   interface PortRuleForm {
-    port: number;
+    port: string;
     description: string;
     simpleAction: 'accept' | 'drop' | 'reject'; // 简单模式的动作
     rules: RuleItem[]; // 高级规则列表
@@ -430,7 +411,7 @@
 
   // 默认表单数据工厂函数
   const createDefaultForm = (): PortRuleForm => ({
-    port: 80,
+    port: '80',
     description: '',
     simpleAction: 'accept',
     rules: [],
@@ -444,14 +425,33 @@
     (): Record<string, FieldRule[]> => ({
       port: [
         {
-          required: true,
-          message: t('app.nftables.validation.portRequired'),
-        },
-        {
-          type: 'number' as const,
-          min: 1,
-          max: 65535,
-          message: t('app.nftables.validation.portRange'),
+          validator: (value: string, cb: (error?: string) => void) => {
+            const v = trim(value || '');
+            if (!v) return cb(t('app.nftables.validation.portRequired'));
+
+            const isSingle = /^[0-9]+$/.test(v);
+            const isRange = /^([0-9]+)\s*-\s*([0-9]+)$/.test(v);
+            if (!isSingle && !isRange)
+              return cb(t('app.nftables.validation.portOrRange'));
+
+            // 单端口校验
+            if (isSingle) {
+              const p = toInteger(v);
+              if (!inRange(p, 1, 65536))
+                return cb(t('app.nftables.validation.portRange'));
+              return cb();
+            }
+
+            // 端口段校验
+            const m = v.match(/^([0-9]+)\s*-\s*([0-9]+)$/)!;
+            const start = toInteger(m[1]);
+            const end = toInteger(m[2]);
+            if (!inRange(start, 1, 65536) || !inRange(end, 1, 65536))
+              return cb(t('app.nftables.validation.portRange'));
+            if (start > end)
+              return cb(t('app.nftables.validation.portRangeOrder'));
+            cb();
+          },
         },
       ],
       simpleAction: [
@@ -489,7 +489,7 @@
 
         // 设置表单数据
         Object.assign(form, {
-          port: portValue,
+          port: String(portValue),
           description: newRule.description || '',
           simpleAction: newRule.action || 'accept',
           rules: newRule.rules ? [...newRule.rules] : [],
@@ -604,19 +604,22 @@
             ];
     }
 
+    const v = (form.port + '').trim();
+    let portOut: number | number[];
+    if (/^[0-9]+$/.test(v)) {
+      portOut = parseInt(v, 10);
+    } else {
+      const m = v.match(/^([0-9]+)\s*-\s*([0-9]+)$/);
+      portOut = m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : 0;
+    }
+
     const ruleData: PortRule = {
-      port: form.port,
+      port: portOut as any,
       description: form.description || `TCP ${form.port}`,
       rules,
     };
 
     emit('submit', ruleData);
-  };
-
-  // 取消操作
-  const handleCancel = () => {
-    emit('cancel');
-    resetForm();
   };
 
   // 添加高级规则
@@ -637,6 +640,7 @@
   defineExpose({
     resetForm,
     validateForm: () => formRef.value?.validate(),
+    submitForm: () => handleSubmit({}),
   });
 </script>
 
@@ -948,15 +952,6 @@
       width: 100%;
     }
 
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      padding: 20px;
-      margin-top: 8px;
-      border-top: 1px solid var(--color-border-2);
-      background: var(--color-fill-1);
-    }
-
     :deep(.arco-form-item-label) {
       font-weight: 500;
       color: var(--color-text-1);
@@ -981,15 +976,6 @@
         .mode-selector .mode-card,
         .action-selector .action-card {
           padding: 12px;
-        }
-      }
-
-      .form-actions {
-        padding: 16px;
-
-        :deep(.arco-space) {
-          width: 100%;
-          justify-content: flex-end;
         }
       }
     }
