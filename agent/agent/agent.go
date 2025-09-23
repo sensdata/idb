@@ -817,7 +817,7 @@ func (a *Agent) installScreen() (*model.ScriptResult, error) {
 	defer os.Remove(scriptPath)
 
 	// 执行安装脚本
-	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
+	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath, Remove: true}
 	scriptResult := shell.ExecuteScript(req)
 	if scriptResult.Err != "" {
 		return &result, fmt.Errorf("failed to install")
@@ -845,7 +845,7 @@ func (a *Agent) cleanScreen() (*model.ScriptResult, error) {
 	defer os.Remove(scriptPath)
 
 	// 执行安装脚本
-	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath}
+	req := model.ScriptExec{ScriptPath: scriptPath, LogPath: logPath, Remove: true}
 	scriptResult := shell.ExecuteScript(req)
 	if scriptResult.Err != "" {
 		return &result, fmt.Errorf("failed to install")

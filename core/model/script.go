@@ -37,6 +37,7 @@ type ExecuteScript struct {
 type ScriptExec struct {
 	ScriptPath string `json:"script_path"`
 	LogPath    string `json:"log_path"`
+	Remove     bool   `json:"remove"`
 }
 
 type ScriptResult struct {

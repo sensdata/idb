@@ -61,6 +61,11 @@ func ExecuteScript(req model.ScriptExec) *model.ScriptResult {
 	scriptName := filepath.Base(req.ScriptPath)
 	scriptLog(req.LogPath, scriptName, result)
 
+	// 移除脚本
+	if req.Remove {
+		os.Remove(req.ScriptPath)
+	}
+
 	return result
 }
 

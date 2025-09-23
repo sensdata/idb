@@ -392,7 +392,7 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 
 	// 脚本检测防火墙
 	logPath := filepath.Join("/tmp", "iDB_nftable_detect.log")
-	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_detect_%s.sh", time.Now().Format("20060102150405"))
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_detect_%d.sh", time.Now().Unix())
 	createFile := model.FileCreate{
 		Source:  scriptPath,
 		Content: string(detectFirewall),
@@ -413,6 +413,7 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 	scriptExec := model.ScriptExec{
 		ScriptPath: scriptPath,
 		LogPath:    logPath,
+		Remove:     true,
 	}
 
 	data, err := utils.ToJSONString(scriptExec)
@@ -453,7 +454,7 @@ func (s *NFTable) status(hostID uint64) (*model.NftablesStatus, error) {
 func (s *NFTable) install(hostID uint64) error {
 	// 将安装脚本内容保存到一个临时文件
 	logPath := filepath.Join("/tmp", "iDB_nftable_install.log")
-	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_%s.sh", time.Now().Format("20060102150405"))
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_%d.sh", time.Now().Unix())
 	createFile := model.FileCreate{
 		Source:  scriptPath,
 		Content: string(installShell),
@@ -475,6 +476,7 @@ func (s *NFTable) install(hostID uint64) error {
 	scriptExec := model.ScriptExec{
 		ScriptPath: scriptPath,
 		LogPath:    logPath,
+		Remove:     true,
 	}
 
 	data, err := utils.ToJSONString(scriptExec)
@@ -577,7 +579,7 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 
 	// 将切换脚本内容保存到一个临时文件
 	logPath := filepath.Join("/tmp", "iDB_nftable_switch.log")
-	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_switch_%s.sh", time.Now().Format("20060102150405"))
+	scriptPath := fmt.Sprintf("/tmp/iDB_nftable_switch_%d.sh", time.Now().Unix())
 
 	createFile := model.FileCreate{
 		Source:  scriptPath,
@@ -600,6 +602,7 @@ func (s *NFTable) switchTo(hostID uint64, req model.SwitchOptions) error {
 	scriptExec := model.ScriptExec{
 		ScriptPath: scriptPath,
 		LogPath:    logPath,
+		Remove:     true,
 	}
 
 	data, err := utils.ToJSONString(scriptExec)
