@@ -151,8 +151,8 @@
   // 日志记录
   const { logError, logInfo } = useLogger('BaseRulesConfig');
 
-  // 获取配置应用后的刷新方法
-  const { handleConfigApplied } = useNftablesConfig();
+  // 获取配置应用后的刷新方法（关闭自动请求避免重复）
+  const { handleConfigApplied } = useNftablesConfig({ autoFetch: false });
 
   // 响应式状态
   const loading = ref<boolean>(false);
