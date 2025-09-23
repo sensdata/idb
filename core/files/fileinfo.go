@@ -423,27 +423,45 @@ func (f *FileInfo) getContentPart(lines int64, whence int) (string, error) {
 	}
 }
 
+// DetectBinary 判断数据片段是否为二进制文件内容。
 func DetectBinary(buf []byte) bool {
-	// 空文件不视为二进制
 	if len(buf) == 0 {
-		return false
+		return false // 空文件视为文本
 	}
 
-	// 最多检查前1024字节
-	n := min(1024, len(buf))
+	n := min(1024, len(buf)) // 最多检查前 1024 字节
+	printable := 0
+	nullCount := 0
+	controlCount := 0
 
-	// 统计可打印字符数量
-	printableChars := 0
 	for i := 0; i < n; i++ {
-		// 可打印字符范围和常见控制字符(制表符、换行符、回车符)
-		if (buf[i] >= 0x20 && buf[i] <= 0x7E) ||
-			buf[i] == 9 || buf[i] == 10 || buf[i] == 13 {
-			printableChars++
+		b := buf[i]
+		switch {
+		case b == 0:
+			nullCount++
+		case (b >= 0x20 && b <= 0x7E) || b == 9 || b == 10 || b == 13:
+			printable++
+		case b < 0x09 || (b >= 0x0E && b <= 0x1F):
+			controlCount++
 		}
 	}
 
-	// 如果超过80%是可打印字符，则视为文本文件
-	return float64(printableChars)/float64(n) < 0.8
+	// 规则：
+	// 1. null 字节比例大于 20% → 二进制
+	if float64(nullCount)/float64(n) > 0.2 {
+		return true
+	}
+	// 2. 控制字符比例大于 5% → 二进制
+	if float64(controlCount)/float64(n) > 0.05 {
+		return true
+	}
+	// 3. 可打印字符比例过低 (<30%) → 二进制
+	if float64(printable)/float64(n) < 0.3 {
+		return true
+	}
+
+	// 默认认为是文本
+	return false
 }
 
 func min(x, y int) int {
