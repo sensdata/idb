@@ -293,7 +293,8 @@
           try {
             await activateHostApi(record.id);
             Message.success(t('manage.host.list.activate.success'));
-            await fetchListStatus();
+            // 刷新表格以获取最新的 agent_version/agent_latest 等字段，避免需要手动刷新页面
+            tableRef.value?.reload();
           } catch (error: any) {
             Message.error(
               error?.message || t('manage.host.list.activate.error')
@@ -302,16 +303,30 @@
         },
       },
       {
-        text: t('manage.host.list.operation.goto'),
+        text: t('manage.host.list.operation.upgradeAgent'),
+        visible: compareVersion(record.agent_latest, record.agent_version) > 0,
+        confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
         click: () => {
-          if (record.agent_status?.status === 'installed') {
-            router.push({
-              name: DEFAULT_APP_ROUTE_NAME,
-              query: { id: record.id },
-            });
-          } else {
-            installAgentRef.value?.confirmInstall(record.id);
-          }
+          installAgentRef.value?.startUpgrade(record.id);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.goto'),
+        visible:
+          record.agent_status?.status === 'installed' &&
+          compareVersion(record.agent_latest, record.agent_version) <= 0,
+        click: () => {
+          router.push({
+            name: DEFAULT_APP_ROUTE_NAME,
+            query: { id: record.id },
+          });
+        },
+      },
+      {
+        text: t('manage.host.list.operation.goto'),
+        visible: record.agent_status?.status !== 'installed',
+        click: () => {
+          installAgentRef.value?.confirmInstall(record.id);
         },
       },
       {
@@ -346,14 +361,7 @@
           installAgentRef.value?.startInstall(record.id);
         },
       },
-      {
-        text: t('manage.host.list.operation.upgradeAgent'),
-        visible: compareVersion(record.agent_latest, record.agent_version) > 0,
-        confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
-        click: () => {
-          installAgentRef.value?.startUpgrade(record.id);
-        },
-      },
+
       {
         text: t('manage.host.list.operation.uninstallAgent'),
         confirm: t('manage.host.list.uninstallAgent.confirm'),

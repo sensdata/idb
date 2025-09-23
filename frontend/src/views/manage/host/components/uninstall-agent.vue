@@ -116,16 +116,29 @@
   const scrollToBottom = async () => {
     await nextTick();
     if (logContentRef.value) {
-      logContentRef.value.scrollTop = logContentRef.value.scrollHeight;
+      // 使用 setTimeout 确保 DOM 完全更新后再滚动
+      setTimeout(() => {
+        if (logContentRef.value) {
+          logContentRef.value.scrollTop = logContentRef.value.scrollHeight;
+        }
+      }, 10);
     }
   };
 
-  watch(logs, () => {
-    scrollToBottom();
-  });
+  watch(
+    logs,
+    () => {
+      scrollToBottom();
+    },
+    { deep: true }
+  );
 
   const addLog = (log: LogItem) => {
     logs.value.push(log);
+    // 确保在添加日志后立即滚动到底部
+    nextTick(() => {
+      scrollToBottom();
+    });
   };
 
   const clearLogs = () => {
@@ -375,6 +388,7 @@
     line-height: 1.5;
     background-color: var(--color-fill-2);
     border-radius: 4px;
+    scroll-behavior: smooth;
   }
 
   .log-item {
