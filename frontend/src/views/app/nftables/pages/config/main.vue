@@ -106,7 +106,6 @@
     handleStatusRefresh,
     handleSwitch,
     handleReload,
-    fetchPortRules,
     handleConfigApplied,
   } = useNftablesConfig();
 
@@ -212,9 +211,7 @@
       const ok = await savePortRule(rule);
       if (!ok) return; // stop on validation or api failure
 
-      // 刷新端口规则列表
-      await fetchPortRules();
-
+      // 由 handleConfigApplied 统一刷新，避免重复触发端口列表请求
       showRuleForm.value = false;
       editingRule.value = null;
 

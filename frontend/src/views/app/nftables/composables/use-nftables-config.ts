@@ -19,10 +19,11 @@ import {
 } from '@/api/nftables';
 import { isNftablesActive, isIptablesActive } from '../utils/firewall-status';
 
-export function useNftablesConfig() {
+export function useNftablesConfig(options?: { autoFetch?: boolean }) {
   const { t } = useI18n();
   const hostStore = useHostStore();
   const { logError } = useLogger('NftablesConfig');
+  const autoFetch = options?.autoFetch !== false;
 
   // 响应式状态
   const loading = ref<boolean>(false);
@@ -164,20 +165,22 @@ export function useNftablesConfig() {
     ]);
   };
 
-  // 监听主机ID变化
-  watch(
-    () => hostStore.currentId,
-    async (newId) => {
-      if (newId) {
-        await Promise.all([
-          fetchFirewallStatus(),
-          fetchProcessData(),
-          fetchPortRules(),
-        ]);
-      }
-    },
-    { immediate: true }
-  );
+  // 监听主机ID变化（可配置是否自动请求）
+  if (autoFetch) {
+    watch(
+      () => hostStore.currentId,
+      async (newId) => {
+        if (newId) {
+          await Promise.all([
+            fetchFirewallStatus(),
+            fetchProcessData(),
+            fetchPortRules(),
+          ]);
+        }
+      },
+      { immediate: true }
+    );
+  }
 
   return {
     // 状态
