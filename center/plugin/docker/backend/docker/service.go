@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
+	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/core/api"
 	"github.com/sensdata/idb/center/core/api/service"
 	"github.com/sensdata/idb/center/global"
@@ -20,6 +21,7 @@ import (
 	"github.com/sensdata/idb/core/log"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/plugin"
+	"github.com/sensdata/idb/core/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -38,6 +40,9 @@ var plugYAML []byte
 
 //go:embed conf.yaml
 var confYAML []byte
+
+//go:embed install-docker.sh
+var installDockerShell []byte
 
 func (s *DockerMan) Initialize() {
 	global.LOG.Info("dockerman init begin \n")
@@ -107,16 +112,18 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/menu", Handler: s.GetMenu},
 
 			// docker
-			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},          // 获取docker状态
-			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},              // 获取docker配置
-			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},        // 更新docker配置
-			{Method: "GET", Path: "/:host/conf/raw", Handler: s.DockerConfRaw},       // 获取docker配置源文
-			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.DockerUpdateConfRaw}, // 更新docker配置源文
-			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},    // 日志设置
-			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},  // ipv6设置
-			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},   // 操作docker服务
-			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},              // 获取信息（container image volume network）
-			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                 // 清理（container image volume network buildcache）
+			{Method: "GET", Path: "/:host/install/status", Handler: s.DockerInstallStatus}, // 获取docker安装状态
+			{Method: "POST", Path: "/:host/install", Handler: s.DockerInstall},             // 安装docker
+			{Method: "GET", Path: "/:host/status", Handler: s.DockerStatus},                // 获取docker状态
+			{Method: "GET", Path: "/:host/conf", Handler: s.DockerConf},                    // 获取docker配置
+			{Method: "PUT", Path: "/:host/conf", Handler: s.DockerUpdateConf},              // 更新docker配置
+			{Method: "GET", Path: "/:host/conf/raw", Handler: s.DockerConfRaw},             // 获取docker配置源文
+			{Method: "PUT", Path: "/:host/conf/raw", Handler: s.DockerUpdateConfRaw},       // 更新docker配置源文
+			{Method: "PUT", Path: "/:host/log", Handler: s.DockerUpdateLogOption},          // 日志设置
+			{Method: "PUT", Path: "/:host/ipv6", Handler: s.DockerUpdateIpv6Option},        // ipv6设置
+			{Method: "POST", Path: "/:host/operation", Handler: s.DockerOperation},         // 操作docker服务
+			{Method: "GET", Path: "/:host/inspect", Handler: s.Inspect},                    // 获取信息（container image volume network）
+			{Method: "POST", Path: "/:host/prune", Handler: s.Prune},                       // 清理（container image volume network buildcache）
 
 			// compose
 			{Method: "GET", Path: "/:host/compose", Handler: s.ComposeQuery},                // 获取编排列表
@@ -237,6 +244,64 @@ func (s *DockerMan) sendAction(actionRequest model.HostAction) (*model.ActionRes
 
 	return &actionResponse, nil
 }
+func (s *DockerMan) sendCommand(hostId uint, command string) (*model.CommandResult, error) {
+	var commandResult model.CommandResult
+
+	commandRequest := model.Command{
+		HostID:  hostId,
+		Command: command,
+	}
+
+	var commandResponse model.CommandResponse
+
+	resp, err := s.restyClient.R().
+		SetBody(commandRequest).
+		SetResult(&commandResponse).
+		Post("/commands")
+
+	if err != nil {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		LOG.Error("failed to send request: %v", err)
+		return &commandResult, fmt.Errorf("received error response: %s", resp.Status())
+	}
+
+	LOG.Info("cmd response: %v", commandResponse)
+
+	commandResult = commandResponse.Data
+
+	return &commandResult, nil
+}
+
+func (s *DockerMan) createFile(hostID uint64, op model.FileCreate) error {
+	data, err := utils.ToJSONString(op)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.File_Create,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		return err
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("failed to create file")
+		return errors.New("failed to create file")
+	}
+
+	return nil
+}
 
 // @Tags Docker
 // @Summary Get plugin info
@@ -276,6 +341,54 @@ func (s *DockerMan) getPluginInfo() (plugin.PluginInfo, error) {
 
 func (s *DockerMan) getMenus() ([]plugin.MenuItem, error) {
 	return s.plugin.Menu, nil
+}
+
+// @Tags Docker
+// @Summary Docker install status
+// @Description Get docker install status
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200 {object} model.DockerInstallStatus
+// @Router /docker/{host}/install/status [get]
+func (s *DockerMan) DockerInstallStatus(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	result, err := s.dockerInstallStatus(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Docker install
+// @Description Install docker
+// @Accept json
+// @Produce json
+// @Param host path int true "Host ID"
+// @Success 200
+// @Router /docker/{host}/install [post]
+func (s *DockerMan) DockerInstall(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host id", err)
+		return
+	}
+
+	err = s.dockerInstall(hostID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Docker

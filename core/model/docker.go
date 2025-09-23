@@ -3,6 +3,9 @@ package model
 import "time"
 
 // docker
+type DockerInstallStatus struct {
+	Status string `json:"status"`
+}
 
 type DockerStatus struct {
 	Status string `json:"status"`

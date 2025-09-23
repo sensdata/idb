@@ -2,11 +2,95 @@ package docker
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
+
+func (s *DockerMan) dockerInstallStatus(hostID uint64) (*model.DockerInstallStatus, error) {
+	var status model.DockerInstallStatus
+
+	// 命令行查询docker安装状态
+	command := "command -v docker >/dev/null 2>&1 && echo \"installed\" || echo \"not installed\""
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to check install status")
+		return &status, errors.New("failed to check install status")
+	}
+	LOG.Info("Install status result: %s", commandResult.Result)
+	status.Status = strings.TrimSpace(commandResult.Result)
+	return &status, nil
+}
+
+func (s *DockerMan) dockerInstall(hostID uint64) error {
+	// 将安装脚本内容保存到一个临时文件
+	logPath := filepath.Join("/tmp", "iDB_docker_install.log")
+	scriptPath := fmt.Sprintf("/tmp/iDB_docker_install_%d.sh", time.Now().Unix())
+	createFile := model.FileCreate{
+		Source:  scriptPath,
+		Content: string(installDockerShell),
+	}
+	err := s.createFile(hostID, createFile)
+	if err != nil {
+		LOG.Error("Failed to create install shell file")
+		return err
+	}
+
+	// 执行脚本，获得结果
+	result := model.ScriptResult{
+		Start: time.Now(),
+		End:   time.Now(),
+		Out:   "",
+		Err:   "",
+	}
+
+	scriptExec := model.ScriptExec{
+		ScriptPath: scriptPath,
+		LogPath:    logPath,
+		Remove:     true,
+	}
+
+	data, err := utils.ToJSONString(scriptExec)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: uint(hostID),
+		Action: model.Action{
+			Action: model.Script_Exec,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := s.sendAction(actionRequest)
+	if err != nil {
+		LOG.Error("Failed to run install script")
+		return errors.New("failed to run install script")
+	}
+
+	if !actionResponse.Data.Action.Result {
+		LOG.Error("action failed")
+		return errors.New("failed to get filetree")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
+	if err != nil {
+		LOG.Error("Error unmarshaling data to filetree: %v", err)
+		return fmt.Errorf("json err: %v", err)
+	}
+	LOG.Info("Install result: %v", result)
+	if result.Out == "Failed" {
+		return errors.New("Install failed")
+	}
+
+	return nil
+}
 
 func (s *DockerMan) dockerStatus(hostID uint64) (*model.DockerStatus, error) {
 	var status model.DockerStatus
