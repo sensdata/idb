@@ -73,8 +73,9 @@ export function useTableData(options: UseTableDataOptions) {
       return;
     }
 
-    // 防止重复调用：如果已经在加载中，则跳过
-    if (loading.value) {
+    // 防止重复调用：如果已经在加载中且没有新参数，则跳过
+    // 但如果有新参数，允许重新加载（这对于初始化很重要）
+    if (loading.value && !newParams) {
       logDebug('🔍 load function called but already loading, skipping:', {
         hasNewParams: !!newParams,
         newParams,

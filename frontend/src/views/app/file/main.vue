@@ -277,7 +277,11 @@
         await store.navigateToPath(targetPath);
       }
 
-      // 路径导航完成后，手动触发表格加载
+      // 路径导航完成后，重置loading状态，然后手动触发表格加载
+      await nextTick();
+
+      // 重置loading状态，避免表格加载被跳过
+      setLoading(false);
       await nextTick();
 
       // 简化数据加载逻辑
@@ -295,7 +299,6 @@
       }
     } catch (error) {
       logError('Failed to initialize file view:', error);
-    } finally {
       setLoading(false);
     }
   });
@@ -312,6 +315,10 @@
           await store.navigateToPath(newPath);
           await nextTick();
 
+          // 重置loading状态，避免表格加载被跳过
+          setLoading(false);
+          await nextTick();
+
           if (fileMainViewRef.value?.load) {
             await fileMainViewRef.value.load(params.value);
           } else {
@@ -319,7 +326,6 @@
           }
         } catch (error) {
           logError('Failed to load after path change:', error);
-        } finally {
           setLoading(false);
         }
       }

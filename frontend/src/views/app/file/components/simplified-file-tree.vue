@@ -228,9 +228,18 @@
     const currentPath = props.current.path;
     const itemPath = item.path;
 
-    // Only highlight exact matches for pinned directories
-    // This prevents parent directories from being highlighted when in a subdirectory
-    return currentPath === itemPath;
+    // For exact matches, always highlight
+    if (currentPath === itemPath) {
+      return true;
+    }
+
+    // For parent directories, highlight if current path is within this directory
+    // This ensures parent directories stay active when navigating to subdirectories
+    if (item.is_dir && currentPath.startsWith(itemPath + '/')) {
+      return true;
+    }
+
+    return false;
   };
 
   // Handle click event - emit selection event
