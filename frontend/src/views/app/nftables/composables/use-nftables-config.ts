@@ -15,7 +15,7 @@ import {
   installApi,
   type ProcessStatus,
   type NftablesStatus,
-  type PortRuleSet,
+  type PortRangeRule,
 } from '@/api/nftables';
 import { isNftablesActive, isIptablesActive } from '../utils/firewall-status';
 
@@ -31,8 +31,7 @@ export function useNftablesConfig(options?: { autoFetch?: boolean }) {
   const switchLoading = ref<boolean>(false);
   const processData = ref<ProcessStatus[]>([]);
   const firewallStatus = ref<NftablesStatus | null>(null);
-  const portRules = ref<PortRuleSet[]>([]);
-  const openPorts = ref<Set<number>>(new Set());
+  const portRules = ref<PortRangeRule[]>([]);
 
   // 获取进程状态数据
   const fetchProcessData = async (showSuccess = false): Promise<void> => {
@@ -89,22 +88,21 @@ export function useNftablesConfig(options?: { autoFetch?: boolean }) {
     try {
       const response = await getPortRulesApi();
       portRules.value = response.items || [];
-
-      // 从端口规则中提取开放端口
-      const ports = new Set<number>();
-      portRules.value.forEach((rule) => {
-        // 只有规则中包含 accept 动作的端口才算作开放端口
-        if (rule.rules.some((r) => r.action === 'accept')) {
-          ports.add(rule.port);
-        }
-      });
-      openPorts.value = ports;
     } catch (error) {
       logError('Failed to fetch port rules:', error);
       // 静默失败，不显示错误消息，因为可能是nftables未配置
       portRules.value = [];
-      openPorts.value = new Set();
     }
+  };
+
+  // 判断端口是否开放（考虑端口区间）
+  const isPortOpen = (port: number): boolean => {
+    return portRules.value.some(
+      (rule) =>
+        port >= rule.port_start &&
+        port <= rule.port_end &&
+        rule.rules.some((r) => r.action === 'accept')
+    );
   };
 
   // 状态刷新
@@ -190,7 +188,7 @@ export function useNftablesConfig(options?: { autoFetch?: boolean }) {
     processData,
     firewallStatus,
     portRules,
-    openPorts,
+    isPortOpen,
 
     // 方法
     fetchProcessData,

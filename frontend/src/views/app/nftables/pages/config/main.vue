@@ -20,7 +20,6 @@
     <!-- 进程状态表格组件 -->
     <process-status-table
       :process-data="processData"
-      :open-ports="openPorts"
       :port-rules="portRules"
       :loading="loading"
       @reload="handleReload"
@@ -82,7 +81,7 @@
   import {
     setPortRulesApi,
     type PortRule,
-    type SetPortRuleApiParams,
+    type SetPortRuleReq,
   } from '@/api/nftables';
   import { useNftablesConfig } from '../../composables/use-nftables-config';
   import FirewallStatusHeader from '../../components/firewall-status-header.vue';
@@ -102,7 +101,6 @@
     processData,
     firewallStatus,
     portRules,
-    openPorts,
     handleStatusRefresh,
     handleSwitch,
     handleReload,
@@ -114,14 +112,16 @@
   const saving = ref<boolean>(false);
   const editingRule = ref<PortRule | null>(null);
 
-  // 将PortRuleSet转换为PortRule格式
+  // 将后端的端口区间规则映射为指定端口的UI规则
   const convertPortRuleSetToPortRule = (port: number): PortRule => {
-    const ruleSet = portRules.value.find((rule) => rule.port === port);
+    const ruleSet = portRules.value.find(
+      (rule) => port >= rule.port_start && port <= rule.port_end
+    );
 
     if (ruleSet) {
       return {
-        port: ruleSet.port,
-        protocol: 'tcp', // 根据API文档，当前只支持TCP
+        port,
+        protocol: ruleSet.protocol ?? 'tcp',
         rules: ruleSet.rules,
         // 为了兼容性，如果只有一个默认规则，也设置action
         action:
@@ -146,35 +146,46 @@
       saving.value = true;
 
       // 构造规则（避免嵌套三元）
-      const rulesLocal: SetPortRuleApiParams['rules'] = [];
+      const rulesLocal: SetPortRuleReq['rules'] = [];
       if (rule.rules && rule.rules.length) {
         rulesLocal.push(...rule.rules);
       } else if (rule.action) {
         rulesLocal.push({ type: 'default', action: rule.action });
       }
 
-      // 当前版本不支持批量端口提交：如检测到端口段或多个端口，直接提示并中止
-      let portValue: number | null = null;
+      // 计算端口起止
+      let portStart: number | null = null;
+      let portEnd: number | null = null;
       if (typeof rule.port === 'number') {
-        portValue = rule.port;
+        portStart = rule.port;
+        portEnd = rule.port; // 单端口时可以等于起始（或传0）
       } else if (Array.isArray(rule.port)) {
         const arr = rule.port as number[];
-        if (arr.length !== 1) {
+        if (arr.length === 1) {
+          portStart = arr[0];
+          portEnd = arr[0];
+        } else if (arr.length === 2) {
+          portStart = Math.min(arr[0], arr[1]);
+          portEnd = Math.max(arr[0], arr[1]);
+        } else {
           Message.error(
             (t && t('app.nftables.message.batchNotSupported')) ||
-              '当前版本暂不支持批量端口提交，请选择单个端口'
+              '当前版本暂不支持批量端口提交，请选择单个端口或区间'
           );
-          return false; // avoid double error message
+          return false;
         }
-        portValue = arr[0];
       }
 
-      if (portValue == null) {
+      if (portStart == null || portEnd == null) {
         Message.error(t('app.nftables.message.operationFailed'));
-        return false; // avoid double error message
+        return false;
       }
 
-      await setPortRulesApi({ port: portValue, rules: rulesLocal });
+      await setPortRulesApi({
+        port_start: portStart,
+        port_end: portEnd,
+        rules: rulesLocal,
+      });
 
       Message.success(t('app.nftables.message.configSaved'));
 

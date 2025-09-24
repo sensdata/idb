@@ -429,27 +429,37 @@
             const v = trim(value || '');
             if (!v) return cb(t('app.nftables.validation.portRequired'));
 
-            const isSingle = /^[0-9]+$/.test(v);
-            const isRange = /^([0-9]+)\s*-\s*([0-9]+)$/.test(v);
-            if (!isSingle && !isRange)
+            const vv = v.replace(/，/g, ',');
+            const isSingle = /^[0-9]+$/.test(vv);
+            const isRange = /^([0-9]+)\s*-\s*([0-9]+)$/.test(vv);
+            const isList = /^([0-9]+)(\s*,\s*[0-9]+){1,}$/.test(vv); // 逗号分隔：两个或以上端口皆视为列表
+            if (!isSingle && !isRange && !isList)
               return cb(t('app.nftables.validation.portOrRange'));
 
             // 单端口校验
             if (isSingle) {
-              const p = toInteger(v);
+              const p = toInteger(vv);
               if (!inRange(p, 1, 65536))
                 return cb(t('app.nftables.validation.portRange'));
               return cb();
             }
 
             // 端口段校验
-            const m = v.match(/^([0-9]+)\s*-\s*([0-9]+)$/)!;
-            const start = toInteger(m[1]);
-            const end = toInteger(m[2]);
-            if (!inRange(start, 1, 65536) || !inRange(end, 1, 65536))
+            if (isRange) {
+              const m = vv.match(/^([0-9]+)\s*-\s*([0-9]+)$/)!;
+              const start = toInteger(m[1]);
+              const end = toInteger(m[2]);
+              if (!inRange(start, 1, 65536) || !inRange(end, 1, 65536))
+                return cb(t('app.nftables.validation.portRange'));
+              if (start > end)
+                return cb(t('app.nftables.validation.portRangeOrder'));
+              return cb();
+            }
+
+            // 端口列表校验（至少3个），全部在范围内
+            const parts = vv.split(',').map((s) => toInteger(trim(s)));
+            if (parts.some((p) => !inRange(p, 1, 65536)))
               return cb(t('app.nftables.validation.portRange'));
-            if (start > end)
-              return cb(t('app.nftables.validation.portRangeOrder'));
             cb();
           },
         },
@@ -482,14 +492,22 @@
         const hasAdvancedRules = newRule.rules && newRule.rules.length > 0;
         configMode.value = hasAdvancedRules ? 'advanced' : 'simple';
 
-        // 提取端口号（只取第一个端口）
-        const portValue = Array.isArray(newRule.port)
-          ? newRule.port[0]
-          : newRule.port;
+        // 生成端口输入字符串（支持区间 a-b 或单端口）
+        const getPortStrFromRule = (rule: PortRule): string => {
+          const p: any = rule.port as any;
+          if (Array.isArray(p)) {
+            const arr = p as number[];
+            if (arr.length <= 1) return String(arr[0] ?? '');
+            const start = Math.min(arr[0] ?? 0, arr[1] ?? arr[0] ?? 0);
+            const end = Math.max(arr[0] ?? 0, arr[1] ?? arr[0] ?? 0);
+            return start === end ? String(start) : `${start}-${end}`;
+          }
+          return String(p ?? '');
+        };
 
         // 设置表单数据
         Object.assign(form, {
-          port: String(portValue),
+          port: getPortStrFromRule(newRule),
           description: newRule.description || '',
           simpleAction: newRule.action || 'accept',
           rules: newRule.rules ? [...newRule.rules] : [],
@@ -604,17 +622,27 @@
             ];
     }
 
-    const v = (form.port + '').trim();
+    const v = (form.port + '').trim().replace(/，/g, ',');
     let portOut: number | number[];
+    let portInputType: 'single' | 'range' | 'list' = 'single';
     if (/^[0-9]+$/.test(v)) {
       portOut = parseInt(v, 10);
+      portInputType = 'single';
+    } else if (/^([0-9]+)\s*-\s*([0-9]+)$/.test(v)) {
+      const m = v.match(/^([0-9]+)\s*-\s*([0-9]+)$/)!;
+      portOut = [parseInt(m[1], 10), parseInt(m[2], 10)];
+      portInputType = 'range';
+    } else if (/^([0-9]+)(\s*,\s*[0-9]+){1,}$/.test(v)) {
+      // 逗号列表（两个或以上端口），总是作为独立端口逐条提交
+      portOut = v.split(',').map((s) => parseInt(trim(s), 10));
+      portInputType = 'list';
     } else {
-      const m = v.match(/^([0-9]+)\s*-\s*([0-9]+)$/);
-      portOut = m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : 0;
+      portOut = 0 as any;
     }
 
     const ruleData: PortRule = {
       port: portOut as any,
+      portInputType,
       description: form.description || `TCP ${form.port}`,
       rules,
     };

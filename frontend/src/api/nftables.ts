@@ -67,23 +67,30 @@ export interface RuleItem {
 
 // 基础端口规则（用于可视化配置）
 export interface PortRule {
-  port: number | number[]; // 支持单个端口或端口数组
-  protocol?: 'tcp' | 'udp' | 'both'; // 可选，从配置中解析，无法确定时为空
-  action?: 'accept' | 'drop' | 'reject'; // 可选，从配置中解析，无法确定时为空
+  port: number | number[]; // 支持单个端口或端口数组（UI使用）
+  // 仅前端使用：原始输入类型，便于区分“区间(a-b)”与“列表(a,b,...)”
+  portInputType?: 'single' | 'range' | 'list';
+  protocol?: 'tcp' | 'udp' | 'both';
+  action?: 'accept' | 'drop' | 'reject';
   description?: string;
   source?: string; // 源IP或网段
   destination?: string; // 目标IP或网段
   // 高级规则
-  rules?: RuleItem[]; // 高级规则列表
+  rules?: RuleItem[];
 }
 
-export interface PortRuleSet {
-  port: number;
+// 后端返回的端口规则（区间）
+export interface PortRangeRule {
+  port_start: number;
+  port_end: number; // 单端口时与 port_start 相同
+  protocol?: 'tcp' | 'udp' | 'both';
   rules: RuleItem[];
 }
 
-export interface SetPortRuleApiParams {
-  port: number;
+// 设置端口规则的请求体
+export interface SetPortRuleReq {
+  port_start: number;
+  port_end: number; // 单端口时可以等于 port_start，或传 0
   rules: RuleItem[];
 }
 
@@ -123,14 +130,17 @@ export function updateNftablesRawConfigApi(data: NftablesRawConfig) {
 
 // 端口管理 API
 export function getPortRulesApi() {
-  return request.get<ApiListResult<PortRuleSet>>('/nftables/{host}/port');
+  return request.get<ApiListResult<PortRangeRule>>('/nftables/{host}/port');
 }
 
-export function setPortRulesApi(data: SetPortRuleApiParams) {
+export function setPortRulesApi(data: SetPortRuleReq) {
   return request.post('/nftables/{host}/port/rules', data);
 }
 
-export function deletePortRulesApi(params: { port: number }) {
+export function deletePortRulesApi(params: {
+  port_start: number;
+  port_end: number;
+}) {
   return request.delete('/nftables/{host}/port/rules', params);
 }
 
