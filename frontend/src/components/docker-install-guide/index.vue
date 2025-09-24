@@ -3,32 +3,46 @@
     <!-- Docker 状态检测 -->
     <a-card
       v-if="showStatus && dockerStore.isNotInstalled"
-      class="mb-4"
+      class="docker-status-card general-card"
       :loading="loading"
     >
       <template #title>
-        <div class="flex items-center gap-2">
-          <IconComputer />
+        <div class="card-title">
+          <IconComputer class="title-icon" />
           <span>{{ $t('docker.install.guide.title') }}</span>
         </div>
       </template>
 
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <a-tag :color="statusColor" :bordered="false" class="px-3 py-1">
-            <template #icon>
-              <IconCloseCircle />
-            </template>
-            {{ statusText }}
-          </a-tag>
+      <div class="status-content">
+        <div class="status-info">
+          <div class="status-indicator">
+            <a-badge :status="statusBadge" />
+            <a-tag :color="statusColor" size="medium" class="status-tag">
+              <template #icon>
+                <IconCheckCircle
+                  v-if="dockerStore.currentStatus === 'installed'"
+                />
+                <IconLoading
+                  v-else-if="dockerStore.currentStatus === 'checking'"
+                />
+              </template>
+              {{ statusText }}
+            </a-tag>
+          </div>
 
-          <span class="text-gray-600">
+          <div class="status-description">
             {{ statusDescription }}
-          </span>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <a-button size="small" :loading="loading" @click="checkDockerStatus">
+        <div class="status-actions">
+          <a-button
+            size="small"
+            type="outline"
+            class="refresh-btn"
+            :loading="loading"
+            @click="checkDockerStatus"
+          >
             <template #icon>
               <IconRefresh />
             </template>
@@ -39,6 +53,7 @@
             v-if="dockerStore.isNotInstalled"
             type="primary"
             size="small"
+            class="install-btn"
             :loading="installing"
             @click="handleInstallDocker"
           >
@@ -132,7 +147,8 @@
   import { Message } from '@arco-design/web-vue';
   import {
     IconComputer,
-    IconCloseCircle,
+    IconCheckCircle,
+    IconLoading,
     IconRefresh,
     IconDownload,
   } from '@arco-design/web-vue/es/icon';
@@ -175,14 +191,25 @@
   const installSuccess = ref(false);
 
   // 计算属性
+  const statusBadge = computed(() => {
+    switch (dockerStore.currentStatus) {
+      case 'installed':
+        return 'success';
+      case 'not installed':
+        return 'danger';
+      default:
+        return 'processing';
+    }
+  });
+
   const statusColor = computed(() => {
     switch (dockerStore.currentStatus) {
       case 'installed':
-        return 'rgb(var(--success-6))';
+        return 'var(--idbgreen-6)';
       case 'not installed':
-        return 'rgb(var(--danger-6))';
+        return 'var(--idbred-6)';
       default:
-        return 'rgb(var(--color-text-4))';
+        return 'var(--color-text-4)';
     }
   });
 
@@ -306,22 +333,134 @@
   });
 </script>
 
-<style scoped>
+<style scoped lang="less">
   .docker-install-guide {
     width: 100%;
   }
 
+  .docker-status-card {
+    border: 0.071rem solid var(--color-border-2);
+    border-radius: 0.571rem;
+    box-shadow: 0 0.143rem 0.571rem var(--idb-shadow-light);
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-border-3);
+      box-shadow: 0 0.286rem 0.857rem var(--idb-shadow-medium);
+    }
+
+    :deep(.arco-card-header) {
+      border-bottom: 0.071rem solid var(--color-border-1);
+      background: var(--color-bg-1);
+    }
+
+    :deep(.arco-card-body) {
+      background: var(--color-bg-2);
+    }
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.571rem;
+    font-weight: 500;
+    color: var(--color-text-1);
+
+    .title-icon {
+      font-size: 1.286rem;
+      color: var(--idblue-6);
+    }
+  }
+
+  .status-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.143rem;
+
+    @media (max-width: @screen-md) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.857rem;
+    }
+  }
+
+  .status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.571rem;
+    flex: 1;
+  }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.857rem;
+
+    .status-tag {
+      font-weight: 500;
+      border: none;
+      padding: 0.286rem 0.857rem;
+      border-radius: 0.429rem;
+
+      :deep(.arco-icon) {
+        margin-right: 0.286rem;
+      }
+    }
+  }
+
+  .status-description {
+    color: var(--color-text-3);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-left: 1.429rem; // 对齐badge后的内容
+  }
+
+  .status-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.571rem;
+    flex-shrink: 0;
+
+    @media (max-width: @screen-md) {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .refresh-btn {
+    border-color: var(--color-border-2);
+    color: var(--color-text-2);
+
+    &:hover {
+      border-color: var(--idblue-4);
+      color: var(--idblue-6);
+      background: var(--idblue-1);
+    }
+  }
+
+  .install-btn {
+    background: rgb(var(--primary-6));
+    border-color: rgb(var(--primary-6));
+
+    &:hover {
+      background: rgb(var(--primary-5));
+      border-color: rgb(var(--primary-5));
+    }
+
+    &:active {
+      background: rgb(var(--primary-7));
+      border-color: rgb(var(--primary-7));
+    }
+  }
+
   .install-progress {
-    padding: 16px 0;
+    padding: 1.143rem 0;
   }
 
   .text-sm {
-    font-size: 12px;
+    font-size: 0.857rem;
     line-height: 1.4;
-  }
-
-  .font-mono {
-    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
   }
 
   .max-h-60 {
