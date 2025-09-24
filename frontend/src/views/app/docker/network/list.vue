@@ -1,25 +1,33 @@
 <template>
-  <idb-table ref="tableRef" :columns="columns" :fetch="fetchNetworks">
-    <template #leftActions>
-      <a-button type="primary" @click="onCreateNetworkClick">
-        {{ t('app.docker.network.list.action.create') }}
-      </a-button>
-    </template>
-    <template #operation="{ record }">
-      <idb-table-operation
-        type="button"
-        :options="getOperationOptions(record)"
-      />
-    </template>
-  </idb-table>
-  <create-network-drawer ref="createNetworkRef" @success="reload" />
-  <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+  <div>
+    <docker-install-guide
+      class="mb-4"
+      @status-change="handleDockerStatusChange"
+      @install-complete="handleDockerInstallComplete"
+    />
+    <idb-table ref="tableRef" :columns="columns" :fetch="fetchNetworks">
+      <template #leftActions>
+        <a-button type="primary" @click="onCreateNetworkClick">
+          {{ t('app.docker.network.list.action.create') }}
+        </a-button>
+      </template>
+      <template #operation="{ record }">
+        <idb-table-operation
+          type="button"
+          :options="getOperationOptions(record)"
+        />
+      </template>
+    </idb-table>
+    <create-network-drawer ref="createNetworkRef" @success="reload" />
+    <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+  </div>
 </template>
 
 <script setup lang="ts">
   import { h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import {
     getNetworksApi,
     batchDeleteNetworkApi,
@@ -50,7 +58,7 @@
       );
       inspectRef.value?.show();
     } catch (err: any) {
-      Message.error(err?.message);
+      await showErrorWithDockerCheck(err?.message, err);
     }
   }
 
@@ -114,13 +122,28 @@
           );
           reload();
         } catch (e: any) {
-          Message.error(
-            e.message || t('app.docker.network.list.operation.delete.failed')
+          await showErrorWithDockerCheck(
+            e.message || t('app.docker.network.list.operation.delete.failed'),
+            e
           );
         }
       },
     },
   ];
+
+  // Docker 状态变化处理
+  const handleDockerStatusChange = (status: string) => {
+    // 如果 Docker 状态变化，可以重新加载网络列表
+    if (status === 'installed') {
+      reload();
+    }
+  };
+
+  // Docker 安装完成处理
+  const handleDockerInstallComplete = () => {
+    // Docker 安装完成后重新加载网络列表
+    reload();
+  };
 </script>
 
 <style scoped></style>

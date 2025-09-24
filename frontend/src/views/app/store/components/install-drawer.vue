@@ -74,6 +74,7 @@
   import { useRouter } from 'vue-router';
   import useLoading from '@/composables/loading';
   import { Message, Modal } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { getAppDetailApi, installAppApi } from '@/api/store';
   import type { AppEntity, AppFormField } from '@/entity/App';
   import { StreamLanguage } from '@codemirror/language';
@@ -214,7 +215,7 @@
         rules[field.Name] = getFieldRules(field);
       });
     } catch (err: any) {
-      Message.error(err?.message);
+      await showErrorWithDockerCheck(err?.message, err);
     } finally {
       setLoading(false);
     }
@@ -270,7 +271,7 @@
       emit('ok');
       hide();
     } catch (err: any) {
-      Message.error(err?.message);
+      await showErrorWithDockerCheck(err?.message, err);
     } finally {
       setLoading(false);
     }

@@ -62,15 +62,11 @@
   import useLoading from '@/composables/loading';
   import { getProcessDetailApi } from '@/api/process';
   import CodeEditor from '@/components/code-editor/index.vue';
-  import { githubLight } from '@fsegurai/codemirror-theme-github-light';
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(false);
 
   const infoRef = ref();
-
-  // 添加浅色主题扩展，提供语法高亮颜色
-  const lightThemeExtensions = computed(() => [githubLight]);
 
   const baseData = computed(() => {
     const info = infoRef.value;

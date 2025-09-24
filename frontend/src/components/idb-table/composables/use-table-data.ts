@@ -1,9 +1,9 @@
 import { ref, toRaw, watch, isRef, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Message } from '@arco-design/web-vue';
 import useLoading from '@/composables/loading';
 import { useLogger } from '@/composables/use-logger';
 import { ApiListParams, ApiListResult, BaseEntity } from '@/types/global';
+import { showErrorWithDockerCheck } from '@/helper/show-error';
 
 interface UseTableDataOptions {
   fetch?: (params: ApiListParams) => Promise<ApiListResult<any>>;
@@ -136,15 +136,12 @@ export function useTableData(options: UseTableDataOptions) {
       logDebug('🔍 fetch completed, setting data');
       setData(data);
     } catch (error) {
-      // 错误处理
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      Message.error({
-        content: t('components.idbTable.error.loadFailed', {
-          error: errorMessage,
-        }),
-        duration: 5000,
-      });
+      await showErrorWithDockerCheck(
+        t('components.idbTable.error.loadFailed', { error: errorMessage }),
+        error
+      );
       // 保持现有数据，不清空
       renderData.value = renderData.value || [];
       logError('🔍 fetch failed:', error);

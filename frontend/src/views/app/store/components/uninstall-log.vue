@@ -33,6 +33,7 @@
   import { formatTime } from '@/utils/format';
   import useVisible from '@/composables/visible';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { resolveApiUrl } from '@/helper/api-helper';
   import { once } from 'lodash';
 
@@ -238,7 +239,7 @@
           clearInterval(timer);
           eventSource.close();
           setStatus('failed');
-          Message.error(t('app.store.uninstallLog.failed'));
+          showErrorWithDockerCheck(t('app.store.uninstallLog.failed'));
         } else if (statusValue === 'running') {
           addLog({
             time: Date.now(),
@@ -299,7 +300,7 @@
         clearInterval(timer);
         eventSource.close();
         setStatus('failed');
-        Message.error(t('app.store.uninstallLog.installFailed'));
+        showErrorWithDockerCheck(t('app.store.uninstallLog.installFailed'));
       }
     });
 
@@ -308,7 +309,7 @@
         clearInterval(timer);
         eventSource.close();
         setStatus('timeout');
-        Message.error(t('app.store.uninstallLog.installTimeout'));
+        showErrorWithDockerCheck(t('app.store.uninstallLog.installTimeout'));
       }
     }, 1000);
 
@@ -324,7 +325,9 @@
       if (eventSource.readyState === EventSource.CLOSED) {
         clearInterval(timer);
         setStatus('failed');
-        Message.error(t('app.store.uninstallLog.logConnectionFailed'));
+        showErrorWithDockerCheck(
+          t('app.store.uninstallLog.logConnectionFailed')
+        );
       }
     };
 
