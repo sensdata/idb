@@ -64,8 +64,10 @@ definitions:
   model.AddressInfo:
     properties:
       gate:
-        description: 网关
-        type: string
+        description: 网关数组
+        items:
+          type: string
+        type: array
       ip:
         description: ip地址
         type: string
@@ -191,6 +193,8 @@ definitions:
     type: object
   model.ComposeBrief:
     properties:
+      container:
+        type: string
       name:
         type: string
       port:
@@ -225,6 +229,13 @@ definitions:
         type: string
     required:
     - content
+    type: object
+  model.ConnectionInfo:
+    properties:
+      host:
+        type: string
+      port:
+        type: string
     type: object
   model.ContainerOperate:
     properties:
@@ -565,6 +576,11 @@ definitions:
     required:
     - size
     type: object
+  model.DockerInstallStatus:
+    properties:
+      status:
+        type: string
+    type: object
   model.DockerOperation:
     properties:
       operation:
@@ -876,6 +892,13 @@ definitions:
         type: string
       path:
         type: string
+    type: object
+  model.GetConnectionInfoResponse:
+    properties:
+      container_connection:
+        $ref: '#/definitions/model.ConnectionInfo'
+      public_connection:
+        $ref: '#/definitions/model.ConnectionInfo'
     type: object
   model.GetRemoteAccessResponse:
     properties:
@@ -1279,9 +1302,10 @@ definitions:
   model.NetworkInterface:
     properties:
       address:
-        allOf:
-        - $ref: '#/definitions/model.AddressInfo'
-        description: 地址信息
+        description: 多个地址信息
+        items:
+          $ref: '#/definitions/model.AddressInfo'
+        type: array
       mac:
         description: mac地址
         type: string
@@ -1537,6 +1561,69 @@ definitions:
       role_name:
         type: string
     type: object
+  model.RsyncCreateTask:
+    properties:
+      dst:
+        type: string
+      dst_host_id:
+        type: integer
+      mode:
+        enum:
+        - copy
+        - incremental
+        type: string
+      src:
+        type: string
+      src_host_id:
+        type: integer
+    required:
+    - dst
+    - dst_host_id
+    - mode
+    - src
+    - src_host_id
+    type: object
+  model.RsyncCreateTaskResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  model.RsyncListTaskResponse:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/model.RsyncTaskInfo'
+        type: array
+      total:
+        type: integer
+    type: object
+  model.RsyncTaskInfo:
+    properties:
+      cache_dir:
+        type: string
+      dst:
+        type: string
+      end_time:
+        type: string
+      error:
+        type: string
+      id:
+        type: string
+      last_log:
+        type: string
+      mode:
+        type: string
+      progress:
+        type: integer
+      src:
+        type: string
+      start_time:
+        type: string
+      status:
+        type: string
+      step:
+        type: string
+    type: object
   model.RuleItem:
     properties:
       action:
@@ -1773,7 +1860,9 @@ definitions:
     type: object
   model.SetPortRule:
     properties:
-      port:
+      port_end:
+        type: integer
+      port_start:
         type: integer
       rules:
         items:
@@ -4323,6 +4412,46 @@ paths:
       summary: Inspect
       tags:
       - Docker
+  /docker/{host}/install:
+    post:
+      consumes:
+      - application/json
+      description: Install docker
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Docker install
+      tags:
+      - Docker
+  /docker/{host}/install/status:
+    get:
+      consumes:
+      - application/json
+      description: Get docker install status
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DockerInstallStatus'
+      summary: Docker install status
+      tags:
+      - Docker
   /docker/{host}/ipv6:
     put:
       consumes:
@@ -6679,6 +6808,32 @@ paths:
       summary: Set mysql conf
       tags:
       - Mysql
+  /mysql/{host}/connection:
+    get:
+      consumes:
+      - application/json
+      description: Get mysql connection info
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetConnectionInfoResponse'
+      summary: Get mysql connection info
+      tags:
+      - Mysql
   /mysql/{host}/operation:
     post:
       consumes:
@@ -7382,9 +7537,14 @@ paths:
         name: host
         required: true
         type: integer
-      - description: Port
+      - description: Port Start
         in: query
-        name: port
+        name: port_start
+        required: true
+        type: integer
+      - description: Port End
+        in: query
+        name: port_end
         required: true
         type: integer
       produces:
@@ -8049,6 +8209,130 @@ paths:
       summary: Set redis remote access
       tags:
       - Redis
+  /rsync/task:
+    delete:
+      consumes:
+      - application/json
+      description: Delete rsync task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete rsync task
+      tags:
+      - Rsync
+    get:
+      consumes:
+      - application/json
+      description: List rsync task
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncListTaskResponse'
+      summary: List rsync task
+      tags:
+      - Rsync
+    post:
+      consumes:
+      - application/json
+      description: Create rsync task
+      parameters:
+      - description: Task
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncCreateTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncCreateTaskResponse'
+      summary: Create rsync task
+      tags:
+      - Rsync
+  /rsync/task/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel rsync task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Cancel rsync task
+      tags:
+      - Rsync
+  /rsync/task/query:
+    get:
+      consumes:
+      - application/json
+      description: Query rsync task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncTaskInfo'
+      summary: Query rsync task
+      tags:
+      - Rsync
+  /rsync/task/retry:
+    post:
+      consumes:
+      - application/json
+      description: Retry rsync task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Retry rsync task
+      tags:
+      - Rsync
   /scripts/{host}:
     delete:
       consumes:

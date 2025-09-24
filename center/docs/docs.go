@@ -3121,6 +3121,67 @@ const docTemplate = `{
                 }
             }
         },
+        "/docker/{host}/install": {
+            "post": {
+                "description": "Install docker",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker install",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/docker/{host}/install/status": {
+            "get": {
+                "description": "Get docker install status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docker"
+                ],
+                "summary": "Docker install status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.DockerInstallStatus"
+                        }
+                    }
+                }
+            }
+        },
         "/docker/{host}/ipv6": {
             "put": {
                 "description": "Update docker ipv6 option",
@@ -6607,6 +6668,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/mysql/{host}/connection": {
+            "get": {
+                "description": "Get mysql connection info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Mysql"
+                ],
+                "summary": "Get mysql connection info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.GetConnectionInfoResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/mysql/{host}/operation": {
             "post": {
                 "description": "Operation mysql compose",
@@ -7747,8 +7847,15 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Port",
-                        "name": "port",
+                        "description": "Port Start",
+                        "name": "port_start",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Port End",
+                        "name": "port_end",
                         "in": "query",
                         "required": true
                     }
@@ -8650,6 +8757,194 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.SetRemoteAccessRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/rsync/task": {
+            "get": {
+                "description": "List rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "List rsync task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncListTaskResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Create rsync task",
+                "parameters": [
+                    {
+                        "description": "Task",
+                        "name": "task",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCreateTask"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCreateTaskResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Delete rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/rsync/task/cancel": {
+            "post": {
+                "description": "Cancel rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Cancel rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/rsync/task/query": {
+            "get": {
+                "description": "Query rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Query rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncTaskInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/rsync/task/retry": {
+            "post": {
+                "description": "Retry rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Retry rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -12706,8 +13001,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "gate": {
-                    "description": "网关",
-                    "type": "string"
+                    "description": "网关数组",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "ip": {
                     "description": "ip地址",
@@ -12896,6 +13194,9 @@ const docTemplate = `{
         "model.ComposeBrief": {
             "type": "object",
             "properties": {
+                "container": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -12947,6 +13248,17 @@ const docTemplate = `{
             ],
             "properties": {
                 "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ConnectionInfo": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "port": {
                     "type": "string"
                 }
             }
@@ -13450,6 +13762,14 @@ const docTemplate = `{
                 }
             }
         },
+        "model.DockerInstallStatus": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "model.DockerOperation": {
             "type": "object",
             "required": [
@@ -13912,6 +14232,17 @@ const docTemplate = `{
                 },
                 "path": {
                     "type": "string"
+                }
+            }
+        },
+        "model.GetConnectionInfoResponse": {
+            "type": "object",
+            "properties": {
+                "container_connection": {
+                    "$ref": "#/definitions/model.ConnectionInfo"
+                },
+                "public_connection": {
+                    "$ref": "#/definitions/model.ConnectionInfo"
                 }
             }
         },
@@ -14515,12 +14846,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "address": {
-                    "description": "地址信息",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/model.AddressInfo"
-                        }
-                    ]
+                    "description": "多个地址信息",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.AddressInfo"
+                    }
                 },
                 "mac": {
                     "description": "mac地址",
@@ -14904,6 +15234,100 @@ const docTemplate = `{
                 }
             }
         },
+        "model.RsyncCreateTask": {
+            "type": "object",
+            "required": [
+                "dst",
+                "dst_host_id",
+                "mode",
+                "src",
+                "src_host_id"
+            ],
+            "properties": {
+                "dst": {
+                    "type": "string"
+                },
+                "dst_host_id": {
+                    "type": "integer"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "copy",
+                        "incremental"
+                    ]
+                },
+                "src": {
+                    "type": "string"
+                },
+                "src_host_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.RsyncCreateTaskResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncListTaskResponse": {
+            "type": "object",
+            "properties": {
+                "tasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RsyncTaskInfo"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.RsyncTaskInfo": {
+            "type": "object",
+            "properties": {
+                "cache_dir": {
+                    "type": "string"
+                },
+                "dst": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_log": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "progress": {
+                    "type": "integer"
+                },
+                "src": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "step": {
+                    "type": "string"
+                }
+            }
+        },
         "model.RuleItem": {
             "type": "object",
             "required": [
@@ -15256,7 +15680,10 @@ const docTemplate = `{
         "model.SetPortRule": {
             "type": "object",
             "properties": {
-                "port": {
+                "port_end": {
+                    "type": "integer"
+                },
+                "port_start": {
                     "type": "integer"
                 },
                 "rules": {
