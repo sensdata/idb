@@ -342,8 +342,9 @@ func (s *NFTable) checkConfContent(content string) (string, error) {
 		safeContent, err = updatePortRuleInConfContent(
 			safeContent,
 			model.PortRule{
-				Protocol: "",
-				Port:     port,
+				Protocol:  "",
+				PortStart: port,
+				PortEnd:   port,
 				Rules: []model.RuleItem{
 					{
 						Type:   "default",
