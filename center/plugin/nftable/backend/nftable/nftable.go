@@ -2082,64 +2082,119 @@ func (s *NFTable) getPorts(hostID uint) (*model.PageResult, error) {
 }
 
 func parseNftRules(lines []string) []model.PortRule {
-	rulesByPort := map[int]*model.PortRule{}
+	rulesByRange := map[string]*model.PortRule{}
 
 	for _, line := range lines {
-		ruleItem, port, err := parseRuleLine(line)
-		if err != nil || ruleItem == nil {
+		ruleItems, err := parseRuleLine(line)
+		if err != nil || len(ruleItems) == 0 {
 			continue
 		}
-		if _, exists := rulesByPort[port]; !exists {
-			rulesByPort[port] = &model.PortRule{
-				Protocol: "tcp",
-				Port:     port,
-				Rules:    []model.RuleItem{},
+
+		for _, ri := range ruleItems {
+			key := fmt.Sprintf("%d-%d", ri.PortStart, ri.PortEnd)
+			if _, exists := rulesByRange[key]; !exists {
+				rulesByRange[key] = &model.PortRule{
+					Protocol:  "tcp",
+					PortStart: ri.PortStart,
+					PortEnd:   ri.PortEnd,
+					Rules:     []model.RuleItem{},
+				}
 			}
+			rulesByRange[key].Rules = append(rulesByRange[key].Rules, ri.Rule)
 		}
-		rulesByPort[port].Rules = append(rulesByPort[port].Rules, *ruleItem)
 	}
 
 	result := []model.PortRule{}
-	for _, r := range rulesByPort {
+	for _, r := range rulesByRange {
 		result = append(result, *r)
 	}
 	return result
 }
 
-func parseRuleLine(line string) (*model.RuleItem, int, error) {
+// RuleParseResult 用于 parseRuleLine 返回多端口规则
+type RuleParseResult struct {
+	PortStart int
+	PortEnd   int
+	Rule      model.RuleItem
+}
+
+func parseRuleLine(line string) ([]RuleParseResult, error) {
 	if !strings.HasPrefix(line, "tcp dport") {
-		return nil, 0, nil
+		return nil, nil
 	}
 
 	parts := strings.Fields(line)
 	if len(parts) < 3 {
-		return nil, 0, errors.New("invalid rule format")
-	}
-
-	port, err := strconv.Atoi(parts[2])
-	if err != nil {
-		return nil, 0, err
+		return nil, errors.New("invalid rule format")
 	}
 
 	action := extractAction(line)
+	var ruleType string
+	var rate string
+	var count int
 	if strings.Contains(line, "limit rate") {
-		return &model.RuleItem{
-			Type:   model.RuleRateLimit,
-			Rate:   extractRate(line),
-			Action: action,
-		}, port, nil
+		ruleType = model.RuleRateLimit
+		rate = extractRate(line)
 	} else if strings.Contains(line, "ct count") && strings.Contains(line, "over") {
-		return &model.RuleItem{
-			Type:   model.RuleConcurrentLimit,
-			Count:  extractCount(line),
-			Action: action,
-		}, port, nil
+		ruleType = model.RuleConcurrentLimit
+		count = extractCount(line)
 	} else {
-		return &model.RuleItem{
-			Type:   model.RuleDefault,
-			Action: action,
-		}, port, nil
+		ruleType = model.RuleDefault
 	}
+
+	ri := model.RuleItem{
+		Type:   ruleType,
+		Rate:   rate,
+		Count:  count,
+		Action: action,
+	}
+
+	results := []RuleParseResult{}
+
+	// 解析端口表达式
+	portExpr := parts[2]
+	if strings.HasPrefix(portExpr, "{") && strings.HasSuffix(portExpr, "}") {
+		// 多端口集合 {8080,8081,8082} 或 {8080-8085,8090}
+		portExpr = strings.Trim(portExpr, "{}")
+		portParts := strings.Split(portExpr, ",")
+		for _, p := range portParts {
+			p = strings.TrimSpace(p)
+			if strings.Contains(p, "-") {
+				rangeParts := strings.Split(p, "-")
+				if len(rangeParts) != 2 {
+					continue
+				}
+				start, err1 := strconv.Atoi(rangeParts[0])
+				end, err2 := strconv.Atoi(rangeParts[1])
+				if err1 == nil && err2 == nil {
+					results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Rule: ri})
+				}
+			} else {
+				port, err := strconv.Atoi(p)
+				if err == nil {
+					results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Rule: ri})
+				}
+			}
+		}
+	} else if strings.Contains(portExpr, "-") {
+		// 端口段 8080-8090
+		ports := strings.Split(portExpr, "-")
+		if len(ports) == 2 {
+			start, err1 := strconv.Atoi(ports[0])
+			end, err2 := strconv.Atoi(ports[1])
+			if err1 == nil && err2 == nil {
+				results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Rule: ri})
+			}
+		}
+	} else {
+		// 单端口
+		port, err := strconv.Atoi(portExpr)
+		if err == nil {
+			results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Rule: ri})
+		}
+	}
+
+	return results, nil
 }
 
 func extractRate(line string) string {
@@ -2173,7 +2228,6 @@ func extractAction(line string) string {
 }
 
 func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
-
 	// 获取 /etc/nftables.conf 内容
 	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
 	if err != nil {
@@ -2184,9 +2238,10 @@ func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
 	newConfContent, err := updatePortRuleInConfContent(
 		confContent,
 		model.PortRule{
-			Protocol: "",
-			Port:     req.Port,
-			Rules:    req.Rules,
+			Protocol:  "tcp",
+			PortStart: req.PortStart,
+			PortEnd:   req.PortEnd,
+			Rules:     req.Rules,
 		},
 	)
 	if err != nil {
@@ -2217,11 +2272,38 @@ func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (st
 		}
 
 		if insideChain {
-			portPattern := fmt.Sprintf(`tcp dport\s+(\{[^}]*\}|%d)(\s|$)`, newRule.Port)
+			// 1. 集合规则处理：发现 { } 就拆分
+			if strings.Contains(trimmed, "tcp dport {") {
+				parsed, _ := parseRuleLine(trimmed)
+				if len(parsed) > 0 {
+					// 转换成 PortRule，再生成单端口/端口段行
+					var splitRules []model.PortRule
+					for _, pr := range parsed {
+						splitRules = append(splitRules, model.PortRule{
+							Protocol:  "tcp",
+							PortStart: pr.PortStart,
+							PortEnd:   pr.PortEnd,
+							Rules:     []model.RuleItem{pr.Rule},
+						})
+					}
+					for _, nl := range generateNftRules(splitRules) {
+						output = append(output, "        "+nl)
+					}
+				}
+				continue
+			}
+
+			// 2. 正常替换逻辑：删除与 newRule 相同端口范围的旧行
+			portPattern := fmt.Sprintf(
+				`tcp dport\s+(\{[^}]*\}|%d|%d-%d)(\s|$)`,
+				newRule.PortStart, newRule.PortStart, newRule.PortEnd,
+			)
 			matched, _ := regexp.MatchString(portPattern, trimmed)
 			if matched {
 				continue
 			}
+
+			// 3. 在 chain input 结束时，插入新的规则
 			if trimmed == "}" {
 				for _, nl := range newLines {
 					output = append(output, "        "+nl)
@@ -2241,15 +2323,22 @@ func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (st
 func generateNftRules(rules []model.PortRule) []string {
 	var output []string
 	for _, portRule := range rules {
+		var portExpr string
+		if portRule.PortStart == portRule.PortEnd {
+			portExpr = fmt.Sprintf("%d", portRule.PortStart)
+		} else {
+			portExpr = fmt.Sprintf("%d-%d", portRule.PortStart, portRule.PortEnd)
+		}
+
 		for _, rule := range portRule.Rules {
 			var line string
 			switch rule.Type {
 			case model.RuleRateLimit:
-				line = fmt.Sprintf("tcp dport %d ip saddr limit rate %s %s", portRule.Port, rule.Rate, rule.Action)
+				line = fmt.Sprintf("tcp dport %s ip saddr limit rate %s %s", portExpr, rule.Rate, rule.Action)
 			case model.RuleConcurrentLimit:
-				line = fmt.Sprintf("tcp dport %d ct count ip saddr over %d %s", portRule.Port, rule.Count, rule.Action)
+				line = fmt.Sprintf("tcp dport %s ct count ip saddr over %d %s", portExpr, rule.Count, rule.Action)
 			case model.RuleDefault:
-				line = fmt.Sprintf("tcp dport %d %s", portRule.Port, rule.Action)
+				line = fmt.Sprintf("tcp dport %s %s", portExpr, rule.Action)
 			}
 			output = append(output, line)
 		}
@@ -2257,15 +2346,16 @@ func generateNftRules(rules []model.PortRule) []string {
 	return output
 }
 
-func (s *NFTable) deletePortRules(hostID uint, port uint) error {
+func (s *NFTable) deletePortRules(hostID uint, portStart, portEnd uint) error {
 	// 获取 /etc/nftables.conf 内容
 	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
 	if err != nil {
 		LOG.Error("Failed to get conf detail")
 		return fmt.Errorf("failed to get conf detail %v", err)
 	}
-	// 删除指定端口的规则
-	newConfContent, err := deletePortRuleInConf(confContent, port)
+
+	// 删除指定端口或端口段的规则
+	newConfContent, err := deletePortRuleInConf(confContent, portStart, portEnd)
 	if err != nil {
 		LOG.Error("Failed to update conf content")
 		return fmt.Errorf("failed to update conf content %v", err)
@@ -2275,7 +2365,7 @@ func (s *NFTable) deletePortRules(hostID uint, port uint) error {
 	return s.updateThenActivate(hostID, newConfContent)
 }
 
-func deletePortRuleInConf(confContent string, port uint) (string, error) {
+func deletePortRuleInConf(confContent string, portStart, portEnd uint) (string, error) {
 	lines := strings.Split(confContent, "\n")
 	var output []string
 	insideChain := false
@@ -2291,11 +2381,20 @@ func deletePortRuleInConf(confContent string, port uint) (string, error) {
 		}
 
 		if insideChain {
-			// 匹配目标端口的规则并删除
-			matched, _ := regexp.MatchString(fmt.Sprintf(`tcp dport %d( |$)`, port), trimmed)
+			var portPattern string
+			if portEnd == 0 || portEnd == portStart {
+				// 单端口
+				portPattern = fmt.Sprintf(`tcp dport %d(\s|$)`, portStart)
+			} else {
+				// 端口段
+				portPattern = fmt.Sprintf(`tcp dport %d-%d(\s|$)`, portStart, portEnd)
+			}
+
+			matched, _ := regexp.MatchString(portPattern, trimmed)
 			if matched {
 				continue
 			}
+
 			if trimmed == "}" {
 				output = append(output, line)
 				insideChain = false

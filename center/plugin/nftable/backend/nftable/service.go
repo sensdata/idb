@@ -1055,7 +1055,8 @@ func (s *NFTable) SetPortRules(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
-// @Param port query uint true "Port"
+// @Param port_start query uint true "Port Start"
+// @Param port_end query uint true "Port End"
 // @Success 200
 // @Router /nftables/{host}/port/rules [delete]
 func (s *NFTable) DeletePortRules(c *gin.Context) {
@@ -1064,12 +1065,17 @@ func (s *NFTable) DeletePortRules(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
-	port, err := strconv.ParseUint(c.Query("port"), 10, 32)
+	portStart, err := strconv.ParseUint(c.Query("port_start"), 10, 32)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid port", err)
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid port_start", err)
 		return
 	}
-	err = s.deletePortRules(uint(hostID), uint(port))
+	portEnd, err := strconv.ParseUint(c.Query("port_end"), 10, 32)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid port_end", err)
+		return
+	}
+	err = s.deletePortRules(uint(hostID), uint(portStart), uint(portEnd))
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
