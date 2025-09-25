@@ -84,6 +84,9 @@ func (c *Center) Start() error {
 	// 保障连接和心跳
 	go c.ensureConnections()
 
+	// 更新状态
+	go c.updateHostStatus()
+
 	return nil
 }
 
@@ -283,6 +286,36 @@ func (c *Center) ensureConnections() {
 	}
 }
 
+func (c *Center) updateHostStatus() {
+	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			global.LOG.Info("Stop updating host status")
+			return
+		case <-ticker.C:
+			//获取所有的host
+			hosts, err := HostRepo.GetList()
+			if err != nil {
+				global.LOG.Error("Failed to get host list: %v", err)
+				continue
+			}
+
+			// 检查连接
+			for _, host := range hosts {
+				// 查找agent conn
+				conn, _ := c.getAgentConn(&host)
+				if conn != nil {
+					// 找到conn的，更新状态
+					go c.getHostStatus(&host)
+				}
+			}
+		}
+	}
+}
+
 func getAuthPlugin() (shared.Auth, error) {
 	// 获取插件客户端
 	plugin, err := plugin.PLUGINSERVER.GetPlugin("auth")
@@ -457,6 +490,34 @@ func (c *Center) checkLicense(host *model.Host, timestamp string) error {
 	}
 
 	global.LOG.Info("host %d verify license success", host.ID)
+	return nil
+}
+
+func (c *Center) getHostStatus(host *model.Host) error {
+	var hostStatus core.HostStatus
+	actionRequest := core.HostAction{
+		HostID: host.ID,
+		Action: core.Action{
+			Action: core.Host_Status,
+			Data:   "",
+		},
+	}
+	actionResponse, err := c.ExecuteAction(actionRequest)
+	if err != nil {
+		global.LOG.Error("Failed to send action Host_Status %v", err)
+		return fmt.Errorf("Failed to send action Host_Status %w", err)
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Host_Status failed")
+		return errors.New("action Host_Status failed")
+	}
+	err = utils.FromJSONString(actionResponse.Data, &hostStatus)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to host status: %v", err)
+		return fmt.Errorf("Error unmarshaling data to host status: %w", err)
+	}
+
+	global.SetHostStatus(host.ID, &hostStatus)
 	return nil
 }
 

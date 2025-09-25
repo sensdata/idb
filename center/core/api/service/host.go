@@ -286,38 +286,11 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 }
 
 func (s *HostService) Status(id uint) (*core.HostStatus, error) {
-	var status core.HostStatus
-
-	// 找host
-	host, err := HostRepo.Get(HostRepo.WithByID(id))
-	if err != nil {
-		return &status, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+	hostStatus := global.GetHostStatus(id)
+	if hostStatus == nil {
+		return &core.HostStatus{}, nil
 	}
-
-	actionRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Status,
-			Data:   "",
-		},
-	}
-	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action %v", err)
-		return &status, err
-	}
-	if !actionResponse.Result {
-		global.LOG.Error("action failed")
-		return &status, fmt.Errorf("failed to query sessions")
-	}
-
-	err = utils.FromJSONString(actionResponse.Data, &status)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to session list: %v", err)
-		return &status, fmt.Errorf("json err: %v", err)
-	}
-
-	return &status, nil
+	return hostStatus, nil
 }
 
 func (s *HostService) StatusFollow(c *gin.Context) error {
@@ -366,7 +339,7 @@ func (s *HostService) StatusFollow(c *gin.Context) error {
 			}
 			flusher.Flush()
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 
