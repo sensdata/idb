@@ -73,17 +73,21 @@ func (c *RsyncGRPCClient) CreateTask(req *model.RsyncCreateTaskRequest) (*model.
 	resp, err := c.client.RsyncCreateTask(context.Background(), &proto.RsyncCreateTaskRequest{
 		Src: req.Src,
 		SrcHost: &proto.RsyncHost{
+			Id:       req.SrcHost.ID,
 			Host:     req.SrcHost.Host,
 			Port:     int32(req.SrcHost.Port),
 			User:     req.SrcHost.User,
+			AuthMode: req.SrcHost.AuthMode,
 			KeyPath:  req.SrcHost.KeyPath,
 			Password: req.SrcHost.Password,
 		},
 		Dst: req.Dst,
 		DstHost: &proto.RsyncHost{
+			Id:       req.DstHost.ID,
 			Host:     req.DstHost.Host,
 			Port:     int32(req.DstHost.Port),
 			User:     req.DstHost.User,
+			AuthMode: req.DstHost.AuthMode,
 			KeyPath:  req.DstHost.KeyPath,
 			Password: req.DstHost.Password,
 		},
@@ -191,17 +195,21 @@ func (s *RsyncGRPCServer) RsyncCreateTask(ctx context.Context, req *proto.RsyncC
 	result, err := s.Impl.CreateTask(&model.RsyncCreateTaskRequest{
 		Src: req.Src,
 		SrcHost: model.RsyncHost{
+			ID:       req.SrcHost.Id,
 			Host:     req.SrcHost.Host,
 			Port:     int(req.SrcHost.Port),
 			User:     req.SrcHost.User,
+			AuthMode: req.SrcHost.AuthMode,
 			KeyPath:  req.SrcHost.KeyPath,
 			Password: req.SrcHost.Password,
 		},
 		Dst: req.Dst,
 		DstHost: model.RsyncHost{
+			ID:       req.DstHost.Id,
 			Host:     req.DstHost.Host,
 			Port:     int(req.DstHost.Port),
 			User:     req.DstHost.User,
+			AuthMode: req.DstHost.AuthMode,
 			KeyPath:  req.DstHost.KeyPath,
 			Password: req.DstHost.Password,
 		},

@@ -26,11 +26,13 @@ type RsyncTaskInfo struct {
 }
 
 type RsyncHost struct {
-	Host     string `json:"host"`     // ip or hostname
-	Port     int    `json:"port"`     // ssh port
-	User     string `json:"user"`     // ssh user
-	KeyPath  string `json:"key_path"` // optional private key path on center
-	Password string `json:"password"` // optional (not recommended to store plaintext)
+	ID       uint64 `json:"id"`
+	Host     string `json:"host"`      // ip or hostname
+	Port     int    `json:"port"`      // ssh port
+	User     string `json:"user"`      // ssh user
+	AuthMode string `json:"auth_mode"` // auth mode
+	KeyPath  string `json:"key_path"`  // optional private key path on center
+	Password string `json:"password"`  // optional (not recommended to store plaintext)
 }
 
 type RsyncCreateTaskRequest struct {

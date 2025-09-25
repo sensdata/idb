@@ -42,11 +42,13 @@ message RsyncTaskInfo {
 }
 
 message RsyncHost {
-    string host = 1;
-    int32 port = 2;
-    string user = 3;
-    string key_path = 4;
-    string password = 5;
+    uint64 id = 1;
+    string host = 2;
+    int32 port = 3;
+    string user = 4;
+    string auth_mode = 5;
+    string key_path = 6;
+    string password = 7;
 }
 
 message RsyncCreateTaskRequest {
