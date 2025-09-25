@@ -29,9 +29,7 @@
       <!-- 端口列 -->
       <template #port="{ record }">
         <span class="port-number">
-          {{
-            Array.isArray(record.port) ? record.port.join(', ') : record.port
-          }}
+          {{ getPortDisplay(record.port) }}
         </span>
       </template>
 
@@ -96,9 +94,7 @@
               size: 'small',
               status: 'danger',
               confirm: $t('app.nftables.rules.deleteConfirm', {
-                port: Array.isArray(record.port)
-                  ? record.port.join(', ')
-                  : record.port,
+                port: getPortDisplay(record.port),
               }),
             },
           ]"
@@ -233,6 +229,19 @@
   const getProtocolText = (protocol?: string): string => {
     if (!protocol) return t('app.nftables.config.rules.unknown');
     return protocol.toUpperCase();
+  };
+
+  // 端口展示：支持单端口与区间（a-b）
+  const getPortDisplay = (port: PortRule['port']): string => {
+    if (Array.isArray(port)) {
+      const arr = port as number[];
+      // 兼容 [x] 或 [start, end]
+      const start = Math.min(arr[0] ?? 0, arr[1] ?? arr[0] ?? 0);
+      const end = Math.max(arr[0] ?? 0, arr[1] ?? arr[0] ?? 0);
+      if (start === end) return String(start);
+      return `${start}-${end}`;
+    }
+    return String(port ?? '');
   };
 
   // 获取动作颜色

@@ -418,6 +418,13 @@ export const pruneApi = (params: PruneParams) =>
 export const getDockerStatusApi = () =>
   request.get<DockerStatus>('docker/{host}/status');
 
+// 获取 docker 安装状态
+export const getDockerInstallStatusApi = () =>
+  request.get<{ status: string }>('docker/{host}/install/status');
+
+// 安装 docker
+export const dockerInstallApi = () => request.post('docker/{host}/install');
+
 // 获取卷
 export const getVolumesApi = (params: {
   info?: string;

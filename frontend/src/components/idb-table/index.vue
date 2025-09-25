@@ -183,7 +183,7 @@
     beforeFetchHook: props.beforeFetchHook,
     afterFetchHook: props.afterFetchHook,
     rowKey: rowKey.value,
-    loading: props.loading,
+    loading: computed(() => props.loading),
     pagination,
     params,
     urlSync: props.urlSync,

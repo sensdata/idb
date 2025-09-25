@@ -1,60 +1,68 @@
 <template>
-  <idb-table ref="gridRef" :columns="columns" :fetch="queryImagesApi">
-    <template #leftActions>
-      <div class="flex gap-2">
-        <a-button type="primary" @click="onPullImageClick">{{
-          $t('app.docker.image.list.action.pull')
-        }}</a-button>
-        <a-button @click="onImportImageClick">{{
-          $t('app.docker.image.list.action.import')
-        }}</a-button>
-        <a-button @click="onBuildImageClick">{{
-          $t('app.docker.image.list.action.build')
-        }}</a-button>
-        <a-button type="primary" @click="onPruneClick">
-          {{ t('app.docker.image.list.action.prune') }}
-        </a-button>
-      </div>
-    </template>
-    <template #state="{ record }">
-      <a-tag v-if="record.is_used" :color="'rgb(var(--success-6))'">
-        {{ $t('app.docker.image.list.state.used') }}
-      </a-tag>
-      <a-tag v-else :color="'rgb(var(--color-text-4))'">
-        {{ $t('app.docker.image.list.state.unused') }}
-      </a-tag>
-    </template>
-    <template #tags="{ record }">
-      <div
-        v-for="(tag, index) in record.tags"
-        :key="tag"
-        :class="{
-          'mt-2': index > 0,
-        }"
-      >
-        <a-tag bordered>{{ tag }}</a-tag>
-      </div>
-    </template>
-    <template #operation="{ record }">
-      <idb-table-operation
-        type="dropdown"
-        :options="getOperationOptions(record)"
-      />
-    </template>
-  </idb-table>
-  <pull-image-drawer ref="pullImageRef" @success="reload" />
-  <import-image-drawer ref="importImageRef" @success="reload" />
-  <build-image-drawer ref="buildImageRef" @success="reload" />
-  <tag-drawer ref="tagRef" @success="reload" />
-  <push-drawer ref="pushRef" @success="reload" />
-  <export-drawer ref="exportRef" @success="reload" />
-  <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+  <div>
+    <docker-install-guide
+      class="mb-4"
+      @status-change="handleDockerStatusChange"
+      @install-complete="handleDockerInstallComplete"
+    />
+    <idb-table ref="gridRef" :columns="columns" :fetch="queryImagesApi">
+      <template #leftActions>
+        <div class="flex gap-2">
+          <a-button type="primary" @click="onPullImageClick">{{
+            $t('app.docker.image.list.action.pull')
+          }}</a-button>
+          <a-button @click="onImportImageClick">{{
+            $t('app.docker.image.list.action.import')
+          }}</a-button>
+          <a-button @click="onBuildImageClick">{{
+            $t('app.docker.image.list.action.build')
+          }}</a-button>
+          <a-button type="primary" @click="onPruneClick">
+            {{ t('app.docker.image.list.action.prune') }}
+          </a-button>
+        </div>
+      </template>
+      <template #state="{ record }">
+        <a-tag v-if="record.is_used" :color="'rgb(var(--success-6))'">
+          {{ $t('app.docker.image.list.state.used') }}
+        </a-tag>
+        <a-tag v-else :color="'rgb(var(--color-text-4))'">
+          {{ $t('app.docker.image.list.state.unused') }}
+        </a-tag>
+      </template>
+      <template #tags="{ record }">
+        <div
+          v-for="(tag, index) in record.tags"
+          :key="tag"
+          :class="{
+            'mt-2': index > 0,
+          }"
+        >
+          <a-tag bordered>{{ tag }}</a-tag>
+        </div>
+      </template>
+      <template #operation="{ record }">
+        <idb-table-operation
+          type="dropdown"
+          :options="getOperationOptions(record)"
+        />
+      </template>
+    </idb-table>
+    <pull-image-drawer ref="pullImageRef" @success="reload" />
+    <import-image-drawer ref="importImageRef" @success="reload" />
+    <build-image-drawer ref="buildImageRef" @success="reload" />
+    <tag-drawer ref="tagRef" @success="reload" />
+    <push-drawer ref="pushRef" @success="reload" />
+    <export-drawer ref="exportRef" @success="reload" />
+    <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+  </div>
 </template>
 
 <script setup lang="ts">
   import { h, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { formatTime } from '@/utils/format';
   import { useConfirm } from '@/composables/confirm';
   import {
@@ -94,7 +102,7 @@
       );
       inspectRef.value?.show();
     } catch (err: any) {
-      Message.error(err?.message);
+      await showErrorWithDockerCheck(err?.message, err);
     }
   }
 
@@ -169,7 +177,7 @@
       Message.success(t('app.docker.image.prune.success'));
       reload();
     } catch (e: any) {
-      Message.error(e.message);
+      await showErrorWithDockerCheck(e.message, e);
     }
   };
 
@@ -210,11 +218,25 @@
           }
           reload();
         } catch (e: any) {
-          Message.error(e.message);
+          await showErrorWithDockerCheck(e.message, e);
         }
       },
     },
   ];
+
+  // Docker 状态变化处理
+  const handleDockerStatusChange = (status: string) => {
+    // 如果 Docker 状态变化，可以重新加载镜像列表
+    if (status === 'installed') {
+      reload();
+    }
+  };
+
+  // Docker 安装完成处理
+  const handleDockerInstallComplete = () => {
+    // Docker 安装完成后重新加载镜像列表
+    reload();
+  };
 </script>
 
 <style scoped></style>

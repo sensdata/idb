@@ -120,6 +120,7 @@
   import { AppSimpleEntity } from '@/entity/App';
   import { getAppListApi, upgradeAppApi, uninstallAppApi } from '@/api/store';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { getHexColorByChar } from '@/helper/utils';
   import { useConfirm } from '@/composables/confirm';
   import InstallDrawer from './components/install-drawer.vue';
@@ -160,7 +161,7 @@
       pagination.page_size = data.page_size;
       pagination.total = data.total!;
     } catch (err: any) {
-      Message.error(err.message);
+      await showErrorWithDockerCheck(err.message, err);
     } finally {
       hideLoading();
     }
@@ -210,7 +211,7 @@
         upgradeLogRef.value?.logFileLogs(res.log_host, res.log_path);
         upgradeLogRef.value?.show();
       } catch (err: any) {
-        Message.error(err?.message);
+        await showErrorWithDockerCheck(err?.message, err);
       } finally {
         hideLoading();
       }
@@ -228,7 +229,7 @@
         uninstallLogRef.value?.logFileLogs(res.log_host, res.log_path);
         uninstallLogRef.value?.show();
       } catch (err: any) {
-        Message.error(err?.message);
+        await showErrorWithDockerCheck(err?.message, err);
       } finally {
         hideLoading();
       }

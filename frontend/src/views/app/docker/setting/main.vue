@@ -1,229 +1,236 @@
 <template>
-  <a-spin :loading="loading" class="w-full">
-    <div class="docker-setting">
-      <a-card hoverable size="small">
-        <div class="flex w-full flex-col gap-4 md:flex-row">
-          <div class="flex flex-wrap gap-4">
-            <a-tag :color="'rgb(var(--success-6))'">Docker</a-tag>
-            <a-tag
-              v-if="formState.status === 'Running'"
-              :color="'rgb(var(--success-6))'"
-              bordered
-              class="rounded-file"
-            >
-              {{ $t('app.docker.setting.status.running') }}
-            </a-tag>
-            <a-tag
-              v-if="formState.status === 'stopped'"
-              :color="'rgb(var(--color-text-4))'"
-              bordered
-            >
-              {{ $t('app.docker.setting.status.stopped') }}
-            </a-tag>
-            <a-tag :color="'rgb(var(--primary-6))'">
-              {{ $t('app.docker.setting.version') }}: {{ formState.version }}
-            </a-tag>
-          </div>
-          <div class="flex items-center">
-            <a-button
-              v-if="formState.status === 'Running'"
-              type="primary"
-              size="mini"
-              @click="handleOperator('stop')"
-            >
-              {{ $t('app.docker.setting.status.stop') }}
-            </a-button>
-            <a-button
-              v-if="formState.status === 'Stopped'"
-              type="primary"
-              size="mini"
-              @click="handleOperator('start')"
-            >
-              {{ $t('app.docker.setting.status.start') }}
-            </a-button>
-            <a-divider direction="vertical" />
-            <a-button
-              type="primary"
-              size="mini"
-              @click="handleOperator('restart')"
-            >
-              {{ $t('app.docker.setting.status.restart') }}
-            </a-button>
-          </div>
-        </div>
-      </a-card>
-      <a-card hoverable class="mt-4">
-        <div class="form-container">
-          <a-radio-group v-model="mode" type="button">
-            <a-radio value="form">
-              {{ $t('app.docker.setting.mode.form') }}
-            </a-radio>
-            <a-radio value="file">
-              {{ $t('app.docker.setting.mode.file') }}
-            </a-radio>
-          </a-radio-group>
-        </div>
-        <a-form
-          v-if="mode === 'form'"
-          :model="formState"
-          class="w-[600px] mt-4"
-        >
-          <a-form-item
-            :label="$t('app.docker.setting.mirror.mirrors')"
-            field="registry_mirrors"
-          >
-            <a-textarea
-              v-if="!!formState.registry_mirrors"
-              :model-value="formState.registry_mirrors"
-              :rows="5"
-              disabled
-            />
-            <a-input
-              v-else
-              :model-value="$t('app.docker.setting.mirror.empty')"
-              disabled
-            />
-            <a-button
-              type="text"
-              shape="round"
-              class="ml-2"
-              @click="handleMirrors"
-            >
-              <template #icon>
-                <icon-settings />
-              </template>
-            </a-button>
-          </a-form-item>
-          <a-form-item
-            :label="$t('app.docker.setting.registry.registries')"
-            field="insecure_registries"
-          >
-            <a-textarea
-              v-if="!!formState.insecure_registries"
-              :model-value="formState.insecure_registries"
-              :rows="5"
-              disabled
-            />
-            <a-input
-              v-else
-              :model-value="$t('app.docker.setting.registry.empty')"
-              disabled
-            />
-            <a-button
-              type="text"
-              shape="round"
-              class="ml-2"
-              @click="handleRegistries"
-            >
-              <template #icon>
-                <icon-settings />
-              </template>
-            </a-button>
-          </a-form-item>
-          <a-form-item label="IPv6" field="ipv6">
-            <a-switch
-              v-model="formState.ipv6"
-              :before-change="handleIPv6"
-            ></a-switch>
-            <div v-if="formState.ipv6">
-              <!-- todo -->
-            </div>
-          </a-form-item>
-          <a-form-item
-            :label="$t('app.docker.setting.log.title')"
-            field="hasLogOption"
-          >
-            <a-switch
-              v-model="formState.log_option_show"
-              :before-change="handleLogOption"
-            ></a-switch>
-            <a-button
-              type="text"
-              shape="round"
-              class="ml-2"
-              @click="handleLogOption"
-            >
-              <template #icon>
-                <icon-settings />
-              </template>
-            </a-button>
-            <div v-if="formState.log_option_show">
-              <a-tag>
-                {{ $t('app.docker.setting.log.max_size') }}:
-                {{ formState.log_max_size }}
+  <div>
+    <docker-install-guide
+      class="mb-4"
+      @status-change="handleDockerStatusChange"
+      @install-complete="handleDockerInstallComplete"
+    />
+    <a-spin :loading="loading" class="w-full">
+      <div class="docker-setting">
+        <a-card hoverable size="small">
+          <div class="flex w-full flex-col gap-4 md:flex-row">
+            <div class="flex flex-wrap gap-4">
+              <a-tag :color="'rgb(var(--success-6))'">Docker</a-tag>
+              <a-tag
+                v-if="formState.status === 'Running'"
+                :color="'rgb(var(--success-6))'"
+                bordered
+                class="rounded-file"
+              >
+                {{ $t('app.docker.setting.status.running') }}
               </a-tag>
-              <a-tag style="margin-left: 5px">
-                {{ $t('app.docker.setting.log.max_file') }}:
-                {{ formState.log_max_file }}
+              <a-tag
+                v-if="formState.status === 'stopped'"
+                :color="'rgb(var(--color-text-4))'"
+                bordered
+              >
+                {{ $t('app.docker.setting.status.stopped') }}
+              </a-tag>
+              <a-tag :color="'rgb(var(--primary-6))'">
+                {{ $t('app.docker.setting.version') }}: {{ formState.version }}
               </a-tag>
             </div>
-          </a-form-item>
-          <a-form-item label="iptables" field="iptables">
-            <a-switch
-              v-model="formState.iptables"
-              :before-change="($event) => handleSaveField('iptables', $event)"
-            ></a-switch>
-          </a-form-item>
-          <a-form-item label="Live restore" field="live_restore">
-            <a-switch
-              v-model="formState.live_restore"
-              :disabled="formState.is_swarm"
-              :before-change="
-                ($event) => handleSaveField('live_restore', $event)
-              "
-            ></a-switch>
-          </a-form-item>
-          <a-form-item label="cgroup driver" field="cgroup_driver">
-            <a-radio-group
-              :model-value="formState.cgroup_driver"
-              @change="handleSaveField('cgroup_driver', $event, true)"
-            >
-              <a-radio value="cgroupfs">cgroupfs</a-radio>
-              <a-radio value="systemd">systemd</a-radio>
+            <div class="flex items-center">
+              <a-button
+                v-if="formState.status === 'Running'"
+                type="primary"
+                size="mini"
+                @click="handleOperator('stop')"
+              >
+                {{ $t('app.docker.setting.status.stop') }}
+              </a-button>
+              <a-button
+                v-if="formState.status === 'Stopped'"
+                type="primary"
+                size="mini"
+                @click="handleOperator('start')"
+              >
+                {{ $t('app.docker.setting.status.start') }}
+              </a-button>
+              <a-divider direction="vertical" />
+              <a-button
+                type="primary"
+                size="mini"
+                @click="handleOperator('restart')"
+              >
+                {{ $t('app.docker.setting.status.restart') }}
+              </a-button>
+            </div>
+          </div>
+        </a-card>
+        <a-card hoverable class="mt-4">
+          <div class="form-container">
+            <a-radio-group v-model="mode" type="button">
+              <a-radio value="form">
+                {{ $t('app.docker.setting.mode.form') }}
+              </a-radio>
+              <a-radio value="file">
+                {{ $t('app.docker.setting.mode.file') }}
+              </a-radio>
             </a-radio-group>
-          </a-form-item>
-          <a-form-item
-            :label="$t('app.docker.setting.socketPath.socket_path')"
-            field="dockerSocketPath"
+          </div>
+          <a-form
+            v-if="mode === 'form'"
+            :model="formState"
+            class="w-[600px] mt-4"
           >
-            <a-input v-model="formState.dockerSocketPath" disabled />
-            <a-button
-              type="text"
-              shape="round"
-              class="ml-2"
-              @click="handleChangeSocketPath"
+            <a-form-item
+              :label="$t('app.docker.setting.mirror.mirrors')"
+              field="registry_mirrors"
             >
-              <template #icon>
-                <icon-settings />
-              </template>
-            </a-button>
-          </a-form-item>
-        </a-form>
-        <div v-else class="mt-4 w-[600px]">
-          <div style="width: 100%; height: 400px">
-            <code-editor
-              v-model="daemonJsonContent"
-              :tab-size="4"
-              :extensions="extensions"
-              :autofocus="true"
-              :indent-with-tab="true"
-              :file="jsonFile"
-            />
+              <a-textarea
+                v-if="!!formState.registry_mirrors"
+                :model-value="formState.registry_mirrors"
+                :rows="5"
+                disabled
+              />
+              <a-input
+                v-else
+                :model-value="$t('app.docker.setting.mirror.empty')"
+                disabled
+              />
+              <a-button
+                type="text"
+                shape="round"
+                class="ml-2"
+                @click="handleMirrors"
+              >
+                <template #icon>
+                  <icon-settings />
+                </template>
+              </a-button>
+            </a-form-item>
+            <a-form-item
+              :label="$t('app.docker.setting.registry.registries')"
+              field="insecure_registries"
+            >
+              <a-textarea
+                v-if="!!formState.insecure_registries"
+                :model-value="formState.insecure_registries"
+                :rows="5"
+                disabled
+              />
+              <a-input
+                v-else
+                :model-value="$t('app.docker.setting.registry.empty')"
+                disabled
+              />
+              <a-button
+                type="text"
+                shape="round"
+                class="ml-2"
+                @click="handleRegistries"
+              >
+                <template #icon>
+                  <icon-settings />
+                </template>
+              </a-button>
+            </a-form-item>
+            <a-form-item label="IPv6" field="ipv6">
+              <a-switch
+                v-model="formState.ipv6"
+                :before-change="handleIPv6"
+              ></a-switch>
+              <div v-if="formState.ipv6">
+                <!-- todo -->
+              </div>
+            </a-form-item>
+            <a-form-item
+              :label="$t('app.docker.setting.log.title')"
+              field="hasLogOption"
+            >
+              <a-switch
+                v-model="formState.log_option_show"
+                :before-change="handleLogOption"
+              ></a-switch>
+              <a-button
+                type="text"
+                shape="round"
+                class="ml-2"
+                @click="handleLogOption"
+              >
+                <template #icon>
+                  <icon-settings />
+                </template>
+              </a-button>
+              <div v-if="formState.log_option_show">
+                <a-tag>
+                  {{ $t('app.docker.setting.log.max_size') }}:
+                  {{ formState.log_max_size }}
+                </a-tag>
+                <a-tag style="margin-left: 5px">
+                  {{ $t('app.docker.setting.log.max_file') }}:
+                  {{ formState.log_max_file }}
+                </a-tag>
+              </div>
+            </a-form-item>
+            <a-form-item label="iptables" field="iptables">
+              <a-switch
+                v-model="formState.iptables"
+                :before-change="($event) => handleSaveField('iptables', $event)"
+              ></a-switch>
+            </a-form-item>
+            <a-form-item label="Live restore" field="live_restore">
+              <a-switch
+                v-model="formState.live_restore"
+                :disabled="formState.is_swarm"
+                :before-change="
+                  ($event) => handleSaveField('live_restore', $event)
+                "
+              ></a-switch>
+            </a-form-item>
+            <a-form-item label="cgroup driver" field="cgroup_driver">
+              <a-radio-group
+                :model-value="formState.cgroup_driver"
+                @change="handleSaveField('cgroup_driver', $event, true)"
+              >
+                <a-radio value="cgroupfs">cgroupfs</a-radio>
+                <a-radio value="systemd">systemd</a-radio>
+              </a-radio-group>
+            </a-form-item>
+            <a-form-item
+              :label="$t('app.docker.setting.socketPath.socket_path')"
+              field="dockerSocketPath"
+            >
+              <a-input v-model="formState.dockerSocketPath" disabled />
+              <a-button
+                type="text"
+                shape="round"
+                class="ml-2"
+                @click="handleChangeSocketPath"
+              >
+                <template #icon>
+                  <icon-settings />
+                </template>
+              </a-button>
+            </a-form-item>
+          </a-form>
+          <div v-else class="mt-4 w-[600px]">
+            <div style="width: 100%; height: 400px">
+              <code-editor
+                v-model="daemonJsonContent"
+                :tab-size="4"
+                :extensions="extensions"
+                :autofocus="true"
+                :indent-with-tab="true"
+                :file="jsonFile"
+              />
+            </div>
+            <div class="mt-4">
+              <a-button type="primary" @click="handleSaveJson">
+                {{ $t('common.save') }}
+              </a-button>
+            </div>
           </div>
-          <div class="mt-4">
-            <a-button type="primary" @click="handleSaveJson">
-              {{ $t('common.save') }}
-            </a-button>
-          </div>
-        </div>
-      </a-card>
-    </div>
-    <LogDrawer ref="logDrawerRef" @ok="onDrawerOk" />
-    <MirrorDrawer ref="mirrorDrawerRef" @ok="onDrawerOk" />
-    <RegistryDrawer ref="registryDrawerRef" @ok="onDrawerOk" />
-    <Ipv6Drawer ref="ipv6DrawerRef" @ok="onDrawerOk" />
-    <SocketPathDrawer ref="socketPathDrawerRef" @ok="onDrawerOk" />
-  </a-spin>
+        </a-card>
+      </div>
+      <LogDrawer ref="logDrawerRef" @ok="onDrawerOk" />
+      <MirrorDrawer ref="mirrorDrawerRef" @ok="onDrawerOk" />
+      <RegistryDrawer ref="registryDrawerRef" @ok="onDrawerOk" />
+      <Ipv6Drawer ref="ipv6DrawerRef" @ok="onDrawerOk" />
+      <SocketPathDrawer ref="socketPathDrawerRef" @ok="onDrawerOk" />
+    </a-spin>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -237,6 +244,7 @@
   } from '@/api/docker';
   import { onMounted, reactive, ref, watch, computed } from 'vue';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { useConfirm } from '@/composables/confirm';
   import { json } from '@codemirror/lang-json';
   import CodeEditor from '@/components/code-editor/index.vue';
@@ -336,7 +344,7 @@
       load();
       Message.success(t('common.message.operationSuccess'));
     } catch (err: any) {
-      Message.error(err.message);
+      await showErrorWithDockerCheck(err.message, err);
     } finally {
       loading.value = false;
     }
@@ -407,7 +415,7 @@
         }
         return true;
       } catch (err: any) {
-        Message.error(err.message);
+        await showErrorWithDockerCheck(err.message, err);
       } finally {
         loading.value = false;
       }
@@ -433,7 +441,7 @@
         });
         Message.success(t('common.message.saveSuccess'));
       } catch (err: any) {
-        Message.error(err.message);
+        await showErrorWithDockerCheck(err.message, err);
       } finally {
         loading.value = false;
       }
@@ -443,4 +451,18 @@
   onMounted(() => {
     load();
   });
+
+  // Docker 状态变化处理
+  const handleDockerStatusChange = (status: string) => {
+    // 如果 Docker 状态变化，重新加载配置
+    if (status === 'installed') {
+      load();
+    }
+  };
+
+  // Docker 安装完成处理
+  const handleDockerInstallComplete = () => {
+    // Docker 安装完成后重新加载配置
+    load();
+  };
 </script>

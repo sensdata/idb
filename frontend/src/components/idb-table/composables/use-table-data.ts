@@ -1,16 +1,16 @@
-import { ref, toRaw, watch } from 'vue';
+import { ref, toRaw, watch, isRef, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Message } from '@arco-design/web-vue';
 import useLoading from '@/composables/loading';
 import { useLogger } from '@/composables/use-logger';
 import { ApiListParams, ApiListResult, BaseEntity } from '@/types/global';
+import { showErrorWithDockerCheck } from '@/helper/show-error';
 
 interface UseTableDataOptions {
   fetch?: (params: ApiListParams) => Promise<ApiListResult<any>>;
   beforeFetchHook?: (params: ApiListParams) => ApiListParams;
   afterFetchHook?: (data: ApiListResult<any>) => Promise<ApiListResult<any>>;
   rowKey: string;
-  loading?: boolean;
+  loading?: boolean | Ref<boolean | undefined>;
   pagination: any;
   params: any;
   urlSync: boolean;
@@ -34,11 +34,12 @@ export function useTableData(options: UseTableDataOptions) {
   const { loading, setLoading } = useLoading(true);
 
   // 监听外部loading状态
+  // 支持传入 Ref<boolean>，以便父组件的 loading 变化被追踪
   watch(
-    () => options.loading,
+    () => (isRef(options.loading) ? options.loading.value : options.loading),
     (val) => {
       if (val !== undefined) {
-        setLoading(val);
+        setLoading(!!val);
       }
     },
     { immediate: true }
@@ -64,8 +65,12 @@ export function useTableData(options: UseTableDataOptions) {
       pagination.pageSize = data.page_size;
     }
 
-    // 设置数据后关闭loading状态
-    setLoading(false);
+    // 注意：不要在此处强制关闭 loading。
+    // 当外部通过 props.loading 控制加载状态（例如父组件在请求中），
+    // 在这里关闭会导致加载动效过早消失并显示“暂无数据”。
+    // 加载流程由：
+    // - 内部请求：load() 的 finally 中关闭
+    // - 外部数据源：由父组件传入的 loading 控制
   };
 
   const load = async (newParams?: Partial<ApiListParams>) => {
@@ -131,15 +136,12 @@ export function useTableData(options: UseTableDataOptions) {
       logDebug('🔍 fetch completed, setting data');
       setData(data);
     } catch (error) {
-      // 错误处理
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      Message.error({
-        content: t('components.idbTable.error.loadFailed', {
-          error: errorMessage,
-        }),
-        duration: 5000,
-      });
+      await showErrorWithDockerCheck(
+        t('components.idbTable.error.loadFailed', { error: errorMessage }),
+        error
+      );
       // 保持现有数据，不清空
       renderData.value = renderData.value || [];
       logError('🔍 fetch failed:', error);

@@ -1,48 +1,57 @@
 <template>
-  <idb-table
-    ref="tableRef"
-    :columns="columns"
-    :params="params"
-    :filters="filters"
-    :fetch="queryContainersApi"
-    :afterFetchHook="afterFetchHook"
-  >
-    <template #leftActions>
-      <a-button type="primary" @click="handlePrune">
-        {{ t('app.docker.container.list.action.prune') }}
-      </a-button>
-    </template>
-    <template #usage="{ record }">
-      <div v-if="record.cpu_percent != null" class="text-[13px]">
-        <span>{{ $t('app.docker.container.cpu') }}: </span>
-        <span> {{ record.cpu_percent.toFixed(1) }}% </span>
-      </div>
-      <div v-if="record.memory_usage != null" class="text-[13px]">
-        <span>{{ $t('app.docker.container.memory') }}: </span>
-        <span>
-          {{ formatMemorySize(record.memory_usage) }} /
-          {{ formatMemorySize(record.memory_limit) }}
-        </span>
-      </div>
-    </template>
-    <template #ports="{ record }">
-      <div
-        v-for="(port, index) in record.ports"
-        :key="port"
-        :class="{
-          'mt-2': index > 0,
-        }"
-      >
-        <a-tag bordered>{{ port }}</a-tag>
-      </div>
-    </template>
-    <template #operation="{ record }">
-      <idb-table-operation :options="getOperationOptions(record)" />
-    </template>
-  </idb-table>
-  <logs-modal ref="logsRef" />
-  <terminal-drawer ref="termRef" />
-  <stop-confirm-modal ref="stopConfirmRef" @confirm="afterStopConfirm" />
+  <div>
+    <!-- Docker 环境检测 -->
+    <docker-install-guide
+      class="mb-4"
+      @status-change="handleDockerStatusChange"
+      @install-complete="handleDockerInstallComplete"
+    />
+
+    <idb-table
+      ref="tableRef"
+      :columns="columns"
+      :params="params"
+      :filters="filters"
+      :fetch="queryContainersApi"
+      :afterFetchHook="afterFetchHook"
+    >
+      <template #leftActions>
+        <a-button type="primary" @click="handlePrune">
+          {{ t('app.docker.container.list.action.prune') }}
+        </a-button>
+      </template>
+      <template #usage="{ record }">
+        <div v-if="record.cpu_percent != null" class="text-[13px]">
+          <span>{{ $t('app.docker.container.cpu') }}: </span>
+          <span> {{ record.cpu_percent.toFixed(1) }}% </span>
+        </div>
+        <div v-if="record.memory_usage != null" class="text-[13px]">
+          <span>{{ $t('app.docker.container.memory') }}: </span>
+          <span>
+            {{ formatMemorySize(record.memory_usage) }} /
+            {{ formatMemorySize(record.memory_limit) }}
+          </span>
+        </div>
+      </template>
+      <template #ports="{ record }">
+        <div
+          v-for="(port, index) in record.ports"
+          :key="port"
+          :class="{
+            'mt-2': index > 0,
+          }"
+        >
+          <a-tag bordered>{{ port }}</a-tag>
+        </div>
+      </template>
+      <template #operation="{ record }">
+        <idb-table-operation :options="getOperationOptions(record)" />
+      </template>
+    </idb-table>
+    <logs-modal ref="logsRef" />
+    <terminal-drawer ref="termRef" />
+    <stop-confirm-modal ref="stopConfirmRef" @confirm="afterStopConfirm" />
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -50,6 +59,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { ApiListResult } from '@/types/global';
   import {
     queryContainersApi,
@@ -61,6 +71,7 @@
   import { useConfirm } from '@/composables/confirm';
   import { pick } from 'lodash';
   import { formatMemorySize } from '@/utils/format';
+  import DockerInstallGuide from '@/components/docker-install-guide/index.vue';
   import LogsModal from './components/logs-modal.vue';
   import TerminalDrawer from './components/terminal-drawer.vue';
   import StopConfirmModal from './components/stop-confirm-modal.vue';
@@ -326,7 +337,7 @@
       Message.success(t('app.docker.container.prune.success'));
       reload();
     } catch (e: any) {
-      Message.error(e.message);
+      await showErrorWithDockerCheck(e.message, e);
     }
   };
 
@@ -350,7 +361,7 @@
           })
         );
       } else {
-        Message.error(
+        await showErrorWithDockerCheck(
           t('app.docker.container.list.operation.failed', {
             command: result.command,
             message: result.message,
@@ -359,14 +370,29 @@
       }
       reload();
     } catch (e: any) {
-      Message.error(
-        e.message || t('app.docker.container.list.operation.error')
+      await showErrorWithDockerCheck(
+        e.message || t('app.docker.container.list.operation.error'),
+        e
       );
     }
   };
 
   const afterStopConfirm = async (data: { name: string; force: boolean }) => {
     await handleOperate(data.name, data.force ? 'kill' : 'stop');
+  };
+
+  // Docker 状态变化处理
+  const handleDockerStatusChange = (status: string) => {
+    // 如果 Docker 状态变化，可以重新加载容器列表
+    if (status === 'installed') {
+      reload();
+    }
+  };
+
+  // Docker 安装完成处理
+  const handleDockerInstallComplete = () => {
+    // Docker 安装完成后重新加载容器列表
+    reload();
   };
 
   const logsRef = ref<InstanceType<typeof LogsModal>>();

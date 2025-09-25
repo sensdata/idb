@@ -13,7 +13,6 @@
             v-model="formState.max_watch_files"
             class="w-60"
             :min="1024"
-            :max="65536"
             :step="1024"
           />
           <span class="ml-2">{{ $t('app.sysinfo.config.files') }}</span>
@@ -32,7 +31,6 @@
             v-model="formState.max_open_files"
             class="w-60"
             :min="1024"
-            :max="65536"
             :step="1024"
           />
           <span class="ml-2">{{ $t('app.sysinfo.config.files') }}</span>

@@ -94,11 +94,7 @@
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import { useLogger } from '@/composables/use-logger';
-  import type {
-    PortRule,
-    PortRuleSet,
-    SetPortRuleApiParams,
-  } from '@/api/nftables';
+  import type { PortRule, PortRangeRule, SetPortRuleReq } from '@/api/nftables';
   import {
     getPortRulesApi,
     setPortRulesApi,
@@ -126,11 +122,15 @@
   const showRuleForm = ref<boolean>(false);
   const editingRule = ref<PortRule | null>(null);
 
-  // 将PortRuleSet转换为PortRule格式
-  const convertPortRuleSetToPortRule = (ruleSet: PortRuleSet): PortRule => {
+  // 将后端的端口区间规则转换为UI使用的PortRule格式
+  const convertPortRuleSetToPortRule = (ruleSet: PortRangeRule): PortRule => {
+    const portVal =
+      ruleSet.port_start === ruleSet.port_end
+        ? ruleSet.port_start
+        : [ruleSet.port_start, ruleSet.port_end];
     return {
-      port: ruleSet.port,
-      protocol: 'tcp', // 根据API文档，当前只支持TCP
+      port: portVal as any,
+      protocol: ruleSet.protocol ?? 'tcp',
       rules: ruleSet.rules,
       // 为了兼容性，如果只有一个默认规则，也设置action
       action:
@@ -168,36 +168,68 @@
       hasError.value = false;
 
       // 构造规则（避免嵌套三元）
-      const rulesLocal: SetPortRuleApiParams['rules'] = [];
+      const rulesLocal: SetPortRuleReq['rules'] = [];
       if (rule.rules && rule.rules.length) {
         rulesLocal.push(...rule.rules);
       } else if (rule.action) {
         rulesLocal.push({ type: 'default', action: rule.action });
       }
 
-      // 当前版本不支持批量端口提交：如检测到端口段或多个端口，直接提示并中止
-      let portValue: number | null = null;
+      // 支持：
+      // - 单个端口
+      // - 端口区间（a-b）
+      // - 端口列表（逗号分隔 a,b 或 a,b,c...），总是作为多个独立端口逐条提交
+      let batchPorts: number[] | null = null;
+      let portStart: number | null = null;
+      let portEnd: number | null = null;
       if (typeof rule.port === 'number') {
-        portValue = rule.port;
+        portStart = rule.port;
+        portEnd = rule.port;
       } else if (Array.isArray(rule.port)) {
-        const arr = rule.port as number[];
-        if (arr.length !== 1) {
-          Message.error(
-            (t && t('app.nftables.message.batchNotSupported')) ||
-              '当前版本暂不支持批量端口提交，请选择单个端口'
-          );
-          return false; // avoid double error message
+        const arr = (rule.port as number[]).filter(
+          (n) => typeof n === 'number'
+        );
+        if (arr.length === 0) {
+          Message.error(t('app.nftables.message.operationFailed'));
+          return false;
         }
-        portValue = arr[0];
+        if (rule.portInputType === 'list') {
+          // 逗号分隔：包含 2 个也按列表逐条提交
+          batchPorts = Array.from(new Set(arr));
+        } else if (arr.length === 2) {
+          // 连字符分隔：区间
+          portStart = Math.min(arr[0], arr[1]);
+          portEnd = Math.max(arr[0], arr[1]);
+        } else {
+          portStart = arr[0];
+          portEnd = arr[0];
+        }
       }
 
-      // 逐个端口保存
-      if (portValue == null) {
+      if (batchPorts && batchPorts.length) {
+        await Promise.all(
+          batchPorts.map((p) =>
+            setPortRulesApi({
+              port_start: p,
+              port_end: p,
+              rules: rulesLocal,
+            })
+          )
+        );
+        Message.success(t('app.nftables.message.configSaved'));
+        return true;
+      }
+
+      if (portStart == null || portEnd == null) {
         Message.error(t('app.nftables.message.operationFailed'));
-        return false; // avoid double error message
+        return false;
       }
 
-      await setPortRulesApi({ port: portValue, rules: rulesLocal });
+      await setPortRulesApi({
+        port_start: portStart,
+        port_end: portEnd,
+        rules: rulesLocal,
+      });
 
       Message.success(t('app.nftables.message.configSaved'));
 
@@ -214,6 +246,20 @@
     }
   };
 
+  // 计算端口区间工具函数
+  const getPortRange = (
+    p: PortRule['port']
+  ): { start: number; end: number } | null => {
+    if (typeof p === 'number') return { start: p, end: p };
+    if (Array.isArray(p)) {
+      const arr = p as number[];
+      if (arr.length === 0) return null;
+      if (arr.length === 1) return { start: arr[0], end: arr[0] };
+      return { start: Math.min(arr[0], arr[1]), end: Math.max(arr[0], arr[1]) };
+    }
+    return null;
+  };
+
   // 规则表单相关事件处理
   const handleRuleAdd = (): void => {
     editingRule.value = null;
@@ -226,10 +272,35 @@
   };
 
   const handleRuleSubmit = async (rule: PortRule): Promise<void> => {
+    saving.value = true; // 提交全流程展示 loading（删除旧 + 保存新 + 刷新列表）
     try {
-      // 保存规则到服务器
+      const isEditing = !!editingRule.value;
+
+      // 若编辑时修改了端口区间，则先删除旧规则再保存新规则，避免产生重复记录
+      if (isEditing) {
+        const oldRange = getPortRange(editingRule.value!.port);
+        const newRange = getPortRange(rule.port);
+        if (
+          oldRange &&
+          newRange &&
+          (oldRange.start !== newRange.start || oldRange.end !== newRange.end)
+        ) {
+          try {
+            await deletePortRulesApi({
+              port_start: oldRange.start,
+              port_end: oldRange.end,
+            });
+          } catch (e) {
+            // 删除失败不应阻断保存，继续尝试保存新规则
+            logError('Failed to delete old port rule before update:', e);
+          }
+        }
+      }
+
+      // 保存规则到服务器（函数内会切换 saving，这里再次置为 true 保持连续 loading）
       const ok = await savePortRule(rule);
       if (!ok) return; // stop on validation or api failure
+      saving.value = true;
 
       // 刷新端口规则列表
       await fetchPortRules();
@@ -238,12 +309,14 @@
       editingRule.value = null;
 
       Message.success(
-        editingRule.value
+        isEditing
           ? t('app.nftables.message.ruleUpdated')
           : t('app.nftables.message.ruleAdded')
       );
     } catch (error) {
       // 错误已在 savePortRule 中处理
+    } finally {
+      saving.value = false;
     }
   };
 
@@ -254,12 +327,29 @@
 
   const handleRuleDelete = async (ruleToDelete: PortRule): Promise<void> => {
     try {
-      const port =
-        typeof ruleToDelete.port === 'number'
-          ? ruleToDelete.port
-          : ruleToDelete.port[0];
+      let portStart: number;
+      let portEnd: number;
+      if (typeof ruleToDelete.port === 'number') {
+        portStart = ruleToDelete.port;
+        portEnd = ruleToDelete.port;
+      } else if (Array.isArray(ruleToDelete.port)) {
+        const arr = ruleToDelete.port as number[];
+        if (arr.length === 1) {
+          portStart = arr[0];
+          portEnd = arr[0];
+        } else {
+          portStart = Math.min(arr[0], arr[1]);
+          portEnd = Math.max(arr[0], arr[1]);
+        }
+      } else {
+        Message.error(t('app.nftables.message.operationFailed'));
+        return;
+      }
 
-      await deletePortRulesApi({ port });
+      await deletePortRulesApi({
+        port_start: portStart,
+        port_end: portEnd,
+      });
 
       // 刷新端口规则列表
       await fetchPortRules();

@@ -33,6 +33,7 @@
   import { formatTime } from '@/utils/format';
   import useVisible from '@/composables/visible';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { resolveApiUrl } from '@/helper/api-helper';
 
   const emit = defineEmits(['ok', 'cancel']);
@@ -228,7 +229,7 @@
           clearInterval(timer);
           eventSource.close();
           setStatus('failed');
-          Message.error(t('app.store.upgradeLog.failed'));
+          showErrorWithDockerCheck(t('app.store.upgradeLog.failed'));
         } else if (statusValue === 'running') {
           addLog({
             time: Date.now(),
@@ -291,7 +292,7 @@
         clearInterval(timer);
         eventSource.close();
         setStatus('failed');
-        Message.error(t('app.store.upgradeLog.installFailed'));
+        showErrorWithDockerCheck(t('app.store.upgradeLog.installFailed'));
       }
     });
 
@@ -300,7 +301,7 @@
         clearInterval(timer);
         eventSource.close();
         setStatus('timeout');
-        Message.error(t('app.store.upgradeLog.installTimeout'));
+        showErrorWithDockerCheck(t('app.store.upgradeLog.installTimeout'));
       }
     }, 1000);
 
@@ -316,7 +317,7 @@
       if (eventSource.readyState === EventSource.CLOSED) {
         clearInterval(timer);
         setStatus('failed');
-        Message.error(t('app.store.upgradeLog.logConnectionFailed'));
+        showErrorWithDockerCheck(t('app.store.upgradeLog.logConnectionFailed'));
       }
     };
 

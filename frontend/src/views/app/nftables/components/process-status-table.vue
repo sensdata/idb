@@ -93,14 +93,13 @@
   import { IconPlus, IconEdit } from '@arco-design/web-vue/es/icon';
   import type { Column } from '@/components/idb-table/types';
   import type { ApiListResult } from '@/types/global';
-  import type { ProcessStatus, PortRuleSet } from '@/api/nftables';
+  import type { ProcessStatus, PortRangeRule } from '@/api/nftables';
   import ProcessInfo from './process-info.vue';
   import { getPortAccessInfoFromStatus as getPortAccessInfoFromStatusUtil } from '../utils/config-parser';
 
   interface Props {
     processData: ProcessStatus[];
-    openPorts: Set<number>;
-    portRules: PortRuleSet[];
+    portRules: PortRangeRule[];
     loading: boolean;
   }
 
@@ -157,7 +156,9 @@
 
   // 检查端口规则是否已存在
   const isPortRuleExists = (port: number): boolean => {
-    return props.portRules.some((rule) => rule.port === port);
+    return props.portRules.some(
+      (rule) => port >= rule.port_start && port <= rule.port_end
+    );
   };
 
   // 获取端口访问状态信息（基于API返回的状态）

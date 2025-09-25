@@ -1,29 +1,36 @@
 <template>
-  <idb-table
-    ref="gridRef"
-    :loading="loading"
-    :columns="columns"
-    :fetch="queryComposeApi"
-  >
-    <template #leftActions>
-      <a-button type="primary" @click="createRef?.show()">
-        <template #icon>
-          <icon-plus />
-        </template>
-        {{ $t('app.docker.compose.list.action.add') }}
-      </a-button>
-    </template>
-    <template #operation="{ record }">
-      <idb-table-operation
-        type="button"
-        :options="getOperationOptions(record)"
-      />
-    </template>
-  </idb-table>
-  <logs-modal ref="logsRef" />
-  <edit-drawer ref="editRef" />
-  <create-drawer ref="createRef" @success="reload" />
-  <down-confirm-modal ref="downConfirmRef" @confirm="afterDownConfirm" />
+  <div>
+    <docker-install-guide
+      class="mb-4"
+      @status-change="handleDockerStatusChange"
+      @install-complete="handleDockerInstallComplete"
+    />
+    <idb-table
+      ref="gridRef"
+      :loading="loading"
+      :columns="columns"
+      :fetch="queryComposeApi"
+    >
+      <template #leftActions>
+        <a-button type="primary" @click="createRef?.show()">
+          <template #icon>
+            <icon-plus />
+          </template>
+          {{ $t('app.docker.compose.list.action.add') }}
+        </a-button>
+      </template>
+      <template #operation="{ record }">
+        <idb-table-operation
+          type="button"
+          :options="getOperationOptions(record)"
+        />
+      </template>
+    </idb-table>
+    <logs-modal ref="logsRef" />
+    <edit-drawer ref="editRef" />
+    <create-drawer ref="createRef" @success="reload" />
+    <down-confirm-modal ref="downConfirmRef" @confirm="afterDownConfirm" />
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -31,6 +38,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
+  import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { COMPOSE_STATUS } from '@/config/enum';
   import {
     queryComposeApi,
@@ -131,7 +139,7 @@
           })
         );
       } else {
-        Message.error(
+        await showErrorWithDockerCheck(
           t('app.docker.compose.list.operation.failed', {
             command: result.command,
             message: result.message,
@@ -140,7 +148,10 @@
       }
       reload();
     } catch (e: any) {
-      Message.error(e.message || t('app.docker.compose.list.operation.error'));
+      await showErrorWithDockerCheck(
+        e.message || t('app.docker.compose.list.operation.error'),
+        e
+      );
     }
   };
 
@@ -244,11 +255,28 @@
           Message.success(t('common.message.operationSuccess'));
           reload();
         } catch (err: any) {
-          Message.error(err.message || t('common.message.operationError'));
+          await showErrorWithDockerCheck(
+            err.message || t('common.message.operationError'),
+            err
+          );
         } finally {
           loading.value = false;
         }
       },
     },
   ];
+
+  // Docker 状态变化处理
+  const handleDockerStatusChange = (status: string) => {
+    // 如果 Docker 状态变化，可以重新加载 Compose 列表
+    if (status === 'installed') {
+      reload();
+    }
+  };
+
+  // Docker 安装完成处理
+  const handleDockerInstallComplete = () => {
+    // Docker 安装完成后重新加载 Compose 列表
+    reload();
+  };
 </script>
