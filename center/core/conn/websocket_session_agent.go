@@ -139,12 +139,22 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 				)
 
 			case message.WsMessageHeartbeat:
-				err = wsConn.WriteMessage(websocket.TextMessage, wsData)
-				if err != nil {
-					global.LOG.Error("sending terminal heartbeat message to webSocket failed, err: %v", err)
-				}
+				// 直接写会导致并发写，改为走 SessionMessageChan
+				go func() {
+					msg := message.SessionMessage{
+						MsgID: msgObj.Session,
+						Type:  message.WsMessageHeartbeat,
+						Data: message.SessionData{
+							Code:    msgObj.Code,
+							Msg:     msgObj.Msg,
+							Type:    message.SessionType(msgObj.Type),
+							Session: msgObj.Session,
+							Data:    msgObj.Data,
+						},
+					}
+					aws.SessionMessageChan <- &msg
+				}()
 			}
-
 		}
 	}
 }
