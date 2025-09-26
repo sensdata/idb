@@ -93,8 +93,14 @@ func executeScript(req model.ScriptExec) *model.ScriptResult {
 		return &result
 	}
 
-	// 设置执行上下文和超时控制
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 设置执行上下文
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if req.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(req.Timeout)*time.Second)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background()) // 不设限
+	}
 	defer cancel()
 
 	// 定义命令和缓冲区
@@ -119,7 +125,7 @@ func executeScript(req model.ScriptExec) *model.ScriptResult {
 
 	// 检查超时和其他错误情况
 	if ctx.Err() == context.DeadlineExceeded {
-		result.Err = "script execution timed out"
+		result.Err = fmt.Sprintf("script execution timed out after %ds", req.Timeout)
 	} else if err != nil {
 		result.Err = fmt.Sprintf("script execution failed: %v", err)
 	}

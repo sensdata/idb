@@ -38,6 +38,7 @@ type ScriptExec struct {
 	ScriptPath string `json:"script_path"`
 	LogPath    string `json:"log_path"`
 	Remove     bool   `json:"remove"`
+	Timeout    int    `json:"timeout"` // 超时时间（秒），0 表示不设限
 }
 
 type ScriptResult struct {
