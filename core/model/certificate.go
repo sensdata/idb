@@ -7,6 +7,7 @@ type PrivateKeyInfo struct {
 	KeyAlgorithm string `json:"key_algorithm"`
 	KeySize      int    `json:"key_size"`
 	Pem          string `json:"pem"`
+	Source       string `json:"source"`
 }
 
 type CSRInfo struct {

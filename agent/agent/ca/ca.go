@@ -2,6 +2,7 @@ package ca
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -125,7 +126,7 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 		}
 	}
 
-	// 校验ip
+	// 校验 IP
 	var ips []net.IP
 	if req.AltIPs != "" {
 		ipArray := strings.Split(req.AltIPs, "\n")
@@ -140,11 +141,10 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 
 	// 根据 Alias 查找目录下的 .csr 和 .key 文件
 	certificateDir := filepath.Join(constant.CenterDataDir, "certificates", req.Alias)
-
 	csrPath := filepath.Join(certificateDir, req.Alias+".csr")
 	keyPath := filepath.Join(certificateDir, req.Alias+".key")
 
-	// 检查 .csr 和 .key 文件是否存在
+	// 检查文件是否存在
 	if _, err := os.Stat(csrPath); os.IsNotExist(err) {
 		return fmt.Errorf("CSR file not found: %s", csrPath)
 	}
@@ -152,50 +152,55 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 		return fmt.Errorf("Key file not found: %s", keyPath)
 	}
 
-	// 解析私钥和 CSR
+	// 读取私钥
 	privateKeyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return fmt.Errorf("failed to read private key: %v", err)
 	}
-	// 解码 PEM 格式
 	privateBlock, _ := pem.Decode(privateKeyBytes)
 	if privateBlock == nil {
 		return fmt.Errorf("failed to decode private key PEM block")
 	}
 
+	// 读取 CSR
 	csrBytes, err := os.ReadFile(csrPath)
 	if err != nil {
 		return fmt.Errorf("failed to read CSR file: %v", err)
 	}
-
-	// 解码 PEM 格式
 	csrBlock, _ := pem.Decode(csrBytes)
 	if csrBlock == nil || csrBlock.Type != "CERTIFICATE REQUEST" {
 		return fmt.Errorf("failed to decode CSR PEM block")
 	}
 
-	// 解析私钥：根据私钥格式判断是 RSA 还是 ECDSA
+	// 解析私钥（支持多种格式）
 	var privateKey interface{}
-	if isRSAKey(privateBlock.Bytes) {
+	switch privateBlock.Type {
+	case "RSA PRIVATE KEY":
 		privateKey, err = x509.ParsePKCS1PrivateKey(privateBlock.Bytes)
-	} else if isECDSAKey(privateBlock.Bytes) {
+	case "EC PRIVATE KEY":
 		privateKey, err = x509.ParseECPrivateKey(privateBlock.Bytes)
-	} else {
-		return fmt.Errorf("unsupported key algorithm or invalid private key")
+	case "PRIVATE KEY":
+		privateKey, err = x509.ParsePKCS8PrivateKey(privateBlock.Bytes)
+	case "ENCRYPTED PRIVATE KEY":
+		return fmt.Errorf("encrypted private key not supported yet, please provide password")
+	default:
+		return fmt.Errorf("unsupported private key type: %s", privateBlock.Type)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to parse private key: %v", err)
 	}
 
-	// 确定 private key 的类型，并提取 public key
+	// 提取公钥
 	var publicKey interface{}
-	switch privKey := privateKey.(type) {
+	switch k := privateKey.(type) {
 	case *rsa.PrivateKey:
-		publicKey = &privKey.PublicKey
+		publicKey = &k.PublicKey
 	case *ecdsa.PrivateKey:
-		publicKey = &privKey.PublicKey
+		publicKey = &k.PublicKey
+	case ed25519.PrivateKey:
+		publicKey = k.Public().(ed25519.PublicKey)
 	default:
-		return fmt.Errorf("unsupported private key type")
+		return fmt.Errorf("unsupported private key type %T", k)
 	}
 
 	// 解析 CSR
@@ -204,39 +209,37 @@ func (s *CaService) GenerateSelfSignedCertificate(req model.SelfSignedRequest) e
 		return fmt.Errorf("failed to parse CSR: %v", err)
 	}
 
-	// Step 5: 创建证书模板
+	// 证书模板
 	certTemplate := x509.Certificate{
 		SerialNumber:          big.NewInt(time.Now().Unix()),
 		Subject:               csr.Subject,
 		EmailAddresses:        csr.EmailAddresses,
-		Issuer:                csr.Subject, // 使用 CSR 的 Subject 作为签发者
+		Issuer:                csr.Subject, // 自签：签发者 = 自己
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(expireDuration),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IsCA:                  req.IsCA, // 如果是CA证书，可以用于签发下级证书
+		IsCA:                  req.IsCA,
 		BasicConstraintsValid: true,
 		DNSNames:              domains,
 		IPAddresses:           ips,
 	}
 
-	// 生成自签名证书
+	// 生成证书
 	certDER, err := x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, publicKey, privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to create certificate: %v", err)
 	}
 
-	// 将生成的证书保存到文件
+	// 保存证书文件
 	timestamp := time.Now().Unix()
 	certPath := filepath.Join(certificateDir, fmt.Sprintf("%d.crt", timestamp))
-
 	certFile, err := os.Create(certPath)
 	if err != nil {
 		return fmt.Errorf("failed to create certificate file: %v", err)
 	}
 	defer certFile.Close()
 
-	// 将证书编码为 PEM 格式并写入文件
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 	if err != nil {
 		return fmt.Errorf("failed to encode certificate to PEM: %v", err)
@@ -254,7 +257,7 @@ func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateK
 
 	// 检查 .key 文件是否存在
 	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		return &privateKeyInfo, fmt.Errorf("Key file not found: %s", keyPath)
+		return &privateKeyInfo, fmt.Errorf("key file not found: %s", keyPath)
 	}
 
 	// 读取私钥文件
@@ -269,31 +272,58 @@ func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateK
 		return &privateKeyInfo, fmt.Errorf("failed to decode PEM block")
 	}
 
-	// 解析私钥：根据私钥格式判断是 RSA 还是 ECDSA
-	var parsedPrivKey interface{}
-	var keyAlgorithm string
-	var keySize int
+	var (
+		parsedPrivKey interface{}
+		keyAlgorithm  string
+		keySize       int
+	)
 
-	if isRSAKey(block.Bytes) {
-		// 解析 RSA 私钥
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		// PKCS#1 (RSA)
 		parsedPrivKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
 			return &privateKeyInfo, fmt.Errorf("failed to parse RSA private key: %v", err)
 		}
 		keyAlgorithm = "RSA"
-		// 获取 RSA 私钥的位数
-		keySize = parsedPrivKey.(*rsa.PrivateKey).N.BitLen() // RSA 使用 N.BitLen() 来获取密钥长度
-	} else if isECDSAKey(block.Bytes) {
-		// 解析 ECDSA 私钥
+		keySize = parsedPrivKey.(*rsa.PrivateKey).N.BitLen()
+
+	case "EC PRIVATE KEY":
+		// SEC1 (EC)
 		parsedPrivKey, err = x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
-			return &privateKeyInfo, fmt.Errorf("failed to parse ECDSA private key: %v", err)
+			return &privateKeyInfo, fmt.Errorf("failed to parse EC private key: %v", err)
 		}
 		keyAlgorithm = "ECDSA"
-		// 获取 ECDSA 私钥的位数
 		keySize = parsedPrivKey.(*ecdsa.PrivateKey).Params().BitSize
-	} else {
-		return &privateKeyInfo, fmt.Errorf("unsupported key algorithm or invalid private key")
+
+	case "PRIVATE KEY":
+		// PKCS#8 (un-encrypted)
+		parsedPrivKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return &privateKeyInfo, fmt.Errorf("failed to parse PKCS#8 private key: %v", err)
+		}
+		switch k := parsedPrivKey.(type) {
+		case *rsa.PrivateKey:
+			keyAlgorithm = "RSA"
+			keySize = k.N.BitLen()
+		case *ecdsa.PrivateKey:
+			keyAlgorithm = "ECDSA"
+			keySize = k.Params().BitSize
+		case ed25519.PrivateKey:
+			keyAlgorithm = "Ed25519"
+			keySize = 256
+		default:
+			return &privateKeyInfo, fmt.Errorf("unsupported private key type %T", k)
+		}
+
+	case "ENCRYPTED PRIVATE KEY":
+		// PKCS#8 (encrypted)
+		// 需要密码才能解密，UI 层应该提示用户输入
+		return &privateKeyInfo, fmt.Errorf("encrypted private key is not supported yet, please provide password")
+
+	default:
+		return &privateKeyInfo, fmt.Errorf("unsupported private key type: %s", block.Type)
 	}
 
 	// 填充返回结构体
@@ -301,7 +331,8 @@ func (s *CaService) GetPrivateKeyInfo(req model.GroupPkRequest) (*model.PrivateK
 		Alias:        req.Alias,
 		KeyAlgorithm: keyAlgorithm,
 		KeySize:      keySize,
-		Pem:          string(privKeyBytes), // 直接使用原始私钥字节
+		Pem:          string(privKeyBytes), // 保留原始 PEM
+		Source:       keyPath,
 	}
 
 	return &privateKeyInfo, nil
