@@ -35,7 +35,7 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 	// 构建过滤器
 	options := container.ListOptions{
 		All:     true,
-		Filters: filters.NewArgs(), // 初始化过滤器
+		Filters: filters.NewArgs(),
 	}
 	if len(req.Info) > 0 {
 		options.Filters.Add("name", req.Info)
@@ -91,8 +91,8 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 	for i := 0; i < len(records); i++ {
 		item := records[i]
 		var from string
-		if lable, ok := item.Labels[constant.IDBType]; ok {
-			from = lable
+		if label, ok := item.Labels[constant.IDBType]; ok {
+			from = label
 		}
 		// 判断是否由compose启动
 		var compose string
@@ -114,23 +114,35 @@ func (c DockerClient) ContainerQuery(req model.QueryContainer) (*model.PageResul
 			From:        from,
 			Compose:     compose,
 		}
-		// install, _ := appInstallRepo.GetFirst(appInstallRepo.WithContainerName(info.Name))
-		// if install.ID > 0 {
-		// 	info.AppInstallName = install.Name
-		// 	info.AppName = install.App.Name
-		// 	websites, _ := websiteRepo.GetBy(websiteRepo.WithAppInstallId(install.ID))
-		// 	for _, website := range websites {
-		// 		info.Websites = append(info.Websites, website.PrimaryDomain)
-		// 	}
-		// }
+
+		// 网络信息处理
 		if item.NetworkSettings != nil && len(item.NetworkSettings.Networks) > 0 {
 			networks := make([]string, 0, len(item.NetworkSettings.Networks))
-			for key := range item.NetworkSettings.Networks {
-				networks = append(networks, item.NetworkSettings.Networks[key].IPAddress)
+			networkMode := item.HostConfig.NetworkMode
+
+			if strings.HasPrefix(networkMode, "host") {
+				info.Network = []string{"host"}
+			} else if strings.HasPrefix(networkMode, "none") {
+				info.Network = []string{"none"}
+			} else if strings.HasPrefix(networkMode, "container:") {
+				targetContainer := strings.TrimPrefix(networkMode, "container:")
+				info.Network = []string{"container:" + targetContainer}
+			} else {
+				// 其他模式，展示 <networkName>:<ip>
+				for netName, netCfg := range item.NetworkSettings.Networks {
+					if netCfg.IPAddress != "" {
+						networks = append(networks, fmt.Sprintf("%s:%s", netName, netCfg.IPAddress))
+					} else {
+						// 没有 IP 也显示网络名
+						networks = append(networks, netName)
+					}
+				}
+				info.Network = networks
 			}
-			sort.Strings(networks)
-			info.Network = networks
+		} else {
+			info.Network = []string{"none"}
 		}
+
 		backDatas[i] = info
 	}
 
