@@ -191,7 +191,8 @@
         termRef.value?.write(msg.data!);
         break;
       case MsgType.Heartbeat:
-        latencyRef.value = Date.now() - msg.timestamp!;
+        // latencyRef.value = Date.now() - msg.timestamp!;
+        console.log('heartbeat');
         break;
       // server notify client current session name
       case MsgType.Attach:
