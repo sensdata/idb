@@ -145,7 +145,7 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 						MsgID: msgObj.Session,
 						Type:  message.WsMessageHeartbeat,
 						Data: message.SessionData{
-							Code:    msgObj.Code,
+							Code:    constant.CodeSuccess,
 							Msg:     msgObj.Msg,
 							Type:    message.SessionType(msgObj.Type),
 							Session: msgObj.Session,
