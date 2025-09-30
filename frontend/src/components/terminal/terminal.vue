@@ -362,7 +362,7 @@
 
   /* 强制覆盖默认颜色样式，使用CSS变量 */
   .xterm-container :deep(.xterm-bg-257) {
-    background-color: var(--color-bg-1) !important;
+    background-color: transparent !important;
   }
 
   .xterm-container :deep(.xterm-fg-257) {

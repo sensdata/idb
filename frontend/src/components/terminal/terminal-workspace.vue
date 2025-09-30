@@ -659,7 +659,7 @@
     display: flex;
     gap: 8px;
     height: 100%;
-    padding: 0 8px 8px 0;
+    padding: 0 8px 0 0;
     background: var(--color-bg-1);
   }
 
@@ -694,10 +694,6 @@
 
   .terminal-tabs :deep(.arco-tabs-nav-tab) {
     flex: none;
-  }
-
-  .terminal-tabs :deep(.arco-tabs-pane) {
-    height: calc(100vh - var(--header-height, 124px));
   }
 
   .terminal-tabs :deep(.arco-tabs-tab) {

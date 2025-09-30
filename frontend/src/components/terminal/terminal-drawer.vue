@@ -87,6 +87,6 @@
  */
 
   .terminal-drawer .arco-drawer-body {
-    padding-left: 0 !important;
+    padding: 0 !important;
   }
 </style>
