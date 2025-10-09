@@ -58,10 +58,39 @@
           </div>
         </template>
         <template #operation="{ record }: { record: ServiceEntity }">
-          <idb-table-operation
-            type="button"
-            :options="getServiceOperationOptions(record)"
-          />
+          <div class="service-operations">
+            <template
+              v-for="option in getServiceOperationOptions(record)"
+              :key="option.text"
+            >
+              <!-- 如果有子菜单，显示下拉按钮 -->
+              <a-dropdown v-if="option.children" trigger="hover">
+                <a-button type="text" size="small">
+                  {{ option.text }}
+                  <icon-down />
+                </a-button>
+                <template #content>
+                  <a-doption
+                    v-for="child in option.children"
+                    :key="child.text"
+                    @click="child.click"
+                  >
+                    {{ child.text }}
+                  </a-doption>
+                </template>
+              </a-dropdown>
+              <!-- 否则显示普通按钮 -->
+              <a-button
+                v-else
+                type="text"
+                size="small"
+                :status="option.status"
+                @click="option.click"
+              >
+                {{ option.text }}
+              </a-button>
+            </template>
+          </div>
         </template>
       </idb-table>
     </template>
@@ -88,7 +117,11 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { SERVICE_TYPE, SERVICE_ACTION } from '@/config/enum';
+  import {
+    SERVICE_TYPE,
+    SERVICE_ACTION,
+    SERVICE_OPERATION,
+  } from '@/config/enum';
   import { formatTime } from '@/utils/format';
   import { ServiceEntity } from '@/entity/Service';
   import {
@@ -136,6 +169,7 @@
     fetchServiceList,
     deleteService,
     toggleServiceStatus,
+    operateService,
   } = useServiceList(props.type);
 
   // 分类管理配置
@@ -339,36 +373,128 @@
     }
   };
 
+  // 处理服务操作（启动/停止/重启等）
+  const handleServiceOperate = async (
+    record: ServiceEntity,
+    operation: SERVICE_OPERATION
+  ) => {
+    try {
+      const operationText = t(
+        `app.service.list.operation.${operation.toLowerCase()}`
+      );
+
+      // 查询状态是只读操作，不需要确认
+      if (operation !== SERVICE_OPERATION.Status) {
+        await confirm(
+          t('app.service.list.confirm.operation', {
+            operation: operationText,
+            name: record.name,
+          })
+        );
+      }
+
+      const result = await operateService(record, operation);
+      if (result !== null) {
+        // 如果是状态查询，显示结果
+        if (operation === SERVICE_OPERATION.Status) {
+          Message.info(result);
+        }
+        // 刷新列表以更新状态
+        gridRef.value?.reload();
+      }
+    } catch (error) {
+      logError('Failed to operate service:', error);
+    }
+  };
+
+  // 定义操作按钮选项类型
+  interface OperationOption {
+    text: string;
+    status?: 'normal' | 'success' | 'warning' | 'danger';
+    click: () => void;
+    children?: OperationOption[]; // 支持子菜单
+  }
+
   // 获取操作按钮配置
-  const getServiceOperationOptions = (record: ServiceEntity) => [
-    {
-      text: t('common.edit'),
-      click: () => handleEdit(record),
-    },
-    {
-      text: record.linked
-        ? t('app.service.list.operation.deactivate')
-        : t('app.service.list.operation.activate'),
-      click: () =>
-        handleAction(
-          record,
-          record.linked ? SERVICE_ACTION.Deactivate : SERVICE_ACTION.Activate
-        ),
-    },
-    {
-      text: t('common.delete'),
-      status: 'danger' as const,
-      click: () => handleDelete(record),
-    },
-    {
-      text: t('app.service.list.operation.logs'),
-      click: () => handleViewLogs(record),
-    },
-    {
-      text: t('app.service.list.operation.history'),
-      click: () => handleViewHistory(record),
-    },
-  ];
+  const getServiceOperationOptions = (
+    record: ServiceEntity
+  ): OperationOption[] => {
+    const options: OperationOption[] = [
+      {
+        text: t('common.edit'),
+        click: () => handleEdit(record),
+      },
+      {
+        text: record.linked
+          ? t('app.service.list.operation.deactivate')
+          : t('app.service.list.operation.activate'),
+        click: () =>
+          handleAction(
+            record,
+            record.linked ? SERVICE_ACTION.Deactivate : SERVICE_ACTION.Activate
+          ),
+      },
+    ];
+
+    // 如果服务已激活，添加 systemctl 操作下拉菜单
+    if (record.linked) {
+      options.push({
+        text: t('app.service.list.operation.control'),
+        click: () => {}, // 下拉菜单不需要点击事件
+        children: [
+          {
+            text: t('app.service.list.operation.start'),
+            click: () => handleServiceOperate(record, SERVICE_OPERATION.Start),
+          },
+          {
+            text: t('app.service.list.operation.stop'),
+            click: () => handleServiceOperate(record, SERVICE_OPERATION.Stop),
+          },
+          {
+            text: t('app.service.list.operation.restart'),
+            click: () =>
+              handleServiceOperate(record, SERVICE_OPERATION.Restart),
+          },
+          {
+            text: t('app.service.list.operation.reload'),
+            click: () => handleServiceOperate(record, SERVICE_OPERATION.Reload),
+          },
+          {
+            text: t('app.service.list.operation.enable'),
+            click: () => handleServiceOperate(record, SERVICE_OPERATION.Enable),
+          },
+          {
+            text: t('app.service.list.operation.disable'),
+            click: () =>
+              handleServiceOperate(record, SERVICE_OPERATION.Disable),
+          },
+          {
+            text: t('app.service.list.operation.status'),
+            click: () => handleServiceOperate(record, SERVICE_OPERATION.Status),
+          },
+        ],
+      });
+    }
+
+    // 添加通用操作按钮
+    options.push(
+      {
+        text: t('common.delete'),
+        status: 'danger' as const,
+        click: () => handleDelete(record),
+      },
+      {
+        text: t('app.service.list.operation.logs'),
+        click: () => handleViewLogs(record),
+      },
+      {
+        text: t('app.service.list.operation.history'),
+        click: () => handleViewHistory(record),
+      }
+    );
+
+    return options;
+  };
 
   // 同步全局仓库
   const handleSyncGlobal = async () => {
@@ -523,5 +649,22 @@
 
   .status-tag {
     margin: 0;
+  }
+
+  .service-operations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    align-items: center;
+  }
+
+  .service-operations :deep(.arco-btn) {
+    padding-right: 0;
+    padding-left: 0;
+    margin-right: 0.5rem;
+  }
+
+  .service-operations :deep(.arco-dropdown) {
+    margin-right: 0.5rem;
   }
 </style>
