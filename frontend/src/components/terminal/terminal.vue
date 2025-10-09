@@ -34,7 +34,6 @@
   const domRef = ref<HTMLDivElement>();
   const wsRef = shallowRef<WebSocket>();
   const termRef = shallowRef<Terminal>();
-  const latencyRef = ref<number>(0);
   const fitRef = shallowRef<FitAddon>();
   const timerRef = shallowRef<number>();
   const sessionIdRef = ref<string>();
@@ -158,7 +157,6 @@
 
   // 使用const定义onWsMsgReceived函数
   const onWsMsgReceived = async (ev: MessageEvent) => {
-    console.log('ws message:', ev.data);
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
     if (msg.code != null && msg.code !== 200 && msg.code !== 0) {
       termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
@@ -189,7 +187,6 @@
         break;
       case MsgType.Heartbeat:
         // latencyRef.value = Date.now() - msg.timestamp!;
-        console.log('heartbeat');
         break;
       // server notify client current session name
       case MsgType.Attach:
