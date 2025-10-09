@@ -159,11 +159,7 @@
   // 使用const定义onWsMsgReceived函数
   const onWsMsgReceived = async (ev: MessageEvent) => {
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
-    if (
-      msg.code != null &&
-      msg.code !== 200 &&
-      msg.type !== MsgType.Heartbeat
-    ) {
+    if (msg.code != null && msg.code !== 200) {
       termRef.value?.write(`\x1b[31m${msg.msg}\x1b[m\r\n`);
       if (msg.msg === 'ErrNotInstalled') {
         if (await confirm(t('components.terminal.session.confirmInstall'))) {
