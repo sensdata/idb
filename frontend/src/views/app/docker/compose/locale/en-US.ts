@@ -10,6 +10,7 @@ export default {
   'app.docker.compose.list.operation.down': 'Down',
   'app.docker.compose.list.operation.edit': 'Edit',
   'app.docker.compose.list.operation.log': 'Log',
+  'app.docker.compose.list.operation.openDirectory': 'Open Directory',
   'app.docker.compose.list.operation.delete': 'Delete',
   'app.docker.compose.list.operation.success':
     'Successfully executed {command}',

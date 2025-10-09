@@ -45,6 +45,7 @@
     operateComposeApi,
     deleteComposeApi,
   } from '@/api/docker';
+  import { createFileRoute } from '@/utils/file-route';
   import LogsModal from './components/logs-modal.vue';
   import EditDrawer from './components/edit-drawer.vue';
   import CreateDrawer from './components/create-drawer.vue';
@@ -182,6 +183,14 @@
       click: () => {
         logsRef.value?.connect(record.config_files);
         logsRef.value?.show();
+      },
+    },
+    {
+      text: t('app.docker.compose.list.operation.openDirectory'),
+      click: () => {
+        if (record.path) {
+          router.push(createFileRoute(record.path));
+        }
       },
     },
     {

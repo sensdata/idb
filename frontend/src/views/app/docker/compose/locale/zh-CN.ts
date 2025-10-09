@@ -10,6 +10,7 @@ export default {
   'app.docker.compose.list.operation.down': '下线',
   'app.docker.compose.list.operation.edit': '编辑',
   'app.docker.compose.list.operation.log': '日志',
+  'app.docker.compose.list.operation.openDirectory': '打开目录',
   'app.docker.compose.list.operation.delete': '删除',
   'app.docker.compose.list.operation.success': '成功执行 {command}',
   'app.docker.compose.list.operation.failed': '执行失败 {command}，{message}',
