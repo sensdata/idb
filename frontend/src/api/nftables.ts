@@ -187,11 +187,11 @@ export function setPingStatusApi(data: SetPingStatusRequest) {
 
 // Base Rules 管理相关接口
 export interface BaseRules {
-  input_policy: 'drop' | 'accept' | 'reject';
+  input_policy: 'drop' | 'accept';
 }
 
 export interface SetBaseRulesRequest {
-  input_policy: 'drop' | 'accept' | 'reject';
+  input_policy: 'drop' | 'accept';
 }
 
 // 获取基础规则

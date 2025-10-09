@@ -53,11 +53,6 @@
               {{ $t('app.nftables.baseRules.drop') }}
               <icon-close-circle class="policy-icon drop" />
             </a-radio>
-
-            <a-radio value="reject">
-              {{ $t('app.nftables.baseRules.reject') }}
-              <icon-minus-circle class="policy-icon reject" />
-            </a-radio>
           </a-radio-group>
 
           <!-- 动态显示说明文字 -->
@@ -97,18 +92,6 @@
             >
               💡 {{ $t('app.nftables.baseRules.dropDesc') }}
             </div>
-            <div
-              v-else-if="selectedPolicy === 'reject'"
-              class="desc-content"
-              style="
-                font-size: 0.929rem;
-                line-height: 1.6;
-                color: var(--color-text-3);
-                opacity: 0.9;
-              "
-            >
-              💡 {{ $t('app.nftables.baseRules.rejectDesc') }}
-            </div>
           </div>
         </div>
       </div>
@@ -141,7 +124,6 @@
     IconSettings,
     IconCheckCircle,
     IconCloseCircle,
-    IconMinusCircle,
   } from '@arco-design/web-vue/es/icon';
   import { useNftablesConfig } from '../composables/use-nftables-config';
 
@@ -158,8 +140,8 @@
   const loading = ref<boolean>(false);
   const saving = ref<boolean>(false);
   const showConfigModal = ref<boolean>(false);
-  const currentPolicy = ref<'drop' | 'accept' | 'reject'>('accept');
-  const selectedPolicy = ref<'drop' | 'accept' | 'reject'>('accept');
+  const currentPolicy = ref<'drop' | 'accept'>('accept');
+  const selectedPolicy = ref<'drop' | 'accept'>('accept');
 
   // 获取策略颜色
   const getPolicyColor = (policy: string) => {
@@ -168,8 +150,6 @@
         return 'green';
       case 'drop':
         return 'red';
-      case 'reject':
-        return 'orange';
       default:
         return 'gray';
     }
@@ -182,8 +162,6 @@
         return t('app.nftables.baseRules.accept');
       case 'drop':
         return t('app.nftables.baseRules.drop');
-      case 'reject':
-        return t('app.nftables.baseRules.reject');
       default:
         return policy;
     }
@@ -323,10 +301,6 @@
 
           &.drop {
             color: var(--color-danger-6);
-          }
-
-          &.reject {
-            color: var(--color-warning-6);
           }
         }
 
