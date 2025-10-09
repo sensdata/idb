@@ -162,6 +162,8 @@
     decompressDrawerRef,
     deleteFileModalRef,
     uploadFilesDrawerRef,
+    renameDrawerRef,
+    propertyDrawerRef,
     fileEditorDrawerRef,
     openTerminal,
     selected,

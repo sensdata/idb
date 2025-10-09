@@ -804,7 +804,7 @@
 
   // Go按钮激活状态 - 紫色主题，使用更高权重选择器减少 !important
   .breadcrumb-container .go-button--active {
-    color: var(--color-text-1);
+    color: #fff;
     cursor: pointer;
     background: rgb(var(--primary-6));
     border: 0.107rem solid rgb(var(--primary-6));
@@ -823,6 +823,10 @@
       border-color: rgb(var(--primary-7));
       box-shadow: 0 0 0.571rem var(--idb-overlay-dark);
       animation: none;
+    }
+
+    :deep(.arco-icon) {
+      color: #fff;
     }
   }
 
