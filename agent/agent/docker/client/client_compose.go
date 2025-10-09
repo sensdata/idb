@@ -799,7 +799,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 
 		// 覆盖.env
 		envPath := filepath.Join(req.WorkDir, req.Name, ".env")
-		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
+		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			logger.Error("Failed to open env file %s: %v", envPath, err)
 			global.LOG.Error("Failed to open env file %s: %v", envPath, err)
@@ -807,8 +807,12 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 		}
 		defer envFile.Close()
 		write = bufio.NewWriter(envFile)
-		_, _ = write.WriteString(req.EnvContent)
-		write.Flush()
+		if _, err := write.WriteString(req.EnvContent); err != nil {
+			logger.Error("Failed to write env file %s: %v", envPath, err)
+		}
+		if err := write.Flush(); err != nil {
+			logger.Error("Failed to flush env file %s: %v", envPath, err)
+		}
 
 		logger.Info("config files has been replaced, try docker compose up")
 		global.LOG.Info("config files has been replaced, try docker compose up")
@@ -920,7 +924,7 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 		write.Flush()
 
 		// 覆盖.env
-		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_TRUNC, 0640)
+		envFile, err := os.OpenFile(envPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			logger.Error("Failed to open env file %s: %v", envPath, err)
 			global.LOG.Error("Failed to open env file %s: %v", envPath, err)
@@ -928,8 +932,12 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 		}
 		defer envFile.Close()
 		write = bufio.NewWriter(envFile)
-		_, _ = write.WriteString(req.EnvContent)
-		write.Flush()
+		if _, err := write.WriteString(req.EnvContent); err != nil {
+			logger.Error("Failed to write env file %s: %v", envPath, err)
+		}
+		if err := write.Flush(); err != nil {
+			logger.Error("Failed to flush env file %s: %v", envPath, err)
+		}
 
 		logger.Info("config files has been replaced, try docker compose up %s", req.Name)
 		global.LOG.Info("config files has been replaced, try docker compose up %s", req.Name)
