@@ -1,0 +1,5 @@
+plugin:
+  name: "Process Information"
+  description: "This module provides detailed process information including process list, process detail, and process kill, etc."
+  version: "1.0.0"
+  entry: "process"
