@@ -1306,6 +1306,51 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 进程列表
+	case model.PS_List:
+		var req model.ProcessListRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		processes, err := action.ListProcesses(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(processes)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// 进程详情
+	case model.PS_Detail:
+		var req model.ProcessRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		detail, err := action.GetProcessDetail(req.PID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(detail)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+		// 杀进程
+	case model.PS_Kill:
+		var req model.ProcessRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+
+		if err := action.KillProcess(req.PID); err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 		// 文件树
 	case model.File_Tree:
 		var fileOption model.FileOption

@@ -22,6 +22,10 @@ const (
 	Sysinfo_Get_Sys_Setting  string = "sysinfo_get_sys_setting"
 	Sysinfo_Upd_Sys_Setting  string = "sysinfo_upd_sys_setting"
 
+	PS_List   string = "ps_list"
+	PS_Detail string = "ps_detail"
+	PS_Kill   string = "ps_kill"
+
 	File_Tree               string = "file_tree"
 	File_List               string = "file_list"
 	File_Search             string = "file_search"
