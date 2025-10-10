@@ -36,10 +36,10 @@ var plugYAML []byte
 var confYAML []byte
 
 func (s *Process) Initialize() {
-	LOG.Info("process init begin")
+	global.LOG.Info("process init begin")
 
 	if err := yaml.Unmarshal(plugYAML, &s.plugin); err != nil {
-		LOG.Error("Failed to load process yaml: %v", err)
+		global.LOG.Error("Failed to load process yaml: %v", err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (s *Process) Initialize() {
 	if LOG == nil {
 		logger, err := log.InitLogger(s.pluginConf.Items.LogDir, "process.log")
 		if err != nil {
-			LOG.Error("Failed to initialize logger: %v \n", err)
+			global.LOG.Error("Failed to initialize logger: %v \n", err)
 			return
 		}
 		LOG = logger
