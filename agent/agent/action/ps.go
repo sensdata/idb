@@ -65,14 +65,36 @@ func ListProcesses(req model.ProcessListRequest) (*model.ProcessListResponse, er
 	}
 
 	// Step3: 排序
-	switch strings.ToLower(req.Sort) {
-	case "cpu":
+	orderBy := strings.ToLower(req.OrderBy)
+	order := strings.ToLower(req.Order)
+	switch orderBy {
+	case "pid":
 		sort.Slice(fullList, func(i, j int) bool {
-			return fullList[i].CPUPercent > fullList[j].CPUPercent
+			if order == "asc" {
+				return fullList[i].PID < fullList[j].PID
+			}
+			return fullList[i].PID > fullList[j].PID
+		})
+	case "name":
+		sort.Slice(fullList, func(i, j int) bool {
+			if order == "asc" {
+				return strings.ToLower(fullList[i].Name) < strings.ToLower(fullList[j].Name)
+			}
+			return strings.ToLower(fullList[i].Name) > strings.ToLower(fullList[j].Name)
 		})
 	case "mem":
 		sort.Slice(fullList, func(i, j int) bool {
+			if order == "asc" {
+				return fullList[i].MemPercent < fullList[j].MemPercent
+			}
 			return fullList[i].MemPercent > fullList[j].MemPercent
+		})
+	default: // 默认按 CPU 排序
+		sort.Slice(fullList, func(i, j int) bool {
+			if order == "asc" {
+				return fullList[i].CPUPercent < fullList[j].CPUPercent
+			}
+			return fullList[i].CPUPercent > fullList[j].CPUPercent
 		})
 	}
 
