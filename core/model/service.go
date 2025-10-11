@@ -44,7 +44,7 @@ type ServiceOperate struct {
 	Type      string `json:"type" validate:"required"`
 	Category  string `json:"category"`
 	Name      string `json:"name" validate:"required"`
-	Operation string `json:"operation" validate:"required,oneof=start,stop,restart,enable,disable,reload,status"`
+	Operation string `json:"operation" validate:"required,oneof=start stop restart enable disable reload status"`
 }
 
 type ServiceOperateResult struct {

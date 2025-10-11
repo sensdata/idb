@@ -67,8 +67,8 @@ type ProcessOpenFile struct {
 
 type ProcessListRequest struct {
 	PageInfo
-	OrderBy string `form:"order_by" json:"order_by" validate:"required,oneof=pid, name, cpu, mem"`
-	Order   string `form:"order" json:"order" validate:"required,oneof=asc, desc"`
+	OrderBy string `form:"order_by" json:"order_by" validate:"required,oneof=pid name cpu mem"`
+	Order   string `form:"order" json:"order" validate:"required,oneof=asc desc"`
 	Name    string `form:"name" json:"name"`
 	Pid     int32  `form:"pid" json:"pid"`
 	User    string `form:"user" json:"user"`
