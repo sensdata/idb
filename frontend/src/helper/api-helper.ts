@@ -69,13 +69,14 @@ axios.interceptors.response.use(
       return response.data.data;
     }
 
-    // Message.error(response.data.message as string);
-
-    if (response.data?.message) {
-      return Promise.reject(new Error(response.data?.message as string));
-    }
-
-    return Promise.reject(new Error(response.statusText));
+    // 构造错误并保留原始响应，便于组件读取 data
+    const msg =
+      response.data && response.data.message
+        ? String(response.data.message)
+        : response.statusText;
+    const err: any = new Error(msg);
+    err.response = response; // 附带完整响应
+    return Promise.reject(err);
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -91,8 +92,11 @@ axios.interceptors.response.use(
       return Promise.reject(new Error(t('common.request.unauthorized')));
     }
     if (error?.response?.data?.message) {
-      // Message.error(String(error.response.data.message));
-      return Promise.reject(new Error(error.response.data.message));
+      // 保留原始的 response 对象，以便组件可以访问完整的错误信息（包括 data 字段）
+      // 创建一个新的 Error 对象，但保留原始的 response
+      const err = new Error(error.response.data.message);
+      (err as any).response = error.response;
+      return Promise.reject(err);
     }
     if (error?.message && error.message.includes('timeout')) {
       // Message.error(t('common.request.timeout'));
@@ -102,7 +106,7 @@ axios.interceptors.response.use(
     // eslint-disable-next-line no-console
     console.log(error);
     // Message.error(error.message);
-    return Promise.reject(new Error(error.message));
+    return Promise.reject(error);
   }
 );
 

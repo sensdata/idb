@@ -60,6 +60,8 @@
   import {
     createServiceRawApi,
     updateServiceRawApi,
+    createServiceFormApi,
+    updateServiceFormApi,
     getServiceDetailApi,
     createServiceCategoryApi,
     getServiceCategoryListApi,
@@ -71,6 +73,7 @@
   import { useServiceParser } from './composables/use-service-parser';
   import ServiceForm from './service-form.vue';
   import ServiceRaw from './service-raw.vue';
+  import { formatApiErrorMessage } from './utils';
 
   interface DrawerParams {
     type: SERVICE_TYPE;
@@ -176,28 +179,48 @@
       loading.value = true;
       try {
         if (activeTab.value === 'form') {
-          // 表单模式提交
+          // 表单模式提交 - 使用 form API
           const currentFormData = await serviceFormRef.value?.getFormData();
           if (!currentFormData) return;
 
+          // 从表单模型获取字段数据
+          const formModel = serviceFormRef.value?.getFormModel();
+          if (!formModel) return;
+
+          // 构建表单字段数组 - 只包含后端 form.yaml 中定义的字段
+          // 后端只接受这7个字段: Description, Type, ExecStart, WorkingDirectory, User, Group, Environment
+          const formFields = [
+            { key: 'Description', value: formModel.description || '' },
+            { key: 'Type', value: formModel.serviceType || 'simple' },
+            { key: 'ExecStart', value: formModel.execStart || '' },
+            {
+              key: 'WorkingDirectory',
+              value: formModel.workingDirectory || '',
+            },
+            { key: 'User', value: formModel.user || 'root' },
+            { key: 'Group', value: formModel.group || 'root' },
+            { key: 'Environment', value: formModel.environment || '' },
+          ];
+
           if (params.value.isEdit) {
-            await updateServiceRawApi({
+            await updateServiceFormApi({
               type: currentFormData.type,
               category: currentFormData.category,
               name: params.value.record?.name || currentFormData.name,
               new_name: currentFormData.name,
-              content: currentFormData.content,
+              new_category: currentFormData.category,
+              form: formFields,
             });
           } else {
-            await createServiceRawApi({
+            await createServiceFormApi({
               type: currentFormData.type,
               category: currentFormData.category,
               name: currentFormData.name,
-              content: currentFormData.content,
+              form: formFields,
             });
           }
         } else {
-          // 原始模式提交
+          // 原始模式提交 - 使用 raw API
           const isValid = await serviceRawRef.value?.validate();
           if (!isValid) return;
 
@@ -239,13 +262,16 @@
           resetState();
           emit('ok');
         }
-      } catch (error) {
+      } catch (error: any) {
         logError('保存失败', error as Error);
-        Message.error(
-          params.value.isEdit
-            ? t('app.service.form.error.update')
-            : t('app.service.form.error.create')
-        );
+
+        // 提取并格式化后端错误信息
+        const defaultMessage = params.value.isEdit
+          ? t('app.service.form.error.update')
+          : t('app.service.form.error.create');
+        const errorMessage = formatApiErrorMessage(error, defaultMessage);
+
+        Message.error(errorMessage);
       } finally {
         loading.value = false;
       }
