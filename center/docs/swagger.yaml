@@ -54,6 +54,24 @@ definitions:
       version:
         type: string
     type: object
+  model.Action:
+    properties:
+      action:
+        type: string
+      data:
+        type: string
+      result:
+        type: boolean
+    type: object
+  model.ActionResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/model.HostAction'
+      message:
+        type: string
+    type: object
   model.AddAuthKey:
     properties:
       content:
@@ -956,6 +974,13 @@ definitions:
         description: 线程数
         type: integer
     type: object
+  model.HostAction:
+    properties:
+      action:
+        $ref: '#/definitions/model.Action'
+      host_id:
+        type: integer
+    type: object
   model.HostInfo:
     properties:
       addr:
@@ -1204,6 +1229,7 @@ definitions:
       operation:
         enum:
         - test
+        - execute
         type: string
       type:
         type: string
@@ -1366,6 +1392,12 @@ definitions:
       operation:
         enum:
         - start
+        - stop
+        - restart
+        - enable
+        - disable
+        - reload
+        - status
         type: string
       service:
         type: string
@@ -1473,6 +1505,135 @@ definitions:
       key_size:
         type: integer
       pem:
+        type: string
+      source:
+        type: string
+    type: object
+  model.ProcessBasicInfo:
+    properties:
+      cmdline:
+        type: string
+      connections:
+        type: integer
+      create_time:
+        type: integer
+      cwd:
+        type: string
+      disk_read:
+        type: integer
+      disk_write:
+        type: integer
+      exe:
+        type: string
+      name:
+        type: string
+      pid:
+        type: integer
+      ppid:
+        type: integer
+      status:
+        type: string
+      threads:
+        type: integer
+      user:
+        type: string
+    type: object
+  model.ProcessDetail:
+    properties:
+      basic:
+        $ref: '#/definitions/model.ProcessBasicInfo'
+      envs:
+        items:
+          type: string
+        type: array
+      memory:
+        $ref: '#/definitions/model.ProcessMemoryInfo'
+      net_conns:
+        items:
+          $ref: '#/definitions/model.ProcessNetConn'
+        type: array
+      open_files:
+        items:
+          $ref: '#/definitions/model.ProcessOpenFile'
+        type: array
+    type: object
+  model.ProcessListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/model.ProcessSummary'
+        type: array
+      total:
+        type: integer
+    type: object
+  model.ProcessMemoryInfo:
+    properties:
+      data:
+        type: integer
+      hwm:
+        type: integer
+      locked:
+        type: integer
+      rss:
+        type: integer
+      stack:
+        type: integer
+      swap:
+        type: integer
+      vms:
+        type: integer
+    type: object
+  model.ProcessNetConn:
+    properties:
+      local_addr:
+        type: string
+      local_port:
+        type: integer
+      protocol:
+        type: string
+      remote_addr:
+        type: string
+      remote_port:
+        type: integer
+      status:
+        type: string
+    type: object
+  model.ProcessOpenFile:
+    properties:
+      path:
+        type: string
+    type: object
+  model.ProcessSummary:
+    properties:
+      connections:
+        type: integer
+      cpu_percent:
+        type: number
+      create_time:
+        type: integer
+      disk_read:
+        type: integer
+      disk_write:
+        type: integer
+      mem_percent:
+        type: number
+      mem_rss:
+        type: integer
+      name:
+        type: string
+      net_recv:
+        type: integer
+      net_sent:
+        type: integer
+      pid:
+        type: integer
+      ppid:
+        type: integer
+      swap:
+        type: integer
+      threads:
+        type: integer
+      user:
         type: string
     type: object
   model.Profile:
@@ -1821,6 +1982,12 @@ definitions:
       operation:
         enum:
         - start
+        - stop
+        - restart
+        - enable
+        - disable
+        - reload
+        - status
         type: string
       type:
         type: string
@@ -7963,6 +8130,110 @@ paths:
       summary: Set postgresql port
       tags:
       - PostgreSql
+  /process/{host}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete process
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Process ID
+        in: query
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ActionResponse'
+      summary: Delete process
+      tags:
+      - Process
+    get:
+      consumes:
+      - application/json
+      description: Get process list
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Order by one of (pid, name, cpu, mem)
+        in: query
+        name: order_by
+        required: true
+        type: string
+      - description: Order, one of (asc, desc)
+        in: query
+        name: order
+        required: true
+        type: string
+      - description: Process name
+        in: query
+        name: name
+        type: string
+      - description: Process ID
+        in: query
+        name: pid
+        type: integer
+      - description: User name
+        in: query
+        name: user
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ProcessListResponse'
+      summary: Get process list
+      tags:
+      - Process
+  /process/{host}/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get process detail
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Process ID
+        in: query
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ProcessDetail'
+      summary: Get process detail
+      tags:
+      - Process
   /public/version:
     get:
       consumes:

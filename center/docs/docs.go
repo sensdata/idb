@@ -8396,6 +8396,160 @@ const docTemplate = `{
                 }
             }
         },
+        "/process/{host}": {
+            "get": {
+                "description": "Get process list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Process"
+                ],
+                "summary": "Get process list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Order by one of (pid, name, cpu, mem)",
+                        "name": "order_by",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Order, one of (asc, desc)",
+                        "name": "order",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Process name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Process ID",
+                        "name": "pid",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "User name",
+                        "name": "user",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ProcessListResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete process",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Process"
+                ],
+                "summary": "Delete process",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Process ID",
+                        "name": "pid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ActionResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/process/{host}/detail": {
+            "get": {
+                "description": "Get process detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Process"
+                ],
+                "summary": "Get process detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Process ID",
+                        "name": "pid",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ProcessDetail"
+                        }
+                    }
+                }
+            }
+        },
         "/public/version": {
             "get": {
                 "description": "Get current server version",
@@ -12986,6 +13140,34 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Action": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.ActionResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/model.HostAction"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AddAuthKey": {
             "type": "object",
             "required": [
@@ -14330,6 +14512,17 @@ const docTemplate = `{
                 }
             }
         },
+        "model.HostAction": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/model.Action"
+                },
+                "host_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.HostInfo": {
             "type": "object",
             "properties": {
@@ -14706,7 +14899,8 @@ const docTemplate = `{
                 "operation": {
                     "type": "string",
                     "enum": [
-                        "test"
+                        "test",
+                        "execute"
                     ]
                 },
                 "type": {
@@ -14942,7 +15136,13 @@ const docTemplate = `{
                 "operation": {
                     "type": "string",
                     "enum": [
-                        "start"
+                        "start",
+                        "stop",
+                        "restart",
+                        "enable",
+                        "disable",
+                        "reload",
+                        "status"
                     ]
                 },
                 "service": {
@@ -15103,6 +15303,203 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "pem": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ProcessBasicInfo": {
+            "type": "object",
+            "properties": {
+                "cmdline": {
+                    "type": "string"
+                },
+                "connections": {
+                    "type": "integer"
+                },
+                "create_time": {
+                    "type": "integer"
+                },
+                "cwd": {
+                    "type": "string"
+                },
+                "disk_read": {
+                    "type": "integer"
+                },
+                "disk_write": {
+                    "type": "integer"
+                },
+                "exe": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pid": {
+                    "type": "integer"
+                },
+                "ppid": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "threads": {
+                    "type": "integer"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ProcessDetail": {
+            "type": "object",
+            "properties": {
+                "basic": {
+                    "$ref": "#/definitions/model.ProcessBasicInfo"
+                },
+                "envs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "memory": {
+                    "$ref": "#/definitions/model.ProcessMemoryInfo"
+                },
+                "net_conns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProcessNetConn"
+                    }
+                },
+                "open_files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProcessOpenFile"
+                    }
+                }
+            }
+        },
+        "model.ProcessListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProcessSummary"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ProcessMemoryInfo": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "integer"
+                },
+                "hwm": {
+                    "type": "integer"
+                },
+                "locked": {
+                    "type": "integer"
+                },
+                "rss": {
+                    "type": "integer"
+                },
+                "stack": {
+                    "type": "integer"
+                },
+                "swap": {
+                    "type": "integer"
+                },
+                "vms": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ProcessNetConn": {
+            "type": "object",
+            "properties": {
+                "local_addr": {
+                    "type": "string"
+                },
+                "local_port": {
+                    "type": "integer"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "remote_addr": {
+                    "type": "string"
+                },
+                "remote_port": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ProcessOpenFile": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ProcessSummary": {
+            "type": "object",
+            "properties": {
+                "connections": {
+                    "type": "integer"
+                },
+                "cpu_percent": {
+                    "type": "number"
+                },
+                "create_time": {
+                    "type": "integer"
+                },
+                "disk_read": {
+                    "type": "integer"
+                },
+                "disk_write": {
+                    "type": "integer"
+                },
+                "mem_percent": {
+                    "type": "number"
+                },
+                "mem_rss": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "net_recv": {
+                    "type": "integer"
+                },
+                "net_sent": {
+                    "type": "integer"
+                },
+                "pid": {
+                    "type": "integer"
+                },
+                "ppid": {
+                    "type": "integer"
+                },
+                "swap": {
+                    "type": "integer"
+                },
+                "threads": {
+                    "type": "integer"
+                },
+                "user": {
                     "type": "string"
                 }
             }
@@ -15624,7 +16021,13 @@ const docTemplate = `{
                 "operation": {
                     "type": "string",
                     "enum": [
-                        "start"
+                        "start",
+                        "stop",
+                        "restart",
+                        "enable",
+                        "disable",
+                        "reload",
+                        "status"
                     ]
                 },
                 "type": {
