@@ -129,5 +129,8 @@ func StopServices() error {
 	// 停止agent服务
 	agent.AGENT.Stop()
 
+	// 最后关闭日志
+	global.LOG.Close()
+
 	return nil
 }
