@@ -242,6 +242,12 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 				} else {
 					conn.Write([]byte(fmt.Sprintf("Password reset, please remember your new password: %s", newPass)))
 				}
+			case "flush-logs":
+				if err := global.LOG.Flush(); err != nil {
+					conn.Write([]byte(fmt.Sprintf("Failed to flush logs: %v", err)))
+				} else {
+					conn.Write([]byte("Logs flushed successfully"))
+				}
 			default:
 				conn.Write([]byte("Unknown command"))
 			}

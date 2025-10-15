@@ -141,3 +141,28 @@ var ResetPasswordCommand = &cli.Command{
 		return nil
 	},
 }
+
+var FlushLogsCommand = &cli.Command{
+	Name:  "flush-logs",
+	Usage: "flush and rotate idb center logs",
+	Action: func(c *cli.Context) error {
+		// 检查sock文件
+		sockFile := filepath.Join(constant.CenterRunDir, constant.CenterSock)
+		conn, err := net.Dial("unix", sockFile)
+		if err != nil {
+			return fmt.Errorf("failed to connect to center: %w", err)
+		}
+		defer conn.Close()
+		_, err = conn.Write([]byte("flush-logs"))
+		if err != nil {
+			return fmt.Errorf("failed to send command: %w", err)
+		}
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
+		fmt.Println(string(buf[:n]))
+		return nil
+	},
+}

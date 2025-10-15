@@ -66,6 +66,7 @@ var app = &cli.App{
 		*command.ConfigCommand,
 		*command.UpdateCommand,
 		*command.ResetPasswordCommand,
+		*command.FlushLogsCommand,
 	},
 }
 
@@ -204,6 +205,9 @@ func StopServices() error {
 
 	// 停止SSH
 	conn.SSH.Stop()
+
+	// 最后关闭日志
+	global.LOG.Close()
 
 	return nil
 }
