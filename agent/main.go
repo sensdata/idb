@@ -50,6 +50,7 @@ var app = &cli.App{
 		*agent.ConfigCommand,
 		*agent.UpdateCommand,
 		*agent.RemoveCommand,
+		*agent.FlushLogsCommand,
 	},
 }
 

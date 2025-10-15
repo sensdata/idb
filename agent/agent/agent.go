@@ -316,6 +316,12 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 					// 通过心跳消息的data标识，通知center进行agent版本检测和升级
 					go a.sendHeartbeat(centerConn, "Remove")
 				}
+			case "flush-logs":
+				if err := global.LOG.Flush(); err != nil {
+					conn.Write([]byte(fmt.Sprintf("Failed to flush logs: %v", err)))
+				} else {
+					conn.Write([]byte("Logs flushed successfully"))
+				}
 			default:
 				conn.Write([]byte("Unknown command"))
 			}
