@@ -26,8 +26,8 @@ func Init(dataSourceName string) {
 		}
 	}
 
-	//db logger
-	gormLogger := log.NewGormLogger(global.LOG.Logger)
+	//db logger - 直接传入global.LOG实例，利用其内部机制自动获取最新的logger
+	gormLogger := log.NewGormLogger(global.LOG)
 	dbLogger := logger.New(
 		gormLogger,
 		logger.Config{

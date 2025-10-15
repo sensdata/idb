@@ -87,6 +87,11 @@ func (l *Log) newZapLogger(logFile *os.File) *zap.Logger {
 	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 }
 
+// GetLogger 获取当前 zap.Logger 实例（用于自定义日志记录）
+func (l *Log) GetLogger() *zap.Logger {
+	return l.logger.Load().(*zap.Logger)
+}
+
 // Info 打印 Info 级别日志
 func (l *Log) Info(format string, args ...interface{}) {
 	logger := l.logger.Load().(*zap.Logger)

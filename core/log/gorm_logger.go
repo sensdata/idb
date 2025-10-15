@@ -12,54 +12,74 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// GormLogger 实现gorm.io/gorm/logger.Writer接口
 type GormLogger struct {
-	Logger *zap.Logger
+	log *Log // 直接持有Log实例，利用其内部的atomic.Value机制自动获取最新的logger
 }
 
-func NewGormLogger(zapLogger *zap.Logger) *GormLogger {
-	return &GormLogger{Logger: zapLogger}
+// NewGormLogger 创建新的GormLogger，接受Log实例
+func NewGormLogger(log *Log) *GormLogger {
+	return &GormLogger{log: log}
 }
 
+// getLogger 获取最新的zap.Logger实例
+func (l *GormLogger) getLogger() *zap.Logger {
+	if l.log != nil {
+		return l.log.GetLogger()
+	}
+	// 默认返回nop logger避免nil panic
+	return zap.NewNop()
+}
+
+// LogMode 设置日志级别（实现logger.Interface接口）
 func (l *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
-	// Set the log level based on GORM's log level
+	// 为不同日志级别创建新的GormLogger
 	newLogger := *l
 	switch level {
 	case logger.Silent:
-		newLogger.Logger = zap.NewNop()
-	case logger.Error:
-		newLogger.Logger = l.Logger.WithOptions(zap.IncreaseLevel(zap.ErrorLevel))
-	case logger.Warn:
-		newLogger.Logger = l.Logger.WithOptions(zap.IncreaseLevel(zap.WarnLevel))
-	case logger.Info:
-		newLogger.Logger = l.Logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel))
+		// 静默模式下创建一个特殊的Log实例，总是返回nop logger
+		silentLog := &Log{}
+		// 预存储一个nop logger
+		nopLogger := zap.NewNop()
+		silentLog.logger.Store(nopLogger)
+		newLogger.log = silentLog
+	default:
+		// 其他模式保持原样，Log实例内部会处理日志级别的调整
 	}
 	return &newLogger
 }
 
+// Info 记录信息日志（实现logger.Interface接口）
 func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
-	l.Logger.Sugar().Infof(msg, data...)
+	l.getLogger().Sugar().Infof(msg, data...)
 }
 
+// Warn 记录警告日志（实现logger.Interface接口）
 func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
-	l.Logger.Sugar().Warnf(msg, data...)
+	l.getLogger().Sugar().Warnf(msg, data...)
 }
 
+// Error 记录错误日志（实现logger.Interface接口）
 func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
-	l.Logger.Sugar().Errorf(msg, data...)
+	l.getLogger().Sugar().Errorf(msg, data...)
 }
 
+// Trace 记录SQL跟踪日志（实现logger.Interface接口）
 func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	logger := l.getLogger()
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 	if err != nil {
-		l.Logger.Sugar().Errorf("SQL: %s | Elapsed: %s | Rows: %d | Error: %s", sql, elapsed, rows, err)
+		logger.Sugar().Errorf("SQL: %s | Elapsed: %s | Rows: %d | Error: %s", sql, elapsed, rows, err)
 	} else {
-		l.Logger.Sugar().Infof("SQL: %s | Elapsed: %s | Rows: %d", sql, elapsed, rows)
+		logger.Sugar().Infof("SQL: %s | Elapsed: %s | Rows: %d", sql, elapsed, rows)
 	}
 }
 
+// Printf 格式化打印日志（实现logger.Writer接口）
 func (l *GormLogger) Printf(format string, args ...interface{}) {
-	// Use a custom log level based on the log level defined in GORM
+	logger := l.getLogger()
+	// 根据日志内容确定日志级别
 	var logLevel zapcore.Level
 	if strings.Contains(format, "error") {
 		logLevel = zap.ErrorLevel
@@ -71,38 +91,47 @@ func (l *GormLogger) Printf(format string, args ...interface{}) {
 		logLevel = zap.InfoLevel
 	}
 
-	// Format the message using fmt.Sprintf
+	// 格式化消息
 	msg := fmt.Sprintf(format, args...)
 
-	// Log using the appropriate Zap logging function
+	// 使用适当的Zap日志函数记录
 	switch logLevel {
 	case zap.ErrorLevel:
-		l.Logger.Error(msg)
+		logger.Error(msg)
 	case zap.WarnLevel:
-		l.Logger.Warn(msg)
+		logger.Warn(msg)
 	case zap.InfoLevel:
-		l.Logger.Info(msg)
+		logger.Info(msg)
 	case zap.DebugLevel:
-		l.Logger.Debug(msg)
+		logger.Debug(msg)
 	case zap.PanicLevel:
-		l.Logger.Panic(msg)
+		logger.Panic(msg)
 	default:
-		l.Logger.Info(msg)
+		logger.Info(msg)
 	}
 }
 
+// Print 打印日志（实现logger.Writer接口）
 func (l *GormLogger) Print(v ...interface{}) {
+	logger := l.getLogger()
 	if len(v) > 1 {
-		level := v[0]
-		source := v[1]
-		if level == "sql" {
-			l.Logger.Info("SQL",
-				zap.String("Source", utils.ToString(source)),
-			)
+		level, ok1 := v[0].(string)
+		if ok1 && level == "sql" {
+			source := "unknown"
+			if len(v) > 1 {
+				source = utils.ToString(v[1])
+			}
+			logger.Info("SQL", zap.String("Source", source))
+		} else {
+			// 通用打印
+			logger.Info(fmt.Sprint(v...))
 		}
+	} else if len(v) == 1 {
+		logger.Info(fmt.Sprint(v...))
 	}
 }
 
+// Println 打印带换行的日志（实现logger.Writer接口）
 func (l *GormLogger) Println(v ...interface{}) {
 	l.Print(v...)
 }
