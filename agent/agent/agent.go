@@ -200,6 +200,13 @@ func (a *Agent) listenToUnix() {
 	defer func() {
 		global.LOG.Info("Unix listener closing")
 		listener.Close()
+
+		// 只在服务退出时清理 socket 文件
+		global.LOG.Info("Removing existing sock file")
+		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
+		if err := os.Remove(sockFile); err != nil {
+			global.LOG.Error("Failed to remove existing sock file: %v", err)
+		}
 	}()
 
 	for {
@@ -226,13 +233,6 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 		// 断连
 		global.LOG.Info("Close unix conn")
 		conn.Close()
-
-		//删除sock文件
-		global.LOG.Info("Removing existing sock file")
-		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
-		if err := os.Remove(sockFile); err != nil {
-			global.LOG.Error("Failed to remove existing sock file: %v", err)
-		}
 
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in handleUnixConnection: %v", r)
