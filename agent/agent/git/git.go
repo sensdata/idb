@@ -222,6 +222,12 @@ func (s *GitService) GetFileList(repoPath string, relativePath string, extension
 			if path == dirPath {
 				return nil
 			}
+			// 只收集当前层的子目录
+			depth := strings.Count(path, string(os.PathSeparator)) - strings.Count(dirPath, string(os.PathSeparator))
+			if depth > 1 {
+				// 超出当前层级的目录不进入
+				return filepath.SkipDir
+			}
 		} else {
 			// 排除非文件或不符合后缀条件的文件
 			if !info.Mode().IsRegular() || (extension != "" && !isValidExtension(info.Name(), extList)) {
