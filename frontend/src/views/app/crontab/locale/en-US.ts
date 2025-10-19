@@ -8,7 +8,6 @@ export default {
   'app.crontab.enum.periodType.every_n_days': 'Every N Days',
   'app.crontab.enum.periodType.every_n_hours': 'Every N Hours',
   'app.crontab.enum.periodType.every_n_minutes': 'Every N Minutes',
-  'app.crontab.enum.periodType.every_n_seconds': 'Every N Seconds',
   'app.crontab.enum.week.monday': 'Monday',
   'app.crontab.enum.week.tuesday': 'Tuesday',
   'app.crontab.enum.week.wednesday': 'Wednesday',
@@ -26,7 +25,6 @@ export default {
   'app.crontab.period.description.every_n_hours':
     'every {hour} hours at minute {minute}',
   'app.crontab.period.description.every_n_minutes': 'every {minute} minutes',
-  'app.crontab.period.description.every_n_seconds': 'every {second} seconds',
   'app.crontab.period.execution_period': 'Execution Period',
 
   'app.crontab.list.action.create': 'Create',

@@ -8,7 +8,6 @@ export default {
   'app.crontab.enum.periodType.every_n_days': '每隔N天',
   'app.crontab.enum.periodType.every_n_hours': '每隔N小时',
   'app.crontab.enum.periodType.every_n_minutes': '每隔N分钟',
-  'app.crontab.enum.periodType.every_n_seconds': '每隔N秒',
   'app.crontab.enum.week.monday': '周一',
   'app.crontab.enum.week.tuesday': '周二',
   'app.crontab.enum.week.wednesday': '周三',
@@ -25,7 +24,6 @@ export default {
   'app.crontab.period.description.every_n_hours':
     '每 {hour} 小时的 {minute} 分钟',
   'app.crontab.period.description.every_n_minutes': '每 {minute} 分钟',
-  'app.crontab.period.description.every_n_seconds': '每 {second} 秒',
   'app.crontab.period.execution_period': '执行周期',
 
   'app.crontab.list.column.name': '名称',

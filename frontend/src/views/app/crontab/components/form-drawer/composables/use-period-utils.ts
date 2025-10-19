@@ -72,16 +72,6 @@ export const usePeriodUtils = () => {
         hour = '*';
         break;
 
-      case CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS:
-        if (period.second < 60) {
-          minute = '*';
-        } else {
-          const minuteValue = Math.ceil(period.second / 60);
-          minute = `*/${minuteValue}`;
-        }
-        hour = '*';
-        break;
-
       default:
         minute = '*';
         hour = '*';
@@ -165,14 +155,6 @@ export const usePeriodUtils = () => {
           'app.crontab.period.description.every_n_minutes',
           {
             minute: period.minute,
-          }
-        );
-        break;
-      case CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS:
-        readablePeriodDesc = t(
-          'app.crontab.period.description.every_n_seconds',
-          {
-            second: period.second,
           }
         );
         break;

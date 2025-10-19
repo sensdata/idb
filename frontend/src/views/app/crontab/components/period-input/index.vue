@@ -35,7 +35,7 @@
         <template #suffix> {{ $t('common.timeUnit.hour') }} </template>
       </a-input-number>
       <a-input-number
-        v-if="showMinute(localPeriod)"
+        v-if="showMinute()"
         v-model="localPeriod.minute"
         class="period-input"
         :min="0"
@@ -43,16 +43,6 @@
         @change="handlePeriodChange"
       >
         <template #suffix> {{ $t('common.timeUnit.minute') }} </template>
-      </a-input-number>
-      <a-input-number
-        v-if="showSecond(localPeriod)"
-        v-model="localPeriod.second"
-        class="period-input"
-        :min="0"
-        :max="59"
-        @change="handlePeriodChange"
-      >
-        <template #suffix> {{ $t('common.timeUnit.second') }} </template>
       </a-input-number>
     </div>
   </div>
@@ -114,25 +104,14 @@
       ![
         CRONTAB_PERIOD_TYPE.HOURLY,
         CRONTAB_PERIOD_TYPE.EVERY_N_MINUTES,
-        CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS,
       ].includes(updatedPeriod.type) &&
       updatedPeriod.hour === undefined
     ) {
       updatedPeriod.hour = 0;
     }
 
-    if (
-      ![CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS].includes(updatedPeriod.type) &&
-      updatedPeriod.minute === undefined
-    ) {
+    if (updatedPeriod.minute === undefined) {
       updatedPeriod.minute = 0;
-    }
-
-    if (
-      updatedPeriod.type === CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS &&
-      updatedPeriod.second === undefined
-    ) {
-      updatedPeriod.second = 0;
     }
 
     localPeriod.value = updatedPeriod;
@@ -167,10 +146,6 @@
     {
       value: CRONTAB_PERIOD_TYPE.EVERY_N_MINUTES,
       label: t('app.crontab.enum.periodType.every_n_minutes'),
-    },
-    {
-      value: CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS,
-      label: t('app.crontab.enum.periodType.every_n_seconds'),
     },
   ];
 
@@ -219,14 +194,10 @@
     return ![
       CRONTAB_PERIOD_TYPE.HOURLY,
       CRONTAB_PERIOD_TYPE.EVERY_N_MINUTES,
-      CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS,
     ].includes(item.type);
   };
-  const showMinute = (item: PeriodDetailDo) => {
-    return ![CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS].includes(item.type);
-  };
-  const showSecond = (item: PeriodDetailDo) => {
-    return item.type === CRONTAB_PERIOD_TYPE.EVERY_N_SECONDS;
+  const showMinute = () => {
+    return true;
   };
 
   onMounted(() => {
