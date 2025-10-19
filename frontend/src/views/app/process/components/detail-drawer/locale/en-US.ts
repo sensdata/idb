@@ -33,6 +33,7 @@ export default {
   'app.process.detailDrawer.fs.fd': 'File Descriptor',
 
   // Network Information
+  'app.process.detailDrawer.network.protocol': 'Protocol',
   'app.process.detailDrawer.network.localAddress': 'Local Address',
   'app.process.detailDrawer.network.remoteAddress': 'Remote Address',
   'app.process.detailDrawer.network.state': 'Connection State',

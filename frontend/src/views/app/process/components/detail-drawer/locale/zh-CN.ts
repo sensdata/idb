@@ -33,6 +33,7 @@ export default {
   'app.process.detailDrawer.fs.fd': '文件描述符',
 
   // 网络信息
+  'app.process.detailDrawer.network.protocol': '协议',
   'app.process.detailDrawer.network.localAddress': '本地地址',
   'app.process.detailDrawer.network.remoteAddress': '远程地址',
   'app.process.detailDrawer.network.state': '连接状态',

@@ -26,7 +26,7 @@
         <a-tab-pane key="fs" :title="$t('app.process.detailDrawer.fsInfo')">
           <a-table
             :columns="fsColumns"
-            :data="infoRef?.fs"
+            :data="infoRef?.open_files"
             :pagination="false"
             size="small"
           />
@@ -34,7 +34,7 @@
         <a-tab-pane key="env" :title="$t('app.process.detailDrawer.envInfo')">
           <div class="editor-container">
             <CodeEditor
-              :model-value="infoRef?.env || ''"
+              :model-value="(infoRef?.envs || []).join('\n')"
               :file="{ name: 'env', path: '/tmp/env' }"
               :readonly="true"
             />
@@ -46,7 +46,7 @@
         >
           <a-table
             :columns="networkColumns"
-            :data="infoRef?.network"
+            :data="infoRef?.net_conns"
             :pagination="false"
             size="small"
           />
@@ -60,6 +60,7 @@
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
+  import { formatTime } from '@/utils/format';
   import { getProcessDetailApi } from '@/api/process';
   import CodeEditor from '@/components/code-editor/index.vue';
 
@@ -70,57 +71,62 @@
 
   const baseData = computed(() => {
     const info = infoRef.value;
-    if (!info) {
+    if (!info || !info.basic) {
       return [];
     }
 
+    const basic = info.basic;
     return [
       {
         label: t('app.process.detailDrawer.name'),
-        value: info.name,
+        value: basic.name,
       },
       {
         label: t('app.process.detailDrawer.status'),
-        value: info.status,
+        value: basic.status,
       },
       {
         label: t('app.process.detailDrawer.pid'),
-        value: info.pid,
+        value: basic.pid,
       },
       {
         label: t('app.process.detailDrawer.pppid'),
-        value: info.pppid,
+        value: basic.ppid,
       },
       {
         label: t('app.process.detailDrawer.threads'),
-        value: info.threads,
+        value: basic.threads,
       },
       {
         label: t('app.process.detailDrawer.connections'),
-        value: info.connections,
+        value: basic.connections,
       },
       {
         label: t('app.process.detailDrawer.diskRead'),
-        value: info.disk_read,
+        value: `${(basic.disk_read / 1024 / 1024).toFixed(2)} MB`,
       },
       {
         label: t('app.process.detailDrawer.diskWrite'),
-        value: info.disk_write,
+        value: `${(basic.disk_write / 1024 / 1024).toFixed(2)} MB`,
       },
       {
         label: t('app.process.detailDrawer.user'),
-        value: info.user,
+        value: basic.user,
       },
       {
         label: t('app.process.detailDrawer.startTime'),
-        value: info.start_time,
+        value: formatTime(basic.create_time * 1000),
       },
       {
         label: t('app.process.detailDrawer.startCommand'),
-        value: info.start_command,
+        value: basic.cmdline,
       },
     ];
   });
+
+  const formatBytes = (bytes: number) => {
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  };
 
   const memoryData = computed(() => {
     const memory = infoRef.value?.memory;
@@ -131,61 +137,65 @@
     return [
       {
         label: t('app.process.detailDrawer.rss'),
-        value: memory.rss,
+        value: formatBytes(memory.rss),
       },
       {
         label: t('app.process.detailDrawer.swap'),
-        value: memory.swap,
+        value: formatBytes(memory.swap),
       },
       {
         label: t('app.process.detailDrawer.vms'),
-        value: memory.vms,
+        value: formatBytes(memory.vms),
       },
       {
         label: t('app.process.detailDrawer.hwm'),
-        value: memory.hwm,
+        value: formatBytes(memory.hwm),
       },
       {
         label: t('app.process.detailDrawer.data'),
-        value: memory.data,
+        value: formatBytes(memory.data),
       },
       {
         label: t('app.process.detailDrawer.stack'),
-        value: memory.stack,
+        value: formatBytes(memory.stack),
       },
       {
         label: t('app.process.detailDrawer.locked'),
-        value: memory.locked,
+        value: formatBytes(memory.locked),
       },
     ];
   });
 
   const fsColumns = [
     {
-      dataIndex: 'file',
+      dataIndex: 'path',
       title: t('app.process.detailDrawer.fs.file'),
-      width: 500,
-    },
-    {
-      dataIndex: 'fd',
-      title: t('app.process.detailDrawer.fs.fd'),
-      width: 100,
+      width: 600,
     },
   ];
 
   const networkColumns = [
     {
-      dataIndex: 'localAddres',
+      dataIndex: 'protocol',
+      title: t('app.process.detailDrawer.network.protocol'),
+      width: 80,
+    },
+    {
+      dataIndex: 'local_addr',
       title: t('app.process.detailDrawer.network.localAddress'),
-      width: 250,
+      width: 150,
+      render: ({ record }: { record: any }) =>
+        `${record.local_addr}:${record.local_port}`,
     },
     {
-      dataIndex: 'remoteAddress',
+      dataIndex: 'remote_addr',
       title: t('app.process.detailDrawer.network.remoteAddress'),
-      width: 250,
+      width: 150,
+      render: ({ record }: { record: any }) =>
+        `${record.remote_addr}:${record.remote_port}`,
     },
     {
-      dataIndex: 'state',
+      dataIndex: 'status',
       title: t('app.process.detailDrawer.network.state'),
       width: 100,
     },

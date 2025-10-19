@@ -5,6 +5,7 @@
     :loading="loading"
     :columns="columns"
     :fetch="getProcessListApi"
+    :has-search="true"
   >
     <template #operation="{ record }: { record: any }">
       <idb-table-operation
@@ -50,22 +51,18 @@
       width: 100,
     },
     {
-      title: t('app.process.list.columns.status'),
-      dataIndex: 'status',
-      width: 100,
-    },
-    {
       title: t('app.process.list.columns.cpu'),
-      dataIndex: 'cpu',
+      dataIndex: 'cpu_percent',
       width: 100,
-      render: ({ record }: { record: any }) => `${record.cpu}%`,
+      render: ({ record }: { record: any }) =>
+        `${record.cpu_percent.toFixed(2)}%`,
     },
     {
       title: t('app.process.list.columns.memory'),
-      dataIndex: 'memory',
+      dataIndex: 'mem_rss',
       width: 120,
       render: ({ record }: { record: any }) =>
-        `${(record.memory / 1024 / 1024).toFixed(2)} MB`,
+        `${(record.mem_rss / 1024 / 1024).toFixed(2)} MB`,
     },
     {
       title: t('app.process.list.columns.user'),
@@ -79,9 +76,10 @@
     },
     {
       title: t('app.process.list.columns.startTime'),
-      dataIndex: 'startTime',
+      dataIndex: 'create_time',
       width: 180,
-      render: ({ record }: { record: any }) => formatTime(record.startTime),
+      render: ({ record }: { record: any }) =>
+        formatTime(record.create_time * 1000),
     },
     {
       title: t('common.table.operation'),
