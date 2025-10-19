@@ -101,7 +101,7 @@ export interface ActionCrontabParams {
 }
 
 export function actionCrontabApi(params: ActionCrontabParams) {
-  return request.post('crontab/{host}/action', params);
+  return request.post('crontab/{host}/activate', params);
 }
 
 export interface CrontabRunRecordsApiParams extends ApiListParams {

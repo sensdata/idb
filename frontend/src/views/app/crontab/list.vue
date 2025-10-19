@@ -36,20 +36,23 @@
         </template>
         <template #status="{ record }: { record: CrontabEntity }">
           <div class="status-cell">
-            <a-tag
-              :color="
-                record.linked
-                  ? 'rgb(var(--success-6))'
-                  : 'rgb(var(--color-text-4))'
-              "
+            <span
+              v-if="record.linked === true"
               class="status-tag"
+              style="color: rgb(var(--success-6))"
             >
-              {{
-                record.linked
-                  ? $t('app.crontab.list.status.running')
-                  : $t('app.crontab.list.status.not_running')
-              }}
-            </a-tag>
+              生效中
+            </span>
+            <span
+              v-else-if="record.linked === false"
+              class="status-tag"
+              style="color: rgb(var(--color-text-4))"
+            >
+              未激活
+            </span>
+            <span v-else class="status-tag">
+              {{ record.linked }}
+            </span>
           </div>
         </template>
         <template #operation="{ record }: { record: CrontabEntity }">
@@ -429,7 +432,6 @@
     record: CrontabEntity,
     action: 'activate' | 'deactivate'
   ) => {
-    setLoading(true);
     try {
       await actionCrontabApi({
         type: params.value.type,
@@ -443,15 +445,19 @@
           ? 'app.crontab.list.message.activate_success'
           : 'app.crontab.list.message.deactivate_success';
       Message.success(t(messageKey));
-      reload();
+      // 等待一小段时间后再刷新，确保后端状态已更新
+      // eslint-disable-next-line no-promise-executor-return
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 刷新表格数据
+      if (gridRef.value) {
+        await gridRef.value.load();
+      }
     } catch (err) {
       if (err instanceof Error) {
         Message.error(err.message);
       } else {
         Message.error(String(err));
       }
-    } finally {
-      setLoading(false);
     }
   };
 
