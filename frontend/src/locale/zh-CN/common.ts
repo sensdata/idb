@@ -54,6 +54,8 @@ export default {
   'common.message.operationError': '操作失败',
   'common.message.deleteSuccess': '删除成功',
   'common.message.deleteError': '删除失败',
+  'common.message.copy_success': '复制成功',
+  'common.message.copy_failed': '复制失败',
   'common.host_id_required': '主机ID是必需的',
   'common.error.noHostSelected': '请选择主机',
   'common.error.unknown': '未知错误',

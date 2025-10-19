@@ -82,6 +82,7 @@
   import useLoading from '@/composables/loading';
   import { useConfirm } from '@/composables/confirm';
   import usetCurrentHost from '@/composables/current-host';
+  import { useClipboard } from '@/composables/use-clipboard';
   import AppSidebarLayout from '@/components/app-sidebar-layout/index.vue';
   import LogsViewModal from '@/components/logs-view/modal.vue';
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
@@ -99,6 +100,7 @@
 
   const { t } = useI18n();
   const { currentHostId } = usetCurrentHost();
+  const { copyText } = useClipboard();
 
   // Category data state
   const categoryNames = ref<string[]>([]);
@@ -266,6 +268,15 @@
     });
   };
 
+  const handleCopyPath = async (record: ScriptEntity) => {
+    try {
+      await copyText(record.source);
+      Message.success(t('common.message.copy_success'));
+    } catch (error) {
+      Message.error(t('common.message.copy_failed'));
+    }
+  };
+
   const handleDelete = async (record: ScriptEntity) => {
     if (
       await confirm({
@@ -301,6 +312,10 @@
     {
       text: t('app.script.list.operation.log'),
       click: () => handleLog(record),
+    },
+    {
+      text: t('app.script.list.operation.copy_path'),
+      click: () => handleCopyPath(record),
     },
     {
       text: t('common.delete'),

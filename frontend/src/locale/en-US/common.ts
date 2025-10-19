@@ -49,6 +49,8 @@ export default {
 
   'common.message.saveSuccess': 'handle success',
   'common.message.saveError': 'handle failed',
+  'common.message.copy_success': 'Copy successful',
+  'common.message.copy_failed': 'Copy failed',
   'common.host_id_required': 'Host ID is required',
   'common.error.noHostSelected': 'Please select a host',
   'common.error.unknown': 'Unknown error',

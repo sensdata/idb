@@ -17,6 +17,7 @@ export default {
   'app.script.list.operation.view_history': 'View',
   'app.script.list.operation.run': 'Run',
   'app.script.list.operation.log': 'Execution Records',
+  'app.script.list.operation.copy_path': 'Copy Path',
 
   'app.script.list.delete.confirm':
     'Are you sure you want to delete the script {name}?',
