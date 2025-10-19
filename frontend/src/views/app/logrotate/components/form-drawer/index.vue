@@ -320,16 +320,13 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    height: 100%;
+    min-height: 0;
   }
 
   .form-drawer :deep(.arco-tabs-content) {
     flex: 1;
-    height: 100%;
-  }
-
-  .form-drawer :deep(.arco-tabs-pane) {
-    height: 100%;
+    min-height: 0;
+    overflow: hidden auto;
   }
 
   .drawer-footer {
