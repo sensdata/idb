@@ -1,5 +1,5 @@
 # ---------- 构建 frontend ---------- #
-FROM node:22 AS frontend-builder
+FROM node:22-bookworm AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
