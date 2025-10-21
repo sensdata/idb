@@ -83,7 +83,7 @@ type IAgent interface {
 func NewAgent() IAgent {
 	return &Agent{
 		done:      make(chan struct{}),
-		resetConn: make(chan struct{}, 3),
+		resetConn: make(chan struct{}, 1),
 		// sessionMap:     make(map[string]*session.Session),
 		sessionManager: terminal.NewManager(),
 		readers:        make(map[string]reader.Reader),
@@ -421,6 +421,12 @@ func (a *Agent) listenToTcp() {
 				continue
 			}
 
+			// 清空旧 reset 信号
+			select {
+			case <-a.resetConn:
+			default:
+			}
+
 			// 记录 center 连接
 			a.centerMu.Lock()
 			a.centerConn = conn
@@ -473,8 +479,8 @@ func (a *Agent) handleConnection(conn net.Conn) {
 				// if err != io.EOF {
 				// 	global.LOG.Error("Error read from conn: %v", err)
 				// }
-				go a.resetConnection()
-				continue
+				a.resetConnection()
+				return
 			}
 			// 将数据拼接到缓存区
 			dataBuffer = append(dataBuffer, tmpBuffer[:n]...)
@@ -489,8 +495,8 @@ func (a *Agent) handleConnection(conn net.Conn) {
 
 				// 错误，重试重连
 				global.LOG.Error("Error extract complete message: %v", err)
-				go a.resetConnection()
-				continue
+				a.resetConnection()
+				return
 			}
 
 			// 处理解析后的消息
@@ -526,7 +532,12 @@ func (a *Agent) getCenterConn() net.Conn {
 }
 
 func (a *Agent) resetConnection() {
-	a.resetConn <- struct{}{}
+	select {
+	case a.resetConn <- struct{}{}:
+		global.LOG.Info("Trigger reset connection")
+	default:
+		global.LOG.Warn("Reset signal already pending")
+	}
 }
 
 // 检查缓存的证书
