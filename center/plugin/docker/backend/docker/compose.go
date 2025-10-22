@@ -310,8 +310,8 @@ func (s *DockerMan) followComposeLogs(c *gin.Context) error {
 	}
 
 	follow := "follow"
-	offset := 0
-	whence := 0
+	offset := 100
+	whence := 10
 
 	// 找host
 	hostRepo := repo.NewHostRepo()
