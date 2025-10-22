@@ -107,6 +107,9 @@ func (r *ServiceLogReader) Follow(offset int64, whence int) (<-chan []byte, erro
 				default:
 					// 丢弃
 				}
+			} else {
+				// 若没有读取到任何内容，稍微休眠防止空转
+				time.Sleep(10 * time.Millisecond)
 			}
 			if err != nil {
 				if err == io.EOF {
@@ -114,7 +117,6 @@ func (r *ServiceLogReader) Follow(offset int64, whence int) (<-chan []byte, erro
 				}
 				return
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 	return ch, nil
