@@ -108,8 +108,17 @@ func (r *ContainerLogReader) Follow(offset int64, whence int) (<-chan []byte, er
 
 	ch := make(chan []byte, 100)
 	go func() {
-		defer close(ch)
+		var closeReason string
+
 		defer func() {
+			// 关闭 channel 之前发送结束消息
+			endMsg := fmt.Sprintf("[LOG STREAM CLOSED] container=%s reason=%s\n", r.container, closeReason)
+			select {
+			case ch <- []byte(endMsg):
+			default:
+			}
+			close(ch)
+
 			r.mu.Lock()
 			r.closed = true
 			r.mu.Unlock()
@@ -118,6 +127,7 @@ func (r *ContainerLogReader) Follow(offset int64, whence int) (<-chan []byte, er
 			}
 		}()
 		reader := bufio.NewReader(stdout)
+
 		for {
 			line, err := reader.ReadBytes('\n')
 			if len(line) > 0 {
@@ -132,7 +142,14 @@ func (r *ContainerLogReader) Follow(offset int64, whence int) (<-chan []byte, er
 			}
 			if err != nil {
 				if err == io.EOF {
-					return
+					closeReason = "EOF"
+					fmt.Printf("[DEBUG] EOF reached for container=%s\n", r.container)
+				} else if strings.Contains(err.Error(), "file already closed") {
+					closeReason = "stdout closed"
+					fmt.Printf("[DEBUG] stdout closed for container=%s\n", r.container)
+				} else {
+					closeReason = fmt.Sprintf("read error: %v", err)
+					fmt.Printf("[DEBUG] read error for container=%s: %v\n", r.container, err)
 				}
 				return
 			}

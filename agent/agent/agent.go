@@ -1070,7 +1070,20 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			return
 		case <-done:
 			return
-		case data := <-bufferCh:
+		case data, ok := <-bufferCh:
+			if !ok {
+				global.LOG.Warn("buffer channel closed for %s", logPath)
+				return
+			}
+
+			text := string(data)
+
+			// 检测结束信号
+			if strings.HasPrefix(text, "[LOG STREAM CLOSED]") {
+				global.LOG.Warn("log stream closed for %s: %s", logPath, strings.TrimSpace(text))
+				return
+			}
+
 			// 发送日志到 center
 			if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamData, string(data), ""); err != nil {
 				global.LOG.Error("send log stream result failed, finish follow log stream")
