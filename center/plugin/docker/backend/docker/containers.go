@@ -593,7 +593,7 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	var offset int64
 	tail, err := strconv.ParseUint(c.Query("tail"), 10, 32)
 	if err != nil {
-		offset = 0
+		offset = 100
 	} else {
 		offset = int64(tail)
 	}
