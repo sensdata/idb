@@ -110,6 +110,7 @@
     restartHostAgentApi,
     getHostAgentStatusApi,
     connectHostStatusFollowApi,
+    connectHostAgentStatusFollowApi,
     activateHostApi,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
@@ -202,6 +203,7 @@
   const dataRef = ref<ApiListResult<HostItem>>();
   const isLoading = ref(false);
   const sseMap = ref<Map<number, EventSource>>(new Map());
+  const agentStatusSseMap = ref<Map<number, EventSource>>(new Map());
 
   const fetchListStatus = async () => {
     if (!dataRef.value?.items || isLoading.value) {
@@ -230,10 +232,7 @@
               item.tx = statusData.tx;
               item.statusReady = true;
 
-              // 成功获取数据意味着代理在线
-              if (item.agent_status) {
-                item.agent_status.connected = 'online';
-              }
+              // 不覆盖接口返回的 connected 状态，保留原始值
             }
           } catch (error) {
             console.error('获取节点状态数据失败', item.id);
@@ -409,59 +408,94 @@
       es.close();
     }
     sseMap.value = new Map();
+
+    for (const es of agentStatusSseMap.value.values()) {
+      es.close();
+    }
+    agentStatusSseMap.value = new Map();
   };
 
   onUnmounted(() => {
     stopAllSSE();
   });
 
+  const handleHostStatusUpdate = (item: HostItem, event: Event) => {
+    try {
+      const statusData = JSON.parse((event as MessageEvent).data);
+      item.activated = statusData.activated;
+      item.cpu = statusData.cpu;
+      item.disk = statusData.disk;
+      item.mem = statusData.mem;
+      item.mem_total = statusData.mem_total;
+      item.mem_used = statusData.mem_used;
+      item.rx = statusData.rx;
+      item.tx = statusData.tx;
+      item.statusReady = true;
+      tableRef.value?.setData(dataRef.value);
+    } catch (e) {
+      console.error('Failed to parse host status:', e);
+    }
+  };
+
+  const handleAgentStatusUpdate = (item: HostItem, event: Event) => {
+    try {
+      const agentStatus = JSON.parse((event as MessageEvent).data);
+      if (item.agent_status) {
+        item.agent_status.status = agentStatus.status;
+        item.agent_status.connected = agentStatus.connected;
+      }
+      tableRef.value?.setData(dataRef.value);
+    } catch (e) {
+      console.error('Failed to parse agent status:', e);
+    }
+  };
+
+  const handleSSEError = (item: HostItem) => {
+    if (item.agent_status) {
+      item.agent_status.connected = 'offline';
+    }
+  };
+
+  const cleanupSSEConnections = (sseMap: Map<number, EventSource>) => {
+    for (const id of sseMap.keys()) {
+      if (!dataRef.value?.items?.find((item) => item.id === id)) {
+        sseMap.get(id)?.close();
+        sseMap.delete(id);
+      }
+    }
+  };
+
   const startSSEForHosts = () => {
     if (!dataRef.value?.items) {
       return;
     }
+
     dataRef.value.items.forEach((item) => {
-      if (
-        item.agent_status?.status === 'installed' &&
-        !sseMap.value.has(item.id)
-      ) {
+      const isInstalled = item.agent_status?.status === 'installed';
+
+      // 建立主机监控数据 SSE 连接
+      if (isInstalled && !sseMap.value.has(item.id)) {
         const es = connectHostStatusFollowApi(item.id);
-        es.addEventListener('status', (event) => {
-          try {
-            const statusData = JSON.parse(event.data);
-            item.activated = statusData.activated;
-            item.cpu = statusData.cpu;
-            item.disk = statusData.disk;
-            item.mem = statusData.mem;
-            item.mem_total = statusData.mem_total;
-            item.mem_used = statusData.mem_used;
-            item.rx = statusData.rx;
-            item.tx = statusData.tx;
-            item.statusReady = true;
-            if (item.agent_status) {
-              item.agent_status.connected = 'online';
-            }
-            if (tableRef.value) {
-              tableRef.value.setData(dataRef.value);
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        });
-        es.onerror = () => {
-          if (item.agent_status) {
-            item.agent_status.connected = 'offline';
-          }
-        };
+        es.addEventListener('status', (event) =>
+          handleHostStatusUpdate(item, event)
+        );
+        es.onerror = () => handleSSEError(item);
         sseMap.value.set(item.id, es);
+      }
+
+      // 建立 agent 状态 SSE 连接
+      if (isInstalled && !agentStatusSseMap.value.has(item.id)) {
+        const agentStatusEs = connectHostAgentStatusFollowApi(item.id);
+        agentStatusEs.addEventListener('status', (event) =>
+          handleAgentStatusUpdate(item, event)
+        );
+        agentStatusEs.onerror = () => handleSSEError(item);
+        agentStatusSseMap.value.set(item.id, agentStatusEs);
       }
     });
 
-    for (const id of sseMap.value.keys()) {
-      if (!dataRef.value?.items?.find((item) => item.id === id)) {
-        sseMap.value.get(id)?.close();
-        sseMap.value.delete(id);
-      }
-    }
+    cleanupSSEConnections(sseMap.value);
+    cleanupSSEConnections(agentStatusSseMap.value);
   };
 
   const afterFetchHook = async (data: ApiListResult<HostItem>) => {
