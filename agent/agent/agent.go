@@ -1337,6 +1337,18 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+		// 获取硬件信息
+	case model.Sysinfo_Hardware:
+		hardware, err := action.GetHardware()
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(hardware)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 		// 进程列表
 	case model.PS_List:
 		var req model.ProcessListRequest

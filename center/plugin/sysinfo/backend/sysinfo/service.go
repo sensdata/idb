@@ -303,10 +303,6 @@ func (s *SysInfo) GetHardware(c *gin.Context) {
 	helper.SuccessWithData(c, hardware)
 }
 
-func (s *SysInfo) getHardware(_ uint) (model.HardwareInfo, error) {
-	return model.HardwareInfo{}, nil
-}
-
 // @Tags Sysinfo
 // @Summary Get system settings
 // @Description Get system settings of the specified host

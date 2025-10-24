@@ -21,6 +21,7 @@ const (
 	Sysinfo_Update_Host_Name string = "sysinfo_update_host_name"
 	Sysinfo_Get_Sys_Setting  string = "sysinfo_get_sys_setting"
 	Sysinfo_Upd_Sys_Setting  string = "sysinfo_upd_sys_setting"
+	Sysinfo_Hardware         string = "sysinfo_hardware"
 
 	PS_List   string = "ps_list"
 	PS_Detail string = "ps_detail"
