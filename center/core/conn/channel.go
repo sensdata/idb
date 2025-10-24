@@ -293,7 +293,7 @@ func (c *Center) ensureConnections() {
 }
 
 func (c *Center) updateHostStatus() {
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(time.Second * 4)
 	defer ticker.Stop()
 
 	for {
@@ -1206,7 +1206,7 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 			return nil, err
 		}
 		return &action, nil
-	case <-time.After(10 * time.Second): // 设置一个超时时间
+	case <-time.After(2 * time.Second): // 设置一个超时时间
 		c.mu.Lock()
 		delete(c.responseChMap, msgID)
 		c.mu.Unlock()
