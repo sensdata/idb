@@ -457,6 +457,12 @@ func (c *Center) checkLicense(host *model.Host, timestamp string) error {
 		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
 	}
 
+	// 如果还没有license, 则不检查
+	if fingerprint.License == "" {
+		global.LOG.Info("host %d - %s not get license", host.ID, host.Addr)
+		return nil
+	}
+
 	// 使用auth插件验证
 	auth, err := getAuthPlugin()
 	if err != nil {
