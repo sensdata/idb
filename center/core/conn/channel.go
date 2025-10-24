@@ -87,6 +87,9 @@ func (c *Center) Start() error {
 	// 更新状态
 	go c.updateHostStatus()
 
+	// 更新agent状态
+	go c.updateAgentStatus()
+
 	return nil
 }
 
@@ -317,6 +320,48 @@ func (c *Center) updateHostStatus() {
 					// 找到conn的，更新状态
 					go c.getHostStatus(&host)
 				}
+			}
+		}
+	}
+}
+
+func (c *Center) updateAgentStatus() {
+	ticker := time.NewTicker(time.Second * 4)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			global.LOG.Info("Stop updating agent status")
+			return
+		case <-ticker.C:
+			//获取所有的host
+			hosts, err := HostRepo.GetList()
+			if err != nil {
+				global.LOG.Error("Failed to get host list: %v", err)
+				continue
+			}
+
+			// 检查连接
+			for _, host := range hosts {
+				status := core.AgentStatus{
+					Status:    "unknown",
+					Connected: "unknown",
+				}
+
+				// 检查连接状态
+				if c.IsAgentConnected(host) {
+					status.Connected = "online"
+					status.Status = "installed"
+				} else {
+					status.Connected = "offline"
+
+					// 检查安装状态
+					installed, _ := SSH.AgentInstalled(host)
+					status.Status = installed
+				}
+
+				global.SetAgentStatus(host.ID, &status)
 			}
 		}
 	}

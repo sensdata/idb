@@ -32,13 +32,9 @@ var (
 
 	// HostStatusCache 用于缓存host的状态信息
 	HostStatusCache sync.Map
+	// AgentStatusCache 用于缓存agent的状态信息
+	AgentStatusCache sync.Map
 )
-
-// InitHostStatusCache 初始化host状态缓存
-// sync.Map不需要额外初始化
-func InitHostStatusCache() {
-	// sync.Map 会在第一次使用时自动初始化
-}
 
 // GetHostStatus 获取指定host的状态
 func GetHostStatus(hostID uint) *model.HostStatus {
@@ -63,6 +59,30 @@ func GetAllHostStatus() map[uint]*model.HostStatus {
 	result := make(map[uint]*model.HostStatus)
 	HostStatusCache.Range(func(key, value interface{}) bool {
 		result[key.(uint)] = value.(*model.HostStatus)
+		return true
+	})
+	return result
+}
+
+func GetAgentStatus(hostID uint) *model.AgentStatus {
+	if val, ok := AgentStatusCache.Load(hostID); ok {
+		return val.(*model.AgentStatus)
+	}
+	return nil
+}
+
+func SetAgentStatus(hostID uint, status *model.AgentStatus) {
+	AgentStatusCache.Store(hostID, status)
+}
+
+func DeleteAgentStatus(hostID uint) {
+	AgentStatusCache.Delete(hostID)
+}
+
+func GetAllAgentStatus() map[uint]*model.AgentStatus {
+	result := make(map[uint]*model.AgentStatus)
+	AgentStatusCache.Range(func(key, value interface{}) bool {
+		result[key.(uint)] = value.(*model.AgentStatus)
 		return true
 	})
 	return result

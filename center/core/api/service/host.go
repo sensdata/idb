@@ -130,7 +130,13 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		}
 
 		// 查询状态
-		status, _ := s.getAgentStatus(host.ID)
+		var agentStatus = global.GetAgentStatus(host.ID)
+		if agentStatus == nil {
+			agentStatus = &core.AgentStatus{
+				Status:    "unknown",
+				Connected: "unknown",
+			}
+		}
 
 		hostsInfos = append(
 			hostsInfos,
@@ -152,7 +158,7 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 				AgentKey:     host.AgentKey,
 				AgentMode:    host.AgentMode,
 				AgentVersion: host.AgentVersion,
-				AgentStatus:  *status,
+				AgentStatus:  *agentStatus,
 				AgentLatest:  latestVersion,
 			},
 		)
@@ -261,7 +267,13 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	}
 
 	// 查询状态
-	status, _ := s.getAgentStatus(host.ID)
+	var agentStatus = global.GetAgentStatus(host.ID)
+	if agentStatus == nil {
+		agentStatus = &core.AgentStatus{
+			Status:    "unknown",
+			Connected: "unknown",
+		}
+	}
 
 	return &core.HostInfo{
 		ID:           host.ID,
@@ -281,7 +293,7 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 		AgentKey:     host.AgentKey,
 		AgentMode:    host.AgentMode,
 		AgentVersion: host.AgentVersion,
-		AgentStatus:  *status,
+		AgentStatus:  *agentStatus,
 	}, nil
 }
 
@@ -477,7 +489,14 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
-	return s.getAgentStatus(id)
+	agentStatus := global.GetAgentStatus(id)
+	if agentStatus == nil {
+		return &core.AgentStatus{
+			Status:    "unknown",
+			Connected: "unknown",
+		}, nil
+	}
+	return agentStatus, nil
 }
 
 func (s *HostService) AgentStatusFollow(c *gin.Context) error {
@@ -511,7 +530,7 @@ func (s *HostService) AgentStatusFollow(c *gin.Context) error {
 			global.LOG.Info("SSE DONE")
 			return nil
 		default:
-			status, err := s.getAgentStatus(uint(hostID))
+			status, err := s.AgentStatus(uint(hostID))
 			if err != nil {
 				global.LOG.Error("get agent status failed: %v", err)
 				c.SSEvent("error", err.Error())
@@ -528,34 +547,6 @@ func (s *HostService) AgentStatusFollow(c *gin.Context) error {
 		}
 		time.Sleep(1 * time.Second)
 	}
-}
-
-func (s *HostService) getAgentStatus(id uint) (*core.AgentStatus, error) {
-	status := core.AgentStatus{
-		Status:    "unknown",
-		Connected: "unknown",
-	}
-
-	// 找host
-	host, err := HostRepo.Get(HostRepo.WithByID(id))
-	if err != nil {
-		return &status, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
-	}
-
-	// 查询连接状态
-	if conn.CENTER.IsAgentConnected(host) {
-		status.Connected = "online"
-		status.Status = "installed"
-
-		return &status, nil
-	}
-	status.Connected = "offline"
-
-	// 查询安装状态
-	installed, _ := conn.SSH.AgentInstalled(host)
-	status.Status = installed
-
-	return &status, nil
 }
 
 func (s *HostService) RestartAgent(id uint) error {
