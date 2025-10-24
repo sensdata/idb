@@ -20,13 +20,13 @@ export default {
   'manage.host.list.operation.sshTerminal': 'SSH Terminal',
   'manage.host.list.operation.installAgent': 'Install Agent',
   'manage.host.list.operation.uninstallAgent': 'Uninstall Agent',
-  'manage.host.list.operation.restart': 'Restart',
+  'manage.host.list.operation.restart': 'Restart Agent',
   'manage.host.list.operation.delete': 'Delete',
   'manage.host.list.operation.updateSSH': 'SSH Config',
   'manage.host.list.operation.activate': 'Activate',
   'manage.host.list.restart.confirm':
-    'Are you sure to restart the selected host?',
-  'manage.host.list.restart.success': 'Restart successfully',
+    'Are you sure to restart the agent of the current host?',
+  'manage.host.list.restart.success': 'Agent restarted successfully',
   'manage.host.list.delete.confirm':
     'Are you sure to delete the selected host?',
   'manage.host.list.delete.success': 'Delete successfully',

@@ -117,6 +117,11 @@ export const getHostAgentStatusApi = (
   return request.get(`hosts/${hostId}/agent/status`);
 };
 
+export function connectHostAgentStatusFollowApi(hostId: number): EventSource {
+  const url = resolveApiUrl(`hosts/${hostId}/agent/status/follow`);
+  return new EventSource(url);
+}
+
 export const restartHostAgentApi = (hostId: number): Promise<void> => {
   return request.post(`hosts/${hostId}/agent/restart`);
 };
