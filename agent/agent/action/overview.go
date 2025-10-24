@@ -70,11 +70,23 @@ func GetOverview() (*model.Overview, error) {
 	overview.BootTime = utils.FormatTime(int64(info.BootTime))
 	overview.RunTime = int64(info.Uptime)
 
-	times, _ := cpu.Times(false)
-	if len(times) > 0 {
-		t := times[0]
-		overview.IdleTime = int64(t.Idle)
-		overview.IdleRate = math.Round(t.Idle/(t.User+t.System+t.Idle+t.Nice+t.Iowait+t.Irq+t.Softirq+t.Steal)*100*100) / 100
+	timesList, err := cpu.Times(true) // true 表示返回每个CPU核心的统计
+	if err == nil && len(timesList) > 0 {
+		var totalIdle, totalTotal float64
+		for _, t := range timesList {
+			totalIdle += t.Idle
+			totalTotal += t.User + t.System + t.Idle + t.Nice +
+				t.Iowait + t.Irq + t.Softirq + t.Steal
+		}
+
+		// 平均每核空闲时间
+		avgIdle := totalIdle / float64(len(timesList))
+
+		// 平均空闲率
+		idleRate := (totalIdle / totalTotal) * 100
+
+		overview.IdleTime = int64(math.Round(avgIdle))
+		overview.IdleRate = math.Round(idleRate*100) / 100
 	}
 
 	percents, _ := cpu.Percent(0, false)
