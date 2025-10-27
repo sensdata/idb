@@ -130,12 +130,17 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 		}
 
 		// 查询状态
-		var agentStatus = global.GetAgentStatus(host.ID)
-		if agentStatus == nil {
-			agentStatus = &core.AgentStatus{
-				Status:    "unknown",
-				Connected: "unknown",
-			}
+		agentStatus := &core.AgentStatus{
+			Status:    "unknown",
+			Connected: "unknown",
+		}
+		installed := global.GetInstalledStatus(host.ID)
+		if installed == nil {
+			agentStatus.Status = *installed
+		}
+		hostStatus := global.GetHostStatus(host.ID)
+		if hostStatus != nil {
+			agentStatus.Connected = hostStatus.Connected
 		}
 
 		hostsInfos = append(
@@ -205,6 +210,11 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
 	}
 
+	// 添加默认的host状态
+	global.SetHostStatus(host.ID, core.NewHostStatusInfo())
+	installed := "not installed"
+	global.SetInstalledStatus(host.ID, &installed)
+
 	return &core.HostInfo{
 		ID:           host.ID,
 		CreatedAt:    host.CreatedAt,
@@ -248,6 +258,11 @@ func (s *HostService) Delete(id uint) error {
 		global.LOG.Error("failed to release agent conn: %v", err)
 	}
 
+	// 删除host状态
+	global.DeleteHostStatus(host.ID)
+	// 删除安装状态
+	global.DeleteInstalledStatus(host.ID)
+
 	return HostRepo.Delete(CommonRepo.WithIdsIn([]uint{host.ID}))
 }
 
@@ -267,12 +282,17 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	}
 
 	// 查询状态
-	var agentStatus = global.GetAgentStatus(host.ID)
-	if agentStatus == nil {
-		agentStatus = &core.AgentStatus{
-			Status:    "unknown",
-			Connected: "unknown",
-		}
+	agentStatus := &core.AgentStatus{
+		Status:    "unknown",
+		Connected: "unknown",
+	}
+	installed := global.GetInstalledStatus(host.ID)
+	if installed == nil {
+		agentStatus.Status = *installed
+	}
+	hostStatus := global.GetHostStatus(host.ID)
+	if hostStatus != nil {
+		agentStatus.Connected = hostStatus.Connected
 	}
 
 	return &core.HostInfo{
@@ -302,7 +322,16 @@ func (s *HostService) Status(id uint) (*core.HostStatus, error) {
 	if hostStatus == nil {
 		return &core.HostStatus{}, nil
 	}
-	return hostStatus, nil
+	return &core.HostStatus{
+		Cpu:       hostStatus.Cpu,
+		Memory:    hostStatus.Memory,
+		MemTotal:  hostStatus.MemTotal,
+		MemUsed:   hostStatus.MemUsed,
+		Disk:      hostStatus.Disk,
+		Rx:        hostStatus.Rx,
+		Tx:        hostStatus.Tx,
+		Activated: hostStatus.Activated,
+	}, nil
 }
 
 func (s *HostService) StatusFollow(c *gin.Context) error {
@@ -489,12 +518,17 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 }
 
 func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
-	agentStatus := global.GetAgentStatus(id)
-	if agentStatus == nil {
-		return &core.AgentStatus{
-			Status:    "unknown",
-			Connected: "unknown",
-		}, nil
+	agentStatus := &core.AgentStatus{
+		Status:    "unknown",
+		Connected: "unknown",
+	}
+	installed := global.GetInstalledStatus(id)
+	if installed == nil {
+		agentStatus.Status = *installed
+	}
+	hostStatus := global.GetHostStatus(id)
+	if hostStatus != nil {
+		agentStatus.Connected = hostStatus.Connected
 	}
 	return agentStatus, nil
 }

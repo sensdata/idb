@@ -34,7 +34,6 @@ type ISSHService interface {
 	TestConnection(host model.Host) error
 	InstallAgent(host model.Host, taskId string, upgrade bool) error
 	UninstallAgent(host model.Host, taskId string) error
-	AgentInstalled(host model.Host) (string, error)
 	RestartAgent(host model.Host) error
 }
 
@@ -253,6 +252,11 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Install agent to host %s completed", host.Addr))
 	taskStatus(taskId, types.TaskStatusSuccess)
+
+	// 更新安装状态
+	installed := "installed"
+	global.SetInstalledStatus(host.ID, &installed)
+
 	return nil
 }
 
@@ -340,19 +344,18 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	global.LOG.Info("Uninstall agent in host %s completed", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s completed", host.Addr))
 	taskStatus(taskId, types.TaskStatusSuccess)
+
+	// 更新安装状态
+	notInstalled := "not installed"
+	global.SetInstalledStatus(host.ID, &notInstalled)
+
 	return nil
 }
 
-func (s *SSHService) AgentInstalled(host model.Host) (string, error) {
+func (s *SSHService) agentInstalled(client *ssh.Client, host model.Host) (string, error) {
 	installed := "unknown"
 
-	// 1. 检查 SSH 连接是否存在
-	client, err := s.getClient(host)
-	if err != nil {
-		return installed, err
-	}
-
-	// 2. 检查目标机器是否已安装 agent
+	// 检查目标机器是否已安装 agent
 	checkCmd := `
         if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
             echo "installed"
@@ -458,35 +461,81 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 }
 
 func (s *SSHService) ensureConnections() {
-	global.LOG.Info("Ensure ssh connections")
+	global.LOG.Info("Ensure ssh connections started")
 
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
+	interval := 10 * time.Second
+	maxConcurrency := 5
+	sem := make(chan struct{}, maxConcurrency)
+
 	for {
+		start := time.Now()
+
 		select {
 		case <-s.done:
-			global.LOG.Info("Ensure ssh connections done")
+			global.LOG.Info("Ensure ssh connections stopped")
 			return
-		case <-ticker.C:
-			//获取所有的host
-			hosts, err := HostRepo.GetList()
-			if err != nil {
-				global.LOG.Error("Failed to get host list: %v", err)
-				continue
-			}
+		default:
+		}
 
-			// 检查连接
-			for _, host := range hosts {
-				global.LOG.Info("Ensure ssh connection for host %s", host.Addr)
-				client, _ := s.getClient(host)
-				if client == nil || err != nil {
-					resultCh := make(chan error, 1)
-					go s.connectToHost(&host, resultCh)
-				} else {
-					// do nothing
-				}
+		hosts, err := HostRepo.GetList()
+		if err != nil {
+			global.LOG.Error("Failed to get host list: %v", err)
+			time.Sleep(interval)
+			continue
+		}
+
+		var wg sync.WaitGroup
+		for _, host := range hosts {
+			wg.Add(1)
+			sem <- struct{}{} // 占用一个并发槽位
+
+			go func(h model.Host) {
+				defer func() {
+					<-sem
+					wg.Done()
+				}()
+
+				s.handleHost(&h)
+			}(host)
+		}
+
+		wg.Wait()
+
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			select {
+			case <-time.After(interval - elapsed):
+			case <-s.done:
+				global.LOG.Info("Ensure ssh connections done")
+				return
 			}
 		}
+	}
+}
+
+// handleHost 负责处理单个 host 的 SSH 检查与连接逻辑
+func (s *SSHService) handleHost(host *model.Host) {
+	global.LOG.Info("Ensure ssh connection for host %s", host.Addr)
+
+	client, err := s.getClient(*host)
+	if err != nil || client == nil {
+		if err := s.connectToHost(host); err != nil {
+			global.LOG.Warn("SSH reconnect failed for host %s: %v", host.Addr, err)
+			return
+		}
+		global.LOG.Info("SSH connection re-established for host %s", host.Addr)
+		return
+	}
+
+	// 若已连接，但标记为 offline，则检查 agent 安装状态
+	status := global.GetHostStatus(host.ID)
+	if status != nil && status.Connected == "offline" {
+		installed, err := s.agentInstalled(client, *host)
+		if err != nil {
+			global.LOG.Warn("Check agent install failed for host %s: %v", host.Addr, err)
+			return
+		}
+		global.SetInstalledStatus(host.ID, &installed)
 	}
 }
 
@@ -538,11 +587,10 @@ func getPrivateKey(path string) (*core.FileInfo, error) {
 	return &fileInfo, nil
 }
 
-func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
+func (s *SSHService) connectToHost(host *model.Host) error {
 	// 先关闭已有的client
 	s.mu.Lock()
-	client, exists := s.sshClients[host.Addr]
-	if exists && client != nil {
+	if client, exists := s.sshClients[host.Addr]; exists && client != nil {
 		client.Close()
 		delete(s.sshClients, host.Addr)
 	}
@@ -570,8 +618,7 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 		privateKey, err := getPrivateKey(host.PrivateKey)
 		if err != nil {
 			global.LOG.Error("failed to read private key file: %v", err)
-			resultCh <- err
-			return
+			return fmt.Errorf("failed to read private key file: %v", err)
 		}
 
 		passPhrase := []byte(host.PassPhrase)
@@ -579,26 +626,24 @@ func (s *SSHService) connectToHost(host *model.Host, resultCh chan<- error) {
 		signer, err := makePrivateKeySigner([]byte(privateKey.Content), passPhrase)
 		if err != nil {
 			global.LOG.Error("Failed to config private key to host %s, %v", host.Addr, err)
-			resultCh <- err
-			return
+			return fmt.Errorf("failed to config private key to host %s, %v", host.Addr, err)
 		}
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	}
-	config.Timeout = 5 * time.Second
+	config.Timeout = 3 * time.Second
 	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
 	client, err := ssh.Dial(proto, dialAddr, config)
 	if err != nil {
 		global.LOG.Error("Failed to create ssh connection to host %s, %v", host.Addr, err)
-		resultCh <- err
-		return
+		return fmt.Errorf("failed to create ssh connection to host %s, %v", host.Addr, err)
 	}
 	s.mu.Lock()
 	s.sshClients[host.Addr] = client
 	s.mu.Unlock()
 
 	global.LOG.Info("SSH connection to %s created", host.Addr)
-	resultCh <- nil
+	return nil
 }
 
 func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, error) {

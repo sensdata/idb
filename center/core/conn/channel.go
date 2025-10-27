@@ -81,14 +81,8 @@ func (c *Center) Start() error {
 	// 启动 Unix 域套接字监听器
 	go c.listenToUnix()
 
-	// 保障连接和心跳
+	// 保障连接
 	go c.ensureConnections()
-
-	// 更新状态
-	go c.updateHostStatus()
-
-	// 更新agent状态
-	go c.updateAgentStatus()
 
 	return nil
 }
@@ -261,109 +255,65 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 func (c *Center) ensureConnections() {
 	global.LOG.Info("Ensure connections")
 
-	ticker := time.NewTicker(time.Second * 10)
-	defer ticker.Stop()
+	interval := 10 * time.Second
+	maxConcurrency := 5
+	sem := make(chan struct{}, maxConcurrency)
 
 	for {
+		start := time.Now()
+
 		select {
 		case <-c.done:
 			global.LOG.Info("Stop ensure connections")
 			return
-		case <-ticker.C:
-			//获取所有的host
-			hosts, err := HostRepo.GetList()
-			if err != nil {
-				global.LOG.Error("Failed to get host list: %v", err)
-				continue
-			}
+		default:
+		}
 
-			// 检查连接
-			for _, host := range hosts {
-				global.LOG.Info("checkConn for host %d - %s", host.ID, host.Addr)
-				// 查找agent conn
-				conn, _ := c.getAgentConn(&host)
-				if conn == nil {
-					// 连接
-					resultCh := make(chan error, 1)
-					go c.connectToAgent(&host, resultCh)
-				} else {
-					// 找到conn的，发心跳
-					go c.sendHeartbeat(&host, conn)
-				}
+		hosts, err := HostRepo.GetList()
+		if err != nil {
+			global.LOG.Error("Failed to get host list: %v", err)
+			time.Sleep(interval)
+			continue
+		}
+
+		var wg sync.WaitGroup
+		for _, host := range hosts {
+			wg.Add(1)
+			sem <- struct{}{} // 占用一个并发槽位
+
+			go func(h model.Host) {
+				defer func() {
+					<-sem
+					wg.Done()
+				}()
+
+				c.handleHost(&h)
+			}(host)
+		}
+
+		wg.Wait()
+
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			select {
+			case <-time.After(interval - elapsed):
+			case <-c.done:
+				global.LOG.Info("Ensure ssh connections done")
+				return
 			}
 		}
 	}
 }
 
-func (c *Center) updateHostStatus() {
-	ticker := time.NewTicker(time.Second * 4)
-	defer ticker.Stop()
+func (c *Center) handleHost(host *model.Host) {
+	global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
 
-	for {
-		select {
-		case <-c.done:
-			global.LOG.Info("Stop updating host status")
-			return
-		case <-ticker.C:
-			//获取所有的host
-			hosts, err := HostRepo.GetList()
-			if err != nil {
-				global.LOG.Error("Failed to get host list: %v", err)
-				continue
-			}
-
-			// 检查连接
-			for _, host := range hosts {
-				// 查找agent conn
-				conn, _ := c.getAgentConn(&host)
-				if conn != nil {
-					// 找到conn的，更新状态
-					go c.getHostStatus(&host)
-				}
-			}
-		}
-	}
-}
-
-func (c *Center) updateAgentStatus() {
-	ticker := time.NewTicker(time.Second * 4)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-c.done:
-			global.LOG.Info("Stop updating agent status")
-			return
-		case <-ticker.C:
-			//获取所有的host
-			hosts, err := HostRepo.GetList()
-			if err != nil {
-				global.LOG.Error("Failed to get host list: %v", err)
-				continue
-			}
-
-			// 检查连接
-			for _, host := range hosts {
-				status := core.AgentStatus{
-					Status:    "unknown",
-					Connected: "unknown",
-				}
-
-				// 检查连接状态
-				if c.IsAgentConnected(host) {
-					status.Connected = "online"
-					status.Status = "installed"
-				} else {
-					status.Connected = "offline"
-
-					// 检查安装状态
-					installed, _ := SSH.AgentInstalled(host)
-					status.Status = installed
-				}
-
-				global.SetAgentStatus(host.ID, &status)
-			}
-		}
+	// 查找agent conn
+	conn, err := c.getAgentConn(host)
+	if err != nil || conn == nil {
+		// 连接
+		resultCh := make(chan error, 1)
+		c.connectToAgent(host, resultCh)
 	}
 }
 
@@ -456,21 +406,15 @@ func (c *Center) activateHost(host *model.Host) error {
 	return nil
 }
 
-func (c *Center) checkLicense(host *model.Host, timestamp string) error {
-	// 将timestamp转换为int64再转为last_verify_at
-	timestampInt, err := strconv.ParseInt(timestamp, 10, 64)
-	if err != nil {
-		global.LOG.Error("Error parsing timestamp: %v", err)
-		return fmt.Errorf("Error parsing timestamp: %w", err)
-	}
+func (c *Center) checkLicense(host *model.Host, timestamp int64) error {
 	// 如果是0，说明还未获取license
-	if timestampInt == 0 {
+	if timestamp == 0 {
 		global.LOG.Info("host %d - %s not get license", host.ID, host.Addr)
 		return nil
 	}
 
 	// 判断last_verify_at是否已经过去24小时，如果是，则检查license
-	lastVerifyAt := time.Unix(timestampInt, 0)
+	lastVerifyAt := time.Unix(timestamp, 0)
 	if time.Since(lastVerifyAt) < 24*time.Hour {
 		global.LOG.Info("host %d - %s no need check license", host.ID, host.Addr)
 		return nil
@@ -550,34 +494,6 @@ func (c *Center) checkLicense(host *model.Host, timestamp string) error {
 	return nil
 }
 
-func (c *Center) getHostStatus(host *model.Host) error {
-	var hostStatus core.HostStatus
-	actionRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Status,
-			Data:   "",
-		},
-	}
-	actionResponse, err := c.ExecuteAction(actionRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_Status %v", err)
-		return fmt.Errorf("Failed to send action Host_Status %w", err)
-	}
-	if !actionResponse.Result {
-		global.LOG.Error("action Host_Status failed")
-		return errors.New("action Host_Status failed")
-	}
-	err = utils.FromJSONString(actionResponse.Data, &hostStatus)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to host status: %v", err)
-		return fmt.Errorf("Error unmarshaling data to host status: %w", err)
-	}
-
-	global.SetHostStatus(host.ID, &hostStatus)
-	return nil
-}
-
 func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
 	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 
@@ -629,7 +545,12 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to connect to Agent: %v", err)
-		resultCh <- err
+		if resultCh != nil {
+			select {
+			case resultCh <- err:
+			default:
+			}
+		}
 		return
 	}
 
@@ -640,7 +561,12 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	c.mu.Unlock()
 
 	global.LOG.Info("Successfully connected to Agent %s", agentID)
-	resultCh <- nil
+	if resultCh != nil {
+		select {
+		case resultCh <- nil:
+		default:
+		}
+	}
 
 	// 处理连接
 	go c.handleConnection(host, conn)
@@ -757,18 +683,43 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		if err := HostRepo.Update(host.ID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
 			global.LOG.Error("Failed to update agent version: %v", err)
 		}
-		// 看是不是需要检查升级
-		switch msg.Data {
+		// 转成 Heartbeat
+		var heartbeat core.Heartbeat
+		if err := utils.FromJSONString(msg.Data, &heartbeat); err != nil {
+			global.LOG.Error("Failed to parse heartbeat: %v", err)
+			return
+		}
+
+		// 处理心跳消息
+		switch heartbeat.Command {
+		// 检查升级
 		case "Update":
-			// 检查升级
 			go c.checkAgentUpdate(host, msg.Version)
+		// 移除agent
 		case "Remove":
-			// 移除agent
 			go c.removeAgent(host)
-		// Heartbeat:timestamp
+		// 正常心跳
 		default:
-			// 截取 timestamp
-			go c.checkLicense(host, strings.TrimPrefix(msg.Data, "Heartbeat:"))
+			// 保存信息
+			hostStatusInfo := &core.HostStatusInfo{
+				Installed: "installed",
+				Connected: "online",
+				Activated: heartbeat.Activated,
+				Cpu:       heartbeat.Cpu,
+				Memory:    heartbeat.Memory,
+				MemTotal:  heartbeat.MemTotal,
+				MemUsed:   heartbeat.MemUsed,
+				Disk:      heartbeat.Disk,
+				Rx:        heartbeat.Rx,
+				Tx:        heartbeat.Tx,
+			}
+			global.SetHostStatus(host.ID, hostStatusInfo)
+			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)
+
+			// 已激活的, 检查license
+			if heartbeat.Activated {
+				go c.checkLicense(host, heartbeat.LastVerifyAt)
+			}
 		}
 
 	case message.CmdMessage: // 收到Cmd 类型的回复

@@ -304,7 +304,9 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				} else {
 					conn.Write([]byte("Notify center for version check and update"))
 					// 通过心跳消息的data标识，通知center进行agent版本检测和升级
-					go a.sendHeartbeat(centerConn, "Update")
+					heartbeat := model.NewHeartbeat()
+					heartbeat.Command = "Update"
+					go a.sendHeartbeat(centerConn, heartbeat)
 				}
 			case "remove":
 				// 检查center连接是否存在
@@ -314,7 +316,9 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				} else {
 					conn.Write([]byte("Notify center for remove agent"))
 					// 通过心跳消息的data标识，通知center进行agent版本检测和升级
-					go a.sendHeartbeat(centerConn, "Remove")
+					heartbeat := model.NewHeartbeat()
+					heartbeat.Command = "Remove"
+					go a.sendHeartbeat(centerConn, heartbeat)
 				}
 			case "flush-logs":
 				if err := global.LOG.Flush(); err != nil {
@@ -330,50 +334,67 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 }
 
 func (a *Agent) monitorTraffic() {
-	tick := time.NewTicker(time.Second * 1) // 每秒触发一次
-	defer tick.Stop()
-
+	interval := time.Second // 每 1 秒执行一次
 	var lastRxBytes, lastTxBytes uint64
-	var lastTime time.Time // 用于计算时间差
+	var lastTime time.Time
 
 	for {
+		start := time.Now()
+		var timeDiff float64
+		var totalRx, totalTx uint64
+
 		select {
 		case <-a.done:
 			global.LOG.Info("Agent is stopping, stop monitorTraffic")
 			return
-		case <-tick.C:
-			// 获取网络流量统计数据
-			ioCounters, err := gonet.IOCounters(true)
-			if err != nil {
-				log.Println("Error getting network stats:", err)
-				continue
-			}
+		default:
+		}
 
-			for _, counter := range ioCounters {
-				// 如果接收或发送字节数大于零，表示接口有流量
-				if counter.BytesRecv > lastRxBytes || counter.BytesSent > lastTxBytes {
-					// 计算时间差，得到时间间隔（秒）
-					timeDiff := time.Since(lastTime).Seconds()
+		// 获取网络流量统计数据
+		ioCounters, err := gonet.IOCounters(true)
+		if err != nil {
+			log.Println("Error getting network stats:", err)
+			goto sleep
+		}
 
-					// 防止时间差为0，避免除零错误
-					if timeDiff > 0 {
-						// 计算每秒的流量速率
-						rxRate := float64(counter.BytesRecv-lastRxBytes) / timeDiff
-						txRate := float64(counter.BytesSent-lastTxBytes) / timeDiff
+		// 汇总所有网卡的数据
+		for _, counter := range ioCounters {
+			totalRx += counter.BytesRecv
+			totalTx += counter.BytesSent
+		}
 
-						// 更新全局的Rx和Tx速率
-						a.rx = rxRate
-						a.tx = txRate
+		// 初始化（第一次调用不计算速率）
+		if lastTime.IsZero() {
+			lastRxBytes = totalRx
+			lastTxBytes = totalTx
+			lastTime = time.Now()
+			goto sleep
+		}
 
-						// 打印当前的网络速率（单位：字节/秒）
-						// global.LOG.Info("Interface: %s - RX: %.2f B/s, TX: %.2f B/s", counter.Name, a.rx, a.tx)
-					}
+		// 计算时间差
+		timeDiff = time.Since(lastTime).Seconds()
+		if timeDiff > 0 {
+			rxRate := float64(totalRx-lastRxBytes) / timeDiff
+			txRate := float64(totalTx-lastTxBytes) / timeDiff
 
-					// 更新上次的字节数和时间
-					lastRxBytes = counter.BytesRecv
-					lastTxBytes = counter.BytesSent
-					lastTime = time.Now() // 更新最后的时间戳
-				}
+			// 更新全局速率
+			a.rx = rxRate
+			a.tx = txRate
+		}
+
+		// 更新上次状态
+		lastRxBytes = totalRx
+		lastTxBytes = totalTx
+		lastTime = time.Now()
+
+	sleep:
+		// 串行等待，下次执行保证间隔1秒
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			select {
+			case <-time.After(interval - elapsed):
+			case <-a.done:
+				return
 			}
 		}
 	}
@@ -445,7 +466,13 @@ func (a *Agent) listenToTcp() {
 
 func (a *Agent) handleConnection(conn net.Conn) {
 	centerID := conn.RemoteAddr().String()
+
+	// 启动心跳
+	heartbeatStop := make(chan struct{})
+	a.startHeartbeat(conn, heartbeatStop)
+
 	defer func() {
+		close(heartbeatStop) // 停止心跳 goroutine
 		global.LOG.Info("Close center conn %s", centerID)
 		conn.Close()
 
@@ -476,9 +503,6 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			n, err := conn.Read(tmpBuffer)
 			if err != nil {
 				global.LOG.Error("Error read from conn: %v", err)
-				// if err != io.EOF {
-				// 	global.LOG.Error("Error read from conn: %v", err)
-				// }
 				a.resetConnection()
 				return
 			}
@@ -524,11 +548,73 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	}
 }
 
-// 添加获取 center 连接的方法
-func (a *Agent) getCenterConn() net.Conn {
-	a.centerMu.RLock()
-	defer a.centerMu.RUnlock()
-	return a.centerConn
+func (a *Agent) startHeartbeat(conn net.Conn, stop <-chan struct{}) {
+	const interval = time.Second // 目标 1 秒周期
+
+	go func() {
+		for {
+			start := time.Now()
+
+			select {
+			case <-stop:
+				global.LOG.Info("Heartbeat stopped for %s", conn.RemoteAddr().String())
+				return
+			default:
+				// 构造心跳
+				heartbeat := model.NewHeartbeat()
+				// 激活状态
+				license := global.GetLicense()
+				if license != nil {
+					heartbeat.Activated = !license.IssuedAt.IsZero()
+				}
+				// 验证时间
+				fp, err := db.FingerprintRepo.GetFirst()
+				if err != nil {
+					heartbeat.LastVerifyAt = 0
+				} else {
+					heartbeat.LastVerifyAt = fp.LastVerifyAt.Unix()
+				}
+				// 流量
+				heartbeat.Rx = math.Round(a.rx*100) / 100
+				heartbeat.Tx = math.Round(a.tx*100) / 100
+				// 主机状态，用异步通道避免耗时太久
+				statusCh := make(chan *model.HostStatus, 1)
+				go func() {
+					s, err := action.GetStatus()
+					if err != nil {
+						global.LOG.Error("Failed to get status: %v", err)
+						statusCh <- nil
+						return
+					}
+					statusCh <- s
+				}()
+				select {
+				case s := <-statusCh:
+					if s != nil {
+						heartbeat.Cpu = s.Cpu
+						heartbeat.Memory = s.Memory
+						heartbeat.MemTotal = s.MemTotal
+						heartbeat.MemUsed = s.MemUsed
+						heartbeat.Disk = s.Disk
+					}
+				case <-time.After(500 * time.Millisecond):
+					global.LOG.Warn("GetStatus timeout, skip metrics")
+				}
+
+				a.sendHeartbeat(conn, heartbeat)
+
+				// 根据耗时动态调整间隔
+				elapsed := time.Since(start)
+				if elapsed < interval {
+					select {
+					case <-stop:
+						return
+					case <-time.After(interval - elapsed):
+					}
+				}
+			}
+		}
+	}()
 }
 
 func (a *Agent) resetConnection() {
@@ -538,6 +624,13 @@ func (a *Agent) resetConnection() {
 	default:
 		global.LOG.Warn("Reset signal already pending")
 	}
+}
+
+// 添加获取 center 连接的方法
+func (a *Agent) getCenterConn() net.Conn {
+	a.centerMu.RLock()
+	defer a.centerMu.RUnlock()
+	return a.centerConn
 }
 
 // 检查缓存的证书
@@ -559,14 +652,6 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 回复心跳
 		global.LOG.Info("Heartbeat from %s", conn.RemoteAddr().String())
-		var timestamp int64
-		fp, err := db.FingerprintRepo.GetFirst()
-		if err != nil {
-			timestamp = 0
-		} else {
-			timestamp = fp.LastVerifyAt.Unix()
-		}
-		a.sendHeartbeat(conn, fmt.Sprintf("Heartbeat:%d", timestamp))
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
@@ -2915,8 +3000,14 @@ func actionSuccessResult(action string, data string) (*model.Action, error) {
 	}, nil
 }
 
-func (a *Agent) sendHeartbeat(conn net.Conn, data string) {
+func (a *Agent) sendHeartbeat(conn net.Conn, heartbeat *model.Heartbeat) {
 	config := CONFMAN.GetConfig()
+
+	data, err := utils.ToJSONString(heartbeat)
+	if err != nil {
+		global.LOG.Error("Error marshal heartbeat: %v", err)
+		return
+	}
 
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),

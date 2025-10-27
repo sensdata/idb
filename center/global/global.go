@@ -32,58 +32,36 @@ var (
 
 	// HostStatusCache 用于缓存host的状态信息
 	HostStatusCache sync.Map
-	// AgentStatusCache 用于缓存agent的状态信息
-	AgentStatusCache sync.Map
+	// InstalledCache 用于缓存host上的agent安装状态
+	InstalledCache sync.Map
 )
 
-// GetHostStatus 获取指定host的状态
-func GetHostStatus(hostID uint) *model.HostStatus {
+func GetHostStatus(hostID uint) *model.HostStatusInfo {
 	if val, ok := HostStatusCache.Load(hostID); ok {
-		return val.(*model.HostStatus)
+		return val.(*model.HostStatusInfo)
 	}
 	return nil
 }
 
-// SetHostStatus 设置指定host的状态
-func SetHostStatus(hostID uint, status *model.HostStatus) {
+func SetHostStatus(hostID uint, status *model.HostStatusInfo) {
 	HostStatusCache.Store(hostID, status)
 }
 
-// DeleteHostStatus 删除指定host的状态
 func DeleteHostStatus(hostID uint) {
 	HostStatusCache.Delete(hostID)
 }
 
-// GetAllHostStatus 获取所有host的状态
-func GetAllHostStatus() map[uint]*model.HostStatus {
-	result := make(map[uint]*model.HostStatus)
-	HostStatusCache.Range(func(key, value interface{}) bool {
-		result[key.(uint)] = value.(*model.HostStatus)
-		return true
-	})
-	return result
-}
-
-func GetAgentStatus(hostID uint) *model.AgentStatus {
-	if val, ok := AgentStatusCache.Load(hostID); ok {
-		return val.(*model.AgentStatus)
+func GetInstalledStatus(hostID uint) *string {
+	if val, ok := InstalledCache.Load(hostID); ok {
+		return val.(*string)
 	}
 	return nil
 }
 
-func SetAgentStatus(hostID uint, status *model.AgentStatus) {
-	AgentStatusCache.Store(hostID, status)
+func SetInstalledStatus(hostID uint, status *string) {
+	InstalledCache.Store(hostID, status)
 }
 
-func DeleteAgentStatus(hostID uint) {
-	AgentStatusCache.Delete(hostID)
-}
-
-func GetAllAgentStatus() map[uint]*model.AgentStatus {
-	result := make(map[uint]*model.AgentStatus)
-	AgentStatusCache.Range(func(key, value interface{}) bool {
-		result[key.(uint)] = value.(*model.AgentStatus)
-		return true
-	})
-	return result
+func DeleteInstalledStatus(hostID uint) {
+	InstalledCache.Delete(hostID)
 }
