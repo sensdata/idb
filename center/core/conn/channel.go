@@ -585,12 +585,16 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 	agentID := conn.RemoteAddr().String()
 
 	defer func() {
-		// 在defer中关闭连接
+		// 在defer中关闭连接并从agentConns中删除
 		global.LOG.Info("Close agent conn %s", agentID)
 		conn.Close()
+		c.mu.Lock()
+		delete(c.agentConns, agentID)
+		c.mu.Unlock()
+		global.LOG.Info("Delete agent conn %s from map", agentID)
 
 		if r := recover(); r != nil {
-			global.LOG.Error("[Panic] in handleUnixConnection: %v", r)
+			global.LOG.Error("[Panic] in handleConnection: %v", r)
 		}
 	}()
 
