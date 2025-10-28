@@ -134,13 +134,16 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 			Status:    "unknown",
 			Connected: "unknown",
 		}
-		installed := global.GetInstalledStatus(host.ID)
-		if installed == nil {
-			agentStatus.Status = *installed
-		}
 		hostStatus := global.GetHostStatus(host.ID)
 		if hostStatus != nil {
 			agentStatus.Connected = hostStatus.Connected
+		}
+		installed := global.GetInstalledStatus(host.ID)
+		if installed != nil {
+			agentStatus.Status = *installed
+		}
+		if agentStatus.Connected == "online" {
+			agentStatus.Status = "installed"
 		}
 
 		hostsInfos = append(
@@ -286,13 +289,16 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 		Status:    "unknown",
 		Connected: "unknown",
 	}
-	installed := global.GetInstalledStatus(host.ID)
-	if installed == nil {
-		agentStatus.Status = *installed
-	}
 	hostStatus := global.GetHostStatus(host.ID)
 	if hostStatus != nil {
 		agentStatus.Connected = hostStatus.Connected
+	}
+	installed := global.GetInstalledStatus(host.ID)
+	if installed != nil {
+		agentStatus.Status = *installed
+	}
+	if agentStatus.Connected == "online" {
+		agentStatus.Status = "installed"
 	}
 
 	return &core.HostInfo{
@@ -522,13 +528,16 @@ func (s *HostService) AgentStatus(id uint) (*core.AgentStatus, error) {
 		Status:    "unknown",
 		Connected: "unknown",
 	}
-	installed := global.GetInstalledStatus(id)
-	if installed == nil {
-		agentStatus.Status = *installed
-	}
 	hostStatus := global.GetHostStatus(id)
 	if hostStatus != nil {
 		agentStatus.Connected = hostStatus.Connected
+	}
+	installed := global.GetInstalledStatus(id)
+	if installed != nil {
+		agentStatus.Status = *installed
+	}
+	if agentStatus.Connected == "online" {
+		agentStatus.Status = "installed"
 	}
 	return agentStatus, nil
 }
