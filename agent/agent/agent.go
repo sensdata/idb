@@ -391,11 +391,15 @@ func (a *Agent) monitorTraffic() {
 		// 串行等待，下次执行保证间隔1秒
 		elapsed := time.Since(start)
 		if elapsed < interval {
+			wait := interval - elapsed
+			timer := time.NewTimer(wait)
 			select {
-			case <-time.After(interval - elapsed):
+			case <-timer.C:
 			case <-a.done:
+				timer.Stop()
 				return
 			}
+			timer.Stop()
 		}
 	}
 }
@@ -552,66 +556,75 @@ func (a *Agent) startHeartbeat(conn net.Conn, stop <-chan struct{}) {
 	const interval = time.Second // 目标 1 秒周期
 
 	go func() {
+		timer := time.NewTimer(interval)
+		defer timer.Stop()
+
 		for {
 			start := time.Now()
+
+			// 构造心跳
+			heartbeat := model.NewHeartbeat()
+			// 激活状态
+			license := global.GetLicense()
+			if license != nil {
+				heartbeat.Activated = !license.IssuedAt.IsZero()
+			}
+			// 验证时间
+			fp, err := db.FingerprintRepo.GetFirst()
+			if err != nil {
+				heartbeat.LastVerifyAt = 0
+			} else {
+				heartbeat.LastVerifyAt = fp.LastVerifyAt.Unix()
+			}
+			// 流量
+			heartbeat.Rx = math.Round(a.rx*100) / 100
+			heartbeat.Tx = math.Round(a.tx*100) / 100
+			// 异步获取主机状态 + 可控超时
+			statusCh := make(chan *model.HostStatus, 1)
+			go func() {
+				s, err := action.GetStatus()
+				if err != nil {
+					global.LOG.Error("Failed to get status: %v", err)
+					statusCh <- nil
+					return
+				}
+				statusCh <- s
+			}()
+			timeout := time.NewTimer(500 * time.Millisecond)
+			select {
+			case s := <-statusCh:
+				if s != nil {
+					heartbeat.Cpu = s.Cpu
+					heartbeat.Memory = s.Memory
+					heartbeat.MemTotal = s.MemTotal
+					heartbeat.MemUsed = s.MemUsed
+					heartbeat.Disk = s.Disk
+				}
+				if !timeout.Stop() {
+					<-timeout.C
+				}
+			case <-timeout.C:
+				global.LOG.Warn("GetStatus timeout, skip metrics")
+			}
+
+			a.sendHeartbeat(conn, heartbeat)
+
+			// 计算周期补偿 sleep
+			elapsed := time.Since(start)
+			sleep := interval - elapsed
+			if sleep < 0 {
+				sleep = 0
+			}
+
+			// 使用复用 timer 实现 sleep
+			timer.Reset(sleep)
 
 			select {
 			case <-stop:
 				global.LOG.Info("Heartbeat stopped for %s", conn.RemoteAddr().String())
 				return
-			default:
-				// 构造心跳
-				heartbeat := model.NewHeartbeat()
-				// 激活状态
-				license := global.GetLicense()
-				if license != nil {
-					heartbeat.Activated = !license.IssuedAt.IsZero()
-				}
-				// 验证时间
-				fp, err := db.FingerprintRepo.GetFirst()
-				if err != nil {
-					heartbeat.LastVerifyAt = 0
-				} else {
-					heartbeat.LastVerifyAt = fp.LastVerifyAt.Unix()
-				}
-				// 流量
-				heartbeat.Rx = math.Round(a.rx*100) / 100
-				heartbeat.Tx = math.Round(a.tx*100) / 100
-				// 主机状态，用异步通道避免耗时太久
-				statusCh := make(chan *model.HostStatus, 1)
-				go func() {
-					s, err := action.GetStatus()
-					if err != nil {
-						global.LOG.Error("Failed to get status: %v", err)
-						statusCh <- nil
-						return
-					}
-					statusCh <- s
-				}()
-				select {
-				case s := <-statusCh:
-					if s != nil {
-						heartbeat.Cpu = s.Cpu
-						heartbeat.Memory = s.Memory
-						heartbeat.MemTotal = s.MemTotal
-						heartbeat.MemUsed = s.MemUsed
-						heartbeat.Disk = s.Disk
-					}
-				case <-time.After(500 * time.Millisecond):
-					global.LOG.Warn("GetStatus timeout, skip metrics")
-				}
-
-				a.sendHeartbeat(conn, heartbeat)
-
-				// 根据耗时动态调整间隔
-				elapsed := time.Since(start)
-				if elapsed < interval {
-					select {
-					case <-stop:
-						return
-					case <-time.After(interval - elapsed):
-					}
-				}
+			case <-timer.C:
+				// continue next loop
 			}
 		}
 	}()

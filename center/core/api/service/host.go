@@ -365,28 +365,46 @@ func (s *HostService) StatusFollow(c *gin.Context) error {
 		}
 	}()
 
+	interval := time.Second
+
 	for {
+		start := time.Now()
+
 		select {
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
 			return nil
 		default:
-			status, err := s.Status(uint(hostID))
+		}
+
+		status, err := s.Status(uint(hostID))
+		if err != nil {
+			global.LOG.Error("get status failed: %v", err)
+			c.SSEvent("error", err.Error())
+		} else {
+			statusJson, err := utils.ToJSONString(status)
 			if err != nil {
-				global.LOG.Error("get status failed: %v", err)
+				global.LOG.Error("json err: %v", err)
 				c.SSEvent("error", err.Error())
 			} else {
-				statusJson, err := utils.ToJSONString(status)
-				if err != nil {
-					global.LOG.Error("json err: %v", err)
-					c.SSEvent("error", err.Error())
-				} else {
-					c.SSEvent("status", statusJson)
-				}
+				c.SSEvent("status", statusJson)
 			}
-			flusher.Flush()
 		}
-		time.Sleep(2 * time.Second)
+		flusher.Flush()
+
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			wait := interval - elapsed
+			timer := time.NewTimer(wait)
+			select {
+			case <-timer.C:
+			case <-ctx.Done():
+				timer.Stop()
+				global.LOG.Info("SSE DONE")
+				return nil
+			}
+			timer.Stop()
+		}
 	}
 }
 
@@ -567,28 +585,46 @@ func (s *HostService) AgentStatusFollow(c *gin.Context) error {
 		}
 	}()
 
+	interval := time.Second
+
 	for {
+		start := time.Now()
+
 		select {
 		case <-ctx.Done():
 			global.LOG.Info("SSE DONE")
 			return nil
 		default:
-			status, err := s.AgentStatus(uint(hostID))
+		}
+
+		status, err := s.AgentStatus(uint(hostID))
+		if err != nil {
+			global.LOG.Error("get agent status failed: %v", err)
+			c.SSEvent("error", err.Error())
+		} else {
+			statusJson, err := utils.ToJSONString(status)
 			if err != nil {
-				global.LOG.Error("get agent status failed: %v", err)
+				global.LOG.Error("json err: %v", err)
 				c.SSEvent("error", err.Error())
 			} else {
-				statusJson, err := utils.ToJSONString(status)
-				if err != nil {
-					global.LOG.Error("json err: %v", err)
-					c.SSEvent("error", err.Error())
-				} else {
-					c.SSEvent("status", statusJson)
-				}
+				c.SSEvent("status", statusJson)
 			}
-			flusher.Flush()
 		}
-		time.Sleep(1 * time.Second)
+		flusher.Flush()
+
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			wait := interval - elapsed
+			timer := time.NewTimer(wait)
+			select {
+			case <-timer.C:
+			case <-ctx.Done():
+				timer.Stop()
+				global.LOG.Info("SSE DONE")
+				return nil
+			}
+			timer.Stop()
+		}
 	}
 }
 

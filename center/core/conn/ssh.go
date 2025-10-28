@@ -503,12 +503,16 @@ func (s *SSHService) ensureConnections() {
 
 		elapsed := time.Since(start)
 		if elapsed < interval {
+			wait := interval - elapsed
+			timer := time.NewTimer(wait)
 			select {
-			case <-time.After(interval - elapsed):
+			case <-timer.C:
 			case <-s.done:
 				global.LOG.Info("Ensure ssh connections done")
+				timer.Stop()
 				return
 			}
+			timer.Stop()
 		}
 	}
 }
