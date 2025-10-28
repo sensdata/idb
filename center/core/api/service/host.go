@@ -35,7 +35,7 @@ type IHostService interface {
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(id uint) error
 	Info(id uint) (*core.HostInfo, error)
-	Status(id uint) (*core.HostStatus, error)
+	Status(id uint) (*core.HostStatusInfo, error)
 	StatusFollow(c *gin.Context) error
 	ActivateHost(id uint) error
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
@@ -323,21 +323,19 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	}, nil
 }
 
-func (s *HostService) Status(id uint) (*core.HostStatus, error) {
+func (s *HostService) Status(id uint) (*core.HostStatusInfo, error) {
 	hostStatus := global.GetHostStatus(id)
 	if hostStatus == nil {
-		return &core.HostStatus{}, nil
+		return &core.HostStatusInfo{}, nil
 	}
-	return &core.HostStatus{
-		Cpu:       hostStatus.Cpu,
-		Memory:    hostStatus.Memory,
-		MemTotal:  hostStatus.MemTotal,
-		MemUsed:   hostStatus.MemUsed,
-		Disk:      hostStatus.Disk,
-		Rx:        hostStatus.Rx,
-		Tx:        hostStatus.Tx,
-		Activated: hostStatus.Activated,
-	}, nil
+	installed := global.GetInstalledStatus(id)
+	if installed != nil {
+		hostStatus.Installed = *installed
+	}
+	if hostStatus.Connected == "online" {
+		hostStatus.Installed = "installed"
+	}
+	return hostStatus, nil
 }
 
 func (s *HostService) StatusFollow(c *gin.Context) error {

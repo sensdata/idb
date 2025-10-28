@@ -222,7 +222,7 @@ func (b *BaseApi) HostInfo(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
-// @Success 200 {object} model.HostStatus
+// @Success 200 {object} model.HostStatusInfo
 // @Router /hosts/{host}/status [get]
 func (b *BaseApi) HostStatus(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
