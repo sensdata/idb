@@ -1022,15 +1022,18 @@ definitions:
       user:
         type: string
     type: object
-  model.HostStatus:
+  model.HostStatusInfo:
     properties:
       activated:
-        description: '是否已激活: verify_result > 0'
         type: boolean
+      connected:
+        type: string
       cpu:
         type: number
       disk:
         type: number
+      installed:
+        type: string
       mem:
         type: number
       mem_total:
@@ -4022,7 +4025,7 @@ paths:
         name: follow
         type: boolean
       - description: How many lines from the end of the logs to show, can be one of
-          100, 200, 500, 1000. If not specified, all logs will be shown.
+          0, 100, 200, 500, 1000. Default is 100. Pass 0 to show all logs.
         in: query
         name: tail
         type: integer
@@ -6131,7 +6134,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.HostStatus'
+            $ref: '#/definitions/model.HostStatusInfo'
       summary: Get host status
       tags:
       - Host

@@ -2290,7 +2290,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "How many lines from the end of the logs to show, can be one of 100, 200, 500, 1000. If not specified, all logs will be shown.",
+                        "description": "How many lines from the end of the logs to show, can be one of 0, 100, 200, 500, 1000. Default is 100. Pass 0 to show all logs.",
                         "name": "tail",
                         "in": "query"
                     },
@@ -5569,7 +5569,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.HostStatus"
+                            "$ref": "#/definitions/model.HostStatusInfo"
                         }
                     }
                 }
@@ -14585,18 +14585,23 @@ const docTemplate = `{
                 }
             }
         },
-        "model.HostStatus": {
+        "model.HostStatusInfo": {
             "type": "object",
             "properties": {
                 "activated": {
-                    "description": "是否已激活: verify_result \u003e 0",
                     "type": "boolean"
+                },
+                "connected": {
+                    "type": "string"
                 },
                 "cpu": {
                     "type": "number"
                 },
                 "disk": {
                     "type": "number"
+                },
+                "installed": {
+                    "type": "string"
                 },
                 "mem": {
                     "type": "number"
