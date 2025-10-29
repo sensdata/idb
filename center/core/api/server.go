@@ -401,6 +401,12 @@ func (s *ApiServer) setUpDefaultRouters() {
 
 	// 添加全局日志中间件
 	apiGroup.Use(func(c *gin.Context) {
+		// 如果是 SSE，则绕过日志中间件
+		if strings.Contains(c.GetHeader("Accept"), "text/event-stream") {
+			c.Next()
+			return
+		}
+
 		// 记录请求信息
 		global.LOG.Info("Request: %s %s", c.Request.Method, c.Request.URL.Path)
 
