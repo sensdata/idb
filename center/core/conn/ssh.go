@@ -159,6 +159,9 @@ func taskStatus(taskId string, status types.TaskStatus) {
 }
 
 func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) error {
+	// 不管安装或者升级，都重置一次host状态
+	global.SetHostStatus(host.ID, core.NewHostStatusInfo())
+
 	taskStatus(taskId, types.TaskStatusRunning)
 
 	var writer *writer.Writer
@@ -261,6 +264,9 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 }
 
 func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
+	// 不管安装或者升级，都重置一次host状态
+	global.SetHostStatus(host.ID, core.NewHostStatusInfo())
+
 	taskStatus(taskId, types.TaskStatusRunning)
 
 	var writer *writer.Writer
