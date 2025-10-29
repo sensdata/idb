@@ -195,13 +195,7 @@ func (s *DockerMan) followContainerUsage(c *gin.Context) error {
 				global.LOG.Error("get usage failed: %v", err)
 				c.SSEvent("error", err.Error())
 			} else {
-				usageJson, err := utils.ToJSONString(usage)
-				if err != nil {
-					global.LOG.Error("json err: %v", err)
-					c.SSEvent("error", err.Error())
-				} else {
-					c.SSEvent("status", usageJson)
-				}
+				c.SSEvent("status", usage)
 			}
 			flusher.Flush()
 		}

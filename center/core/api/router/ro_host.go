@@ -21,6 +21,7 @@ func (s *HostRouter) InitRouter(Router *gin.RouterGroup) {
 		hostRouter.POST("", baseApi.CreateHost)                                 // 新增设备
 		hostRouter.PUT("", baseApi.UpdateHost)                                  // 更新设备
 		hostRouter.DELETE("", baseApi.DeleteHost)                               // 删除设备
+		hostRouter.GET("/status/follow", baseApi.StatusFollow)                  // 追踪所有设备状态
 		hostRouter.GET("/:host/status", baseApi.HostStatus)                     // 设备状态
 		hostRouter.GET("/:host/status/follow", baseApi.HostStatusFollow)        // 追踪设备状态
 		hostRouter.POST("/:host/activate", baseApi.ActivateHost)                // 激活设备

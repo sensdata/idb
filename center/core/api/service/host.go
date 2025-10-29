@@ -34,9 +34,10 @@ type IHostService interface {
 	Create(req core.CreateHost) (*core.HostInfo, error)
 	Update(id uint, upMap map[string]interface{}) error
 	Delete(id uint) error
-	Info(id uint) (*core.HostInfo, error)
-	Status(id uint) (*core.HostStatusInfo, error)
 	StatusFollow(c *gin.Context) error
+	Info(id uint) (*core.HostInfo, error)
+	HostStatus(id uint) (*core.HostStatusInfo, error)
+	HostStatusFollow(c *gin.Context) error
 	ActivateHost(id uint) error
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
@@ -269,6 +270,93 @@ func (s *HostService) Delete(id uint) error {
 	return HostRepo.Delete(CommonRepo.WithIdsIn([]uint{host.ID}))
 }
 
+func (s *HostService) StatusFollow(c *gin.Context) error {
+	idsStr := c.Query("ids")
+	if idsStr == "" {
+		return fmt.Errorf("invalid ids")
+	}
+	idParts := strings.Split(idsStr, ",")
+	var ids []int
+	for _, part := range idParts {
+		id, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil {
+			return fmt.Errorf("invalid id: %s", part)
+		}
+		ids = append(ids, id)
+	}
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	interval := time.Second
+
+	for {
+		start := time.Now()
+
+		select {
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			return nil
+		default:
+		}
+
+		// 循环获取所有host的状态
+		var statusList []*core.HostStatusDTO
+		for _, id := range ids {
+			status, err := s.HostStatus(uint(id))
+			if err != nil {
+				global.LOG.Error("get host %d status failed: %v", id, err)
+				continue
+			}
+			statusList = append(statusList, &core.HostStatusDTO{
+				ID:        uint(id),
+				Installed: status.Installed,
+				Connected: status.Connected,
+				Activated: status.Activated,
+				Cpu:       status.Cpu,
+				Memory:    status.Memory,
+				MemTotal:  status.MemTotal,
+				MemUsed:   status.MemUsed,
+				Disk:      status.Disk,
+				Rx:        status.Rx,
+				Tx:        status.Tx,
+			})
+		}
+		c.SSEvent("status", statusList)
+		flusher.Flush()
+
+		elapsed := time.Since(start)
+		if elapsed < interval {
+			wait := interval - elapsed
+			timer := time.NewTimer(wait)
+			select {
+			case <-timer.C:
+			case <-ctx.Done():
+				timer.Stop()
+				global.LOG.Info("SSE DONE")
+				return nil
+			}
+			timer.Stop()
+		}
+	}
+}
+
 func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	// 找host
 	host, err := HostRepo.Get(HostRepo.WithByID(id))
@@ -323,7 +411,7 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 	}, nil
 }
 
-func (s *HostService) Status(id uint) (*core.HostStatusInfo, error) {
+func (s *HostService) HostStatus(id uint) (*core.HostStatusInfo, error) {
 	hostStatus := global.GetHostStatus(id)
 	// 没有就初始化一个
 	if hostStatus == nil {
@@ -344,7 +432,7 @@ func (s *HostService) Status(id uint) (*core.HostStatusInfo, error) {
 	return hostStatus, nil
 }
 
-func (s *HostService) StatusFollow(c *gin.Context) error {
+func (s *HostService) HostStatusFollow(c *gin.Context) error {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
 		return errors.New("invalid host")
@@ -381,18 +469,12 @@ func (s *HostService) StatusFollow(c *gin.Context) error {
 		default:
 		}
 
-		status, err := s.Status(uint(hostID))
+		status, err := s.HostStatus(uint(hostID))
 		if err != nil {
 			global.LOG.Error("get status failed: %v", err)
 			c.SSEvent("error", err.Error())
 		} else {
-			statusJson, err := utils.ToJSONString(status)
-			if err != nil {
-				global.LOG.Error("json err: %v", err)
-				c.SSEvent("error", err.Error())
-			} else {
-				c.SSEvent("status", statusJson)
-			}
+			c.SSEvent("status", status)
 		}
 		flusher.Flush()
 
@@ -606,13 +688,7 @@ func (s *HostService) AgentStatusFollow(c *gin.Context) error {
 			global.LOG.Error("get agent status failed: %v", err)
 			c.SSEvent("error", err.Error())
 		} else {
-			statusJson, err := utils.ToJSONString(status)
-			if err != nil {
-				global.LOG.Error("json err: %v", err)
-				c.SSEvent("error", err.Error())
-			} else {
-				c.SSEvent("status", statusJson)
-			}
+			c.SSEvent("status", status)
 		}
 		flusher.Flush()
 

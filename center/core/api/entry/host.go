@@ -194,6 +194,24 @@ func (b *BaseApi) DeleteHost(c *gin.Context) {
 }
 
 // @Tags Host
+// @Summary Follow all host status
+// @Description Follow all host status
+// @Accept json
+// @Produce text/event-stream
+// @Param ids query string true "Comma-separated list of host ids"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /hosts/status/follow [get]
+func (b *BaseApi) StatusFollow(c *gin.Context) {
+	err := hostService.StatusFollow(c)
+	if err != nil {
+		global.LOG.Error("Follow all host status failed: %v", err)
+		ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+}
+
+// @Tags Host
 // @Summary Get host info
 // @Description Get host info
 // @Accept json
@@ -231,7 +249,7 @@ func (b *BaseApi) HostStatus(c *gin.Context) {
 		return
 	}
 
-	status, err := hostService.Status(uint(hostID))
+	status, err := hostService.HostStatus(uint(hostID))
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
@@ -249,7 +267,7 @@ func (b *BaseApi) HostStatus(c *gin.Context) {
 // @Failure 400 {object} model.Response "Bad Request"
 // @Router /hosts/{host}/status/follow [get]
 func (b *BaseApi) HostStatusFollow(c *gin.Context) {
-	err := hostService.StatusFollow(c)
+	err := hostService.HostStatusFollow(c)
 	if err != nil {
 		global.LOG.Error("Follow host status failed: %v", err)
 		ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
