@@ -5200,6 +5200,44 @@
                 }
             }
         },
+        "/hosts/status/follow": {
+            "get": {
+                "description": "Follow all host status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Host"
+                ],
+                "summary": "Follow all host status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of host ids",
+                        "name": "ids",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream started",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/hosts/test/ssh": {
             "post": {
                 "description": "Test ssh connection to host",
