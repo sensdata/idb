@@ -537,16 +537,13 @@ func (s *SSHService) handleHost(host *model.Host) {
 		return
 	}
 
-	// 若已连接，但标记为 offline，则检查 agent 安装状态
-	status := global.GetHostStatus(host.ID)
-	if status != nil && status.Connected == "offline" {
-		installed, err := s.agentInstalled(client, *host)
-		if err != nil {
-			global.LOG.Warn("Check agent install failed for host %s: %v", host.Addr, err)
-			return
-		}
-		global.SetInstalledStatus(host.ID, &installed)
+	installed, err := s.agentInstalled(client, *host)
+	if err != nil {
+		global.LOG.Warn("Check agent install failed for host %s: %v", host.Addr, err)
+		return
 	}
+	global.SetInstalledStatus(host.ID, &installed)
+	global.LOG.Info("Host agent status: %s", installed)
 }
 
 func getPrivateKey(path string) (*core.FileInfo, error) {

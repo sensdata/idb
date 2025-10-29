@@ -325,11 +325,17 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 
 func (s *HostService) Status(id uint) (*core.HostStatusInfo, error) {
 	hostStatus := global.GetHostStatus(id)
+	// 没有就初始化一个
 	if hostStatus == nil {
-		return &core.HostStatusInfo{}, nil
+		hostStatus = core.NewHostStatusInfo()
+		global.SetHostStatus(id, hostStatus)
 	}
 	installed := global.GetInstalledStatus(id)
-	if installed != nil {
+	// 没有就初始化一个
+	if installed == nil {
+		ins := "not installed"
+		global.SetInstalledStatus(id, &ins)
+	} else {
 		hostStatus.Installed = *installed
 	}
 	if hostStatus.Connected == "online" {
