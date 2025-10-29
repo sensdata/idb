@@ -686,7 +686,7 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 	switch msg.Type {
 	case message.Heartbeat: // 收到心跳
 		// 处理心跳消息
-		global.LOG.Info("Received heartbeat from agent: %s", msg.Data)
+		global.LOG.Info("Heartbeat from %s: %s", host.Addr, msg.Data)
 		// 写入agent版本号
 		if err := HostRepo.Update(host.ID, map[string]interface{}{"agent_version": msg.Version}); err != nil {
 			global.LOG.Error("Failed to update agent version: %v", err)
