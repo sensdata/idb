@@ -66,6 +66,16 @@ func (m *DefaultManager) GetSession(id string) (Session, error) {
 	return nil, fmt.Errorf("session not found: %s", id)
 }
 
+func ensureScreenRc() {
+	tmpRcPath := filepath.Join(os.TempDir(), "idb.screenrc")
+	if _, err := os.Stat(tmpRcPath); err == nil {
+		return // 已存在，不需要重写
+	}
+	if err := os.WriteFile(tmpRcPath, noAltBufferScreenRC, 0644); err != nil {
+		global.LOG.Error("failed to write screenrc: %v", err)
+	}
+}
+
 // Start session
 func (m *DefaultManager) StartSession(sessionType message.SessionType, id string, name string, cols, rows int) (Session, error) {
 
@@ -73,10 +83,7 @@ func (m *DefaultManager) StartSession(sessionType message.SessionType, id string
 	switch sessionType {
 	case message.SessionTypeScreen:
 		// check screenrc
-		tmpRcPath := filepath.Join(os.TempDir(), "idb.screenrc")
-		if err := os.WriteFile(tmpRcPath, noAltBufferScreenRC, 0644); err != nil {
-			global.LOG.Error("failed to write screenrc: %v", err)
-		}
+		ensureScreenRc()
 
 		session = NewScreenSession(
 			id,
@@ -116,6 +123,9 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, id strin
 	var session Session
 	switch sessionType {
 	case message.SessionTypeScreen:
+		// check screenrc
+		ensureScreenRc()
+
 		session = NewScreenSession(
 			id,
 			"",
