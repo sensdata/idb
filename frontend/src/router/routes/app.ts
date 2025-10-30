@@ -39,6 +39,15 @@ const appRoutes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'hardware',
+        name: 'sysinfoHardware',
+        component: () => import('@/views/app/sysinfo/hardware.vue'),
+        meta: {
+          locale: 'menu.app.sysinfo.hardware',
+          requiresAuth: true,
+        },
+      },
+      {
         path: 'config',
         name: 'sysinfoConfig',
         component: () => import('@/views/app/sysinfo/config.vue'),

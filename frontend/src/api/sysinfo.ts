@@ -87,6 +87,17 @@ export function getSysInfoSystemApi() {
   return request.get<SysInfoSystemRes>('sysinfo/{host}/system');
 }
 
+export interface SysInfoHardwareRes {
+  cpu_count: number;
+  cpu_cores: number;
+  processor: number;
+  module_names: string[];
+  memory: string;
+}
+export function getSysInfoHardwareApi() {
+  return request.get<SysInfoHardwareRes>('sysinfo/{host}/hardware');
+}
+
 export function syncTimeApi() {
   return request.post('sysinfo/{host}/action/sync/time');
 }

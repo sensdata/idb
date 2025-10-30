@@ -111,6 +111,13 @@ export default {
   'app.sysinfo.system.virtual_label': 'Platform:',
   'app.sysinfo.system.not_virtual': 'Physical Machine',
 
+  // Hardware information page
+  'app.sysinfo.hardware.cpu_count': 'CPU Count',
+  'app.sysinfo.hardware.cpu_cores': 'CPU Cores',
+  'app.sysinfo.hardware.processor': 'Threads',
+  'app.sysinfo.hardware.module_names': 'CPU Model',
+  'app.sysinfo.hardware.memory': 'Memory Size',
+
   // System configuration page
   'app.sysinfo.config.max_watch_files': 'Max Watched Files:',
   'app.sysinfo.config.max_open_files': 'Max Open Files:',

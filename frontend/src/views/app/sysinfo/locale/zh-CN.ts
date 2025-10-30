@@ -95,6 +95,13 @@ export default {
   'app.sysinfo.system.virtual_label': '平台：',
   'app.sysinfo.system.not_virtual': '物理机',
 
+  // 硬件信息页面
+  'app.sysinfo.hardware.cpu_count': 'CPU个数',
+  'app.sysinfo.hardware.cpu_cores': 'CPU核心数',
+  'app.sysinfo.hardware.processor': '线程数',
+  'app.sysinfo.hardware.module_names': 'CPU型号',
+  'app.sysinfo.hardware.memory': '内存大小',
+
   // 系统配置页面
   'app.sysinfo.config.max_watch_files': '最大监控文件个数：',
   'app.sysinfo.config.max_open_files': '最大文件打开数量：',

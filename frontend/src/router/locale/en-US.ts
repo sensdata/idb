@@ -7,6 +7,7 @@ export default {
   'menu.app.sysinfo.overview': 'Overview',
   'menu.app.sysinfo.network': 'Network',
   'menu.app.sysinfo.system': 'System',
+  'menu.app.sysinfo.hardware': 'Hardware',
   'menu.app.sysinfo.config': 'Configuration',
   'menu.app.store': 'App Store',
   'menu.app.docker': 'Container Management',

@@ -7,6 +7,7 @@ export default {
   'menu.app.sysinfo.overview': '状态概览',
   'menu.app.sysinfo.network': '网络信息',
   'menu.app.sysinfo.system': '系统信息',
+  'menu.app.sysinfo.hardware': '硬件信息',
   'menu.app.sysinfo.config': '系统配置',
   'menu.app.store': '应用商店',
   'menu.app.docker': '容器管理',
