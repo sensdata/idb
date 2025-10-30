@@ -106,12 +106,10 @@
   import {
     deleteHostApi,
     getHostListApi,
-    getHostStatusApi,
     restartHostAgentApi,
-    getHostAgentStatusApi,
-    connectHostStatusFollowApi,
-    connectHostAgentStatusFollowApi,
+    connectAllHostsStatusFollowApi,
     activateHostApi,
+    type HostStatusFollowItem,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
@@ -201,87 +199,7 @@
 
   const tableRef = ref();
   const dataRef = ref<ApiListResult<HostItem>>();
-  const isLoading = ref(false);
-  const sseMap = ref<Map<number, EventSource>>(new Map());
-  const agentStatusSseMap = ref<Map<number, EventSource>>(new Map());
-
-  const fetchListStatus = async () => {
-    if (!dataRef.value?.items || isLoading.value) {
-      return;
-    }
-
-    isLoading.value = true;
-
-    try {
-      // 处理所有节点，每个节点只发送一个请求
-      const requests = dataRef.value.items.map(async (item) => {
-        // 根据节点的安装状态选择不同的API
-        if (item.agent_status?.status === 'installed') {
-          // 已安装代理的节点：获取监控数据
-          try {
-            const statusData = await getHostStatusApi(item.id);
-            if (statusData) {
-              // 更新监控数据
-              item.activated = statusData.activated;
-              item.cpu = statusData.cpu;
-              item.disk = statusData.disk;
-              item.mem = statusData.mem;
-              item.mem_total = statusData.mem_total;
-              item.mem_used = statusData.mem_used;
-              item.rx = statusData.rx;
-              item.tx = statusData.tx;
-              item.statusReady = true;
-
-              // 不覆盖接口返回的 connected 状态，保留原始值
-            }
-          } catch (error) {
-            console.error('获取节点状态数据失败', item.id);
-            // 如果请求失败，将代理标记为离线，但保持已安装状态
-            if (item.agent_status) {
-              item.agent_status.connected = 'offline';
-            }
-          }
-        } else {
-          // 未安装代理的节点：更新代理状态和激活状态
-          try {
-            const agentStatus = await getHostAgentStatusApi(item.id);
-            if (agentStatus) {
-              item.agent_status = {
-                status: agentStatus.status || 'unknown',
-                connected: agentStatus.connected || 'offline',
-              };
-            }
-          } catch (error) {
-            // 出错时设置默认状态
-            item.agent_status = {
-              status: 'unknown',
-              connected: 'offline',
-            };
-          }
-
-          // 尝试获取激活状态（即使没有安装代理）
-          try {
-            const statusData = await getHostStatusApi(item.id);
-            if (statusData) {
-              item.activated = statusData.activated;
-              item.statusReady = true;
-            }
-          } catch (error) {
-            // 如果无法获取状态，默认为未激活
-            item.activated = false;
-            item.statusReady = true;
-          }
-        }
-      });
-
-      // 等待所有请求完成
-      await Promise.all(requests);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      isLoading.value = false;
-    }
-  };
+  const sseRef = ref<EventSource>();
 
   const getOperationOptions = (record: HostItem) => {
     return [
@@ -404,125 +322,106 @@
   };
 
   const stopAllSSE = () => {
-    for (const es of sseMap.value.values()) {
-      es.close();
+    if (sseRef.value) {
+      sseRef.value.close();
+      sseRef.value = undefined;
     }
-    sseMap.value = new Map();
-
-    for (const es of agentStatusSseMap.value.values()) {
-      es.close();
-    }
-    agentStatusSseMap.value = new Map();
   };
 
   onUnmounted(() => {
     stopAllSSE();
   });
 
-  const handleHostStatusUpdate = (item: HostItem, event: Event) => {
-    try {
-      const statusData = JSON.parse((event as MessageEvent).data);
-      item.activated = statusData.activated;
-      item.cpu = statusData.cpu;
-      item.disk = statusData.disk;
-      item.mem = statusData.mem;
-      item.mem_total = statusData.mem_total;
-      item.mem_used = statusData.mem_used;
-      item.rx = statusData.rx;
-      item.tx = statusData.tx;
-      item.statusReady = true;
-      tableRef.value?.setData(dataRef.value);
-    } catch (e) {
-      console.error('Failed to parse host status:', e);
-    }
-  };
-
-  const handleAgentStatusUpdate = (item: HostItem, event: Event) => {
-    try {
-      const agentStatus = JSON.parse((event as MessageEvent).data);
-      if (item.agent_status) {
-        item.agent_status.status = agentStatus.status;
-        item.agent_status.connected = agentStatus.connected;
-      }
-      tableRef.value?.setData(dataRef.value);
-    } catch (e) {
-      console.error('Failed to parse agent status:', e);
-    }
-  };
-
-  const handleSSEError = (item: HostItem) => {
-    if (item.agent_status) {
-      item.agent_status.connected = 'offline';
-    }
-  };
-
-  const cleanupSSEConnections = (sseMap: Map<number, EventSource>) => {
-    for (const id of sseMap.keys()) {
-      if (!dataRef.value?.items?.find((item) => item.id === id)) {
-        sseMap.get(id)?.close();
-        sseMap.delete(id);
-      }
-    }
-  };
-
-  const startSSEForHosts = () => {
+  const autoActivateDefaultHosts = async () => {
     if (!dataRef.value?.items) {
       return;
     }
 
-    dataRef.value.items.forEach((item) => {
-      const isInstalled = item.agent_status?.status === 'installed';
+    const autoActivatePromises = dataRef.value.items
+      .filter((item) => item.default && item.statusReady && !item.activated)
+      .map(async (item) => {
+        try {
+          await activateHostApi(item.id);
+          item.activated = true; // Update the local state immediately
+        } catch (error) {
+          console.error(
+            `Failed to auto-activate default host ${item.id}:`,
+            error
+          );
+        }
+      });
 
-      // 建立主机监控数据 SSE 连接
-      if (isInstalled && !sseMap.value.has(item.id)) {
-        const es = connectHostStatusFollowApi(item.id);
-        es.addEventListener('status', (event) =>
-          handleHostStatusUpdate(item, event)
-        );
-        es.onerror = () => handleSSEError(item);
-        sseMap.value.set(item.id, es);
+    if (autoActivatePromises.length > 0) {
+      await Promise.all(autoActivatePromises);
+    }
+  };
+
+  const handleAllHostsStatusUpdate = (event: Event) => {
+    try {
+      const statusList: HostStatusFollowItem[] = JSON.parse(
+        (event as MessageEvent).data
+      );
+
+      if (!dataRef.value?.items) {
+        return;
       }
 
-      // 建立 agent 状态 SSE 连接
-      if (isInstalled && !agentStatusSseMap.value.has(item.id)) {
-        const agentStatusEs = connectHostAgentStatusFollowApi(item.id);
-        agentStatusEs.addEventListener('status', (event) =>
-          handleAgentStatusUpdate(item, event)
-        );
-        agentStatusEs.onerror = () => handleSSEError(item);
-        agentStatusSseMap.value.set(item.id, agentStatusEs);
-      }
-    });
+      // 更新每个主机的状态
+      statusList.forEach((statusData) => {
+        const item = dataRef.value?.items?.find((i) => i.id === statusData.id);
+        if (item) {
+          // 更新监控数据
+          item.activated = statusData.activated;
+          item.cpu = statusData.cpu;
+          item.disk = statusData.disk;
+          item.mem = statusData.mem;
+          item.mem_total = statusData.mem_total;
+          item.mem_used = statusData.mem_used;
+          item.rx = statusData.rx;
+          item.tx = statusData.tx;
+          item.statusReady = true;
 
-    cleanupSSEConnections(sseMap.value);
-    cleanupSSEConnections(agentStatusSseMap.value);
+          // 更新 agent 状态
+          if (item.agent_status) {
+            item.agent_status.status = statusData.installed;
+            item.agent_status.connected = statusData.connected;
+          }
+        }
+      });
+
+      tableRef.value?.setData(dataRef.value);
+
+      // 自动激活默认主机（如果尚未激活）
+      autoActivateDefaultHosts();
+    } catch (e) {
+      console.error('Failed to parse hosts status:', e);
+    }
+  };
+
+  const startSSEForHosts = () => {
+    if (!dataRef.value?.items || dataRef.value.items.length === 0) {
+      return;
+    }
+
+    // 停止之前的 SSE 连接
+    stopAllSSE();
+
+    // 收集所有主机的 ID
+    const hostIds = dataRef.value.items.map((item) => item.id);
+
+    // 建立统一的 SSE 连接
+    const es = connectAllHostsStatusFollowApi(hostIds);
+    es.addEventListener('status', handleAllHostsStatusUpdate);
+    es.onerror = (err) => {
+      console.error('SSE error:', err);
+    };
+    sseRef.value = es;
   };
 
   const afterFetchHook = async (data: ApiListResult<HostItem>) => {
     dataRef.value = data;
-    await fetchListStatus();
 
-    // Auto-activate default hosts if they are not already activated
-    if (dataRef.value?.items) {
-      const autoActivatePromises = dataRef.value.items
-        .filter((item) => item.default && item.statusReady && !item.activated)
-        .map(async (item) => {
-          try {
-            await activateHostApi(item.id);
-            item.activated = true; // Update the local state immediately
-          } catch (error) {
-            console.error(
-              `Failed to auto-activate default host ${item.id}:`,
-              error
-            );
-          }
-        });
-
-      if (autoActivatePromises.length > 0) {
-        await Promise.all(autoActivatePromises);
-      }
-    }
-
+    // 启动 SSE 连接，数据会通过 SSE 实时推送
     startSSEForHosts();
     return data;
   };

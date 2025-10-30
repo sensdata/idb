@@ -106,19 +106,22 @@ export function connectHostStatusFollowApi(hostId: number): EventSource {
   return new EventSource(url);
 }
 
-export interface AgentStatusDo {
-  status: string;
+export interface HostStatusFollowItem {
+  id: number;
+  installed: string;
   connected: string;
+  activated: boolean;
+  cpu: number;
+  mem: number;
+  mem_total: string;
+  mem_used: string;
+  disk: number;
+  rx: number;
+  tx: number;
 }
 
-export const getHostAgentStatusApi = (
-  hostId: number
-): Promise<AgentStatusDo> => {
-  return request.get(`hosts/${hostId}/agent/status`);
-};
-
-export function connectHostAgentStatusFollowApi(hostId: number): EventSource {
-  const url = resolveApiUrl(`hosts/${hostId}/agent/status/follow`);
+export function connectAllHostsStatusFollowApi(ids: number[]): EventSource {
+  const url = resolveApiUrl(`hosts/status/follow`, { ids: ids.join(',') });
   return new EventSource(url);
 }
 
