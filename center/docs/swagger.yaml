@@ -6272,6 +6272,31 @@ paths:
       summary: Update host group
       tags:
       - Host
+  /hosts/status/follow:
+    get:
+      consumes:
+      - application/json
+      description: Follow all host status
+      parameters:
+      - description: Comma-separated list of host ids
+        in: query
+        name: ids
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Follow all host status
+      tags:
+      - Host
   /hosts/test/ssh:
     post:
       consumes:
