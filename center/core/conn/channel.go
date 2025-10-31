@@ -1216,11 +1216,15 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 			return nil, err
 		}
 		return &action, nil
-	case <-time.After(2 * time.Second): // 设置一个超时时间
+	case <-time.After(10 * time.Second): // 设置一个超时时间
 		c.mu.Lock()
 		delete(c.responseChMap, msgID)
 		c.mu.Unlock()
-		return nil, fmt.Errorf("timeout waiting for response from agent")
+		return &core.Action{
+			Action: req.Action.Action,
+			Result: false,
+			Data:   "action timeout",
+		}, nil
 	}
 }
 
