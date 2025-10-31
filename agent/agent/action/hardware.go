@@ -12,42 +12,38 @@ import (
 func GetHardware() (*model.HardwareInfo, error) {
 	var hardware model.HardwareInfo
 
-	// 获取CPU的物理核心数量
-	cpuCount, err := cpu.Counts(true) // true 表示获取逻辑CPU核心数
+	cpuInfos, err := cpu.Info()
 	if err != nil {
 		return nil, err
 	}
-	hardware.CpuCount = cpuCount
 
-	// 获取每个CPU的核心数
-	cpuInfo, err := cpu.Info()
-	if err != nil {
-		return nil, err
-	}
-	if len(cpuInfo) > 0 {
-		hardware.CpuCores = int(cpuInfo[0].Cores)
+	physicalCPUSet := make(map[string]struct{})
+	coreSet := make(map[string]struct{})
+
+	for _, ci := range cpuInfos {
+		// 统计物理CPU颗数
+		physicalCPUSet[ci.PhysicalID] = struct{}{}
+
+		// 统计核心数 (PhysicalID + CoreID 唯一标识一个核心)
+		coreKey := fmt.Sprintf("%s-%s", ci.PhysicalID, ci.CoreID)
+		coreSet[coreKey] = struct{}{}
 	}
 
-	// 获取线程数（每个CPU的线程数）
-	processorCount, err := cpu.Counts(false) // false 表示获取物理CPU核心数
-	if err != nil {
-		return nil, err
-	}
-	hardware.Processor = processorCount
+	hardware.CpuCount = len(physicalCPUSet)  // 物理 CPU 颗数
+	hardware.CpuCores = len(coreSet)         // 总核心数
+	hardware.Processor, _ = cpu.Counts(true) // 逻辑 CPU（线程数）
 
-	// 获取每个CPU的型号信息
-	var moduleNames []string
-	for _, info := range cpuInfo {
-		moduleNames = append(moduleNames, info.ModelName)
+	// 型号
+	for _, ci := range cpuInfos {
+		hardware.ModuleNames = append(hardware.ModuleNames, ci.ModelName)
 	}
-	hardware.ModuleNames = moduleNames
 
-	// 获取内存大小
+	// 内存大小
 	vmStat, err := mem.VirtualMemory()
 	if err != nil {
 		return nil, err
 	}
-	hardware.Memory = formatMemorySize(vmStat.Total) // 格式化内存大小为可读格式
+	hardware.Memory = formatMemorySize(vmStat.Total)
 
 	return &hardware, nil
 }
