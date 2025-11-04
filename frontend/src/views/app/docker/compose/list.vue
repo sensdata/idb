@@ -169,6 +169,7 @@
   const editRef = ref<InstanceType<typeof EditDrawer>>();
   const createRef = ref<InstanceType<typeof CreateDrawer>>();
   const downConfirmRef = ref<InstanceType<typeof DownConfirmModal>>();
+
   const getOperationOptions = (record: any) => [
     {
       text: t('app.docker.compose.list.operation.edit'),

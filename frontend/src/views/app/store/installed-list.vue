@@ -19,7 +19,6 @@
         <a-grid-item v-for="item of items" :key="item.id">
           <app-card
             :app="item"
-            :manage-loading="managingAppId === item.id"
             @upgrade="handleUpgrade"
             @uninstall="handleUninstall"
             @manage="handleManageDatabase"
@@ -54,12 +53,15 @@
   } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { useConfirm } from '@/composables/confirm';
+  import { useDatabaseManager } from '@/composables/use-database-manager';
+  import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
   import AppCard from './components/app-card.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
-  import DatabaseManagerDrawer from './components/database-manager-drawer.vue';
 
   const { t } = useI18n();
+  const { getDatabaseType } = useDatabaseManager();
+
   const pagination = reactive({
     page: 1,
     page_size: 10,
@@ -67,7 +69,6 @@
   });
 
   const items = ref<AppSimpleEntity[]>([]);
-  const managingAppId = ref<number | null>(null);
 
   // const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
 
@@ -164,33 +165,14 @@
     }
   };
 
-  // 获取数据库类型
-  const getDatabaseType = (
-    item: AppSimpleEntity
-  ): 'mysql' | 'postgresql' | 'redis' | null => {
-    const name = item.name.toLowerCase();
-    if (name.includes('mysql')) return 'mysql';
-    if (name.includes('postgresql') || name.includes('postgres'))
-      return 'postgresql';
-    if (name.includes('redis')) return 'redis';
-    return null;
-  };
-
   // 管理数据库
   const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
-  const handleManageDatabase = async (item: AppSimpleEntity) => {
-    const dbType = getDatabaseType(item);
+  const handleManageDatabase = (item: AppSimpleEntity) => {
+    const dbType = getDatabaseType(item.name);
     if (!dbType) return;
 
-    // 设置 loading 状态
-    managingAppId.value = item.id;
-
-    try {
-      await databaseManagerRef.value?.show(dbType, item.name);
-    } finally {
-      // 清除 loading 状态
-      managingAppId.value = null;
-    }
+    // 立即打开 drawer，数据在 drawer 内部加载
+    databaseManagerRef.value?.show(dbType, item.name);
   };
 
   defineExpose({

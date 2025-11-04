@@ -11,7 +11,13 @@
     :footer="false"
     unmount-on-close
   >
-    <a-spin :loading="loading">
+    <!-- 加载状态 -->
+    <div v-if="loading && !composeInfo" class="loading-container">
+      <a-spin :loading="true" />
+    </div>
+
+    <!-- 主要内容 -->
+    <div v-else>
       <a-tabs v-if="composeInfo" default-active-key="info">
         <a-tab-pane key="info" :title="$t('app.store.database.tab.info')">
           <a-descriptions :column="2" bordered>
@@ -180,7 +186,7 @@
           </a-form>
         </a-tab-pane>
       </a-tabs>
-    </a-spin>
+    </div>
   </a-drawer>
 </template>
 
@@ -367,19 +373,49 @@
     }
   };
 
-  const show = async (type: 'mysql' | 'postgresql' | 'redis', name: string) => {
+  const show = (
+    type: 'mysql' | 'postgresql' | 'redis',
+    name: string | (() => Promise<string>)
+  ) => {
+    // 设置类型并在打开前重置状态，避免出现旧数据和空白闪烁
     databaseType.value = type;
-    composeName.value = name;
-    // 先加载数据，加载成功后再显示 drawer
-    try {
-      await loadData();
-      // 只有在数据加载成功后才显示 drawer
-      if (composeInfo.value) {
-        visible.value = true;
+
+    // 立即进入加载态并清空旧数据
+    loading.value = true;
+    composeInfo.value = null;
+    configContent.value = '';
+    currentPassword.value = '******';
+    remoteAccessEnabled.value = false;
+    startLoading.value = false;
+    stopLoading.value = false;
+    restartLoading.value = false;
+    saveConfigLoading.value = false;
+    changePasswordLoading.value = false;
+    remoteAccessLoading.value = false;
+    changePortLoading.value = false;
+    refreshLoading.value = false;
+
+    // 立即显示 drawer
+    visible.value = true;
+
+    // 在 drawer 内部加载数据
+    (async () => {
+      try {
+        // 如果 name 是函数，先执行获取实际名称
+        if (typeof name === 'function') {
+          composeName.value = await name();
+        } else {
+          composeName.value = name;
+        }
+        await loadData();
+      } catch (error) {
+        // 加载失败时显示错误，但 drawer 保持打开状态
+        Message.error(t('app.store.database.message.loadDataFailed'));
+        console.error('Failed to load database data:', error);
+        // 如果在调用 loadData 之前报错（例如获取名称失败），需要手动结束 loading
+        loading.value = false;
       }
-    } catch (error) {
-      // 加载失败时不显示 drawer
-    }
+    })();
   };
 
   const handleOperation = async (operation: 'start' | 'stop' | 'restart') => {
@@ -531,3 +567,12 @@
     show,
   });
 </script>
+
+<style scoped>
+  .loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+  }
+</style>

@@ -6,6 +6,7 @@ export default {
   'app.docker.container.list.column.ip': 'IP Address',
   'app.docker.container.list.column.ports': 'Ports',
   'app.docker.container.list.column.uptime': 'Uptime',
+  'app.docker.container.list.operation.manage': 'Manage',
   'app.docker.container.list.operation.terminal': 'Terminal',
   'app.docker.container.list.operation.log': 'Log',
   'app.docker.container.list.operation.start': 'Start',

@@ -6,6 +6,7 @@ export default {
   'app.docker.container.list.column.ip': 'IP地址',
   'app.docker.container.list.column.ports': '端口',
   'app.docker.container.list.column.uptime': '运行时长',
+  'app.docker.container.list.operation.manage': '管理',
   'app.docker.container.list.operation.terminal': '终端',
   'app.docker.container.list.operation.log': '日志',
   'app.docker.container.list.operation.start': '启动',

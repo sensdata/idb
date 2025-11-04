@@ -24,7 +24,6 @@
         <a-grid-item v-for="item of items" :key="item.id">
           <app-card
             :app="item"
-            :manage-loading="managingAppId === item.id"
             @install="handleInstall"
             @upgrade="handleUpgrade"
             @uninstall="handleUninstall"
@@ -50,7 +49,6 @@
 
 <script setup lang="ts">
   import { onMounted, reactive, ref, toRaw } from 'vue';
-  import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { AppSimpleEntity } from '@/entity/App';
@@ -62,13 +60,15 @@
   } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { useConfirm } from '@/composables/confirm';
+  import { useDatabaseManager } from '@/composables/use-database-manager';
+  import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
   import AppCard from './components/app-card.vue';
   import InstallDrawer from './components/install-drawer.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
-  import DatabaseManagerDrawer from './components/database-manager-drawer.vue';
 
   const { t } = useI18n();
+  const { getDatabaseType } = useDatabaseManager();
 
   const pagination = reactive({
     page: 1,
@@ -77,7 +77,6 @@
   });
 
   const items = ref<AppSimpleEntity[]>([]);
-  const managingAppId = ref<number | null>(null);
 
   const installRef = ref<InstanceType<typeof InstallDrawer>>();
   const upgradeLogRef = ref<InstanceType<typeof UpgradeLog>>();
@@ -179,27 +178,13 @@
     }
   };
 
-  // 获取数据库类型
-  const getDatabaseType = (
-    item: AppSimpleEntity
-  ): 'mysql' | 'postgresql' | 'redis' | null => {
-    const name = item.name.toLowerCase();
-    if (name.includes('mysql')) return 'mysql';
-    if (name.includes('postgresql') || name.includes('postgres'))
-      return 'postgresql';
-    if (name.includes('redis')) return 'redis';
-    return null;
-  };
-
   // 处理数据库管理
-  const handleManageDatabase = async (item: AppSimpleEntity) => {
-    const dbType = getDatabaseType(item);
+  const handleManageDatabase = (item: AppSimpleEntity) => {
+    const dbType = getDatabaseType(item.name);
     if (!dbType) return;
 
-    // 设置 loading 状态
-    managingAppId.value = item.id;
-
-    try {
+    // 立即打开 drawer，传入一个函数来异步获取 compose 名称
+    databaseManagerRef.value?.show(dbType, async () => {
       // 在"All"标签中，item.name 是通用名称（如 "mysql"），需要获取实际的 compose 名称
       // 通过查询已安装应用列表来获取实际的 compose 名称
       const response = await getInstalledAppListApi({
@@ -210,17 +195,12 @@
         (app) => app.display_name === item.display_name
       );
 
-      if (installedApp) {
-        await databaseManagerRef.value?.show(dbType, installedApp.name);
-      } else {
-        Message.error('未找到已安装的应用');
+      if (!installedApp) {
+        throw new Error('未找到已安装的应用');
       }
-    } catch (error) {
-      Message.error('获取应用信息失败');
-    } finally {
-      // 清除 loading 状态
-      managingAppId.value = null;
-    }
+
+      return installedApp.name;
+    });
   };
 
   defineExpose({

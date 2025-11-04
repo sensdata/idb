@@ -51,6 +51,7 @@
     <logs-modal ref="logsRef" />
     <terminal-drawer ref="termRef" />
     <stop-confirm-modal ref="stopConfirmRef" @confirm="afterStopConfirm" />
+    <database-manager-drawer ref="databaseManagerRef" />
   </div>
 </template>
 
@@ -71,12 +72,15 @@
   import { useConfirm } from '@/composables/confirm';
   import { pick } from 'lodash';
   import { formatMemorySize } from '@/utils/format';
+  import { useDatabaseManager } from '@/composables/use-database-manager';
   import DockerInstallGuide from '@/components/docker-install-guide/index.vue';
+  import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
   import LogsModal from './components/logs-modal.vue';
   import TerminalDrawer from './components/terminal-drawer.vue';
   import StopConfirmModal from './components/stop-confirm-modal.vue';
 
   const { t } = useI18n();
+  const { getDatabaseType, isDatabaseCompose } = useDatabaseManager();
 
   const route = useRoute();
   const params = {
@@ -398,7 +402,24 @@
   const logsRef = ref<InstanceType<typeof LogsModal>>();
   const termRef = ref<InstanceType<typeof TerminalDrawer>>();
   const stopConfirmRef = ref<InstanceType<typeof StopConfirmModal>>();
+  const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
+
+  // 处理数据库管理
+  const handleManageDatabase = (containerName: string) => {
+    const dbType = getDatabaseType(containerName);
+    if (!dbType) return;
+
+    // 立即打开 drawer，数据在 drawer 内部加载
+    databaseManagerRef.value?.show(dbType, containerName);
+  };
+
   const getOperationOptions = (record: any) => [
+    // 数据库容器显示管理按钮
+    {
+      text: t('app.docker.container.list.operation.manage'),
+      visible: isDatabaseCompose(record.name),
+      click: () => handleManageDatabase(record.name),
+    },
     {
       text: t('app.docker.container.list.operation.terminal'),
       click: () => {
