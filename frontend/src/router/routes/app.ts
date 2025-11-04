@@ -311,6 +311,16 @@ const appRoutes: RouteRecordRaw[] = [
       icon: 'icon-settings',
     },
   },
+  {
+    path: '/app/rsync',
+    name: 'rsync',
+    component: () => import('@/views/app/rsync/main.vue'),
+    meta: {
+      locale: 'menu.app.rsync',
+      requiresAuth: true,
+      icon: 'icon-sync',
+    },
+  },
 ];
 
 export default appRoutes;

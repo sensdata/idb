@@ -9,6 +9,7 @@ export default {
   'app.store.app.list.hasUpgrade': 'Update Available',
   'app.store.app.list.install_at': 'Installed at',
   'app.store.app.syncAppList': 'Sync App List',
+  'app.store.app.installed.manage': 'Manage',
 
   'app.store.app.message.syncSuccess': 'App list updated successfully',
 
@@ -56,4 +57,68 @@ export default {
   'app.store.uninstallLog.timeout': 'Uninstall timeout',
   'app.store.uninstallLog.logConnected': 'Connection success',
   'app.store.uninstallLog.logConnectionFailed': 'Connection failed',
+
+  // Database Manager
+  'app.store.database.manager.title': '{type} Management - {name}',
+  'app.store.database.tab.info': 'Basic Info',
+  'app.store.database.tab.config': 'Configuration',
+  'app.store.database.tab.password': 'Password',
+  'app.store.database.tab.remote': 'Remote Access',
+  'app.store.database.tab.port': 'Port Settings',
+
+  'app.store.database.info.name': 'Name',
+  'app.store.database.info.version': 'Version',
+  'app.store.database.info.port': 'Port',
+  'app.store.database.info.status': 'Status',
+
+  'app.store.database.button.start': 'Start',
+  'app.store.database.button.stop': 'Stop',
+  'app.store.database.button.restart': 'Restart',
+  'app.store.database.button.save': 'Save Config',
+  'app.store.database.button.refresh': 'Refresh',
+  'app.store.database.button.refreshStatus': 'Refresh Status',
+  'app.store.database.button.changePassword': 'Change Password',
+  'app.store.database.button.changePort': 'Change Port',
+
+  'app.store.database.config.placeholder': 'Configuration file content',
+
+  'app.store.database.password.current': 'Current Password',
+  'app.store.database.password.new': 'New Password',
+  'app.store.database.password.newPlaceholder': 'Please enter new password',
+
+  'app.store.database.remote.status': 'Remote Access Status',
+  'app.store.database.remote.enabled': 'Enabled',
+  'app.store.database.remote.disabled': 'Disabled',
+  'app.store.database.remote.warning':
+    'After enabling remote access, please ensure a strong password is set for security',
+
+  'app.store.database.port.label': 'Port Number',
+  'app.store.database.port.placeholder': 'Please enter port number',
+
+  'app.store.database.message.loadConfigFailed': 'Failed to load configuration',
+  'app.store.database.message.loadPasswordFailed': 'Failed to load password',
+  'app.store.database.message.loadRemoteAccessFailed':
+    'Failed to load remote access status',
+  'app.store.database.message.loadDataFailed': 'Failed to load data',
+  'app.store.database.message.operationSuccess':
+    '{operation} operation successful',
+  'app.store.database.message.operationFailed': '{operation} operation failed',
+  'app.store.database.message.configSaveSuccess':
+    'Configuration saved successfully',
+  'app.store.database.message.configSaveFailed': 'Failed to save configuration',
+  'app.store.database.message.passwordRequired': 'Please enter new password',
+  'app.store.database.message.passwordChangeSuccess':
+    'Password changed successfully',
+  'app.store.database.message.passwordChangeFailed':
+    'Failed to change password',
+  'app.store.database.message.remoteAccessSuccess': 'Remote access {status}',
+  'app.store.database.message.remoteAccessFailed':
+    'Failed to set remote access',
+  'app.store.database.message.portChangeSuccess': 'Port changed successfully',
+  'app.store.database.message.portChangeFailed': 'Failed to change port',
+  'app.store.database.message.refreshSuccess': 'Status refreshed successfully',
+  'app.store.database.message.refreshFailed': 'Failed to refresh status',
+
+  'app.store.database.remoteStatus.enabled': 'enabled',
+  'app.store.database.remoteStatus.disabled': 'disabled',
 };

@@ -23,6 +23,7 @@ export default {
   'menu.dashboard': 'Dashboard',
   'menu.profile': 'Profile',
   'menu.app.certificate': 'Certificate Management',
+  'menu.app.rsync': 'File Sync',
   'locale.switchLocale': 'Switch to English',
   ...localeMessageBox,
   ...localeLogin,

@@ -9,6 +9,7 @@ export default {
   'app.store.app.list.version': '版本',
   'app.store.app.list.install_at': '安装时间',
   'app.store.app.syncAppList': '同步应用列表',
+  'app.store.app.installed.manage': '管理',
 
   'app.store.app.message.syncSuccess': '应用列表更新成功',
 
@@ -53,4 +54,62 @@ export default {
   'app.store.uninstallLog.timeout': '卸载超时',
   'app.store.uninstallLog.logConnected': '连接成功',
   'app.store.uninstallLog.logConnectionFailed': '连接失败',
+
+  // Database Manager
+  'app.store.database.manager.title': '{type} 管理 - {name}',
+  'app.store.database.tab.info': '基本信息',
+  'app.store.database.tab.config': '配置管理',
+  'app.store.database.tab.password': '密码管理',
+  'app.store.database.tab.remote': '远程访问',
+  'app.store.database.tab.port': '端口设置',
+
+  'app.store.database.info.name': '名称',
+  'app.store.database.info.version': '版本',
+  'app.store.database.info.port': '端口',
+  'app.store.database.info.status': '状态',
+
+  'app.store.database.button.start': '启动',
+  'app.store.database.button.stop': '停止',
+  'app.store.database.button.restart': '重启',
+  'app.store.database.button.save': '保存配置',
+  'app.store.database.button.refresh': '刷新',
+  'app.store.database.button.refreshStatus': '刷新状态',
+  'app.store.database.button.changePassword': '修改密码',
+  'app.store.database.button.changePort': '修改端口',
+
+  'app.store.database.config.placeholder': '配置文件内容',
+
+  'app.store.database.password.current': '当前密码',
+  'app.store.database.password.new': '新密码',
+  'app.store.database.password.newPlaceholder': '请输入新密码',
+
+  'app.store.database.remote.status': '远程访问状态',
+  'app.store.database.remote.enabled': '已开启',
+  'app.store.database.remote.disabled': '已关闭',
+  'app.store.database.remote.warning':
+    '开启远程访问后，请确保设置了强密码以保证安全',
+
+  'app.store.database.port.label': '端口号',
+  'app.store.database.port.placeholder': '请输入端口号',
+
+  'app.store.database.message.loadConfigFailed': '加载配置失败',
+  'app.store.database.message.loadPasswordFailed': '加载密码失败',
+  'app.store.database.message.loadRemoteAccessFailed': '加载远程访问状态失败',
+  'app.store.database.message.loadDataFailed': '加载数据失败',
+  'app.store.database.message.operationSuccess': '{operation} 操作成功',
+  'app.store.database.message.operationFailed': '{operation} 操作失败',
+  'app.store.database.message.configSaveSuccess': '配置保存成功',
+  'app.store.database.message.configSaveFailed': '配置保存失败',
+  'app.store.database.message.passwordRequired': '请输入新密码',
+  'app.store.database.message.passwordChangeSuccess': '密码修改成功',
+  'app.store.database.message.passwordChangeFailed': '密码修改失败',
+  'app.store.database.message.remoteAccessSuccess': '远程访问已{status}',
+  'app.store.database.message.remoteAccessFailed': '远程访问设置失败',
+  'app.store.database.message.portChangeSuccess': '端口修改成功',
+  'app.store.database.message.portChangeFailed': '端口修改失败',
+  'app.store.database.message.refreshSuccess': '状态刷新成功',
+  'app.store.database.message.refreshFailed': '状态刷新失败',
+
+  'app.store.database.remoteStatus.enabled': '开启',
+  'app.store.database.remoteStatus.disabled': '关闭',
 };

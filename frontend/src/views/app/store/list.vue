@@ -22,80 +22,14 @@
     <div class="list-body">
       <a-grid :cols="3" :col-gap="24" :row-gap="24">
         <a-grid-item v-for="item of items" :key="item.id">
-          <a-card hoverable>
-            <div class="item-box flex gap-3 h-26">
-              <a-avatar
-                shape="square"
-                class="item-avatar"
-                :size="72"
-                :style="{
-                  backgroundColor: getHexColorByChar(item.display_name),
-                }"
-              >
-                {{ item.display_name.charAt(0) }}
-              </a-avatar>
-              <div class="item-main flex-1">
-                <h3 class="mt-0 mb-3">
-                  {{ item.display_name }}
-                </h3>
-                <!-- 未安装应用显示描述和分类 -->
-                <template v-if="item.status === 'uninstalled'">
-                  <div class="mb-4 text-sm text-gray-500 line-clamp-2">
-                    {{ item.description }}
-                  </div>
-                  <a-tag color="blue">{{ item.category }}</a-tag>
-                </template>
-                <!-- 已安装应用显示版本和安装时间 -->
-                <template v-else>
-                  <a-tag bordered class="text-gray-600 mb-2">
-                    {{ $t('app.store.app.list.version') }}:
-                    {{ item.current_version }}
-                  </a-tag>
-                  <div class="text-gray-500 text-sm mb-2">
-                    {{ $t('app.store.app.list.install_at') }}:
-                    {{
-                      item.versions && item.versions[0]
-                        ? item.versions[0].created_at
-                        : ''
-                    }}
-                  </div>
-                </template>
-              </div>
-              <div class="item-actions flex flex-col gap-3">
-                <!-- 未安装应用显示安装按钮 -->
-                <a-button
-                  v-if="item.status === 'uninstalled'"
-                  type="primary"
-                  shape="round"
-                  size="small"
-                  @click="handleInstall(item)"
-                >
-                  {{ $t('app.store.app.list.install') }}
-                </a-button>
-                <!-- 已安装应用显示升级和卸载按钮 -->
-                <template v-else>
-                  <a-button
-                    type="primary"
-                    shape="round"
-                    size="small"
-                    :disabled="!item.has_upgrade"
-                    @click="handleUpgrade(item)"
-                  >
-                    {{ $t('app.store.app.list.upgrade') }}
-                  </a-button>
-                  <a-button
-                    type="primary"
-                    shape="round"
-                    status="danger"
-                    size="small"
-                    @click="handleUninstall(item)"
-                  >
-                    {{ $t('app.store.app.list.uninstall') }}
-                  </a-button>
-                </template>
-              </div>
-            </div>
-          </a-card>
+          <app-card
+            :app="item"
+            :manage-loading="managingAppId === item.id"
+            @install="handleInstall"
+            @upgrade="handleUpgrade"
+            @uninstall="handleUninstall"
+            @manage="handleManageDatabase"
+          />
         </a-grid-item>
       </a-grid>
     </div>
@@ -111,21 +45,28 @@
   <install-drawer ref="installRef" @ok="load" />
   <upgrade-log ref="upgradeLogRef" @ok="load" />
   <uninstall-log ref="uninstallLogRef" @ok="load" />
+  <database-manager-drawer ref="databaseManagerRef" />
 </template>
 
 <script setup lang="ts">
   import { onMounted, reactive, ref, toRaw } from 'vue';
+  import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
   import { AppSimpleEntity } from '@/entity/App';
-  import { getAppListApi, upgradeAppApi, uninstallAppApi } from '@/api/store';
-  import { Message } from '@arco-design/web-vue';
+  import {
+    getAppListApi,
+    getInstalledAppListApi,
+    upgradeAppApi,
+    uninstallAppApi,
+  } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
-  import { getHexColorByChar } from '@/helper/utils';
   import { useConfirm } from '@/composables/confirm';
+  import AppCard from './components/app-card.vue';
   import InstallDrawer from './components/install-drawer.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
+  import DatabaseManagerDrawer from './components/database-manager-drawer.vue';
 
   const { t } = useI18n();
 
@@ -136,10 +77,12 @@
   });
 
   const items = ref<AppSimpleEntity[]>([]);
+  const managingAppId = ref<number | null>(null);
 
   const installRef = ref<InstanceType<typeof InstallDrawer>>();
   const upgradeLogRef = ref<InstanceType<typeof UpgradeLog>>();
   const uninstallLogRef = ref<InstanceType<typeof UninstallLog>>();
+  const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
   const { confirm } = useConfirm();
@@ -233,6 +176,50 @@
       } finally {
         hideLoading();
       }
+    }
+  };
+
+  // 获取数据库类型
+  const getDatabaseType = (
+    item: AppSimpleEntity
+  ): 'mysql' | 'postgresql' | 'redis' | null => {
+    const name = item.name.toLowerCase();
+    if (name.includes('mysql')) return 'mysql';
+    if (name.includes('postgresql') || name.includes('postgres'))
+      return 'postgresql';
+    if (name.includes('redis')) return 'redis';
+    return null;
+  };
+
+  // 处理数据库管理
+  const handleManageDatabase = async (item: AppSimpleEntity) => {
+    const dbType = getDatabaseType(item);
+    if (!dbType) return;
+
+    // 设置 loading 状态
+    managingAppId.value = item.id;
+
+    try {
+      // 在"All"标签中，item.name 是通用名称（如 "mysql"），需要获取实际的 compose 名称
+      // 通过查询已安装应用列表来获取实际的 compose 名称
+      const response = await getInstalledAppListApi({
+        page: 1,
+        page_size: 100,
+      });
+      const installedApp = response.items.find(
+        (app) => app.display_name === item.display_name
+      );
+
+      if (installedApp) {
+        await databaseManagerRef.value?.show(dbType, installedApp.name);
+      } else {
+        Message.error('未找到已安装的应用');
+      }
+    } catch (error) {
+      Message.error('获取应用信息失败');
+    } finally {
+      // 清除 loading 状态
+      managingAppId.value = null;
     }
   };
 

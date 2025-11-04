@@ -17,53 +17,13 @@
     <div class="list-body">
       <a-grid :cols="3" :col-gap="24" :row-gap="24">
         <a-grid-item v-for="item of items" :key="item.id">
-          <a-card hoverable>
-            <div class="item-box flex gap-3 h-26">
-              <a-avatar
-                shape="square"
-                class="item-avatar"
-                :size="72"
-                :style="{
-                  backgroundColor: getHexColorByChar(item.display_name),
-                }"
-              >
-                {{ item.display_name.charAt(0) }}
-              </a-avatar>
-              <div class="item-main flex-1">
-                <h3 class="mt-0 mb-3">
-                  {{ item.display_name }}
-                </h3>
-                <a-tag bordered class="text-gray-600 mb-2">
-                  {{ $t('app.store.app.list.version') }}:
-                  {{ item.current_version }}
-                </a-tag>
-                <div class="text-gray-500 text-sm mb-2">
-                  {{ $t('app.store.app.list.install_at') }}:
-                  {{ item.versions[0].created_at }}
-                </div>
-              </div>
-              <div class="item-actions flex flex-col gap-3">
-                <a-button
-                  type="primary"
-                  shape="round"
-                  size="small"
-                  :disabled="!item.has_upgrade"
-                  @click="handleUpgrade(item)"
-                >
-                  {{ $t('app.store.app.list.upgrade') }}
-                </a-button>
-                <a-button
-                  type="primary"
-                  shape="round"
-                  status="danger"
-                  size="small"
-                  @click="handleUninstall(item)"
-                >
-                  {{ $t('app.store.app.list.uninstall') }}
-                </a-button>
-              </div>
-            </div>
-          </a-card>
+          <app-card
+            :app="item"
+            :manage-loading="managingAppId === item.id"
+            @upgrade="handleUpgrade"
+            @uninstall="handleUninstall"
+            @manage="handleManageDatabase"
+          />
         </a-grid-item>
       </a-grid>
     </div>
@@ -79,6 +39,7 @@
   <!-- <upgrade-drawer ref="upgradeRef" /> -->
   <upgrade-log ref="upgradeLogRef" @ok="load" />
   <uninstall-log ref="uninstallLogRef" @ok="load" />
+  <database-manager-drawer ref="databaseManagerRef" />
 </template>
 
 <script setup lang="ts">
@@ -92,11 +53,11 @@
     upgradeAppApi,
   } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
-  import { getHexColorByChar } from '@/helper/utils';
   import { useConfirm } from '@/composables/confirm';
+  import AppCard from './components/app-card.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
-  // import UpgradeDrawer from './components/upgrade-drawer.vue';
+  import DatabaseManagerDrawer from './components/database-manager-drawer.vue';
 
   const { t } = useI18n();
   const pagination = reactive({
@@ -106,6 +67,7 @@
   });
 
   const items = ref<AppSimpleEntity[]>([]);
+  const managingAppId = ref<number | null>(null);
 
   // const upgradeRef = ref<InstanceType<typeof UpgradeDrawer>>();
 
@@ -199,6 +161,35 @@
       } finally {
         loading.value = false;
       }
+    }
+  };
+
+  // 获取数据库类型
+  const getDatabaseType = (
+    item: AppSimpleEntity
+  ): 'mysql' | 'postgresql' | 'redis' | null => {
+    const name = item.name.toLowerCase();
+    if (name.includes('mysql')) return 'mysql';
+    if (name.includes('postgresql') || name.includes('postgres'))
+      return 'postgresql';
+    if (name.includes('redis')) return 'redis';
+    return null;
+  };
+
+  // 管理数据库
+  const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
+  const handleManageDatabase = async (item: AppSimpleEntity) => {
+    const dbType = getDatabaseType(item);
+    if (!dbType) return;
+
+    // 设置 loading 状态
+    managingAppId.value = item.id;
+
+    try {
+      await databaseManagerRef.value?.show(dbType, item.name);
+    } finally {
+      // 清除 loading 状态
+      managingAppId.value = null;
     }
   };
 

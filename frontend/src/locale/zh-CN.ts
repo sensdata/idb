@@ -20,6 +20,7 @@ const routerLocales: LocaleModules = import.meta.glob('../router/**/zh-CN.ts', {
 
 export default {
   'menu.app.certificate': '证书管理',
+  'menu.app.rsync': '文件同步',
   'locale.switchLocale': '切换为中文',
   ...localeMessageBox,
   ...Object.values({
