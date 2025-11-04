@@ -414,6 +414,8 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 		_, ok = raw.(shared.Redis)
 	case "idb-rsync":
 		_, ok = raw.(shared.Rsync)
+	case "pma":
+		_, ok = raw.(shared.Pma)
 	default:
 		// 对于未来的插件，可以在这里添加新的case
 		global.LOG.Error("unknown plugin type: %s", entry.Name)

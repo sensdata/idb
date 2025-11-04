@@ -26,5 +26,6 @@ func commonGroups() []CommonRouter {
 		&PostgreSqlRouter{},
 		&RedisRouter{},
 		&RsyncRouter{},
+		&PmaRouter{},
 	}
 }

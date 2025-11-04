@@ -23,3 +23,7 @@ plugins:
     path: /var/lib/idb/data/plugins/idb-rsync
     url: https://static.sensdata.com/idb/plugins/idb-rsync/latest
     enabled: true
+  - name: pma
+    path: /var/lib/idb/data/plugins/pma
+    url: https://static.sensdata.com/idb/plugins/pma/latest
+    enabled: true

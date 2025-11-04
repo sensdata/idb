@@ -1,0 +1,81 @@
+syntax = "proto3";
+package proto;
+option go_package = "../proto";
+
+service Pma {
+    rpc PmaGetComposes(PmaGetComposesRequest) returns (PmaGetComposesResponse);
+    rpc PmaOperation(PmaOperationRequest) returns (PmaCommonResponse);
+    rpc PmaSetPort(PmaSetPortRequest) returns (PmaCommonResponse);
+    rpc PmaGetServers(PmaGetServersRequest) returns (PmaGetServersResponse);
+    rpc PmaAddServer(PmaAddServerRequest) returns (PmaCommonResponse);
+    rpc PmaUpdateServer(PmaAddServerRequest) returns (PmaCommonResponse);
+    rpc PmaRemoveServer(PmaRemoveServerRequest) returns (PmaCommonResponse);
+}
+
+message PmaCommonResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message PmaGetComposesRequest {
+    uint32 host_id = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+}
+
+message PmaGetComposesResponse {
+    int64 total = 1;
+    repeated PmaComposesInfo items = 2;
+}
+
+message PmaComposesInfo {
+    string name = 1;
+    string version = 2;
+    string port = 3;
+    string status = 4;
+}
+
+message PmaOperationRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string operation = 3;
+}
+
+message PmaSetPortRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string port = 3;
+}
+
+message PmaGetServersRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+}
+
+message PmaGetServersResponse {
+    int64 total = 1;
+    repeated PmaServerInfo items = 2;
+}
+
+message PmaServerInfo {
+    string verbose = 1;
+    string host = 2;
+    string port = 3;
+}
+
+message PmaAddServerRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string verbose = 3;
+    string host = 4;
+    string port = 5;
+}
+
+message PmaRemoveServerRequest {
+    uint32 host_id = 1;
+    string name = 2;
+    string host = 3;
+    string port = 4;
+}

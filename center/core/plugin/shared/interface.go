@@ -19,6 +19,7 @@ var PluginMap = map[string]plugin.Plugin{
 	"postgresql":    &PostgreSqlPlugin{},
 	"redis":         &RedisPlugin{},
 	"idb-rsync":     &RsyncPlugin{},
+	"pma":           &PmaPlugin{},
 }
 
 type PluginInitConfig struct {
