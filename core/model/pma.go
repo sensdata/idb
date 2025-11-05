@@ -1,9 +1,9 @@
 package model
 
 type GetServersRequest struct {
-	Name     string `json:"name"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
+	Name     string `form:"name" json:"name"`
+	Page     int    `form:"page" json:"page"`
+	PageSize int    `form:"page_size" json:"page_size"`
 }
 
 type GetServersResponse struct {
