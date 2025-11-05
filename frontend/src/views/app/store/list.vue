@@ -145,10 +145,25 @@
     ) {
       try {
         showLoading();
+
+        // 在"All"标签中,item.name 是通用名称(如 "mysql"),需要获取实际的 compose 名称
+        // 通过查询已安装应用列表来获取实际的 compose 名称
+        const response = await getInstalledAppListApi({
+          page: 1,
+          page_size: 100,
+        });
+        const installedApp = response.items.find(
+          (app) => app.display_name === item.display_name
+        );
+
+        if (!installedApp) {
+          throw new Error('未找到已安装的应用');
+        }
+
         const res = await upgradeAppApi({
           id: item.id,
           upgrade_version_id: upgradeVersion.id,
-          compose_name: item.name,
+          compose_name: installedApp.name,
         });
         upgradeLogRef.value?.logFileLogs(res.log_host, res.log_path);
         upgradeLogRef.value?.show();
@@ -164,9 +179,24 @@
     if (await confirm(t('app.store.app.uninstall.confirm'))) {
       try {
         showLoading();
+
+        // 在"All"标签中,item.name 是通用名称(如 "mysql"),需要获取实际的 compose 名称
+        // 通过查询已安装应用列表来获取实际的 compose 名称
+        const response = await getInstalledAppListApi({
+          page: 1,
+          page_size: 100,
+        });
+        const installedApp = response.items.find(
+          (app) => app.display_name === item.display_name
+        );
+
+        if (!installedApp) {
+          throw new Error('未找到已安装的应用');
+        }
+
         const res = await uninstallAppApi({
           id: item.id,
-          compose_name: item.name,
+          compose_name: installedApp.name,
         });
         uninstallLogRef.value?.logFileLogs(res.log_host, res.log_path);
         uninstallLogRef.value?.show();

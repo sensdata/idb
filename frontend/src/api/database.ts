@@ -138,10 +138,10 @@ export function deleteRsyncTaskApi(params: { id: string }) {
   return request.delete('rsync/task', params);
 }
 
-export function cancelRsyncTaskApi(data: { id: string }) {
-  return request.post('rsync/task/cancel', data);
+export function cancelRsyncTaskApi(params: { id: string }) {
+  return request.post('rsync/task/cancel', undefined, { params });
 }
 
-export function retryRsyncTaskApi(data: { id: string }) {
-  return request.post('rsync/task/retry', data);
+export function retryRsyncTaskApi(params: { id: string }) {
+  return request.post('rsync/task/retry', undefined, { params });
 }
