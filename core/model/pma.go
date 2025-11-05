@@ -18,14 +18,14 @@ type PmaServerInfo struct {
 }
 
 type AddServerRequest struct {
-	Name    string `json:"name"`
-	Verbose string `json:"verbose"`
-	Host    string `json:"host"`
-	Port    string `json:"port"`
+	Name    string `form:"name" json:"name"`
+	Verbose string `form:"verbose" json:"verbose"`
+	Host    string `form:"host" json:"host"`
+	Port    string `form:"port" json:"port"`
 }
 
 type RemoveServerRequest struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Port string `json:"port"`
+	Name string `form:"name" json:"name"`
+	Host string `form:"host" json:"host"`
+	Port string `form:"port" json:"port"`
 }
