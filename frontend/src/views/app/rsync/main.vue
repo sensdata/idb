@@ -98,6 +98,7 @@
                   v-if="record.status === 'failed'"
                   type="text"
                   size="small"
+                  :loading="retryingTaskId === record.id"
                   @click="handleRetryTask(record)"
                 >
                   {{ $t('common.button.retry') }}
@@ -221,7 +222,9 @@
           v-if="currentTask.error"
           :label="$t('app.rsync.field.error')"
         >
-          <a-alert type="error" :message="currentTask.error" />
+          <pre style="color: var(--color-danger-6); white-space: pre-wrap">{{
+            currentTask.error
+          }}</pre>
         </a-descriptions-item>
         <a-descriptions-item :label="$t('app.rsync.field.lastLog')">
           <pre style="white-space: pre-wrap">{{ currentTask.last_log }}</pre>
@@ -259,6 +262,7 @@
   const detailDrawerVisible = ref(false);
   const currentTask = ref<RsyncTaskInfo | null>(null);
   const hostList = ref<any[]>([]);
+  const retryingTaskId = ref<string | null>(null);
 
   const taskForm = ref({
     src_host_id: undefined as number | undefined,
@@ -300,7 +304,10 @@
 
   const fetchHosts = async () => {
     try {
-      const res = await getHostListApi();
+      const res = await getHostListApi({
+        page: 1,
+        page_size: 1000,
+      });
       hostList.value = res.items || [];
     } catch (error) {
       Message.error(t('app.rsync.message.fetchHostFailed'));
@@ -321,7 +328,7 @@
     fetchData();
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     taskForm.value = {
       src_host_id: undefined,
       src: '',
@@ -330,6 +337,8 @@
       mode: 'copy',
     };
     createDrawerVisible.value = true;
+    // 打开抽屉时才获取主机列表
+    await fetchHosts();
   };
 
   const handleSubmitTask = async () => {
@@ -374,12 +383,15 @@
   };
 
   const handleRetryTask = async (record: RsyncTaskInfo) => {
+    retryingTaskId.value = record.id;
     try {
       await retryRsyncTaskApi({ id: record.id });
       Message.success(t('app.rsync.message.retrySuccess'));
       fetchData();
     } catch (error) {
       Message.error(t('app.rsync.message.retryFailed'));
+    } finally {
+      retryingTaskId.value = null;
     }
   };
 
@@ -395,7 +407,6 @@
 
   onMounted(() => {
     fetchData();
-    fetchHosts();
   });
 </script>
 

@@ -291,7 +291,7 @@
     }
 
     try {
-      // 1) 基本信息和配置是必需的：用 Promise.all
+      // 准备所有需要请求的 Promise
       let composesPromise: Promise<any>;
       if (databaseType.value === 'mysql') {
         composesPromise = getMysqlComposesApi({ page: 1, page_size: 100 });
@@ -310,25 +310,10 @@
         configPromise = getRedisConfApi({ name: composeName.value });
       }
 
-      const [composesResponse, configResponse] = await Promise.all([
-        composesPromise,
-        configPromise,
-      ]);
+      // 使用 Promise.allSettled 来处理所有请求，即使部分失败也能显示成功的数据
+      const promises: Promise<any>[] = [composesPromise, configPromise];
 
-      // 处理基本信息
-      composeInfo.value =
-        composesResponse.composes.find(
-          (c: any) => c.name === composeName.value
-        ) || null;
-
-      if (composeInfo.value) {
-        portForm.value.port = Number(composeInfo.value.port);
-      }
-
-      // 处理配置
-      configContent.value = configResponse.content;
-
-      // 2) 密码和远程访问（仅 MySQL/Redis）：用 Promise.allSettled，以免单个失败导致整体失败
+      // 如果是 MySQL 或 Redis，添加密码和远程访问请求
       if (databaseType.value === 'mysql' || databaseType.value === 'redis') {
         let passwordPromise: Promise<any>;
         let remoteAccessPromise: Promise<any>;
@@ -349,25 +334,72 @@
           });
         }
 
-        const [pwdResult, raResult] = await Promise.allSettled([
-          passwordPromise,
-          remoteAccessPromise,
-        ]);
+        promises.push(passwordPromise, remoteAccessPromise);
+      }
+
+      const results = await Promise.allSettled(promises);
+
+      // 提取错误信息的辅助函数
+      const extractErrorMessage = (error: any): string => {
+        // 优先使用 response.data.data (后端详细错误)
+        const responseData = error?.response?.data;
+        if (responseData?.data && typeof responseData.data === 'string') {
+          return responseData.data.trim();
+        }
+        // 其次使用 response.data.message 或 error.message
+        return responseData?.message || error?.message || String(error);
+      };
+
+      // 处理基本信息（第一个请求）
+      const composesResult = results[0];
+      if (composesResult.status === 'fulfilled') {
+        composeInfo.value =
+          composesResult.value.composes.find(
+            (c: any) => c.name === composeName.value
+          ) || null;
+
+        if (composeInfo.value) {
+          portForm.value.port = Number(composeInfo.value.port);
+        }
+      } else {
+        console.error('Failed to load compose info:', composesResult.reason);
+        Message.error(extractErrorMessage(composesResult.reason));
+      }
+
+      // 处理配置（第二个请求）
+      const configResult = results[1];
+      if (configResult.status === 'fulfilled') {
+        configContent.value = configResult.value.content;
+      } else {
+        console.error('Failed to load config:', configResult.reason);
+        Message.error(extractErrorMessage(configResult.reason));
+      }
+
+      // 处理密码和远程访问（第三、四个请求，仅 MySQL/Redis）
+      if (databaseType.value === 'mysql' || databaseType.value === 'redis') {
+        const pwdResult = results[2];
+        const raResult = results[3];
 
         if (pwdResult.status === 'fulfilled') {
           currentPassword.value = pwdResult.value.password || '******';
         } else {
+          console.error('Failed to load password:', pwdResult.reason);
           currentPassword.value = '******';
+          // 密码加载失败不显示错误提示，使用默认值即可
         }
+
         if (raResult.status === 'fulfilled') {
           remoteAccessEnabled.value = raResult.value.remote_access ?? false;
         } else {
+          console.error('Failed to load remote access:', raResult.reason);
           remoteAccessEnabled.value = false;
+          // 远程访问状态加载失败不显示错误提示，使用默认值即可
         }
       }
     } catch (error) {
+      // 这里只会捕获意外的错误，因为 Promise.allSettled 不会抛出错误
+      console.error('Unexpected error in loadData:', error);
       Message.error(t('app.store.database.message.loadDataFailed'));
-      throw error; // 重新抛出错误，以便 show 函数知道加载失败
     } finally {
       loading.value = false;
     }
