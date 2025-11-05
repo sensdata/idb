@@ -79,6 +79,17 @@ definitions:
     required:
     - content
     type: object
+  model.AddServerRequest:
+    properties:
+      host:
+        type: string
+      name:
+        type: string
+      port:
+        type: string
+      verbose:
+        type: string
+    type: object
   model.AddressInfo:
     properties:
       gate:
@@ -928,6 +939,15 @@ definitions:
       password:
         type: string
     type: object
+  model.GetServersResponse:
+    properties:
+      servers:
+        items:
+          $ref: '#/definitions/model.PmaServerInfo'
+        type: array
+      total:
+        type: integer
+    type: object
   model.GitFile:
     properties:
       content:
@@ -1487,6 +1507,15 @@ definitions:
     properties:
       allowed:
         type: boolean
+    type: object
+  model.PmaServerInfo:
+    properties:
+      host:
+        type: string
+      port:
+        type: string
+      verbose:
+        type: string
     type: object
   model.PortHelper:
     properties:
@@ -8027,6 +8056,205 @@ paths:
       summary: Get plugin menu
       tags:
       - nftables
+  /pma/{host}:
+    get:
+      consumes:
+      - application/json
+      description: List pma compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetComposesResponse'
+      summary: List pma compose
+      tags:
+      - Pma
+  /pma/{host}/operation:
+    post:
+      consumes:
+      - application/json
+      description: Operation pma compose
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.OperateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Operation pma compose
+      tags:
+      - Pma
+  /pma/{host}/port:
+    post:
+      consumes:
+      - application/json
+      description: Set pma port
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.SetPortRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Set pma port
+      tags:
+      - Pma
+  /pma/{host}/server:
+    delete:
+      consumes:
+      - application/json
+      description: Delete pma server
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: host
+        in: query
+        name: host
+        required: true
+        type: string
+      - description: port
+        in: query
+        name: port
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete pma server
+      tags:
+      - Pma
+    post:
+      consumes:
+      - application/json
+      description: Add pma server
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.AddServerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Add pma server
+      tags:
+      - Pma
+    put:
+      consumes:
+      - application/json
+      description: Update pma server
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: req
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.AddServerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update pma server
+      tags:
+      - Pma
+  /pma/{host}/servers:
+    get:
+      consumes:
+      - application/json
+      description: List pma servers
+      parameters:
+      - description: host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.GetServersResponse'
+      summary: List pma servers
+      tags:
+      - Pma
   /postgresql/{host}:
     get:
       consumes:
