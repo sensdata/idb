@@ -129,6 +129,13 @@ function Install_Docker(){
             export DOWNLOAD_URL="https://download.docker.com"
         fi
 
+        # 保证 /etc/apt/sources.list.d 存在（某些精简系统会缺失）
+        if [[ ! -d /etc/apt/sources.list.d ]]; then
+            log "/etc/apt/sources.list.d 不存在，正在创建..."
+            mkdir -p /etc/apt/sources.list.d
+            chmod 755 /etc/apt/sources.list.d
+        fi
+
         # 安装 docker
         curl -fsSL "https://get.docker.com" -o get-docker.sh
         sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
