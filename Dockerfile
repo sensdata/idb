@@ -18,50 +18,54 @@ RUN openssl req -x509 -new -key key.pem -out cert.pem -days 3650 -config ssl.cnf
 RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
     echo "KEY=${KEY}" >> /app/.env
 
-# ---------- 构建 agent (使用debian较低版本) ---------- #
-FROM debian:10 AS agent-builder
+# ---------- 构建 agent (使用CentOS 7) ---------- #
+FROM centos:7 AS agent-builder
 
-# 设置为非交互模式，防止 tzdata 等包交互式安装
+# 设置非交互模式（yum 默认不交互）
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 替换已过期的 buster 源为 archive 源，并安装构建依赖
-RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list && \
-    sed -i 's|http://security.debian.org|http://archive.debian.org|g' /etc/apt/sources.list && \
-    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until && \
-    apt-get update && \
-    apt-get install -y \
+# 更新系统并安装构建依赖
+RUN yum install -y epel-release && \
+    yum install -y \
         curl \
         git \
         gcc \
-        libc6-dev \
+        glibc-devel \
         make \
-        sed
+        sed \
+        tar \
+    && yum clean all
 
 # 安装 golang
 RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go
-    
+
 # 环境变量
 ENV GOROOT=/usr/local/go
 ENV PATH=$GOROOT/bin:$PATH
 ENV CGO_ENABLED=1
+
 # 编译参数
 ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
+
 # 拷贝代码
 WORKDIR /app
 COPY . .
+
 # 拷贝证书和密钥
 COPY --from=certs-builder /app/certs/cert.pem agent/global/certs/
 COPY --from=certs-builder /app/certs/key.pem agent/global/certs/
 COPY --from=certs-builder /app/.env ./
 
-# 进入agent目录
+# 进入 agent 目录
 WORKDIR /app/agent
+
 # 下载依赖
 RUN go mod download
+
 # 编译 agent
 RUN GOOS=${GOOS} \
     GOARCH=${GOARCH} \
