@@ -24,7 +24,12 @@ FROM centos:7 AS agent-builder
 # 设置非交互模式（yum 默认不交互）
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 更新系统并安装构建依赖
+# 配置 Vault 源，解决 CentOS 7 EOL 源失效问题
+RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo && \
+    sed -i 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo && \
+    yum clean all && yum makecache
+
+# 安装构建依赖
 RUN yum install -y epel-release && \
     yum install -y \
         curl \
