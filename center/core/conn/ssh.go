@@ -234,12 +234,12 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	// 5. 执行解压和安装命令
 	taskLog(writer, types.LogLevelInfo, "Unpacking and installing agent")
 	tmpCmd := `
-        mkdir -p /tmp/idb-agent && 
-        tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
+        sudo mkdir -p /tmp/idb-agent && 
+        sudo tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
         cd /tmp/idb-agent && 
-        sed -i "s/secret_key=.*/secret_key=${AGENT_KEY}/" idb-agent.conf &&
-        sh install-agent.sh && 
-        rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
+        sudo sed -i "s/secret_key=.*/secret_key=${AGENT_KEY}/" idb-agent.conf &&
+        sudo sh install-agent.sh && 
+        sudo rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
     `
 	installCmd := fmt.Sprintf(`AGENT_KEY="%s" && %s`, host.AgentKey, tmpCmd)
 	global.LOG.Info("installCmd: %s", installCmd)
