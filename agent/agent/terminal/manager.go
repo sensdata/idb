@@ -300,12 +300,12 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	// 执行命令以列出所有的 screen 会话
 	layout := "01/02/2006 03:04:05 PM"
 	cmd := exec.Command("bash", "-c", "LC_TIME=en_US.UTF-8 screen -ls")
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if strings.Contains(string(output), "No Sockets found") {
 		return sessions, nil
 	}
 	if err != nil {
-		global.LOG.Error("failed to list sessions: %v", err)
+		global.LOG.Error("failed to list sessions: %v, output: %s", err, string(output))
 		return sessions, nil
 	}
 	global.LOG.Info("listScreenSessions: %s", string(output))

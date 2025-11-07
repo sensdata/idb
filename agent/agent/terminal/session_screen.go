@@ -199,14 +199,14 @@ func (s *ScreenSession) genSessionName() (string, error) {
 	var sessionName string
 
 	// 执行命令以列出所有的 screen 会话
-	cmd := exec.Command("screen", "-ls")
-	output, err := cmd.Output()
+	cmd := exec.Command("bash", "-c", "LC_TIME=en_US.UTF-8 screen -ls")
+	output, err := cmd.CombinedOutput()
 	if strings.Contains(string(output), "No Sockets found") {
 		sessionName = fmt.Sprintf("idb-%d", 1)
 		return sessionName, nil
 	}
 	if err != nil {
-		global.LOG.Error("failed to list sessions: %v", err)
+		global.LOG.Error("failed to list sessions: %v, output: %s", err, string(output))
 		return "", err
 	}
 
@@ -253,12 +253,13 @@ func (s *ScreenSession) genSessionName() (string, error) {
 
 func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
 	// 执行 screen -ls 命令获取所有会话列表
-	output, err := exec.Command("bash", "-c", "screen -ls").Output()
+	cmd := exec.Command("bash", "-c", "LC_TIME=en_US.UTF-8 screen -ls")
+	output, err := cmd.CombinedOutput()
 	if strings.Contains(string(output), "No Sockets found") {
 		return "", fmt.Errorf("no session found")
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to list sessions: %v", err)
+		return "", fmt.Errorf("failed to list sessions: %v, output: %s", err, string(output))
 	}
 
 	// 处理返回的结果字符串
