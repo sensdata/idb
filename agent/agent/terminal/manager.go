@@ -304,23 +304,28 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	if strings.Contains(string(output), "No Sockets found") {
 		return sessions, nil
 	}
+
+	// 注意: 某些版本的screen -ls在有会话时会返回退出码1，这是正常行为
+	// 记录警告日志但继续尝试处理输出
 	if err != nil {
-		global.LOG.Error("failed to list sessions: %v, output: %s", err, string(output))
-		return sessions, nil
+		global.LOG.Warn("screen -ls returned non-zero exit code (common behavior in some versions): %v, output: %s", err, string(output))
 	}
+
 	global.LOG.Info("listScreenSessions: %s", string(output))
 
 	// 处理返回的结果字符串
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		// 解析每一行以提取会话信息
-		// 假设会话信息格式为 " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
+		// 支持两种格式：
+		// 1. 有时间戳: " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
+		// 2. 无时间戳: " 12345.session_name (Attached)"
 		if strings.Contains(line, ".") {
-			// 使用正则表达式提取会话信息
-			re := regexp.MustCompile(`(\d+\.[^\s]+)\s+\((\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+[AP]M)\)\s+\((Attached|Detached)\)`)
+			// 使用正则表达式提取会话信息，时间戳部分为可选项
+			re := regexp.MustCompile(`(\d+\.[^\s]+)(\s+\((\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+[AP]M)\))?\s+\((Attached|Detached)\)`)
 			matches := re.FindStringSubmatch(line)
 
-			if len(matches) != 4 {
+			if len(matches) < 3 {
 				continue
 			}
 
@@ -332,18 +337,29 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 			}
 			sessionID := sessionParts[0]
 			sessionName := sessionParts[1]
-			timeStr := matches[2]
-			status := matches[3]
+
+			// 匹配结果分析：
+			// - matches[4] 始终包含状态 (Attached|Detached)
+			// - matches[3] 可能包含时间戳（如果有）
+			status := matches[4]
+			var parsedTime time.Time
+			var err error
 
 			// 如果只筛选 Detached 会话
 			if filterDetached && status != "Detached" {
 				continue
 			}
 
-			parsedTime, err := time.Parse(layout, timeStr)
-			if err != nil {
-				global.LOG.Error("Error parsing time: %v", err)
-				continue
+			// 处理时间戳（如果存在）
+			if len(matches) > 3 && matches[3] != "" {
+				parsedTime, err = time.Parse(layout, matches[3])
+				if err != nil {
+					global.LOG.Warn("Error parsing time: %v, using current time", err)
+					parsedTime = time.Now()
+				}
+			} else {
+				// 没有时间戳时使用当前时间
+				parsedTime = time.Now()
 			}
 
 			sessionInfo := model.SessionInfo{

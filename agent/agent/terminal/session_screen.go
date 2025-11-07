@@ -205,9 +205,10 @@ func (s *ScreenSession) genSessionName() (string, error) {
 		sessionName = fmt.Sprintf("idb-%d", 1)
 		return sessionName, nil
 	}
+	// 注意: 某些版本的screen -ls在有会话时会返回退出码1，这是正常行为
+	// 记录警告日志但继续尝试处理输出
 	if err != nil {
-		global.LOG.Error("failed to list sessions: %v, output: %s", err, string(output))
-		return "", err
+		global.LOG.Warn("screen -ls returned non-zero exit code (common behavior in some versions): %v, output: %s", err, string(output))
 	}
 
 	// 处理返回的结果字符串
@@ -258,8 +259,10 @@ func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
 	if strings.Contains(string(output), "No Sockets found") {
 		return "", fmt.Errorf("no session found")
 	}
+	// 注意: 某些版本的screen -ls在有会话时会返回退出码1，这是正常行为
+	// 记录警告日志但继续尝试处理输出
 	if err != nil {
-		return "", fmt.Errorf("failed to list sessions: %v, output: %s", err, string(output))
+		global.LOG.Warn("screen -ls returned non-zero exit code (common behavior in some versions): %v, output: %s", err, string(output))
 	}
 
 	// 处理返回的结果字符串
@@ -280,13 +283,3 @@ func (s *ScreenSession) getSessionID(sessionName string) (string, error) {
 
 	return "", fmt.Errorf("session %s id not found", sessionName)
 }
-
-// func (s *ScreenSession) findSessionId(name string) (string, error) {
-// 	command := fmt.Sprintf("screen -ls | grep -oP '\\d+\\.\\S+' | grep '%s' | awk -F. '{print $1}'", name)
-// 	output, err := exec.Command(command).Output()
-// 	if err != nil {
-// 		global.LOG.Error("failed to find id of session  %s", name)
-// 		return "", fmt.Errorf("failed to find id of session %s", name)
-// 	}
-// 	return string(output), nil
-// }
