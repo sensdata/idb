@@ -92,27 +92,41 @@ func replaceValuesInServiceBytes(serviceBytes []byte, keyValues []model.KeyValue
 	// 按行解析 serviceBytes
 	lines := strings.Split(string(serviceBytes), "\n")
 	for _, line := range lines {
-		// 跳过空行和注释
-		if strings.TrimSpace(line) == "" || strings.HasPrefix(line, "#") {
+		trimmed := strings.TrimSpace(line)
+
+		// 跳过注释和空行
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			newLines = append(newLines, line)
 			continue
 		}
 
-		// 跳过类似 "[Unit]" 的节定义行
-		if line[0] == '[' && line[len(line)-1] == ']' {
+		// 节头，例如 [Unit]
+		if trimmed[0] == '[' && trimmed[len(trimmed)-1] == ']' {
 			newLines = append(newLines, line)
 			continue
 		}
 
 		// 分割 key=value
-		parts := strings.SplitN(line, "=", 2)
+		parts := strings.SplitN(trimmed, "=", 2)
 		if len(parts) != 2 {
 			// 如果格式不正确，直接添加原始行
 			newLines = append(newLines, line)
 			continue
 		}
 
-		key := strings.TrimSpace(parts[0])
+		key := parts[0]
+
+		// 专门处理 Environment
+		if key == "Environment" {
+			// 如果用户提供了 Environment 的新值，跳过这一行
+			if _, exists := keyValuesMap["Environment"]; exists {
+				continue // 先跳过，待会统一追加新 Environment 行
+			}
+
+			// 否则使用原始（用户没传 Environment 表示不修改）
+			newLines = append(newLines, line)
+			continue
+		}
 
 		// 检查 key 是否在 keyValuesMap 中
 		if newValue, exists := keyValuesMap[key]; exists {
@@ -122,6 +136,23 @@ func replaceValuesInServiceBytes(serviceBytes []byte, keyValues []model.KeyValue
 		} else {
 			// 如果 key 不存在于 keyValuesMap 中，保留原始行
 			newLines = append(newLines, line)
+		}
+	}
+
+	// 补充新的 Environment 行（如果用户有传）
+	if envValue, exists := keyValuesMap["Environment"]; exists {
+		// 空值 → 不添加任何 Environment 行，相当于清空
+		if strings.TrimSpace(envValue) != "" {
+			// 多个以空格分隔
+			envPairs := strings.Fields(envValue)
+			for _, pair := range envPairs {
+				// 要求 KEY=VALUE 格式
+				if !strings.Contains(pair, "=") {
+					return "", fmt.Errorf("invalid Environment variable: %s (must be KEY=VALUE)", pair)
+				}
+				// 统一加引号，避免 value 中出现空格问题
+				newLines = append(newLines, fmt.Sprintf(`Environment="%s"`, pair))
+			}
 		}
 	}
 
@@ -681,6 +712,11 @@ func (s *ServiceMan) createForm(hostID uint64, req model.CreateServiceForm) erro
 		// 检查 key 是否在 validKeys 中
 		formField, exists := validKeys[item.Key]
 		if exists {
+			// 如果不是必选项
+			if !formField.Required {
+				continue
+			}
+
 			// 设置了校验规则
 			if formField.Validation != nil {
 				// 设置了正则匹配，优先正则匹配
@@ -790,6 +826,11 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 		// 检查 key 是否在 validKeys 中
 		formField, exists := validKeys[item.Key]
 		if exists {
+			// 如果不是必选项
+			if !formField.Required {
+				continue
+			}
+
 			// 设置了校验规则
 			if formField.Validation != nil {
 				// 设置了正则匹配，优先正则匹配
