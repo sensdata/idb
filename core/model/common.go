@@ -25,7 +25,7 @@ type Response struct {
 
 type KeyValue struct {
 	Key   string `json:"key" validate:"required"`
-	Value string `json:"value" validate:"required"`
+	Value string `json:"value,omitempty"`
 }
 
 type KeyValueForUpdate struct {
