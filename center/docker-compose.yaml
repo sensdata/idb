@@ -15,4 +15,14 @@ services:
       - ${iDB_service_conf_path}:/etc/idb
       - ${iDB_service_data_path}:/var/lib/idb/data
       - ${iDB_service_log_path}:/var/log/idb
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+      nproc:
+        soft: 1048576
+        hard: 1048576
+      core:
+        soft: 1048576
+        hard: 1048576
     command: ["/var/lib/idb/entrypoint.sh", "/var/lib/idb/idb"]  # 在容器启动时运行 configure.sh 脚本

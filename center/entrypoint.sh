@@ -83,10 +83,10 @@ main() {
         exit 1
     }
 
-    # 设置资源限制
-    ulimit -n 1048576
-    ulimit -u 1048576
-    ulimit -c 1048576
+    # 设置资源限制（添加错误处理，允许非特权环境下继续运行）
+    ulimit -n 1048576 || log "警告: 无法设置nofile限制, 将使用系统默认值"
+    ulimit -u 1048576 || log "警告: 无法设置nproc限制, 将使用系统默认值"
+    ulimit -c 1048576 || log "警告: 无法设置core文件大小限制, 将使用系统默认值"
 
     log "Starting IDB service..."
     exec "$IDB_EXECUTABLE" start
