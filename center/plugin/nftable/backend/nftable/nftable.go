@@ -333,11 +333,41 @@ func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
 
 const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
 
+// 统一转换为 inet idb-filter 表（简化版本）
+func (s *NFTable) convertToInetIdbFilter(content string) (string, error) {
+	lines := strings.Split(content, "\n")
+	var output []string
+	
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		
+		// 匹配任何包含 "table" 和 "filter" 的行，替换为标准表名
+		if strings.HasPrefix(trimmed, "table ") && strings.Contains(trimmed, "filter") {
+			// 简单替换为标准表定义
+			output = append(output, "table inet idb-filter {")
+			continue
+		}
+		
+		output = append(output, line)
+	}
+	
+	return strings.Join(output, "\n"), nil
+}
+
 func (s *NFTable) checkConfContent(content string) (string, error) {
 	LOG.Info("check content: %s", content)
 	safeContent := content
-	safePorts := []int{22, 9918, 9919}
 	var err error
+	
+	// Step 1: 统一转换为 inet idb-filter 表
+	safeContent, err = s.convertToInetIdbFilter(safeContent)
+	if err != nil {
+		LOG.Error("failed to convert to inet idb-filter: %v", err)
+		return "", err
+	}
+	
+	// Step 2: 更新安全端口规则
+	safePorts := []int{22, 9918, 9919}
 	for _, port := range safePorts {
 		safeContent, err = updatePortRuleInConfContent(
 			safeContent,
@@ -358,7 +388,8 @@ func (s *NFTable) checkConfContent(content string) (string, error) {
 			return "", err
 		}
 	}
-	// 清理 flush ruleset
+	
+	// Step 3: 清理 flush ruleset
 	safeContent = removeFlushRuleset(safeContent)
 	return safeContent, nil
 }
@@ -2759,7 +2790,7 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 	}
 
 	// 生效前，清理idb-filter表
-	command = "nft delete table ip idb-filter"
+	command = "nft delete table inet idb-filter"
 	commandResult, err = s.sendCommand(uint(hostID), command)
 	if err != nil {
 		LOG.Error("Failed to delete table idb-filter")

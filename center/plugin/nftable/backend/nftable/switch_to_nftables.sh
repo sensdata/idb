@@ -32,7 +32,7 @@ load_idb_nftables_rules() {
     else
         echo "Writing idb-filter rules to $RULES_FILE..."
         cat > "$RULES_FILE" <<EOF
-table ip idb-filter {
+table inet idb-filter {
     chain input {
         type filter hook input priority 0; policy drop;
 
