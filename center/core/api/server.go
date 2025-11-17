@@ -76,70 +76,82 @@ func (s *ApiServer) Start() error {
 		Addr:    fmt.Sprintf("%s:%d", settings.BindIP, settings.BindPort),
 		Handler: s.Router,
 	}
-	tcpItem := "tcp4"
-	ln, err := net.Listen(tcpItem, server.Addr)
-	if err != nil {
-		global.LOG.Error("Failed to listen to %s", server.Addr)
-		return err
-	}
-
 	s.server = server
-	s.ln = ln
 
+	// Start HTTPS or HTTP
 	if settings.Https == "yes" {
-		var cert tls.Certificate
-		var certPath string
-		var keyPath string
-		var err error
-		if settings.HttpsCertType == "default" {
-			certPath, keyPath, err = s.checkCertAndKey(settings.BindDomain)
-			if err != nil {
-				global.LOG.Error("Failed to check cert files")
-				return err
-			}
-		} else {
-			certPath = settings.HttpsCertPath
-			keyPath = settings.HttpsKeyPath
-		}
-		certificate, err := os.ReadFile(certPath)
-		if err != nil {
-			global.LOG.Error("Failed to read cert file %s : %v", settings.HttpsCertPath, err)
-			return err
-		}
-		global.CertPem = certificate
-		key, err := os.ReadFile(keyPath)
-		if err != nil {
-			global.LOG.Error("Failed to read key file %s : %v", settings.HttpsKeyPath, err)
-			return err
-		}
-		global.KeyPem = key
-		cert, err = tls.X509KeyPair(certificate, key)
-		if err != nil {
-			global.LOG.Error("Failed to create tls cert pair")
-			return err
-		}
-		server.TLSConfig = &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			MinVersion:         tls.VersionTLS13, // 设置最小 TLS 版本
-			InsecureSkipVerify: true,
-		}
 		go func() {
-			global.LOG.Info("listen at https://%s:%d [%s]", settings.BindIP, settings.BindPort, tcpItem)
-			if err := server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath); err != nil {
-				global.LOG.Error("Listen at https://%s:%d [%s] Failed: %v", settings.BindIP, settings.BindPort, tcpItem, err)
-				return
+			if err := s.startHTTPS(settings); err != nil {
+				global.LOG.Error("HTTPS failed: %v, fallback to HTTP", err)
+				if err := s.startHTTP(settings); err != nil {
+					global.LOG.Error("HTTP fallback failed: %v", err)
+				}
 			}
 		}()
 	} else {
 		go func() {
-			global.LOG.Info("listen at http://%s:%d [%s]", settings.BindIP, settings.BindPort, tcpItem)
-			if err := server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)}); err != nil {
-				global.LOG.Error("Listen at http://%s:%d [%s] Failed: %v", settings.BindIP, settings.BindPort, tcpItem, err)
-				return
+			if err := s.startHTTP(settings); err != nil {
+				global.LOG.Error("HTTP failed: %v", err)
 			}
 		}()
 	}
 	return nil
+}
+
+func (s *ApiServer) startHTTPS(settings *model.SettingInfo) error {
+	var certPath, keyPath string
+	var err error
+
+	if settings.HttpsCertType == "default" {
+		certPath, keyPath, err = s.checkCertAndKey(settings.BindDomain)
+		if err != nil {
+			return fmt.Errorf("checkCertAndKey failed: %w", err)
+		}
+	} else {
+		certPath = settings.HttpsCertPath
+		keyPath = settings.HttpsKeyPath
+	}
+
+	certData, err := os.ReadFile(certPath)
+	if err != nil {
+		return fmt.Errorf("read cert file %s failed: %w", certPath, err)
+	}
+	keyData, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("read key file %s failed: %w", keyPath, err)
+	}
+
+	cert, err := tls.X509KeyPair(certData, keyData)
+	if err != nil {
+		return fmt.Errorf("X509KeyPair failed: %w", err)
+	}
+
+	s.server.TLSConfig = &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		MinVersion:         tls.VersionTLS13, // 设置最小 TLS 版本
+		InsecureSkipVerify: true,
+	}
+
+	// 新 listener
+	ln, err := net.Listen("tcp4", s.server.Addr)
+	if err != nil {
+		return fmt.Errorf("listen failed: %w", err)
+	}
+	s.ln = ln
+
+	global.LOG.Info("listen at https://%s:%d [%s]", settings.BindIP, settings.BindPort, "tcp4")
+	return s.server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, certPath, keyPath)
+}
+
+func (s *ApiServer) startHTTP(settings *model.SettingInfo) error {
+	ln, err := net.Listen("tcp4", s.server.Addr)
+	if err != nil {
+		return fmt.Errorf("listen failed: %w", err)
+	}
+	s.ln = ln
+
+	global.LOG.Info("listen at http://%s:%d [%s]", settings.BindIP, settings.BindPort, "tcp4")
+	return s.server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
 }
 
 func (s *ApiServer) checkCertAndKey(domain string) (string, string, error) {
