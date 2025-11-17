@@ -337,36 +337,96 @@ const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
 func (s *NFTable) convertToInetIdbFilter(content string) (string, error) {
 	lines := strings.Split(content, "\n")
 	var output []string
-	
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		
+
 		// 匹配任何包含 "table" 和 "filter" 的行，替换为标准表名
 		if strings.HasPrefix(trimmed, "table ") && strings.Contains(trimmed, "filter") {
 			// 简单替换为标准表定义
 			output = append(output, "table inet idb-filter {")
 			continue
 		}
-		
+
 		output = append(output, line)
 	}
-	
+
 	return strings.Join(output, "\n"), nil
+}
+
+// 确保包含必要的默认规则
+// 本地回环规则： iif "lo" accept
+// 已建立连接规则：ct state established,related accept
+func (s *NFTable) ensureDefaultRules(content string) string {
+	lines := strings.Split(content, "\n")
+	var output []string
+	var chainContent []string
+	insideChain := false
+	indent := "    " // 默认缩进
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		currentIndent := getIndent(line)
+
+		// 检测input链开始
+		if strings.HasPrefix(trimmed, "chain input") {
+			insideChain = true
+			output = append(output, line)
+			continue
+		}
+
+		// 在input链内部
+		if insideChain {
+			// 检查是否是链结束
+			if trimmed == "}" {
+				// 固定在链内容最前面添加默认规则
+				output = append(output, indent+"iif \"lo\" accept")
+				output = append(output, indent+"ct state established,related accept")
+
+				// 添加缓存的链内容
+				output = append(output, chainContent...)
+				// 添加链结束标记
+				output = append(output, line)
+				insideChain = false
+				continue
+			}
+
+			// 跳过已存在的默认规则，避免重复
+			if trimmed == "iif \"lo\" accept" || trimmed == "ct state established,related accept" {
+				continue
+			}
+
+			// 缓存其他规则内容
+			chainContent = append(chainContent, line)
+			// 保存缩进格式
+			if currentIndent != "" && indent == "    " {
+				indent = currentIndent
+			}
+		} else {
+			// 不在链内，直接添加
+			output = append(output, line)
+		}
+	}
+
+	return strings.Join(output, "\n")
 }
 
 func (s *NFTable) checkConfContent(content string) (string, error) {
 	LOG.Info("check content: %s", content)
 	safeContent := content
 	var err error
-	
+
 	// Step 1: 统一转换为 inet idb-filter 表
 	safeContent, err = s.convertToInetIdbFilter(safeContent)
 	if err != nil {
 		LOG.Error("failed to convert to inet idb-filter: %v", err)
 		return "", err
 	}
-	
-	// Step 2: 更新安全端口规则
+
+	// Step 2: 确保包含必要的默认规则
+	safeContent = s.ensureDefaultRules(safeContent)
+
+	// Step 3: 更新安全端口规则
 	safePorts := []int{22, 9918, 9919}
 	for _, port := range safePorts {
 		safeContent, err = updatePortRuleInConfContent(
@@ -388,8 +448,8 @@ func (s *NFTable) checkConfContent(content string) (string, error) {
 			return "", err
 		}
 	}
-	
-	// Step 3: 清理 flush ruleset
+
+	// Step 4: 清理 flush ruleset
 	safeContent = removeFlushRuleset(safeContent)
 	return safeContent, nil
 }
