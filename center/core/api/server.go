@@ -193,17 +193,18 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	var certData, keyData string
 	httpsCertData, err := settingRepo.Get(settingRepo.WithByKey("HttpsCertData"))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		certData = httpsCertData.Value
 	}
 	httpsKeyPath, err := settingRepo.Get(settingRepo.WithByKey("HttpsKeyPath"))
 	if err != nil {
 		return nil, err
 	}
 	httpsKeyData, err := settingRepo.Get(settingRepo.WithByKey("HttpsKeyData"))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		keyData = httpsKeyData.Value
 	}
 
 	return &model.SettingInfo{
@@ -213,9 +214,9 @@ func (s *ApiServer) getServerSettings() (*model.SettingInfo, error) {
 		Https:         https.Value,
 		HttpsCertType: httpsCertType.Value,
 		HttpsCertPath: httpsCertPath.Value,
-		HttpsCertData: httpsCertData.Value,
+		HttpsCertData: certData,
 		HttpsKeyPath:  httpsKeyPath.Value,
-		HttpsKeyData:  httpsKeyData.Value,
+		HttpsKeyData:  keyData,
 	}, nil
 }
 
