@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,10 +38,31 @@ type ApiServer struct {
 	Router *gin.Engine
 	server *http.Server
 	ln     net.Listener
+	lnMu   sync.Mutex
 }
 
 type tcpKeepAliveListener struct {
 	*net.TCPListener
+}
+
+// helper: 安全设置 listener
+func (s *ApiServer) setListener(ln net.Listener) {
+	s.lnMu.Lock()
+	defer s.lnMu.Unlock()
+	s.ln = ln
+}
+
+// helper: 安全清理并关闭 listener（若存在）。
+// 如果 listener 已经被其他 goroutine 关闭，Close() 会返回错误，我们忽略它。
+func (s *ApiServer) clearListener() {
+	s.lnMu.Lock()
+	ln := s.ln
+	s.ln = nil
+	s.lnMu.Unlock()
+
+	if ln != nil {
+		_ = ln.Close()
+	}
 }
 
 func (s *ApiServer) InitRouter() {
@@ -87,6 +109,8 @@ func (s *ApiServer) Start() error {
 		go func() {
 			if err := s.startHTTPS(settings); err != nil {
 				global.LOG.Error("HTTPS failed: %v, fallback to HTTP", err)
+				// 确保清理旧的 listener（防止旧 listener 处于已关闭/异常状态影响后续）
+				s.clearListener()
 				time.Sleep(200 * time.Millisecond)
 				if err := s.startHTTP(settings); err != nil {
 					global.LOG.Error("HTTP fallback failed: %v", err)
@@ -120,10 +144,14 @@ func (s *ApiServer) startHTTPS(settings *model.SettingInfo) error {
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
 	}
-	s.ln = ln
+	s.setListener(ln)
 
 	global.LOG.Info("listen at https://%s:%d [%s]", settings.BindIP, settings.BindPort, "tcp4")
-	return s.server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, "", "")
+	// ServeTLS 会阻塞直到返回（包括被关闭），所以当它返回后我们清理 listener
+	err = s.server.ServeTLS(tcpKeepAliveListener{ln.(*net.TCPListener)}, "", "")
+	// 无论 ServeTLS 返回何种错误，都确保清理 listener（避免遗留）
+	s.clearListener()
+	return err
 }
 
 func (s *ApiServer) startHTTP(settings *model.SettingInfo) error {
@@ -131,10 +159,13 @@ func (s *ApiServer) startHTTP(settings *model.SettingInfo) error {
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
 	}
-	s.ln = ln
+	s.setListener(ln)
 
 	global.LOG.Info("listen at http://%s:%d [%s]", settings.BindIP, settings.BindPort, "tcp4")
-	return s.server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+	err = s.server.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+	// Serve 返回后一定清理 listener
+	s.clearListener()
+	return err
 }
 
 func (s *ApiServer) Stop() error {
