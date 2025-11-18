@@ -191,9 +191,11 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateS
 		scheme = "https"
 		// 检查证书
 		if err := s.checkCertAndKey(req); err != nil {
+			global.LOG.Error("Failed to check cert and key: %v", err)
 			return &response, err
 		}
 	default:
+		global.LOG.Error("Invalid https value: %s", req.Https)
 		return &response, errors.New("invalid https value")
 	}
 
@@ -262,17 +264,21 @@ func (s *SettingsService) checkCertAndKey(req model.UpdateSettingRequest) error 
 	// 默认证书，看看是否签发
 	case "default":
 		if err := s.checkDefaultCert(req.BindDomain); err != nil {
+			global.LOG.Error("Failed to check default cert: %v", err)
 			return err
 		}
 	// 自定义证书，需要获取内容
 	case "custom":
 		if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
+			global.LOG.Error("Invalid cert path or key path: %s, %s", req.HttpsCertPath, req.HttpsKeyPath)
 			return errors.New("invalid cert path or key path")
 		}
 		if err := s.checkCustomCert(req.HttpsCertPath, req.HttpsKeyPath); err != nil {
+			global.LOG.Error("Failed to check custom cert: %v", err)
 			return err
 		}
 	default:
+		global.LOG.Error("Invalid cert type: %s", req.HttpsCertType)
 		return errors.New("invalid cert type")
 	}
 	return nil
@@ -291,6 +297,12 @@ func (s *SettingsService) checkDefaultCert(domain string) error {
 	// 如果证书和私钥已存在，则跳过生成
 	if _, err := os.Stat(certPath); err == nil {
 		if _, err := os.Stat(keyPath); err == nil {
+			global.LOG.Info("Default cert and key already exist: %s, %s", certPath, keyPath)
+
+			// 保存到db
+			if err := s.saveCertToDB(certPath, keyPath); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -300,26 +312,31 @@ func (s *SettingsService) checkDefaultCert(domain string) error {
 	rootKeyPath := filepath.Join(constant.CenterBinDir, "key.pem")
 	caCertPEM, err := os.ReadFile(rootCertPath)
 	if err != nil {
+		global.LOG.Error("Failed to read CA cert: %v", err)
 		return fmt.Errorf("读取 CA 证书失败: %v", err)
 	}
 	caKeyPEM, err := os.ReadFile(rootKeyPath)
 	if err != nil {
+		global.LOG.Error("Failed to read CA key: %v", err)
 		return fmt.Errorf("读取 CA 私钥失败: %v", err)
 	}
 
 	// 解析CA证书
 	caBlock, _ := pem.Decode(caCertPEM)
 	if caBlock == nil {
+		global.LOG.Error("Failed to decode CA cert PEM")
 		return fmt.Errorf("无法解析 CA 证书 PEM")
 	}
 	caCert, err := x509.ParseCertificate(caBlock.Bytes)
 	if err != nil {
+		global.LOG.Error("Failed to parse CA cert: %v", err)
 		return fmt.Errorf("解析 CA 证书失败: %v", err)
 	}
 
 	// 解析CA私钥
 	keyBlock, _ := pem.Decode(caKeyPEM)
 	if keyBlock == nil {
+		global.LOG.Error("Failed to decode CA key PEM")
 		return fmt.Errorf("无法解析 CA 私钥 PEM")
 	}
 
@@ -332,27 +349,32 @@ func (s *SettingsService) checkDefaultCert(domain string) error {
 		// PKCS#8 格式
 		parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	default:
+		global.LOG.Error("Unsupported private key type: %s", keyBlock.Type)
 		return fmt.Errorf("不支持的私钥类型: %s", keyBlock.Type)
 	}
 	if err != nil {
+		global.LOG.Error("Failed to parse CA key: %v", err)
 		return fmt.Errorf("解析 CA 私钥失败: %v", err)
 	}
 
 	// 确保是 *rsa.PrivateKey 类型
 	caPrivateKey, ok := parsedKey.(*rsa.PrivateKey)
 	if !ok {
+		global.LOG.Error("CA private key is not RSA type")
 		return fmt.Errorf("CA 私钥不是 RSA 类型")
 	}
 
 	// 生成新密钥
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
+		global.LOG.Error("Failed to generate private key: %v", err)
 		return fmt.Errorf("生成私钥失败: %v", err)
 	}
 
 	// 生成序列号
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
+		global.LOG.Error("Failed to generate serial number: %v", err)
 		return fmt.Errorf("生成序列号失败: %v", err)
 	}
 
@@ -408,37 +430,27 @@ func (s *SettingsService) checkDefaultCert(domain string) error {
 	// 签发证书
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, caCert, &priv.PublicKey, caPrivateKey)
 	if err != nil {
+		global.LOG.Error("Failed to create certificate: %v", err)
 		return fmt.Errorf("签发证书失败: %v", err)
 	}
 
 	// 写入证书
 	if err := writePemFile(certPath, "CERTIFICATE", certDER); err != nil {
+		global.LOG.Error("Failed to write certificate: %v", err)
 		return err
 	}
 
 	// 写入私钥
 	privBytes := x509.MarshalPKCS1PrivateKey(priv)
 	if err := writePemFile(keyPath, "RSA PRIVATE KEY", privBytes); err != nil {
+		global.LOG.Error("Failed to write private key: %v", err)
 		return err
 	}
 
 	// 保存到db
-	certPEM, err := os.ReadFile(certPath)
-	if err != nil {
-		return fmt.Errorf("读取cert证书失败: %v", err)
-	}
-	keyPEM, err := os.ReadFile(keyPath)
-	if err != nil {
-		return fmt.Errorf("读取key证书失败: %v", err)
-	}
-	if err := SettingsRepo.Update("HttpsCertData", string(certPEM)); err != nil {
+	if err := s.saveCertToDB(certPath, keyPath); err != nil {
 		return err
 	}
-
-	if err := SettingsRepo.Update("HttpsKeyData", string(keyPEM)); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -546,6 +558,29 @@ func writePemFile(path, pemType string, derBytes []byte) error {
 	defer file.Close()
 
 	return pem.Encode(file, &pem.Block{Type: pemType, Bytes: derBytes})
+}
+
+func (s *SettingsService) saveCertToDB(certPath, keyPath string) error {
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		global.LOG.Error("Failed to read cert file: %v", err)
+		return fmt.Errorf("读取cert证书失败: %v", err)
+	}
+	keyPEM, err := os.ReadFile(keyPath)
+	if err != nil {
+		global.LOG.Error("Failed to read key file: %v", err)
+		return fmt.Errorf("读取key证书失败: %v", err)
+	}
+	if err := SettingsRepo.Update("HttpsCertData", string(certPEM)); err != nil {
+		global.LOG.Error("Failed to update cert data: %v", err)
+		return err
+	}
+
+	if err := SettingsRepo.Update("HttpsKeyData", string(keyPEM)); err != nil {
+		global.LOG.Error("Failed to update key data: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (s *SettingsService) updateBindIP(newIP string) error {
