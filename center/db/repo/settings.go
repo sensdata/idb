@@ -13,6 +13,7 @@ type ISettingsRepo interface {
 	Get(opts ...DBOption) (model.Setting, error)
 	Create(key, value string) error
 	Update(key, value string) error
+	Upsert(key, value string) error
 	WithByKey(key string) DBOption
 }
 
@@ -50,6 +51,24 @@ func (u *SettingsRepo) Create(key, value string) error {
 
 func (u *SettingsRepo) Update(key, value string) error {
 	return global.DB.Model(&model.Setting{}).Where("key = ?", key).Updates(map[string]interface{}{"value": value}).Error
+}
+
+func (u *SettingsRepo) Upsert(key, value string) error {
+	// 先尝试更新
+	result := global.DB.Model(&model.Setting{}).
+		Where("key = ?", key).
+		Updates(map[string]interface{}{"value": value})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// 如果没有更新任何行，则执行插入
+	if result.RowsAffected == 0 {
+		return u.Create(key, value)
+	}
+
+	return nil
 }
 
 func (c *SettingsRepo) WithByKey(key string) DBOption {

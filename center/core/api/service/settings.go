@@ -571,12 +571,12 @@ func (s *SettingsService) saveCertToDB(certPath, keyPath string) error {
 		global.LOG.Error("Failed to read key file: %v", err)
 		return fmt.Errorf("读取key证书失败: %v", err)
 	}
-	if err := SettingsRepo.Update("HttpsCertData", string(certPEM)); err != nil {
+	if err := SettingsRepo.Upsert("HttpsCertData", string(certPEM)); err != nil {
 		global.LOG.Error("Failed to update cert data: %v", err)
 		return err
 	}
 
-	if err := SettingsRepo.Update("HttpsKeyData", string(keyPEM)); err != nil {
+	if err := SettingsRepo.Upsert("HttpsKeyData", string(keyPEM)); err != nil {
 		global.LOG.Error("Failed to update key data: %v", err)
 		return err
 	}
