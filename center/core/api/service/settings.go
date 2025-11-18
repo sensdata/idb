@@ -261,9 +261,6 @@ func (s *SettingsService) checkCertAndKey(req model.UpdateSettingRequest) error 
 	switch req.HttpsCertType {
 	// 默认证书，看看是否签发
 	case "default":
-		if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
-			return errors.New("invalid cert path or key path")
-		}
 		if err := s.checkDefaultCert(req.BindDomain); err != nil {
 			return err
 		}
