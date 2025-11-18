@@ -1559,18 +1559,18 @@ func (c *Center) updateServerSetting(key string, value string) error {
 			global.LOG.Error("update https cert type failed: %v", err)
 			return err
 		}
-	case "https_cert_path":
-		err = c.updateHttpsCertPath(value)
-		if err != nil {
-			global.LOG.Error("update https cert path failed: %v", err)
-			return err
-		}
-	case "https_key_path":
-		err = c.updateHttpsKeyPath(value)
-		if err != nil {
-			global.LOG.Error("update https key path failed: %v", err)
-			return err
-		}
+	// case "https_cert_path":
+	// 	err = c.updateHttpsCertPath(value)
+	// 	if err != nil {
+	// 		global.LOG.Error("update https cert path failed: %v", err)
+	// 		return err
+	// 	}
+	// case "https_key_path":
+	// 	err = c.updateHttpsKeyPath(value)
+	// 	if err != nil {
+	// 		global.LOG.Error("update https key path failed: %v", err)
+	// 		return err
+	// 	}
 	default:
 		return errors.New("invalid key")
 	}

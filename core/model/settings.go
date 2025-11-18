@@ -26,7 +26,9 @@ type SettingInfo struct {
 	Https         string `json:"https"`
 	HttpsCertType string `json:"https_cert_type"`
 	HttpsCertPath string `json:"https_cert_path"`
+	HttpsCertData string `json:"https_cert_data"`
 	HttpsKeyPath  string `json:"https_key_path"`
+	HttpsKeyData  string `json:"https_key_data"`
 }
 
 type UpdateSettingRequest struct {

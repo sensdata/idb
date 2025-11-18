@@ -1,13 +1,22 @@
 package service
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	_ "embed"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sensdata/idb/center/core/conn"
 	db "github.com/sensdata/idb/center/db/model"
@@ -180,15 +189,9 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateS
 		scheme = "http"
 	case "yes":
 		scheme = "https"
-		// 检查type和path
-		switch req.HttpsCertType {
-		case "default":
-		case "custom":
-			if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
-				return &response, errors.New("invalid cert path or key path")
-			}
-		default:
-			return &response, errors.New("invalid cert type")
+		// 检查证书
+		if err := s.checkCertAndKey(req); err != nil {
+			return &response, err
 		}
 	default:
 		return &response, errors.New("invalid https value")
@@ -240,7 +243,7 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateS
 	if len(req.BindDomain) == 0 {
 		url = fmt.Sprintf("%s://%s:%d/manage/settings", scheme, host.Addr, req.BindPort)
 	} else {
-		url = fmt.Sprintf("%s://%s/manage/settings", scheme, req.BindDomain)
+		url = fmt.Sprintf("%s://%s:%d/manage/settings", scheme, req.BindDomain, req.BindPort)
 	}
 	response.RedirectUrl = url
 
@@ -252,6 +255,300 @@ func (s *SettingsService) Update(req model.UpdateSettingRequest) (*model.UpdateS
 	}()
 
 	return &response, nil
+}
+
+func (s *SettingsService) checkCertAndKey(req model.UpdateSettingRequest) error {
+	switch req.HttpsCertType {
+	// 默认证书，看看是否签发
+	case "default":
+		if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
+			return errors.New("invalid cert path or key path")
+		}
+		if err := s.checkDefaultCert(req.BindDomain); err != nil {
+			return err
+		}
+	// 自定义证书，需要获取内容
+	case "custom":
+		if len(req.HttpsCertPath) == 0 || len(req.HttpsKeyPath) == 0 {
+			return errors.New("invalid cert path or key path")
+		}
+		if err := s.checkCustomCert(req.HttpsCertPath, req.HttpsKeyPath); err != nil {
+			return err
+		}
+	default:
+		return errors.New("invalid cert type")
+	}
+	return nil
+}
+
+func (s *SettingsService) checkDefaultCert(domain string) error {
+	var certPath, keyPath string
+	if domain == "" {
+		certPath = filepath.Join(constant.CenterBinDir, "tls_cert.pem")
+		keyPath = filepath.Join(constant.CenterBinDir, "tls_key.pem")
+	} else {
+		certPath = filepath.Join(constant.CenterBinDir, domain+"_cert.pem")
+		keyPath = filepath.Join(constant.CenterBinDir, domain+"_key.pem")
+	}
+
+	// 如果证书和私钥已存在，则跳过生成
+	if _, err := os.Stat(certPath); err == nil {
+		if _, err := os.Stat(keyPath); err == nil {
+			return nil
+		}
+	}
+
+	// 加载CA证书和私钥
+	rootCertPath := filepath.Join(constant.CenterBinDir, "cert.pem")
+	rootKeyPath := filepath.Join(constant.CenterBinDir, "key.pem")
+	caCertPEM, err := os.ReadFile(rootCertPath)
+	if err != nil {
+		return fmt.Errorf("读取 CA 证书失败: %v", err)
+	}
+	caKeyPEM, err := os.ReadFile(rootKeyPath)
+	if err != nil {
+		return fmt.Errorf("读取 CA 私钥失败: %v", err)
+	}
+
+	// 解析CA证书
+	caBlock, _ := pem.Decode(caCertPEM)
+	if caBlock == nil {
+		return fmt.Errorf("无法解析 CA 证书 PEM")
+	}
+	caCert, err := x509.ParseCertificate(caBlock.Bytes)
+	if err != nil {
+		return fmt.Errorf("解析 CA 证书失败: %v", err)
+	}
+
+	// 解析CA私钥
+	keyBlock, _ := pem.Decode(caKeyPEM)
+	if keyBlock == nil {
+		return fmt.Errorf("无法解析 CA 私钥 PEM")
+	}
+
+	var parsedKey any
+	switch keyBlock.Type {
+	case "RSA PRIVATE KEY":
+		// PKCS#1 格式
+		parsedKey, err = x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	case "PRIVATE KEY":
+		// PKCS#8 格式
+		parsedKey, err = x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
+	default:
+		return fmt.Errorf("不支持的私钥类型: %s", keyBlock.Type)
+	}
+	if err != nil {
+		return fmt.Errorf("解析 CA 私钥失败: %v", err)
+	}
+
+	// 确保是 *rsa.PrivateKey 类型
+	caPrivateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("CA 私钥不是 RSA 类型")
+	}
+
+	// 生成新密钥
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return fmt.Errorf("生成私钥失败: %v", err)
+	}
+
+	// 生成序列号
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return fmt.Errorf("生成序列号失败: %v", err)
+	}
+
+	// === 构建 SAN 信息 ===
+	var dnsNames []string
+	var ipAddrs []net.IP
+
+	// 必备 IP（通用）
+	ipAddrs = append(ipAddrs, net.ParseIP("127.0.0.1"))
+	ipAddrs = append(ipAddrs, net.ParseIP("::1"))
+
+	// 内网IP
+	if ip := getLocalIP(); ip != nil {
+		ipAddrs = append(ipAddrs, ip)
+	}
+
+	if domain == "" {
+		// 自签证书模式
+		dnsNames = append(dnsNames, "localhost")
+		if ip := net.ParseIP(global.Host); ip != nil {
+			ipAddrs = append(ipAddrs, ip)
+		}
+	} else {
+		// 绑定域名模式
+		dnsNames = append(dnsNames, domain)
+	}
+
+	// === 构建 Subject ===
+	subject := pkix.Name{
+		Country:            []string{"CN"},
+		Organization:       []string{"Sensdata"},
+		OrganizationalUnit: []string{"iDB AutoCert"},
+		CommonName:         domain,
+	}
+	if domain == "" {
+		subject.CommonName = "localhost"
+	}
+
+	// === 构建证书模板 ===
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject:      subject,
+		NotBefore:    time.Now().Add(-10 * time.Minute),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses:  ipAddrs,
+		DNSNames:     dnsNames,
+	}
+
+	global.LOG.Info("生成证书: %s\nDNS: %v\nIP: %v\n", certPath, dnsNames, ipAddrs)
+
+	// 签发证书
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, caCert, &priv.PublicKey, caPrivateKey)
+	if err != nil {
+		return fmt.Errorf("签发证书失败: %v", err)
+	}
+
+	// 写入证书
+	if err := writePemFile(certPath, "CERTIFICATE", certDER); err != nil {
+		return err
+	}
+
+	// 写入私钥
+	privBytes := x509.MarshalPKCS1PrivateKey(priv)
+	if err := writePemFile(keyPath, "RSA PRIVATE KEY", privBytes); err != nil {
+		return err
+	}
+
+	// 保存到db
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		return fmt.Errorf("读取cert证书失败: %v", err)
+	}
+	keyPEM, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("读取key证书失败: %v", err)
+	}
+	if err := SettingsRepo.Update("HttpsCertData", string(certPEM)); err != nil {
+		return err
+	}
+
+	if err := SettingsRepo.Update("HttpsKeyData", string(keyPEM)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SettingsService) checkCustomCert(certPath, keyPath string) error {
+	// 获取cert文件内容
+	fileInfo, err := s.getFileContent(certPath)
+	if err != nil {
+		return err
+	}
+
+	// 检查key文件内容
+	keyInfo, err := s.getFileContent(keyPath)
+	if err != nil {
+		return err
+	}
+
+	// 保存到db
+	if err := SettingsRepo.Update("HttpsCertData", fileInfo.Content); err != nil {
+		return err
+	}
+
+	if err := SettingsRepo.Update("HttpsKeyData", keyInfo.Content); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SettingsService) getFileContent(path string) (*model.FileInfo, error) {
+	var fileInfo model.FileInfo
+
+	// 找宿主机host
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Error("Failed to get default host")
+		return &fileInfo, err
+	}
+
+	req := model.FileContentReq{
+		Path:   path,
+		Expand: true,
+	}
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &fileInfo, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: host.ID,
+		Action: model.Action{
+			Action: model.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return &fileInfo, err
+	}
+
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		if strings.Contains(actionResponse.Data, "no such file or directory") {
+			return &fileInfo, constant.ErrFileNotExist
+		}
+		return &fileInfo, fmt.Errorf("failed to get file content")
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &fileInfo)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return &fileInfo, fmt.Errorf("json err: %v", err)
+	}
+	return &fileInfo, nil
+}
+
+func getLocalIP() net.IP {
+	ifaces, _ := net.Interfaces()
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil && ip.To4() != nil {
+				return ip
+			}
+		}
+	}
+	return nil
+}
+
+func writePemFile(path, pemType string, derBytes []byte) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("创建文件失败: %v", err)
+	}
+	defer file.Close()
+
+	return pem.Encode(file, &pem.Block{Type: pemType, Bytes: derBytes})
 }
 
 func (s *SettingsService) updateBindIP(newIP string) error {
@@ -325,6 +622,26 @@ func (s *SettingsService) updateHttps(req model.UpdateSettingRequest) error {
 			if err := SettingsRepo.Update("HttpsKeyPath", req.HttpsKeyPath); err != nil {
 				return err
 			}
+		} else {
+			if err := SettingsRepo.Update("HttpsCertPath", ""); err != nil {
+				return err
+			}
+
+			if err := SettingsRepo.Update("HttpsKeyPath", ""); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := SettingsRepo.Update("HttpsCertType", "default"); err != nil {
+			return err
+		}
+
+		if err := SettingsRepo.Update("HttpsCertPath", ""); err != nil {
+			return err
+		}
+
+		if err := SettingsRepo.Update("HttpsKeyPath", ""); err != nil {
+			return err
 		}
 	}
 
