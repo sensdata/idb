@@ -345,7 +345,7 @@ func (f *FileService) MvFile(m model.FileMove) error {
 	var errs []error
 	if m.Type == "copy" {
 		for _, src := range m.Sources {
-			if err := fo.CopyAndReName(src, m.Dest, m.Name, m.Cover); err != nil {
+			if err := fo.CopyOrNew(src, m.Dest, m.Cover); err != nil {
 				errs = append(errs, err)
 				global.LOG.Error("copy file [%s] to [%s] failed, err: %s", src, m.Dest, err.Error())
 			}

@@ -504,6 +504,78 @@ func (f FileOp) Copy(src, dst string) error {
 	return f.CopyFile(src, dst)
 }
 
+func (f FileOp) CopyOrNew(src, dst string, cover bool) error {
+	var err error
+
+	// 判断 src 存在
+	srcInfo, err := f.Fs.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	// dst 必须为目录
+	dstInfo, err := f.Fs.Stat(dst)
+	if err != nil {
+		return err
+	}
+	if !dstInfo.IsDir() {
+		return fmt.Errorf("dst must be a directory")
+	}
+
+	// 推导最终的目标路径： dst + basename(src)
+	base := filepath.Base(src)
+	dstPath := filepath.Join(dst, base)
+
+	// 如果不覆盖，且已存在 → 自动生成新名字
+	if !cover {
+		if _, err := f.Fs.Stat(dstPath); err == nil {
+			dstPath, err = generateNewName(dst, base, srcInfo.IsDir())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// 目录与文件分别处理
+	var cmd string
+	if srcInfo.IsDir() {
+		cmd = fmt.Sprintf("cp -r %s %s", src, dstPath)
+	} else {
+		// 文件复制：cover=true 时强制覆盖
+		if cover {
+			cmd = fmt.Sprintf("cp -f %s %s", src, dstPath)
+		} else {
+			cmd = fmt.Sprintf("cp %s %s", src, dstPath)
+		}
+	}
+
+	return utils.ExecCmd(cmd)
+}
+
+func generateNewName(dstDir, base string, isDir bool) (string, error) {
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+
+	i := 1
+	for {
+		var try string
+		if isDir {
+			try = fmt.Sprintf("%s (%d)", base, i)
+		} else {
+			try = fmt.Sprintf("%s (%d)%s", name, i, ext)
+		}
+
+		_, err := os.Stat(filepath.Join(dstDir, try))
+		if os.IsNotExist(err) {
+			return filepath.Join(dstDir, try), nil
+		}
+		if err != nil {
+			return "", err
+		}
+		i++
+	}
+}
+
 func (f FileOp) CopyAndReName(src, dst, name string, cover bool) error {
 	if src = path.Clean("/" + src); src == "" {
 		return os.ErrNotExist
