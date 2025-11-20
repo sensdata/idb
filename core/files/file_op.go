@@ -536,16 +536,19 @@ func (f FileOp) CopyOrNew(src, dst string, cover bool) error {
 		}
 	}
 
+	srcQ := shellQuote(src)
+	dstQ := shellQuote(dstPath)
+
 	// 目录与文件分别处理
 	var cmd string
 	if srcInfo.IsDir() {
-		cmd = fmt.Sprintf("cp -r %s %s", src, dstPath)
+		cmd = fmt.Sprintf("cp -r %s %s", srcQ, dstQ)
 	} else {
 		// 文件复制：cover=true 时强制覆盖
 		if cover {
-			cmd = fmt.Sprintf("cp -f %s %s", src, dstPath)
+			cmd = fmt.Sprintf("cp -f %s %s", srcQ, dstQ)
 		} else {
-			cmd = fmt.Sprintf("cp %s %s", src, dstPath)
+			cmd = fmt.Sprintf("cp %s %s", srcQ, dstQ)
 		}
 	}
 
@@ -574,6 +577,11 @@ func generateNewName(dstDir, base string, isDir bool) (string, error) {
 		}
 		i++
 	}
+}
+
+func shellQuote(p string) string {
+	// 将路径包裹在单引号中，并把内部的单引号转为 '\'' 形式
+	return "'" + strings.ReplaceAll(p, "'", "'\"'\"'") + "'"
 }
 
 func (f FileOp) CopyAndReName(src, dst, name string, cover bool) error {

@@ -329,17 +329,21 @@ func (f *FileService) Wget(w model.FileWget) (string, error) {
 func (f *FileService) MvFile(m model.FileMove) error {
 	fo := files.NewFileOp()
 	if !fo.Stat(m.Dest) {
+		global.LOG.Error("dest path [%s] not found", m.Dest)
 		return errors.New(constant.ErrPathNotFound)
 	}
 	for _, oldPath := range m.Sources {
 		if !fo.Stat(oldPath) {
+			global.LOG.Error("source path [%s] not found", oldPath)
 			return errors.New(constant.ErrFileNotFound)
 		}
 		if oldPath == m.Dest || strings.Contains(m.Dest, filepath.Clean(oldPath)+"/") {
+			global.LOG.Error("dest path [%s] is sub path of source path [%s]", m.Dest, oldPath)
 			return errors.New(constant.ErrMovePathFailed)
 		}
 	}
 	if m.Type == "cut" {
+		global.LOG.Info("cut files %v to %s", m.Sources, m.Dest)
 		return fo.Cut(m.Sources, m.Dest, m.Name, m.Cover)
 	}
 	var errs []error
@@ -357,6 +361,7 @@ func (f *FileService) MvFile(m model.FileMove) error {
 		errString += err.Error() + "\n"
 	}
 	if errString != "" {
+		global.LOG.Error("copy files %v to %s failed, err: %s", m.Sources, m.Dest, errString)
 		return errors.New(errString)
 	}
 	return nil
