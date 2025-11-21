@@ -24,8 +24,16 @@ export function resolveApiUrl(url: string, params?: Record<string, any>) {
     urlParams.set(key, String(value));
   });
   if (url.indexOf('{host}') !== -1) {
-    const hostId = params?.host || apiHostId;
-    url = url.replace('{host}', String(hostId));
+    const paramsHost: any = params && (params as any).host;
+    let hostId = apiHostId;
+    if (typeof paramsHost === 'number') {
+      hostId = paramsHost;
+    } else if (typeof paramsHost === 'string' && /^\d+$/.test(paramsHost)) {
+      hostId = Number(paramsHost);
+    }
+    if (hostId) {
+      url = url.replace('{host}', String(hostId));
+    }
   }
   if (url.startsWith('/') && (API_BASE_URL || '').endsWith('/')) {
     url = url.slice(1);
@@ -40,8 +48,15 @@ axios.interceptors.request.use(
     // Authorization is a custom headers key
     // please modify it according to the actual situation
     const token = getToken();
-    // hostId 只从 query params 或全局当前主机中获取，不再从 body.data.host 获取，避免与业务字段 "host" 冲突
-    const hostId = config.params?.host ?? apiHostId;
+    // hostId 优先使用 query params 里的 host（仅当是数字），否则回退到全局当前主机 apiHostId
+    let hostId = apiHostId;
+    const paramsHost: any = config.params && (config.params as any).host;
+    if (typeof paramsHost === 'number') {
+      hostId = paramsHost;
+    } else if (typeof paramsHost === 'string' && /^\d+$/.test(paramsHost)) {
+      hostId = Number(paramsHost);
+    }
+
     if (config.url && config.url.indexOf('{host}') !== -1 && hostId) {
       config.url = config.url.replace('{host}', String(hostId));
     }

@@ -33,6 +33,7 @@ export interface PmaGetServersResponse {
 }
 
 export interface PmaGetServersParams {
+  // phpMyAdmin compose 名称
   name: string;
   page: number;
   page_size: number;

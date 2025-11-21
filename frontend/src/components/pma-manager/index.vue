@@ -99,13 +99,7 @@
         </a-tab-pane>
 
         <a-tab-pane key="servers" :title="$t('app.pma.tab.servers')">
-          <div class="mb-3 flex justify-between items-center">
-            <a-input
-              v-model="serverQuery.name"
-              :placeholder="$t('app.pma.servers.searchPlaceholder')"
-              class="w-[240px]"
-              @press-enter="loadServers"
-            />
+          <div class="mb-3 flex justify-end items-center">
             <a-space>
               <a-button @click="loadServers">
                 {{ $t('common.refresh') }}
@@ -238,12 +232,6 @@
     port: 80,
   });
 
-  const serverQuery = ref({
-    name: '',
-    page: 1,
-    page_size: 20,
-  });
-
   const serverList = ref<PmaServerInfo[]>([]);
   const serverPagination = ref({
     current: 1,
@@ -291,7 +279,8 @@
     }
     try {
       const res = await getPmaServersApi({
-        name: serverQuery.value.name,
+        // 后端期望 name 为 pma 的 compose 名
+        name: composeName.value,
         page: serverPagination.value.current,
         page_size: serverPagination.value.pageSize,
       });
