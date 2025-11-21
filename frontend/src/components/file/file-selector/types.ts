@@ -17,6 +17,7 @@ export interface FileSelectProps {
   allowCreate?: boolean;
   initialPath?: string;
   type?: FileSelectType | string;
+  host?: number;
 }
 
 export interface FileSelectEmits {

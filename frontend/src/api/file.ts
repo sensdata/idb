@@ -53,7 +53,11 @@ export interface CreateFileParams {
   mode?: number; // 文件权限
 }
 export function createFileApi(data: CreateFileParams) {
-  return request.post('files/{host}', data);
+  return request.post('files/{host}', data, {
+    params: {
+      host: data.host,
+    },
+  });
 }
 
 // todo: api

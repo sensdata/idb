@@ -104,10 +104,12 @@
   </div>
   <create-folder-drawer
     ref="createFolderDrawerRef"
+    :host="hostId"
     @ok="handleOperationSuccess"
   />
   <upload-files-drawer
     ref="uploadFilesDrawerRef"
+    :host="hostId"
     @ok="handleOperationSuccess"
   />
 </template>
@@ -121,9 +123,12 @@
   import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
   import { FileSelectorItem as FileItem, FileSelectType } from './types';
 
+  const hostStore = useHostStore();
+
   interface Props {
     initialPath?: string;
     type?: FileSelectType | string;
+    host?: number;
   }
 
   interface Emits {
@@ -135,6 +140,10 @@
     initialPath: '/',
     type: FileSelectType.ALL,
   });
+
+  const hostId = computed(
+    () => props.host ?? hostStore.currentId ?? hostStore.defaultId
+  );
 
   const emit = defineEmits<Emits>();
   const { t } = useI18n();
@@ -184,7 +193,7 @@
     hasError.value = false;
     try {
       const data = await getFileListApi({
-        host: useHostStore().defaultId,
+        host: hostId.value,
         page: 1,
         page_size: 200,
         show_hidden: true,

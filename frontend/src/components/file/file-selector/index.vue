@@ -16,7 +16,7 @@
         v-model:popup-visible="isPopoverVisible"
         :trigger="['click']"
         :unmount-on-close="false"
-        :click-outside-to-close="false"
+        :click-outside-to-close="true"
         position="right"
         class="file-selector-popover"
       >
@@ -29,6 +29,7 @@
           <file-browser
             :initial-path="currentPath"
             :type="props.type"
+            :host="props.host"
             @select="handleFileSelect"
             @cancel="closePopover"
           />

@@ -70,7 +70,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { reactive, ref, watch } from 'vue';
+  import { reactive, ref, watch, computed } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import useLoading from '@/composables/loading';
@@ -82,6 +82,10 @@
   const { t } = useI18n();
 
   const hostStore = useHostStore();
+  const props = defineProps<{ host?: number }>();
+  const hostId = computed(
+    () => props.host ?? hostStore.currentId ?? hostStore.defaultId
+  );
   const formRef = ref();
   const formState = reactive({
     name: '',
@@ -199,7 +203,7 @@
     setLoading(true);
     try {
       await createFileApi({
-        host: hostStore.currentId ?? hostStore.defaultId,
+        host: hostId.value,
         source: formState.pwd + '/' + formState.name,
         is_dir: true,
         ...(formState.set_mode

@@ -21,6 +21,7 @@
         <file-selector
           v-model="formState.directory"
           type="directory"
+          :host="props.host"
           :placeholder="
             $t('components.file.uploadFilesDrawer.directory.placeholder')
           "
@@ -59,6 +60,7 @@
   const emit = defineEmits(['ok']);
 
   const hostStore = useHostStore();
+  const props = defineProps<{ host?: number }>();
 
   const formRef = ref();
   const formState = reactive({
@@ -70,7 +72,7 @@
   const visible = ref(false);
   const fileList = ref<FileItem[]>([]);
   const action = computed(() => {
-    const host = hostStore.currentId ?? hostStore.defaultId;
+    const host = props.host ?? hostStore.currentId ?? hostStore.defaultId;
     return resolveApiUrl(`/files/${host}/upload`);
   });
 

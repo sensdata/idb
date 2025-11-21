@@ -140,9 +140,11 @@
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('app.rsync.form.srcPath')">
-          <a-input
+          <file-selector
             v-model="taskForm.src"
             :placeholder="$t('app.rsync.form.placeholder.srcPath')"
+            :host="taskForm.src_host_id"
+            type="all"
           />
         </a-form-item>
         <a-form-item :label="$t('app.rsync.form.dstHost')">
@@ -159,9 +161,11 @@
           </a-select>
         </a-form-item>
         <a-form-item :label="$t('app.rsync.form.dstPath')">
-          <a-input
+          <file-selector
             v-model="taskForm.dst"
             :placeholder="$t('app.rsync.form.placeholder.dstPath')"
+            :host="taskForm.dst_host_id"
+            type="dir"
           />
         </a-form-item>
         <a-form-item :label="$t('app.rsync.form.mode')">
@@ -235,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, onUnmounted, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import {
@@ -248,6 +252,7 @@
   } from '@/api/database';
   import { getHostListApi } from '@/api/host';
   import { RsyncTaskInfo } from '@/entity/Database';
+  import FileSelector from '@/components/file/file-selector/index.vue';
 
   const { t } = useI18n();
   const loading = ref(false);
@@ -263,6 +268,8 @@
   const currentTask = ref<RsyncTaskInfo | null>(null);
   const hostList = ref<any[]>([]);
   const retryingTaskId = ref<string | null>(null);
+  const DETAIL_REFRESH_INTERVAL = 3000; // ms
+  let detailRefreshTimer: number | undefined;
 
   const taskForm = ref({
     src_host_id: undefined as number | undefined,
@@ -283,6 +290,33 @@
     return mode === 'copy'
       ? 'var(--color-primary-6)'
       : 'var(--color-success-6)';
+  };
+
+  const clearDetailAutoRefresh = () => {
+    if (detailRefreshTimer !== undefined) {
+      window.clearInterval(detailRefreshTimer);
+      detailRefreshTimer = undefined;
+    }
+  };
+
+  const startDetailAutoRefresh = (taskId: string) => {
+    clearDetailAutoRefresh();
+    detailRefreshTimer = window.setInterval(async () => {
+      if (!detailDrawerVisible.value) {
+        clearDetailAutoRefresh();
+        return;
+      }
+      try {
+        const res = await getRsyncTaskDetailApi({ id: taskId });
+        currentTask.value = res;
+        if (res.status !== 'running') {
+          clearDetailAutoRefresh();
+        }
+      } catch (error) {
+        // stop auto refresh on error to avoid spamming backend
+        clearDetailAutoRefresh();
+      }
+    }, DETAIL_REFRESH_INTERVAL);
   };
 
   const fetchData = async () => {
@@ -367,6 +401,11 @@
       const res = await getRsyncTaskDetailApi({ id: record.id });
       currentTask.value = res;
       detailDrawerVisible.value = true;
+      if (res.status === 'running') {
+        startDetailAutoRefresh(res.id);
+      } else {
+        clearDetailAutoRefresh();
+      }
     } catch (error) {
       Message.error(t('app.rsync.message.fetchDetailFailed'));
     }
@@ -405,8 +444,20 @@
     }
   };
 
+  watch(detailDrawerVisible, (visible) => {
+    if (!visible) {
+      clearDetailAutoRefresh();
+    } else if (currentTask.value && currentTask.value.status === 'running') {
+      startDetailAutoRefresh(currentTask.value.id);
+    }
+  });
+
   onMounted(() => {
     fetchData();
+  });
+
+  onUnmounted(() => {
+    clearDetailAutoRefresh();
   });
 </script>
 
