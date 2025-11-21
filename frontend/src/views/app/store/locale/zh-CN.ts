@@ -29,8 +29,8 @@ export default {
   'app.store.app.install.success': '应用安装成功',
   'app.store.app.install.success.confirm.title': '安装成功',
   'app.store.app.install.success.confirm.content':
-    '应用已成功安装！是否跳转到容器管理页面查看？',
-  'app.store.app.install.success.confirm.ok': '跳转到容器管理',
+    '应用已成功安装！是否跳转到 Compose 管理页面查看并编辑 compose 和 .env？',
+  'app.store.app.install.success.confirm.ok': '跳转到 Compose 管理',
   'app.store.app.install.success.confirm.cancel': '留在当前页面',
   'app.store.app.upgrade.success': '应用升级成功',
   'app.store.app.uninstall.confirm': '确定要卸载应用吗？',

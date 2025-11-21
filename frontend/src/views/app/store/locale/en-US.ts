@@ -31,8 +31,8 @@ export default {
   'app.store.app.install.success': 'App installed successfully',
   'app.store.app.install.success.confirm.title': 'Installation Successful',
   'app.store.app.install.success.confirm.content':
-    'The app has been successfully installed! Would you like to go to the container management page to view it?',
-  'app.store.app.install.success.confirm.ok': 'Go to Container Management',
+    'The app has been successfully installed! Would you like to go to the Compose management page to edit compose and .env?',
+  'app.store.app.install.success.confirm.ok': 'Go to Compose Management',
   'app.store.app.install.success.confirm.cancel': 'Stay on Current Page',
   'app.store.app.upgrade.success': 'App upgraded successfully',
   'app.store.app.uninstall.confirm':

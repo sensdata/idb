@@ -259,8 +259,8 @@
         okText: t('app.store.app.install.success.confirm.ok'),
         cancelText: t('app.store.app.install.success.confirm.cancel'),
         onOk: () => {
-          // 跳转到容器管理页面
-          router.push('/app/docker/container');
+          // 跳转到 Compose 管理页面，方便后续编辑 compose 和 .env
+          router.push('/app/docker/compose');
         },
         onCancel: () => {
           // 用户选择留在当前页面，显示成功消息

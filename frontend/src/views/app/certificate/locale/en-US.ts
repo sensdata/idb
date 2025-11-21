@@ -150,6 +150,8 @@ export default {
   'app.certificate.organizationInfo': 'Organization Information',
   'app.certificate.locationInfo': 'Location Information',
   'app.certificate.subjectInfo': 'Subject Information',
+  'app.certificate.country': 'Country',
+  'app.certificate.organization': 'Organization',
   'app.certificate.issuerInfo': 'Issuer Information',
   'app.certificate.notBefore': 'Valid From',
   'app.certificate.notAfter': 'Valid Until',

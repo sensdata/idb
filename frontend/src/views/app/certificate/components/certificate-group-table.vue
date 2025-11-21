@@ -264,7 +264,7 @@
     (e: 'deleteGroup', alias: string): void;
     (e: 'deleteCertificate', source: string): void;
     (e: 'viewPrivateKey', alias: string): void;
-    (e: 'viewCSR', alias: string): void;
+    (e: 'viewCsr', alias: string): void;
   }>();
 
   const { t } = useI18n();
@@ -382,7 +382,7 @@
     },
     {
       text: t('app.certificate.viewCSR'),
-      click: () => emit('viewCSR', record.alias),
+      click: () => emit('viewCsr', record.alias),
     },
     {
       text: t('app.certificate.deleteGroup'),

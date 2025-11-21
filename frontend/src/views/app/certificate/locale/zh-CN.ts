@@ -138,6 +138,8 @@ export default {
   'app.certificate.organizationInfo': '组织信息',
   'app.certificate.locationInfo': '地理信息',
   'app.certificate.subjectInfo': '主体信息',
+  'app.certificate.country': '国家',
+  'app.certificate.organization': '组织',
   'app.certificate.issuerInfo': '签发机构信息',
   'app.certificate.notBefore': '生效时间',
   'app.certificate.notAfter': '过期时间',
