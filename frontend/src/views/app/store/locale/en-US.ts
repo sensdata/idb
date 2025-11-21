@@ -72,6 +72,7 @@ export default {
 
   'app.store.database.info.name': 'Name',
   'app.store.database.info.version': 'Version',
+  'app.store.database.info.host': 'Address',
   'app.store.database.info.port': 'Port',
   'app.store.database.info.status': 'Status',
 

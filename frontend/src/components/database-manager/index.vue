@@ -195,52 +195,82 @@
             <a-descriptions-item
               :label="$t('app.store.database.connection.internal')"
             >
-              <a-space>
-                <span>
-                  {{
-                    connectionInfo
-                      ? `${connectionInfo.container_connection.host}:${connectionInfo.container_connection.port}`
-                      : '--'
-                  }}
-                </span>
-                <a-button
-                  size="mini"
-                  type="outline"
-                  :disabled="!connectionInfo"
-                  @click="
-                    copyText(
-                      `${connectionInfo?.container_connection.host}:${connectionInfo?.container_connection.port}`
-                    )
-                  "
-                >
-                  {{ $t('common.copy') }}
-                </a-button>
-              </a-space>
+              <div v-if="connectionInfo" class="connection-field">
+                <div class="connection-row">
+                  <span class="connection-row-label">
+                    {{ $t('app.store.database.info.host') }}
+                  </span>
+                  <span class="connection-row-value">
+                    {{ connectionInfo.container_connection.host }}
+                  </span>
+                  <a-button
+                    size="mini"
+                    type="outline"
+                    @click="copyText(connectionInfo?.container_connection.host)"
+                  >
+                    {{ $t('common.copy') }}
+                  </a-button>
+                </div>
+                <div class="connection-row">
+                  <span class="connection-row-label">
+                    {{ $t('app.store.database.info.port') }}
+                  </span>
+                  <span class="connection-row-value">
+                    {{ connectionInfo.container_connection.port }}
+                  </span>
+                  <a-button
+                    size="mini"
+                    type="outline"
+                    @click="
+                      copyText(
+                        String(connectionInfo?.container_connection.port)
+                      )
+                    "
+                  >
+                    {{ $t('common.copy') }}
+                  </a-button>
+                </div>
+              </div>
+              <span v-else>--</span>
             </a-descriptions-item>
             <a-descriptions-item
               :label="$t('app.store.database.connection.external')"
             >
-              <a-space>
-                <span>
-                  {{
-                    connectionInfo
-                      ? `${connectionInfo.public_connection.host}:${connectionInfo.public_connection.port}`
-                      : '--'
-                  }}
-                </span>
-                <a-button
-                  size="mini"
-                  type="outline"
-                  :disabled="!connectionInfo"
-                  @click="
-                    copyText(
-                      `${connectionInfo?.public_connection.host}:${connectionInfo?.public_connection.port}`
-                    )
-                  "
-                >
-                  {{ $t('common.copy') }}
-                </a-button>
-              </a-space>
+              <div v-if="connectionInfo" class="connection-field">
+                <div class="connection-row">
+                  <span class="connection-row-label">
+                    {{ $t('app.store.database.info.host') }}
+                  </span>
+                  <span class="connection-row-value">
+                    {{ connectionInfo.public_connection.host }}
+                  </span>
+                  <a-button
+                    size="mini"
+                    type="outline"
+                    @click="copyText(connectionInfo?.public_connection.host)"
+                  >
+                    {{ $t('common.copy') }}
+                  </a-button>
+                </div>
+                <div class="connection-row">
+                  <span class="connection-row-label">
+                    {{ $t('app.store.database.info.port') }}
+                  </span>
+                  <span class="connection-row-value">
+                    {{ connectionInfo.public_connection.port }}
+                  </span>
+                  <a-button
+                    size="mini"
+                    type="outline"
+                    @click="
+                      copyText(String(connectionInfo?.public_connection.port))
+                    "
+                  >
+                    {{ $t('common.copy') }}
+                  </a-button>
+                </div>
+              </div>
+              <span v-else>--</span>
             </a-descriptions-item>
           </a-descriptions>
         </a-tab-pane>
@@ -701,5 +731,35 @@
     align-items: center;
     justify-content: center;
     min-height: 400px;
+  }
+
+  .connection-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .connection-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .connection-row-label {
+    min-width: 40px;
+    font-size: 12px;
+    color: var(--color-text-2);
+  }
+
+  .connection-row-value {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 8px;
+    font-family: var(--idb-font-mono, monospace);
+    font-size: 13px;
+    color: var(--color-text-1);
+    background-color: var(--color-fill-2);
+    border-radius: 4px;
   }
 </style>

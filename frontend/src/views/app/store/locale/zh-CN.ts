@@ -69,6 +69,7 @@ export default {
 
   'app.store.database.info.name': '名称',
   'app.store.database.info.version': '版本',
+  'app.store.database.info.host': '地址',
   'app.store.database.info.port': '端口',
   'app.store.database.info.status': '状态',
 
