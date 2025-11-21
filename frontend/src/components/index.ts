@@ -4,10 +4,12 @@ import IdbTable from './idb-table/index.vue';
 import IdbTableOperation from './idb-table-operation/index.vue';
 import FixedFooterBar from './fixed-footer-bar/index.vue';
 import DockerInstallGuide from './docker-install-guide/index.vue';
+import PmaManager from './pma-manager/index.vue';
 
 export default {
   install(Vue: App) {
     Vue.component('IdbTable', IdbTable);
+    Vue.component('PmaManager', PmaManager);
     Vue.component('IdbTableOperation', IdbTableOperation);
     Vue.component('FixedFooterBar', FixedFooterBar);
     Vue.component('Breadcrumb', Breadcrumb);

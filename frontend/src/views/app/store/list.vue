@@ -27,7 +27,7 @@
             @install="handleInstall"
             @upgrade="handleUpgrade"
             @uninstall="handleUninstall"
-            @manage="handleManageDatabase"
+            @manage="handleManageApp"
           />
         </a-grid-item>
       </a-grid>
@@ -45,6 +45,7 @@
   <upgrade-log ref="upgradeLogRef" @ok="load" />
   <uninstall-log ref="uninstallLogRef" @ok="load" />
   <database-manager-drawer ref="databaseManagerRef" />
+  <PmaManager ref="pmaManagerRef" />
 </template>
 
 <script setup lang="ts">
@@ -62,6 +63,7 @@
   import { useConfirm } from '@/composables/confirm';
   import { useDatabaseManager } from '@/composables/use-database-manager';
   import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
+  import PmaManager from '@/components/pma-manager/index.vue';
   import AppCard from './components/app-card.vue';
   import InstallDrawer from './components/install-drawer.vue';
   import UpgradeLog from './components/upgrade-log.vue';
@@ -69,6 +71,10 @@
 
   const { t } = useI18n();
   const { getDatabaseType } = useDatabaseManager();
+
+  const isPmaApp = (name: string) => {
+    return name.toLowerCase().includes('phpmyadmin');
+  };
 
   const pagination = reactive({
     page: 1,
@@ -82,6 +88,7 @@
   const upgradeLogRef = ref<InstanceType<typeof UpgradeLog>>();
   const uninstallLogRef = ref<InstanceType<typeof UninstallLog>>();
   const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
+  const pmaManagerRef = ref<InstanceType<typeof PmaManager>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
   const { confirm } = useConfirm();
@@ -208,29 +215,48 @@
     }
   };
 
+  const resolveInstalledComposeName = async (item: AppSimpleEntity) => {
+    const response = await getInstalledAppListApi({
+      page: 1,
+      page_size: 100,
+    });
+    const installedApp = response.items.find(
+      (app) => app.display_name === item.display_name
+    );
+
+    if (!installedApp) {
+      throw new Error('未找到已安装的应用');
+    }
+
+    return installedApp.name;
+  };
+
   // 处理数据库管理
   const handleManageDatabase = (item: AppSimpleEntity) => {
     const dbType = getDatabaseType(item.name);
     if (!dbType) return;
 
-    // 立即打开 drawer，传入一个函数来异步获取 compose 名称
-    databaseManagerRef.value?.show(dbType, async () => {
-      // 在"All"标签中，item.name 是通用名称（如 "mysql"），需要获取实际的 compose 名称
-      // 通过查询已安装应用列表来获取实际的 compose 名称
-      const response = await getInstalledAppListApi({
-        page: 1,
-        page_size: 100,
-      });
-      const installedApp = response.items.find(
-        (app) => app.display_name === item.display_name
-      );
+    databaseManagerRef.value?.show(dbType, () =>
+      resolveInstalledComposeName(item)
+    );
+  };
 
-      if (!installedApp) {
-        throw new Error('未找到已安装的应用');
-      }
+  // 处理 phpMyAdmin 管理
+  const handleManagePma = async (item: AppSimpleEntity) => {
+    const composeName = await resolveInstalledComposeName(item);
+    pmaManagerRef.value?.show(composeName);
+  };
 
-      return installedApp.name;
-    });
+  const handleManageApp = (item: AppSimpleEntity) => {
+    const dbType = getDatabaseType(item.name);
+    if (dbType) {
+      handleManageDatabase(item);
+      return;
+    }
+
+    if (isPmaApp(item.name)) {
+      handleManagePma(item);
+    }
   };
 
   defineExpose({

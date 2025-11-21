@@ -49,9 +49,9 @@
         </a-button>
         <!-- 已安装应用显示升级和卸载按钮 -->
         <template v-else>
-          <!-- 数据库应用显示管理按钮 -->
+          <!-- 数据库应用或 phpMyAdmin 应用显示管理按钮 -->
           <a-button
-            v-if="isDatabaseApp"
+            v-if="isDatabaseApp || isPmaApp"
             type="primary"
             shape="round"
             size="small"
@@ -109,5 +109,9 @@
     return databaseTypes.some((type) =>
       props.app.name.toLowerCase().includes(type)
     );
+  });
+
+  const isPmaApp = computed(() => {
+    return props.app.name.toLowerCase().includes('phpmyadmin');
   });
 </script>
