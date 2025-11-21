@@ -62,6 +62,10 @@ export default {
   'app.store.database.tab.password': '密码管理',
   'app.store.database.tab.remote': '远程访问',
   'app.store.database.tab.port': '端口设置',
+  'app.store.database.tab.connection': '连接信息',
+
+  'app.store.database.connection.internal': '容器内连接',
+  'app.store.database.connection.external': '外部连接',
 
   'app.store.database.info.name': '名称',
   'app.store.database.info.version': '版本',

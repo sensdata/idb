@@ -46,6 +46,7 @@ export default {
   'common.no': 'No',
   'common.all': 'All',
   'common.seconds': 'seconds',
+  'common.copy': 'Copy',
 
   'common.message.saveSuccess': 'handle success',
   'common.message.saveError': 'handle failed',

@@ -65,6 +65,10 @@ export default {
   'app.store.database.tab.password': 'Password',
   'app.store.database.tab.remote': 'Remote Access',
   'app.store.database.tab.port': 'Port Settings',
+  'app.store.database.tab.connection': 'Connection',
+
+  'app.store.database.connection.internal': 'Container connection',
+  'app.store.database.connection.external': 'Public connection',
 
   'app.store.database.info.name': 'Name',
   'app.store.database.info.version': 'Version',

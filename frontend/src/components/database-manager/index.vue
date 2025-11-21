@@ -185,6 +185,65 @@
             </a-form-item>
           </a-form>
         </a-tab-pane>
+
+        <a-tab-pane
+          v-if="databaseType === 'mysql'"
+          key="connection"
+          :title="$t('app.store.database.tab.connection')"
+        >
+          <a-descriptions :column="1" bordered>
+            <a-descriptions-item
+              :label="$t('app.store.database.connection.internal')"
+            >
+              <a-space>
+                <span>
+                  {{
+                    connectionInfo
+                      ? `${connectionInfo.container_connection.host}:${connectionInfo.container_connection.port}`
+                      : '--'
+                  }}
+                </span>
+                <a-button
+                  size="mini"
+                  type="outline"
+                  :disabled="!connectionInfo"
+                  @click="
+                    copyText(
+                      `${connectionInfo?.container_connection.host}:${connectionInfo?.container_connection.port}`
+                    )
+                  "
+                >
+                  {{ $t('common.copy') }}
+                </a-button>
+              </a-space>
+            </a-descriptions-item>
+            <a-descriptions-item
+              :label="$t('app.store.database.connection.external')"
+            >
+              <a-space>
+                <span>
+                  {{
+                    connectionInfo
+                      ? `${connectionInfo.public_connection.host}:${connectionInfo.public_connection.port}`
+                      : '--'
+                  }}
+                </span>
+                <a-button
+                  size="mini"
+                  type="outline"
+                  :disabled="!connectionInfo"
+                  @click="
+                    copyText(
+                      `${connectionInfo?.public_connection.host}:${connectionInfo?.public_connection.port}`
+                    )
+                  "
+                >
+                  {{ $t('common.copy') }}
+                </a-button>
+              </a-space>
+            </a-descriptions-item>
+          </a-descriptions>
+        </a-tab-pane>
       </a-tabs>
     </div>
   </a-drawer>
@@ -192,8 +251,10 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  import type { DatabaseConnectionInfo } from '@/entity/Database';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
+  import { useClipboard } from '@/composables/use-clipboard';
   import {
     getMysqlComposesApi,
     mysqlOperationApi,
@@ -203,6 +264,7 @@
     setMysqlPasswordApi,
     getMysqlRemoteAccessApi,
     setMysqlRemoteAccessApi,
+    getMysqlConnectionInfoApi,
     getPostgreSqlComposesApi,
     postgreSqlOperationApi,
     getPostgreSqlConfApi,
@@ -220,6 +282,9 @@
   import { DatabaseComposeInfo } from '@/entity/Database';
 
   const { t } = useI18n();
+  const { copyText: copyToClipboard } = useClipboard();
+
+  const connectionInfo = ref<DatabaseConnectionInfo | null>(null);
 
   const visible = ref(false);
   const loading = ref(false);
@@ -279,6 +344,16 @@
     }
   };
 
+  const copyText = async (text?: string | null) => {
+    if (!text) return;
+    try {
+      await copyToClipboard(text);
+      Message.success(t('common.message.copy_success'));
+    } catch (error) {
+      Message.error(t('common.message.copy_failed'));
+    }
+  };
+
   const loadData = async (options: { delayBeforeLoad?: boolean } = {}) => {
     loading.value = true;
 
@@ -325,6 +400,16 @@
           remoteAccessPromise = getMysqlRemoteAccessApi({
             name: composeName.value,
           });
+
+          const connectionInfoPromise = getMysqlConnectionInfoApi({
+            name: composeName.value,
+          });
+
+          promises.push(
+            passwordPromise,
+            remoteAccessPromise,
+            connectionInfoPromise
+          );
         } else {
           passwordPromise = getRedisPasswordApi({
             name: composeName.value,
@@ -332,9 +417,9 @@
           remoteAccessPromise = getRedisRemoteAccessApi({
             name: composeName.value,
           });
-        }
 
-        promises.push(passwordPromise, remoteAccessPromise);
+          promises.push(passwordPromise, remoteAccessPromise);
+        }
       }
 
       const results = await Promise.allSettled(promises);
@@ -375,7 +460,7 @@
         Message.error(extractErrorMessage(configResult.reason));
       }
 
-      // 处理密码和远程访问（第三、四个请求，仅 MySQL/Redis）
+      // 处理密码、远程访问和连接信息（后续请求，仅 MySQL/Redis）
       if (databaseType.value === 'mysql' || databaseType.value === 'redis') {
         const pwdResult = results[2];
         const raResult = results[3];
@@ -394,6 +479,16 @@
           console.error('Failed to load remote access:', raResult.reason);
           remoteAccessEnabled.value = false;
           // 远程访问状态加载失败不显示错误提示，使用默认值即可
+        }
+
+        if (databaseType.value === 'mysql') {
+          const connResult = results[4];
+          if (connResult.status === 'fulfilled') {
+            connectionInfo.value = connResult.value;
+          } else {
+            console.error('Failed to load connection info:', connResult.reason);
+            connectionInfo.value = null;
+          }
         }
       }
     } catch (error) {

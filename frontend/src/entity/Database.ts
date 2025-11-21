@@ -50,6 +50,21 @@ export interface DatabaseSetPasswordRequest {
   new_pass: string;
 }
 
+export interface DatabaseConnectionEndpoint {
+  host: string;
+  port: string;
+}
+
+export interface DatabaseConnectionInfo {
+  container_connection: DatabaseConnectionEndpoint;
+  public_connection: DatabaseConnectionEndpoint;
+}
+
+export interface DatabaseConnectionInfoResponse {
+  container_connection: DatabaseConnectionItem;
+  public_connection: DatabaseConnectionItem;
+}
+
 // Rsync 相关类型
 export interface RsyncHost {
   id: number;

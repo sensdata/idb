@@ -47,6 +47,7 @@ export default {
   'common.no': '否',
   'common.all': '全部',
   'common.seconds': '秒',
+  'common.copy': '复制',
 
   'common.message.saveSuccess': '保存成功',
   'common.message.saveError': '保存失败',

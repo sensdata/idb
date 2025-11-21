@@ -10,6 +10,7 @@ import {
   DatabaseSetRemoteAccessRequest,
   DatabasePasswordResponse,
   DatabaseSetPasswordRequest,
+  DatabaseConnectionInfo,
   RsyncListTaskResponse,
   RsyncTaskInfo,
   RsyncCreateTaskRequest,
@@ -51,6 +52,10 @@ export function setMysqlRemoteAccessApi(data: DatabaseSetRemoteAccessRequest) {
 
 export function getMysqlPasswordApi(params: { name: string }) {
   return request.get<DatabasePasswordResponse>('mysql/{host}/password', params);
+}
+
+export function getMysqlConnectionInfoApi(params: { name: string }) {
+  return request.get<DatabaseConnectionInfo>('mysql/{host}/connection', params);
 }
 
 export function setMysqlPasswordApi(data: DatabaseSetPasswordRequest) {
