@@ -61,8 +61,8 @@ export interface DatabaseConnectionInfo {
 }
 
 export interface DatabaseConnectionInfoResponse {
-  container_connection: DatabaseConnectionItem;
-  public_connection: DatabaseConnectionItem;
+  container_connection: DatabaseConnectionEndpoint;
+  public_connection: DatabaseConnectionEndpoint;
 }
 
 // Rsync 相关类型
