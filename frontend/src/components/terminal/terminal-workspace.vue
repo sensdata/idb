@@ -1,10 +1,16 @@
 <template>
-  <div class="terminal-workspace">
+  <div
+    class="terminal-workspace"
+    :class="{ 'sidebar-collapsed': sidebarCollapsed }"
+  >
     <!-- 左侧主机列表 -->
-    <host-sidebar
-      :current-host-id="currentHostId"
-      @host-select="handleHostSelect"
-    />
+    <div v-if="!sidebarCollapsed" class="sidebar-container">
+      <host-sidebar
+        :current-host-id="currentHostId"
+        @host-select="handleHostSelect"
+        @collapse="toggleSidebar"
+      />
+    </div>
 
     <!-- 右侧主体区域 -->
     <div class="workspace-main">
@@ -35,34 +41,49 @@
           </div>
 
           <!-- 终端标签页 -->
-          <a-tabs
-            v-model:active-key="activeKey"
-            class="terminal-tabs"
-            type="card-gutter"
-            auto-switch
-            lazy-load
-          >
-            <template #extra>
-              <session-add-popover
-                v-if="canAddNewTab"
-                v-model:visible="popoverVisible"
-                :current-host-id="currentHostId"
-                @add-session="handleAddSession"
-              />
-            </template>
+          <div class="terminal-tabs-row">
+            <a-button
+              v-if="sidebarCollapsed"
+              type="text"
+              size="small"
+              class="sidebar-toggle-tab-btn"
+              :aria-label="$t('components.terminal.workspace.expandSidebar')"
+              @click="toggleSidebar"
+            >
+              <template #icon>
+                <icon-menu-unfold />
+              </template>
+            </a-button>
 
-            <!-- 终端标签页内容 - 只显示当前主机的会话标签 -->
-            <a-tab-pane v-for="item of terms" :key="item.key">
-              <template #title>
-                <terminal-tab-title
-                  :item="item"
-                  @action="handleTabAction"
-                  @rename="handleTabRename"
+            <a-tabs
+              v-model:active-key="activeKey"
+              class="terminal-tabs"
+              type="card-gutter"
+              auto-switch
+              lazy-load
+            >
+              <template #extra>
+                <session-add-popover
+                  v-if="canAddNewTab"
+                  v-model:visible="popoverVisible"
+                  :current-host-id="currentHostId"
+                  @add-session="handleAddSession"
                 />
               </template>
-              <!-- 标签页内容为空，实际终端在下面渲染 -->
-            </a-tab-pane>
-          </a-tabs>
+
+              <!-- 终端标签页内容 - 只显示当前主机的会话标签 -->
+              <a-tab-pane v-for="item of terms" :key="item.key">
+                <template #title>
+                  <terminal-tab-title
+                    :item="item"
+                    @action="handleTabAction"
+                    @rename="handleTabRename"
+                  />
+                </template>
+                <!-- 标签页内容为空，实际终端在下面渲染 -->
+              </a-tab-pane>
+            </a-tabs>
+          </div>
 
           <!-- 所有终端组件 - 保持在DOM中，通过CSS控制显示 -->
           <div class="terminal-content">
@@ -168,6 +189,18 @@
   const isCreatingSession = ref(false);
   const isPruningSessions = ref(false);
   const isRestoringSession = ref(false);
+
+  const sidebarCollapsed = ref(false);
+
+  function toggleSidebar() {
+    sidebarCollapsed.value = !sidebarCollapsed.value;
+
+    // 折叠/展开后，主动让当前终端 refit 一次，避免左右宽度变化时字体太大/太小
+    nextTick(() => {
+      // 切换折叠状态后，refit 当前激活终端，适配新的宽度
+      focus();
+    });
+  }
 
   // 计算属性
   const currentHost = computed(() =>
@@ -663,11 +696,20 @@
     background: var(--color-bg-1);
   }
 
+  .sidebar-container {
+    flex-shrink: 0;
+  }
+
   .workspace-main {
     display: flex;
     flex: 1;
     flex-direction: column;
     min-width: 0;
+  }
+
+  .sidebar-toggle-tab-btn {
+    margin-right: 8px;
+    border-radius: 6px;
   }
 
   .welcome-state {
@@ -677,6 +719,11 @@
     justify-content: center;
     padding: 32px;
     background: var(--color-bg-1);
+  }
+
+  .terminal-tabs-row {
+    display: flex;
+    align-items: center;
   }
 
   .terminal-tabs {
@@ -718,8 +765,6 @@
     font-weight: 400 !important;
     line-height: 22px !important;
     color: var(--color-text-2) !important;
-
-    @apply text-base !important;
   }
 
   .terminal-tabs

@@ -32,6 +32,10 @@ export default {
   'components.terminal.workspace.creatingSession': 'Creating session...',
   'components.terminal.workspace.restoringSession': 'Restoring sessions...',
 
+  // Sidebar collapse
+  'components.terminal.workspace.collapseSidebar': 'Collapse host list',
+  'components.terminal.workspace.expandSidebar': 'Expand host list',
+
   // 新增的会话相关文本
   'components.terminal.session.new': 'New',
   'components.terminal.session.create': 'Create Session',

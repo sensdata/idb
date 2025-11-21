@@ -5,18 +5,31 @@
         <icon-desktop class="header-icon" />
         <h3>{{ $t('components.terminal.workspace.hosts') }}</h3>
       </div>
-      <a-button
-        type="text"
-        size="small"
-        :loading="loading"
-        class="refresh-btn"
-        :aria-label="$t('components.terminal.workspace.refreshHosts')"
-        @click="refreshHosts"
-      >
-        <template #icon>
-          <icon-refresh :spin="loading" />
-        </template>
-      </a-button>
+      <div class="header-actions">
+        <a-button
+          type="text"
+          size="small"
+          :loading="loading"
+          class="refresh-btn"
+          :aria-label="$t('components.terminal.workspace.refreshHosts')"
+          @click="refreshHosts"
+        >
+          <template #icon>
+            <icon-refresh :spin="loading" />
+          </template>
+        </a-button>
+        <a-button
+          type="text"
+          size="small"
+          class="refresh-btn"
+          :aria-label="$t('components.terminal.workspace.collapseSidebar')"
+          @click="handleCollapse"
+        >
+          <template #icon>
+            <icon-menu-fold />
+          </template>
+        </a-button>
+      </div>
     </div>
 
     <div class="host-list" role="list">
@@ -101,7 +114,12 @@
 
   const emit = defineEmits<{
     hostSelect: [host: HostEntity];
+    collapse: [];
   }>();
+
+  const handleCollapse = (): void => {
+    emit('collapse');
+  };
 
   const loading = ref(false);
   const error = ref('');
@@ -236,6 +254,12 @@
 
   .header-content {
     display: flex;
+    align-items: center;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 4px;
     align-items: center;
   }
 

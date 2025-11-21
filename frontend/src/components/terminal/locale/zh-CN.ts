@@ -28,6 +28,10 @@ export default {
   'components.terminal.workspace.creatingSession': '正在创建会话...',
   'components.terminal.workspace.restoringSession': '正在恢复会话...',
 
+  // 侧边栏折叠
+  'components.terminal.workspace.collapseSidebar': '收起主机列表',
+  'components.terminal.workspace.expandSidebar': '展开主机列表',
+
   // 新增的会话相关文本
   'components.terminal.session.new': '新建',
   'components.terminal.session.create': '创建会话',
