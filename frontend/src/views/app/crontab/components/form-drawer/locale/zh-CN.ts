@@ -26,6 +26,8 @@ export default {
     '获取脚本内容响应格式无效',
   'app.crontab.form.command.label': '命令内容',
   'app.crontab.form.command.placeholder': '请输入要执行的命令',
+  'app.crontab.form.user.label': '用户',
+  'app.crontab.form.user.placeholder': '请输入执行用户，默认 root',
   'app.crontab.form.content.label': '文件预览',
   'app.crontab.form.content.placeholder': '请输入命令内容',
   'app.crontab.form.mark.label': '计划任务备注',

@@ -33,6 +33,8 @@ export default {
     'Invalid script content response',
   'app.crontab.form.command.label': 'Command Content',
   'app.crontab.form.command.placeholder': 'Please enter the command to execute',
+  'app.crontab.form.user.label': 'User',
+  'app.crontab.form.user.placeholder': 'Please enter run user, default root',
   'app.crontab.form.content.label': 'File Preview',
   'app.crontab.form.content.placeholder': 'Please enter command content',
   'app.crontab.form.mark.label': 'Notes',

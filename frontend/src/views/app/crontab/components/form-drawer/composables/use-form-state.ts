@@ -15,6 +15,7 @@ export interface FormState {
   period_details: PeriodDetailDo[];
   mark: string;
   command: string;
+  user: string;
   category: string;
   id?: number;
 }
@@ -36,6 +37,7 @@ const createDefaultFormState = (): FormState => ({
   period_details: [],
   mark: '',
   command: '',
+  user: 'root',
   category: '',
 });
 

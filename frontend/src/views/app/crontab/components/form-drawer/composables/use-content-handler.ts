@@ -35,6 +35,7 @@ export const useContentHandler = () => {
     formState: FormState,
     command: string
   ): string => {
+    const user = (formState as any).user || 'root';
     if (!formState.period_details || formState.period_details.length === 0) {
       return '';
     }
@@ -52,7 +53,7 @@ export const useContentHandler = () => {
     if (markLine) {
       newContent += `\n${markLine}`;
     }
-    newContent += `\n${cronExpression} ${command}`;
+    newContent += `\n${cronExpression} ${user} ${command}`;
 
     return newContent;
   };
@@ -83,11 +84,8 @@ export const useContentHandler = () => {
 
       // 使用脚本的source字段作为路径
       const scriptSourcePath = scriptDetail.source;
-      const useShell = scriptSourcePath.endsWith('.sh');
 
-      return useShell
-        ? `sh ${scriptSourcePath}${scriptParams ? ' ' + scriptParams : ''}`
-        : `${scriptSourcePath}${scriptParams ? ' ' + scriptParams : ''}`;
+      return `${scriptSourcePath}${scriptParams ? ' ' + scriptParams : ''}`;
     } catch (error) {
       console.error(
         `Error getting script command for "${scriptName}" in category "${scriptCategory}":`,
@@ -175,10 +173,17 @@ export const useContentHandler = () => {
     const lastLine = contentLines[contentLines.length - 1] || '';
     const cronParts = lastLine.trim().split(/\s+/);
 
+    // 新格式：time user command
+    if (cronParts.length >= 7) {
+      // 从第7个部分开始是命令，索引5是用户
+      return cronParts.slice(6).join(' ');
+    }
+
+    // 兼容旧格式：time command
     if (cronParts.length >= 6) {
-      // 从第6个部分开始是命令
       return cronParts.slice(5).join(' ');
     }
+
     return '';
   };
 

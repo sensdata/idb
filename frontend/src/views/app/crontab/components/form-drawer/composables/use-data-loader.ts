@@ -229,9 +229,13 @@ export const useDataLoader = (
   // 从内容中提取命令和cron表达式
   const extractCommandContent = (
     data: any
-  ): { commandContent: string; cronExpression: string | null } => {
+  ): {
+    commandContent: string;
+    cronExpression: string | null;
+    user: string;
+  } => {
     if (!data.content) {
-      return { commandContent: '', cronExpression: null };
+      return { commandContent: '', cronExpression: null, user: 'root' };
     }
 
     const contentLines = data.content.split('\n');
@@ -252,25 +256,43 @@ export const useDataLoader = (
     }
 
     if (cronLineIndex >= contentLines.length) {
-      return { commandContent: '', cronExpression: null };
+      return { commandContent: '', cronExpression: null, user: 'root' };
     }
 
     const cronLine = contentLines[cronLineIndex];
 
-    // 匹配cron表达式(5个字段)和后面的命令
-    const cronPattern = /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.+)$/;
-    const cronMatches = cronLine.match(cronPattern);
+    // 优先匹配 Time-User-Command 格式
+    const cronPatternWithUser =
+      /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(\S+)\s+(.+)$/;
+    const cronPatternLegacy = /^(\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.+)$/;
 
-    if (cronMatches && cronMatches.length >= 3) {
-      return {
-        commandContent: cronMatches[2].trim(),
-        cronExpression: cronMatches[1].trim(),
-      };
+    let user = 'root';
+    let cronExpression: string | null = null;
+    let commandContent = '';
+
+    const withUserMatches = cronLine.match(cronPatternWithUser);
+    if (withUserMatches && withUserMatches.length >= 4) {
+      cronExpression = withUserMatches[1].trim();
+      user = withUserMatches[2].trim();
+      commandContent = withUserMatches[3].trim();
+    } else {
+      const legacyMatches = cronLine.match(cronPatternLegacy);
+      if (legacyMatches && legacyMatches.length >= 3) {
+        cronExpression = legacyMatches[1].trim();
+        commandContent = legacyMatches[2].trim();
+      } else {
+        return {
+          commandContent: data.content,
+          cronExpression: null,
+          user: 'root',
+        };
+      }
     }
 
     return {
-      commandContent: data.content,
-      cronExpression: null,
+      commandContent,
+      cronExpression,
+      user,
     };
   };
 
@@ -292,7 +314,8 @@ export const useDataLoader = (
     }
 
     // 否则尝试从content解析
-    const { commandContent, cronExpression } = extractCommandContent(record);
+    const { commandContent, cronExpression, user } =
+      extractCommandContent(record);
 
     // 解析cron表达式
     if (cronExpression) {
@@ -302,8 +325,9 @@ export const useDataLoader = (
       }
     }
 
-    // 设置命令字段
+    // 设置命令字段和用户
     formState.command = commandContent;
+    formState.user = user || 'root';
 
     return {
       usedExistingPeriod: false,

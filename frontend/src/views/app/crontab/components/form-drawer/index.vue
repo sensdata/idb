@@ -43,6 +43,14 @@
           />
         </a-form-item>
 
+        <a-form-item field="user" :label="t('app.crontab.form.user.label')">
+          <a-input
+            v-model="formState.user"
+            :placeholder="t('app.crontab.form.user.placeholder')"
+            class="form-input"
+          />
+        </a-form-item>
+
         <a-form-item>
           <template #label>
             {{ t('app.crontab.form.content_mode.label') }}
