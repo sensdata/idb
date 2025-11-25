@@ -8,6 +8,7 @@ require (
 	github.com/compose-spec/compose-go v1.20.2
 	github.com/docker/go-connections v0.5.0
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/sensdata/idb/core v0.0.0
