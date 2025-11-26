@@ -3007,11 +3007,15 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
 			return nil, err
 		}
-		id, err := RsyncLib.Create(req)
+		rsp, err := RsyncLib.Create(req)
 		if err != nil {
 			return nil, err
 		}
-		return actionSuccessResult(actionData.Action, id)
+		result, err := utils.ToJSONString(rsp)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
 
 	case model.Rsync_List:
 		var req model.RsyncListTaskRequest

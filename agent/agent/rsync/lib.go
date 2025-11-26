@@ -25,9 +25,10 @@ func NewRsyncLib() *RsyncLib {
 	return &RsyncLib{m: m}
 }
 
-func (api *RsyncLib) Create(req model.RsyncClientCreateTaskRequest) (string, error) {
+func (api *RsyncLib) Create(req model.RsyncClientCreateTaskRequest) (*model.RsyncCreateTaskResponse, error) {
+	var rsp model.RsyncCreateTaskResponse
 	if req.Name == "" {
-		return "", errors.New("name required")
+		return &rsp, errors.New("name required")
 	}
 	t := &pkg.RsyncTask{
 		Name:          req.Name,
@@ -44,21 +45,91 @@ func (api *RsyncLib) Create(req model.RsyncClientCreateTaskRequest) (string, err
 	}
 	id, err := api.m.CreateTask(t, req.Enqueue)
 	if err != nil {
-		return "", err
+		return &rsp, err
 	}
-	return id, nil
+	rsp.ID = id
+	return &rsp, nil
 }
 
-func (api *RsyncLib) List(req model.RsyncListTaskRequest) ([]*pkg.RsyncTask, error) {
-	return api.m.ListTasks(req.Page, req.PageSize)
+func (api *RsyncLib) List(req model.RsyncListTaskRequest) (*model.RsyncClientListTaskResponse, error) {
+	var resp model.RsyncClientListTaskResponse
+	tasks, err := api.m.ListTasks(req.Page, req.PageSize)
+	if err != nil {
+		return &resp, err
+	}
+	for _, t := range tasks {
+		resp.Tasks = append(resp.Tasks, &model.RsyncClientTask{
+			ID:            t.ID,
+			Name:          t.Name,
+			Direction:     string(t.Direction),
+			LocalPath:     t.LocalPath,
+			RemoteType:    string(t.RemoteType),
+			RemoteHost:    t.RemoteHost,
+			RemotePort:    t.RemotePort,
+			Username:      t.Username,
+			Password:      t.Password,
+			SSHPrivateKey: t.SSHPrivateKey,
+			RemotePath:    t.RemotePath,
+			Module:        t.Module,
+			State:         string(t.State),
+			Attempt:       t.Attempt,
+		})
+	}
+
+	resp.Total = len(tasks)
+	return &resp, nil
 }
 
-func (api *RsyncLib) All() ([]*pkg.RsyncTask, error) {
-	return api.m.AllTasks()
+func (api *RsyncLib) All() (*model.RsyncClientListTaskResponse, error) {
+	var resp model.RsyncClientListTaskResponse
+	tasks, err := api.m.AllTasks()
+	if err != nil {
+		return &resp, err
+	}
+	for _, t := range tasks {
+		resp.Tasks = append(resp.Tasks, &model.RsyncClientTask{
+			ID:            t.ID,
+			Name:          t.Name,
+			Direction:     string(t.Direction),
+			LocalPath:     t.LocalPath,
+			RemoteType:    string(t.RemoteType),
+			RemoteHost:    t.RemoteHost,
+			RemotePort:    t.RemotePort,
+			Username:      t.Username,
+			Password:      t.Password,
+			SSHPrivateKey: t.SSHPrivateKey,
+			RemotePath:    t.RemotePath,
+			Module:        t.Module,
+			State:         string(t.State),
+			Attempt:       t.Attempt,
+		})
+	}
+	resp.Total = len(tasks)
+	return &resp, nil
 }
 
-func (api *RsyncLib) Detail(id string) (*pkg.RsyncTask, error) {
-	return api.m.GetTask(id)
+func (api *RsyncLib) Detail(id string) (*model.RsyncClientTask, error) {
+	var resp model.RsyncClientTask
+	t, err := api.m.GetTask(id)
+	if err != nil {
+		return &resp, err
+	}
+	return &model.RsyncClientTask{
+		ID:            t.ID,
+		Name:          t.Name,
+		Direction:     string(t.Direction),
+		LocalPath:     t.LocalPath,
+		RemoteType:    string(t.RemoteType),
+		RemoteHost:    t.RemoteHost,
+		RemotePort:    t.RemotePort,
+		Username:      t.Username,
+		Password:      t.Password,
+		SSHPrivateKey: t.SSHPrivateKey,
+		RemotePath:    t.RemotePath,
+		Module:        t.Module,
+		State:         string(t.State),
+		Attempt:       t.Attempt,
+	}, nil
 }
 
 func (api *RsyncLib) Stop(id string) error {

@@ -18,4 +18,5 @@ var (
 	settingsService = service.NewISettingsService()
 	publicService   = service.NewIPublicService()
 	logManService   = service.NewILogManService()
+	rsyncService    = service.NewIRsyncService()
 )

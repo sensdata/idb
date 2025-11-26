@@ -1,8 +1,8 @@
 package model
 
 type RsyncListTaskRequest struct {
-	Page     int `json:"page"`
-	PageSize int `json:"page_size"`
+	Page     int `form:"page" json:"page"`
+	PageSize int `form:"page_size" json:"page_size"`
 }
 
 type RsyncListTaskResponse struct {
@@ -36,11 +36,11 @@ type RsyncHost struct {
 }
 
 type RsyncCreateTaskRequest struct {
-	Src     string    `json:"src"`
-	SrcHost RsyncHost `json:"src_host"`
-	Dst     string    `json:"dst"`
-	DstHost RsyncHost `json:"dst_host"`
-	Mode    string    `json:"mode"`
+	Src     string    `form:"src" json:"src"`
+	SrcHost RsyncHost `form:"src_host" json:"src_host"`
+	Dst     string    `form:"dst" json:"dst"`
+	DstHost RsyncHost `form:"dst_host" json:"dst_host"`
+	Mode    string    `form:"mode" json:"mode"`
 }
 
 type RsyncCreateTask struct {
@@ -51,37 +51,64 @@ type RsyncCreateTask struct {
 	Mode      string `json:"mode" validate:"required,oneof=copy incremental"`
 }
 
-type RsyncClientCreateTaskRequest struct {
-	Name          string `json:"name" validate:"required"`
-	Direction     string `json:"direction" validate:"required"`
-	LocalPath     string `json:"local_path" validate:"required"`
-	RemoteType    string `json:"remote_type" validate:"required"`
-	RemoteHost    string `json:"remote_host" validate:"required"`
-	RemotePort    int    `json:"remote_port" validate:"required"`
-	Username      string `json:"username" validate:"required"`
-	Password      string `json:"password"`
-	SSHPrivateKey string `json:"ssh_private_key"`
-	RemotePath    string `json:"remote_path" validate:"required"`
-	Module        string `json:"module"`
-	Enqueue       bool   `json:"enqueue"` // whether to start immediately
-}
-
 type RsyncCreateTaskResponse struct {
 	ID string `json:"id"`
 }
 
 type RsyncQueryTaskRequest struct {
-	ID string `json:"id"`
+	ID string `form:"id" json:"id"`
 }
 
 type RsyncCancelTaskRequest struct {
-	ID string `json:"id"`
+	ID string `form:"id" json:"id"`
 }
 
 type RsyncDeleteTaskRequest struct {
-	ID string `json:"id"`
+	ID string `form:"id" json:"id"`
 }
 
 type RsyncRetryTaskRequest struct {
-	ID string `json:"id"`
+	ID string `form:"id" json:"id"`
+}
+
+type RsyncClientCreateTaskRequest struct {
+	Name          string `form:"name" json:"name" validate:"required"`
+	Direction     string `form:"direction" json:"direction" validate:"required"`
+	LocalPath     string `form:"local_path" json:"local_path" validate:"required"`
+	RemoteType    string `form:"remote_type" json:"remote_type" validate:"required"`
+	RemoteHost    string `form:"remote_host" json:"remote_host" validate:"required"`
+	RemotePort    int    `form:"remote_port" json:"remote_port" validate:"required"`
+	Username      string `form:"username" json:"username" validate:"required"`
+	Password      string `form:"password" json:"password"`
+	SSHPrivateKey string `form:"ssh_private_key" json:"ssh_private_key"`
+	RemotePath    string `form:"remote_path" json:"remote_path" validate:"required"`
+	Module        string `form:"module" json:"module"`
+	Enqueue       bool   `form:"enqueue" json:"enqueue"` // whether to start immediately
+}
+
+type RsyncClientTask struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Direction     string `json:"direction"`
+	LocalPath     string `json:"local_path"`
+	RemoteType    string `json:"remote_type"`
+	RemoteHost    string `json:"remote_host"`
+	RemotePort    int    `json:"remote_port"`
+	Username      string `json:"username"`
+	Password      string `json:"password,omitempty"`
+	SSHPrivateKey string `json:"ssh_private_key,omitempty"` // path to key or empty
+	AuthMode      string `json:"auth_mode"`                 // 认证模式：密码、匿名、私钥
+	RemotePath    string `json:"remote_path"`
+	Module        string `json:"module,omitempty"` // rsync daemon module
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+	State         string `json:"state"`
+	LastError     string `json:"last_error,omitempty"`
+	Attempt       int    `json:"attempt"`
+	// internal runtime fields (not persisted) could be omitted in JSON if desired
+}
+
+type RsyncClientListTaskResponse struct {
+	Total int                `json:"total"`
+	Tasks []*RsyncClientTask `json:"tasks"`
 }
