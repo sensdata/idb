@@ -36,10 +36,7 @@ func NewManager(storage Storage, maxConcurrency int, queueSize int) *Manager {
 		stopCh:         make(chan struct{}),
 	}
 
-	// 重要：恢复持久化任务状态
-	if err := m.Restore(); err != nil {
-		global.LOG.Error("restore failed: %v", err)
-	}
+	// 状态修复已在FileJSONStorage初始化时完成，无需重复处理
 
 	go m.dispatcher()
 	return m
@@ -58,42 +55,14 @@ func (m *Manager) dispatcher() {
 					m.wg.Done()
 				}()
 				if err := m.runTask(taskID); err != nil {
-				// log
-				global.LOG.Error("[rsyncmgr] runTask %s error: %v", taskID, err)
-			}
+					// log
+					global.LOG.Error("[rsyncmgr] runTask %s error: %v", taskID, err)
+				}
 			}(id)
 		case <-m.stopCh:
 			return
 		}
 	}
-}
-
-func (m *Manager) Restore() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	tasks, err := m.storage.ListTasks()
-	if err != nil {
-		return fmt.Errorf("failed to restore tasks: %w", err)
-	}
-
-	for _, t := range tasks {
-		// 如果上次 agent 退出时任务仍在运行，调用失败
-		if t.State == StateRunning {
-			t.State = StateFailed
-			t.LastError = "agent restarted while task running"
-			t.UpdatedAt = time.Now()
-			if saveErr := m.storage.SaveTask(t); saveErr != nil {
-				global.LOG.Error("[rsyncmgr] failed to save restored task state for %s: %v", t.ID, saveErr)
-			}
-		}
-
-		// 这里没有 m.tasks map，所以无需加入任何 map
-		// Manager 使用 storage 作为真实数据来源
-		// runtimeProcs 不需要恢复，因为进程不可能还在运行
-	}
-
-	return nil
 }
 
 func (m *Manager) StopAll() {
@@ -135,8 +104,12 @@ func (m *Manager) EnqueueTask(id string) error {
 	}
 }
 
-func (m *Manager) ListTasks() ([]*RsyncTask, error) {
-	return m.storage.ListTasks()
+func (m *Manager) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
+	return m.storage.ListTasks(page, pageSize)
+}
+
+func (m *Manager) AllTasks() ([]*RsyncTask, error) {
+	return m.storage.AllTasks()
 }
 
 func (m *Manager) GetTask(id string) (*RsyncTask, error) {
@@ -200,7 +173,7 @@ func (m *Manager) runTask(id string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// 原子性操作：先启动进程，再更新状态和注册进程
 	proc, err := StartRsync(t)
 	if err != nil {
@@ -212,7 +185,7 @@ func (m *Manager) runTask(id string) error {
 		}
 		return err
 	}
-	
+
 	// 原子性更新：在Manager锁保护下同时更新状态和注册进程
 	m.mu.Lock()
 	t.State = StateRunning
@@ -227,11 +200,11 @@ func (m *Manager) runTask(id string) error {
 
 	// wait for process finish
 	err = proc.cmd.Wait()
-	
+
 	// 原子性清理：在Manager锁保护下同时更新状态和注销进程
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// 重新获取最新状态的任务
 	t, _ = m.storage.GetTask(id)
 	if t != nil {
@@ -245,10 +218,10 @@ func (m *Manager) runTask(id string) error {
 		t.UpdatedAt = time.Now()
 		if saveErr := m.storage.SaveTask(t); saveErr != nil {
 			// 记录错误但不影响主流程
-		global.LOG.Error("[rsyncmgr] failed to save final state for task %s: %v", id, saveErr)
+			global.LOG.Error("[rsyncmgr] failed to save final state for task %s: %v", id, saveErr)
 		}
 	}
-	
+
 	delete(m.runtimeProcs, id)
 	return err
 }

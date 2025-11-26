@@ -16,7 +16,8 @@ import (
 type Storage interface {
 	SaveTask(t *RsyncTask) error
 	GetTask(id string) (*RsyncTask, error)
-	ListTasks() ([]*RsyncTask, error)
+	ListTasks(page, pageSize int) ([]*RsyncTask, error)
+	AllTasks() ([]*RsyncTask, error)
 	DeleteTask(id string) error
 	Close() error
 }
@@ -49,7 +50,26 @@ func (s *InMemoryStorage) GetTask(id string) (*RsyncTask, error) {
 	return t, nil
 }
 
-func (s *InMemoryStorage) ListTasks() ([]*RsyncTask, error) {
+func (s *InMemoryStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]*RsyncTask, 0, len(s.tasks))
+	for _, v := range s.tasks {
+		out = append(out, v)
+	}
+	// 分页
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start >= len(out) {
+		return []*RsyncTask{}, nil
+	}
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[start:end], nil
+}
+
+func (s *InMemoryStorage) AllTasks() ([]*RsyncTask, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]*RsyncTask, 0, len(s.tasks))
@@ -113,6 +133,19 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 			if err := os.WriteFile(path, []byte("{}"), 0640); err != nil {
 				return nil, fmt.Errorf("failed to fix corrupted storage file: %w", err)
 			}
+		} else {
+			// 文件解析成功，进行状态修复：将运行中的任务标记为失败
+			for _, task := range s.cache {
+				if task.State == StateRunning {
+					task.State = StateFailed
+					task.LastError = "agent restarted while task running"
+					task.UpdatedAt = time.Now()
+				}
+			}
+			// 保存修复后的状态
+			if err := s.persistLocked(); err != nil {
+				global.LOG.Warn("failed to save repaired task states: %v", err)
+			}
 		}
 	}
 
@@ -145,7 +178,26 @@ func (s *FileJSONStorage) GetTask(id string) (*RsyncTask, error) {
 	return t, nil
 }
 
-func (s *FileJSONStorage) ListTasks() ([]*RsyncTask, error) {
+func (s *FileJSONStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	out := make([]*RsyncTask, 0, len(s.cache))
+	for _, v := range s.cache {
+		out = append(out, v)
+	}
+	// 分页
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start >= len(out) {
+		return []*RsyncTask{}, nil
+	}
+	if end > len(out) {
+		end = len(out)
+	}
+	return out[start:end], nil
+}
+
+func (s *FileJSONStorage) AllTasks() ([]*RsyncTask, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]*RsyncTask, 0, len(s.cache))

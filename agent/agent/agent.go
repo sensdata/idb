@@ -23,6 +23,7 @@ import (
 	"github.com/sensdata/idb/agent/agent/docker"
 	"github.com/sensdata/idb/agent/agent/file"
 	"github.com/sensdata/idb/agent/agent/git"
+	"github.com/sensdata/idb/agent/agent/rsync"
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/agent/terminal"
 	"github.com/sensdata/idb/agent/config"
@@ -42,6 +43,7 @@ import (
 var (
 	CONFMAN       *config.Manager
 	AGENT         IAgent
+	RsyncLib      = rsync.NewRsyncLib()
 	FileService   = file.NewIFileService()
 	SshService    = ssh.NewISSHService()
 	GitService    = git.NewIGitService()
@@ -2999,6 +3001,80 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		default:
 			return nil, fmt.Errorf("unsupported session type")
 		}
+
+	case model.Rsync_Create:
+		var req model.RsyncClientCreateTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		id, err := RsyncLib.Create(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, id)
+
+	case model.Rsync_List:
+		var req model.RsyncListTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		list, err := RsyncLib.List(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(list)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Rsync_Detail:
+		var req model.RsyncQueryTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		task, err := RsyncLib.Detail(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(task)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Rsync_Stop:
+		var req model.RsyncCancelTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := RsyncLib.Stop(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Rsync_Retry:
+		var req model.RsyncRetryTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := RsyncLib.Retry(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
+	case model.Rsync_Delete:
+		var req model.RsyncDeleteTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := RsyncLib.Delete(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
 
 	default:
 		return nil, nil

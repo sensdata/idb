@@ -51,6 +51,21 @@ type RsyncCreateTask struct {
 	Mode      string `json:"mode" validate:"required,oneof=copy incremental"`
 }
 
+type RsyncClientCreateTaskRequest struct {
+	Name          string `json:"name" validate:"required"`
+	Direction     string `json:"direction" validate:"required"`
+	LocalPath     string `json:"local_path" validate:"required"`
+	RemoteType    string `json:"remote_type" validate:"required"`
+	RemoteHost    string `json:"remote_host" validate:"required"`
+	RemotePort    int    `json:"remote_port" validate:"required"`
+	Username      string `json:"username" validate:"required"`
+	Password      string `json:"password"`
+	SSHPrivateKey string `json:"ssh_private_key"`
+	RemotePath    string `json:"remote_path" validate:"required"`
+	Module        string `json:"module"`
+	Enqueue       bool   `json:"enqueue"` // whether to start immediately
+}
+
 type RsyncCreateTaskResponse struct {
 	ID string `json:"id"`
 }

@@ -148,6 +148,13 @@ const (
 	Terminal_Rename  string = "terminal_rename"
 	Terminal_Install string = "terminal_install"
 	Terminal_Prune   string = "terminal_prune"
+
+	Rsync_Create string = "rsync_create"
+	Rsync_List   string = "rsync_list"
+	Rsync_Detail string = "rsync_detail"
+	Rsync_Stop   string = "rsync_stop"
+	Rsync_Retry  string = "rsync_retry"
+	Rsync_Delete string = "rsync_delete"
 )
 
 // Action消息结构
