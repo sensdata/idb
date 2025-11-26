@@ -26,16 +26,16 @@ func getRsync() (shared.Rsync, error) {
 	return client, nil
 }
 
-// @Tags Rsync
-// @Summary List rsync task
-// @Description List rsync task
+// @Tags Transfer
+// @Summary List transfer task
+// @Description List transfer task
 // @Accept json
 // @Produce json
 // @Param page query uint true "Page"
 // @Param page_size query uint true "Page size"
 // @Success 200 {object} model.RsyncListTaskResponse
-// @Router /rsync/task [get]
-func (a *BaseApi) RsyncListTask(c *gin.Context) {
+// @Router /transfer/task [get]
+func (a *BaseApi) TransferListTask(c *gin.Context) {
 	page, err := strconv.ParseInt(c.Query("page"), 10, 32)
 	if err != nil {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
@@ -64,15 +64,15 @@ func (a *BaseApi) RsyncListTask(c *gin.Context) {
 	SuccessWithData(c, resp)
 }
 
-// @Tags Rsync
-// @Summary Query rsync task
-// @Description Query rsync task
+// @Tags Transfer
+// @Summary Query transfer task
+// @Description Query transfer task
 // @Accept json
 // @Produce json
 // @Param id query string true "Task ID"
 // @Success 200 {object} model.RsyncTaskInfo
-// @Router /rsync/task/query [get]
-func (a *BaseApi) RsyncQueryTask(c *gin.Context) {
+// @Router /transfer/task/query [get]
+func (a *BaseApi) TransferQueryTask(c *gin.Context) {
 	taskID := c.Query("id")
 	if taskID == "" {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
@@ -94,15 +94,15 @@ func (a *BaseApi) RsyncQueryTask(c *gin.Context) {
 	SuccessWithData(c, resp)
 }
 
-// @Tags Rsync
-// @Summary Create rsync task
-// @Description Create rsync task
+// @Tags Transfer
+// @Summary Create transfer task
+// @Description Create transfer task
 // @Accept json
 // @Produce json
 // @Param task body model.RsyncCreateTask true "Task"
 // @Success 200 {object} model.RsyncCreateTaskResponse
-// @Router /rsync/task [post]
-func (a *BaseApi) RsyncCreateTask(c *gin.Context) {
+// @Router /transfer/task [post]
+func (a *BaseApi) TransferCreateTask(c *gin.Context) {
 	var req model.RsyncCreateTask
 	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
@@ -154,15 +154,15 @@ func (a *BaseApi) RsyncCreateTask(c *gin.Context) {
 	SuccessWithData(c, resp)
 }
 
-// @Tags Rsync
-// @Summary Delete rsync task
-// @Description Delete rsync task
+// @Tags Transfer
+// @Summary Delete transfer task
+// @Description Delete transfer task
 // @Accept json
 // @Produce json
 // @Param id query string true "Task ID"
 // @Success 200
-// @Router /rsync/task [delete]
-func (a *BaseApi) RsyncDeleteTask(c *gin.Context) {
+// @Router /transfer/task [delete]
+func (a *BaseApi) TransferDeleteTask(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
@@ -183,15 +183,15 @@ func (a *BaseApi) RsyncDeleteTask(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// @Tags Rsync
-// @Summary Cancel rsync task
-// @Description Cancel rsync task
+// @Tags Transfer
+// @Summary Cancel transfer task
+// @Description Cancel transfer task
 // @Accept json
 // @Produce json
 // @Param id query string true "Task ID"
 // @Success 200
-// @Router /rsync/task/cancel [post]
-func (a *BaseApi) RsyncCancelTask(c *gin.Context) {
+// @Router /transfer/task/cancel [post]
+func (a *BaseApi) TransferCancelTask(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
@@ -212,15 +212,15 @@ func (a *BaseApi) RsyncCancelTask(c *gin.Context) {
 	SuccessWithData(c, nil)
 }
 
-// @Tags Rsync
-// @Summary Retry rsync task
-// @Description Retry rsync task
+// @Tags Transfer
+// @Summary Retry transfer task
+// @Description Retry transfer task
 // @Accept json
 // @Produce json
 // @Param id query string true "Task ID"
 // @Success 200
-// @Router /rsync/task/retry [post]
-func (a *BaseApi) RsyncRetryTask(c *gin.Context) {
+// @Router /transfer/task/retry [post]
+func (a *BaseApi) TransferRetryTask(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
 		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
