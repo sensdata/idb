@@ -9255,7 +9255,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/rsync/task": {
+        "/rsync/{host}/task": {
             "get": {
                 "description": "List rsync task",
                 "consumes": [
@@ -9269,6 +9269,13 @@ const docTemplate = `{
                 ],
                 "summary": "List rsync task",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "Page",
@@ -9307,12 +9314,19 @@ const docTemplate = `{
                 "summary": "Create rsync task",
                 "parameters": [
                     {
-                        "description": "Task",
-                        "name": "task",
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.RsyncCreateTask"
+                            "$ref": "#/definitions/model.RsyncClientCreateTaskRequest"
                         }
                     }
                 ],
@@ -9340,6 +9354,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "Task ID",
                         "name": "id",
                         "in": "query",
@@ -9353,7 +9374,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/rsync/task/cancel": {
+        "/rsync/{host}/task/cancel": {
             "post": {
                 "description": "Cancel rsync task",
                 "consumes": [
@@ -9369,10 +9390,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Task ID",
-                        "name": "id",
-                        "in": "query",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCancelTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -9382,7 +9412,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/rsync/task/query": {
+        "/rsync/{host}/task/query": {
             "get": {
                 "description": "Query rsync task",
                 "consumes": [
@@ -9398,6 +9428,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "Task ID",
                         "name": "id",
                         "in": "query",
@@ -9408,13 +9445,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.RsyncTaskInfo"
+                            "$ref": "#/definitions/model.RsyncClientTask"
                         }
                     }
                 }
             }
         },
-        "/rsync/task/retry": {
+        "/rsync/{host}/task/retry": {
             "post": {
                 "description": "Retry rsync task",
                 "consumes": [
@@ -9430,10 +9467,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Task ID",
-                        "name": "id",
-                        "in": "query",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncRetryTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -13179,6 +13225,194 @@ const docTemplate = `{
                 }
             }
         },
+        "/transfer/task": {
+            "get": {
+                "description": "List transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "List transfer task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncListTaskResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "Create transfer task",
+                "parameters": [
+                    {
+                        "description": "Task",
+                        "name": "task",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCreateTask"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCreateTaskResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "Delete transfer task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/transfer/task/cancel": {
+            "post": {
+                "description": "Cancel transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "Cancel transfer task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/transfer/task/query": {
+            "get": {
+                "description": "Query transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "Query transfer task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncTaskInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/transfer/task/retry": {
+            "post": {
+                "description": "Retry transfer task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transfer"
+                ],
+                "summary": "Retry transfer task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "获取用户列表",
@@ -15114,6 +15348,9 @@ const docTemplate = `{
                 "compose_name": {
                     "type": "string"
                 },
+                "env_content": {
+                    "type": "string"
+                },
                 "extra_params": {
                     "type": "array",
                     "items": {
@@ -15154,8 +15391,7 @@ const docTemplate = `{
         "model.KeyValue": {
             "type": "object",
             "required": [
-                "key",
-                "value"
+                "key"
             ],
             "properties": {
                 "key": {
@@ -16016,6 +16252,146 @@ const docTemplate = `{
                 }
             }
         },
+        "model.RsyncCancelTaskRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncClientCreateTaskRequest": {
+            "type": "object",
+            "required": [
+                "auth_mode",
+                "direction",
+                "enqueue",
+                "local_path",
+                "name",
+                "remote_host",
+                "remote_path",
+                "remote_port",
+                "remote_type",
+                "username"
+            ],
+            "properties": {
+                "auth_mode": {
+                    "type": "string",
+                    "enum": [
+                        "password",
+                        "anonymous",
+                        "private_key"
+                    ]
+                },
+                "direction": {
+                    "type": "string",
+                    "enum": [
+                        "remote_to_local",
+                        "local_to_remote"
+                    ]
+                },
+                "enqueue": {
+                    "description": "whether to start immediately",
+                    "type": "boolean"
+                },
+                "local_path": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "remote_host": {
+                    "type": "string"
+                },
+                "remote_path": {
+                    "type": "string"
+                },
+                "remote_port": {
+                    "type": "integer"
+                },
+                "remote_type": {
+                    "type": "string",
+                    "enum": [
+                        "ssh",
+                        "rsync"
+                    ]
+                },
+                "ssh_private_key": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncClientTask": {
+            "type": "object",
+            "properties": {
+                "attempt": {
+                    "type": "integer"
+                },
+                "auth_mode": {
+                    "description": "认证模式：密码、匿名、私钥",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_error": {
+                    "type": "string"
+                },
+                "local_path": {
+                    "type": "string"
+                },
+                "module": {
+                    "description": "rsync daemon module",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "remote_host": {
+                    "type": "string"
+                },
+                "remote_path": {
+                    "type": "string"
+                },
+                "remote_port": {
+                    "type": "integer"
+                },
+                "remote_type": {
+                    "type": "string"
+                },
+                "ssh_private_key": {
+                    "description": "path to key or empty",
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "model.RsyncCreateTask": {
             "type": "object",
             "required": [
@@ -16066,6 +16442,14 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.RsyncRetryTaskRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
                 }
             }
         },
@@ -16537,10 +16921,16 @@ const docTemplate = `{
                 "https": {
                     "type": "string"
                 },
+                "https_cert_data": {
+                    "type": "string"
+                },
                 "https_cert_path": {
                     "type": "string"
                 },
                 "https_cert_type": {
+                    "type": "string"
+                },
+                "https_key_data": {
                     "type": "string"
                 },
                 "https_key_path": {

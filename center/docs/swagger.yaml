@@ -1151,6 +1151,8 @@ definitions:
         type: string
       compose_name:
         type: string
+      env_content:
+        type: string
       extra_params:
         items:
           $ref: '#/definitions/model.KeyValue'
@@ -1183,7 +1185,6 @@ definitions:
         type: string
     required:
     - key
-    - value
     type: object
   model.KeyValueForUpdate:
     properties:
@@ -1754,6 +1755,104 @@ definitions:
       role_name:
         type: string
     type: object
+  model.RsyncCancelTaskRequest:
+    properties:
+      id:
+        type: string
+    type: object
+  model.RsyncClientCreateTaskRequest:
+    properties:
+      auth_mode:
+        enum:
+        - password
+        - anonymous
+        - private_key
+        type: string
+      direction:
+        enum:
+        - remote_to_local
+        - local_to_remote
+        type: string
+      enqueue:
+        description: whether to start immediately
+        type: boolean
+      local_path:
+        type: string
+      module:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      remote_host:
+        type: string
+      remote_path:
+        type: string
+      remote_port:
+        type: integer
+      remote_type:
+        enum:
+        - ssh
+        - rsync
+        type: string
+      ssh_private_key:
+        type: string
+      username:
+        type: string
+    required:
+    - auth_mode
+    - direction
+    - enqueue
+    - local_path
+    - name
+    - remote_host
+    - remote_path
+    - remote_port
+    - remote_type
+    - username
+    type: object
+  model.RsyncClientTask:
+    properties:
+      attempt:
+        type: integer
+      auth_mode:
+        description: 认证模式：密码、匿名、私钥
+        type: string
+      created_at:
+        type: string
+      direction:
+        type: string
+      id:
+        type: string
+      last_error:
+        type: string
+      local_path:
+        type: string
+      module:
+        description: rsync daemon module
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      remote_host:
+        type: string
+      remote_path:
+        type: string
+      remote_port:
+        type: integer
+      remote_type:
+        type: string
+      ssh_private_key:
+        description: path to key or empty
+        type: string
+      state:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
   model.RsyncCreateTask:
     properties:
       dst:
@@ -1789,6 +1888,11 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  model.RsyncRetryTaskRequest:
+    properties:
+      id:
+        type: string
     type: object
   model.RsyncTaskInfo:
     properties:
@@ -2104,9 +2208,13 @@ definitions:
         type: integer
       https:
         type: string
+      https_cert_data:
+        type: string
       https_cert_path:
         type: string
       https_cert_type:
+        type: string
+      https_key_data:
         type: string
       https_key_path:
         type: string
@@ -8736,12 +8844,17 @@ paths:
       summary: Set redis remote access
       tags:
       - Redis
-  /rsync/task:
+  /rsync/{host}/task:
     delete:
       consumes:
       - application/json
       description: Delete rsync task
       parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
       - description: Task ID
         in: query
         name: id
@@ -8760,6 +8873,11 @@ paths:
       - application/json
       description: List rsync task
       parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
       - description: Page
         in: query
         name: page
@@ -8785,12 +8903,17 @@ paths:
       - application/json
       description: Create rsync task
       parameters:
-      - description: Task
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Request
         in: body
-        name: task
+        name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RsyncCreateTask'
+          $ref: '#/definitions/model.RsyncClientCreateTaskRequest'
       produces:
       - application/json
       responses:
@@ -8801,17 +8924,23 @@ paths:
       summary: Create rsync task
       tags:
       - Rsync
-  /rsync/task/cancel:
+  /rsync/{host}/task/cancel:
     post:
       consumes:
       - application/json
       description: Cancel rsync task
       parameters:
-      - description: Task ID
-        in: query
-        name: id
+      - description: Host
+        in: path
+        name: host
         required: true
         type: string
+      - description: Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncCancelTaskRequest'
       produces:
       - application/json
       responses:
@@ -8820,12 +8949,17 @@ paths:
       summary: Cancel rsync task
       tags:
       - Rsync
-  /rsync/task/query:
+  /rsync/{host}/task/query:
     get:
       consumes:
       - application/json
       description: Query rsync task
       parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
       - description: Task ID
         in: query
         name: id
@@ -8837,21 +8971,27 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.RsyncTaskInfo'
+            $ref: '#/definitions/model.RsyncClientTask'
       summary: Query rsync task
       tags:
       - Rsync
-  /rsync/task/retry:
+  /rsync/{host}/task/retry:
     post:
       consumes:
       - application/json
       description: Retry rsync task
       parameters:
-      - description: Task ID
-        in: query
-        name: id
+      - description: Host
+        in: path
+        name: host
         required: true
         type: string
+      - description: Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncRetryTaskRequest'
       produces:
       - application/json
       responses:
@@ -11356,6 +11496,130 @@ paths:
       summary: Create or reconnect to a terminal session through websocket
       tags:
       - Terminal
+  /transfer/task:
+    delete:
+      consumes:
+      - application/json
+      description: Delete transfer task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Delete transfer task
+      tags:
+      - Transfer
+    get:
+      consumes:
+      - application/json
+      description: List transfer task
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncListTaskResponse'
+      summary: List transfer task
+      tags:
+      - Transfer
+    post:
+      consumes:
+      - application/json
+      description: Create transfer task
+      parameters:
+      - description: Task
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncCreateTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncCreateTaskResponse'
+      summary: Create transfer task
+      tags:
+      - Transfer
+  /transfer/task/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel transfer task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Cancel transfer task
+      tags:
+      - Transfer
+  /transfer/task/query:
+    get:
+      consumes:
+      - application/json
+      description: Query transfer task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncTaskInfo'
+      summary: Query transfer task
+      tags:
+      - Transfer
+  /transfer/task/retry:
+    post:
+      consumes:
+      - application/json
+      description: Retry transfer task
+      parameters:
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Retry transfer task
+      tags:
+      - Transfer
   /users:
     delete:
       consumes:
