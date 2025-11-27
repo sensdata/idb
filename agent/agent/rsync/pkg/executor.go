@@ -127,15 +127,16 @@ func (p *ExecProcess) Stop() error {
 }
 
 // buildRsyncCommand builds rsync command according to task
-func buildRsyncCommand(t *RsyncTask) ([]string, error) {
+func buildRsyncCommand(t *RsyncTask) ([]string, string, string, error) {
 	// 使用优化的基础参数
 	args := append([]string{}, getRsyncBaseArgs()...)
 	var src, dst string
+	var sshCmd, wrapper string
 
 	switch t.RemoteType {
 	case RemoteTypeSSH:
 		// 使用优化的SSH命令构建
-		sshCmd, wrapper := pickSSHCommand(t)
+		sshCmd, wrapper = pickSSHCommand(t)
 
 		if sshCmd != "" {
 			// 直接传递 ssh 命令字符串（不要加外层引号）——exec.Command 不需要 shell 引号
@@ -173,7 +174,7 @@ func buildRsyncCommand(t *RsyncTask) ([]string, error) {
 			}
 
 		default:
-			return nil, fmt.Errorf("unsupported authentication mode for rsync daemon: %s", t.AuthMode)
+			return nil, "", "", fmt.Errorf("unsupported authentication mode for rsync daemon: %s", t.AuthMode)
 		}
 
 		if t.Direction == DirectionLocalToRemote {
@@ -185,32 +186,26 @@ func buildRsyncCommand(t *RsyncTask) ([]string, error) {
 		}
 
 	default:
-		return nil, fmt.Errorf("unsupported remote type: %s", t.RemoteType)
+		return nil, "", "", fmt.Errorf("unsupported remote type: %s", t.RemoteType)
 	}
 
 	args = append(args, src, dst)
-	return args, nil
+	return args, sshCmd, wrapper, nil
 }
 
 // StartRsync starts rsync as a subprocess, returns ExecProcess and exit/error
 func StartRsync(t *RsyncTask) (*ExecProcess, error) {
-	args, err := buildRsyncCommand(t)
+	args, sshCmd, wrapper, err := buildRsyncCommand(t)
 	if err != nil {
 		global.LOG.Error("[rsyncmgr] failed to build rsync command for task %s: %v", t.ID, err)
 		return nil, err
 	}
-
-	global.LOG.Info("[rsyncmgr] starting rsync for task %s: %s", t.ID, strings.Join(args, " "))
+	global.LOG.Info("[rsyncmgr] args: %s, sshCmd: %s, wrapper: %s", strings.Join(args, " "), sshCmd, wrapper)
 
 	// prepare command
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// 检查是否需要使用sshpass包装器
-	sshCmd, wrapper := pickSSHCommand(t)
-	global.LOG.Info("[rsyncmgr] sshCmd: %s, wrapper: %s", sshCmd, wrapper)
-
 	var cmd *exec.Cmd
-
 	// 根据远程类型决定执行方式
 	if t.RemoteType == RemoteTypeSSH && sshCmd != "" {
 		// SSH模式：需要特殊处理
