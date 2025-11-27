@@ -10,6 +10,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/sensdata/idb/agent/global"
 )
 
 var (
@@ -200,16 +202,20 @@ func buildRsyncCommand(t *RsyncTask) ([]string, error) {
 func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	args, err := buildRsyncCommand(t)
 	if err != nil {
+		global.LOG.Error("[rsyncmgr] failed to build rsync command for task %s: %v", t.ID, err)
 		return nil, err
 	}
+
+	global.LOG.Info("[rsyncmgr] starting rsync for task %s: %s", t.ID, strings.Join(args, " "))
 
 	// prepare command
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 检查是否需要使用sshpass包装器
 	sshCmd, wrapper := pickSSHCommand(t)
-	var cmd *exec.Cmd
+	global.LOG.Info("[rsyncmgr] sshCmd: %s, wrapper: %s", sshCmd, wrapper)
 
+	var cmd *exec.Cmd
 	if wrapper != "" && sshCmd != "" {
 		// 使用sshpass包装器执行命令（-p参数方式）
 		// 构建完整的shell命令：sshpass -p 'password' rsync [args]
@@ -225,6 +231,7 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
 		cancel()
+		global.LOG.Error("[rsyncmgr] failed to start rsync for task %s: %v", t.ID, err)
 		return nil, err
 	}
 	proc := &ExecProcess{cmd: cmd, cancel: cancel}
