@@ -64,15 +64,16 @@ func pickSSHCommand(t *RsyncTask) (sshCmd string, wrapper string) {
 	}
 
 	parts := []string{"ssh"}
+
 	if t.RemotePort != 0 {
-		parts = append(parts, fmt.Sprintf("-p %d", t.RemotePort))
+		parts = append(parts, "-p", fmt.Sprintf("%d", t.RemotePort)) // 修复拼接
 	}
 
 	// 根据认证模式处理
 	switch t.AuthMode {
 	case AuthModePrivateKey:
 		if t.SSHPrivateKey != "" {
-			parts = append(parts, fmt.Sprintf("-i %s", t.SSHPrivateKey))
+			parts = append(parts, "-i", t.SSHPrivateKey)
 		}
 	case AuthModePassword:
 		if t.Password != "" {
@@ -81,13 +82,10 @@ func pickSSHCommand(t *RsyncTask) (sshCmd string, wrapper string) {
 		}
 	}
 
-	// 用户名
-	if t.Username != "" {
-		parts = append(parts, fmt.Sprintf("-l %s", t.Username))
-	}
-
-	// 避免交互式主机密钥提示
-	parts = append(parts, "-o StrictHostKeyChecking=no", "-o UserKnownHostsFile=/dev/null")
+	parts = append(parts,
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+	)
 
 	sshCmd = strings.Join(parts, " ")
 	return sshCmd, wrapper
@@ -140,8 +138,8 @@ func buildRsyncCommand(t *RsyncTask) ([]string, error) {
 		sshCmd, wrapper := pickSSHCommand(t)
 
 		if sshCmd != "" {
-			// 添加SSH命令参数，使用安全引号
-			args = append(args, "-e", shQuote(sshCmd))
+			// 直接传递 ssh 命令字符串（不要加外层引号）——exec.Command 不需要 shell 引号
+			args = append(args, "-e", sshCmd)
 		}
 
 		// 构建源和目标路径
@@ -151,12 +149,6 @@ func buildRsyncCommand(t *RsyncTask) ([]string, error) {
 		} else {
 			src = fmt.Sprintf("%s@%s:%s", t.Username, t.RemoteHost, t.RemotePath)
 			dst = t.LocalPath
-		}
-
-		// 如果存在包装器（sshpass），需要特殊处理
-		if wrapper != "" {
-			// 对于密码认证，我们使用环境变量方式，这里保持兼容性
-			// 实际密码传递在StartRsync函数中通过环境变量处理
 		}
 
 	case RemoteTypeRsync:
@@ -230,6 +222,15 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 			cmd = exec.CommandContext(ctx, "bash", "-c", fullCmd)
 		} else {
 			// 私钥认证模式：直接执行rsync命令，但通过-e参数传递SSH命令
+			// 打印最终的完整 rsync 命令（shell 风格）
+			quoted := make([]string, 0, len(args)+1)
+			quoted = append(quoted, "rsync")
+			for _, a := range args {
+				// 使用 %q 进行安全转义，可准确打印空格、引号等
+				quoted = append(quoted, fmt.Sprintf("%q", a))
+			}
+			global.LOG.Info("[rsyncmgr] fullCmd: %s", strings.Join(quoted, " "))
+
 			cmd = exec.CommandContext(ctx, "rsync", args...)
 		}
 	} else {
