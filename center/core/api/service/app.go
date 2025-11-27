@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -451,6 +452,7 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 				Version:        appVersion.Version,
 				UpdateVersion:  appVersion.UpdateVersion,
 				ComposeContent: appVersion.ComposeContent,
+				EnvContent:     appVersion.EnvContent,
 				Status:         "uninstalled",
 				CreatedAt:      "",
 				CanUpgrade:     false,
@@ -582,6 +584,7 @@ func (s *AppService) AppDetail(hostID uint64, req core.QueryAppDetail) (*core.Ap
 			Version:        version.Version,
 			UpdateVersion:  version.UpdateVersion,
 			ComposeContent: version.ComposeContent,
+			EnvContent:     version.EnvContent,
 		})
 	}
 
@@ -623,19 +626,28 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
-	// 处理env
-	envMap, err := godotenv.Unmarshal(version.EnvContent)
-	if err != nil {
-		return &result, fmt.Errorf("unmarshal env err : %v", err)
-	}
-	// 校验form params
+	var composeContent, envContent string
+	var envMap map[string]string
+
+	// 使用了req.FormParams，视为表单模式安装
 	if len(req.FormParams) > 0 {
+		// 使用版本内容
+		composeContent = version.ComposeContent
+
+		// 使用版本env
+		envContent = version.EnvContent
+		envMap, err = godotenv.Unmarshal(envContent)
+		if err != nil {
+			return &result, fmt.Errorf("unmarshal env err : %v", err)
+		}
+
 		// 字段规则
 		validKeys := make(map[string]core.FormField)
 		for _, field := range form.Fields {
 			validKeys[field.Name] = field
 		}
-		// 校验env params
+
+		// 校验form params
 		for _, param := range req.FormParams {
 			// 检查 key 是否在 validKeys 中
 			formField, exists := validKeys[param.Key]
@@ -663,7 +675,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength != 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
 					if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
-						global.LOG.Error("Value %s does not has valid length for key %s", param.Value, param.Key)
+						global.LOG.Error("Value %s does not have a valid length for key %s", param.Value, param.Key)
 						return &result, fmt.Errorf("invalid value for key %s", param.Key)
 					}
 				}
@@ -687,30 +699,47 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 				}
 			}
 		}
-	}
-	// 额外的params
-	for _, param := range req.ExtraParams {
-		envMap[param.Key] = param.Value
-	}
-	// 转换成env内容
-	var envArray []string
-	for key, value := range envMap {
-		// 应用名，也支持从form中传入
-		if key == constant.IDB_compose_name {
-			appName = value
-		}
-		envArray = append(envArray, fmt.Sprintf("%s=%s", key, value))
-	}
-	envContent := strings.Join(envArray, "\n")
 
-	// 处理compose内容
-	var composeContent string
-	if req.ComposeContent != "" {
-		// 使用传入的内容
-		composeContent = req.ComposeContent
+		// 额外的params
+		for _, param := range req.ExtraParams {
+			envMap[param.Key] = param.Value
+		}
+		// 转换成env内容
+		var envArray []string
+		keys := make([]string, 0, len(envMap))
+		for k := range envMap {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			envArray = append(envArray, fmt.Sprintf("%s=%s", key, envMap[key]))
+		}
+
+		// 处理了form之后的env
+		envContent = strings.Join(envArray, "\n")
 	} else {
-		// 使用版本内容
-		composeContent = version.ComposeContent
+		// 使用传入的的 compose 和 env
+		if req.ComposeContent != "" {
+			composeContent = req.ComposeContent
+		} else {
+			composeContent = version.ComposeContent
+		}
+
+		if req.EnvContent != "" {
+			envContent = req.EnvContent
+		} else {
+			envContent = version.EnvContent
+		}
+
+		envMap, err = godotenv.Unmarshal(envContent)
+		if err != nil {
+			return &result, fmt.Errorf("unmarshal env err : %v", err)
+		}
+	}
+
+	// 应用名，也支持从env中传入
+	if v, ok := envMap[constant.IDB_compose_name]; ok && v != "" {
+		appName = v
 	}
 
 	// 处理conf

@@ -22,6 +22,7 @@ type AppVersion struct {
 	Version        string `json:"version"`
 	UpdateVersion  string `json:"update_version"`
 	ComposeContent string `json:"compose_content"`
+	EnvContent     string `json:"env_content"`
 	Status         string `json:"status"`
 	CreatedAt      string `json:"created_at"`
 	CanUpgrade     bool   `json:"can_upgrade"`
@@ -50,6 +51,7 @@ type InstallApp struct {
 	VersionID      uint       `json:"version_id"`
 	ComposeName    string     `json:"compose_name"`
 	ComposeContent string     `json:"compose_content"`
+	EnvContent     string     `json:"env_content"`
 	FormParams     []KeyValue `json:"form_params"`
 	ExtraParams    []KeyValue `json:"extra_params"`
 }
