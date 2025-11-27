@@ -38,6 +38,7 @@ func (api *RsyncLib) Create(req model.RsyncClientCreateTaskRequest) (*model.Rsyn
 		RemoteHost:    req.RemoteHost,
 		RemotePort:    req.RemotePort,
 		Username:      req.Username,
+		AuthMode:      pkg.AuthMode(req.AuthMode),
 		Password:      req.Password,
 		SSHPrivateKey: req.SSHPrivateKey,
 		RemotePath:    req.RemotePath,

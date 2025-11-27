@@ -220,6 +220,7 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 		// 使用sshpass包装器执行命令（-p参数方式）
 		// 构建完整的shell命令：sshpass -p 'password' rsync [args]
 		fullCmd := fmt.Sprintf("%s rsync %s", wrapper, strings.Join(args, " "))
+		global.LOG.Info("[rsyncmgr] fullCmd: %s", fullCmd)
 		cmd = exec.CommandContext(ctx, "sh", "-c", fullCmd)
 	} else {
 		// 直接执行rsync命令（适用于Rsync守护进程模式）
