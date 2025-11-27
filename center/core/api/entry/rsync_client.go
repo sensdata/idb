@@ -75,7 +75,7 @@ func (s *BaseApi) RsyncQueryTask(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path string true "Host"
-// @Param req body model.RsyncClientCreateTaskRequest true "Request"
+// @Param request body model.RsyncClientCreateTaskRequest true "Request"
 // @Success 200 {object} model.RsyncCreateTaskResponse
 // @Router /rsync/{host}/task [post]
 func (s *BaseApi) RsyncCreateTask(c *gin.Context) {
@@ -135,7 +135,7 @@ func (s *BaseApi) RsyncDeleteTask(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path string true "Host"
-// @Param id query string true "Task ID"
+// @Param request body model.RsyncCancelTaskRequest true "Request"
 // @Success 200
 // @Router /rsync/{host}/task/cancel [post]
 func (s *BaseApi) RsyncCancelTask(c *gin.Context) {
@@ -165,7 +165,7 @@ func (s *BaseApi) RsyncCancelTask(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path string true "Host"
-// @Param id query string true "Task ID"
+// @Param request body model.RsyncRetryTaskRequest true "Request"
 // @Success 200
 // @Router /rsync/{host}/task/retry [post]
 func (s *BaseApi) RsyncRetryTask(c *gin.Context) {
