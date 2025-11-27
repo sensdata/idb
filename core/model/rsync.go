@@ -72,19 +72,19 @@ type RsyncRetryTaskRequest struct {
 }
 
 type RsyncClientCreateTaskRequest struct {
-	Name          string `form:"name" json:"name" validate:"required"`
-	Direction     string `form:"direction" json:"direction" validate:"required, oneof=remote_to_local local_to_remote"`
-	LocalPath     string `form:"local_path" json:"local_path" validate:"required"`
-	RemoteType    string `form:"remote_type" json:"remote_type" validate:"required, oneof=ssh rsync"`
-	RemoteHost    string `form:"remote_host" json:"remote_host" validate:"required"`
-	RemotePort    int    `form:"remote_port" json:"remote_port" validate:"required"`
-	Username      string `form:"username" json:"username" validate:"required"`
-	AuthMode      string `form:"auth_mode" json:"auth_mode" validate:"required, oneof=password anonymous private_key"` // 认证模式：密码、匿名、私钥
-	Password      string `form:"password" json:"password"`
-	SSHPrivateKey string `form:"ssh_private_key" json:"ssh_private_key"`
-	RemotePath    string `form:"remote_path" json:"remote_path" validate:"required"`
-	Module        string `form:"module" json:"module"`
-	Enqueue       bool   `form:"enqueue" json:"enqueue"` // whether to start immediately
+	Name          string `json:"name" validate:"required"`
+	Direction     string `json:"direction" validate:"required,oneof=remote_to_local local_to_remote"`
+	LocalPath     string `json:"local_path" validate:"required"`
+	RemoteType    string `json:"remote_type" validate:"required,oneof=ssh rsync"`
+	RemoteHost    string `json:"remote_host" validate:"required"`
+	RemotePort    int    `json:"remote_port" validate:"required"`
+	Username      string `json:"username" validate:"required"`
+	AuthMode      string `json:"auth_mode" validate:"required,oneof=password anonymous private_key"`
+	Password      string `json:"password"`
+	SSHPrivateKey string `json:"ssh_private_key"`
+	RemotePath    string `json:"remote_path" validate:"required"`
+	Module        string `json:"module"`
+	Enqueue       bool   `json:"enqueue" validate:"required"` // whether to start immediately
 }
 
 type RsyncClientTask struct {
