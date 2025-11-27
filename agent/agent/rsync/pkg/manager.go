@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -212,6 +213,18 @@ func (m *Manager) runTask(id string) error {
 	// wait for process finish
 	err = proc.cmd.Wait()
 
+	// 记录进程输出信息，帮助诊断问题
+	if proc.cmd.Stdout != nil {
+		if stdoutBuf, ok := proc.cmd.Stdout.(*bytes.Buffer); ok && stdoutBuf.Len() > 0 {
+			global.LOG.Info("[rsyncmgr] rsync stdout for task %s: %s", id, stdoutBuf.String())
+		}
+	}
+	if proc.cmd.Stderr != nil {
+		if stderrBuf, ok := proc.cmd.Stderr.(*bytes.Buffer); ok && stderrBuf.Len() > 0 {
+			global.LOG.Error("[rsyncmgr] rsync stderr for task %s: %s", id, stderrBuf.String())
+		}
+	}
+
 	// 原子性清理：在Manager锁保护下同时更新状态和注销进程
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -222,9 +235,11 @@ func (m *Manager) runTask(id string) error {
 		if err != nil {
 			t.State = StateFailed
 			t.LastError = err.Error()
+			global.LOG.Error("[rsyncmgr] rsync process failed for task %s: %v", id, err)
 		} else {
 			t.State = StateSucceeded
 			t.LastError = ""
+			global.LOG.Info("[rsyncmgr] rsync process completed successfully for task %s", id)
 		}
 		t.UpdatedAt = time.Now()
 		if saveErr := m.storage.SaveTask(t); saveErr != nil {

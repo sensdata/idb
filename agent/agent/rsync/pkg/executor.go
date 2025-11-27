@@ -1,8 +1,10 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -216,25 +218,45 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	global.LOG.Info("[rsyncmgr] sshCmd: %s, wrapper: %s", sshCmd, wrapper)
 
 	var cmd *exec.Cmd
-	if wrapper != "" && sshCmd != "" {
-		// 使用sshpass包装器执行命令（-p参数方式）
-		// 构建完整的shell命令：sshpass -p 'password' rsync [args]
-		fullCmd := fmt.Sprintf("%s rsync %s", wrapper, strings.Join(args, " "))
-		global.LOG.Info("[rsyncmgr] fullCmd: %s", fullCmd)
-		cmd = exec.CommandContext(ctx, "sh", "-c", fullCmd)
+
+	// 根据远程类型决定执行方式
+	if t.RemoteType == RemoteTypeSSH && sshCmd != "" {
+		// SSH模式：需要特殊处理
+		if wrapper != "" {
+			// 密码认证模式：使用sshpass包装器
+			// 构建完整的shell命令：sshpass -p 'password' rsync [args]
+			fullCmd := fmt.Sprintf("%s rsync %s", wrapper, strings.Join(args, " "))
+			global.LOG.Info("[rsyncmgr] fullCmd: %s", fullCmd)
+			cmd = exec.CommandContext(ctx, "bash", "-c", fullCmd)
+		} else {
+			// 私钥认证模式：直接执行rsync命令，但通过-e参数传递SSH命令
+			cmd = exec.CommandContext(ctx, "rsync", args...)
+		}
 	} else {
-		// 直接执行rsync命令（适用于Rsync守护进程模式）
+		// Rsync守护进程模式：直接执行rsync命令
 		cmd = exec.CommandContext(ctx, "rsync", args...)
 	}
 
-	// optional: redirect stdout/stderr to logs or buffer
-	// Here we let stdout/stderr inherit to agent's process for visibility (or you can capture).
+	// 设置环境变量，确保PATH和SHELL可用
+	cmd.Env = append(os.Environ(), "SHELL=/bin/bash")
+
+	// 捕获标准输出和标准错误，以便诊断问题
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	// 设置进程组属性，便于进程管理
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
 		cancel()
 		global.LOG.Error("[rsyncmgr] failed to start rsync for task %s: %v", t.ID, err)
 		return nil, err
 	}
+
+	// 记录进程启动信息
+	global.LOG.Info("[rsyncmgr] rsync process started for task %s, PID: %d", t.ID, cmd.Process.Pid)
+
+	// 输出捕获器已经通过cmd.Stdout和cmd.Stderr关联，runTask可以直接访问
 	proc := &ExecProcess{cmd: cmd, cancel: cancel}
 	return proc, nil
 }
