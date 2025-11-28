@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -194,7 +193,7 @@ func buildRsyncCommand(t *RsyncTask) ([]string, string, string, error) {
 }
 
 // StartRsync starts rsync as a subprocess, returns ExecProcess and exit/error
-func StartRsync(t *RsyncTask) (*ExecProcess, error) {
+func StartRsync(t *RsyncTask, logHandler *LogHandler) (*ExecProcess, error) {
 	args, sshCmd, wrapper, err := buildRsyncCommand(t)
 	if err != nil {
 		global.LOG.Error("[rsyncmgr] failed to build rsync command for task %s: %v", t.ID, err)
@@ -203,21 +202,19 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	global.LOG.Info("[rsyncmgr] args: %s, sshCmd: %s, wrapper: %s", strings.Join(args, " "), sshCmd, wrapper)
 
 	// prepare command
+	var cmd *exec.Cmd
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var cmd *exec.Cmd
 	// 根据远程类型决定执行方式
 	if t.RemoteType == RemoteTypeSSH && sshCmd != "" {
 		// SSH模式：需要特殊处理
 		if wrapper != "" {
 			// 密码认证模式：使用sshpass包装器
-			// 构建完整的shell命令：sshpass -p 'password' rsync [args]
 			fullCmd := fmt.Sprintf("%s rsync %s", wrapper, strings.Join(args, " "))
 			global.LOG.Info("[rsyncmgr] fullCmd: %s", fullCmd)
 			cmd = exec.CommandContext(ctx, "bash", "-c", fullCmd)
 		} else {
-			// 私钥认证模式：直接执行rsync命令，但通过-e参数传递SSH命令
-			// 打印最终的完整 rsync 命令（shell 风格）
+			// 私钥认证模式：直接执行rsync命令
 			quoted := make([]string, 0, len(args)+1)
 			quoted = append(quoted, "rsync")
 			for _, a := range args {
@@ -236,10 +233,15 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	// 设置环境变量，确保PATH和SHELL可用
 	cmd.Env = append(os.Environ(), "SHELL=/bin/bash")
 
-	// 捕获标准输出和标准错误，以便诊断问题
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
+	// 使用日志处理器直接写入文件
+	logWriter, err := logHandler.GetExecutionLogWriter()
+	if err != nil {
+		global.LOG.Error("[rsyncmgr] failed to get log writer for task %s: %v", t.ID, err)
+		return nil, err
+	}
+	// 同时重定向标准输出和标准错误到同一个日志文件
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
 
 	// 设置进程组属性，便于进程管理
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -250,9 +252,65 @@ func StartRsync(t *RsyncTask) (*ExecProcess, error) {
 	}
 
 	// 记录进程启动信息
-	global.LOG.Info("[rsyncmgr] rsync process started for task %s, PID: %d", t.ID, cmd.Process.Pid)
+	global.LOG.Error("[rsyncmgr] rsync process started for task %s, PID: %d", t.ID, cmd.Process.Pid)
 
 	// 输出捕获器已经通过cmd.Stdout和cmd.Stderr关联，runTask可以直接访问
 	proc := &ExecProcess{cmd: cmd, cancel: cancel}
 	return proc, nil
+}
+
+// TestRsync 执行测试同步（dry-run），支持直接写入日志文件
+func TestRsync(t *RsyncTask, logHandler *LogHandler) (string, error) {
+	args, sshCmd, wrapper, err := buildRsyncCommand(t)
+	if err != nil {
+		global.LOG.Error("[rsyncmgr] failed to build rsync command for test task %s: %v", t.ID, err)
+		return "", err
+	}
+
+	// 添加dry-run参数
+	testArgs := append([]string{"--dry-run"}, args...)
+
+	global.LOG.Error("[rsyncmgr] starting test rsync for task %s: %s", t.ID, strings.Join(testArgs, " "))
+
+	var cmd *exec.Cmd
+	ctx := context.Background()
+
+	// 根据远程类型决定执行方式
+	if t.RemoteType == RemoteTypeSSH && sshCmd != "" {
+		if wrapper != "" {
+			// 密码认证模式：使用sshpass包装器
+			fullCmd := fmt.Sprintf("%s rsync %s", wrapper, strings.Join(testArgs, " "))
+			global.LOG.Error("[rsyncmgr] test fullCmd: %s", fullCmd)
+			cmd = exec.CommandContext(ctx, "bash", "-c", fullCmd)
+		} else {
+			// 私钥认证模式：直接执行rsync命令
+			cmd = exec.CommandContext(ctx, "rsync", testArgs...)
+		}
+	} else {
+		// Rsync守护进程模式：直接执行rsync命令
+		cmd = exec.CommandContext(ctx, "rsync", testArgs...)
+	}
+
+	// 设置环境变量，确保PATH和SHELL可用
+	cmd.Env = append(os.Environ(), "SHELL=/bin/bash")
+
+	// 使用日志处理器直接写入文件
+	logWriter, err := logHandler.GetTestLogWriter()
+	if err != nil {
+		global.LOG.Error("[rsyncmgr] failed to get test log writer for task %s: %v", t.ID, err)
+		return "", err
+	}
+	// 同时重定向标准输出和标准错误到同一个日志文件
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
+	logPath := logHandler.GetTestLogPath()
+
+	// 执行命令
+	if err := cmd.Run(); err != nil {
+		global.LOG.Error("[rsyncmgr] test rsync failed for task %s: %v", t.ID, err)
+		return logPath, err
+	}
+
+	global.LOG.Error("[rsyncmgr] test rsync completed for task %s", t.ID)
+	return logPath, nil
 }

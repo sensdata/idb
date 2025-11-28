@@ -188,3 +188,65 @@ func (s *BaseApi) RsyncRetryTask(c *gin.Context) {
 
 	SuccessWithData(c, nil)
 }
+
+// @Tags Rsync
+// @Summary Test rsync task
+// @Description Test rsync task
+// @Accept json
+// @Produce json
+// @Param host path string true "Host"
+// @Param request body model.RsyncTestTaskRequest true "Request"
+// @Success 200 {object} model.RsyncTaskLog
+// @Router /rsync/{host}/task/test [post]
+func (s *BaseApi) RsyncTest(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.RsyncTestTaskRequest
+	if err := CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	log, err := rsyncService.TestTask(uint(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, log)
+}
+
+// @Tags Rsync
+// @Summary Query rsync task logs
+// @Description Query rsync task logs
+// @Accept json
+// @Produce json
+// @Param host path string true "Host"
+// @Param id query string true "Task ID"
+// @Param page query int true "Page"
+// @Param page_size query int true "Page Size"
+// @Success 200 {object} model.RsyncTaskLogListResponse
+// @Router /rsync/{host}/task/log [get]
+func (s *BaseApi) RsyncTaskLogList(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.RsyncTaskLogListRequest
+	if err := CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	list, err := rsyncService.TaskLogList(uint(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, list)
+}

@@ -71,6 +71,10 @@ type RsyncRetryTaskRequest struct {
 	ID string `form:"id" json:"id"`
 }
 
+type RsyncTestTaskRequest struct {
+	ID string `form:"id" json:"id"`
+}
+
 type RsyncClientCreateTaskRequest struct {
 	Name          string `json:"name" validate:"required"`
 	Direction     string `json:"direction" validate:"required,oneof=remote_to_local local_to_remote"`
@@ -112,4 +116,20 @@ type RsyncClientTask struct {
 type RsyncClientListTaskResponse struct {
 	Total int                `json:"total"`
 	Tasks []*RsyncClientTask `json:"tasks"`
+}
+
+type RsyncTaskLogListRequest struct {
+	ID       string `form:"id" json:"id"`
+	Page     int    `form:"page" json:"page"`
+	PageSize int    `form:"page_size" json:"page_size"`
+}
+
+type RsyncTaskLogListResponse struct {
+	Total int             `json:"total"`
+	Logs  []*RsyncTaskLog `json:"logs"`
+}
+
+type RsyncTaskLog struct {
+	ID   string `json:"id"`
+	Path string `json:"path"`
 }

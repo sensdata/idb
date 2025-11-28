@@ -155,6 +155,8 @@ const (
 	Rsync_Stop   string = "rsync_stop"
 	Rsync_Retry  string = "rsync_retry"
 	Rsync_Delete string = "rsync_delete"
+	Rsync_Test   string = "rsync_test"
+	Rsync_Logs   string = "rsync_logs"
 )
 
 // Action消息结构

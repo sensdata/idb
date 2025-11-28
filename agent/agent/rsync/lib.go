@@ -16,7 +16,7 @@ type RsyncLib struct {
 }
 
 func NewRsyncLib() *RsyncLib {
-	storagePath := filepath.Join(constant.AgentDataDir, "rsync_tasks.json")
+	storagePath := filepath.Join(constant.AgentDataDir, "rsync", "rsync_tasks.json")
 	storage, err := pkg.NewFileJSONStorage(storagePath)
 	if err != nil {
 		panic(err)
@@ -143,4 +143,31 @@ func (api *RsyncLib) Retry(id string) error {
 
 func (api *RsyncLib) Delete(id string) error {
 	return api.m.DeleteTask(id)
+}
+
+func (api *RsyncLib) TestSync(id string) (*model.RsyncTaskLog, error) {
+	var taskLog model.RsyncTaskLog
+	path, err := api.m.TestSync(id)
+	if err != nil {
+		return nil, err
+	}
+	taskLog.ID = id
+	taskLog.Path = path
+	return &taskLog, nil
+}
+
+func (api *RsyncLib) LogList(req model.RsyncTaskLogListRequest) (*model.RsyncTaskLogListResponse, error) {
+	var resp model.RsyncTaskLogListResponse
+	total, logs, err := api.m.GetTaskLogs(req.ID, req.Page, req.PageSize)
+	if err != nil {
+		return &resp, err
+	}
+	for _, l := range logs {
+		resp.Logs = append(resp.Logs, &model.RsyncTaskLog{
+			ID:   req.ID,
+			Path: l,
+		})
+	}
+	resp.Total = total
+	return &resp, nil
 }

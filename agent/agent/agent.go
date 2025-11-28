@@ -3080,6 +3080,36 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		}
 		return actionSuccessResult(actionData.Action, "")
 
+	case model.Rsync_Test:
+		var req model.RsyncTestTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		log, err := RsyncLib.TestSync(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(log)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
+	case model.Rsync_Logs:
+		var req model.RsyncTaskLogListRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		logs, err := RsyncLib.LogList(req)
+		if err != nil {
+			return nil, err
+		}
+		result, err := utils.ToJSONString(logs)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, result)
+
 	default:
 		return nil, nil
 	}

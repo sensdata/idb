@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -183,8 +182,16 @@ func (m *Manager) runTask(id string) error {
 		return err
 	}
 
+	// 创建日志处理器
+	logHandler := NewLogHandler(id)
+	if logHandler == nil {
+		global.LOG.Error("[rsyncmgr] failed to create log handler for task %s", id)
+		return errors.New("failed to create log handler")
+	}
+	defer logHandler.Close()
+
 	// 原子性操作：先启动进程，再更新状态和注册进程
-	proc, err := StartRsync(t)
+	proc, err := StartRsync(t, logHandler)
 	if err != nil {
 		t.State = StateFailed
 		t.LastError = err.Error()
@@ -193,6 +200,10 @@ func (m *Manager) runTask(id string) error {
 			global.LOG.Error("[rsyncmgr] failed to save failed state for task %s: %v", id, saveErr)
 			return fmt.Errorf("failed to start rsync: %v, and failed to save state: %v", err, saveErr)
 		}
+
+		// 记录错误信息到日志文件
+		logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", err))
+
 		global.LOG.Error("[rsyncmgr] failed to start rsync for task %s: %v", id, err)
 		return err
 	}
@@ -204,6 +215,10 @@ func (m *Manager) runTask(id string) error {
 	if saveErr := m.storage.SaveTask(t); saveErr != nil {
 		m.mu.Unlock()
 		proc.Stop() // 清理已启动的进程
+
+		// 记录错误信息到日志文件
+		logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", saveErr))
+
 		global.LOG.Error("[rsyncmgr] failed to save running state for task %s: %v", id, saveErr)
 		return fmt.Errorf("failed to save running state: %v", saveErr)
 	}
@@ -212,18 +227,6 @@ func (m *Manager) runTask(id string) error {
 
 	// wait for process finish
 	err = proc.cmd.Wait()
-
-	// 记录进程输出信息，帮助诊断问题
-	if proc.cmd.Stdout != nil {
-		if stdoutBuf, ok := proc.cmd.Stdout.(*bytes.Buffer); ok && stdoutBuf.Len() > 0 {
-			global.LOG.Info("[rsyncmgr] rsync stdout for task %s: %s", id, stdoutBuf.String())
-		}
-	}
-	if proc.cmd.Stderr != nil {
-		if stderrBuf, ok := proc.cmd.Stderr.(*bytes.Buffer); ok && stderrBuf.Len() > 0 {
-			global.LOG.Error("[rsyncmgr] rsync stderr for task %s: %s", id, stderrBuf.String())
-		}
-	}
 
 	// 原子性清理：在Manager锁保护下同时更新状态和注销进程
 	m.mu.Lock()
@@ -250,6 +253,45 @@ func (m *Manager) runTask(id string) error {
 
 	delete(m.runtimeProcs, id)
 	return err
+}
+
+// TestSync 执行测试同步（dry-run），直接写入日志文件并返回日志路径
+func (m *Manager) TestSync(id string) (string, error) {
+	t, err := m.storage.GetTask(id)
+	if err != nil {
+		global.LOG.Error("[rsyncmgr] failed to get task %s for test sync: %v", id, err)
+		return "", err
+	}
+
+	// 创建日志处理器
+	logHandler := NewLogHandler(id)
+	if logHandler == nil {
+		global.LOG.Error("[rsyncmgr] failed to create log handler for test sync task %s", id)
+		return "", errors.New("failed to create log handler")
+	}
+	defer logHandler.Close()
+
+	// 执行测试同步，直接写入日志文件
+	logPath, err := TestRsync(t, logHandler)
+	if err != nil {
+		// 记录错误信息到测试日志文件
+		logHandler.AppendTestLog(fmt.Sprintf("Error: %v", err))
+		global.LOG.Info("Test sync failed for task %s: %v", id, err)
+		return logPath, nil
+	}
+
+	global.LOG.Info("[rsyncmgr] test sync completed for task %s, log saved to %s", id, logPath)
+	return logPath, nil
+}
+
+func (m *Manager) GetTaskLogs(id string, page, pageSize int) (int, []string, error) {
+	logHandler := NewLogHandler(id)
+	if logHandler == nil {
+		global.LOG.Error("[rsyncmgr] failed to create log handler for get logs task %s", id)
+		return 0, nil, errors.New("failed to create log handler")
+	}
+	defer logHandler.Close()
+	return logHandler.GetExecLogs(page, pageSize)
 }
 
 // helper proc map locks

@@ -18,6 +18,8 @@ type IRSyncService interface {
 	DeleteTask(hostID uint, req model.RsyncDeleteTaskRequest) error
 	CancelTask(hostID uint, req model.RsyncCancelTaskRequest) error
 	RetryTask(hostID uint, req model.RsyncRetryTaskRequest) error
+	TestTask(hostID uint, req model.RsyncTestTaskRequest) (*model.RsyncTaskLog, error)
+	TaskLogList(hostID uint, req model.RsyncTaskLogListRequest) (*model.RsyncTaskLogListResponse, error)
 }
 
 func NewIRsyncService() IRSyncService {
@@ -202,4 +204,72 @@ func (s *RsyncService) RetryTask(hostID uint, req model.RsyncRetryTaskRequest) e
 	}
 
 	return nil
+}
+
+func (s *RsyncService) TestTask(hostID uint, req model.RsyncTestTaskRequest) (*model.RsyncTaskLog, error) {
+	var resp model.RsyncTaskLog
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &resp, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.Rsync_Test,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return &resp, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Rsync_Test failed")
+		return &resp, fmt.Errorf("failed to test rsync task: %s", actionResponse.Data)
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &resp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to rsync test task response: %v", err)
+		return &resp, fmt.Errorf("json err: %v", err)
+	}
+
+	return &resp, nil
+}
+
+func (s *RsyncService) TaskLogList(hostID uint, req model.RsyncTaskLogListRequest) (*model.RsyncTaskLogListResponse, error) {
+	var resp *model.RsyncTaskLogListResponse
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return resp, err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.Rsync_Logs,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return resp, err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Rsync_Logs failed")
+		return resp, fmt.Errorf("failed to get rsync task logs: %s", actionResponse.Data)
+	}
+
+	err = utils.FromJSONString(actionResponse.Data, &resp)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to rsync logs response: %v", err)
+		return resp, fmt.Errorf("json err: %v", err)
+	}
+
+	return resp, nil
 }
