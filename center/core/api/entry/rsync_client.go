@@ -146,7 +146,7 @@ func (s *BaseApi) RsyncCancelTask(c *gin.Context) {
 	}
 
 	var req model.RsyncCancelTaskRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -176,7 +176,7 @@ func (s *BaseApi) RsyncRetryTask(c *gin.Context) {
 	}
 
 	var req model.RsyncRetryTaskRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -206,7 +206,7 @@ func (s *BaseApi) RsyncTest(c *gin.Context) {
 	}
 
 	var req model.RsyncTestTaskRequest
-	if err := CheckQueryAndValidate(&req, c); err != nil {
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 

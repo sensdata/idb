@@ -188,13 +188,12 @@ func (a *BaseApi) TransferDeleteTask(c *gin.Context) {
 // @Description Cancel transfer task
 // @Accept json
 // @Produce json
-// @Param id query string true "Task ID"
+// @Param request body model.RsyncCancelTaskRequest true "Request"
 // @Success 200
 // @Router /transfer/task/cancel [post]
 func (a *BaseApi) TransferCancelTask(c *gin.Context) {
-	id := c.Query("id")
-	if id == "" {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
+	var req model.RsyncCancelTaskRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -204,7 +203,7 @@ func (a *BaseApi) TransferCancelTask(c *gin.Context) {
 		return
 	}
 	if err := client.CancelTask(&model.RsyncCancelTaskRequest{
-		ID: id,
+		ID: req.ID,
 	}); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
@@ -217,13 +216,12 @@ func (a *BaseApi) TransferCancelTask(c *gin.Context) {
 // @Description Retry transfer task
 // @Accept json
 // @Produce json
-// @Param id query string true "Task ID"
+// @Param request body model.RsyncRetryTaskRequest true "Request"
 // @Success 200
 // @Router /transfer/task/retry [post]
 func (a *BaseApi) TransferRetryTask(c *gin.Context) {
-	id := c.Query("id")
-	if id == "" {
-		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid id", nil)
+	var req model.RsyncRetryTaskRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
 
@@ -233,7 +231,7 @@ func (a *BaseApi) TransferRetryTask(c *gin.Context) {
 		return
 	}
 	if err := client.RetryTask(&model.RsyncRetryTaskRequest{
-		ID: id,
+		ID: req.ID,
 	}); err != nil {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
