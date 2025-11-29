@@ -60,19 +60,19 @@ type RsyncQueryTaskRequest struct {
 }
 
 type RsyncCancelTaskRequest struct {
-	ID string `form:"id" json:"id"`
+	ID string `json:"id"`
 }
 
 type RsyncDeleteTaskRequest struct {
-	ID string `form:"id" json:"id"`
+	ID string `json:"id"`
 }
 
 type RsyncRetryTaskRequest struct {
-	ID string `form:"id" json:"id"`
+	ID string `json:"id"`
 }
 
 type RsyncTestTaskRequest struct {
-	ID string `form:"id" json:"id"`
+	ID string `json:"id"`
 }
 
 type RsyncClientCreateTaskRequest struct {
