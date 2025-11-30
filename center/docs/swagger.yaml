@@ -1921,6 +1921,27 @@ definitions:
       step:
         type: string
     type: object
+  model.RsyncTaskLog:
+    properties:
+      id:
+        type: string
+      path:
+        type: string
+    type: object
+  model.RsyncTaskLogListResponse:
+    properties:
+      logs:
+        items:
+          $ref: '#/definitions/model.RsyncTaskLog'
+        type: array
+      total:
+        type: integer
+    type: object
+  model.RsyncTestTaskRequest:
+    properties:
+      id:
+        type: string
+    type: object
   model.RuleItem:
     properties:
       action:
@@ -8949,6 +8970,42 @@ paths:
       summary: Cancel rsync task
       tags:
       - Rsync
+  /rsync/{host}/task/log:
+    get:
+      consumes:
+      - application/json
+      description: Query rsync task logs
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Task ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page Size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncTaskLogListResponse'
+      summary: Query rsync task logs
+      tags:
+      - Rsync
   /rsync/{host}/task/query:
     get:
       consumes:
@@ -8998,6 +9055,33 @@ paths:
         "200":
           description: OK
       summary: Retry rsync task
+      tags:
+      - Rsync
+  /rsync/{host}/task/test:
+    post:
+      consumes:
+      - application/json
+      description: Test rsync task
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncTestTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RsyncTaskLog'
+      summary: Test rsync task
       tags:
       - Rsync
   /scripts/{host}:
@@ -11567,11 +11651,12 @@ paths:
       - application/json
       description: Cancel transfer task
       parameters:
-      - description: Task ID
-        in: query
-        name: id
+      - description: Request
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/model.RsyncCancelTaskRequest'
       produces:
       - application/json
       responses:
@@ -11607,11 +11692,12 @@ paths:
       - application/json
       description: Retry transfer task
       parameters:
-      - description: Task ID
-        in: query
-        name: id
+      - description: Request
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/model.RsyncRetryTaskRequest'
       produces:
       - application/json
       responses:

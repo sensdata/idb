@@ -9412,6 +9412,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/rsync/{host}/task/log": {
+            "get": {
+                "description": "Query rsync task logs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Query rsync task logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page Size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncTaskLogListResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/rsync/{host}/task/query": {
             "get": {
                 "description": "Query rsync task",
@@ -9485,6 +9538,47 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/rsync/{host}/task/test": {
+            "post": {
+                "description": "Test rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Test rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncTestTaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncTaskLog"
+                        }
                     }
                 }
             }
@@ -13338,11 +13432,13 @@ const docTemplate = `{
                 "summary": "Cancel transfer task",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncCancelTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -13399,11 +13495,13 @@ const docTemplate = `{
                 "summary": "Retry transfer task",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Task ID",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncRetryTaskRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -16490,6 +16588,39 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "step": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncTaskLog": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncTaskLogListResponse": {
+            "type": "object",
+            "properties": {
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RsyncTaskLog"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.RsyncTestTaskRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
                     "type": "string"
                 }
             }
