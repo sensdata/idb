@@ -35,7 +35,7 @@ type IDockerService interface {
 	ContainerUpdate(req model.ContainerOperate) error
 	ContainerUpgrade(req model.ContainerUpgrade) error
 	ContainerInfo(containerID string) (*model.ContainerOperate, error)
-	ContainerResourceUsage() (*model.PageResult, error)
+	ContainerResourceUsage(req model.QueryContainer) (*model.PageResult, error)
 	ContainerResourceUsageById(id string) (*model.ContainerResourceUsage, error)
 	ContainerResourceLimit() (*model.ContainerResourceLimit, error)
 	ContainerStats(id string) (*model.ContainerStats, error)

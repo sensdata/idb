@@ -94,14 +94,19 @@ func (s *DockerMan) containerNames(hostID uint64) (*model.PageResult, error) {
 	return &result, nil
 }
 
-func (s *DockerMan) containerUsages(hostID uint64) (*model.PageResult, error) {
+func (s *DockerMan) containerUsages(hostID uint64, req model.QueryContainer) (*model.PageResult, error) {
 	var result model.PageResult
+
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return &result, err
+	}
 
 	actionRequest := model.HostAction{
 		HostID: uint(hostID),
 		Action: model.Action{
 			Action: model.Docker_Container_Resource_Usage_List,
-			Data:   "",
+			Data:   data,
 		},
 	}
 

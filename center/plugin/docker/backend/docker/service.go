@@ -990,6 +990,11 @@ func (s *DockerMan) ContainerNames(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
+// @Param state query string true "Container state, one of (all created running paused restarting removing exited dead)"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Param order_by query string false "Order by one of (name, state, created)"
 // @Success 200 {object} model.PageResult
 // @Router /docker/{host}/containers/usages [get]
 func (s *DockerMan) ContainerUsages(c *gin.Context) {
@@ -999,7 +1004,12 @@ func (s *DockerMan) ContainerUsages(c *gin.Context) {
 		return
 	}
 
-	result, err := s.containerUsages(hostID)
+	var req model.QueryContainer
+	if err := helper.CheckQueryAndValidate(&req, c); err != nil {
+		return
+	}
+
+	result, err := s.containerUsages(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return

@@ -65,13 +65,13 @@ func (s *DockerService) ContainerInfo(containerID string) (*model.ContainerOpera
 	return client.ContainerInfo(containerID)
 }
 
-func (s *DockerService) ContainerResourceUsage() (*model.PageResult, error) {
+func (s *DockerService) ContainerResourceUsage(req model.QueryContainer) (*model.PageResult, error) {
 	client, err := client.NewClient()
 	if err != nil {
 		return &model.PageResult{}, err
 	}
 	defer client.Close()
-	return client.ContainerResourceUsage()
+	return client.ContainerResourceUsage(req)
 }
 
 func (s *DockerService) ContainerResourceUsageById(id string) (*model.ContainerResourceUsage, error) {

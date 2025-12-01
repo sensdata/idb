@@ -2354,7 +2354,11 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		return actionSuccessResult(actionData.Action, result)
 
 	case model.Docker_Container_Resource_Usage_List:
-		info, err := DockerService.ContainerResourceUsage()
+		var req model.QueryContainer
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		info, err := DockerService.ContainerResourceUsage(req)
 		if err != nil {
 			return nil, err
 		}

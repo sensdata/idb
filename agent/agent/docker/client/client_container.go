@@ -381,24 +381,86 @@ func (c DockerClient) ContainerInfo(containerID string) (*model.ContainerOperate
 	return &data, nil
 }
 
-func (c DockerClient) ContainerResourceUsage() (*model.PageResult, error) {
-	var result model.PageResult
-	list, err := c.cli.ContainerList(context.Background(), container.ListOptions{All: true})
+func (c DockerClient) ContainerResourceUsage(req model.QueryContainer) (*model.PageResult, error) {
+	var (
+		result  model.PageResult
+		records []types.Container
+	)
+
+	// 构建过滤器
+	options := container.ListOptions{
+		All:     true,
+		Filters: filters.NewArgs(),
+	}
+	if len(req.Info) > 0 {
+		options.Filters.Add("name", req.Info)
+	}
+	if req.State != "all" {
+		options.Filters.Add("status", req.State)
+	}
+
+	// 获取容器列表
+	containers, err := c.cli.ContainerList(context.Background(), options)
 	if err != nil {
 		return &result, err
 	}
-	var datas []model.ContainerResourceUsage
-	var wg sync.WaitGroup
-	wg.Add(len(list))
-	for i := 0; i < len(list); i++ {
-		go func(item types.Container) {
-			datas = append(datas, c.loadCpuAndMem(item.ID))
-			wg.Done()
-		}(list[i])
+
+	// 排序
+	switch req.OrderBy {
+	case "name":
+		sort.Slice(containers, func(i, j int) bool {
+			if req.Order == constant.OrderAsc {
+				return containers[i].Names[0][1:] < containers[j].Names[0][1:]
+			}
+			return containers[i].Names[0][1:] > containers[j].Names[0][1:]
+		})
+	case "state":
+		sort.Slice(containers, func(i, j int) bool {
+			if req.Order == constant.OrderAsc {
+				return containers[i].State < containers[j].State
+			}
+			return containers[i].State > containers[j].State
+		})
+	default:
+		sort.Slice(containers, func(i, j int) bool {
+			if req.Order == constant.OrderAsc {
+				return containers[i].Created < containers[j].Created
+			}
+			return containers[i].Created > containers[j].Created
+		})
 	}
+
+	// 分页
+	total := len(containers)
+	start, end := (req.Page-1)*req.PageSize, req.Page*req.PageSize
+	if start > total {
+		records = make([]types.Container, 0)
+	} else {
+		if end > total {
+			end = total
+		}
+		records = containers[start:end]
+	}
+
+	datas := make([]model.ContainerResourceUsage, len(records))
+	var wg sync.WaitGroup
+	limit := make(chan struct{}, 10) // 限制并发为10个
+
+	for i := range records {
+		wg.Add(1)
+		limit <- struct{}{}
+
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-limit }()
+
+			datas[i] = c.loadCpuAndMem(records[i].ID)
+		}(i)
+	}
+
 	wg.Wait()
 
-	result.Total = int64(len(datas))
+	result.Total = int64(total)
 	result.Items = datas
 	return &result, nil
 }
