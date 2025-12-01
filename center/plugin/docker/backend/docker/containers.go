@@ -129,6 +129,55 @@ func (s *DockerMan) containerUsages(hostID uint64, req model.QueryContainer) (*m
 	return &result, nil
 }
 
+func (s *DockerMan) followContainerUsages(c *gin.Context) error {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		return errors.New("invalid host")
+	}
+
+	var req model.QueryContainer
+	if err := c.ShouldBindQuery(req); err != nil {
+		return errors.New("invalid query params")
+	}
+
+	// 设置 SSE 响应头
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	// 使用 context 来控制超时和客户端断开
+	ctx := c.Request.Context()
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		return fmt.Errorf("streaming not supported")
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			global.LOG.Warn("Recovered in SSE loop: %v", r)
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			global.LOG.Info("SSE DONE")
+			return nil
+		default:
+			usages, err := s.containerUsages(hostID, req)
+			if err != nil {
+				global.LOG.Error("get usages failed: %v", err)
+				c.SSEvent("error", err.Error())
+			} else {
+				c.SSEvent("status", usages)
+			}
+			flusher.Flush()
+		}
+		time.Sleep(3 * time.Second)
+	}
+}
+
 func (s *DockerMan) containerUsage(hostID uint64, containerID string) (*model.ContainerResourceUsage, error) {
 	var result model.ContainerResourceUsage
 
@@ -204,7 +253,7 @@ func (s *DockerMan) followContainerUsage(c *gin.Context) error {
 			}
 			flusher.Flush()
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 

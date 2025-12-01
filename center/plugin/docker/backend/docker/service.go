@@ -136,17 +136,18 @@ func (s *DockerMan) Initialize() {
 			{Method: "GET", Path: "/:host/compose/logs/tail", Handler: s.FollowComposeLogs}, // 追踪编排日志
 
 			// containers
-			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                    // 获取容器列表
-			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},              // 获取容器名列表
-			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},            // 获取容器资源占用
-			{Method: "GET", Path: "/:host/containers/usage", Handler: s.ContainerUsage},              // 获取单个容器资源占用
-			{Method: "GET", Path: "/:host/containers/usage/follow", Handler: s.ContainerUsageFollow}, // 追踪单个容器资源占用
-			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},              // 获取容器资源限制
-			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},                  // 创建容器
-			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},                   // 编辑容器
-			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},         // 升级容器
-			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},           // 重命名容器
-			{Method: "POST", Path: "/:host/containers/operation", Handler: s.ContainerOperation},     // 操作容器
+			{Method: "GET", Path: "/:host/containers", Handler: s.ContainerQuery},                      // 获取容器列表
+			{Method: "GET", Path: "/:host/containers/names", Handler: s.ContainerNames},                // 获取容器名列表
+			{Method: "GET", Path: "/:host/containers/usages", Handler: s.ContainerUsages},              // 获取容器资源占用
+			{Method: "GET", Path: "/:host/containers/usages/follow", Handler: s.ContainerUsagesFollow}, // 追踪容器资源占用
+			{Method: "GET", Path: "/:host/containers/usage", Handler: s.ContainerUsage},                // 获取单个容器资源占用
+			{Method: "GET", Path: "/:host/containers/usage/follow", Handler: s.ContainerUsageFollow},   // 追踪单个容器资源占用
+			{Method: "GET", Path: "/:host/containers/limit", Handler: s.ContainerLimit},                // 获取容器资源限制
+			{Method: "POST", Path: "/:host/containers", Handler: s.ContainerCreate},                    // 创建容器
+			{Method: "PUT", Path: "/:host/containers", Handler: s.ContainerUpdate},                     // 编辑容器
+			{Method: "POST", Path: "/:host/containers/upgrade", Handler: s.ContainerUpgrade},           // 升级容器
+			{Method: "POST", Path: "/:host/containers/rename", Handler: s.ContainerRename},             // 重命名容器
+			{Method: "POST", Path: "/:host/containers/operation", Handler: s.ContainerOperation},       // 操作容器
 
 			{Method: "GET", Path: "/:host/containers/detail", Handler: s.ContainerInfo},          // 获取容器详情
 			{Method: "GET", Path: "/:host/containers/stats", Handler: s.ContainerStats},          // 获取容器监控数据
@@ -1016,6 +1017,31 @@ func (s *DockerMan) ContainerUsages(c *gin.Context) {
 	}
 
 	helper.SuccessWithData(c, result)
+}
+
+// @Tags Docker
+// @Summary Follow container resource usage list
+// @Description Follow container resource usage list
+// @Accept json
+// @Produce text/event-stream
+// @Param host path int true "Host ID"
+// @Param info query string false "Info for searching"
+// @Param state query string true "Container state, one of (all created running paused restarting removing exited dead)"
+// @Param page query int true "Page number"
+// @Param page_size query int true "Page size"
+// @Param order_by query string false "Order by one of (name, state, created)"
+// @Success 200 {string} string "SSE stream started"
+// @Failure 400 {object} model.Response "Bad Request"
+// @Router /docker/{host}/containers/usages/follow [get]
+func (s *DockerMan) ContainerUsagesFollow(c *gin.Context) {
+	err := s.followContainerUsages(c)
+	if err != nil {
+		global.LOG.Error("Handle container resouce usage list stream failed: %v", err)
+		helper.ErrorWithDetail(c, http.StatusInternalServerError, "Failed to establish SSE connection", err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
 }
 
 // @Tags Docker
