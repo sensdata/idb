@@ -355,14 +355,27 @@ func (s *NFTable) convertToInetIdbFilter(content string) (string, error) {
 }
 
 // 确保包含必要的默认规则
-// 本地回环规则： iif "lo" accept
-// 已建立连接规则：ct state established,related accept
 func (s *NFTable) ensureDefaultRules(content string) string {
 	lines := strings.Split(content, "\n")
 	var output []string
 	var chainContent []string
 	insideChain := false
 	indent := "    " // 默认缩进
+
+	defaultRules := map[string]bool{
+		"iif lo accept":                       true,
+		"iif \"lo\" accept":                   true,
+		"iifname \"lo\" accept":               true,
+		"iif docker0 accept":                  true,
+		"iif \"docker0\" accept":              true,
+		"iifname \"docker0\" accept":          true,
+		"iif docker_gwbridge accept":          true,
+		"iif \"docker_gwbridge\" accept":      true,
+		"iifname \"docker_gwbridge\" accept":  true,
+		"iifname \"br-+\" accept":             true,
+		"iifname \"veth+\" accept":            true,
+		"ct state established,related accept": true,
+	}
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -380,8 +393,17 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 			// 检查是否是链结束
 			if trimmed == "}" {
 				// 固定在链内容最前面添加默认规则
-				output = append(output, indent+"iif \"lo\" accept")
-				output = append(output, indent+"ct state established,related accept")
+				defaultOrder := []string{
+					"iif lo accept",
+					"iif docker0 accept",
+					"iif docker_gwbridge accept",
+					"iifname \"br-+\" accept",
+					"iifname \"veth+\" accept",
+					"ct state established,related accept",
+				}
+				for _, r := range defaultOrder {
+					output = append(output, indent+r)
+				}
 
 				// 添加缓存的链内容
 				output = append(output, chainContent...)
@@ -392,7 +414,7 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 			}
 
 			// 跳过已存在的默认规则，避免重复
-			if trimmed == "iif \"lo\" accept" || trimmed == "ct state established,related accept" {
+			if defaultRules[trimmed] {
 				continue
 			}
 
