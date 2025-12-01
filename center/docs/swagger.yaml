@@ -4449,6 +4449,30 @@ paths:
         name: host
         required: true
         type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Container state, one of (all created running paused restarting
+          removing exited dead)
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Order by one of (name, state, created)
+        in: query
+        name: order_by
+        type: string
       produces:
       - application/json
       responses:
@@ -4457,6 +4481,55 @@ paths:
           schema:
             $ref: '#/definitions/model.PageResult'
       summary: Get container resource usage list
+      tags:
+      - Docker
+  /docker/{host}/containers/usages/follow:
+    get:
+      consumes:
+      - application/json
+      description: Follow container resource usage list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      - description: Info for searching
+        in: query
+        name: info
+        type: string
+      - description: Container state, one of (all created running paused restarting
+          removing exited dead)
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Order by one of (name, state, created)
+        in: query
+        name: order_by
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream started
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.Response'
+      summary: Follow container resource usage list
       tags:
       - Docker
   /docker/{host}/images:
