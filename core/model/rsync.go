@@ -64,7 +64,7 @@ type RsyncCancelTaskRequest struct {
 }
 
 type RsyncDeleteTaskRequest struct {
-	ID string `json:"id"`
+	ID string `form:"id" json:"id"`
 }
 
 type RsyncRetryTaskRequest struct {
