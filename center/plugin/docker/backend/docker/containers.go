@@ -135,9 +135,26 @@ func (s *DockerMan) followContainerUsages(c *gin.Context) error {
 		return errors.New("invalid host")
 	}
 
-	var req model.QueryContainer
-	if err := c.ShouldBindQuery(req); err != nil {
-		return errors.New("invalid query params")
+	info := c.Query("info")
+	state := c.Query("state")
+	page, err := strconv.ParseUint(c.Query("page"), 10, 32)
+	if err != nil {
+		return errors.New("invalid page")
+	}
+	pageSize, err := strconv.ParseUint(c.Query("page_size"), 10, 32)
+	if err != nil {
+		return errors.New("invalid page size")
+	}
+	orderBy := c.Query("order_by")
+
+	req := model.QueryContainer{
+		PageInfo: model.PageInfo{
+			Page:     int(page),
+			PageSize: int(pageSize),
+		},
+		Info:    info,
+		State:   state,
+		OrderBy: orderBy,
 	}
 
 	// 设置 SSE 响应头
