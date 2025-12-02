@@ -334,9 +334,34 @@ export const getContainerStatsApi = (id: number) =>
 export const upgradeContainerApi = (params: ContainerUpgrade) =>
   request.post('docker/{host}/containers/upgrade', params);
 
-// 获取容器资源使用列表
-export const getContainerUsagesApi = () =>
-  request.get<ApiListResult<any>>('docker/{host}/containers/usages');
+// 获取容器资源使用列表（参数同 queryContainersApi）
+export const getContainerUsagesApi = (params: {
+  info?: string;
+  state: string;
+  page: number;
+  page_size: number;
+  order_by?: string;
+}) =>
+  request.get<ApiListResult<any>>('docker/{host}/containers/usages', params);
+
+// 追踪容器资源使用列表情况（参数同 queryContainersApi）
+export function connectContainerUsagesFollowApi(params: {
+  info?: string;
+  state: string;
+  page: number;
+  page_size: number;
+  order_by?: string;
+}): EventSource {
+  // 过滤掉 undefined 值，避免 URL 中出现 info=undefined
+  const filteredParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined)
+  );
+  const url = resolveApiUrl(
+    `docker/{host}/containers/usages/follow`,
+    filteredParams
+  );
+  return new EventSource(url);
+}
 
 // 获取镜像
 export const queryImagesApi = (params: {
