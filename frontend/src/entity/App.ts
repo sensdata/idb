@@ -43,6 +43,7 @@ export interface AppEntity {
     version: string;
     update_version: string;
     compose_content: string;
+    env_content: string;
     status: string;
     created_at: string;
     can_upgrade?: boolean;
