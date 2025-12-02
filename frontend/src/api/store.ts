@@ -28,6 +28,7 @@ export interface InstallAppParams {
   id: number;
   version_id: number;
   compose_content: string;
+  env_content: string;
   extra_params: Array<{
     key: string;
     value: string;

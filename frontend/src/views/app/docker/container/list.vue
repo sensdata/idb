@@ -13,6 +13,7 @@
       :params="params"
       :filters="filters"
       :fetch="queryContainersApi"
+      :beforeFetchHook="beforeFetchHook"
       :afterFetchHook="afterFetchHook"
     >
       <template #leftActions>
@@ -65,8 +66,7 @@
   import {
     queryContainersApi,
     operateContainersApi,
-    getContainerUsageApi,
-    connectContainerUsageFollowApi,
+    connectContainerUsagesFollowApi,
     pruneApi,
   } from '@/api/docker';
   import { useConfirm } from '@/composables/confirm';
@@ -230,104 +230,104 @@
   const tableRef = ref();
   const reload = () => tableRef.value?.reload();
   const dataRef = ref<ApiListResult<any>>();
-  const isLoading = ref(false);
-  const sseMap = ref<Map<number, EventSource>>(new Map());
-  const fetchUsage = async () => {
-    if (!dataRef.value?.items || isLoading.value) {
-      return;
-    }
-    isLoading.value = true;
-    try {
-      const requests = dataRef.value.items.map(async (item) => {
-        try {
-          const statusData = await getContainerUsageApi(item.container_id);
-          if (statusData) {
-            Object.assign(
-              item,
-              pick(statusData, [
-                'cpu_total_usage',
-                'system_usage',
-                'cpu_percent',
-                'per_cpu_usage',
-                'memory_usage',
-                'memory_limit',
-                'memory_percent',
-              ])
-            );
-          }
-        } catch (error) {
-          console.error('获取容器状态数据失败', item.container_id);
-        }
-      });
+  const currentSSE = ref<EventSource | null>(null);
+  const currentSSEParams = ref<string>('');
+  const lastFetchParams = ref<any>(null);
 
-      // 等待所有请求完成
-      await Promise.all(requests);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      isLoading.value = false;
+  const stopSSE = () => {
+    if (currentSSE.value) {
+      currentSSE.value.close();
+      currentSSE.value = null;
+      currentSSEParams.value = '';
     }
-  };
-
-  const stopAllSSE = () => {
-    for (const es of sseMap.value.values()) {
-      es.close();
-    }
-    sseMap.value = new Map();
   };
 
   onUnmounted(() => {
-    stopAllSSE();
+    stopSSE();
   });
 
-  const startSSEForHosts = () => {
-    if (!dataRef.value?.items) {
+  const startSSE = (queryParams: {
+    info?: string;
+    state: string;
+    page: number;
+    page_size: number;
+    order_by?: string;
+  }) => {
+    // 生成参数标识，用于判断参数是否变化
+    const paramsKey = JSON.stringify(queryParams);
+
+    // 如果参数相同且已有连接，不重复创建
+    if (currentSSEParams.value === paramsKey && currentSSE.value) {
       return;
     }
-    dataRef.value.items.forEach((item) => {
-      if (!sseMap.value.has(item.container_id)) {
-        const es = connectContainerUsageFollowApi(item.container_id);
-        es.addEventListener('status', (event) => {
-          try {
-            const statusData = JSON.parse(event.data);
-            Object.assign(
-              item,
-              pick(statusData, [
-                'cpu_total_usage',
-                'system_usage',
-                'cpu_percent',
-                'per_cpu_usage',
-                'memory_usage',
-                'memory_limit',
-                'memory_percent',
-              ])
+
+    // 关闭旧连接
+    stopSSE();
+
+    // 创建新的 SSE 连接
+    const es = connectContainerUsagesFollowApi(queryParams);
+
+    es.addEventListener('status', (event: MessageEvent) => {
+      try {
+        const usagesData = JSON.parse(event.data);
+        // usagesData 是 PageResult 结构，包含 items 数组
+        if (usagesData?.items && dataRef.value?.items) {
+          // 遍历 usages 更新对应容器的资源使用数据
+          usagesData.items.forEach((usage: any) => {
+            const item = dataRef.value?.items?.find(
+              (i: any) => i.container_id === usage.container_id
             );
-            if (tableRef.value) {
-              tableRef.value.setData(dataRef.value);
+            if (item) {
+              Object.assign(
+                item,
+                pick(usage, [
+                  'cpu_total_usage',
+                  'system_usage',
+                  'cpu_percent',
+                  'per_cpu_usage',
+                  'memory_usage',
+                  'memory_limit',
+                  'memory_percent',
+                ])
+              );
             }
-          } catch (e) {
-            console.error(e);
+          });
+          if (tableRef.value) {
+            tableRef.value.setData(dataRef.value);
           }
-        });
-        es.addEventListener('error', (event) => {
-          console.error(event);
-        });
-        sseMap.value.set(item.container_id, es);
+        }
+      } catch (e) {
+        console.error('解析容器资源使用数据失败', e);
       }
     });
 
-    for (const id of sseMap.value.keys()) {
-      if (!dataRef.value?.items?.find((item) => item.container_id === id)) {
-        sseMap.value.get(id)?.close();
-        sseMap.value.delete(id);
-      }
-    }
+    es.addEventListener('error', (event: Event) => {
+      console.error('SSE 连接错误', event);
+    });
+
+    currentSSE.value = es;
+    currentSSEParams.value = paramsKey;
+  };
+
+  // 在 fetch 之前捕获参数
+  const beforeFetchHook = (fetchParams: any) => {
+    lastFetchParams.value = { ...fetchParams };
+    return fetchParams;
   };
 
   const afterFetchHook = async (data: ApiListResult<any>) => {
     dataRef.value = data;
-    await fetchUsage();
-    startSSEForHosts();
+    // 启动 SSE 跟踪，使用捕获的查询参数
+    const queryParams = lastFetchParams.value;
+    if (queryParams) {
+      startSSE({
+        info: queryParams.info,
+        state: queryParams.state || 'all',
+        page: queryParams.page || 1,
+        page_size: queryParams.page_size || 20,
+        order_by: queryParams.order_by,
+      });
+    }
     return data;
   };
 

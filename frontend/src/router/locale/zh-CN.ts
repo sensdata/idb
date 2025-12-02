@@ -33,6 +33,9 @@ export default {
   'menu.app.nftables.ipBlacklist': 'IP黑名单',
   'menu.app.nftables.ping': 'Ping配置',
   'menu.app.nftables.file': '源文件编辑',
+  'menu.app.rsync': '文件同步',
+  'menu.app.rsync.transfer': '节点互传',
+  'menu.app.rsync.client': '远程同步',
   'menu.app.test': '测试',
   'router.guard.hostId.message': '请选择节点',
 };

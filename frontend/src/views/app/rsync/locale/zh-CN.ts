@@ -62,4 +62,101 @@ export default {
   'app.rsync.message.retryFailed': '重试任务失败',
   'app.rsync.message.deleteSuccess': '任务已删除',
   'app.rsync.message.deleteFailed': '删除任务失败',
+
+  // ==================== 远程同步 ====================
+  'app.rsync.client.title': '远程同步',
+  'app.rsync.client.action.create': '创建配置',
+  'app.rsync.client.action.edit': '编辑配置',
+  'app.rsync.client.action.run': '执行',
+  'app.rsync.client.action.cancel': '取消',
+
+  // 表格列
+  'app.rsync.client.columns.name': '配置名称',
+  'app.rsync.client.columns.direction': '同步类型',
+  'app.rsync.client.columns.localPath': '本地路径',
+  'app.rsync.client.columns.remoteType': '远程类型',
+  'app.rsync.client.columns.remoteHost': '远程主机',
+  'app.rsync.client.columns.state': '状态',
+  'app.rsync.client.columns.attempt': '尝试次数',
+  'app.rsync.client.columns.createdAt': '创建时间',
+
+  // 同步方向
+  'app.rsync.client.direction.localToRemote': '本地->远程',
+  'app.rsync.client.direction.remoteToLocal': '远程->本地',
+
+  // 远程类型
+  'app.rsync.client.remoteType.rsync': 'Rsync 服务',
+  'app.rsync.client.remoteType.ssh': 'SSH 服务',
+
+  // 认证方式
+  'app.rsync.client.authMode.password': '密码',
+  'app.rsync.client.authMode.anonymous': '匿名',
+  'app.rsync.client.authMode.privateKey': '私钥',
+
+  // 状态
+  'app.rsync.client.state.pending': '待执行',
+  'app.rsync.client.state.running': '运行中',
+  'app.rsync.client.state.success': '成功',
+  'app.rsync.client.state.succeeded': '成功',
+  'app.rsync.client.state.failed': '失败',
+  'app.rsync.client.state.canceled': '已取消',
+
+  // 表单
+  'app.rsync.client.form.name': '配置名称',
+  'app.rsync.client.form.direction': '同步类型',
+  'app.rsync.client.form.localPath': '本地文件/目录路径',
+  'app.rsync.client.form.remoteType': '远程类型',
+  'app.rsync.client.form.remoteHost': '主机',
+  'app.rsync.client.form.remotePort': '端口',
+  'app.rsync.client.form.authMode': '验证方式',
+  'app.rsync.client.form.username': 'Rsync 帐号',
+  'app.rsync.client.form.password': 'Rsync 密码',
+  'app.rsync.client.form.sshPrivateKey': 'SSH 私钥',
+  'app.rsync.client.form.remotePath': '远程路径',
+  'app.rsync.client.form.remotePathInModule': '模块内路径',
+  'app.rsync.client.form.module': '模块名',
+  'app.rsync.client.form.enqueue': '立即执行',
+
+  // 表单占位符
+  'app.rsync.client.form.placeholder.name': '请输入配置名称',
+  'app.rsync.client.form.placeholder.localPath': '/etc/nginx/ssl/',
+  'app.rsync.client.form.placeholder.remoteHost': '请输入远程主机 IP 或域名',
+  'app.rsync.client.form.placeholder.remotePort': '请输入端口',
+  'app.rsync.client.form.placeholder.username': '请输入帐号',
+  'app.rsync.client.form.placeholder.password': '请输入密码',
+  'app.rsync.client.form.placeholder.sshPrivateKey': '请输入 SSH 私钥内容',
+  'app.rsync.client.form.placeholder.remotePath':
+    '请输入远程路径，如 /data/backup',
+  'app.rsync.client.form.placeholder.remotePathInModule':
+    '请输入模块内路径，如 /subdir（可选）',
+  'app.rsync.client.form.placeholder.module': '请输入模块名',
+
+  // 提示信息
+  'app.rsync.client.message.fetchListFailed': '获取配置列表失败',
+  'app.rsync.client.message.createSuccess': '配置创建成功',
+  'app.rsync.client.message.createFailed': '配置创建失败',
+  'app.rsync.client.message.updateSuccess': '配置更新成功',
+  'app.rsync.client.message.updateFailed': '配置更新失败',
+  'app.rsync.client.message.deleteSuccess': '配置已删除',
+  'app.rsync.client.message.deleteFailed': '删除配置失败',
+  'app.rsync.client.message.testSuccess': '测试成功',
+  'app.rsync.client.message.testFailed': '测试失败',
+  'app.rsync.client.message.retrySuccess': '已重试',
+  'app.rsync.client.message.retryFailed': '重试失败',
+  'app.rsync.client.message.runSuccess': '任务已启动',
+  'app.rsync.client.message.runFailed': '启动任务失败',
+  'app.rsync.client.message.cancelSuccess': '已取消',
+  'app.rsync.client.message.cancelFailed': '取消失败',
+  'app.rsync.client.message.confirmDelete': '确定要删除此配置吗？',
+  'app.rsync.client.message.confirmCancel': '确定要取消此任务吗？',
+
+  // 日志
+  'app.rsync.client.logs.title': '任务日志',
+  'app.rsync.client.logs.button': '日志',
+  'app.rsync.client.logs.fetchFailed': '获取日志列表失败',
+  'app.rsync.client.logs.loadFailed': '加载日志内容失败',
+  'app.rsync.client.logs.loading': '加载中...',
+  'app.rsync.client.logs.empty': '暂无日志',
+  'app.rsync.client.logs.fileList': '日志文件',
+  'app.rsync.client.logs.selectFile': '请选择日志文件',
 };

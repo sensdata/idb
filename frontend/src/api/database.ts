@@ -15,6 +15,10 @@ import {
   RsyncTaskInfo,
   RsyncCreateTaskRequest,
   RsyncCreateTaskResponse,
+  RsyncClientTask,
+  RsyncClientCreateTaskRequest,
+  RsyncClientListTaskResponse,
+  RsyncClientTaskLogListResponse,
 } from '@/entity/Database';
 
 // ==================== MySQL API ====================
@@ -125,28 +129,72 @@ export function setRedisPasswordApi(data: DatabaseSetPasswordRequest) {
   return request.post('redis/{host}/password', data);
 }
 
-// ==================== Rsync API ====================
+// ==================== Transfer (Rsync) API ====================
 
 export function getRsyncTaskListApi(params: ApiListParams) {
-  return request.get<RsyncListTaskResponse>('rsync/task', params);
+  return request.get<RsyncListTaskResponse>('transfer/task', params);
 }
 
 export function getRsyncTaskDetailApi(params: { id: string }) {
-  return request.get<RsyncTaskInfo>('rsync/task/query', params);
+  return request.get<RsyncTaskInfo>('transfer/task/query', params);
 }
 
 export function createRsyncTaskApi(data: RsyncCreateTaskRequest) {
-  return request.post<RsyncCreateTaskResponse>('rsync/task', data);
+  return request.post<RsyncCreateTaskResponse>('transfer/task', data);
 }
 
 export function deleteRsyncTaskApi(params: { id: string }) {
-  return request.delete('rsync/task', params);
+  return request.delete('transfer/task', params);
 }
 
 export function cancelRsyncTaskApi(params: { id: string }) {
-  return request.post('rsync/task/cancel', undefined, { params });
+  return request.post('transfer/task/cancel', undefined, { params });
 }
 
 export function retryRsyncTaskApi(params: { id: string }) {
-  return request.post('rsync/task/retry', undefined, { params });
+  return request.post('transfer/task/retry', undefined, { params });
+}
+
+// ==================== Rsync Client API ====================
+
+export function getRsyncClientTaskListApi(params: ApiListParams) {
+  return request.get<RsyncClientListTaskResponse>('rsync/{host}/task', params);
+}
+
+export function getRsyncClientTaskDetailApi(params: { id: string }) {
+  return request.get<RsyncClientTask>('rsync/{host}/task/query', params);
+}
+
+export function createRsyncClientTaskApi(data: RsyncClientCreateTaskRequest) {
+  return request.post<RsyncCreateTaskResponse>('rsync/{host}/task', data);
+}
+
+export function deleteRsyncClientTaskApi(params: { id: string }) {
+  return request.delete('rsync/{host}/task', params);
+}
+
+export function cancelRsyncClientTaskApi(data: { id: string }) {
+  return request.post('rsync/{host}/task/cancel', data);
+}
+
+export function retryRsyncClientTaskApi(data: { id: string }) {
+  return request.post('rsync/{host}/task/retry', data);
+}
+
+export function testRsyncClientTaskApi(data: { id: string }) {
+  return request.post<{ id: string; path: string }>(
+    'rsync/{host}/task/test',
+    data
+  );
+}
+
+export function getRsyncClientTaskLogListApi(params: {
+  id: string;
+  page: number;
+  page_size: number;
+}) {
+  return request.get<RsyncClientTaskLogListResponse>(
+    'rsync/{host}/task/log',
+    params
+  );
 }

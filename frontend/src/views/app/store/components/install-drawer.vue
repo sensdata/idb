@@ -53,16 +53,31 @@
         </template>
       </template>
       <template v-if="formState.mode === 'yaml'">
-        <div style="width: 100%; height: 400px">
-          <code-editor
-            v-model="composeContent"
-            :tab-size="4"
-            :extensions="extensions"
-            :autofocus="true"
-            :indent-with-tab="true"
-            :file="yamlFile"
-          />
-        </div>
+        <a-tabs default-active-key="compose">
+          <a-tab-pane key="compose" title="docker-compose.yml">
+            <div style="width: 100%; height: 400px">
+              <code-editor
+                v-model="composeContent"
+                :tab-size="4"
+                :extensions="extensions"
+                :autofocus="true"
+                :indent-with-tab="true"
+                :file="yamlFile"
+              />
+            </div>
+          </a-tab-pane>
+          <a-tab-pane key="env" title=".env">
+            <div style="width: 100%; height: 400px">
+              <code-editor
+                v-model="envContent"
+                :tab-size="4"
+                :extensions="extensions"
+                :indent-with-tab="true"
+                :file="envFile"
+              />
+            </div>
+          </a-tab-pane>
+        </a-tabs>
       </template>
     </a-form>
   </a-drawer>
@@ -92,6 +107,12 @@
     path: '/tmp/docker-compose.yml',
   }));
 
+  // 创建 ENV 文件对象
+  const envFile = computed(() => ({
+    name: '.env',
+    path: '/tmp/.env',
+  }));
+
   const extensions = [StreamLanguage.define(yaml)];
 
   const formRef = ref();
@@ -118,6 +139,7 @@
   const appDetail = ref<AppEntity | null>(null);
   const dynamicFields = ref<AppFormField[]>([]);
   const composeContent = ref<string>('');
+  const envContent = ref<string>('');
   watch(
     () => formState.version_id,
     () => {
@@ -128,6 +150,7 @@
         (ver) => ver.id === formState.version_id
       );
       composeContent.value = v?.compose_content || '';
+      envContent.value = v?.env_content || '';
     }
   );
 
@@ -227,6 +250,7 @@
       version_id: formState.version_id,
       extra_params: [],
       compose_content: formState.mode === 'yaml' ? composeContent.value : '',
+      env_content: formState.mode === 'yaml' ? envContent.value : '',
       form_params:
         formState.mode === 'yaml'
           ? []
