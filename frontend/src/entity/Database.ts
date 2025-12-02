@@ -123,3 +123,56 @@ export interface RsyncDeleteTaskRequest {
 export interface RsyncRetryTaskRequest {
   id: string;
 }
+
+// Rsync 客户端相关类型
+export interface RsyncClientTask {
+  id: string;
+  name: string;
+  direction: 'remote_to_local' | 'local_to_remote';
+  local_path: string;
+  remote_type: 'ssh' | 'rsync';
+  remote_host: string;
+  remote_port: number;
+  username: string;
+  password?: string;
+  ssh_private_key?: string;
+  auth_mode: 'password' | 'anonymous' | 'private_key';
+  remote_path: string;
+  module?: string;
+  created_at: string;
+  updated_at: string;
+  state: string;
+  last_error?: string;
+  attempt: number;
+}
+
+export interface RsyncClientCreateTaskRequest {
+  name: string;
+  direction: 'remote_to_local' | 'local_to_remote';
+  local_path: string;
+  remote_type: 'ssh' | 'rsync';
+  remote_host: string;
+  remote_port: number;
+  username: string;
+  auth_mode: 'password' | 'anonymous' | 'private_key';
+  password?: string;
+  ssh_private_key?: string;
+  remote_path: string;
+  module?: string;
+  enqueue: boolean;
+}
+
+export interface RsyncClientListTaskResponse {
+  total: number;
+  tasks: RsyncClientTask[];
+}
+
+export interface RsyncTaskLog {
+  id: string;
+  path: string;
+}
+
+export interface RsyncClientTaskLogListResponse {
+  total: number;
+  logs: RsyncTaskLog[];
+}
