@@ -19,6 +19,7 @@
         :loading="loading"
         :data="tableData"
         :pagination="pagination"
+        row-key="id"
         @page-change="handlePageChange"
         @page-size-change="handlePageSizeChange"
       >
