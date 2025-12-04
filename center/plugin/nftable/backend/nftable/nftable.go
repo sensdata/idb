@@ -2445,19 +2445,40 @@ func generateNftRules(rules []model.PortRule) []string {
 		}
 
 		for _, rule := range portRule.Rules {
-			var line string
+			ipCond := ipExpr(rule)
+
+			var lineParts []string
+			lineParts = append(lineParts, "tcp dport", portExpr)
+
+			if ipCond != "" {
+				lineParts = append(lineParts, ipCond)
+			}
+
 			switch rule.Type {
 			case model.RuleRateLimit:
-				line = fmt.Sprintf("tcp dport %s ip saddr limit rate %s %s", portExpr, rule.Rate, rule.Action)
+				lineParts = append(lineParts, "limit rate", rule.Rate, rule.Action)
+
 			case model.RuleConcurrentLimit:
-				line = fmt.Sprintf("tcp dport %s ct count ip saddr over %d %s", portExpr, rule.Count, rule.Action)
+				lineParts = append(lineParts, "ct count ip saddr")
+				lineParts = append(lineParts, fmt.Sprintf("over %d", rule.Count))
+				lineParts = append(lineParts, rule.Action)
+
 			case model.RuleDefault:
-				line = fmt.Sprintf("tcp dport %s %s", portExpr, rule.Action)
+				lineParts = append(lineParts, rule.Action)
 			}
+
+			line := strings.Join(lineParts, " ")
 			output = append(output, line)
 		}
 	}
 	return output
+}
+
+func ipExpr(rule model.RuleItem) string {
+	if rule.SrcIP == "" {
+		return "" // 无 IP，不生成
+	}
+	return fmt.Sprintf("ip saddr %s", rule.SrcIP)
 }
 
 func (s *NFTable) deletePortRules(hostID uint, portStart, portEnd uint) error {

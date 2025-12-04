@@ -40,6 +40,7 @@ type RuleItem struct {
 	Rate   string `json:"rate,omitempty"`
 	Count  int    `json:"count,omitempty"`
 	Action string `json:"action" validate:"required,oneof=accept reject drop"`
+	SrcIP  string `json:"src_ip,omitempty"`
 }
 
 type PortRule struct {
