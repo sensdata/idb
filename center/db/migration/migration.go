@@ -26,6 +26,7 @@ func Init() {
 		AddTableSettings,
 		AddTableTimezone,
 		AddTableApp,
+		AddFieldAssetDirToAppVersion,
 		UpdateAppVersionNullableFields,
 	})
 	if err := m.Migrate(); err != nil {
@@ -301,23 +302,41 @@ var AddTableApp = &gormigrate.Migration{
 	},
 }
 
+var AddFieldAssetDirToAppVersion = &gormigrate.Migration{
+	ID: "20251210-add-field-assetdir-to-appversion",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Adding field AssetsDir to AppVersion table")
+
+		// 增加 AssetsDir 字段
+		if err := db.AutoMigrate(&model.AppVersion{}); err != nil {
+			return err
+		}
+
+		global.LOG.Info("Table AppVersion added field AssetsDir successfully")
+
+		return nil
+	},
+}
+
 var UpdateAppVersionNullableFields = &gormigrate.Migration{
 	ID: "20251210-update-appversion-nullable-fields",
 	Migrate: func(db *gorm.DB) error {
 		global.LOG.Info("Updating AppVersion nullable fields")
 
-		// 更新字段约束，移除not null
-		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "config_name"); err != nil {
-			return err
-		}
-		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "config_content"); err != nil {
-			return err
-		}
-		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "assets_dir"); err != nil {
+		if err := db.Exec(`
+			ALTER TABLE app_versions
+			MODIFY config_name varchar(128) NULL
+		`).Error; err != nil {
 			return err
 		}
 
-		global.LOG.Info("AppVersion nullable fields updated successfully")
+		if err := db.Exec(`
+			ALTER TABLE app_versions
+			MODIFY config_content longtext NULL
+		`).Error; err != nil {
+			return err
+		}
+
 		return nil
 	},
 }
