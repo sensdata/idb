@@ -831,7 +831,7 @@ func (s *AppService) installAppAsync(
 	if versionAssetsDir != "" && assetsDir != "" {
 		taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("upload assets to host %s, dir %s", host.Name, assetsDir))
 		// 上传 assets 目录到 host
-		err := conn.SSH.TransferDir(*host, taskId, assetsDir, filepath.Join(s.AppDir, appName), writer)
+		err := conn.SSH.TransferDir(*host, taskId, versionAssetsDir, assetsDir, writer)
 		if err != nil {
 			taskStatus(taskId, logstreamTypes.TaskStatusFailed)
 			taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("upload assets to host %s, dir %s failed: %v", host.Name, assetsDir, err))
