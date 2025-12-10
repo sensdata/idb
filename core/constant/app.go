@@ -63,4 +63,5 @@ const (
 	IDB_service_data_path      = "iDB_service_data_path"
 	IDB_service_log_path       = "iDB_service_log_path"
 	IDB_service_cert_path      = "iDB_service_cert_path"
+	IDB_service_assets_path    = "iDB_service_assets_path"
 )

@@ -149,7 +149,7 @@ func (b *BaseApi) InstallApp(c *gin.Context) {
 		ErrorWithData(c, constant.CodeFailed, err.Error(), result)
 		return
 	}
-	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
+	SuccessWithData(c, result)
 }
 
 // @Tags App
@@ -176,7 +176,7 @@ func (b *BaseApi) UninstallApp(c *gin.Context) {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
-	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
+	SuccessWithData(c, result)
 }
 
 // @Tags App
@@ -203,5 +203,5 @@ func (b *BaseApi) UpgradeApp(c *gin.Context) {
 		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
 		return
 	}
-	SuccessWithData(c, model.LogInfo{LogHost: uint(hostID), LogPath: result.Log})
+	SuccessWithData(c, result)
 }

@@ -10,4 +10,5 @@ type AppVersion struct {
 	EnvContent     string `gorm:"type:longtext;not null" json:"-"`
 	ConfigName     string `gorm:"type:varchar(128);not null" json:"-"`
 	ConfigContent  string `gorm:"type:longtext;not null" json:"-"`
+	AssetsDir      string `gorm:"type:varchar(256);not null" json:"-"`
 }

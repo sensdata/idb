@@ -3,6 +3,7 @@ package conn
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +36,7 @@ type ISSHService interface {
 	InstallAgent(host model.Host, taskId string, upgrade bool) error
 	UninstallAgent(host model.Host, taskId string) error
 	RestartAgent(host model.Host) error
+	TransferDir(host model.Host, taskId string, localDir string, remoteDir string, wp *writer.Writer) error
 }
 
 func NewSSHService() ISSHService {
@@ -463,6 +465,106 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 	taskLog(wp, types.LogLevelInfo, "Agent package transfer completed")
 
 	global.LOG.Info("File transferred successfully to %s", remotePath)
+	return nil
+}
+
+func (s *SSHService) TransferDir(host model.Host, taskId string, localDir string, remoteDir string, wp *writer.Writer) error {
+	// 检查并确保 SSH 连接存在
+	taskLog(wp, types.LogLevelInfo, "Checking SSH connection")
+	client, err := s.getClient(host)
+	if err != nil {
+		taskLog(wp, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return err
+	}
+	return s.transferDir(client, localDir, remoteDir, wp)
+}
+
+func (s *SSHService) transferDir(client *ssh.Client, localDir string, remoteDir string, wp *writer.Writer) error {
+	// 打开 SFTP 会话
+	sftpClient, err := sftp.NewClient(client)
+	if err != nil {
+		global.LOG.Error("failed to start SFTP session: %v", err)
+		return fmt.Errorf("failed to start SFTP session: %w", err)
+	}
+	defer sftpClient.Close()
+
+	// 确保远端目标目录存在
+	if err := sftpClient.MkdirAll(remoteDir); err != nil {
+		global.LOG.Error("failed to create remote dir %s: %v", remoteDir, err)
+		return fmt.Errorf("failed to create remote dir %s: %w", remoteDir, err)
+	}
+
+	taskLog(wp, types.LogLevelInfo,
+		fmt.Sprintf("Start transferring directory: %s -> %s", localDir, remoteDir))
+
+	// 遍历本地目录
+	err = filepath.WalkDir(localDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// 计算相对路径
+		relPath, err := filepath.Rel(localDir, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+
+		remotePath := filepath.ToSlash(filepath.Join(remoteDir, relPath))
+
+		if d.IsDir() {
+			// 创建远端目录
+			if err := sftpClient.MkdirAll(remotePath); err != nil {
+				return fmt.Errorf("failed to create remote directory %s: %w", remotePath, err)
+			}
+			return nil
+		}
+
+		// 处理普通文件
+		taskLog(wp, types.LogLevelInfo,
+			fmt.Sprintf("Transferring file: %s", relPath))
+
+		return transferSingleFile(sftpClient, path, remotePath)
+	})
+
+	if err != nil {
+		taskLog(wp, types.LogLevelError,
+			fmt.Sprintf("Directory transfer failed: %v", err))
+		return err
+	}
+
+	taskLog(wp, types.LogLevelInfo, "Directory transfer completed")
+	return nil
+}
+
+func transferSingleFile(
+	sftpClient *sftp.Client,
+	localPath string,
+	remotePath string,
+) error {
+
+	localFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to open local file %s: %w", localPath, err)
+	}
+	defer localFile.Close()
+
+	remoteFile, err := sftpClient.OpenFile(
+		remotePath,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create remote file %s: %w", remotePath, err)
+	}
+	defer remoteFile.Close()
+
+	if _, err := io.Copy(remoteFile, localFile); err != nil {
+		return fmt.Errorf("failed to copy file %s: %w", localPath, err)
+	}
+
 	return nil
 }
 

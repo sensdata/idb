@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/compose-spec/compose-go/loader"
 	"github.com/compose-spec/compose-go/types"
@@ -23,6 +24,8 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
+	logstreamTypes "github.com/sensdata/idb/core/logstream/pkg/types"
+	"github.com/sensdata/idb/core/logstream/pkg/writer"
 	core "github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"gopkg.in/yaml.v2"
@@ -38,9 +41,9 @@ type IAppService interface {
 	AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error)
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
 	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
-	AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error)
-	AppUninstall(hostID uint64, req core.UninstallApp) (*core.ComposeCreateResult, error)
-	AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error)
+	AppInstall(hostID uint64, req core.InstallApp) (*core.LogInfo, error)
+	AppUninstall(hostID uint64, req core.UninstallApp) (*core.LogInfo, error)
+	AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.LogInfo, error)
 }
 
 func NewIAppService() IAppService {
@@ -336,6 +339,14 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 				}
 			}
 
+			// assets (might not exist)
+			assetsDir := filepath.Join(versionDir, "assets")
+			if fileOp.Stat(assetsDir) {
+				appVersion.AssetsDir = assetsDir
+			} else {
+				appVersion.AssetsDir = ""
+			}
+
 			appVersions = append(appVersions, appVersion)
 		}
 	}
@@ -598,19 +609,17 @@ func (s *AppService) AppDetail(hostID uint64, req core.QueryAppDetail) (*core.Ap
 	return &appInfo, nil
 }
 
-func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.ComposeCreateResult, error) {
-	var result core.ComposeCreateResult
-
+func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.LogInfo, error) {
 	// 查找应用
 	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
 	if err != nil {
 		global.LOG.Error("App %d not found", req.ID)
-		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 	var form core.Form
 	if err := yaml.Unmarshal([]byte(app.FormContent), &form); err != nil {
 		global.LOG.Error("Failed to unmarshal app form data: %v", err)
-		return &result, fmt.Errorf("unmarshal form err: %v", err)
+		return nil, fmt.Errorf("unmarshal form err: %v", err)
 	}
 
 	// 使用传入的compose名称
@@ -623,7 +632,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	version, err := AppVersionRepo.Get(AppVersionRepo.WithByID(req.VersionID))
 	if err != nil {
 		global.LOG.Error("App version %d not found", req.VersionID)
-		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
 	var composeContent, envContent string
@@ -638,7 +647,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		envContent = version.EnvContent
 		envMap, err = godotenv.Unmarshal(envContent)
 		if err != nil {
-			return &result, fmt.Errorf("unmarshal env err : %v", err)
+			return nil, fmt.Errorf("unmarshal env err : %v", err)
 		}
 
 		// 字段规则
@@ -654,7 +663,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 			if !exists {
 				// 不存在，返回错误
 				global.LOG.Error("Invalid form key: %s", param.Key)
-				return &result, fmt.Errorf("invalid key: %s", param.Key)
+				return nil, fmt.Errorf("invalid key: %s", param.Key)
 			}
 
 			// 设置了校验规则
@@ -665,18 +674,18 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 					matched, err := regexp.MatchString(formField.Validation.Pattern, param.Value)
 					if err != nil {
 						global.LOG.Error("Invalid regex pattern: %v", err)
-						return &result, fmt.Errorf("invalid regex pattern for key %s: %v", param.Key, err)
+						return nil, fmt.Errorf("invalid regex pattern for key %s: %v", param.Key, err)
 					}
 					if !matched {
 						global.LOG.Error("Value %s does not match the required pattern for key %s", param.Value, param.Key)
-						return &result, fmt.Errorf("invalid value for key %s", param.Key)
+						return nil, fmt.Errorf("invalid value for key %s", param.Key)
 					}
 				}
 				// 设置了长度限制
 				if formField.Validation.MinLength >= 0 && formField.Validation.MaxLength != 0 && formField.Validation.MaxLength >= formField.Validation.MinLength {
 					if len(param.Value) < formField.Validation.MinLength || len(param.Value) > formField.Validation.MaxLength {
 						global.LOG.Error("Value %s does not have a valid length for key %s", param.Value, param.Key)
-						return &result, fmt.Errorf("invalid value for key %s", param.Key)
+						return nil, fmt.Errorf("invalid value for key %s", param.Key)
 					}
 				}
 				// 是数值类型，且设置了值大小
@@ -684,7 +693,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 					paramValue, err := strconv.Atoi(param.Value)
 					if err != nil || (paramValue < formField.Validation.MinValue || paramValue > formField.Validation.MaxValue) {
 						global.LOG.Error("Value %s is not valid number for key %s", param.Value, param.Key)
-						return &result, fmt.Errorf("invalid number value for key %s", param.Key)
+						return nil, fmt.Errorf("invalid number value for key %s", param.Key)
 					}
 				}
 			}
@@ -733,7 +742,7 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 
 		envMap, err = godotenv.Unmarshal(envContent)
 		if err != nil {
-			return &result, fmt.Errorf("unmarshal env err : %v", err)
+			return nil, fmt.Errorf("unmarshal env err : %v", err)
 		}
 	}
 
@@ -749,6 +758,87 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 		confContent = version.ConfigContent
 	}
 
+	// 处理assets目录
+	var assetsDir string
+	if assetsPath, exist := envMap[constant.IDB_service_assets_path]; exist {
+		assetsDir = assetsPath
+	}
+
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		return nil, constant.ErrHostNotFound
+	}
+
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		return nil, err
+	}
+
+	// 生成任务
+	task, err := global.LogStream.CreateTask(logstreamTypes.TaskTypeFile, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 异步安装
+	go func() {
+		err := s.installAppAsync(
+			&host,
+			task.ID,
+			appName,
+			composeContent,
+			envContent,
+			confPath,
+			confContent,
+			version.AssetsDir,
+			assetsDir)
+		if err != nil {
+			global.LOG.Error("Failed to install app %s to host %s: %v", appName, host.Name, err)
+		}
+	}()
+
+	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
+}
+
+func (s *AppService) installAppAsync(
+	host *model.Host,
+	taskId string,
+	appName string,
+	composeContent string,
+	envContent string,
+	confPath string,
+	confContent string,
+	versionAssetsDir string,
+	assetsDir string) error {
+
+	taskStatus(taskId, logstreamTypes.TaskStatusRunning)
+
+	var writer *writer.Writer
+	if taskId != "" {
+		w, err := global.LogStream.GetWriter(taskId)
+		if err != nil {
+			taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+			taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get log writer for task %s: %v", taskId, err))
+			return fmt.Errorf("failed to get log writer for task %s: %v", taskId, err)
+		}
+		writer = &w
+	}
+
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("install app %s to host %s begin", appName, host.Name))
+
+	// 处理 assets 目录
+	if versionAssetsDir != "" && assetsDir != "" {
+		taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("upload assets to host %s, dir %s", host.Name, assetsDir))
+		// 上传 assets 目录到 host
+		err := conn.SSH.TransferDir(*host, taskId, assetsDir, filepath.Join(s.AppDir, appName), writer)
+		if err != nil {
+			taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+			taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("upload assets to host %s, dir %s failed: %v", host.Name, assetsDir, err))
+			return err
+		}
+	}
+
 	// 发送compose create请求
 	composeCreate := core.ComposeCreate{
 		Name:           appName,
@@ -760,11 +850,13 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 	}
 	data, err := utils.ToJSONString(composeCreate)
 	if err != nil {
-		return &result, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("marshal compose create err: %v", err))
+		return err
 	}
 
 	actionRequest := core.HostAction{
-		HostID: uint(hostID),
+		HostID: host.ID,
 		Action: core.Action{
 			Action: core.Docker_Compose_Create,
 			Data:   data,
@@ -773,32 +865,55 @@ func (s *AppService) AppInstall(hostID uint64, req core.InstallApp) (*core.Compo
 
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action Docker_Compose_Create %v", err)
-		return &result, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to send action Docker_Compose_Create %v", err))
+		return err
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action Docker_Compose_Create failed")
-		return &result, fmt.Errorf("failed to create compose")
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("action Docker_Compose_Create failed: %s", actionResponse.Data))
+		return fmt.Errorf("failed to create compose: %s", actionResponse.Data)
 	}
-
-	err = utils.FromJSONString(actionResponse.Data, &result)
+	var composeCreateResult core.ComposeCreateResult
+	err = utils.FromJSONString(actionResponse.Data, &composeCreateResult)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to compose create result: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Error unmarshaling data to compose create result: %v", err))
+		return fmt.Errorf("json err: %v", err)
 	}
 
-	return &result, nil
+	// 更新任务状态为成功
+	taskStatus(taskId, logstreamTypes.TaskStatusSuccess)
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("install app %s to host %s success", appName, host.Name))
+	return nil
 }
 
-func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) (*core.ComposeCreateResult, error) {
-	var result core.ComposeCreateResult
+func taskLog(wp *writer.Writer, level logstreamTypes.LogLevel, message string) {
+	if wp != nil {
+		(*wp).Write(level, message, map[string]string{})
+	}
+}
+
+func taskStatus(taskId string, status logstreamTypes.TaskStatus) {
+	if taskId == "" {
+		return
+	}
+
+	// 延迟1秒更新状态
+	time.Sleep(time.Second)
+	if err := global.LogStream.UpdateTaskStatus(taskId, status); err != nil {
+		global.LOG.Error("Failed to update task status to %s : %v", status, err)
+	}
+}
+
+func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) (*core.LogInfo, error) {
 	composeRemove := core.ComposeRemove{
 		Name:    req.ComposeName,
 		WorkDir: s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeRemove)
 	if err != nil {
-		return &result, err
+		return nil, err
 	}
 	actionRequest := core.HostAction{
 		HostID: uint(hostID),
@@ -810,48 +925,47 @@ func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) (*core.C
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action Docker_Compose_Remove %v", err)
-		return &result, err
+		return nil, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		return nil, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
 
+	var result core.ComposeCreateResult
 	err = utils.FromJSONString(actionResponse.Data, &result)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to compose remove result: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return nil, fmt.Errorf("json err: %v", err)
 	}
 
-	return &result, nil
+	return &core.LogInfo{LogHost: uint(hostID), LogPath: result.Log}, nil
 }
 
-func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.ComposeCreateResult, error) {
-	var result core.ComposeCreateResult
-
+func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.LogInfo, error) {
 	// 查找应用
 	app, err := AppRepo.Get(AppRepo.WithByID(req.ID))
 	if err != nil {
 		global.LOG.Error("App %d not found", req.ID)
-		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 	var form core.Form
 	if err := yaml.Unmarshal([]byte(app.FormContent), &form); err != nil {
 		global.LOG.Error("Failed to unmarshal app form data: %v", err)
-		return &result, fmt.Errorf("unmarshal form err: %v", err)
+		return nil, fmt.Errorf("unmarshal form err: %v", err)
 	}
 
 	// 找版本
 	version, err := AppVersionRepo.Get(AppVersionRepo.WithByID(req.UpgradeVersionID))
 	if err != nil {
 		global.LOG.Error("App version %d not found", req.UpgradeVersionID)
-		return &result, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
+		return nil, errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
 	// 新版env
 	envMap, err := godotenv.Unmarshal(version.EnvContent)
 	if err != nil {
-		return &result, fmt.Errorf("unmarshal env err : %v", err)
+		return nil, fmt.Errorf("unmarshal env err : %v", err)
 	}
 
 	// 旧版env
@@ -862,7 +976,7 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.Compo
 	}
 	data, err := utils.ToJSONString(composeDetailReq)
 	if err != nil {
-		return &result, err
+		return nil, err
 	}
 	actionRequest := core.HostAction{
 		HostID: uint(hostID),
@@ -874,20 +988,20 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.Compo
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action Docker_Compose_Detail %v", err)
-		return &result, err
+		return nil, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Detail failed")
-		return &result, fmt.Errorf("failed to query compose detail")
+		return nil, fmt.Errorf("failed to query compose detail")
 	}
 	err = utils.FromJSONString(actionResponse.Data, &composeDetailRsp)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to compose detail result: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return nil, fmt.Errorf("json err: %v", err)
 	}
 	oldEnvMap, err := godotenv.Unmarshal(composeDetailRsp.EnvContent)
 	if err != nil {
-		return &result, fmt.Errorf("unmarshal env err : %v", err)
+		return nil, fmt.Errorf("unmarshal env err : %v", err)
 	}
 
 	// 合并env，旧值覆盖
@@ -925,7 +1039,7 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.Compo
 	}
 	data, err = utils.ToJSONString(composeUpgrade)
 	if err != nil {
-		return &result, err
+		return nil, err
 	}
 
 	actionRequest = core.HostAction{
@@ -938,18 +1052,18 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.Compo
 	actionResponse, err = conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
 		global.LOG.Error("Failed to send action Docker_Compose_Upgrade %v", err)
-		return &result, err
+		return nil, err
 	}
 	if !actionResponse.Result {
 		global.LOG.Error("action Docker_Compose_Upgrade failed")
-		return &result, fmt.Errorf("failed to upgrade compose: %s", actionResponse.Data)
+		return nil, fmt.Errorf("failed to upgrade compose: %s", actionResponse.Data)
 	}
-
+	var result core.ComposeCreateResult
 	err = utils.FromJSONString(actionResponse.Data, &result)
 	if err != nil {
 		global.LOG.Error("Error unmarshaling data to compose upgrade result: %v", err)
-		return &result, fmt.Errorf("json err: %v", err)
+		return nil, fmt.Errorf("json err: %v", err)
 	}
 
-	return &result, nil
+	return &core.LogInfo{LogHost: uint(hostID), LogPath: result.Log}, nil
 }
