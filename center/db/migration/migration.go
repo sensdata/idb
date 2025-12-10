@@ -26,6 +26,7 @@ func Init() {
 		AddTableSettings,
 		AddTableTimezone,
 		AddTableApp,
+		UpdateAppVersionNullableFields,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -296,6 +297,27 @@ var AddTableApp = &gormigrate.Migration{
 			return err
 		}
 		global.LOG.Info("Table App added successfully")
+		return nil
+	},
+}
+
+var UpdateAppVersionNullableFields = &gormigrate.Migration{
+	ID: "20251210-update-appversion-nullable-fields",
+	Migrate: func(db *gorm.DB) error {
+		global.LOG.Info("Updating AppVersion nullable fields")
+
+		// 更新字段约束，移除not null
+		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "config_name"); err != nil {
+			return err
+		}
+		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "config_content"); err != nil {
+			return err
+		}
+		if err := db.Migrator().AlterColumn(&model.AppVersion{}, "assets_dir"); err != nil {
+			return err
+		}
+
+		global.LOG.Info("AppVersion nullable fields updated successfully")
 		return nil
 	},
 }
