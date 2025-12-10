@@ -8,7 +8,7 @@ type AppVersion struct {
 	UpdateVersion  string `gorm:"type:varchar(6);not null" json:"-"`
 	ComposeContent string `gorm:"type:longtext;not null" json:"-"`
 	EnvContent     string `gorm:"type:longtext;not null" json:"-"`
-	ConfigName     string `gorm:"type:varchar(128);not null" json:"-"`
-	ConfigContent  string `gorm:"type:longtext;not null" json:"-"`
-	AssetsDir      string `gorm:"type:varchar(256);not null" json:"-"`
+	ConfigName     string `gorm:"type:varchar(128)" json:"-"`
+	ConfigContent  string `gorm:"type:longtext" json:"-"`
+	AssetsDir      string `gorm:"type:varchar(256)" json:"-"`
 }
