@@ -337,6 +337,9 @@ func loadVersions(appId uint, appDir string) ([]model.AppVersion, error) {
 						appVersion.ConfigContent = string(confByte)
 					}
 				}
+			} else {
+				appVersion.ConfigName = ""
+				appVersion.ConfigContent = ""
 			}
 
 			// assets (might not exist)
