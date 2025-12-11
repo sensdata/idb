@@ -885,10 +885,60 @@ func (s *AppService) installAppAsync(
 		return fmt.Errorf("json err: %v", err)
 	}
 
+	// 获取 result log
+	resultLog, err := s.getFileContent(host.ID, composeCreateResult.Log)
+	if err != nil {
+		// 此处只记录
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get compose create result log %v", err))
+	}
+	// 把远端执行的日志也记录下来
+	if resultLog != nil {
+		taskLog(writer, logstreamTypes.LogLevelInfo, resultLog.Content)
+	}
+
 	// 更新任务状态为成功
 	taskStatus(taskId, logstreamTypes.TaskStatusSuccess)
 	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("install app %s to host %s success", appName, host.Name))
 	return nil
+}
+
+func (s *AppService) getFileContent(hostID uint, path string) (*core.FileInfo, error) {
+	fileContentReq := core.FileContentReq{
+		Path:   path,
+		Expand: true,
+	}
+
+	data, err := utils.ToJSONString(fileContentReq)
+	if err != nil {
+		return nil, err
+	}
+
+	actionRequest := core.HostAction{
+		HostID: hostID,
+		Action: core.Action{
+			Action: core.File_Content,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if !actionResponse.Result {
+		global.LOG.Error("action failed")
+		return nil, fmt.Errorf("failed to get file content")
+	}
+
+	var info core.FileInfo
+	err = utils.FromJSONString(actionResponse.Data, &info)
+	if err != nil {
+		global.LOG.Error("Error unmarshaling data to file content: %v", err)
+		return nil, fmt.Errorf("json err: %v", err)
+	}
+
+	return &info, nil
 }
 
 func taskLog(wp *writer.Writer, level logstreamTypes.LogLevel, message string) {
@@ -910,39 +960,111 @@ func taskStatus(taskId string, status logstreamTypes.TaskStatus) {
 }
 
 func (s *AppService) AppUninstall(hostID uint64, req core.UninstallApp) (*core.LogInfo, error) {
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		return nil, constant.ErrHostNotFound
+	}
+
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		return nil, err
+	}
+
+	// 生成任务
+	task, err := global.LogStream.CreateTask(logstreamTypes.TaskTypeFile, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 异步卸载
+	go func() {
+		err := s.uninstallAppAsync(
+			&host,
+			task.ID,
+			req.ComposeName,
+		)
+		if err != nil {
+			global.LOG.Error("Failed to uninstall app %s in host %s: %v", req.ComposeName, host.Name, err)
+		}
+	}()
+
+	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
+}
+
+func (s *AppService) uninstallAppAsync(
+	host *model.Host,
+	taskId string,
+	composeName string,
+) error {
+
+	taskStatus(taskId, logstreamTypes.TaskStatusRunning)
+
+	var writer *writer.Writer
+	if taskId != "" {
+		w, err := global.LogStream.GetWriter(taskId)
+		if err != nil {
+			taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+			taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get log writer for task %s: %v", taskId, err))
+			return fmt.Errorf("failed to get log writer for task %s: %v", taskId, err)
+		}
+		writer = &w
+	}
+
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("uninstall app %s in host %s begin", composeName, host.Name))
+
 	composeRemove := core.ComposeRemove{
-		Name:    req.ComposeName,
+		Name:    composeName,
 		WorkDir: s.AppDir,
 	}
 	data, err := utils.ToJSONString(composeRemove)
 	if err != nil {
-		return nil, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("marshal compose remove err: %v", err))
+		return err
 	}
 	actionRequest := core.HostAction{
-		HostID: uint(hostID),
+		HostID: host.ID,
 		Action: core.Action{
 			Action: core.Docker_Compose_Remove,
 			Data:   data,
 		},
 	}
+
 	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action Docker_Compose_Remove %v", err)
-		return nil, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to send action Docker_Compose_Remove %v", err))
+		return err
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action Docker_Compose_Remove failed")
-		return nil, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("action Docker_Compose_Remove failed: %s", actionResponse.Data))
+		return fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
 	}
 
-	var result core.ComposeCreateResult
-	err = utils.FromJSONString(actionResponse.Data, &result)
+	var composeCreateResult core.ComposeCreateResult
+	err = utils.FromJSONString(actionResponse.Data, &composeCreateResult)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to compose remove result: %v", err)
-		return nil, fmt.Errorf("json err: %v", err)
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Error unmarshaling data to compose remove result: %v", err))
+		return err
 	}
 
-	return &core.LogInfo{LogHost: uint(hostID), LogPath: result.Log}, nil
+	// 获取 result log
+	resultLog, err := s.getFileContent(host.ID, composeCreateResult.Log)
+	if err != nil {
+		// 此处只记录
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get compose remove result log %v", err))
+	}
+	// 把远端执行的日志也记录下来
+	if resultLog != nil {
+		taskLog(writer, logstreamTypes.LogLevelInfo, resultLog.Content)
+	}
+	// 记录成功
+	taskStatus(taskId, logstreamTypes.TaskStatusSuccess)
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("uninstall app %s in host %s success", composeName, host.Name))
+	return nil
 }
 
 func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.LogInfo, error) {
@@ -1032,41 +1154,122 @@ func (s *AppService) AppUpgrade(hostID uint64, req core.UpgradeApp) (*core.LogIn
 		confContent = version.ConfigContent
 	}
 
+	// 找host
+	host, err := HostRepo.Get(HostRepo.WithByID(uint(hostID)))
+	if err != nil {
+		return nil, constant.ErrHostNotFound
+	}
+
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		return nil, err
+	}
+
+	// 生成任务
+	task, err := global.LogStream.CreateTask(logstreamTypes.TaskTypeFile, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 异步升级
+	go func() {
+		err := s.upgradeAppAsync(
+			&host,
+			task.ID,
+			req.ComposeName,
+			composeContent,
+			envContent,
+			confPath,
+			confContent,
+		)
+		if err != nil {
+			global.LOG.Error("Failed to upgrade app %s to host %s: %v", req.ComposeName, host.Name, err)
+		}
+	}()
+
+	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
+}
+
+func (s *AppService) upgradeAppAsync(
+	host *model.Host,
+	taskId string,
+	composeName string,
+	composeContent string,
+	envContent string,
+	confPath string,
+	confContent string,
+) error {
+	taskStatus(taskId, logstreamTypes.TaskStatusRunning)
+
+	var writer *writer.Writer
+	if taskId != "" {
+		w, err := global.LogStream.GetWriter(taskId)
+		if err != nil {
+			taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+			taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get log writer for task %s: %v", taskId, err))
+			return fmt.Errorf("failed to get log writer for task %s: %v", taskId, err)
+		}
+		writer = &w
+	}
+
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("upgrade app %s to host %s begin", composeName, host.Name))
+
+	// 发送compose upgrade请求
 	composeUpgrade := core.ComposeUpgrade{
-		Name:           req.ComposeName,
+		Name:           composeName,
 		ComposeContent: composeContent,
 		EnvContent:     envContent,
 		ConfContent:    confContent,
 		ConfPath:       confPath,
 		WorkDir:        s.AppDir,
 	}
-	data, err = utils.ToJSONString(composeUpgrade)
+	data, err := utils.ToJSONString(composeUpgrade)
 	if err != nil {
-		return nil, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("marshal compose upgrade err: %v", err))
+		return err
 	}
 
-	actionRequest = core.HostAction{
-		HostID: uint(hostID),
+	actionRequest := core.HostAction{
+		HostID: uint(host.ID),
 		Action: core.Action{
 			Action: core.Docker_Compose_Upgrade,
 			Data:   data,
 		},
 	}
-	actionResponse, err = conn.CENTER.ExecuteAction(actionRequest)
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
 	if err != nil {
-		global.LOG.Error("Failed to send action Docker_Compose_Upgrade %v", err)
-		return nil, err
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to send action Docker_Compose_Upgrade %v", err))
+		return err
 	}
 	if !actionResponse.Result {
-		global.LOG.Error("action Docker_Compose_Upgrade failed")
-		return nil, fmt.Errorf("failed to upgrade compose: %s", actionResponse.Data)
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("action Docker_Compose_Upgrade failed: %s", actionResponse.Data))
+		return fmt.Errorf("failed to upgrade compose: %s", actionResponse.Data)
 	}
-	var result core.ComposeCreateResult
-	err = utils.FromJSONString(actionResponse.Data, &result)
+	var composeCreateResult core.ComposeCreateResult
+	err = utils.FromJSONString(actionResponse.Data, &composeCreateResult)
 	if err != nil {
-		global.LOG.Error("Error unmarshaling data to compose upgrade result: %v", err)
-		return nil, fmt.Errorf("json err: %v", err)
+		taskStatus(taskId, logstreamTypes.TaskStatusFailed)
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Error unmarshaling data to compose upgrade result: %v", err))
+		return fmt.Errorf("json err: %v", err)
 	}
 
-	return &core.LogInfo{LogHost: uint(hostID), LogPath: result.Log}, nil
+	// 获取 result log
+	resultLog, err := s.getFileContent(host.ID, composeCreateResult.Log)
+	if err != nil {
+		// 此处只记录
+		taskLog(writer, logstreamTypes.LogLevelError, fmt.Sprintf("Failed to get compose upgrade result log %v", err))
+	}
+	// 把远端执行的日志也记录下来
+	if resultLog != nil {
+		taskLog(writer, logstreamTypes.LogLevelInfo, resultLog.Content)
+	}
+
+	// 升级成功
+	taskStatus(taskId, logstreamTypes.TaskStatusSuccess)
+	taskLog(writer, logstreamTypes.LogLevelInfo, fmt.Sprintf("upgrade app %s to host %s success", composeName, host.Name))
+	return nil
 }
