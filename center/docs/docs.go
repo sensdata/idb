@@ -5034,6 +5034,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/home/{host}/managed/apps": {
+            "get": {
+                "description": "Get managed app list",
+                "tags": [
+                    "Home"
+                ],
+                "summary": "Get managed app list",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Host ID",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.PageResult"
+                        }
+                    }
+                }
+            }
+        },
         "/hosts": {
             "get": {
                 "description": "get host list",
@@ -16748,6 +16774,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "rate": {
+                    "type": "string"
+                },
+                "src_ip": {
                     "type": "string"
                 },
                 "type": {

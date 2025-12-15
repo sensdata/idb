@@ -1954,6 +1954,8 @@ definitions:
         type: integer
       rate:
         type: string
+      src_ip:
+        type: string
       type:
         enum:
         - rate_limit
@@ -6048,6 +6050,23 @@ paths:
       summary: update group
       tags:
       - Group
+  /home/{host}/managed/apps:
+    get:
+      description: Get managed app list
+      parameters:
+      - description: Host ID
+        in: path
+        name: host
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PageResult'
+      summary: Get managed app list
+      tags:
+      - Home
   /hosts:
     delete:
       consumes:
