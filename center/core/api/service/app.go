@@ -40,6 +40,7 @@ type IAppService interface {
 	RemoveApp(req core.RemoveApp) error
 	AppPage(hostID uint64, req core.QueryApp) (*core.PageResult, error)
 	InstalledAppPage(hostID uint64, req core.QueryInstalledApp) (*core.PageResult, error)
+	ManagedApps(hostID uint64) (*core.PageResult, error)
 	AppDetail(hostID uint64, req core.QueryAppDetail) (*core.App, error)
 	AppInstall(hostID uint64, req core.InstallApp) (*core.LogInfo, error)
 	AppUninstall(hostID uint64, req core.UninstallApp) (*core.LogInfo, error)
@@ -521,6 +522,107 @@ func (s *AppService) InstalledAppPage(hostID uint64, req core.QueryInstalledApp)
 	}
 	result.Total = int64(total)
 	result.Items = BackDatas
+
+	return &result, nil
+}
+
+func (s *AppService) ManagedApps(hostID uint64) (*core.PageResult, error) {
+	var result core.PageResult
+
+	composeInfos, err := s.composePageInHost(uint(hostID), "", "", s.AppDir)
+	if err != nil {
+		global.LOG.Error("Error query compose in host %d, %v", hostID, err)
+		return &result, err
+	}
+
+	// 遍历 ComposeInfo 查询对应的 App
+	var (
+		apps       []core.App
+		managedMap map[string]struct{} = map[string]struct{}{
+			"mysql":      {},
+			"mariadb":    {},
+			"redis":      {},
+			"phpmyadmin": {},
+		}
+	)
+	for _, compose := range composeInfos {
+		// 筛选管理应用
+		if _, ok := managedMap[compose.IdbName]; !ok {
+			continue
+		}
+
+		// 查询App
+		appData, err := AppRepo.Get(AppRepo.WithByName(compose.IdbName))
+		if err != nil {
+			global.LOG.Error("Error query app %s, %v", compose.IdbName, err)
+			continue
+		}
+		// 查询版本信息
+		appVersions, err := AppVersionRepo.GetList(AppVersionRepo.WithByAppID(appData.ID))
+		if err != nil {
+			global.LOG.Error("Error query app %s version, %v", compose.IdbName, err)
+			continue
+		}
+
+		composeUpdVersion, err := strconv.Atoi(compose.IdbUpdateVersion)
+		if err != nil {
+			global.LOG.Error("Failed to convert Compose update version: %v", err)
+			composeUpdVersion = 0
+		}
+		hasUpgrade := false
+		status := "uninstalled"
+		var versions []core.AppVersion
+		for _, appVersion := range appVersions {
+			v := core.AppVersion{
+				ID:             appVersion.ID,
+				Version:        appVersion.Version,
+				UpdateVersion:  appVersion.UpdateVersion,
+				ComposeContent: appVersion.ComposeContent,
+				EnvContent:     appVersion.EnvContent,
+				Status:         "uninstalled",
+				CreatedAt:      "",
+				CanUpgrade:     false,
+			}
+
+			if appVersion.Version == compose.IdbVersion {
+				status = "installed"
+				v.Status = "installed"
+				v.CreatedAt = compose.CreatedAt
+			}
+
+			dbUpdVersion, err := strconv.Atoi(appVersion.UpdateVersion)
+			if err != nil {
+				global.LOG.Error("Failed to convert DB update version: %v", err)
+				dbUpdVersion = 0
+			}
+			v.CanUpgrade = dbUpdVersion > composeUpdVersion
+			if v.CanUpgrade {
+				hasUpgrade = true
+			}
+
+			versions = append(versions, v)
+		}
+
+		apps = append(apps, core.App{
+			ID:             appData.ID,
+			Type:           constant.TYPE_APP,
+			Name:           compose.Name,
+			DisplayName:    appData.DisplayName,
+			Category:       appData.Category,
+			Tags:           strings.Split(appData.Tags, ","),
+			Title:          appData.Title,
+			Description:    appData.Description,
+			Vendor:         core.NameUrl{Name: appData.Vendor, Url: appData.VendorUrl},
+			Packager:       core.NameUrl{Name: appData.Packager, Url: appData.PackagerUrl},
+			HasUpgrade:     hasUpgrade,
+			Versions:       versions,
+			CurrentVersion: fmt.Sprintf("%s.%s", compose.IdbVersion, compose.IdbUpdateVersion),
+			Status:         status,
+		})
+	}
+
+	result.Total = int64(len(apps))
+	result.Items = apps
 
 	return &result, nil
 }
