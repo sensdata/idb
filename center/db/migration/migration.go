@@ -27,7 +27,6 @@ func Init() {
 		AddTableTimezone,
 		AddTableApp,
 		AddFieldAssetDirToAppVersion,
-		UpdateAppVersionNullableFields,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error("migration error: %v", err)
@@ -313,29 +312,6 @@ var AddFieldAssetDirToAppVersion = &gormigrate.Migration{
 		}
 
 		global.LOG.Info("Table AppVersion added field AssetsDir successfully")
-
-		return nil
-	},
-}
-
-var UpdateAppVersionNullableFields = &gormigrate.Migration{
-	ID: "20251210-update-appversion-nullable-fields",
-	Migrate: func(db *gorm.DB) error {
-		global.LOG.Info("Updating AppVersion nullable fields")
-
-		if err := db.Exec(`
-			ALTER TABLE app_versions
-			MODIFY config_name varchar(128) NULL
-		`).Error; err != nil {
-			return err
-		}
-
-		if err := db.Exec(`
-			ALTER TABLE app_versions
-			MODIFY config_content longtext NULL
-		`).Error; err != nil {
-			return err
-		}
 
 		return nil
 	},
