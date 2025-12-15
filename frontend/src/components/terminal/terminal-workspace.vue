@@ -27,6 +27,7 @@
         <div class="terminal-container">
           <!-- 右上角操作按钮 -->
           <div class="terminal-actions">
+            <common-commands-popover @select="handleCommandSelect" />
             <a-button
               type="text"
               size="small"
@@ -153,6 +154,7 @@
   import TerminalTabTitle from './components/terminal-tab-title.vue';
   import LoadingState from './components/loading-state.vue';
   import EmptyState from './components/empty-state.vue';
+  import CommonCommandsPopover from './components/common-commands-popover.vue';
   import { MsgType } from './type';
   import {
     useTerminalTabs,
@@ -168,6 +170,7 @@
   const {
     terms,
     activeKey,
+    activeItem,
     addItem,
     removeItem,
     focus,
@@ -200,6 +203,20 @@
       // 切换折叠状态后，refit 当前激活终端，适配新的宽度
       focus();
     });
+  }
+
+  // 处理常用命令选择
+  function handleCommandSelect(command: string, autoExecute: boolean) {
+    const terminal = activeItem.value?.termRef;
+    if (terminal?.sendWsMsg) {
+      // 发送命令到终端（如果 autoExecute 为 true 则添加换行符自动执行）
+      terminal.sendWsMsg({
+        type: MsgType.Cmd,
+        data: autoExecute ? `${command}\n` : command,
+      });
+      // 聚焦终端
+      terminal.focus?.();
+    }
   }
 
   // 计算属性
@@ -575,8 +592,8 @@
       focus();
       // 使用 requestAnimationFrame 确保终端完全显示后再次适配尺寸
       requestAnimationFrame(() => {
-        const activeItem = terms.value.find((item) => item.key === val);
-        activeItem?.termRef?.forceRefit?.();
+        const currentItem = terms.value.find((item) => item.key === val);
+        currentItem?.termRef?.forceRefit?.();
       });
     });
   });

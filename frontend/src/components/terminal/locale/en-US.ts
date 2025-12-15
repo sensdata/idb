@@ -92,4 +92,7 @@ export default {
     'Terminal tab limit reached (max: {max}). Please close some tabs first.',
   'components.terminal.session.sessionsRestored':
     'Restored {count} terminal sessions',
+
+  // Common Commands
+  'components.terminal.commands.title': 'Common Commands',
 };

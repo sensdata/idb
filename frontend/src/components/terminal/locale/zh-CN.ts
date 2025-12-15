@@ -82,4 +82,7 @@ export default {
   'components.terminal.session.tabLimitReached':
     '终端标签页数量已达上限（最多 {max} 个），请先关闭一些标签页。',
   'components.terminal.session.sessionsRestored': '已恢复 {count} 个终端会话',
+
+  // 常用命令
+  'components.terminal.commands.title': '常用命令',
 };
