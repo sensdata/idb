@@ -41,6 +41,13 @@ type Center struct {
 	fileResponseChMap map[string]chan *message.FileMessage
 	awsMap            map[string]*AgentWebSocketSession
 	sessionTokenMap   map[string]string // 缓存session是否被占用
+	hostStates        map[uint]*hostConnState
+	hostStateMu       sync.Mutex
+}
+
+type hostConnState struct {
+	connecting  bool
+	lastAttempt time.Time
 }
 
 type ICenter interface {
@@ -71,6 +78,8 @@ func NewCenter() ICenter {
 		fileResponseChMap: make(map[string]chan *message.FileMessage),
 		awsMap:            make(map[string]*AgentWebSocketSession),
 		sessionTokenMap:   make(map[string]string),
+		hostStates:        make(map[uint]*hostConnState),
+		hostStateMu:       sync.Mutex{},
 	}
 }
 
@@ -312,6 +321,28 @@ func (c *Center) ensureConnections() {
 func (c *Center) handleHost(host *model.Host) {
 	global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
 
+	c.hostStateMu.Lock()
+	st := c.hostStates[host.ID]
+	if st == nil {
+		st = &hostConnState{}
+		c.hostStates[host.ID] = st
+	}
+
+	if st.connecting {
+		c.hostStateMu.Unlock()
+		return
+	}
+
+	st.connecting = true
+	st.lastAttempt = time.Now()
+	c.hostStateMu.Unlock()
+
+	defer func() {
+		c.hostStateMu.Lock()
+		st.connecting = false
+		c.hostStateMu.Unlock()
+	}()
+
 	// 查找agent conn
 	conn, err := c.getAgentConn(host)
 	if err != nil || conn == nil {
@@ -319,6 +350,14 @@ func (c *Center) handleHost(host *model.Host) {
 		resultCh := make(chan error, 1)
 		c.connectToAgent(host, resultCh)
 	}
+}
+
+func (c *Center) handleHostByID(id uint) {
+	host, err := HostRepo.Get(HostRepo.WithByID(id))
+	if err != nil || host.ID == 0 {
+		return
+	}
+	c.handleHost(&host)
 }
 
 func getAuthPlugin() (shared.Auth, error) {
@@ -595,6 +634,13 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in handleConnection: %v", r)
+		}
+
+		select {
+		case <-c.done:
+			// Center 正在退出，不再触发重连
+		default:
+			go c.handleHostByID(host.ID)
 		}
 	}()
 

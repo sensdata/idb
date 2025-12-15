@@ -3209,7 +3209,7 @@ func (a *Agent) sendActionResult(conn net.Conn, msgID string, action *model.Acti
 
 	err = message.SendMessage(conn, cmdRspMsg)
 	if err != nil {
-		global.LOG.Error("Failed to send cmd rsp message: %v", err)
+		global.LOG.Error("Failed to send action rsp message: %v", err)
 		a.resetConnection()
 	}
 }
