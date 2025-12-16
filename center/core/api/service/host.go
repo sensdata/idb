@@ -169,6 +169,7 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 				AgentVersion: host.AgentVersion,
 				AgentStatus:  *agentStatus,
 				AgentLatest:  latestVersion,
+				CanUpgrade:   host.AgentVersion != latestVersion,
 			},
 		)
 	}
@@ -183,7 +184,7 @@ func getAgentLatest() string {
 	version, err := os.ReadFile(latestPath)
 	if err != nil {
 		global.LOG.Error("Failed to read latest version: %v", err)
-		latestVersion = ""
+		latestVersion = global.Version
 	} else {
 		latestVersion = strings.TrimSpace(string(version))
 	}
