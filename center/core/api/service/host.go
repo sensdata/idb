@@ -325,17 +325,18 @@ func (s *HostService) StatusFollow(c *gin.Context) error {
 				continue
 			}
 			statusList = append(statusList, &core.HostStatusDTO{
-				ID:        uint(id),
-				Installed: status.Installed,
-				Connected: status.Connected,
-				Activated: status.Activated,
-				Cpu:       status.Cpu,
-				Memory:    status.Memory,
-				MemTotal:  status.MemTotal,
-				MemUsed:   status.MemUsed,
-				Disk:      status.Disk,
-				Rx:        status.Rx,
-				Tx:        status.Tx,
+				ID:         uint(id),
+				Installed:  status.Installed,
+				Connected:  status.Connected,
+				Activated:  status.Activated,
+				CanUpgrade: status.CanUpgrade,
+				Cpu:        status.Cpu,
+				Memory:     status.Memory,
+				MemTotal:   status.MemTotal,
+				MemUsed:    status.MemUsed,
+				Disk:       status.Disk,
+				Rx:         status.Rx,
+				Tx:         status.Tx,
 			})
 		}
 		c.SSEvent("status", statusList)

@@ -134,15 +134,16 @@ func NewHostStatusInfo() *HostStatusInfo {
 }
 
 type HostStatusDTO struct {
-	ID        uint    `json:"id"`
-	Installed string  `json:"installed"`
-	Connected string  `json:"connected"`
-	Activated bool    `json:"activated"`
-	Cpu       float64 `json:"cpu"`
-	Memory    float64 `json:"mem"`
-	MemTotal  string  `json:"mem_total"` //总可用 = 物理内存 - 内核占用
-	MemUsed   string  `json:"mem_used"`  //已使用 = 进程占用 + 缓冲区 + 缓存区
-	Disk      float64 `json:"disk"`
-	Rx        float64 `json:"rx"` //接收实时速率
-	Tx        float64 `json:"tx"` //发送实时速率
+	ID         uint    `json:"id"`
+	Installed  string  `json:"installed"`
+	Connected  string  `json:"connected"`
+	Activated  bool    `json:"activated"`
+	CanUpgrade bool    `json:"can_upgrade"`
+	Cpu        float64 `json:"cpu"`
+	Memory     float64 `json:"mem"`
+	MemTotal   string  `json:"mem_total"` //总可用 = 物理内存 - 内核占用
+	MemUsed    string  `json:"mem_used"`  //已使用 = 进程占用 + 缓冲区 + 缓存区
+	Disk       float64 `json:"disk"`
+	Rx         float64 `json:"rx"` //接收实时速率
+	Tx         float64 `json:"tx"` //发送实时速率
 }
