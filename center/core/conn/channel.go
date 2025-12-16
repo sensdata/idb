@@ -706,21 +706,28 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 
 func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
 	global.LOG.Info("Check agent update for host %s", host.AgentAddr)
+	if !c.canAgentUpgrade(agentVersion) {
+		return
+	}
+	SSH.InstallAgent(*host, "", true)
+}
+
+func (c *Center) canAgentUpgrade(agentVersion string) bool {
 	// latestVersion 通过读取文件 /var/lib/idb/agent/idb-agent.version 来获得
 	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
 	var latestVersion string
 	version, err := os.ReadFile(latestPath)
 	if err != nil {
 		global.LOG.Error("Failed to read latest version: %v", err)
-		latestVersion = ""
+		latestVersion = global.Version
 	} else {
 		latestVersion = strings.TrimSpace(string(version))
 	}
 	if agentVersion == latestVersion {
 		global.LOG.Info("Agent is up to date")
-		return
+		return false
 	}
-	SSH.InstallAgent(*host, "", true)
+	return true
 }
 
 func (c *Center) removeAgent(host *model.Host) {
@@ -756,16 +763,17 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		default:
 			// 保存信息
 			hostStatusInfo := &core.HostStatusInfo{
-				Installed: "installed",
-				Connected: "online",
-				Activated: heartbeat.Activated,
-				Cpu:       heartbeat.Cpu,
-				Memory:    heartbeat.Memory,
-				MemTotal:  heartbeat.MemTotal,
-				MemUsed:   heartbeat.MemUsed,
-				Disk:      heartbeat.Disk,
-				Rx:        heartbeat.Rx,
-				Tx:        heartbeat.Tx,
+				Installed:  "installed",
+				Connected:  "online",
+				Activated:  heartbeat.Activated,
+				CanUpgrade: msg.Version != global.Version,
+				Cpu:        heartbeat.Cpu,
+				Memory:     heartbeat.Memory,
+				MemTotal:   heartbeat.MemTotal,
+				MemUsed:    heartbeat.MemUsed,
+				Disk:       heartbeat.Disk,
+				Rx:         heartbeat.Rx,
+				Tx:         heartbeat.Tx,
 			}
 			global.SetHostStatus(host.ID, hostStatusInfo)
 			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)

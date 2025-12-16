@@ -161,8 +161,6 @@ func taskStatus(taskId string, status types.TaskStatus) {
 }
 
 func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) error {
-	// 不管安装或者升级，都重置一次host状态
-	global.SetHostStatus(host.ID, core.NewHostStatusInfo())
 
 	taskStatus(taskId, types.TaskStatusRunning)
 
@@ -258,16 +256,17 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Install agent to host %s completed", host.Addr))
 	taskStatus(taskId, types.TaskStatusSuccess)
 
-	// 更新安装状态
+	// 更新host和安装状态
 	installed := "installed"
+	hostStatus := core.NewHostStatusInfo()
+	hostStatus.Installed = installed
+	global.SetHostStatus(host.ID, hostStatus)
 	global.SetInstalledStatus(host.ID, &installed)
 
 	return nil
 }
 
 func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
-	// 不管安装或者升级，都重置一次host状态
-	global.SetHostStatus(host.ID, core.NewHostStatusInfo())
 
 	taskStatus(taskId, types.TaskStatusRunning)
 
@@ -353,8 +352,11 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s completed", host.Addr))
 	taskStatus(taskId, types.TaskStatusSuccess)
 
-	// 更新安装状态
+	// 更新host和安装状态
 	notInstalled := "not installed"
+	hostStatus := core.NewHostStatusInfo()
+	hostStatus.Installed = notInstalled
+	global.SetHostStatus(host.ID, hostStatus)
 	global.SetInstalledStatus(host.ID, &notInstalled)
 
 	return nil
