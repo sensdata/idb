@@ -1,5 +1,7 @@
 # ---------- 构建 frontend ---------- #
-FROM node:22-bookworm AS frontend-builder
+FROM node:24-bookworm AS frontend-builder
+# 安装构建依赖
+RUN apt-get update && apt-get install -y libpng-dev nasm && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
