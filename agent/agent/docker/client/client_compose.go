@@ -526,7 +526,7 @@ func (c DockerClient) ComposeCreate(req model.ComposeCreate) (*model.ComposeCrea
 		global.LOG.Info("try docker compose up %s", req.Name)
 
 		if stdout, err := up(composePath); err != nil {
-			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			logger.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			_, _ = down(composePath, true)
 			return
@@ -818,7 +818,7 @@ func (c DockerClient) ComposeUpdate(req model.ComposeUpdate) (*model.ComposeCrea
 		global.LOG.Info("config files has been replaced, try docker compose up")
 
 		if stdout, err := up(composePath); err != nil {
-			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			logger.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			return
 		}
@@ -943,7 +943,7 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 		global.LOG.Info("config files has been replaced, try docker compose up %s", req.Name)
 
 		if stdout, err := up(composePath); err != nil {
-			logger.Error("docker compose up %s failed, err: %v", req.Name, strings.TrimSpace(stdout), err)
+			logger.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			global.LOG.Error("docker compose up %s failed, stdout: %s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 			return
 		}
