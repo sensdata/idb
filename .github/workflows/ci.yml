@@ -33,9 +33,9 @@ jobs:
 
       - name: Run golangci-lint
         run: |
-          cd center && golangci-lint run
-          cd ../agent && golangci-lint run
-          cd ../core && golangci-lint run
+          cd center && golangci-lint run --timeout=3m
+          cd ../agent && golangci-lint run --timeout=3m
+          cd ../core && golangci-lint run --timeout=3m
 
   unit-test:
     runs-on: ubuntu-latest
