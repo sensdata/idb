@@ -331,8 +331,6 @@ func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
 	return nil
 }
 
-const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
-
 // 统一转换为 inet idb-filter 表（简化版本）
 func (s *NFTable) convertToInetIdbFilter(content string) (string, error) {
 	lines := strings.Split(content, "\n")
@@ -2899,6 +2897,7 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		LOG.Error("Failed to delete table idb-filter")
 		return err
 	}
+	LOG.Info("Conf delete table idb-filter result: %s", commandResult.Result)
 
 	// 生效规则
 	command = "nft -f /etc/nftables.conf"

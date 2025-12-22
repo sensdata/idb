@@ -598,7 +598,12 @@ func (s *HostService) InstallAgent(id uint, req core.InstallAgent) (*core.LogInf
 	}
 
 	// 异步安装
-	go conn.SSH.InstallAgent(host, task.ID, req.Upgrade)
+	go func() {
+		err := conn.SSH.InstallAgent(host, task.ID, req.Upgrade)
+		if err != nil {
+			global.LOG.Error("install agent failed: %v", err)
+		}
+	}()
 
 	// 先返回task信息
 	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil
@@ -623,7 +628,12 @@ func (s *HostService) UninstallAgent(id uint) (*core.LogInfo, error) {
 	}
 
 	// 异步卸载
-	go conn.SSH.UninstallAgent(host, task.ID)
+	go func() {
+		err := conn.SSH.UninstallAgent(host, task.ID)
+		if err != nil {
+			global.LOG.Error("uninstall agent failed: %v", err)
+		}
+	}()
 
 	// 先返回task信息
 	return &core.LogInfo{LogHost: defaultHost.ID, LogPath: task.LogPath}, nil

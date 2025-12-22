@@ -186,7 +186,7 @@ func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) (*mode
 	}
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data.Action.Data)
 	}
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
 	if err != nil {

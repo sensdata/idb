@@ -65,7 +65,7 @@ func (c *RsyncGRPCClient) ListTask(req *model.RsyncListTaskRequest) (*model.Rsyn
 			LastLog:   item.LastLog,
 		})
 	}
-	result.Total = result.Total
+	result.Total = int(resp.Total)
 	return &result, nil
 }
 

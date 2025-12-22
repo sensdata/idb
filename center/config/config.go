@@ -67,7 +67,11 @@ func (m *Manager) loadConfig() error {
 		case "host":
 			config.Host = value
 		case "port":
-			fmt.Sscanf(value, "%d", &config.Port)
+			portValue, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("invalid port value: %s, err: %w", value, err)
+			}
+			config.Port = portValue
 		case "latest":
 			config.Latest = strings.TrimSpace(value)
 		default:
