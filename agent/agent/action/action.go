@@ -234,7 +234,9 @@ func SyncTime() error {
 						strings.Contains(out, "System clock synchronized: yes") {
 						global.LOG.Info("sync ok")
 						// 同步成功后，同步硬件时钟
-						utils.ExecCmd("sudo hwclock --systohc")
+						if err := utils.ExecCmd("sudo hwclock --systohc"); err != nil {
+							global.LOG.Error("sync hwclock failed: %v", err)
+						}
 						return
 					}
 				}
@@ -253,7 +255,9 @@ func SyncTime() error {
 			if err := utils.ExecCmd("sudo ntpdate pool.ntp.org"); err == nil {
 				global.LOG.Info("sync ok")
 				// 同步成功后，同步硬件时钟
-				utils.ExecCmd("sudo hwclock --systohc")
+				if err := utils.ExecCmd("sudo hwclock --systohc"); err != nil {
+					global.LOG.Error("sync hwclock failed: %v", err)
+				}
 				return
 			}
 		}

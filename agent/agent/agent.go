@@ -1122,7 +1122,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	default:
 		errMsg := "not supported log stream message"
 		global.LOG.Error(errMsg)
-		c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+		if err := c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg); err != nil {
+			global.LOG.Error("failed to send log stream result: %v", err)
+		}
 	}
 }
 
@@ -1144,7 +1146,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	logCh, err := reader.Follow(offset, whence)
 	if err != nil {
 		global.LOG.Error("start follow failed: %v", err)
-		c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error())
+		if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error()); err != nil {
+			global.LOG.Error("failed to send log stream result: %v", err)
+		}
 		return
 	}
 
@@ -1158,7 +1162,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			case msg, ok := <-logCh:
 				if !ok {
 					global.LOG.Error("log channel closed")
-					c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed")
+					if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed"); err != nil {
+						global.LOG.Error("failed to send log stream result: %v", err)
+					}
 					return
 				}
 

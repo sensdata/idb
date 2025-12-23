@@ -221,7 +221,11 @@ func (m *Manager) runTask(id string) error {
 	t.UpdatedAt = time.Now()
 	if saveErr := m.storage.SaveTask(t); saveErr != nil {
 		m.mu.Unlock()
-		proc.Stop() // 清理已启动的进程
+		err = proc.Stop() // 清理已启动的进程
+		if err != nil {
+			global.LOG.Error("[rsyncmgr] failed to stop rsync for task %s: %v", id, err)
+			return fmt.Errorf("failed to save running state: %v", saveErr)
+		}
 
 		// 记录错误信息到日志文件
 		err = logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", saveErr))
