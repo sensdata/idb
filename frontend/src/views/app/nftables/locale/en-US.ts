@@ -143,6 +143,10 @@ export default {
   'app.nftables.form.ratePlaceholder': 'e.g. 100/second',
   'app.nftables.form.concurrentCount': 'Concurrent Count',
   'app.nftables.form.concurrentPlaceholder': 'e.g. 10',
+  'app.nftables.form.srcIp': 'Source IP Restriction',
+  'app.nftables.form.srcIpPlaceholder': 'e.g. 192.168.1.100 or 192.168.1.0/24',
+  'app.nftables.form.srcIpHelp':
+    'Specify the IP address or network segment allowed to access this port. Leave empty to allow all IPs',
 
   // Configuration types
   'app.nftables.config.type.local': 'Local',
