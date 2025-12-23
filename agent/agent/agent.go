@@ -1200,7 +1200,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			// 检测结束信号
 			if strings.HasPrefix(text, "[LOG STREAM CLOSED]") {
 				global.LOG.Warn("log stream closed for %s: %s", logPath, strings.TrimSpace(text))
-				c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", text)
+				if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", text); err != nil {
+					global.LOG.Error("failed to send log stream result: %v", err)
+				}
 				return
 			}
 

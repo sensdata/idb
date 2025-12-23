@@ -248,7 +248,9 @@ func SyncTime() error {
 		if _, err := utils.Exec("command -v ntpdate"); err == nil {
 			global.LOG.Info("stop")
 			// 先停止可能运行的 NTP 服务
-			utils.ExecCmd("sudo systemctl stop systemd-timesyncd")
+			if err := utils.ExecCmd("sudo systemctl stop systemd-timesyncd"); err != nil {
+				global.LOG.Error("stop systemd-timesyncd failed: %v", err)
+			}
 			time.Sleep(1 * time.Second)
 
 			global.LOG.Info("start")

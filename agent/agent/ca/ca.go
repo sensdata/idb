@@ -1059,20 +1059,20 @@ func findIssuer(
 }
 
 // 在 CA 映射中查找颁发者证书
-func findIssuerCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) (*x509.Certificate, error) {
-	for _, rootCert := range rootCertMap {
-		if cert.CheckSignatureFrom(rootCert) == nil {
-			return rootCert, nil
-		}
-	}
-	return nil, fmt.Errorf("issuer not found for %s", cert.Subject)
-}
+// func findIssuerCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) (*x509.Certificate, error) {
+// 	for _, rootCert := range rootCertMap {
+// 		if cert.CheckSignatureFrom(rootCert) == nil {
+// 			return rootCert, nil
+// 		}
+// 	}
+// 	return nil, fmt.Errorf("issuer not found for %s", cert.Subject)
+// }
 
 // 检查证书是否已经存在于链中
-func containsCertificate(seen map[string]struct{}, cert *x509.Certificate) bool {
-	_, exists := seen[string(cert.Raw)]
-	return exists
-}
+// func containsCertificate(seen map[string]struct{}, cert *x509.Certificate) bool {
+// 	_, exists := seen[string(cert.Raw)]
+// 	return exists
+// }
 
 // 加载 Mozilla CA 存储
 func (s *CaService) loadMozillaCAStore() (bool, error) {
