@@ -114,7 +114,10 @@ func (ls *LogStream) GetReader(taskID string) (reader.Reader, error) {
 	defer ls.mu.Unlock()
 
 	if r, exists := ls.readers[taskID]; exists {
-		r.Open()
+		err := r.Open()
+		if err != nil {
+			return nil, fmt.Errorf("open reader failed: %w", err)
+		}
 		return r, nil
 	}
 
