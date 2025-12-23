@@ -26,7 +26,7 @@
     itemData: {
       type: Object as PropType<TagProps>,
       default() {
-        return [];
+        return {};
       },
     },
     index: {
@@ -60,6 +60,7 @@
     color: var(--color-text-2);
     text-decoration: none;
   }
+
   .link-activated {
     color: rgb(var(--link-6));
     .tag-link {

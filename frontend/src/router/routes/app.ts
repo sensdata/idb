@@ -69,6 +69,16 @@ const appRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/app/managed',
+    name: 'managed',
+    component: () => import('@/views/app/managed/main.vue'),
+    meta: {
+      locale: 'menu.app.managed',
+      requiresAuth: true,
+      icon: 'icon-storage',
+    },
+  },
+  {
     path: '/app/docker',
     name: 'docker',
     meta: {

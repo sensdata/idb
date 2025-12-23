@@ -67,3 +67,9 @@ export function uninstallAppApi(params: UninstallAppParams) {
     log_path: string;
   }>('store/{host}/apps/uninstall', params);
 }
+
+export function getManagedAppsApi() {
+  return request.get<ApiListResult<AppSimpleEntity>>(
+    'home/{host}/managed/apps'
+  );
+}
