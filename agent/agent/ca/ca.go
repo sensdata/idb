@@ -800,16 +800,16 @@ func convertIPsToStrings(ips []net.IP) []string {
 }
 
 // 判断私钥是否是 RSA 格式
-func isRSAKey(privKey []byte) bool {
-	_, err := x509.ParsePKCS1PrivateKey(privKey)
-	return err == nil
-}
+// func isRSAKey(privKey []byte) bool {
+// 	_, err := x509.ParsePKCS1PrivateKey(privKey)
+// 	return err == nil
+// }
 
 // 判断私钥是否是 ECDSA 格式
-func isECDSAKey(privKey []byte) bool {
-	_, err := x509.ParseECPrivateKey(privKey)
-	return err == nil
-}
+// func isECDSAKey(privKey []byte) bool {
+// 	_, err := x509.ParseECPrivateKey(privKey)
+// 	return err == nil
+// }
 
 // 生成RSA私钥
 func generateRSAKey(bits int) ([]byte, error) {
@@ -1063,33 +1063,45 @@ func (s *CaService) loadMozillaCAStore() (bool, error) {
 		return false, fmt.Errorf("failed to read CA store file: %v", err)
 	}
 
-	// 创建 CertPool
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(data) {
-		return false, errors.New("failed to parse Mozilla CA certificates")
+	rootCertMap, err := parseRootCAsFromPEM(data)
+	if err != nil {
+		return false, err
 	}
 
-	s.rootCertMap = preprocessRootCAs(certPool)
-
-	return len(s.rootCertMap) > 0, nil
+	s.rootCertMap = rootCertMap
+	return len(rootCertMap) > 0, nil
 }
 
-// 预处理 CA 池：将证书解析为映射表
-func preprocessRootCAs(rootCAs *x509.CertPool) map[string]*x509.Certificate {
+func parseRootCAsFromPEM(pemData []byte) (map[string]*x509.Certificate, error) {
 	rootCertMap := make(map[string]*x509.Certificate)
-	for _, certPEM := range rootCAs.Subjects() {
-		block, _ := pem.Decode(certPEM)
+
+	for {
+		block, rest := pem.Decode(pemData)
 		if block == nil {
+			break
+		}
+
+		if block.Type != "CERTIFICATE" {
+			pemData = rest
 			continue
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
+			pemData = rest
 			continue
 		}
-		// 使用证书的 SubjectKeyId 或其他唯一标识作为键
+
+		// 用 Raw 作为唯一键（你后面逻辑正是这么用的）
 		rootCertMap[string(cert.Raw)] = cert
+		pemData = rest
 	}
-	return rootCertMap
+
+	if len(rootCertMap) == 0 {
+		return nil, errors.New("no root certificates parsed")
+	}
+
+	return rootCertMap, nil
 }
 
 // 下载 Mozilla CA 存储
@@ -1113,16 +1125,16 @@ func downloadMozillaCAStore(filePath string) error {
 }
 
 // 检查证书是否由 Mozilla CA 存储信任
-func isTrustedByMozilla(rootCAs *x509.CertPool, cert *x509.Certificate) bool {
-	// 设置验证选项
-	opts := x509.VerifyOptions{
-		Roots: rootCAs, // 使用 Mozilla CA 的根证书
-	}
+// func isTrustedByMozilla(rootCAs *x509.CertPool, cert *x509.Certificate) bool {
+// 	// 设置验证选项
+// 	opts := x509.VerifyOptions{
+// 		Roots: rootCAs, // 使用 Mozilla CA 的根证书
+// 	}
 
-	// 验证证书
-	if _, err := cert.Verify(opts); err != nil {
-		return false // 验证失败，非受信任证书
-	}
+// 	// 验证证书
+// 	if _, err := cert.Verify(opts); err != nil {
+// 		return false // 验证失败，非受信任证书
+// 	}
 
-	return true // 受信任
-}
+// 	return true // 受信任
+// }

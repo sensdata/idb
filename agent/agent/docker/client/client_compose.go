@@ -38,7 +38,7 @@ func isProjectManaged(projectName, managedRoot string) bool {
 func isContainerFromManagedCompose(labels map[string]string, managedRoot string) (string, string, string, bool) {
 	projectName, hasProjectName := labels[constant.ComposeProjectLabel]
 	workingDir, hasWorkingDir := labels[constant.ComposeWorkDirLabel]
-	configFiles, _ := labels[constant.ComposeConfFilesLabel]
+	configFiles := labels[constant.ComposeConfFilesLabel]
 
 	if !hasWorkingDir || !hasProjectName {
 		return "", "", "", false
@@ -67,32 +67,32 @@ func resolveComposeConfigPaths(workdir, configFiles string) []string {
 }
 
 // mergeComposeConfigPaths 合并已有和新增的配置路径，并生成去重后的逗号分隔字符串
-func mergeComposeConfigPaths(existing string, incoming []string) string {
-	existingSet := make(map[string]struct{})
+// func mergeComposeConfigPaths(existing string, incoming []string) string {
+// 	existingSet := make(map[string]struct{})
 
-	// 处理 existing 字符串
-	for _, f := range strings.Split(existing, ",") {
-		f = strings.TrimSpace(f)
-		if f != "" {
-			existingSet[f] = struct{}{}
-		}
-	}
+// 	// 处理 existing 字符串
+// 	for _, f := range strings.Split(existing, ",") {
+// 		f = strings.TrimSpace(f)
+// 		if f != "" {
+// 			existingSet[f] = struct{}{}
+// 		}
+// 	}
 
-	// 处理 incoming 切片
-	for _, f := range incoming {
-		f = strings.TrimSpace(f)
-		if f != "" {
-			existingSet[f] = struct{}{}
-		}
-	}
+// 	// 处理 incoming 切片
+// 	for _, f := range incoming {
+// 		f = strings.TrimSpace(f)
+// 		if f != "" {
+// 			existingSet[f] = struct{}{}
+// 		}
+// 	}
 
-	var merged []string
-	for f := range existingSet {
-		merged = append(merged, f)
-	}
-	sort.Strings(merged) // 保持一致性
-	return strings.Join(merged, ",")
-}
+// 	var merged []string
+// 	for f := range existingSet {
+// 		merged = append(merged, f)
+// 	}
+// 	sort.Strings(merged) // 保持一致性
+// 	return strings.Join(merged, ",")
+// }
 
 // 列举compose项目: /{workdir}/docker/{project}
 func (c DockerClient) listComposeProjects(workDir string) ([]string, error) {
@@ -173,10 +173,10 @@ func (c DockerClient) initConf(path string, content string, upgrade bool) error 
 	return nil
 }
 
-func pull(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s pull", filePath)
-	return stdout, err
-}
+// func pull(filePath string) (string, error) {
+// 	stdout, err := utils.Execf("docker compose -f %s pull", filePath)
+// 	return stdout, err
+// }
 
 func up(filePath string) (string, error) {
 	stdout, err := utils.Execf("docker compose -f %s up -d", filePath)
@@ -207,10 +207,10 @@ func restart(filePath string) (string, error) {
 	return stdout, err
 }
 
-func operate(filePath, operation string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s %s", filePath, operation)
-	return stdout, err
-}
+// func operate(filePath, operation string) (string, error) {
+// 	stdout, err := utils.Execf("docker compose -f %s %s", filePath, operation)
+// 	return stdout, err
+// }
 
 func (c DockerClient) ComposePage(req model.QueryCompose) (*model.PageResult, error) {
 	var result model.PageResult
@@ -891,11 +891,19 @@ func (c DockerClient) ComposeUpgrade(req model.ComposeUpgrade) (*model.ComposeCr
 		}
 		// 备份 .env
 		backupEnv := filepath.Join(backupDir, ".env")
-		fo.Copy(envPath, backupEnv)
+		if err := fo.Copy(envPath, backupEnv); err != nil {
+			logger.Error("Failed to copy env file %s to %s, %v", envPath, backupEnv, err)
+			global.LOG.Error("Failed to copy env file %s to %s, %v", envPath, backupEnv, err)
+			return
+		}
 
 		// 备份 docker-compose.yaml
 		backupCompose := filepath.Join(backupDir, "docker-compose.yaml")
-		fo.Copy(composePath, backupCompose)
+		if err := fo.Copy(composePath, backupCompose); err != nil {
+			logger.Error("Failed to copy compose file %s to %s, %v", composePath, backupCompose, err)
+			global.LOG.Error("Failed to copy compose file %s to %s, %v", composePath, backupCompose, err)
+			return
+		}
 
 		logger.Info("backup compose and env to %s", backupDir)
 		global.LOG.Info("backup compose and env to %s", backupDir)

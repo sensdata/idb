@@ -163,8 +163,12 @@ func (s *BaseSession) Release() error {
 
 	// 停止命令
 	if s.cmd != nil && s.cmd.Process != nil {
-		s.cmd.Process.Kill()
-		s.cmd.Wait()
+		if err := s.cmd.Process.Kill(); err != nil {
+			global.LOG.Error("failed to kill process: %v", err)
+		}
+		if err := s.cmd.Wait(); err != nil {
+			global.LOG.Error("failed to wait process: %v", err)
+		}
 	}
 
 	return nil
