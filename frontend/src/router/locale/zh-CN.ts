@@ -10,6 +10,7 @@ export default {
   'menu.app.sysinfo.hardware': '硬件信息',
   'menu.app.sysinfo.config': '系统配置',
   'menu.app.store': '应用商店',
+  'menu.app.managed': '应用管理',
   'menu.app.docker': '容器管理',
   'menu.app.docker.compose': 'Compose管理',
   'menu.app.docker.container': '容器管理',

@@ -10,6 +10,7 @@ export default {
   'menu.app.sysinfo.hardware': 'Hardware',
   'menu.app.sysinfo.config': 'Configuration',
   'menu.app.store': 'App Store',
+  'menu.app.managed': 'App Manager',
   'menu.app.docker': 'Container Management',
   'menu.app.docker.compose': 'Compose Management',
   'menu.app.docker.container': 'Container Management',
