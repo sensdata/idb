@@ -11,7 +11,7 @@
             :model-value="formData.name"
             :placeholder="$t('app.logrotate.form.name_placeholder')"
             :disabled="isEdit"
-            @update:model-value="(value) => updateFormData('name', value)"
+            @update:model-value="(value: string) => updateFormData('name', value)"
           />
         </a-form-item>
       </a-col>
@@ -30,7 +30,7 @@
             allow-create
             @change="handleCategoryChange"
             @visible-change="handleCategoryVisibleChange"
-            @update:model-value="(value) => updateFormData('category', value)"
+            @update:model-value="(value: string) => updateFormData('category', value)"
           />
         </a-form-item>
       </a-col>
@@ -40,7 +40,7 @@
       <a-input
         :model-value="formData.path"
         :placeholder="$t('app.logrotate.form.path_placeholder')"
-        @update:model-value="(value) => updateFormData('path', value)"
+        @update:model-value="(value: string) => updateFormData('path', value)"
       />
     </a-form-item>
 
@@ -54,7 +54,7 @@
           <a-select
             :model-value="formData.frequency"
             :placeholder="$t('app.logrotate.form.frequency_placeholder')"
-            @update:model-value="(value) => updateFormData('frequency', value)"
+            @update:model-value="(value: string) => updateFormData('frequency', value)"
           >
             <a-option
               v-for="freq in frequencyOptions"
@@ -78,7 +78,7 @@
             :min="1"
             :precision="0"
             style="width: 100%"
-            @update:model-value="(value) => updateFormData('count', value)"
+            @update:model-value="(value: number | undefined) => updateFormData('count', value)"
           />
         </a-form-item>
       </a-col>
@@ -87,7 +87,7 @@
     <a-form-item field="create" :label="$t('app.logrotate.form.create')">
       <PermissionInput
         :model-value="formData.create"
-        @update:model-value="(value) => updateFormData('create', value)"
+        @update:model-value="(value: string) => updateFormData('create', value)"
       />
     </a-form-item>
 
@@ -96,7 +96,7 @@
         <a-form-item field="compress">
           <a-checkbox
             :model-value="formData.compress"
-            @update:model-value="(value) => updateFormData('compress', value)"
+            @update:model-value="(value: boolean) => updateFormData('compress', value)"
           >
             {{ $t('app.logrotate.form.compress') }}
           </a-checkbox>
@@ -107,7 +107,7 @@
           <a-checkbox
             :model-value="formData.delayCompress"
             @update:model-value="
-              (value) => updateFormData('delayCompress', value)
+              (value: boolean) => updateFormData('delayCompress', value)
             "
           >
             {{ $t('app.logrotate.form.delay_compress') }}
@@ -118,7 +118,7 @@
         <a-form-item field="missingOk">
           <a-checkbox
             :model-value="formData.missingOk"
-            @update:model-value="(value) => updateFormData('missingOk', value)"
+            @update:model-value="(value: boolean) => updateFormData('missingOk', value)"
           >
             {{ $t('app.logrotate.form.missing_ok') }}
           </a-checkbox>
@@ -133,7 +133,7 @@
     >
       <a-checkbox
         :model-value="formData.notIfEmpty"
-        @update:model-value="(value) => updateFormData('notIfEmpty', value)"
+        @update:model-value="(value: boolean) => updateFormData('notIfEmpty', value)"
       >
         {{ $t('app.logrotate.form.not_if_empty') }}
       </a-checkbox>
@@ -144,7 +144,7 @@
         :model-value="formData.preRotate"
         :placeholder="$t('app.logrotate.form.pre_rotate_placeholder')"
         :rows="3"
-        @update:model-value="(value) => updateFormData('preRotate', value)"
+        @update:model-value="(value: string) => updateFormData('preRotate', value)"
       />
     </a-form-item>
 

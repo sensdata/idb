@@ -49,18 +49,6 @@
         </a-button>
         <!-- 已安装应用显示升级和卸载按钮 -->
         <template v-else>
-          <!-- 数据库应用或 phpMyAdmin 应用显示管理按钮 -->
-          <a-button
-            v-if="isDatabaseApp || isPmaApp"
-            type="primary"
-            shape="round"
-            size="small"
-            :loading="manageLoading"
-            @click="$emit('manage', app)"
-          >
-            <template #icon><icon-settings /></template>
-            {{ $t('app.store.app.installed.manage') }}
-          </a-button>
           <a-button
             type="primary"
             shape="round"
@@ -86,32 +74,16 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
   import { AppSimpleEntity } from '@/entity/App';
   import { getHexColorByChar } from '@/helper/utils';
-  import { IconSettings } from '@arco-design/web-vue/es/icon';
 
-  const props = defineProps<{
+  defineProps<{
     app: AppSimpleEntity;
-    manageLoading?: boolean;
   }>();
 
   defineEmits<{
     install: [app: AppSimpleEntity];
     upgrade: [app: AppSimpleEntity];
     uninstall: [app: AppSimpleEntity];
-    manage: [app: AppSimpleEntity];
   }>();
-
-  // 判断是否为数据库应用
-  const isDatabaseApp = computed(() => {
-    const databaseTypes = ['mysql', 'postgresql', 'redis'];
-    return databaseTypes.some((type) =>
-      props.app.name.toLowerCase().includes(type)
-    );
-  });
-
-  const isPmaApp = computed(() => {
-    return props.app.name.toLowerCase().includes('phpmyadmin');
-  });
 </script>

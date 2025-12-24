@@ -60,6 +60,10 @@
   import { compareVersion } from '@/helper/utils';
   import { Message } from '@arco-design/web-vue';
 
+  // 模块级缓存，避免重复请求版本信息
+  let cachedVersion: string | null = null;
+  let versionPromise: Promise<{ version: string }> | null = null;
+
   const { t } = useI18n();
   const version = ref('');
   const { changeLocale, currentLocale } = useLocale();
@@ -124,8 +128,28 @@
   };
 
   onMounted(async () => {
-    const data = await getPublicVersionApi();
-    version.value = data.version;
+    // 使用缓存避免重复请求
+    if (cachedVersion) {
+      version.value = cachedVersion;
+      return;
+    }
+
+    // 如果已有请求进行中，等待该请求完成
+    if (versionPromise) {
+      const data = await versionPromise;
+      version.value = data.version;
+      return;
+    }
+
+    // 发起新请求并缓存 Promise
+    versionPromise = getPublicVersionApi();
+    try {
+      const data = await versionPromise;
+      cachedVersion = data.version;
+      version.value = data.version;
+    } finally {
+      versionPromise = null;
+    }
   });
 </script>
 
@@ -134,8 +158,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 38px;
-    padding: 0 20px;
+    height: 2.714rem;
+    padding: 0 1.429rem;
     color: var(--color-text-2);
     text-align: center;
     border-top: 1px solid var(--color-border-2);
@@ -156,25 +180,24 @@
   }
 
   .language-icon {
-    width: 16px;
-    height: 16px;
+    width: 1.143rem;
+    height: 1.143rem;
     vertical-align: top;
   }
 
   .check-update-link {
-    font-size: 12px;
+    font-size: 0.857rem;
     color: var(--color-text-3);
     text-decoration: none;
-
     &:hover {
       color: var(--color-primary);
     }
   }
 
   .checking-update {
-    font-size: 12px;
-    color: var(--color-text-3);
     display: flex;
     align-items: center;
+    font-size: 0.857rem;
+    color: var(--color-text-3);
   }
 </style>

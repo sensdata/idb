@@ -135,6 +135,10 @@ export default {
   'app.nftables.form.ratePlaceholder': '例如: 100/second',
   'app.nftables.form.concurrentCount': '并发数量',
   'app.nftables.form.concurrentPlaceholder': '例如: 10',
+  'app.nftables.form.srcIp': '源IP限制',
+  'app.nftables.form.srcIpPlaceholder': '例如: 192.168.1.100 或 192.168.1.0/24',
+  'app.nftables.form.srcIpHelp':
+    '指定允许访问此端口的IP地址或网段，留空表示允许所有IP',
 
   // 配置类型
   'app.nftables.config.type.local': '本地',

@@ -106,13 +106,24 @@
   };
 
   const esRef = ref<EventSource>();
+  // 记录当前已连接的 hostId，避免重复连接
+  const connectedHostId = ref<number | null>(null);
+
   const stopSSE = () => {
     if (esRef.value) {
       esRef.value.close();
+      esRef.value = undefined;
     }
+    connectedHostId.value = null;
   };
+
   const startSSE = () => {
     if (!hostStore.currentId) {
+      return;
+    }
+
+    // 如果已经连接到相同的 hostId，不需要重新连接
+    if (connectedHostId.value === hostStore.currentId && esRef.value) {
       return;
     }
 
@@ -120,6 +131,8 @@
 
     const es = connectHostStatusFollowApi(hostStore.currentId);
     esRef.value = es;
+    connectedHostId.value = hostStore.currentId;
+
     es.addEventListener('status', (event) => {
       const data = JSON.parse(event.data);
       state.cpu_usage = data.cpu + '%';
@@ -131,17 +144,26 @@
       console.error('SSE error', err);
     });
   };
+
   onUnmounted(() => {
     stopSSE();
   });
 
+  // 记录上次请求的 hostId，避免重复请求
+  const lastRequestedHostId = ref<number | null>(null);
+
   watch(
     () => hostStore.currentId,
-    (v?: number) => {
+    (v?: number, oldV?: number) => {
       if (v) {
-        refreshStatus();
-        startSSE();
+        // 只有当 hostId 真正变化时才重新请求
+        if (v !== lastRequestedHostId.value) {
+          lastRequestedHostId.value = v;
+          refreshStatus();
+          startSSE();
+        }
       } else {
+        lastRequestedHostId.value = null;
         stopSSE();
       }
     },
@@ -166,28 +188,28 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 56px;
-    padding: 0 8px;
+    height: 4rem;
+    padding: 0 0.571rem;
     border-bottom: 1px solid var(--color-border);
     .host-name {
       flex: 1;
       min-width: 100px;
-      margin-left: 8px;
-      color: var(--color-text-1);
+      margin-left: 0.571rem;
+      font-size: 1.143rem;
       font-weight: 500;
-      font-size: 16px;
+      color: var(--color-text-1);
     }
   }
 
   .info {
-    padding: 16px 8px;
+    padding: 1.143rem 0.571rem;
     .info-content {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 5px 10px 10px;
+      padding: 0.714rem 0.357rem 0.714rem 0.714rem;
       background-color: var(--color-fill-2);
-      border-radius: 4px;
+      border-radius: 0.286rem;
       .info-content-left {
         flex: 1;
         min-width: 0;
@@ -195,16 +217,16 @@
           display: flex;
           align-items: center;
           justify-content: flex-start;
-          margin-bottom: 10px;
-          font-size: 14px;
-          line-height: 22px;
+          margin-bottom: 0.714rem;
+          font-size: 1rem;
+          line-height: 1.571rem;
           &:last-child {
             margin-bottom: 0;
           }
           .info-item-label {
-            margin-right: 5px;
-            color: var(--color-text-1);
+            margin-right: 0.357rem;
             font-weight: 500;
+            color: var(--color-text-1);
           }
           .info-item-content {
             display: flex;
@@ -215,12 +237,12 @@
             color: var(--color-text-3);
           }
           .info-item-content-icon {
-            width: 12px;
-            height: 12px;
-            margin-right: 2px;
+            width: 0.857rem;
+            height: 0.857rem;
+            margin-right: 0.143rem;
           }
           .downstream {
-            margin-left: 8px;
+            margin-left: 0.571rem;
           }
         }
       }
@@ -231,15 +253,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 56px;
-    padding: 0 8px;
+    height: 4rem;
+    padding: 0 0.571rem;
     border-top: 1px solid var(--color-border-2);
     .app-list-title {
-      color: var(--color-text-1);
+      font-size: 1.143rem;
       font-weight: 500;
-      font-size: 16px;
-      line-height: 24px;
-      text-indent: 10px;
+      line-height: 1.714rem;
+      color: var(--color-text-1);
+      text-indent: 0.714rem;
     }
     .actions {
       display: flex;
@@ -250,14 +272,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 2px;
-      cursor: pointer;
+      width: 2.286rem;
+      height: 2.286rem;
       color: var(--color-text-2);
+      cursor: pointer;
+      border-radius: 0.143rem;
       &:hover {
-        background-color: var(--color-fill-2);
         color: var(--color-text-1);
+        background-color: var(--color-fill-2);
       }
     }
   }

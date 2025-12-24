@@ -27,7 +27,6 @@
             @install="handleInstall"
             @upgrade="handleUpgrade"
             @uninstall="handleUninstall"
-            @manage="handleManageApp"
           />
         </a-grid-item>
       </a-grid>
@@ -44,8 +43,6 @@
   <install-drawer ref="installRef" @ok="load" />
   <upgrade-log ref="upgradeLogRef" @ok="load" />
   <uninstall-log ref="uninstallLogRef" @ok="load" />
-  <database-manager-drawer ref="databaseManagerRef" />
-  <PmaManager ref="pmaManagerRef" />
 </template>
 
 <script setup lang="ts">
@@ -61,20 +58,12 @@
   } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { useConfirm } from '@/composables/confirm';
-  import { useDatabaseManager } from '@/composables/use-database-manager';
-  import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
-  import PmaManager from '@/components/pma-manager/index.vue';
   import AppCard from './components/app-card.vue';
   import InstallDrawer from './components/install-drawer.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
 
   const { t } = useI18n();
-  const { getDatabaseType } = useDatabaseManager();
-
-  const isPmaApp = (name: string) => {
-    return name.toLowerCase().includes('phpmyadmin');
-  };
 
   const pagination = reactive({
     page: 1,
@@ -87,8 +76,6 @@
   const installRef = ref<InstanceType<typeof InstallDrawer>>();
   const upgradeLogRef = ref<InstanceType<typeof UpgradeLog>>();
   const uninstallLogRef = ref<InstanceType<typeof UninstallLog>>();
-  const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
-  const pmaManagerRef = ref<InstanceType<typeof PmaManager>>();
 
   const { loading, showLoading, hideLoading } = useLoading();
   const { confirm } = useConfirm();
@@ -215,50 +202,6 @@
     }
   };
 
-  const resolveInstalledComposeName = async (item: AppSimpleEntity) => {
-    const response = await getInstalledAppListApi({
-      page: 1,
-      page_size: 100,
-    });
-    const installedApp = response.items.find(
-      (app) => app.display_name === item.display_name
-    );
-
-    if (!installedApp) {
-      throw new Error('未找到已安装的应用');
-    }
-
-    return installedApp.name;
-  };
-
-  // 处理数据库管理
-  const handleManageDatabase = (item: AppSimpleEntity) => {
-    const dbType = getDatabaseType(item.name);
-    if (!dbType) return;
-
-    databaseManagerRef.value?.show(dbType, () =>
-      resolveInstalledComposeName(item)
-    );
-  };
-
-  // 处理 phpMyAdmin 管理
-  const handleManagePma = async (item: AppSimpleEntity) => {
-    const composeName = await resolveInstalledComposeName(item);
-    pmaManagerRef.value?.show(composeName);
-  };
-
-  const handleManageApp = (item: AppSimpleEntity) => {
-    const dbType = getDatabaseType(item.name);
-    if (dbType) {
-      handleManageDatabase(item);
-      return;
-    }
-
-    if (isPmaApp(item.name)) {
-      handleManagePma(item);
-    }
-  };
-
   defineExpose({
     load,
   });
@@ -269,13 +212,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 1.143rem;
   }
 
   .list-footer {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-bottom: 16px;
+    margin-bottom: 1.143rem;
   }
 </style>

@@ -16,7 +16,7 @@
       v-show="!isSearching"
       :key="item.value"
       :ref="
-        (el) => {
+        (el: Element | ComponentPublicInstance | null) => {
           if (el) optionRefs[index] = el;
         }
       "

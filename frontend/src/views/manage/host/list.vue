@@ -114,7 +114,6 @@
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
   import { ApiListResult } from '@/types/global';
   import { formatTransferSpeed } from '@/utils/format';
-  import { compareVersion } from '@/helper/utils';
   import UpStreamIcon from '@/assets/icons/upstream.svg';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
   import HostCreate from './components/create.vue';
@@ -126,6 +125,7 @@
 
   interface HostItem extends HostEntity {
     statusReady: boolean;
+    can_upgrade: boolean;
   }
 
   const { t } = useI18n();
@@ -221,7 +221,7 @@
       },
       {
         text: t('manage.host.list.operation.upgradeAgent'),
-        visible: compareVersion(record.agent_latest, record.agent_version) > 0,
+        visible: record.can_upgrade,
         confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
         click: () => {
           installAgentRef.value?.startUpgrade(record.id);
@@ -230,8 +230,7 @@
       {
         text: t('manage.host.list.operation.goto'),
         visible:
-          record.agent_status?.status === 'installed' &&
-          compareVersion(record.agent_latest, record.agent_version) <= 0,
+          record.agent_status?.status === 'installed' && !record.can_upgrade,
         click: () => {
           router.push({
             name: DEFAULT_APP_ROUTE_NAME,
@@ -380,6 +379,7 @@
           item.rx = statusData.rx;
           item.tx = statusData.tx;
           item.statusReady = true;
+          item.can_upgrade = statusData.can_upgrade;
 
           // 更新 agent 状态
           if (item.agent_status) {
