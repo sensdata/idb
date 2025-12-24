@@ -204,6 +204,7 @@ func StartRsync(t *RsyncTask, logHandler *LogHandler) (*ExecProcess, error) {
 	// prepare command
 	var cmd *exec.Cmd
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Ensure cancel is always called to prevent context leaks
 
 	// 根据远程类型决定执行方式
 	if t.RemoteType == RemoteTypeSSH && sshCmd != "" {

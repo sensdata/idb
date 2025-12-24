@@ -122,6 +122,9 @@ func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
 	licensePayload.ExpireAt = expireAt
 
 	licenseJson, err := utils.ToJSONString(licensePayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal license: %w", err)
+	}
 	license := base64.StdEncoding.EncodeToString([]byte(licenseJson))
 
 	if err := db.FingerprintRepo.Update(
@@ -183,8 +186,10 @@ func SyncTime() error {
 			global.LOG.Info("disable ntp")
 
 			// 先停止 NTP 服务
-			utils.ExecCmd("sudo timedatectl set-ntp false")
-			time.Sleep(1 * time.Second)
+			global.LOG.Info("stop ntp")
+			if err := utils.ExecCmd("sudo timedatectl set-ntp false"); err == nil {
+				time.Sleep(1 * time.Second)
+			}
 
 			// 重新启用 NTP
 			global.LOG.Info("enable ntp")
@@ -198,7 +203,9 @@ func SyncTime() error {
 					if err == nil && strings.TrimSpace(output) == "yes" {
 						global.LOG.Info("sync ok")
 						// 同步成功后，同步硬件时钟
-						utils.ExecCmd("sudo hwclock --systohc")
+						if err := utils.ExecCmd("sudo hwclock --systohc"); err == nil {
+							global.LOG.Info("sync hwclock ok")
+						}
 						return
 					}
 				}
@@ -212,10 +219,12 @@ func SyncTime() error {
 			global.LOG.Info("stop ")
 
 			// 先停止服务
-			utils.ExecCmd("sudo systemctl stop systemd-timesyncd")
-			time.Sleep(1 * time.Second)
+			global.LOG.Info("stop systemd-timesyncd")
+			if err := utils.ExecCmd("sudo systemctl stop systemd-timesyncd"); err == nil {
+				time.Sleep(1 * time.Second)
+			}
 
-			global.LOG.Info("restart ")
+			global.LOG.Info("restart systemd-timesyncd")
 			if err := utils.ExecCmd("sudo systemctl restart systemd-timesyncd"); err == nil {
 				// 等待更长时间让时间同步
 				for i := 0; i < 5; i++ {
@@ -225,7 +234,9 @@ func SyncTime() error {
 						strings.Contains(out, "System clock synchronized: yes") {
 						global.LOG.Info("sync ok")
 						// 同步成功后，同步硬件时钟
-						utils.ExecCmd("sudo hwclock --systohc")
+						if err := utils.ExecCmd("sudo hwclock --systohc"); err != nil {
+							global.LOG.Error("sync hwclock failed: %v", err)
+						}
 						return
 					}
 				}
@@ -237,14 +248,18 @@ func SyncTime() error {
 		if _, err := utils.Exec("command -v ntpdate"); err == nil {
 			global.LOG.Info("stop")
 			// 先停止可能运行的 NTP 服务
-			utils.ExecCmd("sudo systemctl stop systemd-timesyncd")
+			if err := utils.ExecCmd("sudo systemctl stop systemd-timesyncd"); err != nil {
+				global.LOG.Error("stop systemd-timesyncd failed: %v", err)
+			}
 			time.Sleep(1 * time.Second)
 
 			global.LOG.Info("start")
 			if err := utils.ExecCmd("sudo ntpdate pool.ntp.org"); err == nil {
 				global.LOG.Info("sync ok")
 				// 同步成功后，同步硬件时钟
-				utils.ExecCmd("sudo hwclock --systohc")
+				if err := utils.ExecCmd("sudo hwclock --systohc"); err != nil {
+					global.LOG.Error("sync hwclock failed: %v", err)
+				}
 				return
 			}
 		}

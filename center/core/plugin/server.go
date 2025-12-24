@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -441,16 +442,25 @@ func (s *PluginServer) checkPluginVersion(e PluginEntry) error {
 
 	// 原子替换
 	backupDir := e.Path + ".bak"
-	os.RemoveAll(backupDir)
-	os.Rename(e.Path, backupDir) // 旧版本备份
+	if err := os.RemoveAll(backupDir); err != nil {
+		return fmt.Errorf("failed to remove old backup dir: %w", err)
+	}
+	if err := os.Rename(e.Path, backupDir); err != nil { // 旧版本备份
+		return fmt.Errorf("failed to backup old plugin dir: %w", err)
+	}
 	if err := os.Rename(tmpDir, e.Path); err != nil {
 		// 恢复旧版本
-		os.Rename(backupDir, e.Path)
+		if renameErr := os.Rename(backupDir, e.Path); renameErr != nil {
+			return fmt.Errorf("failed to replace plugin dir and restore backup: %w, restore err: %v", err, renameErr)
+		}
 		return fmt.Errorf("failed to replace plugin dir: %w", err)
 	}
 
 	// 最终清理
-	os.RemoveAll(backupDir)
+	if err := os.RemoveAll(backupDir); err != nil {
+		log.Printf("warning: failed to clean up backup dir: %v", err)
+		// 不返回错误，因为主流程已经成功
+	}
 
 	global.LOG.Info("plugin %s upgraded to version %s", e.Name, latest)
 	return nil

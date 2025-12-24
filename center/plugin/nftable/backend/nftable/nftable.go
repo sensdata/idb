@@ -304,34 +304,32 @@ func (s *NFTable) createFile(hostID uint64, op model.FileCreate) error {
 	return nil
 }
 
-func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
-	data, err := utils.ToJSONString(op)
-	if err != nil {
-		return err
-	}
+// func (s *NFTable) deleteFile(hostID uint64, op model.FileDelete) error {
+// 	data, err := utils.ToJSONString(op)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	actionRequest := model.HostAction{
-		HostID: uint(hostID),
-		Action: model.Action{
-			Action: model.File_Delete,
-			Data:   data,
-		},
-	}
+// 	actionRequest := model.HostAction{
+// 		HostID: uint(hostID),
+// 		Action: model.Action{
+// 			Action: model.File_Delete,
+// 			Data:   data,
+// 		},
+// 	}
 
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
+// 	actionResponse, err := s.sendAction(actionRequest)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("failed to delete file")
-		return errors.New("failed to delete file")
-	}
+// 	if !actionResponse.Data.Action.Result {
+// 		LOG.Error("failed to delete file")
+// 		return errors.New("failed to delete file")
+// 	}
 
-	return nil
-}
-
-const safeguardRule = "tcp dport { 22, 9918, 9919 } accept"
+// 	return nil
+// }
 
 // 统一转换为 inet idb-filter 表（简化版本）
 func (s *NFTable) convertToInetIdbFilter(content string) (string, error) {
@@ -2899,6 +2897,7 @@ func (s *NFTable) updateThenActivate(hostID uint, newConfContent string) error {
 		LOG.Error("Failed to delete table idb-filter")
 		return err
 	}
+	LOG.Info("Conf delete table idb-filter result: %s", commandResult.Result)
 
 	// 生效规则
 	command = "nft -f /etc/nftables.conf"

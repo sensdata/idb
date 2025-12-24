@@ -9,7 +9,6 @@ import (
 	"math"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -114,7 +113,10 @@ func (a *Agent) Start() error {
 
 func (a *Agent) Stop() error {
 	// 释放所有的 session
-	a.sessionManager.ReleaseAllSessions()
+	err := a.sessionManager.ReleaseAllSessions()
+	if err != nil {
+		global.LOG.Error("release all sessions error: %v", err)
+	}
 
 	close(a.done)
 
@@ -124,6 +126,10 @@ func (a *Agent) Stop() error {
 func (a *Agent) initFingerprint() {
 	global.LOG.Info("init fingerprint")
 	fingerprint, err := db.FingerprintRepo.GetFirst()
+	if err != nil {
+		global.LOG.Error("get fingerprint error: %v", err)
+	}
+
 	if fingerprint.ID > 0 {
 		global.LOG.Info("fingerprint already exists")
 
@@ -258,31 +264,31 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 			parts := strings.Fields(command)
 
 			if len(parts) == 0 {
-				conn.Write([]byte("Unknown command"))
+				writeToConn(conn, []byte("Unknown command"))
 				return
 			}
 
 			switch parts[0] {
 			case "status":
-				conn.Write([]byte(fmt.Sprintf("iDB Agent (pid %d) is running...", os.Getpid())))
+				writeToConn(conn, []byte(fmt.Sprintf("iDB Agent (pid %d) is running...", os.Getpid())))
 			case "config":
 				switch len(parts) {
 				case 1:
 					// 输出当前的配置信息
 					config, err := CONFMAN.GetConfigString("")
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to get config: %v", err)))
 					} else {
-						conn.Write([]byte(fmt.Sprintf("%v", config)))
+						writeToConn(conn, []byte(fmt.Sprintf("%v", config)))
 					}
 				case 2:
 					// 输出当前的指定key配置信息
 					key := parts[1]
 					value, err := CONFMAN.GetConfigString(key)
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 					} else {
-						conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
+						writeToConn(conn, []byte(fmt.Sprintf("%s: %s", key, value)))
 					}
 				case 3:
 					// 修改指定key的配置
@@ -290,21 +296,25 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 					value := parts[2]
 					err := CONFMAN.SetConfig(key, value)
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 					} else {
-						conn.Write([]byte(fmt.Sprintf("%s: %s", key, value)))
-						go systemctl.Restart(constant.AgentService)
+						writeToConn(conn, []byte(fmt.Sprintf("%s: %s", key, value)))
+						go func() {
+							if err := systemctl.Restart(constant.AgentService); err != nil {
+								global.LOG.Error("failed to restart agent service: %v", err)
+							}
+						}()
 					}
 				default:
-					conn.Write([]byte("Unknown config command format"))
+					writeToConn(conn, []byte("Unknown config command format"))
 				}
 			case "update":
 				// 检查center连接是否存在
 				centerConn := a.getCenterConn()
 				if centerConn == nil {
-					conn.Write([]byte("No center connection"))
+					writeToConn(conn, []byte("No center connection"))
 				} else {
-					conn.Write([]byte("Notify center for version check and update"))
+					writeToConn(conn, []byte("Notify center for version check and update"))
 					// 通过心跳消息的data标识，通知center进行agent版本检测和升级
 					heartbeat := model.NewHeartbeat()
 					heartbeat.Command = "Update"
@@ -314,9 +324,9 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				// 检查center连接是否存在
 				centerConn := a.getCenterConn()
 				if centerConn == nil {
-					conn.Write([]byte("No center connection"))
+					writeToConn(conn, []byte("No center connection"))
 				} else {
-					conn.Write([]byte("Notify center for remove agent"))
+					writeToConn(conn, []byte("Notify center for remove agent"))
 					// 通过心跳消息的data标识，通知center进行agent版本检测和升级
 					heartbeat := model.NewHeartbeat()
 					heartbeat.Command = "Remove"
@@ -324,14 +334,21 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				}
 			case "flush-logs":
 				if err := global.LOG.Flush(); err != nil {
-					conn.Write([]byte(fmt.Sprintf("Failed to flush logs: %v", err)))
+					writeToConn(conn, []byte(fmt.Sprintf("Failed to flush logs: %v", err)))
 				} else {
-					conn.Write([]byte("Logs flushed successfully"))
+					writeToConn(conn, []byte("Logs flushed successfully"))
 				}
 			default:
-				conn.Write([]byte("Unknown command"))
+				writeToConn(conn, []byte("Unknown command"))
 			}
 		}
+	}
+}
+
+func writeToConn(conn net.Conn, msgBytes []byte) {
+	_, err := conn.Write(msgBytes)
+	if err != nil {
+		global.LOG.Error("failed to write to unix connection: %v", err)
 	}
 }
 
@@ -906,16 +923,6 @@ func (a *Agent) sessionResize(sessionData message.SessionData) {
 	}
 }
 
-func (a *Agent) isScreenInstalled() bool {
-	// 检查 screen 是否安装
-	cmd := exec.Command("screen", "-v")
-	if err := cmd.Run(); err != nil {
-		global.LOG.Error("screen is not installed: %v", err)
-		return false
-	}
-	return true
-}
-
 func (a *Agent) installScreen() (*model.ScriptResult, error) {
 	var result model.ScriptResult
 
@@ -1037,7 +1044,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to create container log reader: %v", err)
 				global.LOG.Error(errMsg)
-				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				if err := c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg); err != nil {
+					global.LOG.Error("failed to send log stream result: %v", err)
+				}
 				return
 			}
 
@@ -1067,7 +1076,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to create service log reader: %v", err)
 				global.LOG.Error(errMsg)
-				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				if err := c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg); err != nil {
+					global.LOG.Error("failed to send log stream result: %v", err)
+				}
 				return
 			}
 
@@ -1076,7 +1087,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to create tail reader: %v", err)
 				global.LOG.Error(errMsg)
-				c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+				if err := c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg); err != nil {
+					global.LOG.Error("failed to send log stream result: %v", err)
+				}
 				return
 			}
 		}
@@ -1109,7 +1122,9 @@ func (c *Agent) processLogStreamMessage(conn net.Conn, msg *message.LogStreamMes
 	default:
 		errMsg := "not supported log stream message"
 		global.LOG.Error(errMsg)
-		c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg)
+		if err := c.sendLogStreamResult(conn, msg.TaskID, msg.LogPath, message.LogStreamError, "", errMsg); err != nil {
+			global.LOG.Error("failed to send log stream result: %v", err)
+		}
 	}
 }
 
@@ -1131,7 +1146,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 	logCh, err := reader.Follow(offset, whence)
 	if err != nil {
 		global.LOG.Error("start follow failed: %v", err)
-		c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error())
+		if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", err.Error()); err != nil {
+			global.LOG.Error("failed to send log stream result: %v", err)
+		}
 		return
 	}
 
@@ -1145,7 +1162,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			case msg, ok := <-logCh:
 				if !ok {
 					global.LOG.Error("log channel closed")
-					c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed")
+					if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", "log channel closed"); err != nil {
+						global.LOG.Error("failed to send log stream result: %v", err)
+					}
 					return
 				}
 
@@ -1181,7 +1200,9 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 			// 检测结束信号
 			if strings.HasPrefix(text, "[LOG STREAM CLOSED]") {
 				global.LOG.Warn("log stream closed for %s: %s", logPath, strings.TrimSpace(text))
-				c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", text)
+				if err := c.sendLogStreamResult(conn, taskId, logPath, message.LogStreamError, "", text); err != nil {
+					global.LOG.Error("failed to send log stream result: %v", err)
+				}
 				return
 			}
 

@@ -531,40 +531,40 @@ func (s *DockerMan) containerLogClean(hostID uint64, containerID string) error {
 	return nil
 }
 
-func (s *DockerMan) tailContainerLogs(hostID uint, containerID string, offset int64, whence int) (*model.FileContentPartRsp, error) {
-	var fileContentPartRsp model.FileContentPartRsp
+// func (s *DockerMan) tailContainerLogs(hostID uint, containerID string, offset int64, whence int) (*model.FileContentPartRsp, error) {
+// 	var fileContentPartRsp model.FileContentPartRsp
 
-	req := model.FileContentPartReq{
-		Path:   containerID,
-		Lines:  offset,
-		Whence: whence,
-	}
-	data, err := utils.ToJSONString(req)
-	if err != nil {
-		return &fileContentPartRsp, err
-	}
-	actionRequest := model.HostAction{
-		HostID: hostID,
-		Action: model.Action{
-			Action: model.Docker_Container_Logs,
-			Data:   data,
-		},
-	}
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return &fileContentPartRsp, err
-	}
-	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("failed to get container logs part")
-		return &fileContentPartRsp, fmt.Errorf("failed to get container logs part")
-	}
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileContentPartRsp)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to container logs part: %v", err)
-		return &fileContentPartRsp, fmt.Errorf("json err: %v", err)
-	}
-	return &fileContentPartRsp, nil
-}
+// 	req := model.FileContentPartReq{
+// 		Path:   containerID,
+// 		Lines:  offset,
+// 		Whence: whence,
+// 	}
+// 	data, err := utils.ToJSONString(req)
+// 	if err != nil {
+// 		return &fileContentPartRsp, err
+// 	}
+// 	actionRequest := model.HostAction{
+// 		HostID: hostID,
+// 		Action: model.Action{
+// 			Action: model.Docker_Container_Logs,
+// 			Data:   data,
+// 		},
+// 	}
+// 	actionResponse, err := s.sendAction(actionRequest)
+// 	if err != nil {
+// 		return &fileContentPartRsp, err
+// 	}
+// 	if !actionResponse.Data.Action.Result {
+// 		global.LOG.Error("failed to get container logs part")
+// 		return &fileContentPartRsp, fmt.Errorf("failed to get container logs part")
+// 	}
+// 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &fileContentPartRsp)
+// 	if err != nil {
+// 		global.LOG.Error("Error unmarshaling data to container logs part: %v", err)
+// 		return &fileContentPartRsp, fmt.Errorf("json err: %v", err)
+// 	}
+// 	return &fileContentPartRsp, nil
+// }
 
 func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 	defer func() {
@@ -817,7 +817,12 @@ func (s *DockerMan) followContainerLogs(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
+				go func() {
+					err := s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
+					if err != nil {
+						global.LOG.Error("Failed to send logstream stop message: %v", err)
+					}
+				}()
 			}
 			// 清理任务相关的资源
 			//s.clearTaskStuff(task.ID)
@@ -839,7 +844,11 @@ func (s *DockerMan) notifyRemote(conn *net.Conn, taskId string, logPath string, 
 		"",
 	)
 	if err == nil {
-		message.SendLogStreamMessage(*conn, stopMsg)
+		err = message.SendLogStreamMessage(*conn, stopMsg)
+		if err != nil {
+			global.LOG.Error("Failed to send logstream message: %v", err)
+			return fmt.Errorf("failed to send logstream message: %w", err)
+		}
 	}
 	return nil
 }

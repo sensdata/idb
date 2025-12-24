@@ -57,37 +57,37 @@ func getSessionID(sessionName string) (string, error) {
 	return "", fmt.Errorf("session %s not found", sessionName)
 }
 
-func getSessionName(sessionID string) (string, error) {
-	// 执行 screen -ls 命令获取所有会话列表
-	output, err := exec.Command("screen", "-ls").Output()
-	if strings.Contains(string(output), "No Sockets found") {
-		fmt.Println("no session found")
-		return "", fmt.Errorf("no session found")
-	}
-	if err != nil {
-		fmt.Printf("failed to list sessions: %v", err)
-		return "", fmt.Errorf("failed to list sessions: %v", err)
-	}
-	fmt.Printf("output: %s", output)
+// func getSessionName(sessionID string) (string, error) {
+// 	// 执行 screen -ls 命令获取所有会话列表
+// 	output, err := exec.Command("screen", "-ls").Output()
+// 	if strings.Contains(string(output), "No Sockets found") {
+// 		fmt.Println("no session found")
+// 		return "", fmt.Errorf("no session found")
+// 	}
+// 	if err != nil {
+// 		fmt.Printf("failed to list sessions: %v", err)
+// 		return "", fmt.Errorf("failed to list sessions: %v", err)
+// 	}
+// 	fmt.Printf("output: %s", output)
 
-	// 处理返回的结果字符串
-	lines := strings.Split(string(output), "\n")
-	for _, line := range lines {
-		// 查找包含 sessionID. 的行
-		if !strings.Contains(line, sessionID+".") {
-			continue
-		}
+// 	// 处理返回的结果字符串
+// 	lines := strings.Split(string(output), "\n")
+// 	for _, line := range lines {
+// 		// 查找包含 sessionID. 的行
+// 		if !strings.Contains(line, sessionID+".") {
+// 			continue
+// 		}
 
-		// 使用正则表达式提取会话信息，匹配 id.name 格式
-		re := regexp.MustCompile(`\d+\.(\S+)\s+`)
-		matches := re.FindStringSubmatch(line)
-		if len(matches) >= 2 {
-			return matches[1], nil
-		}
+// 		// 使用正则表达式提取会话信息，匹配 id.name 格式
+// 		re := regexp.MustCompile(`\d+\.(\S+)\s+`)
+// 		matches := re.FindStringSubmatch(line)
+// 		if len(matches) >= 2 {
+// 			return matches[1], nil
+// 		}
 
-		fmt.Printf("invalid session format: %s", line)
-		return "", fmt.Errorf("invalid session format")
-	}
+// 		fmt.Printf("invalid session format: %s", line)
+// 		return "", fmt.Errorf("invalid session format")
+// 	}
 
-	return "", fmt.Errorf("session %s not found", sessionID)
-}
+// 	return "", fmt.Errorf("session %s not found", sessionID)
+// }
