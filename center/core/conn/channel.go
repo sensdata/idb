@@ -605,7 +605,7 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	}
 
 	// 记录连接
-	agentID := conn.RemoteAddr().String()
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 	c.mu.Lock()
 	c.agentConns[agentID] = conn
 	c.mu.Unlock()
@@ -633,7 +633,7 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
-	agentID := conn.RemoteAddr().String()
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 
 	defer func() {
 		// 在defer中关闭连接并从agentConns中删除
