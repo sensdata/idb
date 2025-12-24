@@ -556,12 +556,12 @@ func (c DockerClient) ContainerOperation(req model.ContainerOperation) error {
 		case constant.ContainerOpUnpause:
 			err = c.cli.ContainerUnpause(ctx, item)
 		case constant.ContainerOpRemove:
-			containerJSON, err := c.cli.ContainerInspect(ctx, item)
-			if err != nil {
+			if containerJSON, err := c.cli.ContainerInspect(ctx, item); err != nil {
 				return err
-			}
-			if containerJSON.State.Running {
-				return errors.New("container is running, should stop first")
+			} else {
+				if containerJSON.State.Running {
+					return errors.New("container is running, should stop first")
+				}
 			}
 			err = c.cli.ContainerRemove(
 				ctx,

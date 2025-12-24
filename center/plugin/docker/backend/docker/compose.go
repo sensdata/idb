@@ -186,7 +186,7 @@ func (s *DockerMan) composeRemove(hostID uint64, req model.ComposeRemove) (*mode
 	}
 	if !actionResponse.Data.Action.Result {
 		global.LOG.Error("action Docker_Compose_Remove failed")
-		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data)
+		return &result, fmt.Errorf("failed to remove compose: %s", actionResponse.Data.Action.Data)
 	}
 	err = utils.FromJSONString(actionResponse.Data.Action.Data, &result)
 	if err != nil {
@@ -453,7 +453,12 @@ func (s *DockerMan) followComposeLogs(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
+				go func() {
+					err := s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0, "")
+					if err != nil {
+						global.LOG.Error("Failed to send logstream stop message: %v", err)
+					}
+				}()
 			}
 			// 清理任务相关的资源
 			//s.clearTaskStuff(task.ID)

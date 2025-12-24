@@ -128,7 +128,9 @@ func StartServices() error {
 
 func StopServices() error {
 	// 停止agent服务
-	agent.AGENT.Stop()
+	if err := agent.AGENT.Stop(); err != nil {
+		global.LOG.Error("Failed to stop agent: %v", err)
+	}
 
 	// 最后关闭日志
 	global.LOG.Close()

@@ -63,7 +63,11 @@ func (m *Manager) loadConfig() error {
 
 		switch key {
 		case "port":
-			fmt.Sscanf(value, "%d", &config.Port)
+			portValue, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("invalid port value: %s, err: %w", value, err)
+			}
+			config.Port = portValue
 		case "secret_key":
 			config.SecretKey = value
 		default:

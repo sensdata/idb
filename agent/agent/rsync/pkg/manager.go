@@ -86,7 +86,10 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 		return "", err
 	}
 	if enqueue {
-		m.EnqueueTask(t.ID)
+		if err := m.EnqueueTask(t.ID); err != nil {
+			global.LOG.Error("[rsyncmgr] failed to enqueue task %s: %v", t.ID, err)
+			return "", err
+		}
 	}
 	return t.ID, nil
 }
@@ -202,7 +205,11 @@ func (m *Manager) runTask(id string) error {
 		}
 
 		// 记录错误信息到日志文件
-		logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", err))
+		err = logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", err))
+		if err != nil {
+			global.LOG.Error("[rsyncmgr] failed to append execution log for task %s: %v", id, err)
+			return err
+		}
 
 		global.LOG.Error("[rsyncmgr] failed to start rsync for task %s: %v", id, err)
 		return err
@@ -214,10 +221,18 @@ func (m *Manager) runTask(id string) error {
 	t.UpdatedAt = time.Now()
 	if saveErr := m.storage.SaveTask(t); saveErr != nil {
 		m.mu.Unlock()
-		proc.Stop() // 清理已启动的进程
+		err = proc.Stop() // 清理已启动的进程
+		if err != nil {
+			global.LOG.Error("[rsyncmgr] failed to stop rsync for task %s: %v", id, err)
+			return fmt.Errorf("failed to save running state: %v", saveErr)
+		}
 
 		// 记录错误信息到日志文件
-		logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", saveErr))
+		err = logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", saveErr))
+		if err != nil {
+			global.LOG.Error("[rsyncmgr] failed to append execution log for task %s: %v", id, err)
+			return fmt.Errorf("failed to save running state: %v", saveErr)
+		}
 
 		global.LOG.Error("[rsyncmgr] failed to save running state for task %s: %v", id, saveErr)
 		return fmt.Errorf("failed to save running state: %v", saveErr)
@@ -275,7 +290,11 @@ func (m *Manager) TestSync(id string) (string, error) {
 	logPath, err := TestRsync(t, logHandler)
 	if err != nil {
 		// 记录错误信息到测试日志文件
-		logHandler.AppendTestLog(fmt.Sprintf("Error: %v", err))
+		err = logHandler.AppendTestLog(fmt.Sprintf("Error: %v", err))
+		if err != nil {
+			global.LOG.Error("[rsyncmgr] failed to append test log for task %s: %v", id, err)
+			return logPath, nil
+		}
 		global.LOG.Info("Test sync failed for task %s: %v", id, err)
 		return logPath, nil
 	}
@@ -295,16 +314,18 @@ func (m *Manager) GetTaskLogs(id string, page, pageSize int) (int, []string, err
 }
 
 // helper proc map locks
-func (m *Manager) setProc(id string, p *ExecProcess) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.runtimeProcs[id] = p
-}
-func (m *Manager) deleteProc(id string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	delete(m.runtimeProcs, id)
-}
+//
+//	func (m *Manager) setProc(id string, p *ExecProcess) {
+//		m.mu.Lock()
+//		defer m.mu.Unlock()
+//		m.runtimeProcs[id] = p
+//	}
+//
+//	func (m *Manager) deleteProc(id string) {
+//		m.mu.Lock()
+//		defer m.mu.Unlock()
+//		delete(m.runtimeProcs, id)
+//	}
 func (m *Manager) getProc(id string) *ExecProcess {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

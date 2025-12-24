@@ -1,11 +1,9 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"gorm.io/gorm"
 )
@@ -129,21 +127,21 @@ func (c *CommonRepo) WithIdsNotIn(ids []uint) DBOption {
 	}
 }
 
-func getTx(ctx context.Context, opts ...DBOption) *gorm.DB {
-	tx, ok := ctx.Value(constant.DB).(*gorm.DB)
-	if ok {
-		for _, opt := range opts {
-			tx = opt(tx)
-		}
-		return tx
-	}
-	return getDb(opts...)
-}
+// func getTx(ctx context.Context, opts ...DBOption) *gorm.DB {
+// 	tx, ok := ctx.Value(constant.DB).(*gorm.DB)
+// 	if ok {
+// 		for _, opt := range opts {
+// 			tx = opt(tx)
+// 		}
+// 		return tx
+// 	}
+// 	return getDb(opts...)
+// }
 
-func getDb(opts ...DBOption) *gorm.DB {
-	db := global.DB
-	for _, opt := range opts {
-		db = opt(db)
-	}
-	return db
-}
+// func getDb(opts ...DBOption) *gorm.DB {
+// 	db := global.DB
+// 	for _, opt := range opts {
+// 		db = opt(db)
+// 	}
+// 	return db
+// }

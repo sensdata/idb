@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,7 +29,9 @@ import (
 )
 
 type CaService struct {
-	rootCertMap map[string]*x509.Certificate
+	rootCertMap         map[string]*x509.Certificate
+	intermediateCertMap map[string]*x509.Certificate
+	mu                  sync.Mutex // 保证并发安全
 }
 
 type ICaService interface {
@@ -800,16 +803,16 @@ func convertIPsToStrings(ips []net.IP) []string {
 }
 
 // 判断私钥是否是 RSA 格式
-func isRSAKey(privKey []byte) bool {
-	_, err := x509.ParsePKCS1PrivateKey(privKey)
-	return err == nil
-}
+// func isRSAKey(privKey []byte) bool {
+// 	_, err := x509.ParsePKCS1PrivateKey(privKey)
+// 	return err == nil
+// }
 
 // 判断私钥是否是 ECDSA 格式
-func isECDSAKey(privKey []byte) bool {
-	_, err := x509.ParseECPrivateKey(privKey)
-	return err == nil
-}
+// func isECDSAKey(privKey []byte) bool {
+// 	_, err := x509.ParseECPrivateKey(privKey)
+// 	return err == nil
+// }
 
 // 生成RSA私钥
 func generateRSAKey(bits int) ([]byte, error) {
@@ -961,7 +964,7 @@ func (s *CaService) completeCertificateChain(source string) (string, error) {
 	}
 
 	// 验证当前链是否完整，如果不完整，补齐缺失部分
-	fullCerts, err := fillCertificateChain(certs, s.rootCertMap)
+	fullCerts, err := s.fillCertificateChain(certs, s.rootCertMap)
 	if err != nil {
 		return "", fmt.Errorf("failed to complete certificate chain: %v", err)
 	}
@@ -980,41 +983,46 @@ func (s *CaService) completeCertificateChain(source string) (string, error) {
 }
 
 // 补齐证书链
-func fillCertificateChain(certs []*x509.Certificate, rootCertMap map[string]*x509.Certificate) ([]*x509.Certificate, error) {
-	certChain := certs
-	seen := make(map[string]struct{}) // 用于防止重复添加证书
+func (s *CaService) fillCertificateChain(
+	certs []*x509.Certificate,
+	rootCertMap map[string]*x509.Certificate,
+) ([]*x509.Certificate, error) {
+	chain := append([]*x509.Certificate{}, certs...)
+	seen := map[string]struct{}{}
 
-	// 标记初始链上的证书
-	for _, cert := range certs {
-		seen[string(cert.Raw)] = struct{}{}
+	for _, c := range chain {
+		seen[string(c.Raw)] = struct{}{}
 	}
 
 	// 从最后一个证书开始补齐
-	currentCert := certs[len(certs)-1]
+	current := certs[len(certs)-1]
 	for {
-		// 检查是否为根证书
-		if isRootCertificate(currentCert, rootCertMap) {
+		// 是根证书就停止
+		if isRootCertificate(current, rootCertMap) {
 			break
 		}
 
-		// 在 CA 映射中查找颁发者证书
-		nextCert, err := findIssuerCertificate(currentCert, rootCertMap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find issuer for %s: %v", currentCert.Subject, err)
+		// 下载并缓存中间证书
+		s.ensureIntermediate(current)
+
+		// 查找颁发者证书
+		s.mu.Lock()
+		issuer := findIssuer(current, s.intermediateCertMap, rootCertMap)
+		s.mu.Unlock()
+		if issuer == nil {
+			return nil, fmt.Errorf("issuer not found for %s", current.Subject)
 		}
 
-		// 防止重复添加
-		if nextCert == nil || containsCertificate(seen, nextCert) {
+		if _, ok := seen[string(issuer.Raw)]; ok {
 			break
 		}
 
-		// 添加到链中
-		certChain = append(certChain, nextCert)
-		seen[string(nextCert.Raw)] = struct{}{}
-		currentCert = nextCert
+		chain = append(chain, issuer)
+		seen[string(issuer.Raw)] = struct{}{}
+		current = issuer
 	}
 
-	return certChain, nil
+	return chain, nil
 }
 
 // 检查是否为根证书
@@ -1029,21 +1037,42 @@ func isRootCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Cert
 	return exists
 }
 
-// 在 CA 映射中查找颁发者证书
-func findIssuerCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) (*x509.Certificate, error) {
-	for _, rootCert := range rootCertMap {
-		if cert.CheckSignatureFrom(rootCert) == nil {
-			return rootCert, nil
+func findIssuer(
+	cert *x509.Certificate,
+	intermediate map[string]*x509.Certificate,
+	root map[string]*x509.Certificate,
+) *x509.Certificate {
+
+	for _, c := range intermediate {
+		if cert.CheckSignatureFrom(c) == nil {
+			return c
 		}
 	}
-	return nil, fmt.Errorf("issuer not found for %s", cert.Subject)
+
+	for _, c := range root {
+		if cert.CheckSignatureFrom(c) == nil {
+			return c
+		}
+	}
+
+	return nil
 }
 
+// 在 CA 映射中查找颁发者证书
+// func findIssuerCertificate(cert *x509.Certificate, rootCertMap map[string]*x509.Certificate) (*x509.Certificate, error) {
+// 	for _, rootCert := range rootCertMap {
+// 		if cert.CheckSignatureFrom(rootCert) == nil {
+// 			return rootCert, nil
+// 		}
+// 	}
+// 	return nil, fmt.Errorf("issuer not found for %s", cert.Subject)
+// }
+
 // 检查证书是否已经存在于链中
-func containsCertificate(seen map[string]struct{}, cert *x509.Certificate) bool {
-	_, exists := seen[string(cert.Raw)]
-	return exists
-}
+// func containsCertificate(seen map[string]struct{}, cert *x509.Certificate) bool {
+// 	_, exists := seen[string(cert.Raw)]
+// 	return exists
+// }
 
 // 加载 Mozilla CA 存储
 func (s *CaService) loadMozillaCAStore() (bool, error) {
@@ -1063,33 +1092,45 @@ func (s *CaService) loadMozillaCAStore() (bool, error) {
 		return false, fmt.Errorf("failed to read CA store file: %v", err)
 	}
 
-	// 创建 CertPool
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(data) {
-		return false, errors.New("failed to parse Mozilla CA certificates")
+	rootCertMap, err := parseRootCAsFromPEM(data)
+	if err != nil {
+		return false, err
 	}
 
-	s.rootCertMap = preprocessRootCAs(certPool)
-
-	return len(s.rootCertMap) > 0, nil
+	s.rootCertMap = rootCertMap
+	return len(rootCertMap) > 0, nil
 }
 
-// 预处理 CA 池：将证书解析为映射表
-func preprocessRootCAs(rootCAs *x509.CertPool) map[string]*x509.Certificate {
+func parseRootCAsFromPEM(pemData []byte) (map[string]*x509.Certificate, error) {
 	rootCertMap := make(map[string]*x509.Certificate)
-	for _, certPEM := range rootCAs.Subjects() {
-		block, _ := pem.Decode(certPEM)
+
+	for {
+		block, rest := pem.Decode(pemData)
 		if block == nil {
+			break
+		}
+
+		if block.Type != "CERTIFICATE" {
+			pemData = rest
 			continue
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
+			pemData = rest
 			continue
 		}
-		// 使用证书的 SubjectKeyId 或其他唯一标识作为键
+
+		// 用 Raw 作为唯一键（你后面逻辑正是这么用的）
 		rootCertMap[string(cert.Raw)] = cert
+		pemData = rest
 	}
-	return rootCertMap
+
+	if len(rootCertMap) == 0 {
+		return nil, errors.New("no root certificates parsed")
+	}
+
+	return rootCertMap, nil
 }
 
 // 下载 Mozilla CA 存储
@@ -1113,16 +1154,79 @@ func downloadMozillaCAStore(filePath string) error {
 }
 
 // 检查证书是否由 Mozilla CA 存储信任
-func isTrustedByMozilla(rootCAs *x509.CertPool, cert *x509.Certificate) bool {
-	// 设置验证选项
-	opts := x509.VerifyOptions{
-		Roots: rootCAs, // 使用 Mozilla CA 的根证书
+// func isTrustedByMozilla(rootCAs *x509.CertPool, cert *x509.Certificate) bool {
+// 	// 设置验证选项
+// 	opts := x509.VerifyOptions{
+// 		Roots: rootCAs, // 使用 Mozilla CA 的根证书
+// 	}
+
+// 	// 验证证书
+// 	if _, err := cert.Verify(opts); err != nil {
+// 		return false // 验证失败，非受信任证书
+// 	}
+
+// 	return true // 受信任
+// }
+
+func getAIAIssuerURLs(cert *x509.Certificate) []string {
+	var urls []string
+	for _, u := range cert.IssuingCertificateURL {
+		if strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
+			urls = append(urls, u)
+		}
+	}
+	return urls
+}
+
+func downloadIntermediateCA(url string) (*x509.Certificate, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	// 验证证书
-	if _, err := cert.Verify(opts); err != nil {
-		return false // 验证失败，非受信任证书
+	// 支持 DER 或 PEM
+	if block, _ := pem.Decode(data); block != nil {
+		return x509.ParseCertificate(block.Bytes)
 	}
 
-	return true // 受信任
+	return x509.ParseCertificate(data)
+}
+
+// 获取并缓存中间证书
+func (s *CaService) ensureIntermediate(cert *x509.Certificate) {
+	if s.intermediateCertMap == nil {
+		s.intermediateCertMap = make(map[string]*x509.Certificate)
+	}
+
+	for _, url := range getAIAIssuerURLs(cert) {
+		s.mu.Lock()
+		// 检查是否已经下载过
+		already := false
+		for _, c := range s.intermediateCertMap {
+			if c.Subject.String() == cert.Subject.String() {
+				already = true
+				break
+			}
+		}
+		s.mu.Unlock()
+		if already {
+			continue
+		}
+
+		issuer, err := downloadIntermediateCA(url)
+		if err != nil {
+			continue
+		}
+
+		key := string(issuer.Raw)
+		s.mu.Lock()
+		s.intermediateCertMap[key] = issuer
+		s.mu.Unlock()
+	}
 }

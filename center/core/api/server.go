@@ -396,8 +396,8 @@ func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
 	// 按照 Git 协议格式发送服务能力声明
 	serviceLine := "# service=git-upload-pack\n"
 	pktLine := fmt.Sprintf("%04x%s", len(serviceLine)+4, serviceLine)
-	c.Writer.Write([]byte(pktLine))
-	c.Writer.Write([]byte("0000")) // flush-pkt
+	writeToWriter(c.Writer, []byte(pktLine))
+	writeToWriter(c.Writer, []byte("0000")) // flush-pkt
 
 	// 获取并发送引用信息
 	refs, err := repo.References()
@@ -411,19 +411,24 @@ func (s *ApiServer) handleGitInfoRefs(c *gin.Context, repo *git.Repository) {
 	if err == nil {
 		capabilities := "multi_ack_detailed multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not allow-tip-sha1-in-want allow-reachable-sha1-in-want no-progress include-tag"
 		line := fmt.Sprintf("%s HEAD\x00%s\n", head.Hash(), capabilities)
-		c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
+		writeToWriter(c.Writer, []byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
 	}
 
 	// 发送其他引用
-	refs.ForEach(func(ref *plumbing.Reference) error {
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Name().IsBranch() || ref.Name().IsTag() {
 			line := fmt.Sprintf("%s %s\n", ref.Hash(), ref.Name())
-			c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
+			writeToWriter(c.Writer, []byte(fmt.Sprintf("%04x%s", len(line)+4, line)))
 		}
 		return nil
 	})
+	if err != nil {
+		global.LOG.Error("Failed to send references: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to send references")
+		return
+	}
 
-	c.Writer.Write([]byte("0000")) // 结束标记
+	writeToWriter(c.Writer, []byte("0000")) // 结束标记
 }
 
 func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
@@ -472,9 +477,9 @@ func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
 	}
 	global.LOG.Info("Total want hashes: %d", len(wantHashes))
 
-	// 首先发送 NAK
+	// 首先发送 NAK 响应
 	nakLine := "NAK\n"
-	c.Writer.Write([]byte(fmt.Sprintf("%04x%s", len(nakLine)+4, nakLine)))
+	writeToWriter(c.Writer, []byte(fmt.Sprintf("%04x%s", len(nakLine)+4, nakLine)))
 	global.LOG.Info("Sent NAK response")
 
 	// 使用 side-band 协议包装 writer
@@ -579,11 +584,18 @@ func (s *ApiServer) handleGitUploadPack(c *gin.Context, repo *git.Repository) {
 // writePktLine 写入一个 pkt-line
 func (s *ApiServer) writePktLine(c *gin.Context, data string) {
 	if data == "" {
-		c.Writer.Write([]byte("0000"))
+		writeToWriter(c.Writer, []byte("0000"))
 		return
 	}
 	pktLine := fmt.Sprintf("%04x%s", len(data)+4, data)
-	c.Writer.Write([]byte(pktLine))
+	writeToWriter(c.Writer, []byte(pktLine))
+}
+
+func writeToWriter(writer io.Writer, data []byte) {
+	_, err := writer.Write(data)
+	if err != nil {
+		global.LOG.Error("Failed to write data to writer: %v", err)
+	}
 }
 
 // bandWriter 实现 side-band 协议
@@ -619,6 +631,7 @@ func (w *bandWriterBand) Write(p []byte) (int, error) {
 			global.LOG.Error("Failed to write pkt-line header: %v", err)
 			return totalWritten, err
 		}
+		totalWritten += n
 
 		// 写入 band 标识
 		n, err = w.w.Write([]byte{w.band})
@@ -626,6 +639,7 @@ func (w *bandWriterBand) Write(p []byte) (int, error) {
 			global.LOG.Error("Failed to write band identifier: %v", err)
 			return totalWritten, err
 		}
+		totalWritten += n
 
 		// 写入数据块
 		n, err = w.w.Write(chunk)

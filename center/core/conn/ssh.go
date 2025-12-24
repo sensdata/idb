@@ -144,7 +144,10 @@ func isValidSSHClient(client *ssh.Client) bool {
 
 func taskLog(wp *writer.Writer, level types.LogLevel, message string) {
 	if wp != nil {
-		(*wp).Write(level, message, map[string]string{})
+		err := (*wp).Write(level, message, map[string]string{})
+		if err != nil {
+			global.LOG.Error("Failed to write log to writer: %v", err)
+		}
 	}
 }
 

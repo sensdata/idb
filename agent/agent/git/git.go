@@ -1,7 +1,6 @@
 package git
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,9 +15,6 @@ import (
 	"github.com/sensdata/idb/core/utils"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
-
-//go:embed git_sync.sh
-var gitSyncShell []byte
 
 type GitService struct{}
 
