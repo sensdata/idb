@@ -88,11 +88,14 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 			// 分发
 			switch msgObj.Type {
 			case message.WsMessageStart:
-				aws.sendToAgent(
+				err := aws.sendToAgent(
 					aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 					message.WsMessageStart,
 					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 				)
+				if err != nil {
+					global.LOG.Error("send start message error: %v", err)
+				}
 
 			case message.WsMessageAttach:
 				// 如果会话已经登记了token，说明正在被使用
@@ -117,26 +120,35 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 						aws.SessionMessageChan <- &msg
 					}()
 				} else {
-					aws.sendToAgent(
+					err := aws.sendToAgent(
 						aws.Session, // 初始使用aws.Session做msgId，方便channel的sessionMap查找
 						message.WsMessageAttach,
 						message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: aws.cols, Rows: aws.rows},
 					)
+					if err != nil {
+						global.LOG.Error("send attach message error: %v", err)
+					}
 				}
 
 			case message.WsMessageCmd:
-				aws.sendToAgent(
+				err := aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageCmd,
 					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data},
 				)
+				if err != nil {
+					global.LOG.Error("send cmd message error: %v", err)
+				}
 
 			case message.WsMessageResize:
-				aws.sendToAgent(
+				err := aws.sendToAgent(
 					utils.GenerateMsgId(),
 					message.WsMessageResize,
 					message.SessionData{Type: aws.sessionType, Session: msgObj.Session, Data: msgObj.Data, Cols: msgObj.Cols, Rows: msgObj.Rows},
 				)
+				if err != nil {
+					global.LOG.Error("send resize message error: %v", err)
+				}
 
 			case message.WsMessageHeartbeat:
 				// 直接写会导致并发写，改为走 SessionMessageChan

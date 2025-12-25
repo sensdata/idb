@@ -715,6 +715,10 @@ func (s *SettingsService) Upgrade() error {
 		global.Version,
 		message.CmdMessage,
 	)
+	if err != nil {
+		global.LOG.Error("Failed to create command message: %v", err)
+		return err
+	}
 	err = message.SendMessage(*agentConn, msg)
 	if err != nil {
 		global.LOG.Error("Failed to send command message: %v", err)

@@ -422,7 +422,6 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 	}
 	global.LOG.Info("task: %s", task.ID)
 
-
 	// 把task的metadata都打印出来
 	for k, v := range task.Metadata {
 		global.LOG.Info("task metadata: %s=%v", k, v)
@@ -551,7 +550,12 @@ func (s *FileMan) tailContentStream(c *gin.Context) error {
 					return fmt.Errorf("get agent conn failed: %w", err)
 				}
 
-				go s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
+				go func() {
+					err := s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
+					if err != nil {
+						global.LOG.Error("Failed to send logstream message: %v", err)
+					}
+				}()
 			}
 			// 清理任务相关的资源
 			//s.clearTaskStuff(task.ID)
@@ -573,23 +577,27 @@ func (s *FileMan) notifyRemote(conn *net.Conn, taskId string, logPath string, ms
 		"",
 	)
 	if err == nil {
-		message.SendLogStreamMessage(*conn, stopMsg)
+		err = message.SendLogStreamMessage(*conn, stopMsg)
+		if err != nil {
+			global.LOG.Error("Failed to send logstream message: %v", err)
+			return fmt.Errorf("failed to send logstream message: %w", err)
+		}
 	}
 	return nil
 }
 
-func (s *FileMan) clearTaskStuff(taskId string) {
-	global.LOG.Info("clear task stuff")
-	// 更新状态后删除task
-	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
-		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
-	}
-	if err := global.LogStream.DeleteTask(taskId); err != nil {
-		global.LOG.Error("delete task %s failed: %v", taskId, err)
-	} else {
-		global.LOG.Info("delete task %s success", taskId)
-	}
-}
+// func (s *FileMan) clearTaskStuff(taskId string) {
+// 	global.LOG.Info("clear task stuff")
+// 	// 更新状态后删除task
+// 	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
+// 		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
+// 	}
+// 	if err := global.LogStream.DeleteTask(taskId); err != nil {
+// 		global.LOG.Error("delete task %s failed: %v", taskId, err)
+// 	} else {
+// 		global.LOG.Info("delete task %s success", taskId)
+// 	}
+// }
 
 func (s *FileMan) uploadFile(hostID uint, path string, file *multipart.FileHeader) error {
 	return conn.CENTER.UploadFile(hostID, path, file)

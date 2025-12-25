@@ -8,8 +8,13 @@ on:
 
 jobs:
   code-quality:
+    name: Code Quality (${{ matrix.module }})
     runs-on: ubuntu-latest
-    name: Code Quality Check
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [center, agent, core]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,25 +22,36 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Set up Go
+      - name: Set up Go (for lint)
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: '1.23.4'
 
       - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+
+      - name: Ensure openssl is installed
+        run: |
+          which openssl || sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Generate key and certs
+        run: |
+          make generate-key
+          make generate-certs
 
       - name: Run go fmt
         run: |
-          cd center && go fmt ./...
-          cd ../agent && go fmt ./...
-          cd ../core && go fmt ./...
+          cd ${{ matrix.module }}
+          go fmt ./...
 
       - name: Run golangci-lint
         run: |
-          cd center && golangci-lint run
-          cd ../agent && golangci-lint run
-          cd ../core && golangci-lint run
+          cd ${{ matrix.module }}
+          golangci-lint run \
+            --timeout=5m \
+            --concurrency=1
+
 
   unit-test:
     runs-on: ubuntu-latest
@@ -51,6 +67,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
+
+      - name: Ensure openssl is installed
+        run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Generate key and certs
+        run: |
+          make generate-key
+          make generate-certs
 
       - name: Run unit tests
         run: |
@@ -77,6 +101,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
+
+      - name: Ensure openssl is installed
+        run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Generate key and certs
+        run: |
+          make generate-key
+          make generate-certs
 
       - name: Build backend
         run: |

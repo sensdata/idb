@@ -63,6 +63,7 @@ export interface RuleItem {
   rate?: string; // 速率限制，如 "100/second"
   count?: number; // 并发限制数量
   action: 'accept' | 'drop' | 'reject';
+  src_ip?: string; // 源IP限制，指定允许访问的IP或网段
 }
 
 // 基础端口规则（用于可视化配置）

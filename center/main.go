@@ -135,7 +135,11 @@ func StartServices() error {
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
 	migration.Init()
 	// 初始化设置
-	db.InitSettings(conn.CONFMAN.GetConfig())
+	err = db.InitSettings(conn.CONFMAN.GetConfig())
+	if err != nil {
+		global.LOG.Error("Failed to initialize settings: %v", err)
+		return err
+	}
 
 	// 初始化logstream
 	ls, err := logstream.New(nil)
@@ -204,7 +208,9 @@ func StopServices() error {
 	}
 
 	// 停止SSH
-	conn.SSH.Stop()
+	if err := conn.SSH.Stop(); err != nil {
+		global.LOG.Error("停止SSH服务失败: %v", err)
+	}
 
 	// 最后关闭日志
 	global.LOG.Close()

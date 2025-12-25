@@ -8,7 +8,7 @@
           </a-button>
           <a-dropdown
             position="bl"
-            @select="(key) => handleCreate(key as string)"
+            @select="(key: string) => handleCreate(key)"
           >
             <a-button>
               <icon-plus />
@@ -188,7 +188,7 @@
       <template #operation="{ record }">
         <a-dropdown
           :popup-max-height="false"
-          @select="(key) => handleOperation(key as string, record)"
+          @select="(key: string) => handleOperation(key, record)"
         >
           <a-button type="text" class="operation-button">
             <icon-settings />
@@ -405,16 +405,16 @@
 </script>
 
 <style scoped lang="less">
-  @import '@/assets/style/mixin.less';
+  @import url('@/assets/style/mixin.less');
 
   .file-main {
+    display: flex;
     flex: 1;
+    flex-direction: column;
     width: 100%;
     min-width: 0;
     height: 100%;
     padding: 20px;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
   }
 

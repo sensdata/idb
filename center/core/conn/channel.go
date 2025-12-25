@@ -190,31 +190,31 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 			parts := strings.Fields(command)
 
 			if len(parts) == 0 {
-				conn.Write([]byte("Unknown command"))
+				writeToConn(conn, []byte("Unknown command"))
 				return
 			}
 
 			switch parts[0] {
 			case "status":
-				conn.Write([]byte(fmt.Sprintf("iDB Center (pid %d) is running...", os.Getpid())))
+				writeToConn(conn, []byte(fmt.Sprintf("iDB Center (pid %d) is running...", os.Getpid())))
 			case "config":
 				switch len(parts) {
 				case 1:
 					// 输出当前的配置信息
 					settings, err := c.GetSettingsString("")
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to get config: %v", err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to get config: %v", err)))
 					} else {
-						conn.Write([]byte(fmt.Sprintf("%v", settings)))
+						writeToConn(conn, []byte(fmt.Sprintf("%v", settings)))
 					}
 				case 2:
 					// 输出当前的指定key配置信息
 					key := parts[1]
 					value, err := c.GetSettingsString(key)
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 					} else {
-						conn.Write([]byte(fmt.Sprintf("%v", value)))
+						writeToConn(conn, []byte(fmt.Sprintf("%v", value)))
 					}
 				case 3:
 					// 修改指定key的配置
@@ -222,42 +222,49 @@ func (c *Center) handleUnixConnection(conn net.Conn) {
 					value := parts[2]
 					err := c.UpdateSetting(key, value)
 					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
+						writeToConn(conn, []byte(fmt.Sprintf("Failed to set config %s: %v", key, err)))
 					} else {
 						value, err := c.GetSettingsString(key)
 						if err != nil {
-							conn.Write([]byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
+							writeToConn(conn, []byte(fmt.Sprintf("Failed to get %s: %v", key, err)))
 						} else {
-							conn.Write([]byte(fmt.Sprintf("%v", value)))
+							writeToConn(conn, []byte(fmt.Sprintf("%v", value)))
 						}
 					}
 				default:
-					conn.Write([]byte("Unknown config command format"))
+					writeToConn(conn, []byte("Unknown config command format"))
 				}
 			case "update":
 				err := c.Upgrade()
 				if err != nil {
-					conn.Write([]byte(fmt.Sprintf("Failed to update: %v", err)))
+					writeToConn(conn, []byte(fmt.Sprintf("Failed to update: %v", err)))
 				} else {
-					conn.Write([]byte("Upgrade success"))
+					writeToConn(conn, []byte("Upgrade success"))
 				}
 			case "rst-pass":
 				newPass, err := c.ResetAdminPassword()
 				if err != nil {
-					conn.Write([]byte(fmt.Sprintf("Failed to reset password: %v", err)))
+					writeToConn(conn, []byte(fmt.Sprintf("Failed to reset password: %v", err)))
 				} else {
-					conn.Write([]byte(fmt.Sprintf("Password reset, please remember your new password: %s", newPass)))
+					writeToConn(conn, []byte(fmt.Sprintf("Password reset, please remember your new password: %s", newPass)))
 				}
 			case "flush-logs":
 				if err := global.LOG.Flush(); err != nil {
-					conn.Write([]byte(fmt.Sprintf("Failed to flush logs: %v", err)))
+					writeToConn(conn, []byte(fmt.Sprintf("Failed to flush logs: %v", err)))
 				} else {
-					conn.Write([]byte("Logs flushed successfully"))
+					writeToConn(conn, []byte("Logs flushed successfully"))
 				}
 			default:
-				conn.Write([]byte("Unknown command"))
+				writeToConn(conn, []byte("Unknown command"))
 			}
 		}
+	}
+}
+
+func writeToConn(conn net.Conn, msgBytes []byte) {
+	_, err := conn.Write(msgBytes)
+	if err != nil {
+		global.LOG.Error("failed to write to unix connection: %v", err)
 	}
 }
 
@@ -598,7 +605,7 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	}
 
 	// 记录连接
-	agentID := conn.RemoteAddr().String()
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 	c.mu.Lock()
 	c.agentConns[agentID] = conn
 	c.mu.Unlock()
@@ -616,12 +623,17 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 
 	// 如果是default设备, 检查是否已激活
 	if host.IsDefault {
-		go c.activateHost(host)
+		go func() {
+			err := c.activateHost(host)
+			if err != nil {
+				global.LOG.Error("Failed to activate default host: %v", err)
+			}
+		}()
 	}
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
-	agentID := conn.RemoteAddr().String()
+	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 
 	defer func() {
 		// 在defer中关闭连接并从agentConns中删除
@@ -709,7 +721,10 @@ func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
 	if !c.canAgentUpgrade(agentVersion) {
 		return
 	}
-	SSH.InstallAgent(*host, "", true)
+	err := SSH.InstallAgent(*host, "", true)
+	if err != nil {
+		global.LOG.Error("Failed to install agent: %v", err)
+	}
 }
 
 func (c *Center) canAgentUpgrade(agentVersion string) bool {
@@ -732,7 +747,10 @@ func (c *Center) canAgentUpgrade(agentVersion string) bool {
 
 func (c *Center) removeAgent(host *model.Host) {
 	global.LOG.Info("Remove agent %s", host.AgentAddr)
-	SSH.UninstallAgent(*host, "")
+	err := SSH.UninstallAgent(*host, "")
+	if err != nil {
+		global.LOG.Error("Failed to uninstall agent: %v", err)
+	}
 }
 
 func (c *Center) processMessage(host *model.Host, msg *message.Message) {
@@ -778,9 +796,26 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 			global.SetHostStatus(host.ID, hostStatusInfo)
 			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)
 
+			go func() {
+				conn, err := c.getAgentConn(host)
+				if err != nil {
+					global.LOG.Error("Failed to get agent conn: %v", err)
+					return
+				}
+				err = c.sendHeartbeat(host, conn)
+				if err != nil {
+					global.LOG.Error("Failed to send heartbeat: %v", err)
+				}
+			}()
+
 			// 已激活的, 检查license
 			if heartbeat.Activated {
-				go c.checkLicense(host, heartbeat.LastVerifyAt)
+				go func() {
+					err := c.checkLicense(host, heartbeat.LastVerifyAt)
+					if err != nil {
+						global.LOG.Error("Failed to check license: %v", err)
+					}
+				}()
 			}
 		}
 
@@ -1729,35 +1764,35 @@ func (c *Center) updateHttpsCertType(certType string) error {
 	return settingsRepo.Update("HttpsCertType", certType)
 }
 
-func (c *Center) updateHttpsCertPath(certPath string) error {
-	if len(certPath) == 0 {
-		return nil
-	}
-	settingsRepo := repo.NewSettingsRepo()
-	oldCertPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsCertPath"))
-	if err != nil {
-		return err
-	}
-	if certPath == oldCertPath.Value {
-		return nil
-	}
-	return settingsRepo.Update("HttpsCertPath", certPath)
-}
+// func (c *Center) updateHttpsCertPath(certPath string) error {
+// 	if len(certPath) == 0 {
+// 		return nil
+// 	}
+// 	settingsRepo := repo.NewSettingsRepo()
+// 	oldCertPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsCertPath"))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if certPath == oldCertPath.Value {
+// 		return nil
+// 	}
+// 	return settingsRepo.Update("HttpsCertPath", certPath)
+// }
 
-func (c *Center) updateHttpsKeyPath(keyPath string) error {
-	if len(keyPath) == 0 {
-		return nil
-	}
-	settingsRepo := repo.NewSettingsRepo()
-	oldKeyPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsKeyPath"))
-	if err != nil {
-		return err
-	}
-	if keyPath == oldKeyPath.Value {
-		return nil
-	}
-	return settingsRepo.Update("HttpsKeyPath", keyPath)
-}
+// func (c *Center) updateHttpsKeyPath(keyPath string) error {
+// 	if len(keyPath) == 0 {
+// 		return nil
+// 	}
+// 	settingsRepo := repo.NewSettingsRepo()
+// 	oldKeyPath, err := settingsRepo.Get(settingsRepo.WithByKey("HttpsKeyPath"))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if keyPath == oldKeyPath.Value {
+// 		return nil
+// 	}
+// 	return settingsRepo.Update("HttpsKeyPath", keyPath)
+// }
 
 func (c *Center) Upgrade() error {
 	return c.upgrade()
@@ -1776,7 +1811,7 @@ func (c *Center) ResetAdminPassword() (string, error) {
 	upMap := make(map[string]interface{})
 	upMap["password"] = passwordHash
 	upMap["salt"] = salt
-	if err := UserRepo.Update(user.ID, upMap); err != nil {
+	if err := userRepo.Update(user.ID, upMap); err != nil {
 		return "", errors.New("failed to reset admin password")
 	}
 
@@ -1818,8 +1853,11 @@ func (c *Center) upgrade() error {
 		global.Version,
 		message.CmdMessage,
 	)
-	err = message.SendMessage(*agentConn, msg)
 	if err != nil {
+		global.LOG.Error("Failed to create command message: %v", err)
+		return errors.New("failed to create message")
+	}
+	if err := message.SendMessage(*agentConn, msg); err != nil {
 		global.LOG.Error("Failed to send command message: %v", err)
 		return errors.New("failed to notify agent")
 	}

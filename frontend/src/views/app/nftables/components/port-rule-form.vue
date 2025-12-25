@@ -334,6 +334,27 @@
                     </a-form-item>
                   </a-col>
                 </a-row>
+
+                <!-- 源IP限制 -->
+                <a-row :gutter="16" class="src-ip-row">
+                  <a-col :span="24">
+                    <a-form-item
+                      :field="`rules.${index}.src_ip`"
+                      :label="$t('app.nftables.form.srcIp')"
+                    >
+                      <a-input
+                        v-model="rule.src_ip"
+                        :placeholder="$t('app.nftables.form.srcIpPlaceholder')"
+                        allow-clear
+                      />
+                      <template #extra>
+                        <div class="field-help">
+                          {{ $t('app.nftables.form.srcIpHelp') }}
+                        </div>
+                      </template>
+                    </a-form-item>
+                  </a-col>
+                </a-row>
               </div>
             </div>
           </div>
@@ -578,18 +599,19 @@
 
     return form.rules
       .map((rule) => {
+        const srcIpPart = rule.src_ip ? `ip saddr ${rule.src_ip} ` : '';
         switch (rule.type) {
           case 'rate_limit':
-            return `tcp dport ${form.port} ip saddr limit rate ${
+            return `${srcIpPart}tcp dport ${form.port} limit rate ${
               rule.rate || '100/second'
             } ${rule.action}`;
           case 'concurrent_limit':
-            return `tcp dport ${form.port} ct count ip saddr over ${
+            return `${srcIpPart}tcp dport ${form.port} ct count over ${
               rule.count || 10
             } ${rule.action}`;
           case 'default':
           default:
-            return `tcp dport ${form.port} ${rule.action}`;
+            return `${srcIpPart}tcp dport ${form.port} ${rule.action}`;
         }
       })
       .join('\n');
@@ -675,32 +697,27 @@
 <style scoped lang="less">
   .port-rule-form {
     padding: 0;
-
     .section-title {
+      padding-bottom: 8px;
+      margin: 0 0 16px 0;
       font-size: 16px;
       font-weight: 600;
       color: var(--color-text-1);
-      margin: 0 0 16px 0;
       border-bottom: 2px solid var(--color-primary);
-      padding-bottom: 8px;
     }
-
     .form-section {
       margin-bottom: 24px;
-
       .section-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
         margin-bottom: 16px;
       }
-
       .form-content {
         .mode-selector {
           display: flex;
           flex-direction: column;
           gap: 12px;
-
           .mode-card {
             display: flex;
             align-items: center;
@@ -708,28 +725,23 @@
             border: 2px solid var(--color-border-2);
             border-radius: 8px;
             transition: all 0.2s;
-
             &:hover {
+              background: var(--color-primary-light-5);
               border-color: var(--color-primary-light-3);
-              background: var(--color-primary-light-5);
             }
-
             &.active {
-              border-color: var(--color-primary);
               background: var(--color-primary-light-5);
+              border-color: var(--color-primary);
             }
-
             .mode-radio {
               margin-right: 12px;
             }
-
             .mode-content {
               .mode-title {
+                margin-bottom: 4px;
                 font-weight: 500;
                 color: var(--color-text-1);
-                margin-bottom: 4px;
               }
-
               .mode-desc {
                 font-size: 12px;
                 color: var(--color-text-3);
@@ -739,210 +751,176 @@
         }
       }
     }
-
     .form-section {
-      margin-bottom: 24px;
       padding: 20px;
+      margin-bottom: 24px;
       background: var(--color-bg-2);
       border: 1px solid var(--color-border-2);
       border-radius: 8px;
       box-shadow: 0 2px 8px var(--color-fill-1);
-
       .section-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
         margin-bottom: 20px;
-
         .section-title {
+          margin: 0;
           font-size: 16px;
           font-weight: 600;
           color: var(--color-text-1);
-          margin: 0;
         }
       }
-
       .form-content {
         .mode-selector {
           display: flex;
           flex-direction: column;
           gap: 12px;
-
           .mode-card {
+            position: relative;
             display: flex;
             align-items: center;
             padding: 16px;
+            cursor: pointer;
             border: 1px solid var(--color-border-2);
             border-radius: 8px;
-            cursor: pointer;
             transition: all 0.2s ease;
-            position: relative;
-
             &:hover {
-              border-color: var(--color-primary-light-4);
               background: var(--color-fill-1);
+              border-color: var(--color-primary-light-4);
               box-shadow: 0 2px 8px var(--color-fill-2);
             }
-
             &.active {
-              border-color: var(--color-primary-light-4);
               background: var(--color-primary-light-5);
+              border-color: var(--color-primary-light-4);
               box-shadow: 0 0 0 2px var(--color-primary-light-4);
             }
-
             .mode-radio {
               margin-right: 12px;
               pointer-events: none;
-
               :deep(.arco-radio) {
                 margin: 0;
               }
             }
-
             .mode-content {
               flex: 1;
-
               .mode-title {
-                font-weight: 500;
-                color: var(--color-text-1);
                 margin-bottom: 4px;
                 font-size: 14px;
+                font-weight: 500;
+                color: var(--color-text-1);
               }
-
               .mode-desc {
                 font-size: 12px;
-                color: var(--color-text-3);
                 line-height: 1.4;
+                color: var(--color-text-3);
               }
             }
           }
         }
-
         .action-selector {
           display: flex;
           flex-direction: column;
           gap: 12px;
-
           .action-card {
+            position: relative;
             display: flex;
             align-items: center;
             padding: 16px;
+            cursor: pointer;
             border: 1px solid var(--color-border-2);
             border-radius: 8px;
-            cursor: pointer;
             transition: all 0.2s ease;
-            position: relative;
-
             &:hover {
-              border-color: var(--color-primary-light-4);
               background: var(--color-fill-1);
+              border-color: var(--color-primary-light-4);
               box-shadow: 0 2px 8px var(--color-fill-2);
             }
-
             &.active {
-              border-color: var(--color-primary-light-4);
               background: var(--color-primary-light-5);
+              border-color: var(--color-primary-light-4);
               box-shadow: 0 0 0 2px var(--color-primary-light-4);
             }
-
             .action-radio {
               margin-right: 12px;
               pointer-events: none;
-
               :deep(.arco-radio) {
                 margin: 0;
               }
             }
-
             .action-content {
               display: flex;
-              align-items: center;
               flex: 1;
-
+              align-items: center;
               .action-icon {
-                font-size: 20px;
                 margin-right: 12px;
+                font-size: 20px;
               }
-
               .action-info {
                 .action-title {
-                  font-weight: 500;
-                  color: var(--color-text-1);
                   margin-bottom: 4px;
                   font-size: 14px;
+                  font-weight: 500;
+                  color: var(--color-text-1);
                 }
-
                 .action-desc {
                   font-size: 12px;
-                  color: var(--color-text-3);
                   line-height: 1.4;
+                  color: var(--color-text-3);
                 }
               }
             }
-
             &.accept .action-icon {
               color: var(--color-success);
             }
-
             &.drop .action-icon {
               color: var(--color-danger);
             }
-
             &.reject .action-icon {
               color: var(--color-warning);
             }
           }
         }
-
         .empty-state {
           padding: 40px 20px;
           text-align: center;
           background: var(--color-fill-1);
-          border-radius: 8px;
           border: 2px dashed var(--color-border-2);
-
+          border-radius: 8px;
           .empty-icon {
             font-size: 48px;
             color: var(--color-text-3);
           }
         }
-
         .rules-list {
           .rule-card {
-            margin-bottom: 16px;
             padding: 16px;
+            margin-bottom: 16px;
+            background: var(--color-fill-1);
             border: 1px solid var(--color-border-2);
             border-radius: 8px;
-            background: var(--color-fill-1);
-
             &:last-child {
               margin-bottom: 0;
             }
-
             .rule-header {
               display: flex;
-              justify-content: space-between;
               align-items: center;
+              justify-content: space-between;
               margin-bottom: 16px;
-
               .rule-title {
                 display: flex;
-                align-items: center;
                 gap: 8px;
-
+                align-items: center;
                 .rule-number {
                   font-weight: 500;
                   color: var(--color-text-1);
                 }
               }
             }
-
             .rule-content {
               .rule-type-option {
                 display: flex;
-                align-items: center;
                 gap: 8px;
-
+                align-items: center;
                 .option-icon {
                   font-size: 14px;
                 }
@@ -950,56 +928,48 @@
             }
           }
         }
-
         .config-preview {
+          padding: 16px;
           background: var(--color-fill-1);
           border: 1px solid var(--color-border-2);
           border-radius: 6px;
-          padding: 16px;
-
           pre {
             margin: 0;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
             font-size: 12px;
             color: var(--color-text-2);
-            white-space: pre-wrap;
             word-break: break-all;
+            white-space: pre-wrap;
           }
         }
       }
     }
-
     .field-help {
-      font-size: 12px;
-      color: var(--color-text-3);
       margin-top: 4px;
+      font-size: 12px;
       line-height: 1.4;
+      color: var(--color-text-3);
     }
-
     .full-width {
       width: 100%;
     }
-
     :deep(.arco-form-item-label) {
       font-weight: 500;
       color: var(--color-text-1);
     }
-
     :deep(.arco-input-number) {
       width: 100%;
     }
-
     :deep(.arco-select) {
       width: 100%;
     }
 
     // 响应式设计
-    @media (max-width: 768px) {
+    @media (width <= 768px) {
       .form-section {
         padding: 16px;
         margin-bottom: 16px;
       }
-
       .form-content {
         .mode-selector .mode-card,
         .action-selector .action-card {

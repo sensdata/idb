@@ -111,6 +111,7 @@ export interface HostStatusFollowItem {
   installed: string;
   connected: string;
   activated: boolean;
+  can_upgrade: boolean;
   cpu: number;
   mem: number;
   mem_total: string;

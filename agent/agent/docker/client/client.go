@@ -217,7 +217,7 @@ func (c DockerClient) CheckImageExist(imageName string, useExactMatch bool) (boo
 }
 
 func (c DockerClient) NetworkExist(name string) bool {
-	var options types.NetworkListOptions
+	var options network.ListOptions
 	options.Filters = filters.NewArgs(filters.Arg("name", name))
 	networks, err := c.cli.NetworkList(context.Background(), options)
 	if err != nil {
@@ -227,7 +227,7 @@ func (c DockerClient) NetworkExist(name string) bool {
 }
 
 func (c DockerClient) CreateNetwork(name string) error {
-	_, err := c.cli.NetworkCreate(context.Background(), name, types.NetworkCreate{
+	_, err := c.cli.NetworkCreate(context.Background(), name, network.CreateOptions{
 		Driver: "bridge",
 	})
 	return err
@@ -253,7 +253,7 @@ func (c DockerClient) reCreateAfterUpdate(ctx context.Context, name string, conf
 	logger.Error("recreate after container update successful")
 }
 
-func (c DockerClient) calculateBlockIO(blkio types.BlkioStats) (blkRead float64, blkWrite float64) {
+func (c DockerClient) calculateBlockIO(blkio container.BlkioStats) (blkRead float64, blkWrite float64) {
 	for _, bioEntry := range blkio.IoServiceBytesRecursive {
 		switch strings.ToLower(bioEntry.Op) {
 		case "read":
@@ -265,7 +265,7 @@ func (c DockerClient) calculateBlockIO(blkio types.BlkioStats) (blkRead float64,
 	return
 }
 
-func (c DockerClient) calculateMemPercentUnix(memStats types.MemoryStats) float64 {
+func (c DockerClient) calculateMemPercentUnix(memStats container.MemoryStats) float64 {
 	memPercent := 0.0
 	memUsage := float64(memStats.Usage)
 	memLimit := float64(memStats.Limit)
@@ -275,7 +275,7 @@ func (c DockerClient) calculateMemPercentUnix(memStats types.MemoryStats) float6
 	return memPercent
 }
 
-func (c DockerClient) calculateCPUPercentUnix(stats *types.StatsJSON) float64 {
+func (c DockerClient) calculateCPUPercentUnix(stats *container.StatsResponse) float64 {
 	cpuPercent := 0.0
 	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage) - float64(stats.PreCPUStats.CPUUsage.TotalUsage)
 	systemDelta := float64(stats.CPUStats.SystemUsage) - float64(stats.PreCPUStats.SystemUsage)
@@ -289,7 +289,7 @@ func (c DockerClient) calculateCPUPercentUnix(stats *types.StatsJSON) float64 {
 	return cpuPercent
 }
 
-func (c DockerClient) calculateNetwork(network map[string]types.NetworkStats) (float64, float64) {
+func (c DockerClient) calculateNetwork(network map[string]container.NetworkStats) (float64, float64) {
 	var rx, tx float64
 
 	for _, v := range network {

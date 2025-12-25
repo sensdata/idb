@@ -1045,7 +1045,10 @@ func (s *AppService) getFileContent(hostID uint, path string) (*core.FileInfo, e
 
 func taskLog(wp *writer.Writer, level logstreamTypes.LogLevel, message string) {
 	if wp != nil {
-		(*wp).Write(level, message, map[string]string{})
+		err := (*wp).Write(level, message, map[string]string{})
+		if err != nil {
+			global.LOG.Error("Failed to write log to writer: %v", err)
+		}
 	}
 }
 

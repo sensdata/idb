@@ -59,11 +59,15 @@ func ExecuteScript(req model.ScriptExec) *model.ScriptResult {
 
 	// 记录日志
 	scriptName := filepath.Base(req.ScriptPath)
-	scriptLog(req.LogPath, scriptName, result)
+	if err := scriptLog(req.LogPath, scriptName, result); err != nil {
+		fmt.Printf("failed to log script %s: %v", scriptName, err)
+	}
 
 	// 移除脚本
 	if req.Remove {
-		os.Remove(req.ScriptPath)
+		if err := os.Remove(req.ScriptPath); err != nil {
+			fmt.Printf("failed to remove script %s: %v", req.ScriptPath, err)
+		}
 	}
 
 	return result

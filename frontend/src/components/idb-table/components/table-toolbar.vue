@@ -67,7 +67,7 @@
                 <div>
                   <a-checkbox
                     v-model="item.checked"
-                    @change="(checked) => onToggleColumn(checked, item)"
+                    @change="(checked: boolean) => onToggleColumn(checked, item)"
                   >
                     {{ item.title }}
                   </a-checkbox>
@@ -194,8 +194,8 @@
 <style scoped lang="less">
   .action-icon {
     margin-left: 12px;
-    cursor: pointer;
     color: var(--color-text-2);
+    cursor: pointer;
     transition: color 0.2s ease;
   }
 

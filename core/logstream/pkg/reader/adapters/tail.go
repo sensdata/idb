@@ -71,7 +71,10 @@ func (r *TailReader) Follow(offset int64, whence int) (<-chan []byte, error) {
 
 	// 如果已经有tail实例，先停止它
 	if r.tail != nil {
-		r.tail.Stop()
+		err := r.tail.Stop()
+		if err != nil {
+			return nil, fmt.Errorf("stop tail failed: %v", err)
+		}
 		r.tail.Cleanup()
 	}
 
@@ -124,7 +127,10 @@ func (r *TailReader) Close() error {
 	var errs []error
 
 	if r.tail != nil {
-		r.tail.Stop()
+		err := r.tail.Stop()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("stop tail failed: %v", err))
+		}
 		r.tail.Cleanup()
 		r.tail = nil
 	}

@@ -21,7 +21,6 @@
             :app="item"
             @upgrade="handleUpgrade"
             @uninstall="handleUninstall"
-            @manage="handleManageDatabase"
           />
         </a-grid-item>
       </a-grid>
@@ -38,7 +37,6 @@
   <!-- <upgrade-drawer ref="upgradeRef" /> -->
   <upgrade-log ref="upgradeLogRef" @ok="load" />
   <uninstall-log ref="uninstallLogRef" @ok="load" />
-  <database-manager-drawer ref="databaseManagerRef" />
 </template>
 
 <script setup lang="ts">
@@ -53,14 +51,11 @@
   } from '@/api/store';
   import { showErrorWithDockerCheck } from '@/helper/show-error';
   import { useConfirm } from '@/composables/confirm';
-  import { useDatabaseManager } from '@/composables/use-database-manager';
-  import DatabaseManagerDrawer from '@/components/database-manager/index.vue';
   import AppCard from './components/app-card.vue';
   import UpgradeLog from './components/upgrade-log.vue';
   import UninstallLog from './components/uninstall-log.vue';
 
   const { t } = useI18n();
-  const { getDatabaseType } = useDatabaseManager();
 
   const pagination = reactive({
     page: 1,
@@ -165,16 +160,6 @@
     }
   };
 
-  // 管理数据库
-  const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
-  const handleManageDatabase = (item: AppSimpleEntity) => {
-    const dbType = getDatabaseType(item.name);
-    if (!dbType) return;
-
-    // 立即打开 drawer，数据在 drawer 内部加载
-    databaseManagerRef.value?.show(dbType, item.name);
-  };
-
   defineExpose({
     load,
   });
@@ -185,13 +170,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 1.143rem;
   }
 
   .list-footer {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-bottom: 16px;
+    margin-bottom: 1.143rem;
   }
 </style>

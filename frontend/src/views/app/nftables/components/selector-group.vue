@@ -23,7 +23,7 @@
       :disabled="disabled"
       type="button"
       size="small"
-      @change="(value) => handleChange(value as string)"
+      @change="(value: string) => handleChange(value)"
     >
       <a-radio
         v-for="option in validOptions"
@@ -138,68 +138,56 @@
 <style scoped lang="less">
   .selector-group {
     display: flex;
-    align-items: center;
     gap: 8px;
-
+    align-items: center;
     &--disabled {
-      opacity: 0.6;
       pointer-events: none;
+      opacity: 0.6;
     }
-
     .selector-label {
       font-size: 14px;
+      font-weight: 500;
       color: var(--color-text-2);
       white-space: nowrap;
-      font-weight: 500;
     }
-
     .text-primary {
       color: var(--color-primary-6);
     }
-
     :deep(.arco-btn-group) {
       display: flex;
-
       .arco-btn {
         display: inline-flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
         padding: 4px 12px;
         font-size: 12px;
         transition: all 0.2s ease;
-
         &:first-child {
           border-top-left-radius: 4px;
           border-bottom-left-radius: 4px;
         }
-
         &:last-child {
           border-top-right-radius: 4px;
           border-bottom-right-radius: 4px;
         }
-
         &:hover:not(:disabled) {
           transform: translateY(-1px);
         }
       }
     }
-
     :deep(.arco-radio-group) {
       .arco-radio-button {
         padding: 8px 16px;
         border-radius: 6px;
         transition: all 0.2s ease;
-
         &:first-child {
           border-top-left-radius: 6px;
           border-bottom-left-radius: 6px;
         }
-
         &:last-child {
           border-top-right-radius: 6px;
           border-bottom-right-radius: 6px;
         }
-
         &:hover:not(.arco-radio-disabled) {
           transform: translateY(-1px);
         }
