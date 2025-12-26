@@ -3,8 +3,11 @@ set -e
 
 DEFAULT_HOST=127.0.0.1
 DEFAULT_PORT=9918
+DEFAULT_ADMIN_PASS=admin123
 HOST=${HOST:-$DEFAULT_HOST}
 PORT=${PORT:-$DEFAULT_PORT}
+ADMIN_PASS=${PASSWORD:-$DEFAULT_ADMIN_PASS}
+
 LATEST=https://static.sensdata.com/idb/release/latest
 CONFIG_FILE=/etc/idb/idb.conf
 LOG_FILE=/var/log/idb/idb.log
@@ -76,6 +79,7 @@ main() {
     update_config "host" "$HOST"
     update_config "port" "$PORT"
     update_config "latest" "$LATEST"
+    update_config "admin_pass" "$ADMIN_PASS"
 
     log "配置文件内容："
     cat "$CONFIG_FILE" || {

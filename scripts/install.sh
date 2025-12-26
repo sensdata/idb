@@ -424,11 +424,15 @@ function Install_IDB() {
 
     log ".env 和 docker-compose.yaml 文件下载成功。"
     
-    # 修改 .env 文件中的端口配置
+    # 生成随机8位密码
+    ADMIN_PASS=$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 8)
+    
+    # 修改 .env 文件中的配置
     log "正在修改 .env 文件中的配置..."
     sed -i "s/^iDB_service_host_ip=.*/iDB_service_host_ip=${PUBLIC_IP}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_port=.*/iDB_service_port=${PANEL_PORT}/" "${PANEL_DIR}/.env"
     sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${CONTAINER_PORT}/" "${PANEL_DIR}/.env"
+    sed -i "s/^iDB_admin_pass=.*/iDB_admin_pass=${ADMIN_PASS}/" "${PANEL_DIR}/.env"
     
     log ".env 文件内容已更新为：\n$(cat ${PANEL_DIR}/.env)"
 
@@ -530,7 +534,7 @@ function Show_Result(){
     log "外网地址: http://${PUBLIC_IP}:${PANEL_PORT}/idb"
     log "内网地址: http://${LOCAL_IP}:${PANEL_PORT}/idb"
     log "初始用户: admin"
-    log "初始密码: admin123"
+    log "初始密码: ${ADMIN_PASS}"
     log ""
     log "项目官网: https://idb.sensdata.com"
     log "项目文档: https://idb.sensdata.com/docs"
