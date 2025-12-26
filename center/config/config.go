@@ -12,9 +12,10 @@ import (
 
 // Config定义
 type CenterConfig struct {
-	Host   string `json:"host"`
-	Port   int    `json:"port"`
-	Latest string `json:"latest"`
+	Host      string `json:"host"`
+	Port      int    `json:"port"`
+	Latest    string `json:"latest"`
+	AdminPass string `json:"admin_pass"`
 }
 
 // Manager定义
@@ -74,6 +75,8 @@ func (m *Manager) loadConfig() error {
 			config.Port = portValue
 		case "latest":
 			config.Latest = strings.TrimSpace(value)
+		case "admin_pass":
+			config.AdminPass = strings.TrimSpace(value)
 		default:
 			return fmt.Errorf("unknown config key: %s", key)
 		}
