@@ -133,7 +133,7 @@ func StartServices() error {
 	// 初始化数据库
 	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
-	migration.Init()
+	migration.Init(manager.GetConfig().AdminPass)
 	// 初始化设置
 	err = db.InitSettings(conn.CONFMAN.GetConfig())
 	if err != nil {

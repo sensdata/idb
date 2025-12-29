@@ -15,7 +15,11 @@ import (
 //go:embed timezones.json
 var timezonesData []byte
 
-func Init() {
+var adminPass string
+
+func Init(password string) {
+	adminPass = password
+
 	global.LOG.Info("db init begin")
 	m := gormigrate.New(global.DB, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		AddTableRole,
@@ -114,7 +118,7 @@ var AddTableUser = &gormigrate.Migration{
 			return err
 		}
 
-		password := "admin123"
+		password := adminPass
 		salt := utils.GenerateNonce(8)
 		passwordHash := utils.HashPassword(password, salt)
 		adminUser := model.User{

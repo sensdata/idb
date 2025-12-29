@@ -2253,12 +2253,14 @@ func parseRuleLine(line string) ([]RuleParseResult, error) {
 	} else {
 		ruleType = model.RuleDefault
 	}
+	srcIp := extractSrcIP(line)
 
 	ri := model.RuleItem{
 		Type:   ruleType,
 		Rate:   rate,
 		Count:  count,
 		Action: action,
+		SrcIP:  srcIp,
 	}
 
 	results := []RuleParseResult{}
@@ -2335,6 +2337,15 @@ func extractAction(line string) string {
 		return "drop"
 	} else if strings.HasSuffix(line, " reject") {
 		return "reject"
+	}
+	return ""
+}
+
+func extractSrcIP(line string) string {
+	re := regexp.MustCompile(`ip saddr ((?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?)`)
+	match := re.FindStringSubmatch(line)
+	if len(match) > 1 {
+		return match[1]
 	}
 	return ""
 }
