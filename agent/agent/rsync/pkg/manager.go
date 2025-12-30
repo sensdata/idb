@@ -86,7 +86,7 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 		return "", err
 	}
 	if enqueue {
-		if err := m.EnqueueTask(t.ID); err != nil {
+		if err := m.enqueueTask(t.ID); err != nil {
 			global.LOG.Error("[rsyncmgr] failed to enqueue task %s: %v", t.ID, err)
 			return "", err
 		}
@@ -94,7 +94,7 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 	return t.ID, nil
 }
 
-func (m *Manager) EnqueueTask(id string) error {
+func (m *Manager) enqueueTask(id string) error {
 	// validate exists
 	if _, err := m.storage.GetTask(id); err != nil {
 		global.LOG.Error("[rsyncmgr] failed to get task %s: %v", id, err)
@@ -174,7 +174,7 @@ func (m *Manager) RetryTask(id string) error {
 		global.LOG.Error("[rsyncmgr] failed to update task %s: %v", id, err)
 		return err
 	}
-	return m.EnqueueTask(id)
+	return m.enqueueTask(id)
 }
 
 // runTask executes one task lifecycle
@@ -330,4 +330,43 @@ func (m *Manager) getProc(id string) *ExecProcess {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.runtimeProcs[id]
+}
+
+func (m *Manager) RunTask(name string) error {
+	t, err := m.storage.GetTaskByName(name)
+	if err != nil {
+		return err
+	}
+
+	switch t.State {
+	case StateRunning:
+		return errors.New("task is already running")
+
+	case StatePending:
+		// 直接入队
+		return m.enqueueTask(t.ID)
+
+	case StateFailed, StateStopped:
+		t.State = StatePending
+		t.Attempt++
+		t.UpdatedAt = time.Now()
+		if err := m.storage.UpdateTask(t); err != nil {
+			return err
+		}
+		return m.enqueueTask(t.ID)
+
+	case StateSucceeded:
+		// 显式重跑
+		t.State = StatePending
+		t.Attempt++
+		t.LastError = ""
+		t.UpdatedAt = time.Now()
+		if err := m.storage.UpdateTask(t); err != nil {
+			return err
+		}
+		return m.enqueueTask(t.ID)
+
+	default:
+		return fmt.Errorf("unknown task state: %s", t.State)
+	}
 }

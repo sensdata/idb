@@ -17,6 +17,7 @@ type Storage interface {
 	CreateTask(t *RsyncTask) error
 	UpdateTask(t *RsyncTask) error
 	GetTask(id string) (*RsyncTask, error)
+	GetTaskByName(name string) (*RsyncTask, error)
 	ListTasks(page, pageSize int) ([]*RsyncTask, error)
 	AllTasks() ([]*RsyncTask, error)
 	DeleteTask(id string) error
@@ -68,6 +69,17 @@ func (s *InMemoryStorage) GetTask(id string) (*RsyncTask, error) {
 		return nil, errors.New("not found")
 	}
 	return t, nil
+}
+
+func (s *InMemoryStorage) GetTaskByName(name string) (*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, t := range s.tasks {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (s *InMemoryStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
@@ -215,6 +227,17 @@ func (s *FileJSONStorage) GetTask(id string) (*RsyncTask, error) {
 		return nil, errors.New("not found")
 	}
 	return t, nil
+}
+
+func (s *FileJSONStorage) GetTaskByName(name string) (*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, t := range s.cache {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (s *FileJSONStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
