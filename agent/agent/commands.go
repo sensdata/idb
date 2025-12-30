@@ -204,10 +204,17 @@ var RsyncCommand = &cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		name := c.String("name")
-		if name == "" {
+		args := c.Args()
+
+		var taskName string = ""
+
+		if len(args) > 0 {
+			taskName = args.Get(0)
+		}
+		if taskName == "" {
 			return fmt.Errorf("task name is required")
 		}
+
 		// 检查sock文件
 		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
 		conn, err := net.Dial("unix", sockFile)
@@ -215,7 +222,7 @@ var RsyncCommand = &cli.Command{
 			return fmt.Errorf("failed to connect to agent: %w", err)
 		}
 		defer conn.Close()
-		_, err = conn.Write([]byte(fmt.Sprintf("rsync %s", name)))
+		_, err = conn.Write([]byte(fmt.Sprintf("rsync %s", taskName)))
 		if err != nil {
 			return fmt.Errorf("failed to send command: %w", err)
 		}
