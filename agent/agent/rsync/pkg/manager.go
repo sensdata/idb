@@ -81,12 +81,12 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 	t.UpdatedAt = now
 	t.State = StatePending
 	t.Attempt = 0
-	if err := m.storage.SaveTask(t); err != nil {
-		global.LOG.Error("[rsyncmgr] failed to save task %s: %v", t.ID, err)
+	if err := m.storage.CreateTask(t); err != nil {
+		global.LOG.Error("[rsyncmgr] failed to create task %s: %v", t.ID, err)
 		return "", err
 	}
 	if enqueue {
-		if err := m.EnqueueTask(t.ID); err != nil {
+		if err := m.enqueueTask(t.ID); err != nil {
 			global.LOG.Error("[rsyncmgr] failed to enqueue task %s: %v", t.ID, err)
 			return "", err
 		}
@@ -94,7 +94,7 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 	return t.ID, nil
 }
 
-func (m *Manager) EnqueueTask(id string) error {
+func (m *Manager) enqueueTask(id string) error {
 	// validate exists
 	if _, err := m.storage.GetTask(id); err != nil {
 		global.LOG.Error("[rsyncmgr] failed to get task %s: %v", id, err)
@@ -145,7 +145,7 @@ func (m *Manager) StopTask(id string) error {
 		}
 		t.State = StateStopped
 		t.UpdatedAt = time.Now()
-		return m.storage.SaveTask(t)
+		return m.storage.UpdateTask(t)
 	}
 	if err := proc.Stop(); err != nil {
 		global.LOG.Error("[rsyncmgr] failed to stop rsync for task %s: %v", id, err)
@@ -155,7 +155,7 @@ func (m *Manager) StopTask(id string) error {
 	t, _ := m.storage.GetTask(id)
 	t.State = StateStopped
 	t.UpdatedAt = time.Now()
-	return m.storage.SaveTask(t)
+	return m.storage.UpdateTask(t)
 }
 
 func (m *Manager) RetryTask(id string) error {
@@ -170,11 +170,11 @@ func (m *Manager) RetryTask(id string) error {
 	t.State = StatePending
 	t.Attempt++
 	t.UpdatedAt = time.Now()
-	if err := m.storage.SaveTask(t); err != nil {
-		global.LOG.Error("[rsyncmgr] failed to save task %s: %v", id, err)
+	if err := m.storage.UpdateTask(t); err != nil {
+		global.LOG.Error("[rsyncmgr] failed to update task %s: %v", id, err)
 		return err
 	}
-	return m.EnqueueTask(id)
+	return m.enqueueTask(id)
 }
 
 // runTask executes one task lifecycle
@@ -199,9 +199,9 @@ func (m *Manager) runTask(id string) error {
 		t.State = StateFailed
 		t.LastError = err.Error()
 		t.UpdatedAt = time.Now()
-		if saveErr := m.storage.SaveTask(t); saveErr != nil {
-			global.LOG.Error("[rsyncmgr] failed to save failed state for task %s: %v", id, saveErr)
-			return fmt.Errorf("failed to start rsync: %v, and failed to save state: %v", err, saveErr)
+		if updateErr := m.storage.UpdateTask(t); updateErr != nil {
+			global.LOG.Error("[rsyncmgr] failed to update failed state for task %s: %v", id, updateErr)
+			return fmt.Errorf("failed to start rsync: %v, and failed to update state: %v", err, updateErr)
 		}
 
 		// 记录错误信息到日志文件
@@ -219,23 +219,23 @@ func (m *Manager) runTask(id string) error {
 	m.mu.Lock()
 	t.State = StateRunning
 	t.UpdatedAt = time.Now()
-	if saveErr := m.storage.SaveTask(t); saveErr != nil {
+	if updateErr := m.storage.UpdateTask(t); updateErr != nil {
 		m.mu.Unlock()
 		err = proc.Stop() // 清理已启动的进程
 		if err != nil {
 			global.LOG.Error("[rsyncmgr] failed to stop rsync for task %s: %v", id, err)
-			return fmt.Errorf("failed to save running state: %v", saveErr)
+			return fmt.Errorf("failed to update running state: %v", updateErr)
 		}
 
 		// 记录错误信息到日志文件
-		err = logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", saveErr))
+		err = logHandler.AppendExecutionLog(fmt.Sprintf("Error: %v", updateErr))
 		if err != nil {
 			global.LOG.Error("[rsyncmgr] failed to append execution log for task %s: %v", id, err)
-			return fmt.Errorf("failed to save running state: %v", saveErr)
+			return fmt.Errorf("failed to update running state: %v", updateErr)
 		}
 
-		global.LOG.Error("[rsyncmgr] failed to save running state for task %s: %v", id, saveErr)
-		return fmt.Errorf("failed to save running state: %v", saveErr)
+		global.LOG.Error("[rsyncmgr] failed to update running state for task %s: %v", id, updateErr)
+		return fmt.Errorf("failed to update running state: %v", updateErr)
 	}
 	m.runtimeProcs[id] = proc
 	m.mu.Unlock()
@@ -260,9 +260,9 @@ func (m *Manager) runTask(id string) error {
 			global.LOG.Info("[rsyncmgr] rsync process completed successfully for task %s", id)
 		}
 		t.UpdatedAt = time.Now()
-		if saveErr := m.storage.SaveTask(t); saveErr != nil {
+		if updateErr := m.storage.UpdateTask(t); updateErr != nil {
 			// 记录错误但不影响主流程
-			global.LOG.Error("[rsyncmgr] failed to save final state for task %s: %v", id, saveErr)
+			global.LOG.Error("[rsyncmgr] failed to update final state for task %s: %v", id, updateErr)
 		}
 	}
 
@@ -330,4 +330,43 @@ func (m *Manager) getProc(id string) *ExecProcess {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.runtimeProcs[id]
+}
+
+func (m *Manager) RunTask(name string) error {
+	t, err := m.storage.GetTaskByName(name)
+	if err != nil {
+		return err
+	}
+
+	switch t.State {
+	case StateRunning:
+		return errors.New("task is already running")
+
+	case StatePending:
+		// 直接入队
+		return m.enqueueTask(t.ID)
+
+	case StateFailed, StateStopped:
+		t.State = StatePending
+		t.Attempt++
+		t.UpdatedAt = time.Now()
+		if err := m.storage.UpdateTask(t); err != nil {
+			return err
+		}
+		return m.enqueueTask(t.ID)
+
+	case StateSucceeded:
+		// 显式重跑
+		t.State = StatePending
+		t.Attempt++
+		t.LastError = ""
+		t.UpdatedAt = time.Now()
+		if err := m.storage.UpdateTask(t); err != nil {
+			return err
+		}
+		return m.enqueueTask(t.ID)
+
+	default:
+		return fmt.Errorf("unknown task state: %s", t.State)
+	}
 }

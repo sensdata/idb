@@ -338,6 +338,17 @@ func (a *Agent) handleUnixConnection(conn net.Conn) {
 				} else {
 					writeToConn(conn, []byte("Logs flushed successfully"))
 				}
+			case "rsync":
+				if len(parts) != 2 {
+					writeToConn(conn, []byte("Unknown rsync command format"))
+					continue
+				}
+				taskName := parts[1]
+				if err := RsyncLib.RunTask(taskName); err != nil {
+					writeToConn(conn, []byte(fmt.Sprintf("Failed to run rsync task %s: %v", taskName, err)))
+				} else {
+					writeToConn(conn, []byte(fmt.Sprintf("Rsync task %s started", taskName)))
+				}
 			default:
 				writeToConn(conn, []byte("Unknown command"))
 			}

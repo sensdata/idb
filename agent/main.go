@@ -34,7 +34,8 @@ var app = &cli.App{
 	- Control idb agent
 	- Config idb agent
 	- Update idb agent
-	- Remove idb agent`,
+	- Remove idb agent
+	- Run rsync task with specified task name`,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "version, v",
@@ -51,6 +52,7 @@ var app = &cli.App{
 		*agent.UpdateCommand,
 		*agent.RemoveCommand,
 		*agent.FlushLogsCommand,
+		*agent.RsyncCommand,
 	},
 }
 

@@ -14,8 +14,10 @@ import (
 
 // Storage is an interface for persistence
 type Storage interface {
-	SaveTask(t *RsyncTask) error
+	CreateTask(t *RsyncTask) error
+	UpdateTask(t *RsyncTask) error
 	GetTask(id string) (*RsyncTask, error)
+	GetTaskByName(name string) (*RsyncTask, error)
 	ListTasks(page, pageSize int) ([]*RsyncTask, error)
 	AllTasks() ([]*RsyncTask, error)
 	DeleteTask(id string) error
@@ -32,7 +34,26 @@ func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{tasks: map[string]*RsyncTask{}}
 }
 
-func (s *InMemoryStorage) SaveTask(t *RsyncTask) error {
+func (s *InMemoryStorage) CreateTask(t *RsyncTask) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 名称唯一性检查（仅新建任务）
+	for id, existing := range s.tasks {
+		if id == t.ID {
+			return errors.New("task id already exists")
+		}
+		if existing.Name == t.Name {
+			return errors.New("task name already exists")
+		}
+	}
+
+	t.UpdatedAt = time.Now()
+	s.tasks[t.ID] = t
+	return nil
+}
+
+func (s *InMemoryStorage) UpdateTask(t *RsyncTask) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t.UpdatedAt = time.Now()
@@ -48,6 +69,17 @@ func (s *InMemoryStorage) GetTask(id string) (*RsyncTask, error) {
 		return nil, errors.New("not found")
 	}
 	return t, nil
+}
+
+func (s *InMemoryStorage) GetTaskByName(name string) (*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, t := range s.tasks {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (s *InMemoryStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
@@ -160,7 +192,26 @@ func (s *FileJSONStorage) persistLocked() error {
 	return os.WriteFile(s.file, b, 0640)
 }
 
-func (s *FileJSONStorage) SaveTask(t *RsyncTask) error {
+func (s *FileJSONStorage) CreateTask(t *RsyncTask) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 名称唯一性检查（仅新建任务）
+	for id, existing := range s.cache {
+		if id == t.ID {
+			return errors.New("task id already exists")
+		}
+		if existing.Name == t.Name {
+			return errors.New("task name already exists")
+		}
+	}
+
+	t.UpdatedAt = time.Now()
+	s.cache[t.ID] = t
+	return s.persistLocked()
+}
+
+func (s *FileJSONStorage) UpdateTask(t *RsyncTask) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t.UpdatedAt = time.Now()
@@ -176,6 +227,17 @@ func (s *FileJSONStorage) GetTask(id string) (*RsyncTask, error) {
 		return nil, errors.New("not found")
 	}
 	return t, nil
+}
+
+func (s *FileJSONStorage) GetTaskByName(name string) (*RsyncTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, t := range s.cache {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (s *FileJSONStorage) ListTasks(page, pageSize int) ([]*RsyncTask, error) {
