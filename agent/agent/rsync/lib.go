@@ -174,3 +174,7 @@ func (api *RsyncLib) LogList(req model.RsyncTaskLogListRequest) (*model.RsyncTas
 	resp.Total = total
 	return &resp, nil
 }
+
+func (api *RsyncLib) RunTask(name string) error {
+	return api.m.RunTask(name)
+}

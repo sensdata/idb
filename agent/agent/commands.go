@@ -193,3 +193,38 @@ var FlushLogsCommand = &cli.Command{
 		return nil
 	},
 }
+
+var RsyncCommand = &cli.Command{
+	Name:  "rsync",
+	Usage: "run rsync task",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "name",
+			Usage: "rsync task name",
+		},
+	},
+	Action: func(c *cli.Context) error {
+		name := c.String("name")
+		if name == "" {
+			return fmt.Errorf("task name is required")
+		}
+		// 检查sock文件
+		sockFile := filepath.Join(constant.AgentRunDir, constant.AgentSock)
+		conn, err := net.Dial("unix", sockFile)
+		if err != nil {
+			return fmt.Errorf("failed to connect to agent: %w", err)
+		}
+		defer conn.Close()
+		_, err = conn.Write([]byte(fmt.Sprintf("rsync %s", name)))
+		if err != nil {
+			return fmt.Errorf("failed to send command: %w", err)
+		}
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
+		fmt.Println(string(buf[:n]))
+		return nil
+	},
+}
