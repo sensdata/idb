@@ -303,6 +303,9 @@ func (c *Center) ensureConnections() {
 					wg.Done()
 				}()
 
+				// 检查 host status
+				c.checkHostStatus(&h)
+				// 检查连接
 				c.handleHost(&h)
 			}(host)
 		}
@@ -321,6 +324,21 @@ func (c *Center) ensureConnections() {
 				return
 			}
 			timer.Stop()
+		}
+	}
+}
+
+func (c *Center) checkHostStatus(host *model.Host) {
+	// 找到 conn 的情况，判断 host 状态
+	hostStatus := global.GetHostStatus(host.ID)
+	if hostStatus != nil {
+		// 检查最后一次心跳时间戳是否离当前超过120秒
+		if hostStatus.LastHeartbeat > 0 && time.Since(time.Unix(hostStatus.LastHeartbeat, 0)) > 120*time.Second {
+			// 超过120秒未收到心跳，认为连接已断开
+			global.LOG.Warn("Host %d - %s last heartbeat is %v, which is more than 120 seconds ago", host.ID, host.Addr, hostStatus.LastHeartbeat)
+			// 重置host的在线状态
+			hostStatus.Connected = "offline"
+			global.SetHostStatus(host.ID, hostStatus)
 		}
 	}
 }
@@ -781,17 +799,18 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		default:
 			// 保存信息
 			hostStatusInfo := &core.HostStatusInfo{
-				Installed:  "installed",
-				Connected:  "online",
-				Activated:  heartbeat.Activated,
-				CanUpgrade: msg.Version != global.Version,
-				Cpu:        heartbeat.Cpu,
-				Memory:     heartbeat.Memory,
-				MemTotal:   heartbeat.MemTotal,
-				MemUsed:    heartbeat.MemUsed,
-				Disk:       heartbeat.Disk,
-				Rx:         heartbeat.Rx,
-				Tx:         heartbeat.Tx,
+				Installed:     "installed",
+				Connected:     "online",
+				Activated:     heartbeat.Activated,
+				CanUpgrade:    msg.Version != global.Version,
+				Cpu:           heartbeat.Cpu,
+				Memory:        heartbeat.Memory,
+				MemTotal:      heartbeat.MemTotal,
+				MemUsed:       heartbeat.MemUsed,
+				Disk:          heartbeat.Disk,
+				Rx:            heartbeat.Rx,
+				Tx:            heartbeat.Tx,
+				LastHeartbeat: msg.Timestamp,
 			}
 			global.SetHostStatus(host.ID, hostStatusInfo)
 			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)
