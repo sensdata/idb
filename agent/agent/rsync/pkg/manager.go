@@ -98,6 +98,13 @@ func (m *Manager) UpdateTask(t *RsyncTask) error {
 	if t == nil {
 		return errors.New("nil task")
 	}
+
+	// 禁止重名任务
+	existing, err := m.storage.GetTaskByName(t.Name)
+	if err == nil && existing != nil && existing.ID != t.ID {
+		return errors.New("task name already exists")
+	}
+
 	if err := m.storage.UpdateTask(t); err != nil {
 		global.LOG.Error("[rsyncmgr] failed to update task %s: %v", t.ID, err)
 		return err
