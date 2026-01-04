@@ -94,6 +94,17 @@ func (m *Manager) CreateTask(t *RsyncTask, enqueue bool) (string, error) {
 	return t.ID, nil
 }
 
+func (m *Manager) UpdateTask(t *RsyncTask) error {
+	if t == nil {
+		return errors.New("nil task")
+	}
+	if err := m.storage.UpdateTask(t); err != nil {
+		global.LOG.Error("[rsyncmgr] failed to update task %s: %v", t.ID, err)
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) enqueueTask(id string) error {
 	// validate exists
 	if _, err := m.storage.GetTask(id); err != nil {

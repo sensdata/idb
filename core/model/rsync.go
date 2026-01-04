@@ -88,7 +88,23 @@ type RsyncClientCreateTaskRequest struct {
 	SSHPrivateKey string `json:"ssh_private_key"`
 	RemotePath    string `json:"remote_path" validate:"required"`
 	Module        string `json:"module"`
-	Enqueue       bool   `json:"enqueue" validate:"required"` // whether to start immediately
+	Enqueue       bool   `json:"enqueue"` // whether to start immediately
+}
+
+type RsyncClientUpdateTaskRequest struct {
+	ID            string `json:"id"`
+	Name          string `json:"name" validate:"required"`
+	Direction     string `json:"direction" validate:"required,oneof=remote_to_local local_to_remote"`
+	LocalPath     string `json:"local_path" validate:"required"`
+	RemoteType    string `json:"remote_type" validate:"required,oneof=ssh rsync"`
+	RemoteHost    string `json:"remote_host" validate:"required"`
+	RemotePort    int    `json:"remote_port" validate:"required"`
+	Username      string `json:"username" validate:"required"`
+	AuthMode      string `json:"auth_mode" validate:"required,oneof=password anonymous private_key"`
+	Password      string `json:"password"`
+	SSHPrivateKey string `json:"ssh_private_key"`
+	RemotePath    string `json:"remote_path" validate:"required"`
+	Module        string `json:"module"`
 }
 
 type RsyncClientTask struct {

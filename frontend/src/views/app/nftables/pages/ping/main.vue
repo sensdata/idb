@@ -215,25 +215,23 @@
 
 <style scoped lang="less">
   .ping-configuration-page {
+    min-height: 100vh;
     padding: 20px;
     background-color: var(--color-bg-1);
-    min-height: 100vh;
   }
 
   .page-header {
     margin-bottom: 24px;
-
     .page-title {
-      font-size: 24px;
-      font-weight: 600;
+      margin: 0;
+      font-size: 1.286rem;
+      font-weight: 500;
       color: var(--color-text-1);
-      margin: 0 0 8px 0;
     }
-
     .page-description {
+      margin: 0;
       font-size: 14px;
       color: var(--color-text-3);
-      margin: 0;
     }
   }
 
@@ -248,11 +246,10 @@
     justify-content: center;
     padding: 60px 20px;
     text-align: center;
-
     .loading-text {
       margin-top: 12px;
-      color: var(--color-text-3);
       font-size: 14px;
+      color: var(--color-text-3);
     }
   }
 
@@ -272,18 +269,16 @@
       flex-direction: column;
       gap: 12px;
     }
-
     .status-indicator {
       :deep(.arco-badge-text) {
         font-size: 16px;
         font-weight: 500;
       }
     }
-
     .status-description {
-      color: var(--color-text-2);
       font-size: 14px;
       line-height: 1.6;
+      color: var(--color-text-2);
     }
   }
 
@@ -291,24 +286,21 @@
     .config-content {
       .form-label-section {
         .form-label {
+          margin-bottom: 4px;
           font-size: 14px;
           font-weight: 500;
           color: var(--color-text-1);
-          margin-bottom: 4px;
         }
-
         .form-description {
-          font-size: 12px;
-          color: var(--color-text-3);
-          line-height: 1.5;
           margin-bottom: 0;
+          font-size: 12px;
+          line-height: 1.5;
+          color: var(--color-text-3);
         }
       }
-
       .switch-wrapper {
         margin-top: 8px;
       }
-
       :deep(.arco-btn) {
         margin-top: 16px;
       }
@@ -316,17 +308,15 @@
   }
 
   // 响应式设计
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .ping-configuration-page {
       padding: 16px;
     }
-
     .page-header {
       .page-title {
         font-size: 20px;
       }
     }
-
     .main-content {
       gap: 16px;
     }
