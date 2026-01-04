@@ -9430,6 +9430,42 @@ const docTemplate = `{
                     }
                 }
             },
+            "put": {
+                "description": "Update rsync task",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rsync"
+                ],
+                "summary": "Update rsync task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Host",
+                        "name": "host",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.RsyncClientUpdateTaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
             "post": {
                 "description": "Create rsync task",
                 "consumes": [
@@ -15381,6 +15417,9 @@ const docTemplate = `{
                 "auth_mode": {
                     "type": "string"
                 },
+                "can_upgrade": {
+                    "type": "boolean"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -15419,6 +15458,9 @@ const docTemplate = `{
                 "activated": {
                     "type": "boolean"
                 },
+                "can_upgrade": {
+                    "type": "boolean"
+                },
                 "connected": {
                     "type": "string"
                 },
@@ -15445,6 +15487,9 @@ const docTemplate = `{
                 "rx": {
                     "description": "接收实时速率",
                     "type": "number"
+                },
+                "timestamp": {
+                    "type": "integer"
                 },
                 "tx": {
                     "description": "发送实时速率",
@@ -15601,9 +15646,6 @@ const docTemplate = `{
         },
         "model.Ipv6Option": {
             "type": "object",
-            "required": [
-                "ip6_tables"
-            ],
             "properties": {
                 "experimental": {
                     "type": "boolean"
@@ -16367,8 +16409,7 @@ const docTemplate = `{
         "model.Prune": {
             "type": "object",
             "required": [
-                "type",
-                "with_tag_all"
+                "type"
             ],
             "properties": {
                 "type": {
@@ -16400,8 +16441,7 @@ const docTemplate = `{
         "model.RemoveKey": {
             "type": "object",
             "required": [
-                "key_name",
-                "only_private_key"
+                "key_name"
             ],
             "properties": {
                 "key_name": {
@@ -16493,7 +16533,6 @@ const docTemplate = `{
             "required": [
                 "auth_mode",
                 "direction",
-                "enqueue",
                 "local_path",
                 "name",
                 "remote_host",
@@ -16613,6 +16652,74 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.RsyncClientUpdateTaskRequest": {
+            "type": "object",
+            "required": [
+                "auth_mode",
+                "direction",
+                "local_path",
+                "name",
+                "remote_host",
+                "remote_path",
+                "remote_port",
+                "remote_type",
+                "username"
+            ],
+            "properties": {
+                "auth_mode": {
+                    "type": "string",
+                    "enum": [
+                        "password",
+                        "anonymous",
+                        "private_key"
+                    ]
+                },
+                "direction": {
+                    "type": "string",
+                    "enum": [
+                        "remote_to_local",
+                        "local_to_remote"
+                    ]
+                },
+                "id": {
+                    "type": "string"
+                },
+                "local_path": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "remote_host": {
+                    "type": "string"
+                },
+                "remote_path": {
+                    "type": "string"
+                },
+                "remote_port": {
+                    "type": "integer"
+                },
+                "remote_type": {
+                    "type": "string",
+                    "enum": [
+                        "ssh",
+                        "rsync"
+                    ]
+                },
+                "ssh_private_key": {
                     "type": "string"
                 },
                 "username": {
