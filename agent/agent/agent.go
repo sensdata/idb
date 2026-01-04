@@ -3053,6 +3053,17 @@ func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, 
 		}
 		return actionSuccessResult(actionData.Action, result)
 
+	case model.Rsync_Update:
+		var req model.RsyncClientUpdateTaskRequest
+		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {
+			return nil, err
+		}
+		err := RsyncLib.Update(req)
+		if err != nil {
+			return nil, err
+		}
+		return actionSuccessResult(actionData.Action, "")
+
 	case model.Rsync_List:
 		var req model.RsyncListTaskRequest
 		if err := json.Unmarshal([]byte(actionData.Data), &req); err != nil {

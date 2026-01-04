@@ -18,7 +18,7 @@ type LogOption struct {
 
 type Ipv6Option struct {
 	FixedCidrV6  string `json:"fixed_cidr_v6"`
-	Ip6Tables    bool   `json:"ip6_tables" validate:"required"`
+	Ip6Tables    bool   `json:"ip6_tables"`
 	Experimental bool   `json:"experimental"`
 }
 
@@ -70,7 +70,7 @@ type InspectResult struct {
 
 type Prune struct {
 	PruneType  string `json:"type" validate:"required,oneof=container image volume network buildcache"`
-	WithTagAll bool   `json:"with_tag_all" validate:"required"`
+	WithTagAll bool   `json:"with_tag_all"`
 }
 
 type PruneResult struct {

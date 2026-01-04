@@ -100,6 +100,36 @@ func (s *BaseApi) RsyncCreateTask(c *gin.Context) {
 }
 
 // @Tags Rsync
+// @Summary Update rsync task
+// @Description Update rsync task
+// @Accept json
+// @Produce json
+// @Param host path string true "Host"
+// @Param request body model.RsyncClientUpdateTaskRequest true "Request"
+// @Success 200
+// @Router /rsync/{host}/task [put]
+func (s *BaseApi) RsyncUpdateTask(c *gin.Context) {
+	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
+		return
+	}
+
+	var req model.RsyncClientUpdateTaskRequest
+	if err := CheckBindAndValidate(&req, c); err != nil {
+		return
+	}
+
+	err = rsyncService.UpdateTask(uint(hostID), req)
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+
+	SuccessWithData(c, nil)
+}
+
+// @Tags Rsync
 // @Summary Delete rsync task
 // @Description Delete rsync task
 // @Accept json
