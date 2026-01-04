@@ -36,7 +36,7 @@ export default {
   'menu.app.nftables.file': 'Source File Editor',
   'menu.app.rsync': 'File Sync',
   'menu.app.rsync.transfer': 'Node Transfer',
-  'menu.app.rsync.client': 'Remote Sync',
+  'menu.app.rsync.remote': 'Remote Sync',
   'menu.app.test': 'Test',
   'router.guard.hostId.message': 'Please select a host',
 };

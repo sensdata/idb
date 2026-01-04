@@ -334,18 +334,18 @@ const appRoutes: RouteRecordRaw[] = [
       {
         path: 'transfer',
         name: 'rsync-transfer',
-        component: () => import('@/views/app/rsync/main.vue'),
+        component: () => import('@/views/app/rsync/transfer.vue'),
         meta: {
           locale: 'menu.app.rsync.transfer',
           requiresAuth: true,
         },
       },
       {
-        path: 'client',
-        name: 'rsync-client',
-        component: () => import('@/views/app/rsync/client.vue'),
+        path: 'remote',
+        name: 'rsync-remote',
+        component: () => import('@/views/app/rsync/remote.vue'),
         meta: {
-          locale: 'menu.app.rsync.client',
+          locale: 'menu.app.rsync.remote',
           requiresAuth: true,
         },
       },

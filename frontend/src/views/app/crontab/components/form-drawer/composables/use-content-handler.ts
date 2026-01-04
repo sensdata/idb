@@ -4,6 +4,7 @@ import { CRONTAB_TYPE, SCRIPT_TYPE } from '@/config/enum';
 import { getScriptDetailApi } from '@/api/script';
 import { PeriodDetailDo } from '@/entity/Crontab';
 import { usePeriodUtils } from './use-period-utils';
+import { useCronDescription } from './use-cron-description';
 import { StateFlags } from './use-form-state';
 
 interface ScriptDetailApiParams {
@@ -27,8 +28,8 @@ interface FormState {
 
 export const useContentHandler = () => {
   const { t } = useI18n();
-  const { convertPeriodToCronExpression, generateFormattedPeriodComment } =
-    usePeriodUtils();
+  const { convertPeriodToCronExpression } = usePeriodUtils();
+  const { getCronDescription } = useCronDescription();
 
   // 提取构建内容字符串的通用方法，减少代码重复
   const buildContentString = (
@@ -40,16 +41,17 @@ export const useContentHandler = () => {
       return '';
     }
 
-    const formattedComment = generateFormattedPeriodComment(
-      formState.period_details
-    );
     const cronExpression = convertPeriodToCronExpression(
       formState.period_details
     );
+    // 使用 cronstrue 生成人类可读的周期描述
+    const periodDescription = getCronDescription(cronExpression);
     const markPrefix = t('app.crontab.form.mark.prefix');
     const markLine = formState.mark ? `# ${markPrefix} ${formState.mark}` : '';
 
-    let newContent = `# ${formattedComment}`;
+    let newContent = `# ${t(
+      'app.crontab.period.execution_period'
+    )}: ${periodDescription}`;
     if (markLine) {
       newContent += `\n${markLine}`;
     }

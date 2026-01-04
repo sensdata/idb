@@ -101,7 +101,7 @@
   import CategoryTree from '@/components/idb-tree/category-tree.vue';
   import FormDrawer from './components/form-drawer/index.vue';
   import LogsDrawer from './components/logs-drawer/index.vue';
-  import { usePeriodUtils } from './components/form-drawer/composables/use-period-utils';
+  import { useCronDescription } from './components/form-drawer/composables/use-cron-description';
   import { createCrontabCategoryConfig } from './adapters/category-adapter';
   import { createCrontabCategoryManageConfig } from './adapters/category-manage-adapter';
 
@@ -133,8 +133,7 @@
   });
 
   const { t } = useI18n();
-  const { generateFormattedPeriodComment, parseCronExpression } =
-    usePeriodUtils();
+  const { getCronDescriptionFromContent } = useCronDescription();
 
   // 获取当前主机ID
   const { currentHostId } = usetCurrentHost();
@@ -191,36 +190,15 @@
   // 记录最后一次手动设置的分类，用于防止重置
   const lastManualCategory = ref<string>('');
 
-  // 从cron表达式中提取周期信息
-  function extractPeriodFromCronExpression(lines: string[]): string | null {
-    const cronLine = lines.find((line) => !line.startsWith('#'));
-    if (!cronLine) return null;
-
-    const cronParts = cronLine.trim().split(/\s+/);
-    if (cronParts.length < 5) return null;
-
-    const cronExpression = cronParts.slice(0, 5).join(' ');
-    const periodDetail = parseCronExpression(cronExpression);
-    if (!periodDetail) return null;
-
-    const formattedComment = generateFormattedPeriodComment([periodDetail]);
-    const parts = formattedComment.split(':');
-    if (parts.length <= 1) return null;
-
-    return parts.slice(1).join(':').trim();
-  }
-
   // 从记录中提取周期信息的工具函数
   function extractPeriodFromRecord(record: CrontabEntity): string {
     if (!record.content) {
       return record.period_expression || '';
     }
 
-    const lines = record.content.split('\n');
-
-    // 只从cron表达式中提取周期信息
-    const periodFromCron = extractPeriodFromCronExpression(lines);
-    if (periodFromCron) return periodFromCron;
+    // 使用 cronstrue 从内容中提取周期描述
+    const description = getCronDescriptionFromContent(record.content);
+    if (description) return description;
 
     // 最后回退到period_expression
     return record.period_expression || '';

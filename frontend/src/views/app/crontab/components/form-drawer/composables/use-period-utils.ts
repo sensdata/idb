@@ -1,10 +1,7 @@
-import { useI18n } from 'vue-i18n';
 import { PeriodDetailDo } from '@/entity/Crontab';
 import { CRONTAB_PERIOD_TYPE } from '@/config/enum';
 
 export const usePeriodUtils = () => {
-  const { t } = useI18n();
-
   // 将周期详情转换为标准cron表达式
   const convertPeriodToCronExpression = (
     periodDetails: PeriodDetailDo[]
@@ -81,91 +78,6 @@ export const usePeriodUtils = () => {
     return `${minute} ${hour} ${day} ${month} ${week}`;
   };
 
-  // 生成格式化的周期描述文本
-  const generateFormattedPeriodComment = (
-    periodDetails: PeriodDetailDo[]
-  ): string => {
-    if (!periodDetails || periodDetails.length === 0) {
-      return (
-        t('app.crontab.period.execution_period') +
-        ': ' +
-        t('app.crontab.period.description.daily', { time: '12:00 AM' })
-      );
-    }
-
-    const formatTime = (hour: number, minute: number) => {
-      const isPM = hour >= 12;
-      const hour12 = hour % 12 || 12;
-      return `${hour12}:${minute.toString().padStart(2, '0')} ${
-        isPM ? 'PM' : 'AM'
-      }`;
-    };
-
-    const weekDayKeys = [
-      '',
-      'app.crontab.enum.week.monday',
-      'app.crontab.enum.week.tuesday',
-      'app.crontab.enum.week.wednesday',
-      'app.crontab.enum.week.thursday',
-      'app.crontab.enum.week.friday',
-      'app.crontab.enum.week.saturday',
-      'app.crontab.enum.week.sunday',
-    ];
-
-    const period = periodDetails[0];
-    let readablePeriodDesc = '';
-
-    switch (period.type) {
-      case CRONTAB_PERIOD_TYPE.MONTHLY:
-        readablePeriodDesc = t('app.crontab.period.description.monthly', {
-          day: period.day,
-          time: formatTime(period.hour, period.minute),
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.WEEKLY:
-        readablePeriodDesc = t('app.crontab.period.description.weekly', {
-          weekday: t(weekDayKeys[period.week]),
-          time: formatTime(period.hour, period.minute),
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.DAILY:
-        readablePeriodDesc = t('app.crontab.period.description.daily', {
-          time: formatTime(period.hour, period.minute),
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.HOURLY:
-        readablePeriodDesc = t('app.crontab.period.description.hourly', {
-          minute: period.minute,
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.EVERY_N_DAYS:
-        readablePeriodDesc = t('app.crontab.period.description.every_n_days', {
-          day: period.day,
-          time: formatTime(period.hour, period.minute),
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.EVERY_N_HOURS:
-        readablePeriodDesc = t('app.crontab.period.description.every_n_hours', {
-          hour: period.hour,
-          minute: period.minute,
-        });
-        break;
-      case CRONTAB_PERIOD_TYPE.EVERY_N_MINUTES:
-        readablePeriodDesc = t(
-          'app.crontab.period.description.every_n_minutes',
-          {
-            minute: period.minute,
-          }
-        );
-        break;
-      default:
-        readablePeriodDesc = '';
-        break;
-    }
-
-    return t('app.crontab.period.execution_period') + ': ' + readablePeriodDesc;
-  };
-
   // 解析cron表达式为周期详情
   const parseCronExpression = (
     cronExpression: string
@@ -219,60 +131,7 @@ export const usePeriodUtils = () => {
     }
 
     // 根据cron表达式格式确定周期类型
-    if (
-      minute !== '*' &&
-      hour !== '*' &&
-      day !== '*' &&
-      month === '*' &&
-      week === '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.MONTHLY;
-    }
-    if (
-      minute !== '*' &&
-      hour !== '*' &&
-      day === '*' &&
-      month === '*' &&
-      week !== '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.WEEKLY;
-    }
-    if (
-      minute !== '*' &&
-      hour !== '*' &&
-      day === '*' &&
-      month === '*' &&
-      week === '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.DAILY;
-    }
-    if (
-      minute !== '*' &&
-      hour === '*' &&
-      day === '*' &&
-      month === '*' &&
-      week === '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.HOURLY;
-    }
-    if (
-      minute !== '*' &&
-      hour !== '*' &&
-      day.startsWith('*/') &&
-      month === '*' &&
-      week === '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.EVERY_N_DAYS;
-    }
-    if (
-      minute !== '*' &&
-      hour.startsWith('*/') &&
-      day === '*' &&
-      month === '*' &&
-      week === '*'
-    ) {
-      periodDetail.type = CRONTAB_PERIOD_TYPE.EVERY_N_HOURS;
-    }
+    // 优先检测包含 */N 的间隔类型，因为它们更具体
     if (
       minute.startsWith('*/') &&
       hour === '*' &&
@@ -280,15 +139,61 @@ export const usePeriodUtils = () => {
       month === '*' &&
       week === '*'
     ) {
+      // 每隔N分钟: */N * * * *
       periodDetail.type = CRONTAB_PERIOD_TYPE.EVERY_N_MINUTES;
-    }
-    if (weekValue !== null && week !== '*') {
+    } else if (
+      minute !== '*' &&
+      hour.startsWith('*/') &&
+      day === '*' &&
+      month === '*' &&
+      week === '*'
+    ) {
+      // 每隔N小时: M */N * * *
+      periodDetail.type = CRONTAB_PERIOD_TYPE.EVERY_N_HOURS;
+    } else if (
+      minute !== '*' &&
+      hour !== '*' &&
+      day.startsWith('*/') &&
+      month === '*' &&
+      week === '*'
+    ) {
+      // 每隔N天: M H */N * *
+      periodDetail.type = CRONTAB_PERIOD_TYPE.EVERY_N_DAYS;
+    } else if (
+      minute !== '*' &&
+      hour !== '*' &&
+      day === '*' &&
+      month === '*' &&
+      week !== '*'
+    ) {
+      // 每周: M H * * W
       periodDetail.type = CRONTAB_PERIOD_TYPE.WEEKLY;
-    } else if (dayValue !== null && day !== '*') {
+    } else if (
+      minute !== '*' &&
+      hour !== '*' &&
+      day !== '*' &&
+      month === '*' &&
+      week === '*'
+    ) {
+      // 每月: M H D * *
       periodDetail.type = CRONTAB_PERIOD_TYPE.MONTHLY;
-    } else if (hourValue !== null && minuteValue !== null) {
+    } else if (
+      minute !== '*' &&
+      hour !== '*' &&
+      day === '*' &&
+      month === '*' &&
+      week === '*'
+    ) {
+      // 每天: M H * * *
       periodDetail.type = CRONTAB_PERIOD_TYPE.DAILY;
-    } else if (minuteValue !== null) {
+    } else if (
+      minute !== '*' &&
+      hour === '*' &&
+      day === '*' &&
+      month === '*' &&
+      week === '*'
+    ) {
+      // 每小时: M * * * *
       periodDetail.type = CRONTAB_PERIOD_TYPE.HOURLY;
     }
 
@@ -297,7 +202,6 @@ export const usePeriodUtils = () => {
 
   return {
     convertPeriodToCronExpression,
-    generateFormattedPeriodComment,
     parseCronExpression,
   };
 };
