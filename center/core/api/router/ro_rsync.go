@@ -16,6 +16,7 @@ func (s *RsyncClientRouter) InitRouter(Router *gin.RouterGroup) {
 		rsyncRouter.GET("/:host/task", baseApi.RsyncListTask)
 		rsyncRouter.GET("/:host/task/query", baseApi.RsyncQueryTask)
 		rsyncRouter.POST("/:host/task", baseApi.RsyncCreateTask)
+		rsyncRouter.PUT("/:host/task", baseApi.RsyncUpdateTask)
 		rsyncRouter.DELETE("/:host/task", baseApi.RsyncDeleteTask)
 		rsyncRouter.POST("/:host/task/cancel", baseApi.RsyncCancelTask)
 		rsyncRouter.POST("/:host/task/retry", baseApi.RsyncRetryTask)

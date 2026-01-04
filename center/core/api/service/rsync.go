@@ -15,6 +15,7 @@ type IRSyncService interface {
 	ListTask(hostID uint, req model.RsyncListTaskRequest) (*model.RsyncClientListTaskResponse, error)
 	QueryTask(hostID uint, req model.RsyncQueryTaskRequest) (*model.RsyncClientTask, error)
 	CreateTask(hostID uint, req model.RsyncClientCreateTaskRequest) (*model.RsyncCreateTaskResponse, error)
+	UpdateTask(hostID uint, req model.RsyncClientUpdateTaskRequest) error
 	DeleteTask(hostID uint, req model.RsyncDeleteTaskRequest) error
 	CancelTask(hostID uint, req model.RsyncCancelTaskRequest) error
 	RetryTask(hostID uint, req model.RsyncRetryTaskRequest) error
@@ -126,6 +127,32 @@ func (s *RsyncService) CreateTask(hostID uint, req model.RsyncClientCreateTaskRe
 	}
 
 	return &resp, nil
+}
+
+func (s *RsyncService) UpdateTask(hostID uint, req model.RsyncClientUpdateTaskRequest) error {
+	data, err := utils.ToJSONString(req)
+	if err != nil {
+		return err
+	}
+
+	actionRequest := model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.Rsync_Update,
+			Data:   data,
+		},
+	}
+
+	actionResponse, err := conn.CENTER.ExecuteAction(actionRequest)
+	if err != nil {
+		return err
+	}
+	if !actionResponse.Result {
+		global.LOG.Error("action Rsync_Update failed")
+		return fmt.Errorf("failed to update rsync task: %s", actionResponse.Data)
+	}
+
+	return nil
 }
 
 func (s *RsyncService) DeleteTask(hostID uint, req model.RsyncDeleteTaskRequest) error {

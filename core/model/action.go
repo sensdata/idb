@@ -150,6 +150,7 @@ const (
 	Terminal_Prune   string = "terminal_prune"
 
 	Rsync_Create string = "rsync_create"
+	Rsync_Update string = "rsync_update"
 	Rsync_List   string = "rsync_list"
 	Rsync_Detail string = "rsync_detail"
 	Rsync_Stop   string = "rsync_stop"

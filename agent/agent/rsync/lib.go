@@ -52,6 +52,30 @@ func (api *RsyncLib) Create(req model.RsyncClientCreateTaskRequest) (*model.Rsyn
 	return &rsp, nil
 }
 
+func (api *RsyncLib) Update(req model.RsyncClientUpdateTaskRequest) error {
+	if req.ID == "" {
+		return errors.New("id required")
+	}
+	t, err := api.m.GetTask(req.ID)
+	if err != nil {
+		return err
+	}
+
+	t.Name = req.Name
+	t.Direction = pkg.SyncDirection(req.Direction)
+	t.LocalPath = req.LocalPath
+	t.RemoteType = pkg.RemoteType(req.RemoteType)
+	t.RemoteHost = req.RemoteHost
+	t.RemotePort = req.RemotePort
+	t.Username = req.Username
+	t.AuthMode = pkg.AuthMode(req.AuthMode)
+	t.Password = req.Password
+	t.SSHPrivateKey = req.SSHPrivateKey
+	t.RemotePath = req.RemotePath
+	t.Module = req.Module
+	return api.m.UpdateTask(t)
+}
+
 func (api *RsyncLib) List(req model.RsyncListTaskRequest) (*model.RsyncClientListTaskResponse, error) {
 	var resp model.RsyncClientListTaskResponse
 	tasks, err := api.m.ListTasks(req.Page, req.PageSize)
