@@ -139,10 +139,10 @@
         field="ssh_private_key"
         :label="$t('app.rsync.client.form.sshPrivateKey')"
       >
-        <a-textarea
+        <file-selector
           v-model="form.ssh_private_key"
+          type="file"
           :placeholder="$t('app.rsync.client.form.placeholder.sshPrivateKey')"
-          :auto-size="{ minRows: 4, maxRows: 8 }"
         />
       </a-form-item>
 
@@ -297,7 +297,11 @@
 
     loading.value = true;
     try {
-      await createRsyncClientTaskApi(form.value);
+      const submitData = {
+        ...form.value,
+        enqueue: form.value.enqueue === true,
+      };
+      await createRsyncClientTaskApi(submitData);
       Message.success(
         isEdit.value
           ? t('app.rsync.client.message.updateSuccess')
@@ -320,7 +324,7 @@
 <style scoped lang="less">
   .drawer-footer {
     display: flex;
-    justify-content: flex-end;
     gap: 0.86rem;
+    justify-content: flex-end;
   }
 </style>

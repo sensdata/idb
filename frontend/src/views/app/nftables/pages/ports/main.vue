@@ -128,15 +128,18 @@
       ruleSet.port_start === ruleSet.port_end
         ? ruleSet.port_start
         : [ruleSet.port_start, ruleSet.port_end];
+
+    // 从 rules 数组中提取第一条规则的 action 和 src_ip 用于表格显示
+    const firstRule = ruleSet.rules?.[0];
+    const action = firstRule?.action;
+    const source = firstRule?.src_ip;
+
     return {
       port: portVal as any,
       protocol: ruleSet.protocol ?? 'tcp',
       rules: ruleSet.rules,
-      // 为了兼容性，如果只有一个默认规则，也设置action
-      action:
-        ruleSet.rules.length === 1 && ruleSet.rules[0].type === 'default'
-          ? ruleSet.rules[0].action
-          : undefined,
+      action,
+      source,
     };
   };
 
@@ -374,63 +377,54 @@
 
 <style scoped lang="less">
   .ports-management-page {
-    background: var(--color-bg-1);
     min-height: 100vh;
-
+    background: var(--color-bg-1);
     .page-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 1.714rem; // 24px -> rem
       border-bottom: 1px solid var(--color-border-2);
-
       .header-left {
         .page-title {
+          margin: 0 0 0.571rem 0; // 8px -> rem
           font-size: 1.714rem; // 24px -> rem
           font-weight: 600;
           color: var(--color-text-1);
-          margin: 0 0 0.571rem 0; // 8px -> rem
         }
-
         .page-description {
+          margin: 0;
           font-size: 1rem; // 14px -> rem (root 14px)
           color: var(--color-text-3);
-          margin: 0;
         }
       }
-
       .header-right {
         display: flex;
         align-items: center;
       }
     }
-
     .page-content {
       padding: 1.143rem 0; // 16px -> rem
-
       .loading-container {
-        padding: 4.286rem 1.714rem; // 60px 24px -> rem
-        min-height: 28.571rem; // 400px -> rem
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
-
+        justify-content: center;
+        min-height: 28.571rem; // 400px -> rem
+        padding: 4.286rem 1.714rem; // 60px 24px -> rem
         .loading-text {
           margin-top: 1.143rem; // 16px -> rem
           font-size: 1rem; // 14px -> rem
-          color: var(--color-text-3);
           font-weight: 400;
+          color: var(--color-text-3);
         }
       }
-
       .rules-management-container {
-        background: var(--color-bg-2);
-        border-radius: 0.429rem; // 6px -> rem
         padding: 1.143rem; // 16px -> rem
         margin: 1.143rem 1.714rem 0; // 16px 24px 0 -> rem
+        background: var(--color-bg-2);
+        border-radius: 0.429rem; // 6px -> rem
       }
-
       .error-state {
         margin-top: 2.857rem; // 40px -> rem
         text-align: center;
@@ -439,17 +433,16 @@
   }
 
   // 响应式设计
-  @media (max-width: 1024px) {
+  @media (width <= 1024px) {
     .ports-management-page {
       .page-header {
-        padding-left: 1.143rem; // 16px -> rem
         padding-right: 1.143rem; // 16px -> rem
+        padding-left: 1.143rem; // 16px -> rem
       }
-
       .page-content {
         .rules-management-container {
-          margin-left: 1.143rem; // 16px -> rem
           margin-right: 1.143rem; // 16px -> rem
+          margin-left: 1.143rem; // 16px -> rem
         }
       }
     }
@@ -460,21 +453,19 @@
     .ports-management-page {
       .page-header {
         flex-direction: column;
-        align-items: flex-start;
         gap: 1.143rem; // 16px -> rem
-        padding-left: 0.857rem; // 12px -> rem
+        align-items: flex-start;
         padding-right: 0.857rem; // 12px -> rem
-
+        padding-left: 0.857rem; // 12px -> rem
         .header-right {
           align-self: flex-end;
         }
       }
-
       .page-content {
         .rules-management-container {
-          margin-left: 0.857rem; // 12px -> rem
-          margin-right: 0.857rem; // 12px -> rem
           padding: 0.857rem; // 12px -> rem
+          margin-right: 0.857rem; // 12px -> rem
+          margin-left: 0.857rem; // 12px -> rem
         }
       }
     }

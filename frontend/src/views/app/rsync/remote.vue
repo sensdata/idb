@@ -47,6 +47,7 @@
           <a-table-column
             :title="$t('app.rsync.client.columns.localPath')"
             data-index="local_path"
+            :width="200"
           />
           <a-table-column
             :title="$t('app.rsync.client.columns.remoteType')"
@@ -79,50 +80,13 @@
           <a-table-column
             :title="$t('common.table.operation')"
             align="center"
-            :width="200"
+            :width="280"
           >
             <template #cell="{ record }">
-              <a-space>
-                <a-button type="text" size="small" @click="handleEdit(record)">
-                  {{ $t('common.edit') }}
-                </a-button>
-                <a-button
-                  v-if="record.state !== 'running'"
-                  type="text"
-                  size="small"
-                  status="success"
-                  @click="handleRetry(record)"
-                >
-                  {{ $t('app.rsync.client.action.run') }}
-                </a-button>
-                <a-popconfirm
-                  v-if="record.state === 'running'"
-                  :content="$t('app.rsync.client.message.confirmCancel')"
-                  @ok="handleCancel(record)"
-                >
-                  <a-button type="text" size="small" status="warning">
-                    {{ $t('app.rsync.client.action.cancel') }}
-                  </a-button>
-                </a-popconfirm>
-                <a-button type="text" size="small" @click="handleTest(record)">
-                  {{ $t('common.test') }}
-                </a-button>
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleViewLogs(record)"
-                >
-                  {{ $t('app.rsync.client.logs.button') }}
-                </a-button>
-                <a-popconfirm
-                  :content="$t('app.rsync.client.message.confirmDelete')"
-                  @ok="handleDelete(record)"
-                >
-                  <a-button type="text" size="small" status="danger">
-                    {{ $t('common.delete') }}
-                  </a-button>
-                </a-popconfirm>
-              </a-space>
+              <idb-table-operation
+                type="button"
+                :options="getOperationOptions(record)"
+              />
             </template>
           </a-table-column>
         </template>
@@ -314,6 +278,42 @@
     currentLogTaskId.value = record.id;
     currentLogTaskState.value = record.state;
     logsDrawerVisible.value = true;
+  };
+
+  const getOperationOptions = (record: RsyncClientTask) => {
+    return [
+      {
+        text: t('common.edit'),
+        click: () => handleEdit(record),
+      },
+      {
+        text: t('app.rsync.client.action.run'),
+        status: 'success' as const,
+        visible: record.state !== 'running',
+        click: () => handleRetry(record),
+      },
+      {
+        text: t('app.rsync.client.action.cancel'),
+        status: 'warning' as const,
+        visible: record.state === 'running',
+        confirm: t('app.rsync.client.message.confirmCancel'),
+        click: () => handleCancel(record),
+      },
+      {
+        text: t('common.test'),
+        click: () => handleTest(record),
+      },
+      {
+        text: t('app.rsync.client.logs.button'),
+        click: () => handleViewLogs(record),
+      },
+      {
+        text: t('common.delete'),
+        status: 'danger' as const,
+        confirm: t('app.rsync.client.message.confirmDelete'),
+        click: () => handleDelete(record),
+      },
+    ];
   };
 
   onMounted(() => {
