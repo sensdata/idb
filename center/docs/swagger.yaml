@@ -1021,6 +1021,8 @@ definitions:
         type: string
       auth_mode:
         type: string
+      can_upgrade:
+        type: boolean
       created_at:
         type: string
       default:
@@ -1046,6 +1048,8 @@ definitions:
     properties:
       activated:
         type: boolean
+      can_upgrade:
+        type: boolean
       connected:
         type: string
       cpu:
@@ -1065,6 +1069,8 @@ definitions:
       rx:
         description: 接收实时速率
         type: number
+      timestamp:
+        type: integer
       tx:
         description: 发送实时速率
         type: number
@@ -1174,8 +1180,6 @@ definitions:
         type: string
       ip6_tables:
         type: boolean
-    required:
-    - ip6_tables
     type: object
   model.KeyValue:
     properties:
@@ -1690,7 +1694,6 @@ definitions:
         type: boolean
     required:
     - type
-    - with_tag_all
     type: object
   model.PruneResult:
     properties:
@@ -1707,7 +1710,6 @@ definitions:
         type: boolean
     required:
     - key_name
-    - only_private_key
     type: object
   model.Rename:
     properties:
@@ -1802,7 +1804,6 @@ definitions:
     required:
     - auth_mode
     - direction
-    - enqueue
     - local_path
     - name
     - remote_host
@@ -1852,6 +1853,55 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  model.RsyncClientUpdateTaskRequest:
+    properties:
+      auth_mode:
+        enum:
+        - password
+        - anonymous
+        - private_key
+        type: string
+      direction:
+        enum:
+        - remote_to_local
+        - local_to_remote
+        type: string
+      id:
+        type: string
+      local_path:
+        type: string
+      module:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      remote_host:
+        type: string
+      remote_path:
+        type: string
+      remote_port:
+        type: integer
+      remote_type:
+        enum:
+        - ssh
+        - rsync
+        type: string
+      ssh_private_key:
+        type: string
+      username:
+        type: string
+    required:
+    - auth_mode
+    - direction
+    - local_path
+    - name
+    - remote_host
+    - remote_path
+    - remote_port
+    - remote_type
+    - username
     type: object
   model.RsyncCreateTask:
     properties:
@@ -9035,6 +9085,30 @@ paths:
           schema:
             $ref: '#/definitions/model.RsyncCreateTaskResponse'
       summary: Create rsync task
+      tags:
+      - Rsync
+    put:
+      consumes:
+      - application/json
+      description: Update rsync task
+      parameters:
+      - description: Host
+        in: path
+        name: host
+        required: true
+        type: string
+      - description: Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RsyncClientUpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Update rsync task
       tags:
       - Rsync
   /rsync/{host}/task/cancel:
