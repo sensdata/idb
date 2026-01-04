@@ -88,7 +88,7 @@ type RsyncClientCreateTaskRequest struct {
 	SSHPrivateKey string `json:"ssh_private_key"`
 	RemotePath    string `json:"remote_path" validate:"required"`
 	Module        string `json:"module"`
-	Enqueue       bool   `json:"enqueue" validate:"required"` // whether to start immediately
+	Enqueue       bool   `json:"enqueue"` // whether to start immediately
 }
 
 type RsyncClientTask struct {

@@ -49,7 +49,7 @@ type EnableKey struct {
 
 type RemoveKey struct {
 	KeyName        string `json:"key_name" validate:"required"`
-	OnlyPrivateKey bool   `json:"only_private_key" validate:"required"`
+	OnlyPrivateKey bool   `json:"only_private_key"`
 }
 
 type SetKeyPassword struct {
