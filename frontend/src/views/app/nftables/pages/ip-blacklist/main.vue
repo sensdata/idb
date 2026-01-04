@@ -320,53 +320,45 @@
 
 <style scoped lang="less">
   .ip-blacklist-management-page {
-    background: var(--color-bg-1);
     min-height: 100vh;
-
+    background: var(--color-bg-1);
     .page-header {
       padding: 24px;
       border-bottom: 1px solid var(--color-border-2);
-
       .page-title {
-        font-size: 24px;
-        font-weight: 600;
+        margin: 0;
+        font-size: 1.286rem;
+        font-weight: 500;
         color: var(--color-text-1);
-        margin: 0 0 8px 0;
       }
-
       .page-description {
+        margin: 0;
         font-size: 14px;
         color: var(--color-text-3);
-        margin: 0;
       }
     }
-
     .page-content {
       padding: 16px 0;
-
       .loading-container {
-        padding: 60px 24px;
-        min-height: 400px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
-
+        justify-content: center;
+        min-height: 400px;
+        padding: 60px 24px;
         .loading-text {
           margin-top: 16px;
           font-size: 14px;
-          color: var(--color-text-3);
           font-weight: 400;
+          color: var(--color-text-3);
         }
       }
-
       .rules-management-container {
-        background: var(--color-bg-2);
-        border-radius: 6px;
         padding: 16px;
         margin: 16px 24px 0;
+        background: var(--color-bg-2);
+        border-radius: 6px;
       }
-
       .error-state {
         margin-top: 40px;
         text-align: center;
@@ -377,39 +369,37 @@
   // 抽屉底部按钮样式
   .drawer-footer {
     display: flex;
-    justify-content: flex-end;
     gap: 12px;
+    justify-content: flex-end;
   }
 
   // 响应式设计
-  @media (max-width: 1024px) {
+  @media (width <= 1024px) {
     .ip-blacklist-management-page {
       .page-header {
-        padding-left: 16px;
         padding-right: 16px;
+        padding-left: 16px;
       }
-
       .page-content {
         .rules-management-container {
-          margin-left: 16px;
           margin-right: 16px;
+          margin-left: 16px;
         }
       }
     }
   }
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .ip-blacklist-management-page {
       .page-header {
-        padding-left: 12px;
         padding-right: 12px;
+        padding-left: 12px;
       }
-
       .page-content {
         .rules-management-container {
-          margin-left: 12px;
-          margin-right: 12px;
           padding: 12px;
+          margin-right: 12px;
+          margin-left: 12px;
         }
       }
     }

@@ -5,7 +5,7 @@
 <template>
   <div class="nftables-page-container">
     <div class="header-container">
-      <h2 class="page-title">{{ $t('app.nftables.config.title') }}</h2>
+      <h1 class="page-title">{{ $t('app.nftables.config.title') }}</h1>
 
       <!-- 防火墙状态显示组件 -->
       <firewall-status-header
@@ -245,40 +245,39 @@
 
 <style scoped lang="less">
   .nftables-page-container {
-    padding: 0 16px;
     position: relative;
+    padding: 0 16px;
     background: var(--color-bg-1);
   }
 
   .header-container {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     padding: 16px 0;
     margin-bottom: 20px;
   }
 
   .page-title {
-    font-size: 18px;
+    margin: 0;
+    font-size: 1.286rem;
     font-weight: 500;
     color: var(--color-text-1);
-    margin: 0;
   }
 
   /* 响应式设计 */
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .nftables-page-container {
       padding: 0 12px;
     }
-
     .header-container {
       flex-direction: column;
-      align-items: flex-start;
       gap: 12px;
+      align-items: flex-start;
     }
   }
 
-  @media (max-width: 480px) {
+  @media (width <= 480px) {
     .header-container {
       gap: 8px;
     }

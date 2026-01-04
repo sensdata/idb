@@ -327,28 +327,25 @@
 
   .page-header {
     display: flex;
-    justify-content: space-between;
+    flex-shrink: 0;
     align-items: flex-start;
+    justify-content: space-between;
     padding: 16px 24px;
     background: var(--color-bg-1);
     border-bottom: 1px solid var(--color-border-2);
-    flex-shrink: 0;
-
     .header-left {
       .page-title {
-        margin: 0 0 4px 0;
-        font-size: 20px;
-        font-weight: 600;
+        margin: 0;
+        font-size: 1.286rem;
+        font-weight: 500;
         color: var(--color-text-1);
       }
-
       .page-subtitle {
-        color: var(--color-text-3);
         font-size: 14px;
         line-height: 1.5;
+        color: var(--color-text-3);
       }
     }
-
     .header-right {
       display: flex;
       align-items: center;
@@ -358,14 +355,13 @@
   .loading-container {
     display: flex;
     flex-direction: column;
+    gap: 16px;
     align-items: center;
     justify-content: center;
     height: 400px;
-    gap: 16px;
-
     .loading-text {
-      color: var(--color-text-2);
       font-size: 14px;
+      color: var(--color-text-2);
     }
   }
 
@@ -375,80 +371,66 @@
 
   .editor-container {
     display: flex;
-    flex-direction: column;
     flex: 1;
-    overflow: hidden;
+    flex-direction: column;
     padding: 16px 24px;
-
+    overflow: hidden;
     .editor-wrapper {
       position: relative;
       flex: 1;
       overflow: hidden;
       border-radius: 8px;
-
       .nftables-editor {
         width: 100%;
         height: 100%;
         min-height: 500px;
-
         :deep(.cm-editor) {
           width: 100%;
           height: 100%;
         }
-
         :deep(.cm-scroller) {
           width: 100%;
           height: 100%;
           overflow: auto;
         }
-
         :deep(.cm-content) {
           min-height: 500px;
         }
       }
-
       .saving-overlay {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        inset: 0 0 0 0;
+        z-index: 10;
         display: flex;
         flex-direction: column;
+        gap: 12px;
         align-items: center;
         justify-content: center;
-        background: var(--color-mask-bg, rgba(255, 255, 255, 0.8));
+        background: var(--color-mask-bg, rgb(255 255 255 / 80%));
         backdrop-filter: blur(2px);
-        z-index: 10;
-        gap: 12px;
-
         .saving-text {
-          color: var(--color-text-2);
           font-size: 14px;
+          color: var(--color-text-2);
         }
       }
     }
-
     .editor-footer {
       display: flex;
-      justify-content: space-between;
+      flex-shrink: 0;
       align-items: center;
+      justify-content: space-between;
       padding: 12px 16px;
       margin-top: 16px;
       background: var(--color-bg-2);
       border-radius: 6px;
-      flex-shrink: 0;
-
       .editor-info {
         display: flex;
         align-items: center;
       }
-
       .editor-tips {
         display: flex;
         align-items: center;
       }
-
       .tip-text {
         font-size: 12px;
       }
@@ -456,37 +438,32 @@
   }
 
   // 响应式设计
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .page-header {
       flex-direction: column;
-      align-items: flex-start;
       gap: 16px;
-
+      align-items: flex-start;
       .header-right {
         align-self: flex-end;
       }
     }
-
     .editor-container .editor-footer {
       flex-direction: column;
-      align-items: flex-start;
       gap: 12px;
-
+      align-items: flex-start;
       .editor-tips {
         align-self: flex-start;
       }
     }
   }
 
-  @media (max-width: 480px) {
+  @media (width <= 480px) {
     .page-header {
       padding: 12px 16px;
-
       .header-left .page-title {
         font-size: 18px;
       }
     }
-
     .editor-container {
       padding: 12px 16px;
     }

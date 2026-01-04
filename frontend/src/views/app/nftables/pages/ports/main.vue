@@ -387,9 +387,9 @@
       border-bottom: 1px solid var(--color-border-2);
       .header-left {
         .page-title {
-          margin: 0 0 0.571rem 0; // 8px -> rem
-          font-size: 1.714rem; // 24px -> rem
-          font-weight: 600;
+          margin: 0;
+          font-size: 1.286rem;
+          font-weight: 500;
           color: var(--color-text-1);
         }
         .page-description {
