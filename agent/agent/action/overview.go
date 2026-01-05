@@ -94,10 +94,27 @@ func GetOverview() (*model.Overview, error) {
 		overview.CpuUsage = fmt.Sprintf("%.2f%%", percents[0])
 	}
 
-	avg, _ := load.Avg()
-	overview.CurrentLoad.ProcessCount1 = fmt.Sprintf("%.2f%%", avg.Load1*100)
-	overview.CurrentLoad.ProcessCount5 = fmt.Sprintf("%.2f%%", avg.Load5*100)
-	overview.CurrentLoad.ProcessCount15 = fmt.Sprintf("%.2f%%", avg.Load15*100)
+	var logicalCPU = 1
+	cpuCnts, err := cpu.Counts(true) // 逻辑 CPU 数（线程数）
+	if err != nil {
+		global.LOG.Error("failed to get cpu counts: %v", err)
+	} else {
+		logicalCPU = cpuCnts
+	}
+	avg, err := load.Avg()
+	if err != nil {
+		global.LOG.Error("failed to get load avg: %v", err)
+		avg = &load.AvgStat{} // 全 0 避免 panic
+	}
+	calcPercent := func(loadVal float64) float64 {
+		if logicalCPU == 0 {
+			return 0
+		}
+		return (loadVal / float64(logicalCPU)) * 100
+	}
+	overview.CurrentLoad.ProcessCount1 = fmt.Sprintf("%.2f%%", calcPercent(avg.Load1))
+	overview.CurrentLoad.ProcessCount5 = fmt.Sprintf("%.2f%%", calcPercent(avg.Load5))
+	overview.CurrentLoad.ProcessCount15 = fmt.Sprintf("%.2f%%", calcPercent(avg.Load15))
 
 	v, _ := mem.VirtualMemory()
 	overview.MemoryUsage.Physical = utils.FormatMemorySize(v.Total)
