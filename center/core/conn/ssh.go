@@ -23,10 +23,13 @@ import (
 )
 
 type SSHService struct {
-	done          chan struct{}
-	mu            sync.Mutex
-	sshClients    map[string]*ssh.Client
-	responseChMap map[string]chan string
+	done               chan struct{}
+	mu                 sync.Mutex
+	sshClients         map[string]*ssh.Client
+	responseChMap      map[string]chan string
+	agentCheckMu       sync.Mutex           // 用于agent状态检查的锁
+	lastAgentCheck     map[string]time.Time // 记录每个主机上次检查agent状态的时间
+	agentCheckInterval time.Duration        // agent状态检查间隔
 }
 
 type ISSHService interface {
@@ -41,8 +44,11 @@ type ISSHService interface {
 
 func NewSSHService() ISSHService {
 	return &SSHService{
-		sshClients:    make(map[string]*ssh.Client),
-		responseChMap: make(map[string]chan string),
+		done:               make(chan struct{}),
+		sshClients:         make(map[string]*ssh.Client),
+		responseChMap:      make(map[string]chan string),
+		lastAgentCheck:     make(map[string]time.Time),
+		agentCheckInterval: 20 * time.Second,
 	}
 }
 
@@ -576,7 +582,7 @@ func transferSingleFile(
 func (s *SSHService) ensureConnections() {
 	global.LOG.Info("Ensure ssh connections started")
 
-	interval := 10 * time.Second
+	interval := 5 * time.Second
 	maxConcurrency := 5
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -609,6 +615,7 @@ func (s *SSHService) ensureConnections() {
 				}()
 
 				s.handleHost(&h)
+				s.handleInstalledStatus(&h)
 			}(host)
 		}
 
@@ -643,7 +650,37 @@ func (s *SSHService) handleHost(host *model.Host) {
 		global.LOG.Info("SSH connection re-established for host %s", host.Addr)
 		return
 	}
+}
 
+func (s *SSHService) handleInstalledStatus(host *model.Host) {
+	global.LOG.Info("Check installed status for host %s", host.Addr)
+
+	client, err := s.getClient(*host)
+	if err != nil || client == nil {
+		global.LOG.Warn("Failed to get ssh client for host %s: %v", host.Addr, err)
+		return
+	}
+
+	// 只有在agent未连接时，才检查安装状态
+	hostStatus := global.GetHostStatus(host.ID)
+	if hostStatus != nil && hostStatus.Connected == "online" {
+		global.LOG.Info("Host agent is connected, skip check installed status")
+		return
+	}
+
+	// 只在特定间隔内检查agent状态
+	s.agentCheckMu.Lock()
+	defer s.agentCheckMu.Unlock()
+	lastCheck, exists := s.lastAgentCheck[host.Addr]
+	if exists && time.Since(lastCheck) < s.agentCheckInterval {
+		global.LOG.Info("Last check within interval, skip check installed status")
+		return
+	}
+
+	// 更新检查时间
+	s.lastAgentCheck[host.Addr] = time.Now()
+
+	// 执行检查
 	installed, err := s.agentInstalled(client, *host)
 	if err != nil {
 		global.LOG.Warn("Check agent install failed for host %s: %v", host.Addr, err)

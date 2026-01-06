@@ -271,7 +271,7 @@ func writeToConn(conn net.Conn, msgBytes []byte) {
 func (c *Center) ensureConnections() {
 	global.LOG.Info("Ensure connections")
 
-	interval := 10 * time.Second
+	interval := 3 * time.Second
 	maxConcurrency := 5
 	sem := make(chan struct{}, maxConcurrency)
 
