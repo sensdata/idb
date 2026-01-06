@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/message"
+	"github.com/sensdata/idb/core/utils"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -148,7 +151,16 @@ func (c *SshConn) NewSshClient() (*SshConn, error) {
 		config.Auth = []gossh.AuthMethod{gossh.PublicKeys(signer)}
 	}
 	config.Timeout = 5 * time.Second
-	config.HostKeyCallback = gossh.InsecureIgnoreHostKey()
+
+	hostPort := net.JoinHostPort(c.Addr, strconv.Itoa(c.Port))
+	cb, err := utils.NewHostKeyCallback(
+		filepath.Join(constant.CenterBinDir, ".ssh", "known_hosts"),
+		hostPort,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create host key callback: %w", err)
+	}
+	config.HostKeyCallback = cb
 
 	client, err := gossh.Dial(proto, dialAddr, config)
 	if nil != err {

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -110,7 +112,16 @@ func (s *SSHService) TestConnection(host model.Host) error {
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	}
 	config.Timeout = 5 * time.Second
-	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	hostPort := net.JoinHostPort(host.Addr, strconv.Itoa(host.Port))
+	cb, err := utils.NewHostKeyCallback(
+		filepath.Join(constant.CenterBinDir, ".ssh", "known_hosts"),
+		hostPort,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create host key callback: %w", err)
+	}
+	config.HostKeyCallback = cb
 
 	client, err := ssh.Dial(proto, dialAddr, config)
 	if err != nil {
@@ -782,7 +793,16 @@ func (s *SSHService) connectToHost(host *model.Host) error {
 		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	}
 	config.Timeout = 3 * time.Second
-	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	hostPort := net.JoinHostPort(host.Addr, strconv.Itoa(host.Port))
+	cb, err := utils.NewHostKeyCallback(
+		filepath.Join(constant.CenterBinDir, ".ssh", "known_hosts"),
+		hostPort,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create host key callback: %w", err)
+	}
+	config.HostKeyCallback = cb
 
 	client, err := ssh.Dial(proto, dialAddr, config)
 	if err != nil {
