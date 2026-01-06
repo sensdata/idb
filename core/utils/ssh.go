@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -45,9 +46,18 @@ func NewHostKeyCallback(
 		return nil, err
 	}
 
+	// Extract port for fake remote
+	_, portStr, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return nil, fmt.Errorf("invalid hostPort: %s", hostPort)
+	}
+	port, _ := strconv.Atoi(portStr)
+
+	fakeRemote := &net.TCPAddr{Port: port}
+
 	return func(_ string, _ net.Addr, key ssh.PublicKey) error {
 		// Use explicit host identity only
-		err := baseCallback(hostPort, nil, key)
+		err := baseCallback(hostPort, fakeRemote, key)
 		if err == nil {
 			return nil
 		}
