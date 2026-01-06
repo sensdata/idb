@@ -15,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -70,7 +71,12 @@ func (u *SSHService) GetConfig() (*model.SSHInfo, error) {
 		PermitRootLogin:        "yes",
 		UseDNS:                 "yes",
 	}
+	isSocket := isSocketMode()
 	serviceName, err := loadServiceName()
+	if isSocket {
+		serviceName = "ssh.socket"
+	}
+
 	if err != nil {
 		data.Status = constant.StatusDisable
 		data.Message = err.Error()
@@ -102,6 +108,10 @@ func (u *SSHService) GetConfig() (*model.SSHInfo, error) {
 	}
 	lines := strings.Split(string(sshConf), "\n")
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 		if strings.HasPrefix(line, "Port ") {
 			data.Port = strings.ReplaceAll(line, "Port ", "")
 		}
@@ -126,13 +136,25 @@ func (u *SSHService) GetConfig() (*model.SSHInfo, error) {
 			data.UseDNS = strings.ReplaceAll(line, "UseDNS ", "")
 		}
 	}
+
+	// 如果是 socket 模式，读取端口
+	if isSocket {
+		if port := readPortFromSocket(); port != "" {
+			data.Port = port
+		}
+	}
+
 	return &data, nil
 }
 
 func (u *SSHService) UpdateConfig(req model.SSHUpdate) error {
+	isSocket := isSocketMode()
 	serviceName, err := loadServiceName()
 	if err != nil {
 		return err
+	}
+	if isSocket {
+		serviceName = "ssh.socket"
 	}
 
 	sshConf, err := os.ReadFile(sshPath)
@@ -152,8 +174,70 @@ func (u *SSHService) UpdateConfig(req model.SSHUpdate) error {
 
 	// 重启
 	sudo := utils.SudoHandleCmd()
-	_, _ = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if isSocket {
+		_, err = utils.Execf("%s systemctl daemon-reload", sudo)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func isSocketMode() bool {
+	active, _ := systemctl.IsActive("ssh.socket")
+	return active
+}
+
+func readPortFromSocket() string {
+	out, err := systemctl.RunSystemCtl("cat", "ssh.socket")
+	if err != nil {
+		return ""
+	}
+
+	var port string
+	lines := strings.Split(out, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// 只关心 ListenStream
+		if !strings.HasPrefix(line, "ListenStream=") {
+			continue
+		}
+
+		// 清空指令，直接跳过
+		if line == "ListenStream=" {
+			port = ""
+			continue
+		}
+
+		// ListenStream=0.0.0.0:22223
+		// ListenStream=[::]:22223
+		value := strings.TrimPrefix(line, "ListenStream=")
+
+		// IPv6: [::]:22223
+		if strings.HasPrefix(value, "[") {
+			if idx := strings.LastIndex(value, "]:"); idx != -1 {
+				port = value[idx+2:]
+				continue
+			}
+		}
+
+		// IPv4: 0.0.0.0:22223
+		if idx := strings.LastIndex(value, ":"); idx != -1 {
+			port = value[idx+1:]
+			continue
+		}
+	}
+
+	if _, err := strconv.Atoi(port); err != nil {
+		port = ""
+	}
+	return port
 }
 
 func (u *SSHService) GetContent() (*model.SSHConfigContent, error) {
@@ -172,9 +256,13 @@ func (u *SSHService) GetContent() (*model.SSHConfigContent, error) {
 }
 
 func (u *SSHService) UpdateContent(req model.ContentUpdate) error {
+	isSocket := isSocketMode()
 	serviceName, err := loadServiceName()
 	if err != nil {
 		return err
+	}
+	if isSocket {
+		serviceName = "ssh.socket"
 	}
 
 	// 检查文件是否存在
@@ -218,7 +306,16 @@ func (u *SSHService) UpdateContent(req model.ContentUpdate) error {
 
 	// 重启
 	sudo := utils.SudoHandleCmd()
-	_, _ = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if isSocket {
+		_, err = utils.Execf("%s systemctl daemon-reload", sudo)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
