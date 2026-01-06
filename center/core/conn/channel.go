@@ -337,8 +337,9 @@ func (c *Center) checkHostStatus(host *model.Host) {
 			// 超过120秒未收到心跳，认为连接已断开
 			global.LOG.Warn("Host %d - %s last heartbeat is %v, which is more than 120 seconds ago", host.ID, host.Addr, hostStatus.LastHeartbeat)
 			// 重置host的在线状态
-			hostStatus.Connected = "offline"
-			global.SetHostStatus(host.ID, hostStatus)
+			resetHostStatus := core.NewHostStatusInfo()
+			resetHostStatus.Installed = hostStatus.Installed
+			global.SetHostStatus(host.ID, resetHostStatus)
 		}
 	}
 }
