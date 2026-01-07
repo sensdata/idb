@@ -11,6 +11,11 @@ generate-key:
 	$(eval KEY := $(shell openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24))
 	@echo "$(KEY)" > .build.key
 
+# 生成JWT密钥的命令（14位字母数字）
+generate-jwt-key:
+	$(eval JWT_KEY := $(shell openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 14))
+	@echo "$(JWT_KEY)" > .build.jwt.key
+
 # 生成证书的命令
 generate-certs:
 	# 生成证书
@@ -31,4 +36,4 @@ generate-certs:
 clean:
 	rm -f $(CERT_FILE) $(KEY_FILE)
 
-.PHONY: generate-certs generate-key clean
+.PHONY: generate-certs generate-key generate-jwt-key clean

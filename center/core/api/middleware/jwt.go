@@ -4,19 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/utils"
 )
 
-type JWT struct {
-	SigningKey string
-}
+type JWT struct{}
 
 func NewJWT() *JWT {
-	// TODO: jwt key需要初始化
-	key := "abcd:2024:qwer"
-	return &JWT{
-		key,
-	}
+	return &JWT{}
 }
 
 // to check JWT tokens
@@ -35,7 +30,7 @@ func (j *JWT) JWTAuth() gin.HandlerFunc {
 			}
 		}
 
-		claims, err := utils.ValidateJWT(token, j.SigningKey)
+		claims, err := utils.ValidateJWT(token, global.JWTKey)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
