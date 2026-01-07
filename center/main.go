@@ -29,6 +29,7 @@ import (
 	coreplugin "github.com/sensdata/idb/center/core/plugin"
 	"github.com/sensdata/idb/center/db"
 	"github.com/sensdata/idb/center/db/migration"
+	"github.com/sensdata/idb/center/db/model"
 	_ "github.com/sensdata/idb/center/docs"
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/center/plugin"
@@ -37,6 +38,7 @@ import (
 	"github.com/sensdata/idb/core/logstream"
 	"github.com/sensdata/idb/core/utils"
 	"github.com/urfave/cli"
+	"gorm.io/gorm"
 )
 
 var app = &cli.App{
@@ -133,7 +135,63 @@ func StartServices() error {
 	// 初始化数据库
 	global.LOG.Info("Init db")
 	db.Init(filepath.Join(constant.CenterDataDir, constant.CenterDb))
-	migration.Init(manager.GetConfig().AdminPass)
+
+	// 获取管理员密码：优先从环境变量读取，用于首次初始化
+	// 如果环境变量不存在，且数据库未初始化，才从配置文件读取（兼容旧版本）
+	adminPass := config.GetAdminPassFromEnv()
+	needPassword := false
+
+	// 记录环境变量读取情况（用于调试，不记录密码内容）
+	if adminPass != "" {
+		global.LOG.Info("Admin password found in environment variable (length: %d)", len(adminPass))
+	} else {
+		global.LOG.Info("Admin password not found in environment variables (PASSWORD or ADMIN_PASS)")
+	}
+
+	if adminPass == "" {
+		// 检查数据库是否已初始化（通过检查 admin 用户是否存在）
+		var adminUser model.User
+		err := global.DB.Where("name = ?", "admin").First(&adminUser).Error
+		if err != nil && err == gorm.ErrRecordNotFound {
+			// 数据库未初始化，需要从配置文件读取（兼容旧版本）
+			adminPass = manager.GetAdminPassFromConfig()
+			needPassword = true
+			if adminPass != "" {
+				global.LOG.Info("Database not initialized, using admin_pass from config file")
+			} else {
+				global.LOG.Warn("Database not initialized but no admin_pass found in config file or environment")
+			}
+		} else if err != nil {
+			// 其他错误（可能是数据库表不存在），使用配置文件中的密码作为后备
+			adminPass = manager.GetAdminPassFromConfig()
+			needPassword = true
+			if adminPass != "" {
+				global.LOG.Warn("Failed to check database initialization status, using admin_pass from config file: %v", err)
+			} else {
+				global.LOG.Warn("Failed to check database initialization status and no admin_pass found: %v", err)
+			}
+		} else {
+			// 数据库已初始化，不需要密码（migration 会跳过已执行的迁移）
+			adminPass = "" // 设置为空，migration 不会使用
+			global.LOG.Info("Database already initialized, admin_pass not needed")
+		}
+	} else {
+		needPassword = true
+		global.LOG.Info("Using admin_pass from environment variable")
+	}
+
+	// 执行数据库迁移（如果数据库已初始化，migration 会跳过已执行的迁移）
+	migration.Init(adminPass)
+
+	// 初始化完成后，从配置文件中移除 admin_pass（如果存在）
+	// 这样后续启动时密码不会留在配置文件中
+	if needPassword {
+		if err := manager.RemoveAdminPass(); err != nil {
+			global.LOG.Warn("Failed to remove admin_pass from config file: %v", err)
+		} else {
+			global.LOG.Info("Removed admin_pass from config file for security")
+		}
+	}
 	// 初始化设置
 	err = db.InitSettings(conn.CONFMAN.GetConfig())
 	if err != nil {
