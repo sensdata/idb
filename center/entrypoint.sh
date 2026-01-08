@@ -3,10 +3,15 @@ set -e
 
 DEFAULT_HOST=127.0.0.1
 DEFAULT_PORT=9918
-DEFAULT_ADMIN_PASS=admin123
+
 HOST=${HOST:-$DEFAULT_HOST}
 PORT=${PORT:-$DEFAULT_PORT}
-ADMIN_PASS=${PASSWORD:-$DEFAULT_ADMIN_PASS}
+ADMIN_PASS=${PASSWORD}
+
+if [ -z "$ADMIN_PASS" ]; then
+  echo "❌ ERROR: admin password (PASSWORD) is required"
+  exit 1
+fi
 
 LATEST=https://static.sensdata.com/idb/release/latest
 CONFIG_FILE=/etc/idb/idb.conf

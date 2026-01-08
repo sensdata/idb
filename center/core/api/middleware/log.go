@@ -76,11 +76,20 @@ func RequestLogger() gin.HandlerFunc {
 					global.LOG.Info("Query: %s", truncateString(queryStr))
 				}
 			} else if c.Request.Method == "POST" || c.Request.Method == "PUT" || c.Request.Method == "PATCH" {
+				// 读取请求体（用于日志记录）
 				var bodyBytes []byte
 				if c.Request.Body != nil {
-					bodyBytes, _ = io.ReadAll(c.Request.Body)
-					// 重新设置请求体，以便后续处理
-					c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+					var readErr error
+					bodyBytes, readErr = io.ReadAll(c.Request.Body)
+					if readErr != nil {
+						// 读取失败时记录错误，但不影响请求处理
+						global.LOG.Warn("Failed to read request body for logging: %v", readErr)
+						// 如果读取失败，创建一个空的 Body，避免后续处理出错
+						c.Request.Body = io.NopCloser(bytes.NewBuffer(nil))
+					} else {
+						// 重新设置请求体，以便后续处理
+						c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+					}
 				}
 				if len(bodyBytes) > 0 {
 					// 先转换为字符串，避免二进制数据产生乱码
