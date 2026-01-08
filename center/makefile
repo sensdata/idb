@@ -40,11 +40,14 @@ KEY_FILE=./global/certs/key.pem
 build:
 	# 读取密钥
 	$(eval KEY = $(shell cat ../.build.key 2>/dev/null || echo "default_key"))
+	# 读取JWT密钥
+	$(eval JWT_KEY = $(shell cat ../.build.jwt.key 2>/dev/null || echo ""))
 	# 编译
 	GOOS=linux GOARCH=amd64 go build \
 		-ldflags "-s -w \
 		-X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)' \
-		-X 'github.com/sensdata/idb/center/global.DefaultKey=$(KEY)'" \
+		-X 'github.com/sensdata/idb/center/global.DefaultKey=$(KEY)' \
+		-X 'github.com/sensdata/idb/center/global.JWTKey=$(JWT_KEY)'" \
 		-o $(BINARY_NAME) $(SRC_DIR)
 
 # 安装命令

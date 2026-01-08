@@ -19,6 +19,9 @@ RUN openssl req -x509 -new -key key.pem -out cert.pem -days 3650 -config ssl.cnf
 # 密钥
 RUN KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 24 && echo) && \
     echo "KEY=${KEY}" >> /app/.env
+# JWT密钥（14位字母数字）
+RUN JWT_KEY=$(openssl rand -base64 64 | tr -dc 'a-z0-9' | head -c 14 && echo) && \
+    echo "JWT_KEY=${JWT_KEY}" >> /app/.env
 
 # ---------- 构建 agent (使用CentOS 7) ---------- #
 FROM centos:7 AS agent-builder
@@ -86,7 +89,7 @@ RUN mkdir -p /app/agent-pkg && \
     cp idb-agent.service /app/agent-pkg/ && \
     cp idb-agent.conf /app/agent-pkg/ && \
     cp install-agent.sh /app/agent-pkg/ && \
-    KEY=$(cat /app/.env | grep KEY | cut -d'=' -f2) && \
+    KEY=$(cat /app/.env | grep "^KEY=" | cut -d'=' -f2) && \
     sed -i "s/secret_key=.*/secret_key=${KEY}/" /app/agent-pkg/idb-agent.conf && \
     tar -czvf /app/idb-agent.tar.gz -C /app/agent-pkg .
 
@@ -114,10 +117,11 @@ WORKDIR /app/center
 # 下载依赖
 RUN go mod download
 # 编译 center
-RUN KEY=$(cat /app/.env | grep KEY | cut -d'=' -f2) && \
+RUN KEY=$(cat /app/.env | grep "^KEY=" | cut -d'=' -f2) && \
+    JWT_KEY=$(cat /app/.env | grep "^JWT_KEY=" | cut -d'=' -f2) && \
     GOOS=${GOOS} GOARCH=${GOARCH} \
     go build -tags=xpack -trimpath \
-    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}' -X 'github.com/sensdata/idb/center/global.DefaultKey=${KEY}'" \
+    -ldflags="-s -w -X 'github.com/sensdata/idb/center/global.Version=${VERSION}' -X 'github.com/sensdata/idb/center/global.DefaultKey=${KEY}' -X 'github.com/sensdata/idb/center/global.JWTKey=${JWT_KEY}'" \
     -o idb .
 
 # ---------- 运行阶段 ---------- #
