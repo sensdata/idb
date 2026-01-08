@@ -46,11 +46,7 @@ func NewManager(path string) (*Manager, error) {
 		// 如果是 JSON 格式，转换为 key=value 格式
 		if len(peekBytes) > 0 && peekBytes[0] == '{' {
 			// 释放锁后保存为标准格式
-			if err := manager.saveConfig(); err != nil {
-				// 转换失败不影响使用，只记录警告
-				// 注意：这里不能使用 global.LOG，因为可能还未初始化
-				// 可以考虑返回错误或使用标准库 log
-			}
+			_ = manager.saveConfig()
 		}
 	}
 
