@@ -38,14 +38,13 @@ func NewManager(path string) (*Manager, error) {
 	file, err := os.Open(path)
 	if err == nil {
 		peekBytes := make([]byte, 1)
-		_, err = file.Read(peekBytes)
-		if err != nil {
-			return nil, err
-		}
+		n, readErr := file.Read(peekBytes)
 		file.Close()
+		if readErr != nil && readErr != io.EOF {
+			return manager, nil
+		}
 		// 如果是 JSON 格式，转换为 key=value 格式
-		if len(peekBytes) > 0 && peekBytes[0] == '{' {
-			// 释放锁后保存为标准格式
+		if n > 0 && peekBytes[0] == '{' {
 			_ = manager.saveConfig()
 		}
 	}
@@ -371,8 +370,13 @@ func (m *Manager) RemoveAdminPass() error {
 			defer srcFile.Close()
 			dstFile, err := os.Create(backupPath)
 			if err == nil {
-				_, _ = io.Copy(dstFile, srcFile)
-				dstFile.Close()
+				defer dstFile.Close()
+				// 备份失败不影响主要操作，但至少尝试备份
+				if _, copyErr := io.Copy(dstFile, srcFile); copyErr != nil {
+					// 备份失败，清理备份文件
+					dstFile.Close()
+					os.Remove(backupPath)
+				}
 			}
 		}
 	}
