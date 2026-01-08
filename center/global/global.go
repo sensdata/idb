@@ -16,6 +16,7 @@ var (
 	Version    string = "0.0.1"
 	Host       string = "127.0.0.1"
 	DefaultKey string = ""
+	JWTKey     string = ""
 
 	LOG       *log.Log
 	LogStream *logstream.LogStream

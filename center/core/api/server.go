@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -283,32 +282,8 @@ func (s *ApiServer) setUpDefaultRouters() {
 	global.LOG.Info("register router - api")
 	apiGroup := s.Router.Group("api/v1")
 
-	// 添加全局日志中间件
-	apiGroup.Use(func(c *gin.Context) {
-		// 如果是 SSE，则绕过日志中间件
-		if strings.Contains(c.GetHeader("Accept"), "text/event-stream") {
-			c.Next()
-			return
-		}
-
-		// 记录请求信息
-		global.LOG.Info("Request: %s %s", c.Request.Method, c.Request.URL.Path)
-
-		// 根据请求方法打印不同的信息
-		if c.Request.Method == "GET" {
-			global.LOG.Info("Query: %s", c.Request.URL.Query())
-		} else if c.Request.Method == "POST" {
-			var bodyBytes []byte
-			if c.Request.Body != nil {
-				bodyBytes, _ = io.ReadAll(c.Request.Body)                 // 读取请求体
-				c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // 重新设置请求体
-			}
-			global.LOG.Info("Body: %s", string(bodyBytes))
-		}
-		c.Next() // 继续处理请求
-		// 记录响应信息
-		global.LOG.Info("Response: %d", c.Writer.Status())
-	})
+	// 添加全局日志中间件（支持白名单机制，避免敏感信息泄露）
+	apiGroup.Use(middleware.RequestLogger())
 
 	// 绑定域名过滤
 	apiGroup.Use(middleware.BindDomain())

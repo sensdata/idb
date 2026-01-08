@@ -79,7 +79,6 @@ main() {
     update_config "host" "$HOST"
     update_config "port" "$PORT"
     update_config "latest" "$LATEST"
-    update_config "admin_pass" "$ADMIN_PASS"
 
     log "配置文件内容："
     cat "$CONFIG_FILE" || {
