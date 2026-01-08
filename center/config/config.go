@@ -38,7 +38,10 @@ func NewManager(path string) (*Manager, error) {
 	file, err := os.Open(path)
 	if err == nil {
 		peekBytes := make([]byte, 1)
-		file.Read(peekBytes)
+		_, err = file.Read(peekBytes)
+		if err != nil {
+			return nil, err
+		}
 		file.Close()
 		// 如果是 JSON 格式，转换为 key=value 格式
 		if len(peekBytes) > 0 && peekBytes[0] == '{' {
@@ -74,7 +77,10 @@ func (m *Manager) loadConfig() error {
 	}
 
 	// 重置文件指针到开头
-	file.Seek(0, 0)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek config file: %w", err)
+	}
 
 	config := &CenterConfig{}
 
@@ -178,7 +184,7 @@ func (m *Manager) saveConfig() error {
 	if err != nil {
 		// 如果创建临时文件失败，尝试恢复备份
 		if _, err2 := os.Stat(backupPath); err2 == nil {
-			os.Rename(backupPath, m.configPath)
+			_ = os.Rename(backupPath, m.configPath)
 		}
 		return fmt.Errorf("failed to create temp config file: %w", err)
 	}
@@ -212,7 +218,7 @@ func (m *Manager) saveConfig() error {
 		os.Remove(tmpPath) // 清理临时文件
 		// 尝试恢复备份
 		if _, err2 := os.Stat(backupPath); err2 == nil {
-			os.Rename(backupPath, m.configPath)
+			_ = os.Rename(backupPath, m.configPath)
 		}
 		return fmt.Errorf("failed to write config file: %w", writeErr)
 	}
@@ -222,7 +228,7 @@ func (m *Manager) saveConfig() error {
 		os.Remove(tmpPath) // 清理临时文件
 		// 尝试恢复备份
 		if _, err2 := os.Stat(backupPath); err2 == nil {
-			os.Rename(backupPath, m.configPath)
+			_ = os.Rename(backupPath, m.configPath)
 		}
 		return fmt.Errorf("failed to rename temp config file: %w", err)
 	}
@@ -369,7 +375,7 @@ func (m *Manager) RemoveAdminPass() error {
 			defer srcFile.Close()
 			dstFile, err := os.Create(backupPath)
 			if err == nil {
-				io.Copy(dstFile, srcFile)
+				_, _ = io.Copy(dstFile, srcFile)
 				dstFile.Close()
 			}
 		}
@@ -398,7 +404,7 @@ func (m *Manager) RemoveAdminPass() error {
 		os.Remove(tmpPath)
 		// 尝试恢复备份
 		if _, err2 := os.Stat(backupPath); err2 == nil {
-			os.Rename(backupPath, m.configPath)
+			_ = os.Rename(backupPath, m.configPath)
 		}
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
