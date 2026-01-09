@@ -172,15 +172,23 @@ func (u *SSHService) UpdateConfig(req model.SSHUpdate) error {
 		return err
 	}
 
-	// 重启
+	// 重启（使用参数化方式，避免命令注入）
 	sudo := utils.SudoHandleCmd()
 	if isSocket {
-		_, err = utils.Execf("%s systemctl daemon-reload", sudo)
+		if sudo != "" {
+			_, err = utils.ExecWithCheck("sudo", "systemctl", "daemon-reload")
+		} else {
+			_, err = utils.ExecWithCheck("systemctl", "daemon-reload")
+		}
 		if err != nil {
 			return err
 		}
 	}
-	_, err = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if sudo != "" {
+		_, err = utils.ExecWithCheck("sudo", "systemctl", "restart", serviceName)
+	} else {
+		_, err = utils.ExecWithCheck("systemctl", "restart", serviceName)
+	}
 	if err != nil {
 		return err
 	}
@@ -304,15 +312,23 @@ func (u *SSHService) UpdateContent(req model.ContentUpdate) error {
 		return err
 	}
 
-	// 重启
+	// 重启（使用参数化方式，避免命令注入）
 	sudo := utils.SudoHandleCmd()
 	if isSocket {
-		_, err = utils.Execf("%s systemctl daemon-reload", sudo)
+		if sudo != "" {
+			_, err = utils.ExecWithCheck("sudo", "systemctl", "daemon-reload")
+		} else {
+			_, err = utils.ExecWithCheck("systemctl", "daemon-reload")
+		}
 		if err != nil {
 			return err
 		}
 	}
-	_, err = utils.Execf("%s systemctl restart %s", sudo, serviceName)
+	if sudo != "" {
+		_, err = utils.ExecWithCheck("sudo", "systemctl", "restart", serviceName)
+	} else {
+		_, err = utils.ExecWithCheck("systemctl", "restart", serviceName)
+	}
 	if err != nil {
 		return err
 	}
@@ -335,15 +351,38 @@ func (u *SSHService) OperateSSH(req model.SSHOperate) error {
 		return fmt.Errorf("unsupported operation: %s", req.Operation)
 	}
 
-	stdout, err := utils.Execf("%s systemctl %s %s", sudo, req.Operation, serviceName)
-	if err != nil {
-		if strings.Contains(stdout, "alias name or linked unit file") {
-			stdout, err := utils.Execf("%s systemctl %s ssh", sudo, req.Operation)
-			if err != nil {
-				return fmt.Errorf("%s ssh(alias name or linked unit file) failed, stdout: %s, err: %v", req.Operation, stdout, err)
+	// 使用参数化方式执行 systemctl 命令，避免命令注入
+	// req.Operation 已经通过 switch case 验证，serviceName 来自系统配置，相对安全
+	args := []string{"systemctl", req.Operation, serviceName}
+	if sudo != "" {
+		// 如果有 sudo，需要在前面添加
+		cmdArgs := append([]string{"systemctl", req.Operation, serviceName}, args[1:]...)
+		stdout, err := utils.ExecWithCheck("sudo", cmdArgs...)
+		if err != nil {
+			if strings.Contains(stdout, "alias name or linked unit file") {
+				// 尝试使用 ssh 作为服务名
+				sshArgs := []string{"systemctl", req.Operation, "ssh"}
+				stdout, err = utils.ExecWithCheck("sudo", sshArgs...)
+				if err != nil {
+					return fmt.Errorf("%s ssh(alias name or linked unit file) failed, stdout: %s, err: %v", req.Operation, stdout, err)
+				}
+			} else {
+				return fmt.Errorf("%s %s failed, stdout: %s, err: %v", req.Operation, serviceName, stdout, err)
 			}
 		}
-		return fmt.Errorf("%s %s failed, stdout: %s, err: %v", req.Operation, serviceName, stdout, err)
+	} else {
+		stdout, err := utils.ExecWithCheck("systemctl", args...)
+		if err != nil {
+			if strings.Contains(stdout, "alias name or linked unit file") {
+				sshArgs := []string{"systemctl", req.Operation, "ssh"}
+				stdout, err = utils.ExecWithCheck("systemctl", sshArgs...)
+				if err != nil {
+					return fmt.Errorf("%s ssh(alias name or linked unit file) failed, stdout: %s, err: %v", req.Operation, stdout, err)
+				}
+			} else {
+				return fmt.Errorf("%s %s failed, stdout: %s, err: %v", req.Operation, serviceName, stdout, err)
+			}
+		}
 	}
 	return nil
 }
@@ -1183,7 +1222,12 @@ func loadFailedSecureDatas(line string) model.SSHHistory {
 }
 
 func handleGunzip(path string) error {
-	if _, err := utils.Execf("gunzip %s", path); err != nil {
+	// 验证路径，防止命令注入
+	if utils.CheckIllegal(path) {
+		return fmt.Errorf("path contains illegal characters")
+	}
+	// 使用参数化方式执行 gunzip
+	if _, err := utils.ExecWithCheck("gunzip", path); err != nil {
 		return err
 	}
 	return nil

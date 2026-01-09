@@ -142,18 +142,29 @@ func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
 }
 
 func SetTime(req model.SetTimeReq) error {
+	// 验证时间戳的合理性（防止异常值）
+	// 时间戳应该在 1970-01-01 到 2100-01-01 之间（Unix 时间戳范围）
+	minTimestamp := int64(0)          // 1970-01-01 00:00:00 UTC
+	maxTimestamp := int64(4102444800) // 2100-01-01 00:00:00 UTC
+	if req.Timestamp < minTimestamp || req.Timestamp > maxTimestamp {
+		return fmt.Errorf("timestamp out of valid range (1970-01-01 to 2100-01-01)")
+	}
+
 	// 将时间戳转换为时间对象
 	t := time.Unix(req.Timestamp, 0)
+	// 使用 ISO 8601 格式，timedatectl 和 date 命令都支持
 	timeStr := t.Format("2006-01-02 15:04:05")
 
 	// 检查系统类型
 	switch runtime.GOOS {
 	case "linux":
 		// 首先尝试使用 timedatectl（现代 Linux 系统）
-		if err := utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-time '%s'", timeStr)); err != nil {
+		// 使用参数化方式，避免命令注入（虽然格式固定，但保持一致性）
+		if err := utils.ExecCmdSafeWithSudo("timedatectl", "set-time", timeStr); err != nil {
 			// 如果失败，尝试使用传统的 date 命令
-			if out, err := utils.Execf("sudo date -s '%s'", timeStr); err != nil {
-				return fmt.Errorf("set time failed: %s", out)
+			// date 命令需要将时间字符串作为单个参数传递
+			if err := utils.ExecCmdSafeWithSudo("date", "-s", timeStr); err != nil {
+				return fmt.Errorf("set time failed: %v", err)
 			}
 		}
 	default:
@@ -163,15 +174,16 @@ func SetTime(req model.SetTimeReq) error {
 }
 
 func SetTimezone(req model.SetTimezoneReq) error {
-	// 检查时区文件是否存在
-	if _, err := os.Stat(fmt.Sprintf("/usr/share/zoneinfo/%s", req.Timezone)); err != nil {
-		return fmt.Errorf("invalid timezone: %s", req.Timezone)
+	// 验证时区格式，防止命令注入和路径遍历攻击
+	if err := utils.ValidateTimezone(req.Timezone); err != nil {
+		return fmt.Errorf("invalid timezone: %w", err)
 	}
 
-	// 首先尝试使用 timedatectl
-	if err := utils.ExecCmd(fmt.Sprintf("sudo timedatectl set-timezone %s", req.Timezone)); err != nil {
-		// 如果失败，尝试直接设置时区链接
-		if err := utils.ExecCmd(fmt.Sprintf("sudo ln -sf /usr/share/zoneinfo/%s /etc/localtime", req.Timezone)); err != nil {
+	// 首先尝试使用 timedatectl（使用参数化方式，避免命令注入）
+	if err := utils.ExecCmdSafeWithSudo("timedatectl", "set-timezone", req.Timezone); err != nil {
+		// 如果失败，尝试直接设置时区链接（使用参数化方式）
+		timezonePath := fmt.Sprintf("/usr/share/zoneinfo/%s", req.Timezone)
+		if err := utils.ExecCmdSafeWithSudo("ln", "-sf", timezonePath, "/etc/localtime"); err != nil {
 			return fmt.Errorf("set timezone failed: %v", err)
 		}
 	}
@@ -316,8 +328,14 @@ func SetAutoClearInterval(req model.AutoClearMemCacheReq) error {
 	}
 
 	// 创建新的定时任务，使用 sysctl 命令作为备选
-	cronCmd := fmt.Sprintf("echo '0 */%d * * * sync && (echo 3 | sudo tee /proc/sys/vm/drop_caches || sudo sysctl -w vm.drop_caches=3) > /dev/null 2>&1' | crontab -", req.Interval)
-	if err := utils.ExecCmd(cronCmd); err != nil {
+	// 验证间隔值，防止命令注入
+	if req.Interval < 1 || req.Interval > 24 {
+		return fmt.Errorf("interval must be between 1 and 24 hours")
+	}
+	// 使用安全的文件写入方式，避免命令注入
+	cronLine := fmt.Sprintf("0 */%d * * * sync && (echo 3 | sudo tee /proc/sys/vm/drop_caches || sudo sysctl -w vm.drop_caches=3) > /dev/null 2>&1", req.Interval)
+	// 使用安全的 crontab 更新方式
+	if err := utils.ExecCmdSafeWithSudo("bash", "-c", fmt.Sprintf("echo '%s' | crontab -", cronLine)); err != nil {
 		return fmt.Errorf("set auto clear interval failed: %v", err)
 	}
 
@@ -365,11 +383,16 @@ func CreateSwap(req model.CreateSwapReq) error {
 	}
 
 	// 首先尝试使用 fallocate（更快）
-	err := utils.ExecCmd(fmt.Sprintf("sudo fallocate -l %s /swapfile", size))
+	// 验证 size 格式，防止命令注入
+	if utils.CheckIllegal(size) {
+		return fmt.Errorf("invalid size format")
+	}
+	err := utils.ExecCmdSafeWithSudo("fallocate", "-l", size, "/swapfile")
 	if err != nil {
 		// 如果 fallocate 失败，使用 dd 命令（更通用）
 		blocks := req.Size * 1024 // 转换为 KB
-		if err := utils.ExecCmd(fmt.Sprintf("sudo dd if=/dev/zero of=/swapfile bs=1024 count=%d", blocks)); err != nil {
+		// 使用参数化方式执行 dd
+		if err := utils.ExecCmdSafeWithSudo("dd", "if=/dev/zero", "of=/swapfile", "bs=1024", fmt.Sprintf("count=%d", blocks)); err != nil {
 			return fmt.Errorf("create swap file failed: %v", err)
 		}
 	}
@@ -391,7 +414,8 @@ func CreateSwap(req model.CreateSwapReq) error {
 
 	// 可选：添加到 fstab 使其开机自动挂载
 	fstabEntry := "/swapfile none swap sw 0 0"
-	if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a /etc/fstab", fstabEntry)); err != nil {
+	// 使用安全的文件写入方式
+	if err := utils.WriteToFileSafe(fstabEntry+"\n", "/etc/fstab"); err != nil {
 		return fmt.Errorf("add swap to fstab failed: %v", err)
 	}
 
@@ -418,40 +442,115 @@ func DeleteSwap() error {
 }
 
 func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
+	// 验证 DNS 服务器列表，防止命令注入
+	if err := utils.ValidateDNSServers(req.Servers); err != nil {
+		return fmt.Errorf("invalid DNS servers: %w", err)
+	}
+
 	// 检查是否使用 systemd-resolved
 	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
-		// 使用 systemd-resolved 的方式修改 DNS，一次性设置所有 DNS 服务器
-		dnsServers := strings.Join(req.Servers, " ")
-		if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns eth0 %s", dnsServers)); err != nil {
+		// 使用 systemd-resolved 的方式修改 DNS
+		// resolvectl dns <interface> <dns1> <dns2> ...
+		// 使用参数化方式，将每个 DNS 服务器作为单独参数传递
+		args := []string{"resolvectl", "dns", "eth0"}
+		args = append(args, req.Servers...)
+		if err := utils.ExecCmdSafeWithSudo("resolvectl", args[1:]...); err != nil {
 			return fmt.Errorf("update DNS settings failed: %v", err)
 		}
 
 		// 对于 systemd-resolved，我们将超时和重试设置写入 resolved.conf
 		if req.Timeout > 0 || req.Retry > 0 {
 			resolvedConf := "/etc/systemd/resolved.conf"
-			if err := utils.ExecCmd(fmt.Sprintf("sudo cp %s %s.backup", resolvedConf, resolvedConf)); err != nil {
+			// 备份原文件（使用参数化方式）
+			if err := utils.ExecCmdSafeWithSudo("cp", resolvedConf, resolvedConf+".backup"); err != nil {
 				return fmt.Errorf("backup resolved.conf failed: %v", err)
 			}
 
-			var options []string
-			if req.Timeout > 0 {
-				options = append(options, fmt.Sprintf("ResolveTimeoutSec=%d", req.Timeout))
-			}
-			if req.Retry > 0 {
-				options = append(options, fmt.Sprintf("DNSStubRetryCount=%d", req.Retry))
+			// 读取原文件内容
+			confData, err := os.ReadFile(resolvedConf)
+			if err != nil {
+				return fmt.Errorf("read resolved.conf failed: %v", err)
 			}
 
-			for _, option := range options {
-				if err := utils.ExecCmd(fmt.Sprintf("sudo sed -i '/^%s=/d' %s", strings.Split(option, "=")[0], resolvedConf)); err != nil {
-					return fmt.Errorf("update resolved.conf failed: %v", err)
+			// 解析并更新配置
+			lines := strings.Split(string(confData), "\n")
+			var newLines []string
+			timeoutSet := false
+			retrySet := false
+			inResolveSection := false
+			resolveSectionIndex := -1
+
+			// 第一遍：找到 [Resolve] 部分的位置，并移除旧的配置项
+			for _, line := range lines {
+				trimmedLine := strings.TrimSpace(line)
+				// 检查是否进入 [Resolve] 部分
+				if trimmedLine == "[Resolve]" {
+					inResolveSection = true
+					resolveSectionIndex = len(newLines)
+					newLines = append(newLines, line)
+					continue
 				}
-				if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee -a %s", option, resolvedConf)); err != nil {
-					return fmt.Errorf("update resolved.conf failed: %v", err)
+				// 检查是否离开 [Resolve] 部分（遇到下一个 [Section]）
+				if strings.HasPrefix(trimmedLine, "[") && trimmedLine != "[Resolve]" {
+					inResolveSection = false
 				}
+
+				// 在 [Resolve] 部分内，移除旧的超时和重试设置
+				if inResolveSection {
+					if strings.HasPrefix(trimmedLine, "ResolveTimeoutSec=") {
+						timeoutSet = true
+						if req.Timeout > 0 {
+							newLines = append(newLines, fmt.Sprintf("ResolveTimeoutSec=%d", req.Timeout))
+						}
+						continue
+					}
+					if strings.HasPrefix(trimmedLine, "DNSStubRetryCount=") {
+						retrySet = true
+						if req.Retry > 0 {
+							newLines = append(newLines, fmt.Sprintf("DNSStubRetryCount=%d", req.Retry))
+						}
+						continue
+					}
+				}
+
+				// 保留其他行
+				newLines = append(newLines, line)
+			}
+
+			// 如果原来没有这些设置，在 [Resolve] 部分添加
+			if (req.Timeout > 0 && !timeoutSet) || (req.Retry > 0 && !retrySet) {
+				if resolveSectionIndex >= 0 {
+					// 在 [Resolve] 部分后添加新配置
+					var insertLines []string
+					if req.Timeout > 0 && !timeoutSet {
+						insertLines = append(insertLines, fmt.Sprintf("ResolveTimeoutSec=%d", req.Timeout))
+					}
+					if req.Retry > 0 && !retrySet {
+						insertLines = append(insertLines, fmt.Sprintf("DNSStubRetryCount=%d", req.Retry))
+					}
+					// 在 [Resolve] 行后插入
+					newLines = append(newLines[:resolveSectionIndex+1], append(insertLines, newLines[resolveSectionIndex+1:]...)...)
+				} else {
+					// 如果没有 [Resolve] 部分，在文件末尾添加
+					newLines = append(newLines, "")
+					newLines = append(newLines, "[Resolve]")
+					if req.Timeout > 0 && !timeoutSet {
+						newLines = append(newLines, fmt.Sprintf("ResolveTimeoutSec=%d", req.Timeout))
+					}
+					if req.Retry > 0 && !retrySet {
+						newLines = append(newLines, fmt.Sprintf("DNSStubRetryCount=%d", req.Retry))
+					}
+				}
+			}
+
+			// 写入新配置（使用安全的文件写入方式）
+			newContent := strings.Join(newLines, "\n")
+			if err := utils.WriteToFileSafe(newContent, resolvedConf); err != nil {
+				return fmt.Errorf("update resolved.conf failed: %v", err)
 			}
 
 			// 重启 systemd-resolved 服务使配置生效
-			if err := utils.ExecCmd("sudo systemctl restart systemd-resolved"); err != nil {
+			if err := utils.ExecCmdSafeWithSudo("systemctl", "restart", "systemd-resolved"); err != nil {
 				return fmt.Errorf("restart systemd-resolved failed: %v", err)
 			}
 		}
@@ -482,15 +581,15 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 		content.WriteString(fmt.Sprintf("options attempts:%d\n", req.Retry))
 	}
 
-	// 添加 DNS 服务器
+	// 添加 DNS 服务器（已验证过，安全）
 	for _, server := range req.Servers {
 		if server != "" {
 			content.WriteString(fmt.Sprintf("nameserver %s\n", server))
 		}
 	}
 
-	// 备份原文件
-	if err := utils.ExecCmd("sudo cp /etc/resolv.conf /etc/resolv.conf.backup"); err != nil {
+	// 备份原文件（使用参数化方式）
+	if err := utils.ExecCmdSafeWithSudo("cp", "/etc/resolv.conf", "/etc/resolv.conf.backup"); err != nil {
 		return fmt.Errorf("backup resolv.conf failed: %v", err)
 	}
 
@@ -500,7 +599,8 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 		return fmt.Errorf("write temporary file failed: %v", err)
 	}
 
-	if err := utils.ExecCmd(fmt.Sprintf("sudo mv %s /etc/resolv.conf", tmpFile)); err != nil {
+	// 移动文件（使用参数化方式）
+	if err := utils.ExecCmdSafeWithSudo("mv", tmpFile, "/etc/resolv.conf"); err != nil {
 		return fmt.Errorf("update DNS settings failed: %v", err)
 	}
 
@@ -510,38 +610,68 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 func UpdateHostName(req model.UpdateHostNameReq) error {
 	global.LOG.Info("start update hostname", "hostname", req.HostName)
 
+	// 验证主机名格式，防止命令注入
+	if err := utils.ValidateHostname(req.HostName); err != nil {
+		return fmt.Errorf("invalid hostname: %w", err)
+	}
+
 	// 检查系统类型
 	switch runtime.GOOS {
 	case "linux":
-		// 首先尝试使用 hostnamectl
+		// 首先尝试使用 hostnamectl（使用参数化方式，避免命令注入）
 		global.LOG.Info("try update with hostnamectl")
-		if err := utils.ExecCmd(fmt.Sprintf("sudo hostnamectl set-hostname %s", req.HostName)); err != nil {
+		if err := utils.ExecCmdSafeWithSudo("hostnamectl", "set-hostname", req.HostName); err != nil {
 			// 如果 hostnamectl 失败，尝试使用传统方法
 			global.LOG.Info("hostnamectl failed, try traditional method")
 
-			// 1. 更新当前主机名
+			// 1. 更新当前主机名（使用参数化方式）
 			global.LOG.Info("update current hostname")
-			if err := utils.ExecCmd(fmt.Sprintf("sudo hostname %s", req.HostName)); err != nil {
+			if err := utils.ExecCmdSafeWithSudo("hostname", req.HostName); err != nil {
 				return fmt.Errorf("set current hostname failed: %v", err)
 			}
 
-			// 2. 更新 /etc/hostname
+			// 2. 更新 /etc/hostname（使用安全的文件写入方式）
 			global.LOG.Info("update /etc/hostname")
-			if err := utils.ExecCmd(fmt.Sprintf("echo '%s' | sudo tee /etc/hostname", req.HostName)); err != nil {
+			if err := utils.WriteToFileSafe(req.HostName, "/etc/hostname"); err != nil {
 				return fmt.Errorf("update /etc/hostname failed: %v", err)
 			}
 
 			// 3. 更新 /etc/hosts 中对应的条目
 			// 备份原文件
 			global.LOG.Info("backup hosts file")
-			if err := utils.ExecCmd("sudo cp /etc/hosts /etc/hosts.backup"); err != nil {
+			if err := utils.ExecCmdSafeWithSudo("cp", "/etc/hosts", "/etc/hosts.backup"); err != nil {
 				return fmt.Errorf("backup hosts file failed: %v", err)
 			}
 
 			// 更新 hosts 文件中的本地主机名条目
+			// 读取原文件内容
+			hostsContent, err := os.ReadFile("/etc/hosts")
+			if err != nil {
+				return fmt.Errorf("read /etc/hosts failed: %v", err)
+			}
+
+			// 替换 127.0.1.1 行的主机名部分
+			lines := strings.Split(string(hostsContent), "\n")
+			var newLines []string
+			replaced := false
+			for _, line := range lines {
+				// 匹配 127.0.1.1 开头的行
+				if strings.HasPrefix(strings.TrimSpace(line), "127.0.1.1") {
+					newLines = append(newLines, fmt.Sprintf("127.0.1.1\t%s", req.HostName))
+					replaced = true
+				} else {
+					newLines = append(newLines, line)
+				}
+			}
+			// 如果没有找到 127.0.1.1 行，添加一行
+			if !replaced {
+				newLines = append(newLines, fmt.Sprintf("127.0.1.1\t%s", req.HostName))
+			}
+
+			// 写入新内容
 			global.LOG.Info("update /etc/hosts")
-			sedCmd := fmt.Sprintf("sudo sed -i 's/127.0.1.1.*/127.0.1.1\\t%s/g' /etc/hosts", req.HostName)
-			if err := utils.ExecCmd(sedCmd); err != nil {
+			newContent := strings.Join(newLines, "\n")
+			if err := utils.WriteToFileSafe(newContent, "/etc/hosts"); err != nil {
 				return fmt.Errorf("update /etc/hosts failed: %v", err)
 			}
 		}
@@ -557,8 +687,8 @@ func UpdateHostName(req model.UpdateHostNameReq) error {
 func UpdateSystemSettings(req model.UpdateSystemSettingsReq) error {
 	// 修改最大监控文件个数
 	if req.MaxWatchFiles > 0 {
-		// 立即生效
-		if err := utils.ExecCmd(fmt.Sprintf("sudo sysctl -w fs.inotify.max_user_watches=%d", req.MaxWatchFiles)); err != nil {
+		// 立即生效（使用参数化方式）
+		if err := utils.ExecCmdSafeWithSudo("sysctl", "-w", fmt.Sprintf("fs.inotify.max_user_watches=%d", req.MaxWatchFiles)); err != nil {
 			return fmt.Errorf("set max watch files failed: %v", err)
 		}
 

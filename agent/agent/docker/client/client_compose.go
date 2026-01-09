@@ -179,31 +179,37 @@ func (c DockerClient) initConf(path string, content string, upgrade bool) error 
 // }
 
 func up(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s up -d", filePath)
+	// 使用参数化方式执行，避免命令注入
+	// filePath 已经通过 CheckIllegal 验证（在调用处）
+	stdout, err := utils.ExecWithCheck("docker", "compose", "-f", filePath, "up", "-d")
 	return stdout, err
 }
 
 func down(filePath string, removeVolumes bool) (string, error) {
-	var removeVolumesFlag string
+	// 使用参数化方式执行，避免命令注入
+	args := []string{"compose", "-f", filePath, "down", "--remove-orphans"}
 	if removeVolumes {
-		removeVolumesFlag = "--volumes"
+		args = append(args, "--volumes")
 	}
-	stdout, err := utils.Execf("docker compose -f %s down --remove-orphans %s", filePath, removeVolumesFlag)
+	stdout, err := utils.ExecWithCheck("docker", args...)
 	return stdout, err
 }
 
 func start(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s start", filePath)
+	// 使用参数化方式执行，避免命令注入
+	stdout, err := utils.ExecWithCheck("docker", "compose", "-f", filePath, "start")
 	return stdout, err
 }
 
 func stop(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s stop", filePath)
+	// 使用参数化方式执行，避免命令注入
+	stdout, err := utils.ExecWithCheck("docker", "compose", "-f", filePath, "stop")
 	return stdout, err
 }
 
 func restart(filePath string) (string, error) {
-	stdout, err := utils.Execf("docker compose -f %s restart", filePath)
+	// 使用参数化方式执行，避免命令注入
+	stdout, err := utils.ExecWithCheck("docker", "compose", "-f", filePath, "restart")
 	return stdout, err
 }
 
