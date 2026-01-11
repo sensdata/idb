@@ -117,40 +117,23 @@
                       </template>
                     </a-button>
                     <template #content>
-                      <!-- 只有一个证书时，只显示必要的操作 -->
-                      <template v-if="record.certificates.length === 1">
-                        <a-doption
-                          @click="$emit('updateCertificate', record.alias)"
-                        >
-                          {{ $t('app.certificate.updateCertificate') }}
-                        </a-doption>
-                        <a-doption
-                          class="danger-option"
-                          @click="handleDeleteCertificate(cert.source)"
-                        >
-                          {{ $t('common.delete') }}
-                        </a-doption>
-                      </template>
-                      <!-- 多个证书时，显示所有操作 -->
-                      <template v-else>
-                        <a-doption @click="$emit('viewDetail', cert.source)">
-                          {{ $t('app.certificate.viewDetail') }}
-                        </a-doption>
-                        <a-doption @click="$emit('completeChain', cert.source)">
-                          {{ $t('app.certificate.completeChain') }}
-                        </a-doption>
-                        <a-doption
-                          @click="$emit('updateCertificate', record.alias)"
-                        >
-                          {{ $t('app.certificate.updateCertificate') }}
-                        </a-doption>
-                        <a-doption
-                          class="danger-option"
-                          @click="handleDeleteCertificate(cert.source)"
-                        >
-                          {{ $t('common.delete') }}
-                        </a-doption>
-                      </template>
+                      <a-doption @click="$emit('viewDetail', cert.source)">
+                        {{ $t('app.certificate.viewDetail') }}
+                      </a-doption>
+                      <a-doption @click="$emit('completeChain', cert.source)">
+                        {{ $t('app.certificate.completeChain') }}
+                      </a-doption>
+                      <a-doption
+                        @click="$emit('updateCertificate', record.alias)"
+                      >
+                        {{ $t('app.certificate.updateCertificate') }}
+                      </a-doption>
+                      <a-doption
+                        class="danger-option"
+                        @click="handleDeleteCertificate(cert.source)"
+                      >
+                        {{ $t('common.delete') }}
+                      </a-doption>
                     </template>
                   </a-dropdown>
                 </div>
