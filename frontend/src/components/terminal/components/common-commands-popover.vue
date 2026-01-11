@@ -264,9 +264,10 @@
     text-overflow: ellipsis;
     font-family: monospace;
     font-size: 0.75rem;
-    color: rgb(var(--primary-6));
+    color: var(--color-text-1);
     white-space: nowrap;
-    background: rgb(var(--primary-1));
+    background: var(--color-fill-2);
+    border: 1px solid var(--color-border-2);
     border-radius: 0.1875rem;
   }
 
