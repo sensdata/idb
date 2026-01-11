@@ -169,6 +169,12 @@ export function createRsyncClientTaskApi(data: RsyncClientCreateTaskRequest) {
   return request.post<RsyncCreateTaskResponse>('rsync/{host}/task', data);
 }
 
+export function updateRsyncClientTaskApi(
+  data: RsyncClientCreateTaskRequest & { id: string }
+) {
+  return request.put<RsyncCreateTaskResponse>('rsync/{host}/task', data);
+}
+
 export function deleteRsyncClientTaskApi(params: { id: string }) {
   return request.delete('rsync/{host}/task', params);
 }
