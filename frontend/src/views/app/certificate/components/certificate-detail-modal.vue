@@ -45,7 +45,22 @@
             </a-tag>
           </a-descriptions-item>
           <a-descriptions-item :label="$t('app.certificate.source')">
-            <a-typography-text code>{{ certificate.source }}</a-typography-text>
+            <div class="source-cell">
+              <a-typography-text code>{{
+                certificateSource
+              }}</a-typography-text>
+              <a-button
+                v-if="certificateSource"
+                type="text"
+                size="small"
+                @click="handleViewFile"
+              >
+                <template #icon>
+                  <icon-folder />
+                </template>
+                {{ $t('app.certificate.viewFile') }}
+              </a-button>
+            </div>
           </a-descriptions-item>
         </a-descriptions>
 
@@ -86,7 +101,10 @@
         </a-descriptions>
 
         <!-- 备用域名 -->
-        <div v-if="certificate.alt_names.length > 0" class="mt-6">
+        <div
+          v-if="certificate.alt_names && certificate.alt_names.length > 0"
+          class="mt-6"
+        >
           <h4 class="mb-3">{{ $t('app.certificate.altNames') }}</h4>
           <div class="alt-names-container">
             <a-tag
@@ -136,9 +154,11 @@
 <script lang="ts" setup>
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
-  import { IconCopy, IconLink } from '@arco-design/web-vue/es/icon';
+  import { IconCopy, IconLink, IconFolder } from '@arco-design/web-vue/es/icon';
   import { useClipboard } from '@/composables/use-clipboard';
+  import { createFileRoute } from '@/utils/file-route';
   import type { CertificateInfo } from '@/api/certificate';
 
   // Props 定义
@@ -160,6 +180,7 @@
   }>();
 
   const { t } = useI18n();
+  const router = useRouter();
   const { copyText } = useClipboard();
 
   // 计算属性
@@ -238,6 +259,27 @@
   const handleCompleteChain = () => {
     emit('completeChain');
   };
+
+  // 获取文件所在目录
+  const getDirectoryPath = (filePath: string) => {
+    const lastSlashIndex = filePath.lastIndexOf('/');
+    return lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
+  };
+
+  // 获取证书源文件路径（优先使用 props.source，其次使用 certificate.source）
+  const certificateSource = computed(() => {
+    return props.source || props.certificate?.source || '';
+  });
+
+  // 跳转到文件所在目录
+  const handleViewFile = () => {
+    if (certificateSource.value) {
+      const directoryPath = getDirectoryPath(certificateSource.value);
+      const route = createFileRoute(directoryPath);
+      router.push(route);
+      drawerVisible.value = false;
+    }
+  };
 </script>
 
 <style scoped>
@@ -282,5 +324,11 @@
     margin: 0;
     font-size: 1.33rem;
     font-weight: 600;
+  }
+
+  .source-cell {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
   }
 </style>
