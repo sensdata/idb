@@ -31,7 +31,9 @@
       >
     </template>
     <template #activated="{ record }: { record: HostItem }">
-      <div v-if="record.statusReady">
+      <div
+        v-if="record.statusReady && record.agent_status?.connected === 'online'"
+      >
         <div v-if="record.activated" class="color-success">
           {{ $t('manage.host.list.activated.yes') }}
         </div>
@@ -51,7 +53,12 @@
       </div>
     </template>
     <template #cpu="{ record }: { record: HostItem }">
-      <span v-if="!record.statusReady">-</span>
+      <span
+        v-if="
+          !record.statusReady || record.agent_status?.connected !== 'online'
+        "
+        >-</span
+      >
       <a-progress
         v-else
         class="inline-progress"
@@ -59,7 +66,12 @@
       />
     </template>
     <template #memory="{ record }: { record: HostItem }">
-      <span v-if="!record.statusReady">-</span>
+      <span
+        v-if="
+          !record.statusReady || record.agent_status?.connected !== 'online'
+        "
+        >-</span
+      >
       <a-progress
         v-else
         class="inline-progress"
@@ -68,7 +80,12 @@
       />
     </template>
     <template #disk="{ record }: { record: HostItem }">
-      <span v-if="!record.statusReady">-</span>
+      <span
+        v-if="
+          !record.statusReady || record.agent_status?.connected !== 'online'
+        "
+        >-</span
+      >
       <a-progress
         v-else
         class="inline-progress"
@@ -77,7 +94,12 @@
       />
     </template>
     <template #network="{ record }: { record: HostItem }">
-      <span v-if="!record.statusReady">-</span>
+      <span
+        v-if="
+          !record.statusReady || record.agent_status?.connected !== 'online'
+        "
+        >-</span
+      >
       <div v-else class="network-cell">
         <up-stream-icon class="network-icon" />
         <span>{{ formatTransferSpeed(record.tx) }}</span>
