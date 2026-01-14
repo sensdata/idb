@@ -187,7 +187,10 @@
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import type { FormInstance } from '@arco-design/web-vue/es/form';
-  import { createRsyncClientTaskApi } from '@/api/database';
+  import {
+    createRsyncClientTaskApi,
+    updateRsyncClientTaskApi,
+  } from '@/api/database';
   import {
     RsyncClientTask,
     RsyncClientCreateTaskRequest,
@@ -301,7 +304,14 @@
         ...form.value,
         enqueue: form.value.enqueue === true,
       };
-      await createRsyncClientTaskApi(submitData);
+      if (isEdit.value && props.editData) {
+        await updateRsyncClientTaskApi({
+          ...submitData,
+          id: props.editData.id,
+        });
+      } else {
+        await createRsyncClientTaskApi(submitData);
+      }
       Message.success(
         isEdit.value
           ? t('app.rsync.client.message.updateSuccess')
