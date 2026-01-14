@@ -159,6 +159,7 @@ export default {
   'app.certificate.keySize': 'Key Size',
   'app.certificate.isCA': 'Is CA Certificate',
   'app.certificate.source': 'File Path',
+  'app.certificate.viewFile': 'View File',
   'app.certificate.issuerCN': 'Issuer CN',
   'app.certificate.issuerCountry': 'Issuer Country',
   'app.certificate.issuerOrganization': 'Issuer Organization',

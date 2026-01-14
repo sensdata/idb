@@ -827,14 +827,13 @@
 
   .terminal-actions .arco-btn {
     color: var(--color-text-2);
-    background: rgb(255 255 255 / 80%);
+    background: var(--color-bg-2);
     border: 1px solid var(--color-border-2);
-    backdrop-filter: blur(4px);
   }
 
   .terminal-actions .arco-btn:hover {
     color: var(--color-text-1);
-    background: rgb(255 255 255 / 95%);
+    background: var(--color-bg-3);
     border-color: var(--color-border-3);
   }
 
@@ -851,6 +850,7 @@
     position: relative;
     width: 100%;
     height: calc(100% - 40px);
+    background: #1e1e1e;
   }
 
   .terminal-wrapper {

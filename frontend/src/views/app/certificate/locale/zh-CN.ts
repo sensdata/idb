@@ -147,6 +147,7 @@ export default {
   'app.certificate.keySize': '密钥长度',
   'app.certificate.isCA': '是否为CA证书',
   'app.certificate.source': '文件路径',
+  'app.certificate.viewFile': '查看文件',
   'app.certificate.issuerCN': '签发者CN',
   'app.certificate.issuerCountry': '签发者国家',
   'app.certificate.issuerOrganization': '签发者组织',

@@ -39,65 +39,34 @@
   const sessionIdRef = ref<string>();
   const { confirm } = useConfirm();
 
-  // 计算终端主题 - 使用CSS变量替代硬编码颜色
+  // 终端主题配置 - 始终使用深色主题，不跟随系统主题变化
+  // 使用硬编码颜色值，确保在黑色背景上所有文字清晰可见
   const terminalTheme = computed(() => {
-    const isDark = appStore.theme === 'dark';
-
-    if (isDark) {
-      // 深色主题 - 使用CSS变量
-      return {
-        background: 'var(--color-bg-1)',
-        foreground: 'var(--color-text-1)',
-        cursor: 'var(--color-text-1)',
-        cursorAccent: 'var(--color-bg-1)',
-        selectionBackground: 'var(--color-fill-3)',
-        selectionForeground: undefined,
-        // ANSI 颜色 - 使用品牌色和系统色
-        black: 'var(--color-text-4)',
-        red: 'var(--idbred-6)',
-        green: 'var(--idbgreen-6)',
-        yellow: 'var(--idbdusk-6)',
-        blue: 'var(--idblue-6)',
-        magenta: 'var(--idbautumn-6)',
-        cyan: 'var(--idbturquoise-6)',
-        white: 'var(--color-text-2)',
-        // 亮色 ANSI 颜色 - 使用浅色变体
-        brightBlack: 'var(--color-text-3)',
-        brightRed: 'var(--idbred-5)',
-        brightGreen: 'var(--idbgreen-5)',
-        brightYellow: 'var(--idbdusk-5)',
-        brightBlue: 'var(--idblue-5)',
-        brightMagenta: 'var(--idbautumn-5)',
-        brightCyan: 'var(--idbturquoise-5)',
-        brightWhite: 'var(--color-text-1)',
-      };
-    }
-    // 亮色主题 - 使用浅色背景
     return {
-      background: 'var(--color-bg-2)',
-      foreground: 'var(--color-text-1)',
-      cursor: 'var(--color-text-1)',
-      cursorAccent: 'var(--color-bg-2)',
-      selectionBackground: 'var(--color-fill-2)',
-      selectionForeground: undefined,
-      // ANSI 颜色 - 适合浅色背景的深色配色
-      black: 'var(--color-text-1)',
-      red: 'var(--idbred-6)',
-      green: 'var(--idbgreen-6)',
-      yellow: 'var(--idbdusk-6)',
-      blue: 'var(--idblue-6)',
-      magenta: 'var(--idbautumn-6)',
-      cyan: 'var(--idbturquoise-6)',
-      white: 'var(--color-text-4)',
-      // 亮色 ANSI 颜色 - 使用深色变体以在浅色背景上显示
-      brightBlack: 'var(--color-text-2)',
-      brightRed: 'var(--idbred-4)',
-      brightGreen: 'var(--idbgreen-4)',
-      brightYellow: 'var(--idbdusk-4)',
-      brightBlue: 'var(--idblue-4)',
-      brightMagenta: 'var(--idbautumn-4)',
-      brightCyan: 'var(--idbturquoise-4)',
-      brightWhite: 'var(--color-text-1)',
+      // 深色终端背景
+      background: '#1e1e1e',
+      foreground: '#d4d4d4',
+      cursor: '#d4d4d4',
+      cursorAccent: '#1e1e1e',
+      selectionBackground: 'rgba(255, 255, 255, 0.3)',
+      // ANSI 标准颜色 - 适合深色背景
+      black: '#000000',
+      red: '#cd3131',
+      green: '#0dbc79',
+      yellow: '#e5e510',
+      blue: '#2472c8',
+      magenta: '#bc3fbc',
+      cyan: '#11a8cd',
+      white: '#e5e5e5',
+      // ANSI 亮色 - 更亮的变体，确保在深色背景上清晰可见
+      brightBlack: '#666666',
+      brightRed: '#f14c4c',
+      brightGreen: '#23d18b',
+      brightYellow: '#f5f543',
+      brightBlue: '#3b8eea',
+      brightMagenta: '#d670d6',
+      brightCyan: '#29b8db',
+      brightWhite: '#ffffff',
     };
   });
 
@@ -349,18 +318,19 @@
   .xterm-container {
     width: 100%;
     height: 100%;
+    background-color: #1e1e1e;
   }
 
   .xterm-container :deep(.xterm) {
     padding: 8px 16px;
   }
 
-  /* 强制覆盖默认颜色样式，使用CSS变量 */
+  /* 覆盖 xterm.js 默认的前景/背景色类，确保与终端主题一致 */
   .xterm-container :deep(.xterm-bg-257) {
     background-color: transparent !important;
   }
 
   .xterm-container :deep(.xterm-fg-257) {
-    color: var(--color-text-1) !important;
+    color: #d4d4d4 !important;
   }
 </style>
