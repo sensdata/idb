@@ -272,58 +272,36 @@ func (c *Center) ensureConnections() {
 	global.LOG.Info("Ensure connections")
 
 	interval := 3 * time.Second
-	maxConcurrency := 5
+	maxConcurrency := 10
 	sem := make(chan struct{}, maxConcurrency)
 
-	for {
-		start := time.Now()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 
+	for {
 		select {
 		case <-c.done:
 			global.LOG.Info("Stop ensure connections")
 			return
-		default:
-		}
 
-		hosts, err := HostRepo.GetList()
-		if err != nil {
-			global.LOG.Error("Failed to get host list: %v", err)
-			time.Sleep(interval)
-			continue
-		}
-
-		var wg sync.WaitGroup
-		for _, host := range hosts {
-			wg.Add(1)
-			sem <- struct{}{} // 占用一个并发槽位
-
-			go func(h model.Host) {
-				defer func() {
-					<-sem
-					wg.Done()
-				}()
-
-				// 检查 host status
-				c.checkHostStatus(&h)
-				// 检查连接
-				c.handleHost(&h)
-			}(host)
-		}
-
-		wg.Wait()
-
-		elapsed := time.Since(start)
-		if elapsed < interval {
-			wait := interval - elapsed
-			timer := time.NewTimer(wait)
-			select {
-			case <-timer.C:
-			case <-c.done:
-				global.LOG.Info("Ensure ssh connections done")
-				timer.Stop()
-				return
+		case <-ticker.C:
+			hosts, err := HostRepo.GetList()
+			if err != nil {
+				global.LOG.Error("Failed to get host list: %v", err)
+				continue
 			}
-			timer.Stop()
+
+			for _, host := range hosts {
+				sem <- struct{}{}
+				go func(h model.Host) {
+					defer func() {
+						<-sem
+					}()
+
+					c.checkHostStatus(&h)
+					c.handleHost(&h)
+				}(host)
+			}
 		}
 	}
 }
@@ -376,14 +354,6 @@ func (c *Center) handleHost(host *model.Host) {
 		resultCh := make(chan error, 1)
 		c.connectToAgent(host, resultCh)
 	}
-}
-
-func (c *Center) handleHostByID(id uint) {
-	host, err := HostRepo.Get(HostRepo.WithByID(id))
-	if err != nil || host.ID == 0 {
-		return
-	}
-	c.handleHost(&host)
 }
 
 func getAuthPlugin() (shared.Auth, error) {
@@ -665,13 +635,6 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in handleConnection: %v", r)
-		}
-
-		select {
-		case <-c.done:
-			// Center 正在退出，不再触发重连
-		default:
-			go c.handleHostByID(host.ID)
 		}
 	}()
 
