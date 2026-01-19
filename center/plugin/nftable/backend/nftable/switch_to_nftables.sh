@@ -38,10 +38,8 @@ table inet idb-filter {
 
         icmp type echo-request drop
         iifname "lo" accept
-        iifname "docker0" accept
         iifname "br-+" accept
         iifname "veth+" accept
-        iifname "docker_gwbridge" accept
         ct state established,related accept
         tcp dport 22 accept
         tcp dport 9918 accept

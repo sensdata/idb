@@ -357,6 +357,7 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 	lines := strings.Split(content, "\n")
 	var output []string
 	var chainContent []string
+	var chainPolicy string
 	insideChain := false
 	indent := "    " // 默认缩进
 
@@ -364,12 +365,6 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 		"iif lo accept":                       true,
 		"iif \"lo\" accept":                   true,
 		"iifname \"lo\" accept":               true,
-		"iif docker0 accept":                  true,
-		"iif \"docker0\" accept":              true,
-		"iifname \"docker0\" accept":          true,
-		"iif docker_gwbridge accept":          true,
-		"iif \"docker_gwbridge\" accept":      true,
-		"iifname \"docker_gwbridge\" accept":  true,
 		"iifname \"br-+\" accept":             true,
 		"iifname \"veth+\" accept":            true,
 		"ct state established,related accept": true,
@@ -390,11 +385,14 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 		if insideChain {
 			// 检查是否是链结束
 			if trimmed == "}" {
+				// 添加链策略
+				if chainPolicy != "" {
+					output = append(output, chainPolicy)
+				}
+
 				// 固定在链内容最前面添加默认规则
 				defaultOrder := []string{
 					"iif lo accept",
-					"iif docker0 accept",
-					"iif docker_gwbridge accept",
 					"iifname \"br-+\" accept",
 					"iifname \"veth+\" accept",
 					"ct state established,related accept",
@@ -408,6 +406,12 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 				// 添加链结束标记
 				output = append(output, line)
 				insideChain = false
+				continue
+			}
+
+			// 链规则行，先缓存
+			if isHookLine(trimmed) {
+				chainPolicy = line
 				continue
 			}
 
@@ -429,6 +433,12 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 	}
 
 	return strings.Join(output, "\n")
+}
+
+// 判断是否为 hook 行
+func isHookLine(line string) bool {
+	line = strings.ToLower(strings.TrimSpace(line))
+	return strings.Contains(line, "hook input")
 }
 
 func (s *NFTable) checkConfContent(content string) (string, error) {
