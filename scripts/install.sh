@@ -502,13 +502,13 @@ function Install_IDB() {
 }
 
 function Get_Ip(){
-    # 优先获取默认路由对应的源IP
-    LOCAL_IP=$(ip route get 8.8.8.8 | grep -oP 'src \K[^ ]+')
+    # 优先获取默认路由对应的源IP（仅IPv4）
+    LOCAL_IP=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oP 'src \K[^ ]+')
     if [[ -z "$LOCAL_IP" ]]; then
-        # 备选方案：获取默认网卡的IP
-        default_interface=$(ip route | grep '^default' | awk '{print $5}')
+        # 备选方案：获取默认网卡的IPv4地址
+        default_interface=$(ip -4 route 2>/dev/null | grep '^default' | awk '{print $5}' | head -n1)
         if [[ -n "$default_interface" ]]; then
-            LOCAL_IP=$(ip addr show $default_interface | grep -oP 'inet \K[\d.]+')
+            LOCAL_IP=$(ip -4 addr show $default_interface 2>/dev/null | grep -oP 'inet \K[\d.]+' | head -n1)
         fi
     fi
     
@@ -517,12 +517,18 @@ function Get_Ip(){
         LOCAL_IP="127.0.0.1"
     fi
 
-    PUBLIC_IP=$(curl -s https://api64.ipify.org)
+    # 获取公网IP（优先IPv4）
+    PUBLIC_IP=$(curl -s -4 https://api.ipify.org 2>/dev/null)
+    if [[ -z "$PUBLIC_IP" ]]; then
+        # 如果IPv4获取失败，尝试其他API
+        PUBLIC_IP=$(curl -s -4 https://api64.ipify.org 2>/dev/null)
+    fi
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
+    # 如果获取到的是IPv6地址（包含冒号），则设为N/A
     if echo "$PUBLIC_IP" | grep -q ":"; then
-        PUBLIC_IP=[${PUBLIC_IP}]
+        PUBLIC_IP="N/A"
     fi
 }
 
