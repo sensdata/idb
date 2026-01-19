@@ -357,6 +357,7 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 	lines := strings.Split(content, "\n")
 	var output []string
 	var chainContent []string
+	var chainPolicy string
 	insideChain := false
 	indent := "    " // 默认缩进
 
@@ -384,18 +385,17 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 		if insideChain {
 			// 检查是否是链结束
 			if trimmed == "}" {
-				// 检查 chainContent 的第一行是否是 hook 行
-				if len(chainContent) > 0 && isHookLine(strings.TrimSpace(chainContent[0])) {
-					output = append(output, chainContent[0])
-					chainContent = chainContent[1:]
+				// 添加链策略
+				if chainPolicy != "" {
+					output = append(output, chainPolicy)
 				}
 
 				// 固定在链内容最前面添加默认规则
 				defaultOrder := []string{
 					"iif lo accept",
-					"ct state established,related accept",
 					"iifname \"br-+\" accept",
 					"iifname \"veth+\" accept",
+					"ct state established,related accept",
 				}
 				for _, r := range defaultOrder {
 					output = append(output, indent+r)
@@ -406,6 +406,12 @@ func (s *NFTable) ensureDefaultRules(content string) string {
 				// 添加链结束标记
 				output = append(output, line)
 				insideChain = false
+				continue
+			}
+
+			// 链规则行，先缓存
+			if isHookLine(trimmed) {
+				chainPolicy = line
 				continue
 			}
 
