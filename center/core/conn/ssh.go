@@ -135,13 +135,18 @@ func (s *SSHService) TestConnection(host model.Host) error {
 	return nil
 }
 
+func formatHostID(host *model.Host) string {
+	return fmt.Sprintf("%d:%s:%d", host.ID, host.Addr, host.Port)
+}
+
 func (s *SSHService) getClient(host model.Host) (*ssh.Client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	client, exists := s.sshClients[host.Addr]
+	hostId := formatHostID(&host)
+	client, exists := s.sshClients[hostId]
 	if !exists || client == nil || !isValidSSHClient(client) {
-		global.LOG.Error("ssh connection to host %s not exists", host.Addr)
-		return nil, fmt.Errorf("ssh connection to host %s not exists", host.Addr)
+		global.LOG.Error("ssh connection to host %s not exists", hostId)
+		return nil, fmt.Errorf("ssh connection to host %s not exists", hostId)
 	}
 	return client, nil
 }
@@ -253,15 +258,17 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 
 	// 5. 执行解压和安装命令
 	taskLog(writer, types.LogLevelInfo, "Unpacking and installing agent")
-	tmpCmd := `
+	// 直接在Go代码中替换变量值，而不是依赖shell变量展开
+	// 使用 # 作为 sed 分隔符，避免 secret_key 中包含 / 时的问题
+	installCmd := fmt.Sprintf(`
         sudo mkdir -p /tmp/idb-agent && 
         sudo tar -xzvf /tmp/idb-agent.tar.gz -C /tmp/idb-agent && 
         cd /tmp/idb-agent && 
-        sudo sed -i "s/secret_key=.*/secret_key=${AGENT_KEY}/" idb-agent.conf &&
+		sudo sed -i "s#port=.*#port=%d#" idb-agent.conf &&
+        sudo sed -i "s#secret_key=.*#secret_key=%s#" idb-agent.conf &&
         sudo sh install-agent.sh && 
         sudo rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
-    `
-	installCmd := fmt.Sprintf(`AGENT_KEY="%s" && %s`, host.AgentKey, tmpCmd)
+    `, host.AgentPort, host.AgentKey)
 	global.LOG.Info("installCmd: %s", installCmd)
 	output, err = executeCommand(client, installCmd)
 	if err != nil {
@@ -752,9 +759,10 @@ func getPrivateKey(path string) (*core.FileInfo, error) {
 func (s *SSHService) connectToHost(host *model.Host) error {
 	// 先关闭已有的client
 	s.mu.Lock()
-	if client, exists := s.sshClients[host.Addr]; exists && client != nil {
+	hostId := formatHostID(host)
+	if client, exists := s.sshClients[hostId]; exists && client != nil {
 		client.Close()
-		delete(s.sshClients, host.Addr)
+		delete(s.sshClients, hostId)
 	}
 	s.mu.Unlock()
 
@@ -810,7 +818,7 @@ func (s *SSHService) connectToHost(host *model.Host) error {
 		return fmt.Errorf("failed to create ssh connection to host %s, %v", host.Addr, err)
 	}
 	s.mu.Lock()
-	s.sshClients[host.Addr] = client
+	s.sshClients[hostId] = client
 	s.mu.Unlock()
 
 	global.LOG.Info("SSH connection to %s created", host.Addr)
