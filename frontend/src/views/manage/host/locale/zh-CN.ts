@@ -18,6 +18,7 @@ export default {
   'manage.host.list.operation.goto': '进入桌面',
   'manage.host.list.operation.setting': '节点设置',
   'manage.host.list.operation.sshTerminal': 'SSH终端',
+  'manage.host.list.operation.updateAgent': '受控端设置',
   'manage.host.list.operation.installAgent': '安装受控端',
   'manage.host.list.operation.upgradeAgent': '升级受控端',
   'manage.host.list.operation.uninstallAgent': '卸载受控端',
@@ -109,6 +110,15 @@ export default {
 
   'manage.host.ssh.form.title': 'SSH设置',
   'manage.host.form.load.failed': '加载数据失败',
+
+  'manage.host.agent.form.title': '受控端设置',
+  'manage.host.agent.form.addr.label': '受控端地址',
+  'manage.host.agent.form.addr.placeholder': '请输入受控端地址',
+  'manage.host.agent.form.addr.required': '请输入受控端地址',
+  'manage.host.agent.form.port.label': '受控端端口',
+  'manage.host.agent.form.port.placeholder': '请输入受控端端口',
+  'manage.host.agent.form.port.required': '请输入受控端端口',
+  'manage.host.agent.form.port.invalid': '端口号必须在1-65535之间',
 
   // 卸载代理相关
   'manage.host.uninstallAgent.title': '卸载代理',

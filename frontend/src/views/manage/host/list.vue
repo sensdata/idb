@@ -115,6 +115,7 @@
   <host-edit ref="editRef" @ok="reload" />
   <ssh-terminal ref="termRef" />
   <ssh-form ref="sshFormRef" @ok="reload" />
+  <agent-form ref="agentFormRef" @ok="reload" />
   <install-agent ref="installAgentRef" @ok="reload" />
   <uninstall-agent ref="uninstallAgentRef" @ok="reload" />
 </template>
@@ -142,6 +143,7 @@
   import SshTerminal from './components/ssh-terminal.vue';
   import HostEdit from './components/edit.vue';
   import SshForm from './components/ssh-form.vue';
+  import AgentForm from './components/agent-form.vue';
   import InstallAgent from './components/install-agent.vue';
   import UninstallAgent from './components/uninstall-agent.vue';
 
@@ -155,6 +157,7 @@
   const termRef = ref<InstanceType<typeof SshTerminal>>();
   const editRef = ref<InstanceType<typeof HostEdit>>();
   const sshFormRef = ref<InstanceType<typeof SshForm>>();
+  const agentFormRef = ref<InstanceType<typeof AgentForm>>();
   const installAgentRef = ref<InstanceType<typeof InstallAgent>>();
   const uninstallAgentRef = ref<InstanceType<typeof UninstallAgent>>();
 
@@ -290,6 +293,15 @@
         text: t('manage.host.list.operation.sshTerminal'),
         click: () => {
           termRef.value?.show(record.id);
+        },
+      },
+      {
+        text: t('manage.host.list.operation.updateAgent'),
+        click: () => {
+          const form = agentFormRef.value;
+          form?.reset();
+          form?.load(record.id);
+          form?.show();
         },
       },
       {
