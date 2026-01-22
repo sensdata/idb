@@ -68,6 +68,7 @@ type ICenter interface {
 	GetSessionToken(session string) (string, bool)
 	TestAgent(host model.Host, req core.TestAgent) error
 	ReleaseAgentConn(host model.Host) error
+	DisconnectHost(host *model.Host) error
 }
 
 func NewCenter() ICenter {
@@ -533,8 +534,12 @@ func (c *Center) checkLicense(host *model.Host, timestamp int64) error {
 	return nil
 }
 
+func formatAgentID(host *model.Host) string {
+	return fmt.Sprintf("%d:%s:%d", host.ID, host.AgentAddr, host.AgentPort)
+}
+
 func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	agentID := formatAgentID(host)
 
 	heartbeatMsg, err := message.CreateMessage(
 		utils.GenerateMsgId(),
@@ -566,8 +571,8 @@ func (c *Center) sendHeartbeat(host *model.Host, conn *net.Conn) error {
 }
 
 func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
-	global.LOG.Info("try connect to agent %s:%d", host.AgentAddr, host.AgentPort)
-	// conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort))
+	agentID := formatAgentID(host)
+	global.LOG.Info("try connect to agent %s", agentID)
 
 	// 创建证书池并添加自签名证书
 	caCertPool := x509.NewCertPool()
@@ -594,7 +599,6 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	}
 
 	// 记录连接
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
 	c.mu.Lock()
 	c.agentConns[agentID] = conn
 	c.mu.Unlock()
@@ -622,7 +626,7 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	agentID := formatAgentID(host)
 
 	defer func() {
 		// 在defer中关闭连接并从agentConns中删除
@@ -1360,7 +1364,7 @@ func (c *Center) IsAgentConnected(host model.Host) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	agentID := formatAgentID(&host)
 	conn, exists := c.agentConns[agentID]
 	return exists && conn != nil
 }
@@ -1369,7 +1373,7 @@ func (c *Center) getAgentConn(host *model.Host) (*net.Conn, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	agentID := fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort)
+	agentID := formatAgentID(host)
 	conn, exists := c.agentConns[agentID]
 	if !exists || conn == nil {
 		return nil, errors.WithMessage(constant.ErrAgent, "not connected")
@@ -1476,6 +1480,31 @@ func (c *Center) ReleaseAgentConn(host model.Host) error {
 	if conn != nil {
 		(*conn).Close()
 	}
+
+	return nil
+}
+
+// DisconnectHost 优雅地断开指定host的连接
+// 关闭连接并从agentConns map中删除，同时清理hostStates
+func (c *Center) DisconnectHost(host *model.Host) error {
+	agentID := formatAgentID(host)
+
+	c.mu.Lock()
+	conn, exists := c.agentConns[agentID]
+	if exists && conn != nil {
+		// 关闭连接
+		conn.Close()
+		global.LOG.Info("Close agent conn %s for host %d", agentID, host.ID)
+		// 从map中删除
+		delete(c.agentConns, agentID)
+		global.LOG.Info("Delete agent conn %s from map for host %d", agentID, host.ID)
+	}
+	c.mu.Unlock()
+
+	// 清理hostStates
+	c.hostStateMu.Lock()
+	delete(c.hostStates, host.ID)
+	c.hostStateMu.Unlock()
 
 	return nil
 }

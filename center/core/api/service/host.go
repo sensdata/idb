@@ -164,8 +164,8 @@ func (s *HostService) List(req core.ListHost) (*core.PageResult, error) {
 				PassPhrase:   host.PassPhrase,
 				AgentAddr:    host.AgentAddr,
 				AgentPort:    host.AgentPort,
-				AgentKey:     host.AgentKey,
-				AgentMode:    host.AgentMode,
+				AgentKey:     "",
+				AgentMode:    "",
 				AgentVersion: host.AgentVersion,
 				AgentStatus:  *agentStatus,
 				AgentLatest:  latestVersion,
@@ -235,8 +235,8 @@ func (s *HostService) Create(req core.CreateHost) (*core.HostInfo, error) {
 		PassPhrase:   host.PassPhrase,
 		AgentAddr:    host.AgentAddr,
 		AgentPort:    host.AgentPort,
-		AgentKey:     host.AgentKey,
-		AgentMode:    host.AgentMode,
+		AgentKey:     "",
+		AgentMode:    "",
 		AgentVersion: host.AgentVersion,
 	}, nil
 }
@@ -406,8 +406,8 @@ func (s *HostService) Info(id uint) (*core.HostInfo, error) {
 		PassPhrase:   host.PassPhrase,
 		AgentAddr:    host.AgentAddr,
 		AgentPort:    host.AgentPort,
-		AgentKey:     host.AgentKey,
-		AgentMode:    host.AgentMode,
+		AgentKey:     "",
+		AgentMode:    "",
 		AgentVersion: host.AgentVersion,
 		AgentStatus:  *agentStatus,
 	}, nil
@@ -529,9 +529,6 @@ func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
 		upMap["pass_phrase"] = req.PassPhrase
 	}
 
-	// agent连接地址也改掉
-	upMap["agent_addr"] = req.Addr
-
 	return HostRepo.Update(host.ID, upMap)
 }
 
@@ -542,16 +539,28 @@ func (s *HostService) UpdateAgent(id uint, req core.UpdateHostAgent) error {
 		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
 	}
 
+	// 如果agent地址或端口发生变化，需要断开旧连接
+	needDisconnect := host.AgentAddr != req.AgentAddr || host.AgentPort != req.AgentPort
+
 	// 更新字段
 	upMap := make(map[string]interface{})
 	upMap["agent_addr"] = req.AgentAddr
 	upMap["agent_port"] = req.AgentPort
-	// if req.AgentKey != "" {
-	// 	upMap["agent_key"] = req.AgentKey
-	// }
-	// upMap["agent_mode"] = req.AgentMode
 
-	return HostRepo.Update(host.ID, upMap)
+	if err := HostRepo.Update(host.ID, upMap); err != nil {
+		global.LOG.Error("update host %d agent failed: %v", host.ID, err)
+		return errors.WithMessage(constant.ErrInternalServer, err.Error())
+	}
+
+	// 如果地址或端口发生变化，优雅地断开旧连接
+	if needDisconnect {
+		// 使用旧的地址和端口断开连接（host对象在更新前仍包含旧的AgentAddr和AgentPort）
+		if err := conn.CENTER.DisconnectHost(&host); err != nil {
+			global.LOG.Warn("Failed to disconnect host %d with old agent config: %v", host.ID, err)
+		}
+	}
+
+	return nil
 }
 
 func (s *HostService) TestSSH(req core.TestSSH) error {
