@@ -18,6 +18,7 @@ export default {
   'manage.host.list.operation.goto': 'Enter Desktop',
   'manage.host.list.operation.setting': 'Host Settings',
   'manage.host.list.operation.sshTerminal': 'SSH Terminal',
+  'manage.host.list.operation.updateAgent': 'Agent Settings',
   'manage.host.list.operation.installAgent': 'Install Agent',
   'manage.host.list.operation.uninstallAgent': 'Uninstall Agent',
   'manage.host.list.operation.restart': 'Restart Agent',
@@ -111,6 +112,15 @@ export default {
 
   'manage.host.ssh.form.title': 'SSH Configuration',
   'manage.host.form.load.failed': 'Failed to load data',
+
+  'manage.host.agent.form.title': 'Agent Settings',
+  'manage.host.agent.form.addr.label': 'Agent Address',
+  'manage.host.agent.form.addr.placeholder': 'Please enter agent address',
+  'manage.host.agent.form.addr.required': 'Please enter agent address',
+  'manage.host.agent.form.port.label': 'Agent Port',
+  'manage.host.agent.form.port.placeholder': 'Please enter agent port',
+  'manage.host.agent.form.port.required': 'Please enter agent port',
+  'manage.host.agent.form.port.invalid': 'Port must be between 1 and 65535',
 
   // Uninstall agent related
   'manage.host.uninstallAgent.title': 'Uninstall Agent',

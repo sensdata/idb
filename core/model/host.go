@@ -63,8 +63,6 @@ type UpdateHostSSH struct {
 type UpdateHostAgent struct {
 	AgentAddr string `json:"agent_addr" validate:"required"`
 	AgentPort int    `json:"agent_port" validate:"required"`
-	AgentMode string `json:"agent_mode" validate:"required"`
-	AgentKey  string `json:"agent_key"`
 }
 
 type TestSSH struct {

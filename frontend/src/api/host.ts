@@ -37,6 +37,18 @@ export const updateHostSSHApi = (
   return axios.put(`/hosts/${hostId}/conf/ssh`, params);
 };
 
+export interface UpdateHostAgentParams {
+  agent_addr: string;
+  agent_port: number;
+}
+
+export const updateHostAgentApi = (
+  hostId: number,
+  params: UpdateHostAgentParams
+): Promise<CreateHostResult> => {
+  return axios.put(`/hosts/${hostId}/conf/agent`, params);
+};
+
 export function deleteHostApi(id: number) {
   return request.delete('hosts', { id });
 }
