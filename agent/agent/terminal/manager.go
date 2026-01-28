@@ -294,11 +294,31 @@ func (m *DefaultManager) listBaseSessions(filterDetached bool) ([]model.SessionI
 	return sessions, nil
 }
 
+// parseScreenTime 尝试多种时间格式解析screen会话的时间戳
+func parseScreenTime(timeStr string) (time.Time, error) {
+	// 定义多种可能的时间格式
+	layouts := []string{
+		"01/02/2006 03:04:05 PM",    // 4位年份，12小时制，带AM/PM
+		"01/02/2006 15:04:05",       // 4位年份，24小时制
+		"01/02/06 15:04:05",         // 2位年份，24小时制
+		"01/02/06 03:04:05 PM",      // 2位年份，12小时制，带AM/PM
+		"2006-01-02 15:04:05",       // ISO格式，24小时制
+		"2006-01-02 03:04:05 PM",    // ISO格式，12小时制
+	}
+
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, timeStr); err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("unable to parse time: %s", timeStr)
+}
+
 func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	var sessions []model.SessionInfo
 
 	// 执行命令以列出所有的 screen 会话
-	layout := "01/02/2006 03:04:05 PM"
 	cmd := exec.Command("bash", "-c", "LC_TIME=en_US.UTF-8 screen -ls")
 	output, err := cmd.CombinedOutput()
 	if strings.Contains(string(output), "No Sockets found") {
@@ -317,12 +337,15 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		// 解析每一行以提取会话信息
-		// 支持两种格式：
-		// 1. 有时间戳: " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
-		// 2. 无时间戳: " 12345.session_name (Attached)"
+		// 支持多种格式：
+		// 1. 有时间戳（4位年份，12小时制）: " 12345.session_name (01/02/2025 12:52:58 PM) (Attached)"
+		// 2. 有时间戳（4位年份，24小时制）: " 12345.session_name (01/02/2025 12:52:58) (Attached)"
+		// 3. 有时间戳（2位年份，24小时制）: " 12345.session_name (01/28/26 02:10:09) (Attached)"
+		// 4. 无时间戳: " 12345.session_name (Attached)"
 		if strings.Contains(line, ".") {
-			// 使用正则表达式提取会话信息，时间戳部分为可选项
-			re := regexp.MustCompile(`(\d+\.[^\s]+)(\s+\((\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+[AP]M)\))?\s+\((Attached|Detached)\)`)
+			// 使用更灵活的正则表达式提取会话信息，时间戳部分为可选项
+			// 支持2位或4位年份，12小时制或24小时制，可选的AM/PM
+			re := regexp.MustCompile(`(\d+\.[^\s]+)(?:\s+\(([^)]+)\))?\s+\((Attached|Detached)\)`)
 			matches := re.FindStringSubmatch(line)
 
 			if len(matches) < 3 {
@@ -330,20 +353,16 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 			}
 
 			// matches[0]是完整匹配的字符串
-			// matches[1]是第一个捕获组,即(\d+\.[^\s]+)匹配的内容
+			// matches[1]是第一个捕获组,即(\d+\.[^\s]+)匹配的内容（会话ID.名称）
+			// matches[2]是时间戳（如果存在）
+			// matches[3]是状态 (Attached|Detached)
 			sessionParts := strings.Split(matches[1], ".")
 			if len(sessionParts) != 2 {
 				continue
 			}
 			sessionID := sessionParts[0]
 			sessionName := sessionParts[1]
-
-			// 匹配结果分析：
-			// - matches[4] 始终包含状态 (Attached|Detached)
-			// - matches[3] 可能包含时间戳（如果有）
-			status := matches[4]
-			var parsedTime time.Time
-			var err error
+			status := matches[3]
 
 			// 如果只筛选 Detached 会话
 			if filterDetached && status != "Detached" {
@@ -351,10 +370,13 @@ func listScreenSessions(filterDetached bool) ([]model.SessionInfo, error) {
 			}
 
 			// 处理时间戳（如果存在）
-			if len(matches) > 3 && matches[3] != "" {
-				parsedTime, err = time.Parse(layout, matches[3])
+			var parsedTime time.Time
+			if len(matches) > 2 && matches[2] != "" {
+				timeStr := strings.TrimSpace(matches[2])
+				var err error
+				parsedTime, err = parseScreenTime(timeStr)
 				if err != nil {
-					global.LOG.Warn("Error parsing time: %v, using current time", err)
+					global.LOG.Warn("Error parsing time '%s': %v, using current time", timeStr, err)
 					parsedTime = time.Now()
 				}
 			} else {
