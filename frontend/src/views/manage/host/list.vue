@@ -62,7 +62,7 @@
       <a-progress
         v-else
         class="inline-progress"
-        :percent="+(record.cpu / 100).toFixed(3)"
+        :percent="toProgressPercent(record.cpu)"
       />
     </template>
     <template #memory="{ record }: { record: HostItem }">
@@ -75,7 +75,7 @@
       <a-progress
         v-else
         class="inline-progress"
-        :percent="+(record.mem / 100).toFixed(3)"
+        :percent="toProgressPercent(record.mem)"
         :color="'var(--idbturquoise-6)'"
       />
     </template>
@@ -89,8 +89,8 @@
       <a-progress
         v-else
         class="inline-progress"
-        :percent="+(record.disk / 100).toFixed(3)"
-        :color="'var(--idbturquoise-6)'"
+        :percent="toProgressPercent(record.disk)"
+        :color="getDiskUsageColor(record.disk)"
       />
     </template>
     <template #network="{ record }: { record: HostItem }">
@@ -349,6 +349,19 @@
     ];
   };
 
+  const toProgressPercent = (value: number) => +(value / 100).toFixed(3);
+
+  const getDiskUsageColor = (value: number) => {
+    const percent = toProgressPercent(value);
+    if (percent >= 0.9) {
+      return 'rgb(var(--red-6))';
+    }
+    if (percent >= 0.8) {
+      return 'rgb(var(--orange-6))';
+    }
+    return 'var(--idbturquoise-6)';
+  };
+
   const reload = () => {
     // 只重新加载表格数据，状态更新会由 dataRef 变化触发
     tableRef.value?.reload();
@@ -470,9 +483,25 @@
 </script>
 
 <style scoped>
-  .inline-progress :deep(.arco-progress-line-text, .arco-progress-steps-text) {
+  .inline-progress {
+    width: 100%;
+  }
+
+  .inline-progress :deep(.arco-progress-line) {
+    display: flex;
+    align-items: center;
+  }
+
+  .inline-progress :deep(.arco-progress-line-wrapper) {
+    flex: 1;
     min-width: 0;
+  }
+
+  .inline-progress :deep(.arco-progress-line-text, .arco-progress-steps-text) {
+    width: 48px;
     margin-left: 10px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   .network-cell {

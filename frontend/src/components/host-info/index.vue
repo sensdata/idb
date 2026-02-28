@@ -7,7 +7,7 @@
         </template>
       </a-button>
       <div class="host-name truncate"
-        >{{ hostStore.current?.name || hostStore.current?.addr }}
+        >{{ hostStore.current?.addr || hostStore.current?.name }}
       </div>
       <a-button class="btn" @click="openTerminal?.()">
         <template #icon>

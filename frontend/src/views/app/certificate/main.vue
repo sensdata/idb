@@ -83,11 +83,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, onMounted, computed } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { IconPlus, IconImport } from '@arco-design/web-vue/es/icon';
-  import useHostStore from '@/store/modules/host';
+  import useCurrentHost from '@/composables/current-host';
   import { useApiWithLoading } from '@/composables/use-api-with-loading';
   import useLoading from '@/composables/loading';
   import { useLogger } from '@/composables/use-logger';
@@ -121,7 +121,7 @@
   import CSRModal from './components/csr-modal.vue';
 
   const { t } = useI18n();
-  const hostStore = useHostStore();
+  const { currentHostId } = useCurrentHost();
   const { setLoading } = useLoading();
   const { executeApi } = useApiWithLoading(setLoading);
   const { logError } = useLogger();
@@ -148,19 +148,19 @@
   const selectedPrivateKey = ref<PrivateKeyInfo | null>(null);
   const selectedCSR = ref<CSRInfo | null>(null);
 
-  const currentHostId = computed(() => hostStore.current?.id);
-
-  const getHostIdOrNotify = () => {
+  const getHostIdOrNotify = (notify = true) => {
     const hostId = currentHostId.value;
     if (!hostId) {
-      Message.error(t('app.certificate.error.noHost'));
+      if (notify) {
+        Message.error(t('app.certificate.error.noHost'));
+      }
       return null;
     }
     return hostId as number;
   };
 
-  const fetchCertificateGroups = async () => {
-    const hostId = getHostIdOrNotify();
+  const fetchCertificateGroups = async (notifyWhenNoHost = true) => {
+    const hostId = getHostIdOrNotify(notifyWhenNoHost);
     if (!hostId) {
       return;
     }
@@ -448,9 +448,13 @@
     }
   };
 
-  onMounted(() => {
-    fetchCertificateGroups();
-  });
+  watch(
+    () => currentHostId.value,
+    () => {
+      fetchCertificateGroups(false);
+    },
+    { immediate: true }
+  );
 </script>
 
 <style scoped>
