@@ -23,8 +23,12 @@ export default {
   'components.terminal.workspace.hosts': '主机列表',
   'components.terminal.workspace.noHosts': '暂无可用主机',
   'components.terminal.workspace.noSessions': '暂无可用会话',
+  'components.terminal.workspace.noSessionsHint':
+    '当前主机 {host} 还没有可用会话。你可以新建一个会话，或连接一个已存在的后台会话。',
   'components.terminal.workspace.selectHost': '请从左侧选择一个主机',
   'components.terminal.workspace.selectSession': '请选择或创建一个会话',
+  'components.terminal.workspace.noActiveTerminal':
+    '请先创建或选择一个终端会话',
   'components.terminal.workspace.creatingSession': '正在创建会话...',
   'components.terminal.workspace.restoringSession': '正在恢复会话...',
 
@@ -60,6 +64,7 @@ export default {
   'components.terminal.session.pruneFailed': '清理会话失败',
   'components.terminal.session.quitFailed': '关闭会话失败',
   'components.terminal.session.detachFailed': '切换到后台失败',
+  'components.terminal.session.noSessionId': '当前会话未建立，暂不可执行此操作',
   'components.terminal.session.selectSession': '请选择一个会话',
   'components.terminal.session.addSuccess': '会话添加成功',
   'components.terminal.session.addFailed': '会话添加失败',

@@ -10,12 +10,12 @@
     <template #title>
       <span>{{ $t('components.terminal.title') }}</span>
     </template>
-    <terminal-workspace v-if="visible" ref="workspaceRef" />
+    <terminal-workspace v-if="hasOpened" ref="workspaceRef" />
   </a-drawer>
 </template>
 
 <script setup lang="ts">
-  import { ref, nextTick } from 'vue';
+  import { ref, nextTick, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { useLogger } from '@/composables/use-logger';
@@ -28,7 +28,7 @@
   const { logError } = useLogger('TerminalDrawer');
 
   // Props 定义
-  defineProps<{
+  const props = defineProps<{
     visible: boolean;
   }>();
 
@@ -39,6 +39,7 @@
 
   // 组件引用
   const workspaceRef = ref<InstanceType<typeof TerminalWorkspace>>();
+  const hasOpened = ref(false);
 
   // 初始化工作区
   const initializeWorkspace = async () => {
@@ -61,9 +62,21 @@
 
     // 当弹窗打开时，重新初始化工作区
     if (value) {
+      hasOpened.value = true;
       await initializeWorkspace();
     }
   };
+
+  watch(
+    () => props.visible,
+    async (value) => {
+      if (value) {
+        hasOpened.value = true;
+        await initializeWorkspace();
+      }
+    },
+    { immediate: true }
+  );
 </script>
 
 <style>
@@ -86,7 +99,11 @@
  * 当 Arco Design Vue 官方支持 body-style 属性时，应移除此临时方案
  */
 
+  .terminal-drawer .arco-drawer-header {
+    padding: 12px 16px !important;
+  }
+
   .terminal-drawer .arco-drawer-body {
-    padding: 0 !important;
+    padding: 8px 12px 12px !important;
   }
 </style>

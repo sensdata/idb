@@ -25,10 +25,14 @@ export default {
   'components.terminal.workspace.hosts': 'Hosts',
   'components.terminal.workspace.noHosts': 'No hosts available',
   'components.terminal.workspace.noSessions': 'No sessions available',
+  'components.terminal.workspace.noSessionsHint':
+    'Host {host} has no available sessions. You can create a new session or attach to an existing background session.',
   'components.terminal.workspace.selectHost':
     'Please select a host from the left sidebar',
   'components.terminal.workspace.selectSession':
     'Please select or create a session',
+  'components.terminal.workspace.noActiveTerminal':
+    'Please create or select a terminal session first',
   'components.terminal.workspace.creatingSession': 'Creating session...',
   'components.terminal.workspace.restoringSession': 'Restoring sessions...',
 
@@ -65,6 +69,8 @@ export default {
   'components.terminal.session.pruneFailed': 'Failed to clean sessions',
   'components.terminal.session.quitFailed': 'Failed to close session',
   'components.terminal.session.detachFailed': 'Failed to detach session',
+  'components.terminal.session.noSessionId':
+    'The session is not established yet, operation is unavailable',
   'components.terminal.session.selectSession': 'Please select a session',
   'components.terminal.session.addSuccess': 'Session added successfully',
   'components.terminal.session.addFailed': 'Failed to add session',
