@@ -22,6 +22,12 @@ export default {
     'Cannot save in read-only mode. Switch to edit mode first.',
   'app.file.editor.enableEdit': 'Edit',
   'app.file.editor.viewOnly': 'Read Only',
+  'app.file.editor.modeReadOnly': 'Read-only Mode',
+  'app.file.editor.modeEditing': 'Editing Mode',
+  'app.file.editor.modeReadOnlyHint':
+    'Currently read-only. Double-click editor content to enter editing.',
+  'app.file.editor.modeEditingHint':
+    'You can edit now. Save your changes before closing.',
   'app.file.editor.viewFull': 'Full View',
   'app.file.editor.viewHead': 'Head View',
   'app.file.editor.viewTail': 'Tail View',

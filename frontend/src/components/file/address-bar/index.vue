@@ -8,69 +8,85 @@
         'is-focused': isFocused,
       }"
     >
-      <!-- 自定义面包屑组件 -->
-      <div class="custom-breadcrumb">
-        <!-- Home 项 -->
-        <div class="breadcrumb-item home-item" @click="handlePathClick('/')">
-          <icon-home class="home-icon" />
-          <span class="breadcrumb-text">{{ rootDisplayName }}</span>
+      <div class="address-rows">
+        <!-- 当前目录行 -->
+        <div class="current-row">
+          <span class="zone-badge zone-badge-current">{{
+            $t('components.file.addressBar.current.label')
+          }}</span>
+          <div ref="breadcrumbRef" class="custom-breadcrumb">
+            <!-- Home 项 -->
+            <div
+              class="breadcrumb-item home-item"
+              @click="handlePathClick('/')"
+            >
+              <icon-home class="home-icon" />
+              <span class="breadcrumb-text">{{ rootDisplayName }}</span>
+            </div>
+
+            <!-- 路径段 -->
+            <template
+              v-for="(segment, index) in pathSegments"
+              :key="segment.path"
+            >
+              <icon-right class="breadcrumb-separator" />
+              <div
+                class="breadcrumb-item"
+                :class="
+                  index === pathSegments.length - 1
+                    ? 'current-item'
+                    : 'path-item'
+                "
+                :title="segment.path"
+                @click="
+                  index !== pathSegments.length - 1
+                    ? handleSegmentClick(index)
+                    : undefined
+                "
+              >
+                <span class="breadcrumb-text">{{ segment.name }}</span>
+              </div>
+            </template>
+          </div>
         </div>
 
-        <!-- 路径段 - 第一个段前不显示分隔符 -->
-        <template v-for="(segment, index) in pathSegments" :key="segment.path">
-          <!-- 分隔符：只有非第一个路径段才显示 -->
-          <icon-right v-if="index > 0" class="breadcrumb-separator" />
-
-          <!-- 路径段项 -->
-          <div
-            class="breadcrumb-item"
-            :class="
-              index === pathSegments.length - 1 ? 'current-item' : 'path-item'
-            "
-            @click="
-              index !== pathSegments.length - 1
-                ? handleSegmentClick(index)
-                : undefined
-            "
-          >
-            <span class="breadcrumb-text">{{ segment.name }}</span>
+        <!-- 输入目录行 -->
+        <div class="input-row">
+          <span class="zone-badge zone-badge-input">{{
+            $t('components.file.addressBar.input.label')
+          }}</span>
+          <div class="path-input-container">
+            <a-input
+              ref="pathInputRef"
+              v-model="inputValue"
+              :placeholder="$t('components.file.addressBar.input.placeholder')"
+              class="path-input"
+              size="small"
+              @keydown.enter="handleInputEnter"
+              @keydown.escape="handleInputEscape"
+              @keydown.up="handleKeyUp"
+              @keydown.down="handleKeyDown"
+              @keydown.tab="handleTab"
+              @blur="handleInputBlur"
+              @focus="handleInputFocus"
+              @input="handleInputValueChange"
+            />
           </div>
-        </template>
-
-        <!-- 在最后一个路径段后面添加分隔符 -->
-        <icon-right
-          v-if="pathSegments.length > 0"
-          class="breadcrumb-separator"
-        />
-      </div>
-
-      <!-- 路径输入框 - 无边框，透明背景 -->
-      <div class="path-input-container">
-        <a-input
-          ref="pathInputRef"
-          v-model="inputValue"
-          placeholder="输入目录或文件名..."
-          class="path-input"
-          size="small"
-          allow-clear
-          @keydown.enter="handleInputEnter"
-          @keydown.escape="handleInputEscape"
-          @keydown.up="handleKeyUp"
-          @keydown.down="handleKeyDown"
-          @keydown.tab="handleTab"
-          @blur="handleInputBlur"
-          @focus="handleInputFocus"
-          @input="handleInputValueChange"
-        />
-      </div>
-
-      <!-- Go按钮 - 相对于breadcrumb-container定位，高度匹配整个容器 -->
-      <div
-        class="go-button"
-        :class="goButtonClasses"
-        @click="handleGoButtonClick"
-      >
-        <icon-arrow-right />
+          <div
+            class="clear-button"
+            :class="clearButtonClasses"
+            @click="handleClearButtonClick"
+          >
+            <icon-close />
+          </div>
+          <div
+            class="go-button"
+            :class="goButtonClasses"
+            @click="handleGoButtonClick"
+          >
+            <icon-arrow-right />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -102,11 +118,12 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+  import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
   import {
     IconHome,
     IconRight,
     IconArrowRight,
+    IconClose,
   } from '@arco-design/web-vue/es/icon';
   import type { FileInfoEntity } from '@/entity/FileInfo';
   import { useLogger } from '@/composables/use-logger';
@@ -115,6 +132,7 @@
   import useDropdownNavigation from './composables/use-dropdown-navigation';
   import useAddressBarSearch from './composables/use-address-bar-search';
   import usePathNavigation from './composables/use-path-navigation';
+  import { resolveLinuxPathInput } from './utils';
   import type { EmitFn } from './types';
 
   // ==================== Props & Emits ====================
@@ -128,6 +146,7 @@
 
   // ==================== Template Refs ====================
   const pathInputRef = ref<HTMLElement | null>(null);
+  const breadcrumbRef = ref<HTMLElement | null>(null);
   const dropdownRef = ref();
   const dropdownContentRef = ref();
 
@@ -136,14 +155,15 @@
   const allOptions = ref<DropdownOption[]>([]);
   const popupVisible = ref(false);
   const isFocused = ref(false);
+  const shouldRefocusAfterGoto = ref(false);
+  const refocusFallbackTimer = ref<number | null>(null);
 
   // ==================== Logger ====================
   const { logDebug } = useLogger('AddressBar');
 
   // ==================== Computed Properties ====================
   const rootDisplayName = computed(() => {
-    // 可以根据当前主机或项目名称来显示，这里先用固定值
-    return '';
+    return '/';
   });
 
   // 解析路径为面包屑段
@@ -186,7 +206,36 @@
     return classes;
   });
 
+  const clearButtonClasses = computed(() => ({
+    'clear-button--disabled': !inputValue.value.trim(),
+  }));
+
   // ==================== Helper Functions ====================
+  const resolveTargetPath = (rawInput: string) => {
+    return resolveLinuxPathInput(rawInput, props.path);
+  };
+
+  const focusPathInput = () => {
+    const inputHost = pathInputRef.value as any;
+    const inputEl: HTMLInputElement | null =
+      inputHost?.$el?.querySelector('input') ||
+      inputHost?.querySelector?.('input') ||
+      null;
+    inputEl?.focus();
+  };
+
+  const requestRefocusAfterGoto = () => {
+    if (isFocused.value) {
+      shouldRefocusAfterGoto.value = true;
+      if (refocusFallbackTimer.value) {
+        window.clearTimeout(refocusFallbackTimer.value);
+      }
+      refocusFallbackTimer.value = window.setTimeout(() => {
+        shouldRefocusAfterGoto.value = false;
+        refocusFallbackTimer.value = null;
+      }, 1500);
+    }
+  };
 
   // 更新输入框显示值
   const updateInputValue = () => {
@@ -207,6 +256,7 @@
   const {
     isLoading,
     isSearching,
+    searchWord,
     triggerByTab,
     computedPopupVisible,
     handleInputValueChange: originalHandleInputValueChange,
@@ -234,42 +284,22 @@
 
   // 处理输入回车
   const handleInputEnter = () => {
-    // 如果有下拉框选项且有选中项，使用选中的选项
-    if (
-      popupVisible.value &&
-      currentSelectedIndex.value >= 0 &&
-      currentSelectedIndex.value < allOptions.value.length
-    ) {
-      const selectedOption = allOptions.value[currentSelectedIndex.value];
-      const selectedValue = selectedOption.isDir
-        ? `${selectedOption.value}/`
-        : selectedOption.value;
-
-      // 构建完整路径：当前路径 + 选中的选项
-      const currentPath = props.path === '/' ? '' : props.path;
-      const targetPath = `${currentPath}/${selectedValue}`.replace(/\/+/g, '/');
-      emit('goto', targetPath);
-
-      // 清理下拉状态
-      allOptions.value = [];
-      popupVisible.value = false;
-      isSearching.value = false;
-      resetSelection();
-      inputValue.value = '';
-      return;
-    }
-
-    // 如果没有选中项，使用输入的文本
+    // Enter 优先按当前输入执行导航（更接近 shell 行为）
     const trimmedValue = inputValue.value.trim();
     if (!trimmedValue) {
       // 如果输入为空，不做任何操作
       return;
     }
 
-    // 构建完整路径：当前路径 + 输入的子路径
-    const currentPath = props.path === '/' ? '' : props.path;
-    const targetPath = `${currentPath}/${trimmedValue}`.replace(/\/+/g, '/');
+    const targetPath = resolveTargetPath(trimmedValue);
+    requestRefocusAfterGoto();
     emit('goto', targetPath);
+
+    // 清理下拉状态
+    allOptions.value = [];
+    popupVisible.value = false;
+    isSearching.value = false;
+    resetSelection();
 
     // 清空输入框
     inputValue.value = '';
@@ -293,6 +323,12 @@
     popupVisible.value = false;
   };
 
+  const handleClearButtonClick = () => {
+    if (!inputValue.value.trim()) return;
+    handleInputEscape();
+    focusPathInput();
+  };
+
   // 处理Go按钮点击
   const handleGoButtonClick = () => {
     const trimmedValue = inputValue.value.trim();
@@ -300,9 +336,8 @@
       return;
     }
 
-    // 构建完整路径：当前路径 + 输入的子路径
-    const currentPath = props.path === '/' ? '' : props.path;
-    const targetPath = `${currentPath}/${trimmedValue}`.replace(/\/+/g, '/');
+    const targetPath = resolveTargetPath(trimmedValue);
+    requestRefocusAfterGoto();
     emit('goto', targetPath);
 
     // 清空输入框
@@ -317,6 +352,9 @@
 
   // 处理输入框失焦
   const handleInputBlur = () => {
+    if (shouldRefocusAfterGoto.value) {
+      return;
+    }
     // 设置失焦状态
     isFocused.value = false;
     logDebug(
@@ -329,14 +367,19 @@
     // 延迟隐藏，让用户有时间点击下拉选项
     setTimeout(() => {
       if (!popupVisible.value) {
-        // 失焦时保持输入内容，不自动清空
-        // inputValue.value 保持用户输入的内容
+        // 若未修改路径，失焦后回到空输入态
+        if (inputValue.value.trim() === props.path) {
+          inputValue.value = '';
+        }
       }
     }, 200);
   };
 
   // 处理输入框聚焦
   const handleInputFocus = () => {
+    // 聚焦时切换为完整路径编辑模式，支持直接修改任意路径段
+    inputValue.value = props.path || '/';
+
     // 设置聚焦状态
     isFocused.value = true;
     logDebug(
@@ -346,8 +389,15 @@
       hasContent.value
     );
 
-    // 聚焦时保持当前输入内容，不做修改
-    // 让用户继续输入子目录或文件名
+    // 自动全选，便于用户快速覆盖编辑整条路径
+    nextTick(() => {
+      const inputHost = pathInputRef.value as any;
+      const inputEl: HTMLInputElement | null =
+        inputHost?.$el?.querySelector('input') ||
+        inputHost?.querySelector?.('input') ||
+        null;
+      inputEl?.select();
+    });
   };
 
   // 处理上下键导航
@@ -388,28 +438,19 @@
   };
 
   // 处理下拉选项点击
-  const handleOptionClick = () => {
-    if (
-      popupVisible.value &&
-      currentSelectedIndex.value >= 0 &&
-      currentSelectedIndex.value < allOptions.value.length
-    ) {
-      const selectedOption = allOptions.value[currentSelectedIndex.value];
-      const basePath = inputValue.value.substring(
-        0,
-        inputValue.value.lastIndexOf('/') + 1
-      );
-      const selectedValue = selectedOption.isDir
-        ? `${selectedOption.value}/`
-        : selectedOption.value;
-      inputValue.value = basePath + selectedValue;
+  const handleOptionClick = (item: DropdownOption) => {
+    const basePath = inputValue.value.substring(
+      0,
+      inputValue.value.lastIndexOf('/') + 1
+    );
+    const selectedValue = item.isDir ? `${item.value}/` : item.value;
+    inputValue.value = basePath + selectedValue;
 
-      // 清理下拉状态
-      allOptions.value = [];
-      isSearching.value = false;
-      popupVisible.value = false;
-      resetSelection();
-    }
+    // 清理下拉状态
+    allOptions.value = [];
+    isSearching.value = false;
+    popupVisible.value = false;
+    resetSelection();
   };
 
   // 处理滚动事件
@@ -429,6 +470,19 @@
       // 路径变化时，保持输入框为空，不自动填充
       // 用户应该能够在新路径下输入子目录或文件名
       inputValue.value = '';
+      nextTick(() => {
+        if (breadcrumbRef.value) {
+          breadcrumbRef.value.scrollLeft = breadcrumbRef.value.scrollWidth;
+        }
+        if (shouldRefocusAfterGoto.value) {
+          focusPathInput();
+          shouldRefocusAfterGoto.value = false;
+          if (refocusFallbackTimer.value) {
+            window.clearTimeout(refocusFallbackTimer.value);
+            refocusFallbackTimer.value = null;
+          }
+        }
+      });
     },
     { immediate: true }
   );
@@ -474,7 +528,7 @@
 
       // 将搜索结果转换为下拉选项，客户端过滤确保只显示以搜索词开头的结果
       if (newItems && newItems.length > 0) {
-        const searchTerm = inputValue.value.trim().toLowerCase();
+        const searchTerm = searchWord.value.trim().toLowerCase();
         const filteredItems = newItems.filter(
           (item) =>
             searchTerm === '' || item.name.toLowerCase().startsWith(searchTerm)
@@ -530,12 +584,16 @@
   });
 
   onUnmounted(() => {
+    if (refocusFallbackTimer.value) {
+      window.clearTimeout(refocusFallbackTimer.value);
+      refocusFallbackTimer.value = null;
+    }
     logDebug('BreadcrumbAddressBar unmounted');
   });
 </script>
 
 <style scoped lang="less">
-  @import '@/assets/style/breakpoint.less';
+  @import url('@/assets/style/breakpoint.less');
 
   // Variables
   @container-height: 2.286rem;
@@ -562,9 +620,9 @@
   }
 
   .button-state(@bg-color, @border-color, @text-color: currentcolor) {
+    color: @text-color;
     background: @bg-color;
     border-color: @border-color;
-    color: @text-color;
   }
 
   .breadcrumb-address-bar {
@@ -574,43 +632,75 @@
 
   .breadcrumb-container {
     position: relative;
-    .flex-center();
-    height: @container-height;
-    padding: 0;
+    padding: @padding-sm;
     overflow: hidden;
     background-color: var(--color-bg-2);
     border: @border-width solid var(--color-border-2);
     border-radius: @border-radius;
     .transition();
-
     &:hover {
       border-color: var(--color-border-3);
     }
-
     &.is-focused,
     &.has-content {
-      background: var(--color-primary-light-5);
-      border-color: var(--color-primary-light-3);
+      background: var(--color-fill-2);
+      border-color: var(--color-border-3);
     }
+  }
+
+  .address-rows {
+    display: flex;
+    flex-direction: column;
+    gap: @padding-sm;
+    width: 100%;
+  }
+
+  .current-row,
+  .input-row {
+    display: flex;
+    gap: @padding-sm;
+    align-items: center;
+    min-width: 0;
+    padding: 0 @padding-sm;
+    border-radius: @padding-sm;
+  }
+
+  .current-row {
+    height: @container-height;
+    background: var(--color-fill-1);
+    border: @border-width solid var(--color-border-2);
+  }
+
+  .input-row {
+    height: @container-height;
+    background: var(--color-fill-1);
+    border: @border-width solid var(--color-border-2);
   }
 
   // 自定义面包屑容器
   .custom-breadcrumb {
     display: flex;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     align-items: center;
     min-width: 0;
     height: 100%;
+    overflow: auto hidden;
+    scrollbar-width: none;
+  }
+
+  .custom-breadcrumb::-webkit-scrollbar {
+    display: none;
   }
 
   // 面包屑项通用样式
   .breadcrumb-item {
     .flex-center();
+
     padding: 0 @padding-lg;
     font-family: Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: @font-size-base;
     line-height: 1.571rem;
-    color: rgb(var(--primary-6));
+    color: var(--color-text-2);
     cursor: pointer;
     border-radius: @padding-sm;
     .transition();
@@ -618,19 +708,11 @@
 
   // Home 项样式 - 始终灰色背景
   .home-item {
-    align-self: stretch;
-    height: @container-height;
-    padding: 0 @padding-lg 0 @padding-xl;
+    height: 1.857rem;
+    padding: 0 @padding-lg;
     background-color: var(--color-fill-2);
-    border-right: @border-width solid var(--color-border-2);
-
     &:hover {
       background-color: var(--color-fill-3);
-    }
-
-    // 第一个路径项添加左边距（不管是path-item还是current-item）
-    + .breadcrumb-item {
-      margin-left: 0.429rem;
     }
   }
 
@@ -645,7 +727,6 @@
   .current-item {
     color: var(--color-text-1);
     cursor: default;
-
     &:hover {
       background-color: transparent;
     }
@@ -699,11 +780,28 @@
     }
   }
 
+  .zone-badge {
+    flex-shrink: 0;
+    padding: 0 0.429rem;
+    font-size: @font-size-xs;
+    line-height: 1.429rem;
+    border-radius: 0.286rem;
+  }
+
+  .zone-badge-current {
+    color: var(--color-text-2);
+    background: var(--color-fill-2);
+  }
+
+  .zone-badge-input {
+    color: rgb(var(--success-7));
+    background: rgb(var(--success-1));
+  }
+
   // 输入框样式
   .breadcrumb-container .path-input {
     flex: 1;
     min-width: 0;
-    padding-right: 4.643rem;
     font-family: Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: @font-size-base;
     border-radius: 0;
@@ -715,7 +813,8 @@
       &,
       &:hover,
       &:focus {
-        padding: 0 4.643rem 0 @padding-lg;
+        // 预留清除按钮空间，避免文字和右侧X重叠
+        padding: 0 2rem 0 @padding-lg;
         font-size: @font-size-base;
         line-height: 1.571rem;
         outline: none !important;
@@ -725,59 +824,66 @@
       }
 
       color: var(--color-text-3);
-
       &:focus {
         color: var(--color-text-1);
       }
-
       &::placeholder {
         color: var(--color-text-3);
       }
     }
-
     :deep(.arco-input-wrapper) {
+      position: relative;
       padding: 0 !important;
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
     }
-
-    // 清除按钮样式调整
-    :deep(.arco-input-clear-btn) {
-      position: absolute;
-      top: 50%;
-      right: 2.5rem;
-      z-index: 10;
-      .flex-center();
-      width: 1.429rem;
-      height: 1.429rem;
-      color: var(--color-text-3);
-      background: transparent;
-      border-radius: @padding-sm;
-      transform: translateY(-50%);
-
-      &:hover {
-        color: var(--color-text-2);
-        background: var(--color-fill-2);
-      }
-    }
   }
 
-  // Go按钮样式 - 增加高度
-  .go-button {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
+  .clear-button {
+    flex-shrink: 0;
     .flex-center();
-    width: @container-height;
+
+    width: 1.857rem;
+    height: 1.857rem;
     color: var(--color-text-2);
     cursor: pointer;
     background: var(--color-bg-1);
     border: @border-width solid var(--color-border-2);
     border-radius: @padding-sm;
     .transition();
+    &:hover:not(.clear-button--disabled) {
+      background: var(--color-fill-2);
+      border-color: var(--color-border-3);
+    }
+    &:active:not(.clear-button--disabled) {
+      background: var(--color-fill-1);
+      border-color: var(--color-border-3);
+    }
+    &.clear-button--disabled {
+      color: var(--color-text-4);
+      cursor: not-allowed;
+      background: var(--color-fill-1);
+      border-color: var(--color-border-2);
+    }
+    :deep(.arco-icon) {
+      font-size: @font-size-base;
+    }
+  }
 
+  // Go按钮样式 - 增加高度
+  .go-button {
+    flex-shrink: 0;
+    .flex-center();
+
+    width: 1.857rem;
+    height: 1.857rem;
+    color: var(--color-text-2);
+    cursor: pointer;
+    background: var(--color-bg-1);
+    border: @border-width solid var(--color-border-2);
+    border-radius: @padding-sm;
+    .transition();
     &--disabled {
       color: var(--color-text-4);
       cursor: not-allowed;
@@ -786,171 +892,65 @@
     }
 
     // 默认悬停和激活状态 - 仅在没有激活类时应用
-    &:hover:not(.go-button--disabled):not(.go-button--active) {
+    &:hover:not(.go-button--disabled, .go-button--active) {
       background: var(--color-fill-2);
       border-color: var(--color-border-3);
     }
-
-    &:active:not(.go-button--disabled):not(.go-button--active) {
+    &:active:not(.go-button--disabled, .go-button--active) {
       background: var(--color-fill-1);
       border-color: var(--color-border-3);
     }
-
     :deep(.arco-icon) {
       font-size: @font-size-base;
       color: currentcolor;
     }
   }
 
-  // Go按钮激活状态 - 紫色主题，使用更高权重选择器减少 !important
+  // Go按钮激活状态 - 灰色主题，使用更高权重选择器减少 !important
   .breadcrumb-container .go-button--active {
     color: #fff;
     cursor: pointer;
-    background: rgb(var(--primary-6));
-    border: 0.107rem solid rgb(var(--primary-6));
-    box-shadow: 0 0 0.857rem var(--idb-overlay-medium);
-    animation: button-glow 2s ease-in-out infinite alternate;
-
+    background: var(--color-text-3);
+    border: @border-width solid var(--color-text-3);
     &:hover {
-      background: rgb(var(--primary-5));
-      border-color: rgb(var(--primary-5));
-      box-shadow: 0 0 1.143rem var(--idb-overlay-dark);
-      animation: none;
+      background: var(--color-text-2);
+      border-color: var(--color-text-2);
     }
-
     &:active {
-      background: rgb(var(--primary-7));
-      border-color: rgb(var(--primary-7));
-      box-shadow: 0 0 0.571rem var(--idb-overlay-dark);
-      animation: none;
+      background: var(--color-text-4);
+      border-color: var(--color-text-4);
     }
-
     :deep(.arco-icon) {
       color: #fff;
     }
   }
 
-  // 呼吸动画效果
-  @keyframes button-glow {
-    0% {
-      box-shadow: 0 0 0.571rem var(--idb-overlay-light);
-    }
-    100% {
-      box-shadow: 0 0 1.143rem var(--idb-overlay-dark);
-    }
-  }
-
   // 响应式设计
   @media (max-width: @screen-md) {
-    .breadcrumb-container {
-      height: @container-height;
-      padding: 0;
-    }
-
     .home-item {
-      padding: 0 0.429rem 0 @padding-lg;
-    }
-
-    .home-icon-overlay {
-      left: 0;
-    }
-
-    :deep(.arco-breadcrumb-item) {
-      font-size: 0.929rem;
-    }
-
-    :deep(.arco-breadcrumb-item-link) {
       padding: 0 0.429rem;
     }
-
     .home-icon {
       font-size: @font-size-sm;
     }
-
-    .home-text {
-      font-size: 0.929rem;
-    }
-
-    :deep(.arco-breadcrumb-item-separator) {
-      margin: 0 @padding-sm;
-      font-size: @font-size-xs;
-    }
-
     .path-input-container {
       flex: 1;
       min-width: 7.143rem;
     }
-
-    .go-button {
-      top: @padding-sm;
-      right: @padding-sm;
-      bottom: @padding-sm;
-      width: 2rem;
-    }
-
-    .path-input {
-      padding-right: 3.929rem;
-
-      :deep(.arco-input) {
-        padding: 0 3.929rem 0 @padding-lg;
-      }
-
-      :deep(.arco-input-clear-btn) {
-        right: 2.143rem;
-      }
-    }
   }
 
   @media (max-width: @screen-sm) {
-    .breadcrumb-container {
-      height: @container-height;
-      padding: 0;
-    }
-
-    .home-item {
-      padding: 0 0.429rem 0 0.429rem;
-    }
-
-    .home-icon-overlay {
-      left: 0;
-    }
-
-    .home-text {
-      font-size: @font-size-sm;
-    }
-
     .breadcrumb-text {
       max-width: 5.714rem;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
     .path-input-container {
       flex: 1;
       min-width: 5.714rem;
     }
-
-    .go-button {
-      top: @border-width;
-      right: @border-width;
-      bottom: @border-width;
-      width: 1.714rem;
-
-      :deep(.arco-icon) {
-        font-size: @font-size-sm;
-      }
-    }
-
-    .path-input {
-      padding-right: 3.571rem;
-
-      :deep(.arco-input) {
-        padding: 0 3.571rem 0 0.429rem;
-      }
-
-      :deep(.arco-input-clear-btn) {
-        right: 1.857rem;
-      }
+    .zone-badge {
+      display: none;
     }
   }
 

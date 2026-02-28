@@ -1,18 +1,21 @@
-import { ref, Ref, computed, unref } from 'vue';
+import { Ref, computed, unref } from 'vue';
 import { Router } from 'vue-router';
 import { Message } from '@arco-design/web-vue';
 import { useI18n } from 'vue-i18n';
-import { getFileDetailApi } from '@/api/file';
+import { getFileDetailApi, getFileTailApi } from '@/api/file';
 import { createFileRouteWithPagination } from '@/utils/file-route';
 import { useLogger } from '@/composables/use-logger';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
-import { FileItem } from '@/components/file/file-editor-drawer/types';
+import {
+  ContentViewMode,
+  FileItem,
+} from '@/components/file/file-editor-drawer/types';
 import { FileTreeItem } from '../components/file-tree/type';
 import useFileStore from '../store/file-store';
 
 // 常量定义
-const FILE_SIZE_LIMIT = 1024 * 1024; // 1MB
-const API_DOWNLOAD_PATH = '/api/files/{host}/download';
+const FILE_TAIL_PREVIEW_THRESHOLD = 100 * 1024; // 100KB
+const DEFAULT_TAIL_LINE_COUNT = 30;
 
 interface FileNavigationParams {
   store: ReturnType<typeof useFileStore>;
@@ -22,10 +25,11 @@ interface FileNavigationParams {
   setLoading?: (loading: boolean) => void;
 }
 
+interface OpenFileOptions {
+  enterEditMode?: boolean;
+}
+
 interface UseFileNavigationReturn {
-  isGotoTriggered: Ref<boolean>;
-  isLoading: Ref<boolean>;
-  openFileInEditor: (fileOrPath: FileItem | string) => Promise<void>;
   handleGotoWrapper: (path: string) => void;
   handleTreeItemSelect: (record: FileTreeItem) => void;
   handleTreeItemDoubleClick: (record: FileTreeItem) => void;
@@ -38,10 +42,6 @@ export const useFileNavigation = (
   const { store, fileEditorDrawerRef, router, currentHostId, setLoading } =
     params;
   const { logError } = useLogger('FileNavigation');
-
-  // 响应式状态
-  const isGotoTriggered = ref(false);
-  const isLoading = ref(false);
 
   // 计算属性
   const hostId = computed(() => unref(currentHostId));
@@ -57,7 +57,6 @@ export const useFileNavigation = (
 
   // 工具函数：设置加载状态
   const updateLoadingState = (loading: boolean) => {
-    isLoading.value = loading;
     if (setLoading) {
       setLoading(loading);
     }
@@ -67,24 +66,6 @@ export const useFileNavigation = (
   const extractDirPath = (filePath: string): string => {
     const lastSlashIndex = filePath.lastIndexOf('/');
     return lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
-  };
-
-  // 工具函数：处理文件下载
-  const handleFileDownload = (fileDetail: FileItem) => {
-    const downloadUrl = `${API_DOWNLOAD_PATH}?source=${encodeURIComponent(
-      fileDetail.path
-    )}`;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileDetail.name;
-    link.style.display = 'none';
-
-    try {
-      document.body.appendChild(link);
-      link.click();
-    } finally {
-      document.body.removeChild(link);
-    }
   };
 
   // 工具函数：统一的导航处理
@@ -115,7 +96,6 @@ export const useFileNavigation = (
    * 包装的导航处理函数
    */
   const handleGotoWrapper = (path: string) => {
-    isGotoTriggered.value = true;
     navigateToPath(path, true);
   };
 
@@ -123,7 +103,8 @@ export const useFileNavigation = (
    * 打开或下载文件
    */
   const openFileInEditor = async (
-    fileOrPath: FileItem | string
+    fileOrPath: FileItem | string,
+    options: OpenFileOptions = {}
   ): Promise<void> => {
     try {
       const filePath =
@@ -144,27 +125,37 @@ export const useFileNavigation = (
 
       // 更新地址栏显示目录路径
       if (store.pwd !== dirPath) {
-        const currentGotoState = isGotoTriggered.value;
-        isGotoTriggered.value = false;
         store.handleGoto(dirPath);
-        isGotoTriggered.value = currentGotoState;
       }
 
-      if (fileDetail.size > FILE_SIZE_LIMIT) {
-        // 大文件下载处理
-        Message.info(
-          t('app.file.list.message.largeFileDownload') ||
-            'Large file will be downloaded'
-        );
-        handleFileDownload(fileDetail);
-      } else {
-        // 小文件编辑器处理
-        const drawer = unref(fileEditorDrawerRef);
-        if (drawer) {
-          drawer.setFile(fileDetail);
-          drawer.show();
-        }
+      const drawer = unref(fileEditorDrawerRef);
+      if (!drawer) {
+        return;
       }
+
+      if (fileDetail.size > FILE_TAIL_PREVIEW_THRESHOLD) {
+        const tailData = await getFileTailApi({
+          path: filePath,
+          numbers: DEFAULT_TAIL_LINE_COUNT,
+        });
+        drawer.setFile({
+          ...fileDetail,
+          content: tailData.content,
+          is_tail: true,
+          content_view_mode: 'tail' as ContentViewMode,
+          line_count: DEFAULT_TAIL_LINE_COUNT,
+        });
+      } else {
+        drawer.setFile({
+          ...fileDetail,
+          content_view_mode: 'full' as ContentViewMode,
+        });
+      }
+
+      if (options.enterEditMode) {
+        drawer.setReadOnly(false);
+      }
+      drawer.show();
     } catch (error) {
       logError('Failed to open file:', error);
       Message.error(
@@ -216,15 +207,12 @@ export const useFileNavigation = (
         });
       }
 
-      // 打开文件
+      // 打开文件查看器，不直接进入编辑
       openFileInEditor(record.path);
     }
   };
 
   return {
-    isGotoTriggered,
-    isLoading,
-    openFileInEditor,
     handleGotoWrapper,
     handleTreeItemSelect,
     handleTreeItemDoubleClick,

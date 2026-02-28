@@ -1,12 +1,17 @@
 export default {
   'components.file.createFileDrawer.title': '创建文件',
+  'components.file.createFileDrawer.directory': '目录',
   'components.file.createFileDrawer.name': '文件名称',
+  'components.file.createFileDrawer.directory_placeholder': '请输入或选择目录',
+  'components.file.createFileDrawer.name_placeholder': '请输入文件名',
   'components.file.createFileDrawer.is_link': '是否链接',
   'components.file.createFileDrawer.link_type': '链接类型',
   'components.file.createFileDrawer.hard': '硬链接',
   'components.file.createFileDrawer.soft': '软链接',
   'components.file.createFileDrawer.link_path': '链接路径',
+  'components.file.createFileDrawer.directory_required': '请输入目录',
   'components.file.createFileDrawer.name_required': '请输入文件名称',
+  'components.file.createFileDrawer.name_invalid': '文件名不能包含 /',
   'components.file.createFileDrawer.link_path_required': '请输入链接路径',
   'components.file.createFileDrawer.success': '创建成功',
 };

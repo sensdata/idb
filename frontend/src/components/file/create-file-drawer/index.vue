@@ -15,11 +15,27 @@
       :labelAlign="'left'"
     >
       <a-form-item
+        field="pwd"
+        :label="$t('components.file.createFileDrawer.directory')"
+        label-col-flex="70px"
+      >
+        <file-selector
+          v-model="formState.pwd"
+          type="dir"
+          :placeholder="
+            $t('components.file.createFileDrawer.directory_placeholder')
+          "
+        />
+      </a-form-item>
+      <a-form-item
         field="name"
         :label="$t('components.file.createFileDrawer.name')"
         label-col-flex="70px"
       >
-        <a-input v-model="formState.name" />
+        <a-input
+          v-model="formState.name"
+          :placeholder="$t('components.file.createFileDrawer.name_placeholder')"
+        />
       </a-form-item>
       <a-form-item field="is_link" label="" label-col-flex="70px">
         <a-checkbox v-model="formState.is_link">
@@ -60,6 +76,7 @@
   import useLoading from '@/composables/loading';
   import { createFileApi } from '@/api/file';
   import { useHostStore } from '@/store';
+  import FileSelector from '@/components/file/file-selector/index.vue';
 
   const emit = defineEmits(['ok']);
 
@@ -76,9 +93,24 @@
   });
 
   const rules = {
+    pwd: {
+      required: true,
+      message: t('components.file.createFileDrawer.directory_required'),
+    },
     name: {
       required: true,
       message: t('components.file.createFileDrawer.name_required'),
+      validator: (value: string, cb: any) => {
+        if (!value || value.trim() === '') {
+          cb(t('components.file.createFileDrawer.name_required'));
+          return;
+        }
+        if (value.includes('/')) {
+          cb(t('components.file.createFileDrawer.name_invalid'));
+          return;
+        }
+        cb();
+      },
     },
     link_path: {
       required: true,
@@ -88,6 +120,12 @@
 
   const visible = ref(false);
   const { loading, setLoading } = useLoading(false);
+
+  const buildSourcePath = () => {
+    const dir = (formState.pwd || '/').trim() || '/';
+    const name = formState.name.trim();
+    return `${dir.replace(/\/+$/, '') || '/'}${dir === '/' ? '' : '/'}${name}`;
+  };
 
   const setData = (data: { pwd: string }) => {
     formState.pwd = data.pwd;
@@ -111,7 +149,7 @@
     try {
       await createFileApi({
         host: hostStore.currentId ?? hostStore.defaultId,
-        source: formState.pwd + '/' + formState.name,
+        source: buildSourcePath(),
         is_dir: false,
         is_link: formState.is_link,
         is_symlink: formState.link_type === 'soft',

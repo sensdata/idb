@@ -1,5 +1,9 @@
 import { defineStore } from 'pinia';
-import { getFileDetailApi, searchFileListApi } from '@/api/file';
+import {
+  getFileDetailApi,
+  getFileListApi,
+  searchFileListApi,
+} from '@/api/file';
 import { SimpleFileInfoEntity } from '@/entity/FileInfo';
 import { FileItem } from '@/components/file/file-editor-drawer/types';
 import { createLogger } from '@/utils/logger';
@@ -125,21 +129,26 @@ const useFileStore = defineStore('file-manage', {
       }
 
       treeItem.loading = true;
-      const data = await searchFileListApi({
-        page: 1,
-        page_size: 500,
-        show_hidden: true,
-        path: treeItem.path,
-      });
+      try {
+        const data = await searchFileListApi({
+          page: 1,
+          page_size: 500,
+          show_hidden: true,
+          path: treeItem.path,
+        });
 
-      // 根据配置决定是否显示文件
-      treeItem.items = this.$state.showFilesInTree
-        ? data.items || []
-        : (data.items || []).filter((item) => item.is_dir);
-      treeItem.open = true;
-      treeItem.loading = false;
-      // 触发视图更新
-      this.$state.tree = [...this.$state.tree];
+        // 根据配置决定是否显示文件
+        treeItem.items = this.$state.showFilesInTree
+          ? data.items || []
+          : (data.items || []).filter((item) => item.is_dir);
+        treeItem.open = true;
+      } catch (error) {
+        this.logger.logError('store.loadTreeChildren failed:', error);
+      } finally {
+        treeItem.loading = false;
+        // 触发视图更新
+        this.$state.tree = [...this.$state.tree];
+      }
     },
 
     /**
@@ -227,18 +236,21 @@ const useFileStore = defineStore('file-manage', {
      * @param payload 搜索参数对象
      */
     async handleAddressSearch(payload: { path: string; word?: string }) {
-      if (!payload.word) {
-        this.$state.addressItems = [];
-        return;
-      }
-
-      const data = await searchFileListApi({
-        page: 1,
-        page_size: 100,
-        show_hidden: this.$state.showHidden,
-        path: payload.path,
-        search: payload.word,
-      });
+      const keyword = (payload.word || '').trim();
+      const data = keyword
+        ? await searchFileListApi({
+            page: 1,
+            page_size: 100,
+            show_hidden: this.$state.showHidden,
+            path: payload.path,
+            search: keyword,
+          })
+        : await getFileListApi({
+            page: 1,
+            page_size: 100,
+            show_hidden: this.$state.showHidden,
+            path: payload.path,
+          });
       this.$state.addressItems = data.items || [];
     },
 
@@ -395,7 +407,7 @@ const useFileStore = defineStore('file-manage', {
     async navigateToPath(path: string) {
       try {
         const normalizedPath = path || '/';
-        this.logger.log('🗂️ store.navigateToPath called:', {
+        this.logger.log('store.navigateToPath called:', {
           targetPath: normalizedPath,
           currentPwd: this.pwd,
           currentState: this.current,
@@ -404,9 +416,7 @@ const useFileStore = defineStore('file-manage', {
 
         // 如果当前路径已经是目标路径，不执行任何操作
         if (this.pwd === normalizedPath) {
-          this.logger.log(
-            '⏭️ store.navigateToPath: already at target path, skipping'
-          );
+          this.logger.log('store.navigateToPath: already at target path, skip');
           return;
         }
 
@@ -415,21 +425,21 @@ const useFileStore = defineStore('file-manage', {
           expand: false,
         });
 
-        this.logger.log('📋 store.navigateToPath: got file detail:', item);
+        this.logger.log('store.navigateToPath: file detail loaded:', item);
 
         if (item) {
           // 如果是目录，直接导航
           if (item.is_dir) {
             this.logger.log(
-              '📁 store.navigateToPath: updating current to directory:',
+              'store.navigateToPath: set current directory:',
               item.path
             );
             this.$state.current = item;
             this.$state.addressItems = [];
             this.logger.log(
-              '📁 store.navigateToPath: navigated to directory:',
+              'store.navigateToPath: navigated directory:',
               item.path,
-              'new pwd:',
+              'pwd:',
               this.pwd
             );
           } else {
@@ -444,22 +454,21 @@ const useFileStore = defineStore('file-manage', {
 
             if (parentItem && parentItem.is_dir) {
               this.logger.log(
-                '📄 store.navigateToPath: updating current to parent directory:',
+                'store.navigateToPath: set parent directory for file:',
                 parentItem.path
               );
               this.$state.current = parentItem;
               this.$state.selected = [item];
               this.logger.log(
-                '📄 store.navigateToPath: navigated to parent directory:',
+                'store.navigateToPath: selected file under parent:',
                 parentItem.path,
-                'and selected file:',
                 item.path
               );
             }
           }
         }
       } catch (error) {
-        this.logger.logError('❌ store.navigateToPath failed:', error);
+        this.logger.logError('store.navigateToPath failed:', error);
       }
     },
   },

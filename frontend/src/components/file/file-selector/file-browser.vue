@@ -160,6 +160,13 @@
     );
   });
   const canGoBack = computed(() => currentPath.value !== '/');
+  const normalizedSelectType = computed(() => {
+    const rawType = String(props.type || '').toLowerCase();
+    if (rawType === 'directory') return FileSelectType.DIR;
+    if (rawType === FileSelectType.FILE) return FileSelectType.FILE;
+    if (rawType === FileSelectType.DIR) return FileSelectType.DIR;
+    return FileSelectType.ALL;
+  });
 
   const pathParts = computed(() => {
     const parts = currentPath.value.split('/').filter(Boolean);
@@ -170,7 +177,7 @@
   });
 
   const isFileSelectable = (file: FileItem): boolean => {
-    switch (props.type) {
+    switch (normalizedSelectType.value) {
       case FileSelectType.FILE:
         return !file.is_dir;
       case FileSelectType.DIR:
@@ -287,8 +294,8 @@
   }
 
   .header {
-    margin: -16px -16px 8px -16px;
     padding: 8px 16px;
+    margin: -16px -16px 8px -16px;
     border-bottom: 1px solid var(--color-neutral-3);
   }
 

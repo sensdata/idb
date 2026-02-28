@@ -1,9 +1,15 @@
 import { ref, computed, watch } from 'vue';
+import {
+  FavoriteFileEntity,
+  favoriteFileApi,
+  getFavoriteFilesApi,
+  unFavoriteFileApi,
+} from '@/api/file';
 import { useLogger } from '@/composables/use-logger';
-
-const STORAGE_KEY = 'idb-pinned-directories';
+import useCurrentHost from '@/composables/current-host';
 
 export interface PinnedDirectory {
+  id?: number;
   path: string;
   name: string;
   lastSeen?: number;
@@ -12,7 +18,9 @@ export interface PinnedDirectory {
 
 // Global reactive state
 const pinnedDirectories = ref<PinnedDirectory[]>([]);
-let isInitialized = false;
+const loadingFavorites = ref(false);
+let loadedHostId: number | undefined;
+let loadRequestId = 0;
 
 const { logWarn } = useLogger('PinnedDirectories');
 
@@ -25,60 +33,28 @@ const getDisplayName = (path: string): string => {
   return path.split('/').pop() || path;
 };
 
-const loadFromStorage = (): PinnedDirectory[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-
-    const parsed = JSON.parse(stored);
-    // Handle legacy format (array of strings) and convert to new format
-    if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-      return parsed.map((path) => ({
-        path: normalizePath(path),
-        name: getDisplayName(path),
-        lastSeen: Date.now(),
-        exists: true,
-      }));
-    }
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    logWarn('Failed to load pinned directories from localStorage:', error);
-    return [];
-  }
-};
-
-const saveToStorage = (directories: PinnedDirectory[]): void => {
-  try {
-    const dataToSave = JSON.stringify(directories);
-    localStorage.setItem(STORAGE_KEY, dataToSave);
-  } catch (error) {
-    logWarn('Failed to save pinned directories to localStorage:', error);
-  }
-};
-
-const initializeStorage = (): void => {
-  if (isInitialized) return;
-
-  pinnedDirectories.value = loadFromStorage();
-  isInitialized = true;
-
-  // Watch for changes and persist to localStorage
-  watch(
-    pinnedDirectories,
-    (newDirectories) => {
-      saveToStorage(newDirectories);
-    },
-    { deep: true, immediate: false }
+const sortDirectories = (directories: PinnedDirectory[]): PinnedDirectory[] => {
+  return [...directories].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, {
+      numeric: true,
+      caseFirst: 'lower',
+    })
   );
+};
+
+const mapFavoriteToPinned = (favorite: FavoriteFileEntity): PinnedDirectory => {
+  const path = normalizePath(String(favorite.source || '/'));
+  return {
+    id: favorite.id,
+    path,
+    name: String(favorite.name || getDisplayName(path)),
+    lastSeen: Date.now(),
+    exists: true,
+  };
 };
 
 export function usePinnedDirectories() {
-  initializeStorage();
-
-  const pinnedPaths = computed(() =>
-    pinnedDirectories.value.map((dir) => dir.path)
-  );
+  const { currentHostId } = useCurrentHost();
 
   // Add a computed property for watching path changes only
   const pinnedPathsString = computed(() =>
@@ -90,58 +66,109 @@ export function usePinnedDirectories() {
 
   const isPinned = (path: string): boolean => {
     const normalizedPath = normalizePath(path);
-    return pinnedPaths.value.includes(normalizedPath);
+    return pinnedDirectories.value.some((dir) => dir.path === normalizedPath);
   };
 
-  const pinDirectory = (path: string, customName?: string): void => {
+  const loadFavorites = async (force = false): Promise<void> => {
+    const hostId = currentHostId.value;
+    const requestId = ++loadRequestId;
+    if (!hostId) {
+      pinnedDirectories.value = [];
+      loadedHostId = undefined;
+      loadingFavorites.value = false;
+      return;
+    }
+
+    if (!force && loadedHostId === hostId) {
+      return;
+    }
+
+    loadingFavorites.value = true;
+    try {
+      const res = await getFavoriteFilesApi({ page: 1, page_size: 1000 });
+      // 忽略过期请求，避免快速切主机造成数据串台
+      if (requestId !== loadRequestId || currentHostId.value !== hostId) {
+        return;
+      }
+      const items = Array.isArray(res?.items) ? res.items : [];
+      pinnedDirectories.value = sortDirectories(items.map(mapFavoriteToPinned));
+      loadedHostId = hostId;
+    } catch (error) {
+      if (requestId !== loadRequestId) {
+        return;
+      }
+      logWarn('Failed to load favorite directories:', error);
+      pinnedDirectories.value = [];
+    } finally {
+      if (requestId === loadRequestId) {
+        loadingFavorites.value = false;
+      }
+    }
+  };
+
+  watch(
+    currentHostId,
+    () => {
+      loadFavorites(true).catch((error) => {
+        logWarn(
+          'Failed to refresh favorite directories after host change:',
+          error
+        );
+      });
+    },
+    { immediate: false }
+  );
+
+  const pinDirectory = async (
+    path: string,
+    customName?: string
+  ): Promise<void> => {
     const normalizedPath = normalizePath(path);
 
     // Don't pin if already pinned
     if (isPinned(normalizedPath)) return;
 
-    const newPinned: PinnedDirectory = {
-      path: normalizedPath,
-      name: customName || getDisplayName(normalizedPath),
-      lastSeen: Date.now(),
-      exists: true,
-    };
+    const favorite = await favoriteFileApi({ source: normalizedPath });
+    const newPinned: PinnedDirectory = favorite?.id
+      ? mapFavoriteToPinned(favorite)
+      : {
+          path: normalizedPath,
+          name: customName || getDisplayName(normalizedPath),
+          lastSeen: Date.now(),
+          exists: true,
+        };
 
-    // Create a new array to ensure reactivity
-    const newArray = [...pinnedDirectories.value, newPinned];
-
-    // Sort pinned directories alphabetically by name
-    newArray.sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, {
-        numeric: true,
-        caseFirst: 'lower',
-      })
-    );
-
-    // Replace the entire array to trigger reactivity
-    pinnedDirectories.value = newArray;
+    pinnedDirectories.value = sortDirectories([
+      ...pinnedDirectories.value,
+      newPinned,
+    ]);
   };
 
-  const unpinDirectory = (path: string): void => {
+  const unpinDirectory = async (path: string): Promise<void> => {
     const normalizedPath = normalizePath(path);
-    const index = pinnedDirectories.value.findIndex(
+    const target = pinnedDirectories.value.find(
       (dir) => dir.path === normalizedPath
     );
 
-    if (index !== -1) {
-      // Create a new array without the item to ensure reactivity
-      const newArray = pinnedDirectories.value.filter(
+    if (!target) return;
+    if (target.id) {
+      await unFavoriteFileApi({ id: target.id });
+      pinnedDirectories.value = pinnedDirectories.value.filter(
         (dir) => dir.path !== normalizedPath
       );
-      pinnedDirectories.value = newArray;
+      return;
     }
-  };
 
-  const togglePin = (path: string, customName?: string): void => {
-    if (isPinned(path)) {
-      unpinDirectory(path);
-    } else {
-      pinDirectory(path, customName);
+    await loadFavorites(true);
+    const refreshed = pinnedDirectories.value.find(
+      (dir) => dir.path === normalizedPath
+    );
+    if (refreshed?.id) {
+      await unFavoriteFileApi({ id: refreshed.id });
     }
+    pinnedDirectories.value = pinnedDirectories.value.filter(
+      (dir) => dir.path !== normalizedPath
+    );
   };
 
   const updateDirectoryExists = (path: string, exists: boolean): void => {
@@ -167,27 +194,14 @@ export function usePinnedDirectories() {
     }
   };
 
-  const removeMissingDirectories = (): void => {
-    pinnedDirectories.value = pinnedDirectories.value.filter(
-      (dir) => dir.exists !== false
-    );
-  };
-
-  const getPinnedDirectory = (path: string): PinnedDirectory | undefined => {
-    const normalizedPath = normalizePath(path);
-    return pinnedDirectories.value.find((dir) => dir.path === normalizedPath);
-  };
-
   return {
     pinnedDirectories: computed(() => pinnedDirectories.value),
-    pinnedPaths,
+    loadingFavorites: computed(() => loadingFavorites.value),
     pinnedPathsString, // For efficient watching of path changes only
+    loadFavorites,
     isPinned,
     pinDirectory,
     unpinDirectory,
-    togglePin,
     updateDirectoryExists,
-    removeMissingDirectories,
-    getPinnedDirectory,
   };
 }

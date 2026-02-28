@@ -11,7 +11,12 @@
   >
     <template #title>
       <div class="drawer-title">
-        <span>{{ file ? file.path : t('app.file.editor.title') }}</span>
+        <span class="title-path">{{
+          file ? file.path : t('app.file.editor.title')
+        }}</span>
+        <a-tag v-if="viewMode !== 'loading'" :color="modeTagColor">
+          {{ modeTagText }}
+        </a-tag>
       </div>
     </template>
 
@@ -63,6 +68,18 @@
           />
         </div>
 
+        <div
+          v-if="viewMode !== 'loading'"
+          :class="[
+            'editor-mode-banner',
+            isEditing ? 'is-editing' : 'is-readonly',
+          ]"
+        >
+          <icon-edit v-if="isEditing" />
+          <icon-lock v-else />
+          <span>{{ modeHintText }}</span>
+        </div>
+
         <!-- 编辑器内容 -->
         <CodeEditor
           v-model="content"
@@ -72,6 +89,7 @@
           :read-only="readOnly"
           :loading-text="t('app.file.editor.loadingContent')"
           @editor-ready="handleEditorReady"
+          @content-double-click="handleContentDoubleClick"
         />
       </a-spin>
     </div>
@@ -101,12 +119,16 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { EditorView } from '@codemirror/view';
-  import { IconLoading } from '@arco-design/web-vue/es/icon';
+  import {
+    IconLoading,
+    IconEdit,
+    IconLock,
+  } from '@arco-design/web-vue/es/icon';
   import { useConfirm } from '@/composables/confirm';
   import CodeEditor from '@/components/code-editor/index.vue';
   import useFileEditor from './composables/use-file-editor';
   import useDrawerResize from './composables/use-drawer-resize';
-  import { ContentViewMode } from './types';
+  import { ContentViewMode, FileItem } from './types';
   import FileViewMode from './file-view-mode.vue';
   import EditorToolbar from './editor-toolbar.vue';
   import EditorFooter from './editor-footer.vue';
@@ -175,8 +197,29 @@
     (e: 'ok'): void;
   }>();
 
+  const isEditing = computed(
+    () => readOnly.value === false && viewMode.value === 'full'
+  );
+  const modeTagText = computed(() =>
+    isEditing.value
+      ? t('app.file.editor.modeEditing')
+      : t('app.file.editor.modeReadOnly')
+  );
+  const modeTagColor = computed(() =>
+    isEditing.value ? 'rgb(var(--success-6))' : 'rgb(var(--warning-6))'
+  );
+  const modeHintText = computed(() =>
+    isEditing.value
+      ? t('app.file.editor.modeEditingHint')
+      : t('app.file.editor.modeReadOnlyHint')
+  );
+
   // 切换编辑模式
   const toggleEditMode = () => {
+    if (viewMode.value !== 'full') {
+      readOnly.value = true;
+      return;
+    }
     readOnly.value = !readOnly.value;
   };
 
@@ -238,6 +281,12 @@
         setEditorInstance(editorView.value);
       }
     });
+  };
+
+  const handleContentDoubleClick = () => {
+    if (readOnly.value && viewMode.value === 'full') {
+      readOnly.value = false;
+    }
   };
 
   // ----- 内容管理相关函数 -----
@@ -302,7 +351,10 @@
   // 监听视图模式变化
   watch(
     () => viewMode.value,
-    () => {
+    (newMode) => {
+      if (newMode !== 'full') {
+        readOnly.value = true;
+      }
       // 当视图模式变化时，确保滚动到顶部
       nextTick(() => {
         if (editorView.value) {
@@ -344,8 +396,21 @@
   );
 
   // 文件编辑器 API
+  const setFile = (nextFile: FileItem) => {
+    // 切换文件时默认回到只读，避免误改
+    readOnly.value = true;
+    loadFile(nextFile);
+  };
+
   defineExpose({
-    setFile: loadFile,
+    setFile,
+    setReadOnly: (value: boolean) => {
+      if (viewMode.value === 'full') {
+        readOnly.value = value;
+      } else {
+        readOnly.value = true;
+      }
+    },
     show: () => {
       visible.value = true;
     },
@@ -439,6 +504,36 @@
     gap: 8px;
     align-items: center;
     font-weight: 500;
+  }
+
+  .title-path {
+    max-width: min(70vw, 860px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .editor-mode-banner {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
+  }
+
+  .editor-mode-banner.is-readonly {
+    color: rgb(var(--warning-7));
+    background-color: rgb(var(--warning-1));
+    border-color: rgb(var(--warning-3));
+  }
+
+  .editor-mode-banner.is-editing {
+    color: rgb(var(--success-7));
+    background-color: rgb(var(--success-1));
+    border-color: rgb(var(--success-3));
   }
 
   .resize-handle {

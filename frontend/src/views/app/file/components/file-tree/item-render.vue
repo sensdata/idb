@@ -144,7 +144,7 @@
     width: 4px;
     height: 75%;
     content: '';
-    background-color: rgb(var(--primary-6));
+    background-color: var(--color-text-3);
     border-radius: 2px;
   }
 
