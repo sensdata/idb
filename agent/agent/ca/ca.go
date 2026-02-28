@@ -640,6 +640,12 @@ func (s *CaService) ImportCertificate(req model.ImportCertificateRequest) error 
 
 	// 补齐证书链
 	if req.CompleteChain {
+		// Ensure root CA store is loaded before chain completion.
+		ok, err := s.loadMozillaCAStore()
+		if err != nil || !ok {
+			return fmt.Errorf("failed to load Mozilla CA store: %v", err)
+		}
+
 		fullChain, err := s.completeCertificateChain(caPath)
 		if err != nil {
 			return fmt.Errorf("error to complete chain: %v", err)
@@ -725,6 +731,12 @@ func (s *CaService) UpdateCertificate(req model.UpdateCertificateRequest) error 
 
 	// 补齐证书链
 	if req.CompleteChain {
+		// Ensure root CA store is loaded before chain completion.
+		ok, err := s.loadMozillaCAStore()
+		if err != nil || !ok {
+			return fmt.Errorf("failed to load Mozilla CA store: %v", err)
+		}
+
 		fullChain, err := s.completeCertificateChain(newCertPath)
 		if err != nil {
 			return fmt.Errorf("error to complete chain: %v", err)
