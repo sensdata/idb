@@ -28,7 +28,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { shallowRef, nextTick, computed, watch } from 'vue';
+  import { shallowRef, nextTick, computed, watch, onUnmounted } from 'vue';
   import { Codemirror } from 'vue-codemirror';
   import { EditorView } from '@codemirror/view';
   import { basicSetup } from 'codemirror';
@@ -94,6 +94,10 @@
     }
   };
 
+  const handleContentDoubleClick = () => {
+    emit('contentDoubleClick');
+  };
+
   // 监听文件变化，重置滚动位置
   watch(
     () => props.file,
@@ -107,6 +111,27 @@
       }
     }
   );
+
+  watch(
+    () => editorView.value,
+    (view, oldView) => {
+      if (oldView?.dom) {
+        oldView.dom.removeEventListener('dblclick', handleContentDoubleClick);
+      }
+      if (view?.dom) {
+        view.dom.addEventListener('dblclick', handleContentDoubleClick);
+      }
+    }
+  );
+
+  onUnmounted(() => {
+    if (editorView.value?.dom) {
+      editorView.value.dom.removeEventListener(
+        'dblclick',
+        handleContentDoubleClick
+      );
+    }
+  });
 
   // 暴露编辑器实例
   defineExpose({

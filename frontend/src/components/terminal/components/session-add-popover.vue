@@ -8,11 +8,12 @@
       width: '320px',
     }"
   >
-    <div class="arco-tabs-nav-add-btn">
-      <span class="arco-icon-hover">
+    <a-button type="outline" size="mini" class="add-session-btn">
+      <template #icon>
         <icon-plus />
-      </span>
-    </div>
+      </template>
+      {{ $t('components.terminal.workspace.addSession') }}
+    </a-button>
     <template #content>
       <div class="popover-head">
         <div class="arco-popover-title">
@@ -43,6 +44,7 @@
           >
             <a-select
               v-if="formState.type === 'attach'"
+              ref="attachSelectRef"
               v-model="formState.sessionId"
               :placeholder="
                 $t('components.terminal.session.attachSession.placeholder')
@@ -84,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, watch, computed, onUnmounted } from 'vue';
+  import { ref, reactive, watch, computed, onUnmounted, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { getTerminalSessionsApi } from '@/api/terminal';
@@ -133,6 +135,8 @@
     get: () => props.visible,
     set: (value: boolean) => emit('update:visible', value),
   });
+  const preferredOpenType = ref<'attach' | 'start'>('start');
+  const attachSelectRef = ref<any>();
 
   const formState = reactive({
     type: 'start' as 'attach' | 'start',
@@ -201,6 +205,22 @@
 
       // 合并选项，detached 在前，attached 在后
       sessionOptions.value = [...detachedSessions, ...attachedSessions];
+
+      // 在 attach 模式下，自动选择第一个可用（detached）会话
+      if (formState.type === 'attach' && !formState.sessionId) {
+        const firstAvailable = sessionOptions.value.find(
+          (item) => !item.disabled
+        );
+        if (firstAvailable) {
+          formState.sessionId = firstAvailable.value;
+        }
+      }
+
+      // 打开 attach 弹窗时，自动聚焦到会话选择器
+      if (formState.type === 'attach') {
+        await nextTick();
+        attachSelectRef.value?.focus?.();
+      }
     } catch (error) {
       logError('Failed to load terminal sessions:', error);
       Message.error(t('components.terminal.session.loadFailed'));
@@ -217,7 +237,7 @@
 
   // 重置表单
   function resetForm(): void {
-    formState.type = 'start';
+    formState.type = preferredOpenType.value;
     formState.sessionId = '';
     formState.sessionName = '';
   }
@@ -270,11 +290,8 @@
   const stopWatchingVisible = watch(visible, (val: boolean) => {
     if (val) {
       resetForm();
-
-      // 加载可附加的会话
-      if (props.currentHostId && props.currentHostId > 0) {
-        loadSessionOptions(props.currentHostId);
-      }
+    } else {
+      preferredOpenType.value = 'start';
     }
   });
 
@@ -316,12 +333,29 @@
     stopWatchingType();
     stopWatchingHostId();
   });
+
+  function openAttachMode(): void {
+    preferredOpenType.value = 'attach';
+    visible.value = true;
+  }
+
+  defineExpose({
+    openAttachMode,
+  });
 </script>
 
 <style scoped>
-  .arco-tabs-nav-add-btn .arco-icon-hover::before {
-    width: 24px;
-    height: 24px;
+  .add-session-btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 0;
+  }
+
+  .add-session-btn :deep(.arco-btn-icon) {
+    margin-right: 4px;
   }
 
   .popover-head {

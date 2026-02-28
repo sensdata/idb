@@ -2,20 +2,22 @@
   <a-layout-footer class="footer">
     <div class="left">
       <span class="color-primary">Powered by iDB</span>
-      <span class="ml-2.5">{{ $t('footer.currentVersion') }}</span>
-      <span class="ml-1 color-primary">{{ version }}</span>
-      <a-divider direction="vertical" margin="8px" />
-      <a-link
-        v-if="!isCheckingUpdate"
-        class="check-update-link"
-        @click="checkUpdate"
-      >
-        {{ $t('footer.checkUpdate') }}
-      </a-link>
-      <span v-else class="checking-update">
-        <a-spin class="mr-1 scale-75" />
-        {{ $t('footer.checkUpdate') }}
-      </span>
+      <template v-if="isLogin()">
+        <span class="ml-2.5">{{ $t('footer.currentVersion') }}</span>
+        <span class="ml-1 color-primary">{{ version }}</span>
+        <a-divider direction="vertical" margin="8px" />
+        <a-link
+          v-if="!isCheckingUpdate"
+          class="check-update-link"
+          @click="checkUpdate"
+        >
+          {{ $t('footer.checkUpdate') }}
+        </a-link>
+        <span v-else class="checking-update">
+          <a-spin class="mr-1 scale-75" />
+          {{ $t('footer.checkUpdate') }}
+        </span>
+      </template>
     </div>
     <div class="right">
       <a-space size="small">

@@ -2,6 +2,17 @@ import { FileInfoEntity } from '@/entity/FileInfo';
 import request, { resolveApiUrl } from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 
+export interface FavoriteFileEntity {
+  id: number;
+  name: string;
+  source: string;
+  type?: string;
+  is_dir: boolean;
+  is_txt: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FileListApiParams extends ApiListParams {
   host?: number;
   path?: string;
@@ -171,7 +182,7 @@ export function uploadFileApi(data: { dest: string; file: File }) {
 }
 
 export function getFavoriteFilesApi(data: ApiListParams) {
-  return request.get<ApiListResult<FileInfoEntity>>(
+  return request.get<ApiListResult<FavoriteFileEntity>>(
     'files/{host}/favorites',
     data
   );

@@ -1,6 +1,7 @@
 export default {
-  'login.intro.title': 'iDB - Instant Database Manager ',
-  'login.intro.slogan': 'A self-service Git service that is easy to build',
+  'login.intro.title': 'iDB - Server Management System',
+  'login.intro.slogan':
+    'A lightweight and easy-to-deploy server management platform',
   'login.feature1.title': 'Easy to install',
   'login.feature1.desc':
     'Run in binary; Or run it through docker; Or run it through an installation package',
@@ -10,9 +11,9 @@ export default {
   'login.feature3.title': 'Light weight',
   'login.feature3.desc':
     'The configuration of an inexpensive Raspberry PI is sufficient to meet the minimum system hardware requirements of IDB. Maximize your server resource savings!',
-  'login.feature4.title': 'Open source',
+  'login.feature4.title': 'Comprehensive',
   'login.feature4.desc':
-    'All the code is open source on IDB, so join us to develop this great project! What are you waiting for? Become a contributor!',
+    'Integrating host management, application deployment, and system monitoring to provide comprehensive server management solutions.',
 
   'login.form.title': 'Sign in iDB',
   'login.form.userName.errMsg': 'Username cannot be empty',

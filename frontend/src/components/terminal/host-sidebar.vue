@@ -50,7 +50,7 @@
         </div>
         <div class="host-info">
           <div class="host-name">{{ host.name }}</div>
-          <div class="host-addr">{{ host.addr }}:{{ host.port }}</div>
+          <div class="host-addr">{{ host.addr }}</div>
         </div>
         <div class="host-status">
           <div

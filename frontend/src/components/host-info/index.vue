@@ -7,7 +7,7 @@
         </template>
       </a-button>
       <div class="host-name truncate"
-        >{{ hostStore.current?.name || hostStore.current?.addr }}
+        >{{ hostStore.current?.addr || hostStore.current?.name }}
       </div>
       <a-button class="btn" @click="openTerminal?.()">
         <template #icon>
@@ -64,7 +64,6 @@
   import { useI18n } from 'vue-i18n';
   import router from '@/router';
   import { useHostStore } from '@/store';
-  import { SELECT_HOST } from '@/router/constants';
   import { connectHostStatusFollowApi, getHostStatusApi } from '@/api/host';
   import { formatTransferSpeed } from '@/utils/format';
   import DownStreamIcon from '@/assets/icons/downstream.svg';
@@ -173,7 +172,8 @@
   );
 
   const gotoManage = () => {
-    router.push(SELECT_HOST);
+    console.log('gotoManage clicked, navigating to /manage/host');
+    router.push('/manage/host');
   };
 
   const openTerminal = inject<() => void>('openTerminal');
@@ -191,6 +191,12 @@
     height: 4rem;
     padding: 0 0.571rem;
     border-bottom: 1px solid var(--color-border);
+    .back {
+      position: relative;
+      z-index: 10;
+      pointer-events: auto;
+      cursor: pointer;
+    }
     .host-name {
       flex: 1;
       min-width: 100px;

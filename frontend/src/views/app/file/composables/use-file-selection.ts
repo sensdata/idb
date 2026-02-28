@@ -1,6 +1,8 @@
 import { Ref, watch, nextTick } from 'vue';
 import { debounce } from 'lodash';
 import { Router } from 'vue-router';
+import { Message } from '@arco-design/web-vue';
+import { useI18n } from 'vue-i18n';
 import { getFileListApi, getFileDetailApi, getFileTailApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import FileEditorDrawer from '@/components/file/file-editor-drawer/index.vue';
@@ -9,7 +11,10 @@ import {
   FileItem,
 } from '@/components/file/file-editor-drawer/types';
 import { useLogger } from '@/composables/use-logger';
-import { createFileRouteWithPagination } from '@/utils/file-route';
+import {
+  createFileRouteWithPagination,
+  parsePaginationFromRoute,
+} from '@/utils/file-route';
 import useFileStore from '../store/file-store';
 import FileMainView from '../components/file-main-view.vue';
 
@@ -22,7 +27,12 @@ interface FileSelectionParams {
   setLoading?: (loading: boolean) => void;
 }
 
+interface OpenFileOptions {
+  enterEditMode?: boolean;
+}
+
 export const useFileSelection = (params: FileSelectionParams) => {
+  const { t } = useI18n();
   const {
     store,
     fileEditorDrawerRef,
@@ -34,7 +44,10 @@ export const useFileSelection = (params: FileSelectionParams) => {
   const { logError, logDebug } = useLogger('FileSelection');
 
   // 引用导航模块中的函数
-  const openFileInEditor = async (fileOrPath: FileItem | string) => {
+  const openFileInEditor = async (
+    fileOrPath: FileItem | string,
+    options: OpenFileOptions = {}
+  ) => {
     try {
       const filePath =
         typeof fileOrPath === 'string' ? fileOrPath : fileOrPath.path;
@@ -113,7 +126,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
         const fileWithPartialContent = {
           ...fileDetail,
           content: tailData.content,
-          is_tail: true, // 保留向后兼容
+          is_tail: true,
           content_view_mode: 'tail' as ContentViewMode,
           line_count: defaultLineCount,
           loading: false,
@@ -123,29 +136,32 @@ export const useFileSelection = (params: FileSelectionParams) => {
         fileEditorDrawerRef.value?.setFile(fileWithPartialContent);
       } else {
         // 小文件完整打开编辑器，但仍然允许使用实时追踪模式
-        fileEditorDrawerRef.value?.setFile({
+        const nextFile = {
           ...fileDetail,
-          content_view_mode: 'full',
+          content_view_mode: 'full' as const,
           loading: false,
-        });
+        };
+        fileEditorDrawerRef.value?.setFile(nextFile);
+        if (options.enterEditMode) {
+          fileEditorDrawerRef.value?.setReadOnly(false);
+        }
       }
     } catch (error) {
       logError('File open error:', error);
+      Message.error(t('app.file.list.message.fileOpenFailed'));
       // 发生错误时关闭编辑器
       fileEditorDrawerRef.value?.hide();
     }
   };
 
   /**
-   * 单击处理：目录只导航，文件则选择并打开
+   * 单击处理：目录导航，文件选择并打开查看器
    */
   const handleSingleClickAction = (record: FileItem) => {
     if (record.is_dir) {
       // 立即设置loading状态，避免显示空白页面
       if (setLoading) {
-        logDebug(
-          '🔄 useFileSelection handleSingleClickAction: setting loading to true immediately'
-        );
+        logDebug('useFileSelection: set loading=true on single click');
         setLoading(true);
       }
 
@@ -165,7 +181,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
         currentHostId.value ? { id: currentHostId.value } : {}
       );
 
-      logDebug('🚀 useFileSelection handleSingleClickAction navigation:', {
+      logDebug('useFileSelection: navigate on single click', {
         targetPath: record.path,
         routeConfig,
         currentPath: store.pwd,
@@ -177,10 +193,8 @@ export const useFileSelection = (params: FileSelectionParams) => {
       // 同时也调用store方法更新内部状态
       store.handleOpen(record);
     } else {
-      // 文件进行选择
+      // 文件进行选择并打开查看器
       store.handleSelected([record]);
-
-      // 直接打开文件，不再依赖导航状态
       openFileInEditor(record);
     }
   };
@@ -200,9 +214,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
     if (record.is_dir) {
       // 立即设置loading状态，避免显示空白页面
       if (setLoading) {
-        logDebug(
-          '🔄 useFileSelection handleItemDoubleClick: setting loading to true immediately'
-        );
+        logDebug('useFileSelection: set loading=true on double click');
         setLoading(true);
       }
 
@@ -217,7 +229,7 @@ export const useFileSelection = (params: FileSelectionParams) => {
         currentHostId.value ? { id: currentHostId.value } : {}
       );
 
-      logDebug('🚀 useFileSelection handleItemDoubleClick navigation:', {
+      logDebug('useFileSelection: navigate on double click', {
         targetPath: record.path,
         routeConfig,
         currentPath: store.pwd,
@@ -229,7 +241,8 @@ export const useFileSelection = (params: FileSelectionParams) => {
       // 同时也调用store方法更新内部状态
       store.handleOpen(record);
     } else {
-      // 直接打开文件，不需要额外的导航检查
+      store.handleSelected([record]);
+      // 文件双击保持打开查看器行为，不直接进入编辑
       openFileInEditor(record);
     }
   };
@@ -240,8 +253,10 @@ export const useFileSelection = (params: FileSelectionParams) => {
       // 使用 Vue 的 nextTick 等待 DOM 更新完成
       await nextTick();
 
-      // 获取页面大小
-      const pageSize = 20;
+      // 使用当前路由中的页大小，避免硬编码导致定位错页
+      const { pageSize } = parsePaginationFromRoute(
+        router.currentRoute.value.query
+      );
 
       // 获取文件列表计算页码
       const fileListResponse = await getFileListApi({

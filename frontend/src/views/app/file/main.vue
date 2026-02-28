@@ -348,46 +348,12 @@
   }
 
   .file-layout {
-    position: relative;
     display: flex;
+    align-items: stretch;
     min-height: calc(100vh - 240px);
     overflow: hidden;
+    background: var(--color-bg-1);
     border: 1px solid var(--color-border-2);
-    border-radius: 4px;
-  }
-
-  /* 桌面布局 */
-  @media screen and (width >= 992px) {
-    .file-layout {
-      padding-left: 208px;
-    }
-  }
-
-  /* 平板设备 */
-  @media screen and (width <= 991px) {
-    .file-layout {
-      padding-left: 180px;
-    }
-  }
-
-  /* 小型平板 */
-  @media screen and (width <= 768px) {
-    .file-layout {
-      padding-left: 160px;
-    }
-  }
-
-  /* 手机设备 */
-  @media screen and (width <= 576px) {
-    .file-layout {
-      padding-left: 140px;
-    }
-  }
-
-  /* 小型手机 */
-  @media screen and (width <= 480px) {
-    .file-layout {
-      padding-left: 120px;
-    }
+    border-radius: 8px;
   }
 </style>

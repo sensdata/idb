@@ -1,6 +1,6 @@
 import { ref, Ref } from 'vue';
 import type { ComponentPublicInstance } from 'vue';
-import { findCommonPrefix } from '../utils';
+import { findCommonPrefix, resolveSearchContext } from '../utils';
 import { DropdownOption } from './use-dropdown-navigation';
 import { EmitFn } from '../types';
 
@@ -29,6 +29,7 @@ export default function usePathNavigation(
 ) {
   const lastTabTime = ref(0);
   const userTyping = ref(true);
+  const pendingDirectoryPreview = ref(false);
 
   const handleHome = () => {
     value.value = '';
@@ -72,12 +73,24 @@ export default function usePathNavigation(
 
     // 没有选项时触发搜索
     if (allOptions.value.length === 0) {
+      // Linux 习惯：当输入已是目录时，第二次 Tab 拉起目录预览
+      if (endsWithSlash) {
+        if (!pendingDirectoryPreview.value) {
+          pendingDirectoryPreview.value = true;
+          return;
+        }
+        pendingDirectoryPreview.value = false;
+      } else {
+        pendingDirectoryPreview.value = false;
+      }
+
       triggerByTab.value = true;
       isSearching.value = true;
 
-      // 使用当前路径和输入值作为搜索词
-      const searchPath = currentPath.value;
-      const searchTerm = value.value.trim();
+      const { searchPath, searchTerm } = resolveSearchContext(
+        value.value,
+        currentPath.value
+      );
 
       emit('search', {
         path: searchPath,
@@ -86,30 +99,24 @@ export default function usePathNavigation(
       return;
     }
 
-    // 单个选项时自动选择并导航
+    // 单个选项时自动补全（不自动跳转）
     if (allOptions.value.length === 1) {
+      pendingDirectoryPreview.value = false;
       const option = allOptions.value[0];
       const selectedValue = buildSelectedValue(option);
-
-      // 构建完整路径：当前路径 + 选中的选项
-      const targetPath = `${currentPath.value}/${selectedValue}`.replace(
-        /\/+/g,
-        '/'
-      );
+      const { basePath } = parseCurrentPath(value.value);
+      value.value = basePath + selectedValue;
 
       // 清理下拉状态
       allOptions.value = [];
       isSearching.value = false;
       triggerByTab.value = false;
       popupVisible.value = false;
-      value.value = '';
-
-      // 触发导航
-      emit('goto', targetPath);
       return;
     }
 
     // 多个选项时尝试公共前缀补全
+    pendingDirectoryPreview.value = false;
     const commonPrefix = findCommonPrefix(allOptions.value);
 
     if (commonPrefix) {

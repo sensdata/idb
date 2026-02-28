@@ -37,7 +37,10 @@
   const fitRef = shallowRef<FitAddon>();
   const timerRef = shallowRef<number>();
   const sessionIdRef = ref<string>();
+  const wsMessageQueue: Partial<SendMsgDo>[] = [];
   const { confirm } = useConfirm();
+  const MAX_WS_QUEUE_SIZE = 100;
+  let suppressCloseNotice = false;
 
   // 终端主题配置 - 始终使用深色主题，不跟随系统主题变化
   // 使用硬编码颜色值，确保在黑色背景上所有文字清晰可见
@@ -71,6 +74,10 @@
   });
 
   function onWsClose(ev: CloseEvent) {
+    if (suppressCloseNotice) {
+      suppressCloseNotice = false;
+      return;
+    }
     termRef.value?.write(`\x1b[31mConnection closed: ${ev.reason}\x1b[m\r\n`);
   }
 
@@ -85,6 +92,38 @@
     return wsRef.value && wsRef.value.readyState === WebSocket.OPEN;
   }
 
+  function enqueueWsMsg(payload: Partial<SendMsgDo>) {
+    // resize/heartbeat 属于瞬时状态，不需要排队
+    if (payload.type === MsgType.Resize || payload.type === MsgType.Heartbeat) {
+      return;
+    }
+
+    if (wsMessageQueue.length >= MAX_WS_QUEUE_SIZE) {
+      wsMessageQueue.shift();
+    }
+
+    wsMessageQueue.push(payload);
+  }
+
+  function flushWsQueue() {
+    if (!isWsOpen() || wsMessageQueue.length === 0) {
+      return;
+    }
+
+    while (wsMessageQueue.length > 0) {
+      const payload = wsMessageQueue.shift();
+      if (!payload) {
+        continue;
+      }
+      wsRef.value?.send(
+        JSON.stringify({
+          ...(props.type === 'session' ? { session: sessionIdRef.value } : {}),
+          ...payload,
+        })
+      );
+    }
+  }
+
   function sendWsMsg(payload: Partial<SendMsgDo>) {
     if (isWsOpen()) {
       wsRef.value?.send(
@@ -93,7 +132,10 @@
           ...payload,
         })
       );
+      return;
     }
+
+    enqueueWsMsg(payload);
   }
 
   function autoSendHeartbeat() {
@@ -175,6 +217,7 @@
   initWebSocket = (term: Terminal) => {
     // 关闭已存在的连接
     if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+      suppressCloseNotice = true;
       wsRef.value.close();
     }
 
@@ -195,9 +238,8 @@
     wsRef.value.onerror = onWsError;
     wsRef.value.onclose = onWsClose;
     wsRef.value.onopen = () => {
-      // eslint-disable-next-line no-console
-
       emit('wsopen');
+      flushWsQueue();
       if (props.sendHeartbeat) {
         autoSendHeartbeat();
       }
@@ -208,6 +250,7 @@
 
   function disconnectWs() {
     if (wsRef.value && wsRef.value.readyState === WebSocket.OPEN) {
+      suppressCloseNotice = true;
       wsRef.value.close();
     }
   }
@@ -268,6 +311,7 @@
     if (timerRef.value) {
       clearInterval(timerRef.value);
     }
+    wsMessageQueue.splice(0);
     stopWatchingTheme();
     termRef.value?.dispose();
   }

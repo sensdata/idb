@@ -4,6 +4,7 @@ import { searchFileListApi } from '@/api/file';
 import { FileInfoEntity } from '@/entity/FileInfo';
 import { useLogger } from '@/composables/use-logger';
 import { DropdownOption } from './use-dropdown-navigation';
+import { resolveSearchContext } from '../utils';
 
 // Constants
 const DEBOUNCE_DELAY = 150;
@@ -56,17 +57,18 @@ export default function useAddressBarSearch({
       word: searchTerm,
     };
 
-    isSearching.value = !!searchTerm;
-    popupVisible.value = !!searchTerm;
+    isSearching.value = true;
+    popupVisible.value = true;
     emit('search', searchParams);
   };
 
   const handleInputValueChange = debounce(() => {
     lastInputTime.value = Date.now();
 
-    // 使用当前路径作为搜索路径，输入值作为搜索词
-    const searchPath = currentPath.value;
-    const searchTerm = value.value.trim();
+    const { searchPath, searchTerm } = resolveSearchContext(
+      value.value,
+      currentPath.value
+    );
 
     searchWord.value = searchTerm;
     currentPage.value = 1;
@@ -88,15 +90,16 @@ export default function useAddressBarSearch({
     try {
       currentPage.value++;
 
-      // 使用当前路径作为搜索路径
-      const searchPath = currentPath.value;
+      const { searchPath } = resolveSearchContext(
+        value.value,
+        currentPath.value
+      );
 
       const data = await searchFileListApi({
         page: currentPage.value,
         page_size: PAGE_SIZE,
         show_hidden: true,
         path: searchPath,
-        dir: true,
         search: searchWord.value,
       });
 

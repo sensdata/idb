@@ -34,7 +34,7 @@
             v-model="formState.dst"
             :initial-path="formState.dst"
             class="mt-2"
-            type="directory"
+            type="dir"
             :placeholder="$t('components.file.decompressDrawer.dstPlaceholder')"
           />
         </div>

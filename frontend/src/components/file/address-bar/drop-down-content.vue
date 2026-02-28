@@ -178,6 +178,6 @@
 
   .dir-label {
     font-weight: 500;
-    color: rgb(var(--primary-6));
+    color: var(--color-text-2);
   }
 </style>

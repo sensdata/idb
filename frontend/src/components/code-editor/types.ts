@@ -20,6 +20,7 @@ export interface EditorProps {
 export interface EditorEmits {
   (e: 'update:modelValue', value: string): void;
   (e: 'editorReady', payload: { view: any }): void;
+  (e: 'contentDoubleClick'): void;
 }
 
 export interface EditorInstance {

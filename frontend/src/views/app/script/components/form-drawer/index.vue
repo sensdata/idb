@@ -95,7 +95,7 @@
     updateScriptApi,
   } from '@/api/script';
   import { SCRIPT_TYPE } from '@/config/enum';
-  import { RadioOption } from '@arco-design/web-vue/es/radio/interface';
+  import type { RadioOption } from '@arco-design/web-vue/es/radio/interface';
   import CodeEditor from '@/components/code-editor/index.vue';
   import { githubLight } from '@fsegurai/codemirror-theme-github-light';
   import useUserStore from '@/store/modules/user';

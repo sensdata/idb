@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.updateCertificate')"
-    :width="700"
+    :width="820"
     :footer="true"
     @cancel="handleCancel"
   >
@@ -29,7 +29,6 @@
         layout="vertical"
         @submit="handleSubmit"
       >
-        <!-- 基本信息 -->
         <a-form-item
           field="alias"
           :label="$t('app.certificate.form.alias')"
@@ -38,10 +37,10 @@
           <a-input
             v-model="form.alias"
             :placeholder="$t('app.certificate.form.aliasPlaceholder')"
+            :disabled="isAliasLocked"
           />
         </a-form-item>
 
-        <!-- 证书导入 -->
         <a-divider>{{ $t('app.certificate.import.certificate') }}</a-divider>
         <a-form-item
           field="ca_type"
@@ -61,7 +60,6 @@
           </a-radio-group>
         </a-form-item>
 
-        <!-- 证书文件上传 -->
         <a-form-item
           v-if="form.ca_type === 0"
           field="ca_file"
@@ -86,7 +84,6 @@
           </a-upload>
         </a-form-item>
 
-        <!-- 证书文本输入 -->
         <a-form-item
           v-if="form.ca_type === 1"
           field="ca_content"
@@ -102,7 +99,6 @@
           />
         </a-form-item>
 
-        <!-- 证书本地路径 -->
         <a-form-item
           v-if="form.ca_type === 2"
           field="ca_path"
@@ -118,7 +114,6 @@
           />
         </a-form-item>
 
-        <!-- 补齐证书链选项 -->
         <a-divider>{{ $t('app.certificate.import.options') }}</a-divider>
         <a-form-item field="complete_chain">
           <a-checkbox v-model="form.complete_chain">
@@ -138,7 +133,6 @@
   import type { FileItem } from '@arco-design/web-vue/es/upload';
   import FileSelector from '@/components/file/file-selector/index.vue';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     loading?: boolean;
@@ -150,7 +144,6 @@
     alias: '',
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
     (e: 'ok', formData: FormData): void;
@@ -158,7 +151,6 @@
 
   const { t } = useI18n();
 
-  // 响应式数据
   const formRef = ref<FormInstance>();
   const form = ref({
     alias: '',
@@ -166,23 +158,21 @@
     ca_file: null as File | null,
     ca_content: '',
     ca_path: '',
-    complete_chain: false,
+    complete_chain: true,
   });
 
   const caFileList = ref<FileItem[]>([]);
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
   });
 
-  // 表单验证状态
+  const isAliasLocked = computed(() => !!props.alias);
+
   const isFormValid = computed(() => {
-    // 基本字段验证
     const hasAlias = form.value.alias.trim() !== '';
 
-    // 证书验证
     let hasValidCert = false;
     if (form.value.ca_type === 0) {
       hasValidCert = !!form.value.ca_file;
@@ -195,7 +185,6 @@
     return hasAlias && hasValidCert;
   });
 
-  // 表单验证规则
   const rules = {
     alias: [
       {
@@ -242,7 +231,6 @@
     ],
   };
 
-  // 文件上传处理
   const handleCaFileChange = (fileList: FileItem[]) => {
     caFileList.value = fileList;
     if (fileList.length > 0) {
@@ -252,7 +240,6 @@
     }
   };
 
-  // 重置表单
   const resetForm = () => {
     form.value = {
       alias: props.alias || '',
@@ -260,24 +247,18 @@
       ca_file: null,
       ca_content: '',
       ca_path: '',
-      complete_chain: false,
+      complete_chain: true,
     };
     caFileList.value = [];
     formRef.value?.resetFields();
   };
 
-  // 处理提交
   const handleSubmit = async () => {
     try {
       const errors = await formRef.value?.validate();
       if (!errors) {
-        // 验证通过，没有错误
         const formData = new FormData();
-
-        // 添加基本信息
         formData.append('alias', form.value.alias);
-
-        // 添加证书信息
         formData.append('ca_type', form.value.ca_type.toString());
         if (form.value.ca_type === 0 && form.value.ca_file) {
           formData.append('ca_file', form.value.ca_file);
@@ -287,22 +268,19 @@
           formData.append('ca_path', form.value.ca_path);
         }
 
-        // 添加补齐证书链选项
         formData.append('complete_chain', form.value.complete_chain.toString());
 
         emit('ok', formData);
       }
     } catch (error) {
-      console.error('Form validation failed:', error);
+      // keep silent; form item will render validation messages
     }
   };
 
-  // 处理取消
   const handleCancel = () => {
     drawerVisible.value = false;
   };
 
-  // 监听弹窗显示状态
   watch(
     () => props.visible,
     (visible) => {
@@ -312,7 +290,6 @@
     }
   );
 
-  // 监听 alias prop 变化
   watch(
     () => props.alias,
     (newAlias) => {

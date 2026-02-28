@@ -78,8 +78,7 @@
       title: t('app.process.list.columns.startTime'),
       dataIndex: 'create_time',
       width: 180,
-      render: ({ record }: { record: any }) =>
-        formatTime(record.create_time * 1000),
+      render: ({ record }: { record: any }) => formatTime(record.create_time),
     },
     {
       title: t('common.table.operation'),

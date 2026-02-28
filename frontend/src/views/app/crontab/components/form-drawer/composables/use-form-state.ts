@@ -1,7 +1,7 @@
 import { reactive, ref, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { SelectOption } from '@arco-design/web-vue';
-import { RadioOption } from '@arco-design/web-vue/es/radio/interface';
+import type { RadioOption } from '@arco-design/web-vue/es/radio/interface';
 import { PeriodDetailDo } from '@/entity/Crontab';
 import { CRONTAB_KIND, CRONTAB_TYPE } from '@/config/enum';
 

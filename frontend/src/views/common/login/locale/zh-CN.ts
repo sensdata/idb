@@ -1,6 +1,6 @@
 export default {
-  'login.intro.title': 'iDB - 即时数据库管理工具',
-  'login.intro.slogan': '一款极易搭建的自助 Git 服务',
+  'login.intro.title': 'iDB - 服务器管理系统',
+  'login.intro.slogan': '轻量级、易搭建的服务器管理平台',
   'login.feature1.title': '安装简单',
   'login.feature1.desc': '二进制运行；或通过 docker 运行；或通过安装包运行',
   'login.feature2.title': '跨平台',
@@ -9,9 +9,9 @@ export default {
   'login.feature3.title': '轻量级',
   'login.feature3.desc':
     '一个便宜的树莓派的配置就足以满足 iDB 的最低系统硬件要求。最大化您的服务器资源节省！',
-  'login.feature4.title': '开源',
+  'login.feature4.title': '功能完整',
   'login.feature4.desc':
-    'iDB 上的所有代码都是开源的，所以加入我们开发这个伟大的项目吧！您还在等什么？成为贡献者！',
+    '集主机管理、应用部署、系统监控于一体，为您提供全方位的服务器管理解决方案。',
 
   'login.form.title': '登录 iDB',
   'login.form.userName.errMsg': '用户名不能为空',

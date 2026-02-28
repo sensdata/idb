@@ -100,21 +100,22 @@
       <!-- Pin current directory button on the right -->
       <div class="toolbar-right">
         <a-button
-          type="text"
+          :type="isCurrentDirectoryPinned ? 'primary' : 'outline'"
           size="small"
+          :loading="loadingFavorites"
           :class="{
-            'pin-button': true,
-            'pin-button-active': isCurrentDirectoryPinned,
+            'favorite-button': true,
+            'favorite-button-active': isCurrentDirectoryPinned,
           }"
-          @click="toggleCurrentDirectoryPin"
+          @click="toggleCurrentDirectoryFavorite"
         >
           <icon-pushpin />
-          <span class="ml-1 pin-button-text">
+          <span class="ml-1 favorite-button-text">
             {{
               $t(
                 isCurrentDirectoryPinned
-                  ? 'app.file.list.operation.unpin'
-                  : 'app.file.list.operation.pin'
+                  ? 'app.file.list.action.unfavoriteCurrent'
+                  : 'app.file.list.action.favoriteCurrent'
               )
             }}
           </span>
@@ -224,9 +225,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, GlobalComponents, watch, computed } from 'vue';
+  import { ref, GlobalComponents, watch, computed, onMounted } from 'vue';
   import { debounce } from 'lodash';
+  import { Message } from '@arco-design/web-vue';
   import { IconPushpin } from '@arco-design/web-vue/es/icon';
+  import { useI18n } from 'vue-i18n';
   import { getFileListApi } from '@/api/file';
   import FolderIcon from '@/assets/icons/color-folder.svg';
   import FileIcon from '@/assets/icons/drive-file.svg';
@@ -280,12 +283,19 @@
   }>();
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
+  const { t } = useI18n();
 
   // 初始化日志
   const { logInfo, logWarn } = useLogger('FileMainView');
 
-  // 初始化pin功能
-  const { isPinned, pinDirectory, unpinDirectory } = usePinnedDirectories();
+  // 收藏目录状态
+  const {
+    isPinned,
+    pinDirectory,
+    unpinDirectory,
+    loadFavorites,
+    loadingFavorites,
+  } = usePinnedDirectories();
 
   // 直接使用props中的状态
   const selectedItems = computed(() => props.selected || []);
@@ -300,17 +310,27 @@
     return isPinned(currentDirectoryPath.value);
   });
 
-  // Toggle pin status for current directory
-  const toggleCurrentDirectoryPin = () => {
+  // Toggle favorite status for current directory
+  const toggleCurrentDirectoryFavorite = async () => {
     const path = currentDirectoryPath.value;
-    if (isCurrentDirectoryPinned.value) {
-      unpinDirectory(path);
-    } else {
-      // Extract directory name from path for display
-      const name = path.split('/').filter(Boolean).pop() || 'root';
-      pinDirectory(path, name);
+    try {
+      if (isCurrentDirectoryPinned.value) {
+        await unpinDirectory(path);
+      } else {
+        // Extract directory name from path for display
+        const name = path.split('/').filter(Boolean).pop() || 'root';
+        await pinDirectory(path, name);
+      }
+    } catch (error: any) {
+      Message.error(error?.message || t('common.request.failed'));
     }
   };
+
+  onMounted(() => {
+    loadFavorites().catch((error) => {
+      logWarn('Failed to load favorite directories in main view:', error);
+    });
+  });
 
   // 事件处理直接向上传递，不维护内部状态
   const handleTableSelectionChange = (selected: FileItem[]) => {
@@ -416,24 +436,50 @@
     height: 100%;
     padding: 20px;
     overflow: hidden;
+    background-color: var(--color-bg-1);
   }
 
-  /* Ensure table container has constrained height */
+  :deep(.idb-table) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  :deep(.arco-table) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Keep table body inside available panel height instead of viewport math */
   :deep(.arco-table-container) {
-    height: calc(100vh - 350px);
-    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 
     /* Apply custom scrollbar styling to table container */
     .custom-scrollbar();
   }
 
-  /* Specifically target the scrollbar container */
+  /* Table body scroll area */
   :deep(.arco-scrollbar-container.arco-table-content) {
-    max-height: calc(100vh - 350px);
+    max-height: none;
     overflow-y: auto;
 
     /* Apply custom scrollbar styling */
     .custom-scrollbar();
+  }
+
+  :deep(.arco-table-tr-empty .arco-table-td) {
+    height: clamp(220px, 38vh, 360px);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  :deep(.arco-empty) {
+    color: var(--color-text-3);
   }
 
   .name-cell svg {
@@ -470,32 +516,25 @@
     flex-shrink: 0;
   }
 
-  /* Pin button styling - subtle and less prominent */
-  .pin-button {
-    height: auto !important;
-    padding: 0.25rem 0.5rem !important;
+  .favorite-button {
+    height: 32px;
+    padding: 0 0.625rem !important;
     font-size: 0.8125rem;
-    color: var(--color-text-3) !important;
     transition: all 0.2s ease;
   }
 
-  .pin-button:hover {
-    color: var(--color-text-2) !important;
-    background-color: var(--color-fill-1) !important;
+  .favorite-button :deep(svg) {
+    font-size: 0.875rem;
   }
 
-  .pin-button-active {
-    color: rgb(var(--primary-6)) !important;
+  .favorite-button-active {
+    box-shadow: 0 0 0 1px rgb(var(--primary-3)) inset;
   }
 
-  .pin-button-active:hover {
-    color: rgb(var(--primary-5)) !important;
-    background-color: rgba(var(--primary-1), 0.1) !important;
-  }
-
-  .pin-button-text {
+  .favorite-button-text {
     margin-left: 0.25rem;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
   }
 
   /* 小屏幕按钮文本显示调整 */
@@ -515,7 +554,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .pin-button-text {
+    .favorite-button-text {
       max-width: 3rem;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -543,10 +582,10 @@
     .idb-button-group :deep(.arco-btn) svg {
       margin: 0;
     }
-    .pin-button-text {
+    .favorite-button-text {
       display: none;
     }
-    .pin-button :deep(svg) {
+    .favorite-button :deep(svg) {
       margin: 0;
     }
   }

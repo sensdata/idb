@@ -66,6 +66,7 @@
               <template #extra>
                 <session-add-popover
                   v-if="canAddNewTab"
+                  ref="sessionAddPopoverRef"
                   v-model:visible="popoverVisible"
                   :current-host-id="currentHostId"
                   @add-session="handleAddSession"
@@ -87,7 +88,7 @@
           </div>
 
           <!-- 所有终端组件 - 保持在DOM中，通过CSS控制显示 -->
-          <div class="terminal-content">
+          <div v-if="terms.length > 0" class="terminal-content">
             <div
               v-for="item of allTerms"
               :key="item.key"
@@ -127,6 +128,8 @@
           <!-- 空状态 -->
           <empty-state
             v-else-if="terms.length === 0"
+            :host-name="currentHost?.name"
+            @attach-session="handleAttachSession"
             @create-session="handleCreateFirstSession"
           />
         </div>
@@ -189,6 +192,9 @@
 
   const currentHostId = ref<number>();
   const popoverVisible = ref(false);
+  const sessionAddPopoverRef = ref<{
+    openAttachMode: () => void;
+  }>();
   const isCreatingSession = ref(false);
   const isPruningSessions = ref(false);
   const isRestoringSession = ref(false);
@@ -208,15 +214,18 @@
   // 处理常用命令选择
   function handleCommandSelect(command: string, autoExecute: boolean) {
     const terminal = activeItem.value?.termRef;
-    if (terminal?.sendWsMsg) {
-      // 发送命令到终端（如果 autoExecute 为 true 则添加换行符自动执行）
-      terminal.sendWsMsg({
-        type: MsgType.Cmd,
-        data: autoExecute ? `${command}\n` : command,
-      });
-      // 聚焦终端
-      terminal.focus?.();
+    if (!terminal?.sendWsMsg) {
+      Message.warning(t('components.terminal.workspace.noActiveTerminal'));
+      return;
     }
+
+    // 发送命令到终端（如果 autoExecute 为 true 则添加换行符自动执行）
+    terminal.sendWsMsg({
+      type: MsgType.Cmd,
+      data: autoExecute ? `${command}\n` : command,
+    });
+    // 聚焦终端
+    terminal.focus?.();
   }
 
   // 计算属性
@@ -488,6 +497,45 @@
     }
   }
 
+  function handleAttachSession(): void {
+    if (!currentHostId.value) {
+      Message.warning(t('components.terminal.workspace.selectHost'));
+      return;
+    }
+    if (sessionAddPopoverRef.value?.openAttachMode) {
+      sessionAddPopoverRef.value.openAttachMode();
+      return;
+    }
+    popoverVisible.value = true;
+  }
+
+  async function initializeHostSessions(host: HostEntity): Promise<void> {
+    if (terms.value.length > 0) {
+      return;
+    }
+
+    isRestoringSession.value = true;
+    try {
+      const restored = await restoreHostSessions(
+        host.id,
+        host.name,
+        getAllHostSessions
+      );
+      if (!restored) {
+        await handleCreateFirstSession();
+      }
+    } catch (error) {
+      logError('Failed to initialize host sessions:', error);
+      try {
+        await handleCreateFirstSession();
+      } catch (fallbackError) {
+        logError('Failed to create fallback session:', fallbackError);
+      }
+    } finally {
+      isRestoringSession.value = false;
+    }
+  }
+
   // 处理主机选择
   async function handleHostSelect(host: HostEntity): Promise<void> {
     try {
@@ -502,50 +550,7 @@
       hostStore.setCurrentId(host.id);
       setCurrentHost(host.id);
 
-      // 检查新主机是否已有运行中的会话
-      const existingSessions = terms.value;
-
-      if (existingSessions.length > 0) {
-        // 已有运行中的会话，直接显示（连接由子组件自行维护）
-        return;
-      }
-
-      // 没有运行中的会话，异步处理会话恢复，不阻塞UI切换
-      nextTick(async () => {
-        isRestoringSession.value = true;
-        try {
-          const restored = await restoreHostSessions(
-            host.id,
-            host.name,
-            getAllHostSessions
-          );
-
-          if (restored) {
-            // 成功恢复会话，显示提示信息
-            Message.success(
-              t('components.terminal.session.sessionsRestored', {
-                count: terms.value.length,
-              })
-            );
-
-            // 依赖子组件的 wsopen 事件来发送 Start/Attach，无需额外延迟处理
-            // Terminal 子组件在 WebSocket 打开时会触发 wsopen 事件，父组件监听后调用 handleWsOpen(item)
-          } else {
-            // 没有保存的会话，创建默认会话
-            await handleCreateFirstSession();
-          }
-        } catch (error) {
-          logError('Failed to restore sessions:', error);
-          // 恢复失败时，尝试创建默认会话
-          try {
-            await handleCreateFirstSession();
-          } catch (fallbackError) {
-            logError('Failed to create fallback session:', fallbackError);
-          }
-        } finally {
-          isRestoringSession.value = false;
-        }
-      });
+      await initializeHostSessions(host);
     } catch (error) {
       logError('Failed to select host:', error);
       // 如果是标签页数量限制错误，显示具体错误信息
@@ -561,25 +566,9 @@
   const reinitialize = async (): Promise<void> => {
     await nextTick();
     if (currentHostId.value && terms.value.length === 0) {
-      const currentHostItem = hostStore.items.find(
-        (h) => h.id === currentHostId.value
-      );
-      if (currentHostItem) {
-        // 尝试恢复保存的会话
-        isRestoringSession.value = true; // 开始恢复会话
-        try {
-          const restored = await restoreHostSessions(
-            currentHostId.value,
-            currentHostItem.name,
-            getAllHostSessions
-          );
-          if (!restored) {
-            // 如果没有保存的会话，创建默认会话
-            await handleCreateFirstSession();
-          }
-        } finally {
-          isRestoringSession.value = false; // 恢复会话结束
-        }
+      const host = hostStore.items.find((h) => h.id === currentHostId.value);
+      if (host) {
+        await initializeHostSessions(host);
       }
     }
   };
@@ -619,27 +608,11 @@
   // 组件挂载时初始化
   onMounted(async () => {
     await nextTick();
-    if (currentHostId.value && terms.value.length === 0) {
-      const currentHostItem = hostStore.items.find(
-        (h) => h.id === currentHostId.value
-      );
-      if (currentHostItem) {
-        setCurrentHost(currentHostId.value);
-        // 尝试恢复保存的会话
-        isRestoringSession.value = true; // 开始恢复会话
-        try {
-          const restored = await restoreHostSessions(
-            currentHostId.value,
-            currentHostItem.name,
-            getAllHostSessions
-          );
-          if (!restored) {
-            // 如果没有保存的会话，创建默认会话
-            await handleCreateFirstSession();
-          }
-        } finally {
-          isRestoringSession.value = false; // 恢复会话结束
-        }
+    if (currentHostId.value) {
+      setCurrentHost(currentHostId.value);
+      const host = hostStore.items.find((h) => h.id === currentHostId.value);
+      if (host) {
+        await initializeHostSessions(host);
       }
     }
   });
@@ -674,7 +647,6 @@
       // 这里可以选择是否重新创建第一个会话，或者保持当前状态
     } catch (error) {
       logError('Failed to prune terminal sessions:', error);
-      console.error('Prune sessions error:', error);
       Message.error(t('components.terminal.session.pruneFailed'));
     } finally {
       isPruningSessions.value = false;
@@ -698,6 +670,7 @@
     handleWsOpen,
     handleSessionName,
     handleCreateFirstSession,
+    handleAttachSession,
     handleHostSelect,
     reinitialize,
     handlePruneSessions,
@@ -706,6 +679,15 @@
 
 <style scoped>
   .terminal-workspace {
+    --term-tabs-nav-height: 36px;
+    --term-tab-height: 30px;
+    --term-tab-gap: 4px;
+    --term-tab-inline-padding: 12px;
+    --term-tab-side-padding: 6px;
+    --term-tab-nav-right-space: 168px;
+    --term-action-btn-height: 30px;
+    --term-action-btn-pad-x: 10px;
+
     display: flex;
     gap: 8px;
     height: 100%;
@@ -726,7 +708,7 @@
 
   .sidebar-toggle-tab-btn {
     margin-right: 8px;
-    border-radius: 6px;
+    border-radius: 0;
   }
 
   .welcome-state {
@@ -741,6 +723,8 @@
   .terminal-tabs-row {
     display: flex;
     align-items: center;
+    min-width: 0;
+    background: var(--color-bg-1);
   }
 
   .terminal-tabs {
@@ -758,29 +742,60 @@
 
   .terminal-tabs :deep(.arco-tabs-nav-tab) {
     flex: none;
+    padding-left: var(--term-tab-side-padding);
   }
 
   .terminal-tabs :deep(.arco-tabs-tab) {
-    padding-right: 6px;
+    min-width: 92px;
+    height: var(--term-tab-height);
+    padding: 4px var(--term-tab-inline-padding);
+    margin-top: 3px;
+    margin-right: 0;
+    margin-bottom: 3px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    transition: all 0.2s ease;
   }
 
   .terminal-tabs :deep(.arco-tabs-nav) {
-    height: 32px;
+    height: var(--term-tabs-nav-height);
+    padding-right: var(--term-tab-nav-right-space);
+    padding-left: 0;
     margin-bottom: 0;
+    background: var(--color-fill-1);
+    border-bottom: 1px solid var(--color-border-2);
   }
 
-  .terminal-tabs :deep(.arco-tabs-tab) {
-    min-width: 84px;
-    height: 32px;
-    padding: 5px 16px;
-    margin-right: 0;
+  .terminal-tabs :deep(.arco-tabs-nav::before) {
+    display: none;
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab:hover) {
+    background: var(--color-fill-2);
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab:not(.arco-tabs-tab-active)) {
+    background: var(--color-fill-1);
+    box-shadow: inset 0 0 0 1px var(--color-border-3);
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab:not(.arco-tabs-tab-active):hover) {
+    background: var(--color-fill-2);
+    box-shadow: inset 0 0 0 1px var(--color-border-4);
+  }
+
+  .terminal-tabs :deep(.arco-tabs-tab.arco-tabs-tab-active) {
+    background: var(--color-bg-1);
+    border: 1px solid var(--color-primary-4);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 10%);
   }
 
   .terminal-tabs :deep(.arco-tabs-tab-title) {
     font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
       sans-serif !important;
-    font-weight: 400 !important;
-    line-height: 22px !important;
+    font-weight: 500 !important;
+    line-height: 20px !important;
     color: var(--color-text-2) !important;
   }
 
@@ -790,22 +805,20 @@
   }
 
   .terminal-tabs :deep(.arco-tabs-tab:hover .arco-tabs-tab-title) {
-    color: var(--color-primary-5) !important; /* 悬停状态使用primary-5 */
-  }
-
-  .terminal-tabs :deep(.arco-tabs-tab-active .arco-tabs-tab-title) {
-    color: var(--color-primary-6) !important;
-  }
-
-  .terminal-tabs :deep(.arco-tabs-tab:hover .arco-tabs-tab-title) {
     color: var(--color-primary-5) !important;
   }
 
+  .terminal-tabs
+    :deep(.arco-tabs-tab:not(.arco-tabs-tab-active) .arco-tabs-tab-title) {
+    color: var(--color-text-3) !important;
+  }
+
   .terminal-tabs :deep(.arco-tabs-tab):not(:last-child) {
-    margin-right: 2px;
+    margin-right: var(--term-tab-gap);
   }
 
   .terminal-tabs :deep(.arco-tabs-nav-extra) {
+    margin-right: 6px;
     margin-left: 8px;
   }
 
@@ -815,6 +828,7 @@
     flex: 1;
     flex-direction: column;
     height: 100%;
+    overflow: hidden;
     background: var(--color-bg-1);
   }
 
@@ -823,17 +837,31 @@
     top: 0;
     right: 0;
     z-index: 10;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    height: var(--term-tabs-nav-height);
+    padding: 0 8px 0 8px;
+    background: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0%) 0%,
+      var(--color-fill-1) 18%
+    );
+    border-radius: 0;
   }
 
   .terminal-actions .arco-btn {
+    height: var(--term-action-btn-height);
+    padding: 0 var(--term-action-btn-pad-x);
     color: var(--color-text-2);
-    background: var(--color-bg-2);
+    background: var(--color-bg-1);
     border: 1px solid var(--color-border-2);
+    border-radius: 0;
   }
 
   .terminal-actions .arco-btn:hover {
     color: var(--color-text-1);
-    background: var(--color-bg-3);
+    background: var(--color-fill-2);
     border-color: var(--color-border-3);
   }
 
@@ -849,7 +877,7 @@
   .terminal-content {
     position: relative;
     width: 100%;
-    height: calc(100% - 40px);
+    height: calc(100% - var(--term-tabs-nav-height));
     background: #1e1e1e;
   }
 
@@ -877,16 +905,33 @@
 
   .terminal-loading-overlay {
     position: absolute;
-    top: 40px;
+    top: var(--term-tabs-nav-height);
     left: 0;
     z-index: 10;
     width: 100%;
-    height: calc(100% - 40px);
+    height: calc(100% - var(--term-tabs-nav-height));
     background: var(--color-bg-1);
   }
 
   .terminal-loading-overlay :deep(.loading-state) {
     min-height: 100%;
     padding: 0;
+  }
+
+  @media (width <= 768px) {
+    .terminal-workspace {
+      --term-tab-nav-right-space: 108px;
+
+      gap: 6px;
+      padding-right: 4px;
+    }
+    .terminal-tabs :deep(.arco-tabs-nav) {
+      padding-right: var(--term-tab-nav-right-space);
+    }
+    .terminal-actions {
+      top: 0;
+      gap: 4px;
+      height: 36px;
+    }
   }
 </style>

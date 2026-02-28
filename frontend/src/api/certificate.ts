@@ -6,6 +6,11 @@ export interface PrivateKeyInfo {
   key_algorithm: string;
   key_size: number;
   pem: string;
+  // 部分后端版本可能返回以下路径字段之一
+  path?: string;
+  source?: string;
+  key_path?: string;
+  keyPath?: string;
 }
 
 export interface CSRInfo {
@@ -21,9 +26,15 @@ export interface CertificateSimpleInfo {
   alt_names: string[];
   not_before: string;
   not_after: string;
+  issuer_cn?: string;
   issuer_organization: string;
   status: string;
   source: string;
+  // 不同后端版本可能返回的证书链状态字段
+  chain_complete?: boolean | number | string;
+  chain_completed?: boolean | number | string;
+  is_chain_complete?: boolean | number | string;
+  complete_chain?: boolean | number | string;
 }
 
 export interface CertificateGroup {
@@ -74,28 +85,6 @@ export interface SelfSignedRequest {
   alt_domains: string;
   alt_ips: string;
   is_ca: boolean;
-}
-
-export interface ImportCertificateRequest {
-  alias: string;
-  key_type: number;
-  key_content?: string;
-  key_path?: string;
-  ca_type: number;
-  ca_content?: string;
-  ca_path?: string;
-  csr_type: number;
-  csr_content?: string;
-  csr_path?: string;
-  complete_chain?: boolean;
-}
-
-export interface UpdateCertificateRequest {
-  alias: string;
-  ca_type: number;
-  ca_content?: string;
-  ca_path?: string;
-  complete_chain?: boolean;
 }
 
 export interface GroupPkRequest {
@@ -212,19 +201,6 @@ export function completeCertificateChain(
   data: CertificateInfoRequest
 ) {
   return request.post(`/certificates/${hostId}/complete`, data);
-}
-
-/**
- * 导入证书
- * @param hostId - 主机ID
- * @param formData - 表单数据
- */
-export function importCertificate(hostId: number, formData: FormData) {
-  return request.post(`/certificates/${hostId}/import`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
 }
 
 /**

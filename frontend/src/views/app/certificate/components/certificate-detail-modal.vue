@@ -2,15 +2,15 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.certificateDetail')"
-    :width="700"
+    :width="820"
     :footer="false"
+    class="certificate-detail-drawer"
   >
     <a-spin :loading="loading" class="w-full">
       <div v-if="certificate" class="certificate-detail">
-        <!-- 基本信息 -->
         <a-descriptions
           :title="$t('app.certificate.basicInfo')"
-          :column="2"
+          :column="1"
           bordered
         >
           <a-descriptions-item :label="$t('app.certificate.domain')">
@@ -46,28 +46,30 @@
           </a-descriptions-item>
           <a-descriptions-item :label="$t('app.certificate.source')">
             <div class="source-cell">
-              <a-typography-text code>{{
-                certificateSource
+              <a-typography-text code class="source-text">{{
+                certificateSource || '-'
               }}</a-typography-text>
-              <a-button
-                v-if="certificateSource"
-                type="text"
-                size="small"
-                @click="handleViewFile"
-              >
-                <template #icon>
-                  <icon-folder />
-                </template>
-                {{ $t('app.certificate.viewFile') }}
-              </a-button>
+              <div v-if="certificateSource" class="source-actions">
+                <a-button type="text" size="small" @click="copySourcePath">
+                  <template #icon>
+                    <icon-copy />
+                  </template>
+                  {{ $t('app.certificate.copySourcePath') }}
+                </a-button>
+                <a-button type="text" size="small" @click="handleViewFile">
+                  <template #icon>
+                    <icon-folder />
+                  </template>
+                  {{ $t('app.certificate.viewFile') }}
+                </a-button>
+              </div>
             </div>
           </a-descriptions-item>
         </a-descriptions>
 
-        <!-- 主体信息 -->
         <a-descriptions
           :title="$t('app.certificate.subjectInfo')"
-          :column="2"
+          :column="1"
           bordered
           class="mt-6"
         >
@@ -79,10 +81,9 @@
           </a-descriptions-item>
         </a-descriptions>
 
-        <!-- 签发机构信息 -->
         <a-descriptions
           :title="$t('app.certificate.issuerInfo')"
-          :column="2"
+          :column="1"
           bordered
           class="mt-6"
         >
@@ -94,42 +95,34 @@
           </a-descriptions-item>
           <a-descriptions-item
             :label="$t('app.certificate.issuerOrganization')"
-            :span="2"
           >
             {{ certificate.issuer_organization || '-' }}
           </a-descriptions-item>
         </a-descriptions>
 
-        <!-- 备用域名 -->
         <div
           v-if="certificate.alt_names && certificate.alt_names.length > 0"
-          class="mt-6"
+          class="section-block"
         >
-          <h4 class="mb-3">{{ $t('app.certificate.altNames') }}</h4>
+          <h4 class="section-title">{{ $t('app.certificate.altNames') }}</h4>
           <div class="alt-names-container">
-            <a-tag
-              v-for="altName in certificate.alt_names"
-              :key="altName"
-              class="mb-2 mr-2"
-            >
+            <a-tag v-for="altName in certificate.alt_names" :key="altName">
               {{ altName }}
             </a-tag>
           </div>
         </div>
 
-        <!-- 证书内容 -->
-        <div class="mt-6">
-          <h4 class="mb-3">{{ $t('app.certificate.pemContent') }}</h4>
+        <div class="section-block">
+          <h4 class="section-title">{{ $t('app.certificate.pemContent') }}</h4>
           <a-textarea
-            :model-value="certificate.pem"
-            :rows="10"
+            :model-value="formattedPem"
+            :auto-size="{ minRows: 10, maxRows: 10 }"
             readonly
-            class="font-mono text-sm"
+            class="pem-content"
           />
         </div>
 
-        <!-- 操作按钮 -->
-        <div class="mt-6 flex justify-end gap-3">
+        <div class="action-bar">
           <a-button @click="copyPemContent">
             <template #icon>
               <icon-copy />
@@ -161,7 +154,6 @@
   import { createFileRoute } from '@/utils/file-route';
   import type { CertificateInfo } from '@/api/certificate';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     certificate?: CertificateInfo | null;
@@ -173,7 +165,6 @@
     loading: false,
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
     (e: 'completeChain'): void;
@@ -183,13 +174,11 @@
   const router = useRouter();
   const { copyText } = useClipboard();
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
   });
 
-  // 获取证书状态颜色
   const getStatusColor = () => {
     if (!props.certificate) return 'rgb(var(--color-text-4))';
 
@@ -198,21 +187,20 @@
     const notBefore = new Date(props.certificate.not_before);
 
     if (now > notAfter) {
-      return 'rgb(var(--danger-6))'; // 已过期
+      return 'rgb(var(--danger-6))';
     }
     if (now < notBefore) {
-      return 'rgb(var(--warning-6))'; // 尚未生效
+      return 'rgb(var(--warning-6))';
     }
     const daysUntilExpiry = Math.ceil(
       (notAfter.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysUntilExpiry <= 30) {
-      return 'rgb(var(--warning-6))'; // 即将过期
+      return 'rgb(var(--warning-6))';
     }
-    return 'rgb(var(--success-6))'; // 有效
+    return 'rgb(var(--success-6))';
   };
 
-  // 获取证书状态文本
   const getStatusText = () => {
     if (!props.certificate) return t('app.certificate.status.unknown');
 
@@ -237,17 +225,20 @@
     return t('app.certificate.status.valid');
   };
 
-  // 格式化日期
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString();
   };
 
-  // 复制PEM内容
+  const formattedPem = computed(() => {
+    const pem = props.certificate?.pem || '';
+    return pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem;
+  });
+
   const copyPemContent = async () => {
-    if (props.certificate?.pem) {
+    if (formattedPem.value) {
       try {
-        await copyText(props.certificate.pem);
+        await copyText(formattedPem.value);
         Message.success(t('app.certificate.copySuccess'));
       } catch (error) {
         Message.error(t('app.certificate.copyError'));
@@ -255,23 +246,32 @@
     }
   };
 
-  // 处理补齐证书链
   const handleCompleteChain = () => {
     emit('completeChain');
   };
 
-  // 获取文件所在目录
   const getDirectoryPath = (filePath: string) => {
     const lastSlashIndex = filePath.lastIndexOf('/');
     return lastSlashIndex > 0 ? filePath.substring(0, lastSlashIndex) : '/';
   };
 
-  // 获取证书源文件路径（优先使用 props.source，其次使用 certificate.source）
   const certificateSource = computed(() => {
     return props.source || props.certificate?.source || '';
   });
 
-  // 跳转到文件所在目录
+  const copySourcePath = async () => {
+    if (!certificateSource.value) {
+      Message.warning(t('app.certificate.pathUnavailable'));
+      return;
+    }
+    try {
+      await copyText(certificateSource.value);
+      Message.success(t('app.certificate.copySuccess'));
+    } catch (error) {
+      Message.error(t('app.certificate.copyError'));
+    }
+  };
+
   const handleViewFile = () => {
     if (certificateSource.value) {
       const directoryPath = getDirectoryPath(certificateSource.value);
@@ -284,51 +284,79 @@
 
 <style scoped>
   .certificate-detail {
-    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: calc(100vh - 9rem);
+    padding-bottom: 0.25rem;
     overflow-y: auto;
   }
 
   .alt-names-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.67rem;
+    gap: 0.5rem;
+  }
+
+  .section-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text-1);
+  }
+
+  .pem-content {
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.35;
   }
 
   :deep(.arco-descriptions-title) {
-    margin-bottom: 1rem;
-    font-size: 1.33rem;
-    font-weight: 600;
-  }
-
-  :deep(.arco-textarea) {
-    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
-  }
-
-  .mt-6 {
-    margin-top: 2rem;
-  }
-
-  .mb-2 {
-    margin-bottom: 0.67rem;
-  }
-
-  .mr-2 {
-    margin-right: 0.67rem;
-  }
-
-  .mb-3 {
-    margin-bottom: 1rem;
-  }
-
-  h4 {
-    margin: 0;
-    font-size: 1.33rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
     font-weight: 600;
   }
 
   .source-cell {
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+  }
+
+  .source-text {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .source-actions {
+    display: flex;
     gap: 0.5rem;
     align-items: center;
+  }
+
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 10%),
+      var(--color-bg-1) 40%
+    );
+  }
+
+  :deep(.certificate-detail-drawer .arco-drawer-body) {
+    padding-bottom: 0.75rem;
   }
 </style>

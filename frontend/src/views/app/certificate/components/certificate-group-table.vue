@@ -1,235 +1,227 @@
 <template>
   <div class="certificate-group-container">
-    <idb-table
-      ref="tableRef"
-      :loading="loading"
-      :dataSource="dataSource"
-      row-key="alias"
-      :pagination="false"
-      :columns="columns"
-      @reload="handleReload"
-    >
-      <template #alias="{ record }">
-        <div class="alias-cell">
-          <a-typography-text strong>{{ record.alias }}</a-typography-text>
-          <a-typography-text type="secondary" class="requester">
-            {{ $t('app.certificate.requester') }}: {{ record.requester }}
-          </a-typography-text>
-        </div>
-      </template>
-
-      <template #certificates="{ record }">
-        <div class="certificates-cell">
-          <div
-            v-if="!record.certificates || record.certificates.length === 0"
-            class="no-certificates"
-          >
-            <a-typography-text type="secondary">
-              {{ $t('app.certificate.noCertificates') }}
-            </a-typography-text>
+    <div v-for="group in groups" :key="group.alias" class="group-card">
+      <div class="group-card-header">
+        <div class="group-meta">
+          <div class="meta-item">
+            <span class="meta-label">{{ $t('app.certificate.alias') }}:</span>
+            <span class="meta-value">{{ group.alias }}</span>
           </div>
-          <div v-else class="certificate-list">
-            <!-- Multiple certificates summary -->
-            <div
-              v-if="record.certificates.length > 1"
-              class="certificates-summary"
+          <div class="meta-item">
+            <span class="meta-label"
+              >{{ $t('app.certificate.requester') }}:</span
             >
-              <div class="summary-line">
-                <span class="cert-count">
-                  {{ record.certificates.length }}
-                  {{ $t('app.certificate.certificatesCount') }}
-                </span>
-                <div class="status-tags">
-                  <a-tag
-                    v-for="status in getStatusSummary(record.certificates)"
-                    :key="status.type"
-                    :color="getCertificateStatusColor(status.type)"
-                    size="small"
-                  >
-                    {{ getCertificateStatusText(status.type) }} ({{
-                      status.count
-                    }})
-                  </a-tag>
-                </div>
-                <a-button
-                  type="primary"
-                  size="small"
-                  class="view-details-btn"
-                  @click="openCertificateDetailsModal(record)"
-                >
-                  {{ $t('app.certificate.viewDetails') }}
-                </a-button>
-              </div>
-              <div class="domains-preview">
-                {{ getDomainPreview(record.certificates) }}
-              </div>
-            </div>
-
-            <!-- Single certificate display -->
-            <div v-else class="single-certificate">
-              <div
-                v-for="cert in record.certificates"
-                :key="cert.source"
-                class="certificate-row"
-              >
-                <div class="cert-main-info">
-                  <div class="domain-line">
-                    <span class="domain-name">{{ cert.domain }}</span>
-                    <a-tag
-                      :color="getCertificateStatusColor(cert.status)"
-                      size="small"
-                    >
-                      {{ getCertificateStatusText(cert.status) }}
-                    </a-tag>
-                  </div>
-                  <div class="cert-meta">
-                    <span class="expiry-info">
-                      {{ $t('app.certificate.expiresOn') }}:
-                      {{ formatDate(cert.not_after) }}
-                    </span>
-                    <div
-                      v-if="cert.alt_names && cert.alt_names.length > 0"
-                      class="alt-names-inline"
-                    >
-                      <a-tag
-                        v-for="altName in cert.alt_names.slice(0, 2)"
-                        :key="altName"
-                        size="small"
-                        class="alt-tag"
-                      >
-                        {{ altName }}
-                      </a-tag>
-                      <a-tag
-                        v-if="cert.alt_names.length > 2"
-                        size="small"
-                        class="alt-tag"
-                      >
-                        +{{ cert.alt_names.length - 2 }}
-                      </a-tag>
-                    </div>
-                  </div>
-                </div>
-                <div class="cert-actions">
-                  <a-dropdown trigger="hover" position="bottom">
-                    <a-button type="text" size="small">
-                      <template #icon>
-                        <icon-more />
-                      </template>
-                    </a-button>
-                    <template #content>
-                      <a-doption @click="$emit('viewDetail', cert.source)">
-                        {{ $t('app.certificate.viewDetail') }}
-                      </a-doption>
-                      <a-doption @click="$emit('completeChain', cert.source)">
-                        {{ $t('app.certificate.completeChain') }}
-                      </a-doption>
-                      <a-doption
-                        @click="$emit('updateCertificate', record.alias)"
-                      >
-                        {{ $t('app.certificate.updateCertificate') }}
-                      </a-doption>
-                      <a-doption
-                        class="danger-option"
-                        @click="handleDeleteCertificate(cert.source)"
-                      >
-                        {{ $t('common.delete') }}
-                      </a-doption>
-                    </template>
-                  </a-dropdown>
-                </div>
-              </div>
-            </div>
+            <span class="meta-value">{{ getRequester(group.requester) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label"
+              >{{ $t('app.certificate.certificates') }}:</span
+            >
+            <span class="meta-value">{{ getCertificateCount(group) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label"
+              >{{ $t('app.certificate.expiresOn') }}:</span
+            >
+            <span class="meta-value">{{ getEarliestExpiryText(group) }}</span>
+          </div>
+          <div class="meta-item">
+            <a-tag :color="getGroupStatusColor(group)">
+              {{ getGroupStatusText(group) }}
+            </a-tag>
           </div>
         </div>
-      </template>
 
-      <template #operations="{ record }">
-        <idb-table-operation
-          type="button"
-          :options="getOperationOptions(record)"
-        />
-      </template>
-    </idb-table>
+        <div class="group-actions">
+          <a-button
+            type="text"
+            size="small"
+            class="action-link-btn"
+            @click="$emit('importCertificate', group.alias)"
+          >
+            {{ $t('app.certificate.import') }}
+          </a-button>
+          <a-button
+            type="text"
+            size="small"
+            class="action-link-btn"
+            @click="$emit('generateSelfSigned', group.alias)"
+          >
+            {{ $t('app.certificate.generateSelfSigned') }}
+          </a-button>
+          <a-button
+            type="text"
+            size="small"
+            class="action-link-btn"
+            @click="$emit('viewPrivateKey', group.alias)"
+          >
+            {{ $t('app.certificate.viewPrivateKey') }}
+          </a-button>
+          <a-button
+            type="text"
+            size="small"
+            class="action-link-btn"
+            @click="$emit('viewCsr', group.alias)"
+          >
+            {{ $t('app.certificate.viewCSR') }}
+          </a-button>
+          <a-button
+            type="text"
+            size="small"
+            status="danger"
+            class="action-link-btn danger-link"
+            @click="$emit('deleteGroup', group.alias)"
+          >
+            {{ $t('app.certificate.deleteGroup') }}
+          </a-button>
+        </div>
+      </div>
 
-    <!-- Certificate Details Drawer -->
-    <a-drawer
-      v-model:visible="certificateDetailsDrawerVisible"
-      :title="drawerTitle"
-      :width="drawerWidth"
-      placement="right"
-      class="certificate-details-drawer"
-      :mask-closable="true"
-    >
-      <div v-if="selectedGroup" class="drawer-content">
+      <div class="group-card-body">
         <a-table
-          :data="selectedGroup.certificates"
+          class="cert-table"
+          :data="group.certificates || []"
+          :loading="loading"
           :pagination="false"
-          :bordered="false"
+          row-key="source"
           size="small"
+          :bordered="false"
         >
           <template #columns>
             <a-table-column
               :title="$t('app.certificate.domain')"
               data-index="domain"
-              :width="200"
+              :width="220"
             >
-              <template #cell="{ record }">
-                <div class="domain-cell">
-                  <div class="domain-name">{{ record.domain }}</div>
-                  <div class="domain-meta">
-                    <a-tag
-                      :color="getCertificateStatusColor(record.status)"
-                      size="small"
-                    >
-                      {{ getCertificateStatusText(record.status) }}
-                    </a-tag>
-                    <span class="expiry-date">{{
-                      formatDate(record.not_after)
-                    }}</span>
-                  </div>
-                </div>
+              <template #cell="{ record: cert }">
+                <div class="cert-domain">{{ cert.domain || '-' }}</div>
               </template>
             </a-table-column>
+
+            <a-table-column
+              :title="$t('app.certificate.altNames')"
+              :width="260"
+            >
+              <template #cell="{ record: cert }">
+                <div
+                  v-if="cert.alt_names && cert.alt_names.length"
+                  class="cert-alt-names"
+                >
+                  <a-tag
+                    v-for="altName in cert.alt_names.slice(0, 2)"
+                    :key="altName"
+                    size="small"
+                  >
+                    {{ altName }}
+                  </a-tag>
+                  <a-tag v-if="cert.alt_names.length > 2" size="small">
+                    +{{ cert.alt_names.length - 2 }}
+                  </a-tag>
+                </div>
+                <span v-else>-</span>
+              </template>
+            </a-table-column>
+
+            <a-table-column
+              :title="$t('app.certificate.expiresOn')"
+              data-index="not_after"
+              :width="180"
+            >
+              <template #cell="{ record: cert }">
+                <span :class="getExpiryTextClass(cert.not_after)">
+                  {{ getExpiryWithCountdown(cert.not_after) }}
+                </span>
+              </template>
+            </a-table-column>
+
+            <a-table-column
+              :title="$t('app.certificate.issuerCN')"
+              :width="220"
+            >
+              <template #cell="{ record: cert }">
+                {{ cert.issuer_cn || cert.issuer_organization || '-' }}
+              </template>
+            </a-table-column>
+
+            <a-table-column
+              :title="$t('app.certificate.status')"
+              data-index="status"
+              :width="120"
+              align="center"
+            >
+              <template #cell="{ record: cert }">
+                <a-tag :color="getCertificateStatusColor(cert.status)">
+                  {{ getCertificateStatusText(cert.status) }}
+                </a-tag>
+              </template>
+            </a-table-column>
+
+            <a-table-column
+              :title="$t('app.certificate.chainStatus')"
+              :width="120"
+              align="center"
+            >
+              <template #cell="{ record: cert }">
+                <a-tag :color="getChainStatusColor(cert)">
+                  {{ getChainStatusText(cert) }}
+                </a-tag>
+              </template>
+            </a-table-column>
+
             <a-table-column
               :title="$t('common.operations')"
-              :width="120"
+              :width="220"
               align="right"
             >
-              <template #cell="{ record }">
-                <div class="table-actions">
+              <template #cell="{ record: cert }">
+                <div class="cert-operations">
                   <a-button
                     type="text"
                     size="small"
-                    @click="$emit('updateCertificate', selectedGroup.alias)"
+                    class="action-link-btn"
+                    @click="$emit('viewCertificate', cert.source)"
                   >
-                    {{ $t('common.edit') }}
+                    {{ $t('app.certificate.viewCertificate') }}
                   </a-button>
                   <a-button
                     type="text"
                     size="small"
-                    status="danger"
-                    @click="handleDeleteCertificate(record.source)"
+                    class="action-link-btn"
+                    @click="$emit('completeChain', cert.source)"
                   >
-                    {{ $t('common.delete') }}
+                    {{ $t('app.certificate.completeChain') }}
+                  </a-button>
+                  <a-button
+                    type="text"
+                    size="small"
+                    class="action-link-btn"
+                    @click="handleDeleteCertificate(cert.source)"
+                  >
+                    {{ $t('app.certificate.deleteCertificate') }}
                   </a-button>
                 </div>
               </template>
             </a-table-column>
           </template>
+
+          <template #empty>
+            <a-empty :description="$t('app.certificate.noCertificates')" />
+          </template>
         </a-table>
       </div>
-    </a-drawer>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref, watch } from 'vue';
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import type { Column } from '@/components/idb-table/types';
-  import type { CertificateGroup } from '@/api/certificate';
-  import IdbTableOperation from '@/components/idb-table-operation/index.vue';
+  import dayjs from 'dayjs';
+  import type {
+    CertificateGroup,
+    CertificateSimpleInfo,
+  } from '@/api/certificate';
 
-  // Props 定义
   interface Props {
     loading: boolean;
     groups: CertificateGroup[];
@@ -237,13 +229,11 @@
 
   const props = defineProps<Props>();
 
-  // 事件定义
   const emit = defineEmits<{
-    (e: 'reload'): void;
-    (e: 'viewDetail', source: string): void;
+    (e: 'viewCertificate', source: string): void;
     (e: 'generateSelfSigned', alias: string): void;
+    (e: 'importCertificate', alias: string): void;
     (e: 'completeChain', source: string): void;
-    (e: 'updateCertificate', alias: string): void;
     (e: 'deleteGroup', alias: string): void;
     (e: 'deleteCertificate', source: string): void;
     (e: 'viewPrivateKey', alias: string): void;
@@ -252,455 +242,262 @@
 
   const { t } = useI18n();
 
-  // 证书详情抽屉状态
-  const certificateDetailsDrawerVisible = ref(false);
-  const selectedGroup = ref<CertificateGroup | null>(null);
+  const groups = computed(() => props.groups || []);
 
-  // 打开证书详情抽屉
-  const openCertificateDetailsModal = (group: CertificateGroup) => {
-    selectedGroup.value = group;
-    certificateDetailsDrawerVisible.value = true;
-  };
-
-  // 抽屉标题
-  const drawerTitle = computed(() => {
-    if (!selectedGroup.value) return '';
-    return `${selectedGroup.value.alias} - ${t(
-      'app.certificate.certificates'
-    )}`;
-  });
-
-  // 抽屉宽度
-  const drawerWidth = computed(() => 700);
-
-  // 处理删除证书
   const handleDeleteCertificate = (source: string) => {
     emit('deleteCertificate', source);
-    // 不自动关闭抽屉，让用户手动关闭
   };
 
-  // 监听groups变化，更新selectedGroup数据
-  watch(
-    () => props.groups,
-    (newGroups: CertificateGroup[]) => {
-      if (selectedGroup.value && newGroups) {
-        // 找到对应的更新后的组数据
-        const updatedGroup = newGroups.find(
-          (group: CertificateGroup) =>
-            group.alias === selectedGroup.value?.alias
-        );
-        if (updatedGroup) {
-          selectedGroup.value = updatedGroup;
-        }
-      }
-    },
-    { deep: true }
-  );
-
-  // 获取状态汇总
-  const getStatusSummary = (certificates: any[]) => {
-    const statusCount = certificates.reduce((acc, cert) => {
-      acc[cert.status] = (acc[cert.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(statusCount).map(([type, count]) => ({
-      type,
-      count,
-    }));
+  const getRequester = (requester?: string) => {
+    const normalized = requester ? String(requester).trim() : '';
+    return normalized || 'NULL';
   };
 
-  // 获取域名预览
-  const getDomainPreview = (certificates: any[]) => {
-    const domains = certificates.map((cert) => cert.domain);
-    if (domains.length <= 2) {
-      return domains.join(', ');
+  const getCertificateCount = (group: CertificateGroup) =>
+    (group.certificates || []).length;
+
+  const getEarliestExpiry = (group: CertificateGroup) => {
+    const certs = group.certificates || [];
+    if (!certs.length) return null;
+
+    const validDates = certs
+      .map((cert) => dayjs(cert.not_after))
+      .filter((date) => date.isValid())
+      .sort((a, b) => a.valueOf() - b.valueOf());
+
+    return validDates.length ? validDates[0] : null;
+  };
+
+  const getEarliestExpiryText = (group: CertificateGroup) => {
+    const expiry = getEarliestExpiry(group);
+    if (!expiry) return '-';
+
+    const days = expiry.startOf('day').diff(dayjs().startOf('day'), 'day');
+    if (days >= 0) {
+      return `${expiry.format('YYYY/MM/DD')} (${days}d)`;
     }
-    return `${domains.slice(0, 2).join(', ')} +${domains.length - 2}`;
+    return `${expiry.format('YYYY/MM/DD')} (-${Math.abs(days)}d)`;
   };
 
-  // 表格列定义
-  const columns = computed<Column[]>(() => [
-    {
-      title: t('app.certificate.alias'),
-      dataIndex: 'alias',
-      key: 'alias',
-      width: 200,
-      align: 'left',
-      slotName: 'alias',
-    },
-    {
-      title: t('app.certificate.certificates'),
-      dataIndex: 'certificates',
-      key: 'certificates',
-      align: 'left',
-      slotName: 'certificates',
-    },
-    {
-      title: t('common.operations'),
-      key: 'operations',
-      width: 200,
-      align: 'left',
-      slotName: 'operations',
-    },
-  ]);
+  const getGroupStatus = (group: CertificateGroup) => {
+    const certs = group.certificates || [];
+    if (!certs.length) return 'unknown';
 
-  // 数据源
-  const dataSource = computed(() => ({
-    items: props.groups,
-    page: 1,
-    page_size: props.groups.length,
-    total: props.groups.length,
-  }));
-
-  // 获取操作选项
-  const getOperationOptions = (record: CertificateGroup) => [
-    {
-      text: t('app.certificate.generateSelfSigned'),
-      click: () => emit('generateSelfSigned', record.alias),
-    },
-    {
-      text: t('app.certificate.viewPrivateKey'),
-      click: () => emit('viewPrivateKey', record.alias),
-    },
-    {
-      text: t('app.certificate.viewCSR'),
-      click: () => emit('viewCsr', record.alias),
-    },
-    {
-      text: t('app.certificate.deleteGroup'),
-      status: 'danger' as const,
-      click: () => emit('deleteGroup', record.alias),
-    },
-  ];
-
-  // 处理刷新
-  const handleReload = () => {
-    emit('reload');
+    if (certs.some((cert) => cert.status === 'expired')) return 'expired';
+    if (certs.some((cert) => cert.status === 'expiring_soon')) {
+      return 'expiring_soon';
+    }
+    if (certs.some((cert) => cert.status === 'valid')) return 'valid';
+    return 'unknown';
   };
 
-  // 获取证书状态颜色
-  const getCertificateStatusColor = (status: string) => {
+  function getCertificateStatusColor(status: string) {
     switch (status) {
       case 'valid':
-        return 'rgb(var(--success-6))';
+        return 'green';
       case 'expired':
-        return 'rgb(var(--danger-6))';
+        return 'red';
       case 'expiring_soon':
-        return 'rgb(var(--warning-6))';
+        return 'orange';
       default:
-        return 'rgb(var(--color-text-4))';
+        return 'gray';
     }
-  };
+  }
 
-  // 获取证书状态文本
-  const getCertificateStatusText = (status: string) => {
+  function getCertificateStatusText(status: string) {
     switch (status) {
       case 'valid':
         return t('app.certificate.status.valid');
       case 'expired':
         return t('app.certificate.status.expired');
       case 'expiring_soon':
-        return t('app.certificate.status.expiringSoon');
+        return t('app.certificate.status.expiringSoon', { days: 30 });
       default:
         return t('app.certificate.status.unknown');
     }
+  }
+
+  const resolveChainCompletion = (cert: CertificateSimpleInfo) => {
+    const candidates = [
+      cert.chain_complete,
+      cert.chain_completed,
+      cert.is_chain_complete,
+      cert.complete_chain,
+    ];
+    const raw = candidates.find(
+      (value) => value !== undefined && value !== null
+    );
+    if (raw === undefined) return null;
+
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw === 'number') return raw === 1;
+    if (typeof raw === 'string') {
+      const value = raw.trim().toLowerCase();
+      if (['1', 'true', 'yes', 'ok', 'completed'].includes(value)) return true;
+      if (['0', 'false', 'no', 'none', 'incomplete'].includes(value))
+        return false;
+    }
+
+    return null;
   };
 
-  // 格式化日期
-  const formatDate = (dateString: string) => {
+  const getChainStatusColor = (cert: CertificateSimpleInfo) => {
+    const completed = resolveChainCompletion(cert);
+    if (completed === true) return 'green';
+    if (completed === false) return 'orange';
+    return 'gray';
+  };
+
+  const getChainStatusText = (cert: CertificateSimpleInfo) => {
+    const completed = resolveChainCompletion(cert);
+    if (completed === true) return t('app.certificate.chainStatus.completed');
+    if (completed === false) return t('app.certificate.chainStatus.incomplete');
+    return t('app.certificate.chainStatus.unknown');
+  };
+
+  const getGroupStatusColor = (group: CertificateGroup) => {
+    return getCertificateStatusColor(getGroupStatus(group));
+  };
+
+  const getGroupStatusText = (group: CertificateGroup) => {
+    return getCertificateStatusText(getGroupStatus(group));
+  };
+
+  const getExpiryWithCountdown = (dateString: string) => {
     if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      if (Number.isNaN(date.getTime())) return '-';
-      return date.toLocaleDateString();
-    } catch (error) {
-      return '-';
+    const date = dayjs(dateString);
+    if (!date.isValid()) return '-';
+
+    const days = date.startOf('day').diff(dayjs().startOf('day'), 'day');
+    if (days >= 0) {
+      return `${date.format('YYYY/MM/DD')} (${days}d)`;
     }
+    return `${date.format('YYYY/MM/DD')} (-${Math.abs(days)}d)`;
+  };
+
+  const getExpiryTextClass = (dateString: string) => {
+    if (!dateString) return '';
+    const date = dayjs(dateString);
+    if (!date.isValid()) return '';
+
+    const days = date.startOf('day').diff(dayjs().startOf('day'), 'day');
+    if (days < 0) return 'expiry-text expiry-text-expired';
+    if (days <= 30) return 'expiry-text expiry-text-expiring';
+    return 'expiry-text';
   };
 </script>
 
 <style scoped>
   .certificate-group-container {
-    width: 100%;
-  }
-
-  .alias-cell {
     display: flex;
     flex-direction: column;
-    gap: 0.33rem;
-  }
-
-  .requester {
-    font-size: 1rem;
-  }
-
-  .certificates-cell {
+    gap: 0.75rem;
     width: 100%;
   }
 
-  .no-certificates {
-    padding: 1.67rem 1.67rem 1.67rem 0;
-    text-align: left;
-  }
-
-  .certificate-list {
-    width: 100%;
-  }
-
-  .certificates-summary {
-    margin-bottom: 0.75rem;
-  }
-
-  .summary-line {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .cert-count {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--color-text-1);
-    white-space: nowrap;
-  }
-
-  .status-tags {
-    display: flex;
-    flex: 1;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-  }
-
-  .view-details-btn {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.8125rem;
-    white-space: nowrap;
-  }
-
-  .domains-preview {
-    font-size: 0.8125rem;
-    font-style: italic;
-    line-height: 1.4;
-    color: var(--color-text-3);
-  }
-
-  .single-certificate {
-    margin-top: 0;
-  }
-
-  .certificate-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-  }
-
-  .cert-main-info {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .domain-line {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .domain-name {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--color-text-1);
-  }
-
-  .cert-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .expiry-info {
-    font-size: 0.8125rem;
-    color: var(--color-text-3);
-  }
-
-  .alt-names-inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-
-  .alt-tag {
-    font-size: 0.75rem;
-  }
-
-  .cert-actions {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin-left: 1rem;
-  }
-
-  /* Certificate Details Modal */
-  .certificate-details-modal {
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-
-  .modal-cert-item {
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    background: var(--color-bg-2);
+  .group-card {
+    overflow: hidden;
+    background: var(--color-bg-1);
     border: 1px solid var(--color-border-2);
     border-radius: 0.5rem;
   }
 
-  .modal-cert-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .modal-cert-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-
-  .modal-domain-info {
+  .group-card-header {
     display: flex;
     gap: 0.75rem;
     align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-fill-1);
+    border-bottom: 1px solid var(--color-border-2);
   }
 
-  .modal-domain-name {
-    margin: 0;
-    font-size: 1.125rem;
+  .group-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+  }
+
+  .meta-item {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .meta-label {
+    font-size: 0.8125rem;
+    color: var(--color-text-3);
+  }
+
+  .meta-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-1);
+  }
+
+  .group-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.125rem;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .group-card-body {
+    padding: 0.5rem;
+  }
+
+  .cert-domain {
     font-weight: 600;
     color: var(--color-text-1);
   }
 
-  .modal-cert-actions {
+  .cert-alt-names {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .modal-cert-details {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .modal-cert-meta {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .modal-expiry-info {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-text-3);
-    background: var(--color-fill-2);
-    border-radius: 0.25rem;
-  }
-
-  .modal-alt-names {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .alt-names-label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-text-2);
-  }
-
-  .alt-names-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-  }
-
-  .modal-alt-tag {
-    font-size: 0.75rem;
-    color: var(--idblue-6);
-    background: var(--idblue-1);
-    border: 1px solid var(--idblue-2);
-  }
-
-  :deep(.arco-dropdown-option.danger-option) {
-    color: var(--idbred-6);
-  }
-
-  :deep(.arco-dropdown-option.danger-option:hover) {
-    color: var(--idbred-4);
-    background-color: var(--idbred-1);
-  }
-
-  /* Certificate Details Drawer */
-  .drawer-content {
-    padding: 0;
-  }
-
-  .domain-cell {
-    display: flex;
-    flex-direction: column;
     gap: 0.25rem;
   }
 
-  .domain-name {
-    font-weight: 500;
+  .expiry-text {
     color: var(--color-text-1);
   }
 
-  .domain-meta {
+  .expiry-text-expiring {
+    font-weight: 600;
+    color: rgb(var(--warning-6));
+  }
+
+  .expiry-text-expired {
+    font-weight: 600;
+    color: rgb(var(--danger-6));
+  }
+
+  .cert-operations {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.125rem;
     align-items: center;
-  }
-
-  .expiry-date {
-    font-size: 0.75rem;
-    color: var(--color-text-3);
-  }
-
-  .table-actions {
-    display: flex;
-    gap: 0.25rem;
     justify-content: flex-end;
   }
 
-  /* Ensure drawer width is respected */
-  :deep(.certificate-details-drawer .arco-drawer) {
-    width: 700px !important;
-    min-width: 700px !important;
-    max-width: 700px !important;
+  .action-link-btn {
+    color: rgb(var(--primary-6));
   }
 
-  :deep(.certificate-details-drawer .arco-drawer-content) {
-    width: 700px !important;
-    min-width: 700px !important;
-    max-width: 700px !important;
+  .action-link-btn.danger-link {
+    color: rgb(var(--danger-6));
   }
 
-  :deep(.certificate-details-drawer .arco-drawer-wrapper) {
-    width: 700px !important;
-    min-width: 700px !important;
-    max-width: 700px !important;
+  .action-link-btn.danger-link:hover {
+    color: rgb(var(--danger-7));
   }
 
-  /* Override any responsive behavior */
-  @media (width <= 768px) {
-    :deep(.certificate-details-drawer .arco-drawer) {
-      width: 700px !important;
-      max-width: 700px !important;
-    }
+  :deep(.cert-table .arco-table-th) {
+    background: var(--color-fill-1);
+  }
+
+  :deep(.cert-table .arco-table-td) {
+    background: var(--color-bg-1);
   }
 </style>

@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.generateSelfSigned')"
-    :width="700"
+    :width="820"
     :footer="true"
     @cancel="handleCancel"
   >
@@ -119,7 +119,6 @@
   import type { FormInstance } from '@arco-design/web-vue/es/form';
   import type { SelfSignedRequest } from '@/api/certificate';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     alias: string;
@@ -130,7 +129,6 @@
     loading: false,
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
     (e: 'ok', form: SelfSignedRequest): void;
@@ -138,7 +136,6 @@
 
   const { t } = useI18n();
 
-  // 响应式数据
   const formRef = ref<FormInstance>();
   const form = ref<SelfSignedRequest>({
     alias: '',
@@ -149,13 +146,11 @@
     is_ca: false,
   });
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
   });
 
-  // 表单验证状态
   const isFormValid = computed(() => {
     return (
       form.value.alias.trim() !== '' &&
@@ -165,7 +160,6 @@
     );
   });
 
-  // 表单验证规则
   const rules = {
     alias: [
       {
@@ -239,7 +233,6 @@
     ],
   };
 
-  // 重置表单
   const resetForm = () => {
     form.value = {
       alias: props.alias,
@@ -252,25 +245,21 @@
     formRef.value?.resetFields();
   };
 
-  // 处理提交
   const handleSubmit = async () => {
     try {
       const errors = await formRef.value?.validate();
       if (!errors) {
-        // 验证通过，没有错误
         emit('ok', { ...form.value });
       }
     } catch (error) {
-      console.error('Form validation failed:', error);
+      // keep silent; form item will render validation messages
     }
   };
 
-  // 处理取消
   const handleCancel = () => {
     drawerVisible.value = false;
   };
 
-  // 监听弹窗显示状态和alias变化
   watch([() => props.visible, () => props.alias], ([visible, alias]) => {
     if (visible) {
       resetForm();

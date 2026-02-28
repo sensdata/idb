@@ -20,7 +20,7 @@
       >
         <file-selector
           v-model="formState.directory"
-          type="directory"
+          type="dir"
           :host="props.host"
           :placeholder="
             $t('components.file.uploadFilesDrawer.directory.placeholder')

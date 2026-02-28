@@ -42,18 +42,16 @@
 </script>
 
 <style scoped lang="less">
-  @import '@/assets/style/mixin.less';
+  @import url('@/assets/style/mixin.less');
 
   .simplified-file-sidebar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 5;
+    flex: 0 0 208px;
+    align-self: stretch;
     width: 208px;
-    height: calc(100vh - 240px); /* 改为固定的视口相对高度，避免依赖父容器 */
-    padding: 4px 0; /* 改为左右无padding，让紫色指示条能贴边显示 */
-    overflow: hidden auto; /* 隐藏水平滚动条 */ /* 明确指定垂直滚动 */
+    min-height: 0;
+    padding: 4px 0;
+    overflow: hidden auto;
+    background-color: var(--color-fill-1);
     border-right: 1px solid var(--color-border-2);
     transition: width 0.3s ease;
 
@@ -64,6 +62,7 @@
   /* 平板设备 */
   @media screen and (width <= 991px) {
     .simplified-file-sidebar {
+      flex-basis: 180px;
       width: 180px;
     }
   }
@@ -71,6 +70,7 @@
   /* 小型平板 */
   @media screen and (width <= 768px) {
     .simplified-file-sidebar {
+      flex-basis: 160px;
       width: 160px;
     }
   }
@@ -78,6 +78,7 @@
   /* 手机设备 */
   @media screen and (width <= 576px) {
     .simplified-file-sidebar {
+      flex-basis: 140px;
       width: 140px;
       padding: 4px 4px;
     }
@@ -86,6 +87,7 @@
   /* 小型手机 */
   @media screen and (width <= 480px) {
     .simplified-file-sidebar {
+      flex-basis: 120px;
       width: 120px;
       padding: 4px 2px;
     }

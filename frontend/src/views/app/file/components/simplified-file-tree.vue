@@ -1,6 +1,10 @@
 <template>
   <div class="simplified-file-tree">
     <ul class="tree-list">
+      <li class="tree-section-title">
+        {{ t('app.file.sidebar.favorites') }}
+      </li>
+
       <!-- Pinned directories section -->
       <template v-if="pinnedItems.length > 0">
         <li
@@ -32,6 +36,13 @@
           <div class="separator-line"></div>
         </li>
       </template>
+      <li v-else class="tree-section-empty">
+        {{ t('app.file.sidebar.noFavorites') }}
+      </li>
+
+      <li class="tree-section-title">
+        {{ t('app.file.sidebar.directories') }}
+      </li>
 
       <!-- Regular directories section -->
       <li
@@ -61,6 +72,7 @@
 <script lang="ts" setup>
   import { computed, ref, onMounted, watch } from 'vue';
   import { IconClose } from '@arco-design/web-vue/es/icon';
+  import { useI18n } from 'vue-i18n';
   import { SimpleFileInfoEntity } from '@/entity/FileInfo';
   import { getDirectoryInfoApi } from '@/api/file';
   import { useLogger } from '@/composables/use-logger';
@@ -78,6 +90,7 @@
   }>();
 
   const emit = defineEmits(['itemSelect', 'itemDoubleClick']);
+  const { t } = useI18n();
 
   const {
     pinnedDirectories,
@@ -85,6 +98,7 @@
     unpinDirectory,
     updateDirectoryExists,
     pinnedPathsString,
+    loadFavorites,
   } = usePinnedDirectories();
 
   const { logWarn } = useLogger('SimplifiedFileTree');
@@ -135,7 +149,8 @@
   };
 
   // Watch for changes in pinned directories and refetch when needed
-  onMounted(() => {
+  onMounted(async () => {
+    await loadFavorites();
     fetchPinnedDirectoryInfo();
   });
 
@@ -253,8 +268,12 @@
   };
 
   // Handle unpin click event for pinned items
-  const handleUnpinClick = (item: FileTreeItem) => {
-    unpinDirectory(item.path);
+  const handleUnpinClick = async (item: FileTreeItem) => {
+    try {
+      await unpinDirectory(item.path);
+    } catch (error) {
+      logWarn(`Failed to unpin directory: ${item.path}`, error);
+    }
   };
 </script>
 
@@ -262,7 +281,7 @@
   .simplified-file-tree {
     position: relative;
     width: 100%;
-    padding: 0.5rem 0.25rem 0.5rem 1rem;
+    padding: 0.5rem 0.375rem 0.5rem 0.75rem;
     margin: 0;
   }
 
@@ -273,24 +292,44 @@
     list-style: none;
   }
 
+  .tree-section-title {
+    padding: 0.25rem 0.5rem;
+    margin: 0.5rem 0 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    color: var(--color-text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    list-style: none;
+  }
+
+  .tree-section-empty {
+    padding: 0.25rem 0.5rem 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    color: var(--color-text-4);
+    list-style: none;
+  }
+
   .tree-item {
     position: relative;
     width: 100%;
-    height: 2rem;
-    padding: 0 0.75rem;
-    margin-bottom: 0.5rem;
+    height: 2.125rem;
+    padding: 0 0.5rem;
+    margin-bottom: 0.25rem;
     overflow: visible;
     cursor: pointer;
     list-style: none;
     background: transparent;
     border: none;
-    border-radius: 0.25rem;
-    transition: background-color 0.2s ease;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   /* Pinned directory styling */
   .tree-item.pinned {
-    background-color: var(--idblue-1);
+    background-color: var(--color-fill-1);
   }
 
   /* Hover state */
@@ -299,7 +338,7 @@
   }
 
   .tree-item.pinned:hover {
-    background-color: var(--idblue-2);
+    background-color: var(--color-fill-2);
   }
 
   /* Selected state background */
@@ -308,16 +347,17 @@
   }
 
   .tree-item.pinned.selected {
-    background-color: var(--idblue-3);
+    background-color: rgb(var(--primary-1));
+    box-shadow: inset 0 0 0 1px rgb(var(--primary-3));
   }
 
-  /* Selected state purple indicator */
+  /* Selected state indicator */
   .tree-item.selected::before {
     position: absolute;
-    top: 12.5%;
-    left: -0.5rem;
-    width: 0.25rem;
-    height: 75%;
+    top: 15%;
+    left: -0.25rem;
+    width: 0.2rem;
+    height: 70%;
     content: '';
     background-color: rgb(var(--primary-6));
     border-radius: 0.125rem;
@@ -345,7 +385,7 @@
     width: 100%;
     min-width: 0;
     height: 100%;
-    padding: 0.3125rem 0.5rem;
+    padding: 0.25rem 0.375rem;
     margin: 0;
     background: transparent;
   }
@@ -372,10 +412,10 @@
     min-width: 0;
     margin-left: 0;
     overflow: hidden;
-    color: var(--color-text-1);
     text-overflow: ellipsis;
-    font-size: 1rem;
-    line-height: 1.375rem;
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--color-text-1);
     white-space: nowrap;
   }
 
@@ -394,7 +434,7 @@
   .pin-icon {
     width: 0.75rem;
     height: 0.75rem;
-    color: rgb(var(--primary-6));
+    color: var(--color-text-3);
   }
 
   /* Unpin icon style */
@@ -407,8 +447,13 @@
     height: 1rem;
     margin-left: 0.1rem;
     cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+  }
+
+  .tree-item.pinned:hover .tree-item-unpin,
+  .tree-item.pinned.selected .tree-item-unpin {
+    opacity: 0.72;
   }
 
   .tree-item-unpin:hover {
@@ -425,7 +470,7 @@
     position: relative;
     width: 100%;
     height: 0.5rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0 0.375rem;
     pointer-events: none;
     list-style: none;
   }
@@ -433,8 +478,8 @@
   .separator-line {
     position: absolute;
     top: 50%;
-    right: 0.5rem;
-    left: 0.5rem;
+    right: 0.25rem;
+    left: 0.25rem;
     height: 1px;
     background-color: var(--color-border-2);
     transform: translateY(-50%);

@@ -8,7 +8,10 @@
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.dns_servers') }}</div>
             <div class="col3">
-              <div v-for="(server, index) in data.dns?.servers" :key="index">
+              <div
+                v-for="(server, index) in dnsServers"
+                :key="`${server}-${index}`"
+              >
                 {{ server }}
               </div>
             </div>
@@ -34,8 +37,30 @@
         </div>
       </div>
 
+      <div class="line network-filter-line">
+        <div class="col1">{{ $t('app.sysinfo.network.filter') }}</div>
+        <div class="colspan">
+          <a-tabs
+            v-model:active-key="activeFilter"
+            type="rounded"
+            size="small"
+            class="network-filter-tabs"
+          >
+            <a-tab-pane
+              v-for="item in filterTabs"
+              :key="item.key"
+              :title="item.title"
+            />
+          </a-tabs>
+        </div>
+      </div>
+
       <!-- 网络接口列表 -->
-      <div v-for="(network, index) in data.networks" :key="index" class="line">
+      <div
+        v-for="(network, index) in filteredNetworks"
+        :key="network.name || network.mac || index"
+        class="line"
+      >
         <div class="col1">
           {{ $t('app.sysinfo.network.interface') }} {{ index + 1 }}
         </div>
@@ -43,49 +68,24 @@
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.status') }}</div>
             <div class="col3">
-              <a-tag
-                :color="
-                  network.status === 'up'
-                    ? 'rgb(var(--success-6))'
-                    : 'rgb(var(--danger-6))'
-                "
-              >
-                {{
-                  network.status === 'up'
-                    ? $t('app.sysinfo.network.status_enabled')
-                    : $t('app.sysinfo.network.status_disabled')
-                }}
+              <a-tag :color="getStatusColor(network.status)">
+                {{ getStatusText(network.status) }}
               </a-tag>
-            </div>
-            <div v-if="index === 0" class="col4 hidden">
-              <a-button
-                type="primary"
-                size="mini"
-                @click="handleModifyNetwork"
-                >{{ $t('common.modify') }}</a-button
-              >
             </div>
           </div>
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.name') }}</div>
             <div class="col3">
               {{ network.name }}
-              <span v-if="network.name === 'eth0'">
-                ({{ $t('app.sysinfo.network.ethernet') }})
-              </span>
-              <span v-else-if="network.name === 'lo'">
-                ({{ $t('app.sysinfo.network.loopback') }})
+              <span v-if="getNetworkTypeText(network.name)">
+                ({{ getNetworkTypeText(network.name) }})
               </span>
             </div>
           </div>
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.proto') }}</div>
             <div class="col3">
-              {{
-                network.proto === 'dhcp'
-                  ? $t('app.sysinfo.network.proto_dhcp')
-                  : $t('app.sysinfo.network.proto_static')
-              }}
+              {{ getProtoText(network.proto) }}
             </div>
           </div>
           <div class="subline">
@@ -99,6 +99,7 @@
                 :columns="ipColumns"
                 :data="network.address || []"
                 :pagination="false"
+                :row-key="getIpRowKey"
                 size="small"
               />
             </div>
@@ -108,23 +109,20 @@
             <div class="col3">
               <a-table
                 :columns="trafficColumns"
-                :data="[
-                  {
-                    type: $t('app.sysinfo.network.traffic_tx'),
-                    total: network.traffic.tx,
-                    speed: network.traffic.tx_speed,
-                  },
-                  {
-                    type: $t('app.sysinfo.network.traffic_rx'),
-                    total: network.traffic.rx,
-                    speed: network.traffic.rx_speed,
-                  },
-                ]"
+                :data="getTrafficRows(network)"
                 :pagination="false"
+                :row-key="getTrafficRowKey"
                 size="small"
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div v-if="!filteredNetworks.length" class="line">
+        <div class="col1"></div>
+        <div class="colspan empty-network-text">
+          {{ $t('app.sysinfo.network.empty') }}
         </div>
       </div>
     </div>
@@ -133,7 +131,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, onMounted, onBeforeUnmount } from 'vue';
+  import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { getSysInfoNetworkApi, SysInfoNetworkRes } from '@/api/sysinfo';
@@ -143,33 +141,54 @@
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);
   const dnsModifyRef = ref<InstanceType<typeof DnsModify>>();
-  const data = ref<SysInfoNetworkRes>({
+  const polling = ref(false);
+
+  type NetworkItem = SysInfoNetworkRes['networks'][number];
+  type NetworkAddress = NetworkItem['address'][number];
+
+  const getDefaultData = (): SysInfoNetworkRes => ({
     dns: {
       retry: 0,
-      servers: [''],
+      servers: [],
       timeout: 0,
     },
-    networks: [
-      {
-        address: [],
-        mac: '',
-        name: '',
-        proto: '',
-        status: '',
-        traffic: {
-          rx: '',
-          rx_bytes: 0,
-          rx_speed: '',
-          tx: '',
-          tx_bytes: 0,
-          tx_speed: '',
-        },
-      },
-    ],
+    networks: [],
+  });
+
+  const data = ref<SysInfoNetworkRes>(getDefaultData());
+  const dnsServers = computed(() => data.value.dns?.servers || []);
+  const networks = computed(() => data.value.networks || []);
+  const activeFilter = ref('physical');
+
+  const getNetworkKind = (name: string) => {
+    if (name === 'lo') return 'loopback';
+    if (
+      /^(eth|enp|eno|ens|em|wlan|wlp|wwan|bond|team|p\d+p\d+|ib)/i.test(name)
+    ) {
+      return 'physical';
+    }
+    if (/^(docker|veth|br-|virbr|vmnet|tun|tap|wg|zt)/i.test(name)) {
+      return 'virtual';
+    }
+    return 'virtual';
+  };
+
+  const filterTabs = computed(() => [
+    { key: 'all', title: t('app.sysinfo.network.filter_all') },
+    { key: 'physical', title: t('app.sysinfo.network.filter_physical') },
+    { key: 'loopback', title: t('app.sysinfo.network.filter_loopback') },
+    { key: 'virtual', title: t('app.sysinfo.network.filter_virtual') },
+  ]);
+
+  const filteredNetworks = computed(() => {
+    if (activeFilter.value === 'all') return networks.value;
+    return networks.value.filter(
+      (item) => getNetworkKind(item.name) === activeFilter.value
+    );
   });
 
   // IP信息表格列定义
-  const ipColumns = [
+  const ipColumns = computed(() => [
     {
       title: t('app.sysinfo.network.ip_type'),
       dataIndex: 'type',
@@ -186,10 +205,10 @@
       title: t('app.sysinfo.network.ip_gate'),
       dataIndex: 'gate',
     },
-  ];
+  ]);
 
   // 流量信息表格列定义
-  const trafficColumns = [
+  const trafficColumns = computed(() => [
     {
       title: t('app.sysinfo.network.traffic_type'),
       dataIndex: 'type',
@@ -202,11 +221,50 @@
       title: t('app.sysinfo.network.traffic_speed'),
       dataIndex: 'speed',
     },
+  ]);
+
+  const getStatusColor = (status: string) =>
+    status === 'up' ? 'rgb(var(--success-6))' : 'rgb(var(--danger-6))';
+
+  const getStatusText = (status: string) =>
+    status === 'up'
+      ? t('app.sysinfo.network.status_enabled')
+      : t('app.sysinfo.network.status_disabled');
+
+  const getProtoText = (proto: string) =>
+    proto === 'dhcp'
+      ? t('app.sysinfo.network.proto_dhcp')
+      : t('app.sysinfo.network.proto_static');
+
+  const getNetworkTypeText = (name: string) => {
+    if (name === 'eth0') return t('app.sysinfo.network.ethernet');
+    if (name === 'lo') return t('app.sysinfo.network.loopback');
+    return '';
+  };
+
+  const getIpRowKey = (row: NetworkAddress) => `${row.type}-${row.ip}`;
+
+  const getTrafficRows = (network: NetworkItem) => [
+    {
+      type: t('app.sysinfo.network.traffic_tx'),
+      total: network.traffic?.tx || '-',
+      speed: network.traffic?.tx_speed || '-',
+    },
+    {
+      type: t('app.sysinfo.network.traffic_rx'),
+      total: network.traffic?.rx || '-',
+      speed: network.traffic?.rx_speed || '-',
+    },
   ];
+
+  const getTrafficRowKey = (row: { type: string }) => row.type;
 
   // 获取网络信息数据
   const fetchData = async (silent = false) => {
+    if (silent && polling.value) return;
+
     try {
+      polling.value = true;
       if (!silent) {
         setLoading(true);
       }
@@ -220,22 +278,36 @@
       if (!silent) {
         setLoading(false);
       }
+      polling.value = false;
     }
   };
 
   // 定时刷新数据
-  let timer: number | null = null;
+  let timer: ReturnType<typeof setInterval> | null = null;
   const startTimer = () => {
-    timer = window.setInterval(() => {
+    if (timer) return;
+
+    timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       fetchData(true);
     }, 5000);
   };
 
   const stopTimer = () => {
-    if (timer) {
+    if (timer !== null) {
       clearInterval(timer);
       timer = null;
     }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      fetchData(true);
+      startTimer();
+      return;
+    }
+
+    stopTimer();
   };
 
   // 处理DNS修改
@@ -256,25 +328,23 @@
     fetchData();
   };
 
-  const handleModifyNetwork = () => {
-    // todo: 修改网络接口
-  };
-
   onMounted(() => {
     fetchData();
     startTimer();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   });
 
   onBeforeUnmount(() => {
     stopTimer();
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   });
 </script>
 
 <style scoped lang="less">
   .box {
     width: 940px;
-    margin: 0 auto;
     padding: 0 16px;
+    margin: 0 auto;
     border: 1px solid var(--color-border-2);
   }
 
@@ -300,7 +370,7 @@
 
   .subline {
     display: flex;
-    align-items: top;
+    align-items: flex-start;
     justify-content: flex-start;
     width: 100%;
     margin-bottom: 14px;
@@ -312,27 +382,56 @@
   .col1 {
     width: 120px;
     margin-right: 40px;
-    color: var(--color-text-2);
     font-size: 14px;
+    color: var(--color-text-2);
     text-align: right;
   }
 
   .col2 {
     width: 120px;
     margin-right: 40px;
-    color: var(--color-text-1);
     font-size: 14px;
+    color: var(--color-text-1);
   }
 
   .col3 {
     flex: 1;
     min-width: 200px;
-    color: var(--color-text-1);
     font-size: 14px;
+    color: var(--color-text-1);
   }
 
   .col4 {
     width: 50px;
     margin-left: 30px;
+  }
+
+  .network-filter-line {
+    align-items: center;
+    padding: 12px 0;
+  }
+
+  .network-filter-line .col1 {
+    line-height: 28px;
+  }
+
+  .network-filter-tabs {
+    :deep(.arco-tabs-nav) {
+      margin: 0;
+    }
+    :deep(.arco-tabs-nav::before) {
+      display: none;
+    }
+    :deep(.arco-tabs-nav-ink) {
+      display: none;
+    }
+    :deep(.arco-tabs-content) {
+      display: none;
+    }
+  }
+
+  .empty-network-text {
+    font-size: 14px;
+    color: var(--color-text-3);
   }
 </style>

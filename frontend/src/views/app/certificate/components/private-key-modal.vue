@@ -2,15 +2,15 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.privateKeyInfo')"
-    :width="500"
+    :width="820"
     :footer="false"
+    class="private-key-drawer"
   >
     <a-spin :loading="loading" class="w-full">
       <div v-if="privateKey" class="private-key-detail">
-        <!-- 基本信息 -->
         <a-descriptions
           :title="$t('app.certificate.basicInfo')"
-          :column="2"
+          :column="1"
           bordered
         >
           <a-descriptions-item :label="$t('app.certificate.alias')">
@@ -22,21 +22,36 @@
           <a-descriptions-item :label="$t('app.certificate.keySize')">
             {{ privateKey.key_size }} bits
           </a-descriptions-item>
+          <a-descriptions-item :label="$t('app.certificate.privateKeyPath')">
+            <div class="path-cell">
+              <a-typography-text code class="path-value">
+                {{ privateKeyPath || '-' }}
+              </a-typography-text>
+              <div v-if="privateKeyPath" class="path-actions">
+                <a-button type="text" size="small" @click="copyPrivateKeyPath">
+                  <template #icon>
+                    <icon-copy />
+                  </template>
+                  {{ $t('app.certificate.copyPrivateKeyPath') }}
+                </a-button>
+              </div>
+            </div>
+          </a-descriptions-item>
         </a-descriptions>
 
-        <!-- 私钥内容 -->
-        <div class="mt-6">
-          <h4 class="mb-3">{{ $t('app.certificate.privateKeyContent') }}</h4>
+        <div class="section-block">
+          <h4 class="section-title">{{
+            $t('app.certificate.privateKeyContent')
+          }}</h4>
           <a-textarea
-            :model-value="privateKey.pem"
-            :rows="12"
+            :model-value="formattedPem"
+            :auto-size="{ minRows: 10, maxRows: 10 }"
             readonly
-            class="font-mono text-sm"
+            class="key-content"
           />
         </div>
 
-        <!-- 操作按钮 -->
-        <div class="mt-6 flex justify-end gap-3">
+        <div class="action-bar">
           <a-button @click="copyPrivateKey">
             <template #icon>
               <icon-copy />
@@ -60,7 +75,6 @@
   import { useClipboard } from '@/composables/use-clipboard';
   import type { PrivateKeyInfo } from '@/api/certificate';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     privateKey?: PrivateKeyInfo | null;
@@ -71,7 +85,6 @@
     loading: false,
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
   }>();
@@ -79,52 +92,128 @@
   const { t } = useI18n();
   const { copyText } = useClipboard();
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
   });
 
-  // 复制私钥内容
+  const privateKeyPath = computed(() => {
+    const data = props.privateKey as
+      | (PrivateKeyInfo & {
+          path?: string;
+          source?: string;
+          key_path?: string;
+          keyPath?: string;
+        })
+      | null
+      | undefined;
+    return data?.path || data?.source || data?.key_path || data?.keyPath || '';
+  });
+
+  const formattedPem = computed(() => {
+    const pem = props.privateKey?.pem || '';
+    return pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem;
+  });
+
   const copyPrivateKey = async () => {
-    if (props.privateKey?.pem) {
+    if (formattedPem.value) {
       try {
-        await copyText(props.privateKey.pem);
+        await copyText(formattedPem.value);
         Message.success(t('app.certificate.copySuccess'));
       } catch (error) {
         Message.error(t('app.certificate.copyError'));
       }
     }
   };
+
+  const copyPrivateKeyPath = async () => {
+    if (!privateKeyPath.value) {
+      Message.warning(t('app.certificate.pathUnavailable'));
+      return;
+    }
+    try {
+      await copyText(privateKeyPath.value);
+      Message.success(t('app.certificate.copySuccess'));
+    } catch (error) {
+      Message.error(t('app.certificate.copyError'));
+    }
+  };
 </script>
 
 <style scoped>
   .private-key-detail {
-    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: calc(100vh - 9rem);
+    padding-bottom: 0.25rem;
     overflow-y: auto;
   }
 
-  :deep(.arco-descriptions-title) {
-    margin-bottom: 1rem;
-    font-size: 1.33rem;
-    font-weight: 600;
+  .path-value {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
-  :deep(.arco-textarea) {
-    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+  .path-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
   }
 
-  .mt-6 {
-    margin-top: 2rem;
+  .path-cell :deep(.arco-typography) {
+    flex: 1;
+    min-width: 0;
   }
 
-  .mb-3 {
-    margin-bottom: 1rem;
+  .path-actions {
+    display: flex;
+    gap: 0.375rem;
+    align-items: center;
   }
 
-  h4 {
+  .section-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .section-title {
     margin: 0;
-    font-size: 1.33rem;
+    font-size: 0.9375rem;
     font-weight: 600;
+    color: var(--color-text-1);
+  }
+
+  .key-content {
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 10%),
+      var(--color-bg-1) 40%
+    );
+  }
+
+  :deep(.arco-descriptions-title) {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  :deep(.private-key-drawer .arco-drawer-body) {
+    padding-bottom: 0.75rem;
   }
 </style>

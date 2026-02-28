@@ -4,9 +4,12 @@
       <a-tooltip position="bottom" :content="$t('components.switchHost.tips')">
         <button class="btn color-primary" @click="handleClick">
           <IconHome />
-          <span>{{ currentHost?.name }}</span>
+          <span class="host-name truncate">{{ currentHost?.name }}</span>
         </button>
       </a-tooltip>
+    </div>
+    <div v-if="currentModuleName" class="current-module truncate">
+      {{ currentModuleName }}
     </div>
   </div>
   <a-drawer
@@ -62,6 +65,7 @@
 
 <script lang="ts" setup>
   import { computed, ref } from 'vue';
+  import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
   import { HostEntity } from '@/entity/Host';
   import { getHostListApi } from '@/api/host';
@@ -71,9 +75,17 @@
   const { t } = useI18n();
 
   const gridRef = ref();
+  const route = useRoute();
   const hostStore = useHostStore();
   const { switchHost } = usetCurrentHost();
   const currentHost = computed(() => hostStore.current);
+  const currentModuleName = computed(() => {
+    const localeKey = route.meta?.locale;
+    if (typeof localeKey === 'string' && localeKey.length > 0) {
+      return t(localeKey);
+    }
+    return '';
+  });
 
   const drawerVisible = ref(false);
   const handleClick = () => {
@@ -123,34 +135,84 @@
 <style scoped>
   .box {
     display: flex;
+    gap: 12px;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
+    justify-content: flex-start;
+    padding: 10px 16px;
+    background-color: var(--color-bg-1);
     border-bottom: 1px solid var(--color-border-2);
   }
 
   .host-switch {
     display: flex;
     align-items: center;
+    max-width: 60%;
+  }
+
+  .current-module {
+    display: inline-flex;
+    align-items: center;
+    max-width: 36%;
+    height: 36px;
+    padding: 0 12px;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 36px;
+    color: var(--color-text-2);
+    text-align: left;
+    background-color: var(--color-fill-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 999px;
+    transition: all 0.2s ease;
+  }
+
+  .current-module::before {
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    content: '';
+    background-color: var(--color-primary-light-4);
+    border-radius: 999px;
   }
 
   .btn {
     display: inline-flex;
+    gap: 8px;
     align-items: center;
     justify-content: center;
+    max-width: 100%;
     height: 36px;
-    padding: 10px 20px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    background-color: var(--color-bg-2);
+    background-color: var(--color-fill-2);
     border: 1px solid var(--color-border-2);
     border-radius: 18px;
+    transition: all 0.2s ease;
   }
 
   .btn:hover {
+    color: var(--color-primary-6);
+    background-color: var(--color-fill-3);
     border-color: var(--color-border-3);
   }
 
-  .btn span {
-    margin-left: 8px;
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .host-name {
+    max-width: 220px;
+  }
+
+  @media (width <= 1280px) {
+    .host-switch {
+      max-width: 55%;
+    }
+    .current-module {
+      max-width: 42%;
+    }
   }
 </style>

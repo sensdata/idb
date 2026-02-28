@@ -115,7 +115,7 @@
       },
       {
         label: t('app.process.detailDrawer.startTime'),
-        value: formatTime(basic.create_time * 1000),
+        value: formatTime(basic.create_time),
       },
       {
         label: t('app.process.detailDrawer.startCommand'),
