@@ -81,6 +81,12 @@ export default {
   'app.sysinfo.network.proto_static': '静态分配',
   'app.sysinfo.network.ethernet': '以太网',
   'app.sysinfo.network.loopback': '本地环路',
+  'app.sysinfo.network.filter': '接口分组',
+  'app.sysinfo.network.filter_all': '全部',
+  'app.sysinfo.network.filter_physical': '物理网卡',
+  'app.sysinfo.network.filter_loopback': '回环接口',
+  'app.sysinfo.network.filter_virtual': '虚拟接口',
+  'app.sysinfo.network.empty': '当前分组下暂无网络接口',
 
   // 系统信息页面
   'app.sysinfo.system.host_name': '主机名称',

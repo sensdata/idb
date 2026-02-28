@@ -97,6 +97,12 @@ export default {
   'app.sysinfo.network.proto_static': 'Static',
   'app.sysinfo.network.ethernet': 'Ethernet',
   'app.sysinfo.network.loopback': 'Loopback',
+  'app.sysinfo.network.filter': 'Interface Group',
+  'app.sysinfo.network.filter_all': 'All',
+  'app.sysinfo.network.filter_physical': 'Physical',
+  'app.sysinfo.network.filter_loopback': 'Loopback',
+  'app.sysinfo.network.filter_virtual': 'Virtual',
+  'app.sysinfo.network.empty': 'No network interfaces in this group',
 
   // System information page
   'app.sysinfo.system.host_name': 'Host Name',
