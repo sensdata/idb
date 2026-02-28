@@ -2,7 +2,7 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.createGroup')"
-    :width="700"
+    :width="820"
     :footer="true"
     @cancel="handleCancel"
   >
@@ -29,7 +29,6 @@
         layout="vertical"
         @submit="handleSubmit"
       >
-        <!-- 基本信息 -->
         <div class="form-section">
           <h4 class="section-title">{{ $t('app.certificate.basicInfo') }}</h4>
           <a-row :gutter="16">
@@ -62,7 +61,6 @@
           </a-row>
         </div>
 
-        <!-- 证书配置 -->
         <div class="form-section">
           <h4 class="section-title">{{
             $t('app.certificate.certificateConfig')
@@ -105,7 +103,6 @@
           </a-row>
         </div>
 
-        <!-- 组织信息 -->
         <div class="form-section">
           <h4 class="section-title">{{
             $t('app.certificate.organizationInfo')
@@ -184,7 +181,6 @@
   import type { CreateGroupRequest } from '@/api/certificate';
   import { KEY_ALGORITHM_OPTIONS, DEFAULT_KEY_ALGORITHM } from '../constants';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     loading?: boolean;
@@ -194,7 +190,6 @@
     loading: false,
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
     (e: 'ok', form: CreateGroupRequest): void;
@@ -202,10 +197,7 @@
 
   const { t } = useI18n();
 
-  // 响应式数据
   const formRef = ref<FormInstance>();
-
-  // 表单数据
   const form = ref<CreateGroupRequest>({
     alias: '',
     domain_name: '',
@@ -218,7 +210,6 @@
     key_algorithm: DEFAULT_KEY_ALGORITHM,
   });
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => {
       return props.visible;
@@ -228,7 +219,6 @@
     },
   });
 
-  // 表单验证状态
   const isFormValid = computed(() => {
     return (
       form.value.alias.trim() !== '' &&
@@ -238,7 +228,6 @@
     );
   });
 
-  // 表单验证规则
   const rules = computed(() => ({
     alias: [
       {
@@ -259,7 +248,7 @@
       },
       {
         type: 'email' as const,
-        message: t('app.certificate.form.emailInvalid'),
+        message: t('app.certificate.form.emailFormat'),
       },
     ],
     key_algorithm: [
@@ -270,7 +259,6 @@
     ],
   }));
 
-  // 重置表单
   const resetForm = () => {
     form.value = {
       alias: '',
@@ -286,7 +274,6 @@
     formRef.value?.resetFields();
   };
 
-  // 处理提交
   const handleSubmit = async () => {
     if (!formRef.value) return;
 
@@ -296,16 +283,14 @@
         emit('ok', form.value);
       }
     } catch (error) {
-      // 验证失败，不做处理
+      // keep silent; form item will render validation messages
     }
   };
 
-  // 处理取消
   const handleCancel = () => {
     drawerVisible.value = false;
   };
 
-  // 监听弹窗显示状态
   watch(
     () => props.visible,
     (visible) => {

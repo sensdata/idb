@@ -2,15 +2,15 @@
   <a-drawer
     v-model:visible="drawerVisible"
     :title="$t('app.certificate.csrInfo')"
-    :width="700"
+    :width="820"
     :footer="false"
+    class="csr-drawer"
   >
     <a-spin :loading="loading" class="w-full">
       <div v-if="csr" class="csr-detail">
-        <!-- 基本信息 -->
         <a-descriptions
           :title="$t('app.certificate.basicInfo')"
-          :column="2"
+          :column="1"
           bordered
         >
           <a-descriptions-item :label="$t('app.certificate.commonName')">
@@ -24,7 +24,6 @@
           </a-descriptions-item>
         </a-descriptions>
 
-        <!-- 邮箱地址 -->
         <div v-if="csr.email_addresses.length > 0" class="mt-6">
           <h4 class="mb-3">{{ $t('app.certificate.emailAddresses') }}</h4>
           <div class="email-addresses-container">
@@ -38,20 +37,18 @@
           </div>
         </div>
 
-        <!-- CSR内容 -->
         <div class="mt-6">
           <h4 class="mb-3">{{ $t('app.certificate.csrContent') }}</h4>
           <a-textarea
-            :model-value="csr.pem"
+            :model-value="formattedCsrPem"
             :rows="12"
             readonly
             class="font-mono text-sm"
           />
         </div>
 
-        <!-- 操作按钮 -->
         <div class="mt-6 flex justify-end gap-3">
-          <a-button @click="copyCSR">
+          <a-button :disabled="!formattedCsrPem" @click="copyCSR">
             <template #icon>
               <icon-copy />
             </template>
@@ -62,6 +59,12 @@
           </a-button>
         </div>
       </div>
+
+      <a-empty
+        v-else
+        class="csr-empty"
+        :description="$t('app.certificate.csrUnavailable')"
+      />
     </a-spin>
   </a-drawer>
 </template>
@@ -74,7 +77,6 @@
   import { useClipboard } from '@/composables/use-clipboard';
   import type { CSRInfo } from '@/api/certificate';
 
-  // Props 定义
   interface Props {
     visible: boolean;
     csr?: CSRInfo | null;
@@ -85,7 +87,6 @@
     loading: false,
   });
 
-  // 事件定义
   const emit = defineEmits<{
     (e: 'update:visible', visible: boolean): void;
   }>();
@@ -93,21 +94,26 @@
   const { t } = useI18n();
   const { copyText } = useClipboard();
 
-  // 计算属性
   const drawerVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
   });
 
-  // 复制CSR内容
+  const formattedCsrPem = computed(() => {
+    const pem = props.csr?.pem || '';
+    return pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem;
+  });
+
   const copyCSR = async () => {
-    if (props.csr?.pem) {
-      try {
-        await copyText(props.csr.pem);
-        Message.success(t('app.certificate.copySuccess'));
-      } catch (error) {
-        Message.error(t('app.certificate.copyError'));
-      }
+    if (!formattedCsrPem.value) {
+      Message.warning(t('app.certificate.csrUnavailable'));
+      return;
+    }
+    try {
+      await copyText(formattedCsrPem.value);
+      Message.success(t('app.certificate.copySuccess'));
+    } catch (error) {
+      Message.error(t('app.certificate.copyError'));
     }
   };
 </script>
@@ -154,5 +160,13 @@
     margin: 0;
     font-size: 1.33rem;
     font-weight: 600;
+  }
+
+  .csr-empty {
+    padding: 2.5rem 0 2rem;
+  }
+
+  :deep(.csr-drawer .arco-drawer-body) {
+    padding-bottom: 0.75rem;
   }
 </style>
