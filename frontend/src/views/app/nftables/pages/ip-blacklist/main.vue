@@ -222,8 +222,6 @@
 
       await addIPBlacklistApi(request);
 
-      Message.success(t('app.nftables.message.configSaved'));
-
       // 配置应用成功后刷新当前配置列表
       await handleConfigApplied();
     } catch (error) {

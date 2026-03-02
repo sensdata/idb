@@ -176,6 +176,11 @@ export default {
   'app.nftables.config.columns.process': 'Process',
   'app.nftables.config.columns.port': 'Port',
   'app.nftables.config.columns.addresses': 'Listening Addresses',
+  'app.nftables.config.addressType.external': 'Ext',
+  'app.nftables.config.addressType.internal': 'In',
+  'app.nftables.config.addressType.local': 'Local',
+  'app.nftables.config.addressFamily.ipv4': 'IPv4',
+  'app.nftables.config.addressFamily.ipv6': 'IPv6',
   'app.nftables.config.accessible': 'Accessible',
   'app.nftables.config.fullyAccessible': 'Fully Accessible',
   'app.nftables.config.rejected': 'Rejected',
@@ -512,8 +517,24 @@ export default {
 
   // Editor specific
   'app.nftables.config.editor.modified': 'Modified',
+  'app.nftables.config.editor.readonly': 'Read-only',
+  'app.nftables.config.editor.modeReadOnly': 'Read-only Mode',
+  'app.nftables.config.editor.modeEditing': 'Editing Mode',
+  'app.nftables.config.editor.modeReadOnlyHint':
+    'Currently read-only. Double-click editor content to enter editing.',
+  'app.nftables.config.editor.modeEditingHint':
+    'You can edit now. Save your changes before closing.',
+  'app.nftables.config.editor.enableEdit': 'Enter Edit',
+  'app.nftables.config.editor.exitEdit': 'Exit Edit',
+  'app.nftables.config.editor.readOnlyNoSave':
+    'Cannot save in read-only mode. Switch to edit mode first.',
+  'app.nftables.config.editor.confirmExitEdit': 'Confirm Exit Edit',
+  'app.nftables.config.editor.confirmExitEditContent':
+    'Exiting edit mode will discard current unsaved changes. Continue?',
   'app.nftables.config.editor.tips':
     'Press Ctrl+S to save, or use the Save button above',
+  'app.nftables.config.editor.doubleClickToEdit':
+    'Double-click the editor area to enable editing',
   'app.nftables.config.editor.emptyContent':
     'Configuration content cannot be empty',
   'app.nftables.config.editor.unsavedChanges':
