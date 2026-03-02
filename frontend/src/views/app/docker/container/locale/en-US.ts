@@ -17,7 +17,7 @@ export default {
   'app.docker.container.list.operation.unpause': 'Unpause',
   'app.docker.container.list.operation.delete': 'Delete',
   'app.docker.container.list.operation.delete.confirm':
-    'Are you sure to delete this container?',
+    'Are you sure you want to delete this container?',
   'app.docker.container.list.operation.success':
     'Successfully executed {command}',
   'app.docker.container.list.operation.failed':
@@ -38,7 +38,7 @@ export default {
   'app.docker.container.list.state.exited': 'Stopped',
   'app.docker.container.list.state.dead': 'Dead',
   'app.docker.container.recommendCompose':
-    'You are performing operations on a container managed by Compose, it is recommended to use Compose to manage',
+    'This container is managed by Compose. We recommend managing it from Compose.',
   'app.docker.container.cpu': 'CPU',
   'app.docker.container.memory': 'Memory',
   'app.docker.container.prune.confirm': 'Prune unused images',
@@ -46,7 +46,7 @@ export default {
     'Successfully executed: docker image prune',
 
   'app.docker.container.stop.confirm.message':
-    'Only stop the container, will not delete the container',
+    'This only stops the container. It will not be deleted.',
   'app.docker.container.stop.confirm.force': 'Force stop',
 
   'app.docker.container.logsModal.title': 'Container Logs',

@@ -150,8 +150,9 @@ export default {
   'app.rsync.client.message.cancelSuccess': 'Cancelled',
   'app.rsync.client.message.cancelFailed': 'Cancel failed',
   'app.rsync.client.message.confirmDelete':
-    'Are you sure to delete this config?',
-  'app.rsync.client.message.confirmCancel': 'Are you sure to cancel this task?',
+    'Are you sure you want to delete this config?',
+  'app.rsync.client.message.confirmCancel':
+    'Are you sure you want to cancel this task?',
 
   // Logs
   'app.rsync.client.logs.title': 'Task Logs',

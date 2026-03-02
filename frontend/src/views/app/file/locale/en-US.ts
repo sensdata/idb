@@ -7,9 +7,9 @@ export default {
   'app.file.delete.title': 'Delete File',
   'app.file.delete.content':
     'Are you sure you want to delete the selected files?',
-  'app.file.delete.success': 'Delete successful',
+  'app.file.delete.success': 'Deleted successfully',
   'app.file.delete.failed': 'Delete failed',
-  'app.file.download.success': 'Download successful',
+  'app.file.download.success': 'Downloaded successfully',
   'app.file.download.failed': 'Download failed',
   'app.file.preview.title': 'Preview',
   'app.file.preview.notSupported': 'Preview not supported for this file type',
@@ -50,7 +50,7 @@ export default {
   'app.file.list.operation.unpin': 'Unfavorite Directory',
   'app.file.list.operation.delete': 'Delete',
 
-  'app.file.list.message.copyPathSuccess': 'Copy successful',
+  'app.file.list.message.copyPathSuccess': 'Copied successfully',
   'app.file.list.message.copyPathFailed': 'Copy failed',
   'app.file.list.message.largeFileDownload':
     'File is larger than 1MB, downloading instead of opening in editor',

@@ -7,7 +7,8 @@ export default {
   'app.docker.volume.list.operation.delete': 'Delete',
   'app.docker.volume.list.operation.delete.confirm':
     'Need to stop the mounted containers first',
-  'app.docker.volume.list.operation.delete.success': 'Delete succeeded',
+  'app.docker.volume.list.operation.delete.success':
+    'Volume deleted successfully',
   'app.docker.volume.list.operation.delete.failed': 'Delete failed',
   'app.docker.volume.create.title': 'Create Volume',
   'app.docker.volume.create.form.name': 'Volume Name',

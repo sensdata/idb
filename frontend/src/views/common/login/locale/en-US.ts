@@ -1,31 +1,31 @@
 export default {
   'login.intro.title': 'iDB - Server Management System',
   'login.intro.slogan':
-    'A lightweight and easy-to-deploy server management platform',
+    'A lightweight, easy-to-deploy server management platform',
   'login.feature1.title': 'Easy to install',
   'login.feature1.desc':
-    'Run in binary; Or run it through docker; Or run it through an installation package',
-  'login.feature2.title': 'cross-platform',
+    'Run as a binary, with Docker, or with an installation package',
+  'login.feature2.title': 'Cross-platform',
   'login.feature2.desc':
-    'IDB can be run on any Go supported platform, including Windows, Mac, Linux, and ARM. Just pick one you like!',
-  'login.feature3.title': 'Light weight',
+    'iDB runs on any Go-supported platform, including Windows, macOS, Linux, and ARM.',
+  'login.feature3.title': 'Lightweight',
   'login.feature3.desc':
-    'The configuration of an inexpensive Raspberry PI is sufficient to meet the minimum system hardware requirements of IDB. Maximize your server resource savings!',
+    'Even an inexpensive Raspberry Pi can meet the minimum hardware requirements for iDB.',
   'login.feature4.title': 'Comprehensive',
   'login.feature4.desc':
-    'Integrating host management, application deployment, and system monitoring to provide comprehensive server management solutions.',
+    'Combines host management, application deployment, and system monitoring in one platform.',
 
-  'login.form.title': 'Sign in iDB',
+  'login.form.title': 'Sign in to iDB',
   'login.form.userName.errMsg': 'Username cannot be empty',
   'login.form.password.errMsg': 'Password cannot be empty',
-  'login.form.login.errMsg': 'Sign in error, refresh and try again',
-  'login.form.login.success': 'welcome to use',
+  'login.form.login.errMsg': 'Sign-in failed. Refresh and try again',
+  'login.form.login.success': 'Signed in successfully',
   'login.form.userName.placeholder': 'Username',
   'login.form.password.placeholder': 'Password',
-  'login.form.rememberAccount': 'Remember account',
+  'login.form.rememberAccount': 'Remember me',
   'login.form.forgetPassword': 'Forgot password',
-  'login.form.login': 'login',
-  'login.form.register': 'register account',
+  'login.form.login': 'Sign In',
+  'login.form.register': 'Create account',
 
   // Forgot password modal
   'login.forgotPassword.modal.title': 'Password Reset Instructions',
@@ -38,5 +38,5 @@ export default {
   'login.forgotPassword.modal.commandTitle': 'Reset Command:',
   'login.forgotPassword.modal.understood': 'Got it',
   'login.forgotPassword.modal.note':
-    'Note: A new random password will be generated after command execution. Please save it securely.',
+    'Note: Running this command generates a new random password. Save it securely.',
 };

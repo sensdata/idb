@@ -34,7 +34,8 @@ export default {
   'app.crontab.list.column.last_run_time': 'Last Run Time',
   'app.crontab.list.column.mod_time': 'Last Modified',
   'app.crontab.list.column.create_time': 'Creation Time',
-  'app.crontab.list.delete.confirm': 'Are you sure to delete [{name}]?',
+  'app.crontab.list.delete.confirm':
+    'Are you sure you want to delete [{name}]?',
   'app.crontab.list.operation.view_history': 'View',
   'app.crontab.list.operation.activate': 'Activate',
   'app.crontab.list.operation.deactivate': 'Deactivate',
@@ -44,7 +45,7 @@ export default {
   'app.crontab.list.message.activate_success': 'Task activated successfully',
   'app.crontab.list.message.deactivate_success':
     'Task deactivated successfully',
-  'app.crontab.list.message.delete_success': 'Delete success',
+  'app.crontab.list.message.delete_success': 'Deleted successfully',
   'app.crontab.list.status.normal': 'Normal',
   'app.crontab.list.status.disabled': 'Disabled',
   'app.crontab.list.status.running': 'Active',

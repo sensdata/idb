@@ -1,10 +1,10 @@
 export default {
-  'app.nftables.title': 'NFTables Firewall Management',
+  'app.nftables.title': 'NFTables Firewall',
   'app.nftables.description':
-    'Manage server firewall rule configurations with global and local modes',
+    'Manage firewall rules with global and local configuration modes',
 
   // Menu items
-  'app.nftables.menu.config': 'Application Configuration',
+  'app.nftables.menu.config': 'Firewall Configuration',
   'app.nftables.menu.ports': 'Port Configuration',
   'app.nftables.menu.ipBlacklist': 'IP Blacklist',
   'app.nftables.menu.ping': 'Ping Configuration',
@@ -21,16 +21,16 @@ export default {
   'app.nftables.firewall.iptables.desc':
     'Traditional firewall management tool, widely supported but with relatively simple functionality',
   'app.nftables.firewall.iptables.notSupported':
-    'IPTables Configuration Not Supported',
+    'IPTables visual configuration is not supported',
   'app.nftables.firewall.iptables.notSupportedDesc':
-    'This system only supports visual configuration management for NFTables. For IPTables usage, please configure through terminal or other tools.',
+    'Only NFTables supports visual configuration in this system. For IPTables, use the terminal or other tools.',
 
   // Service management
   'app.nftables.service.title': 'NFTables Service Status',
   'app.nftables.service.control': 'Service Control',
 
   // Buttons
-  'app.nftables.button.refresh': 'Refresh Status',
+  'app.nftables.button.refresh': 'Refresh status',
   'app.nftables.button.install': 'Install Now',
   'app.nftables.button.start': 'Start Service',
   'app.nftables.button.stop': 'Stop Service',
@@ -54,10 +54,10 @@ export default {
   // Status
   'app.nftables.status.installed': 'Installed',
   'app.nftables.status.notInstalled': 'Not Installed',
-  'app.nftables.status.running': 'Running Status',
-  'app.nftables.status.configured': 'Configuration Status',
+  'app.nftables.status.running': 'Running',
+  'app.nftables.status.configured': 'Configured',
   'app.nftables.status.ruleActive': 'Rules Active',
-  'app.nftables.status.needConfig': 'Need Configuration',
+  'app.nftables.status.needConfig': 'Needs configuration',
   'app.nftables.status.stopped': 'Stopped',
   'app.nftables.status.unknown': 'Unknown',
   'app.nftables.status.nftablesActive': 'NFTables Active',
@@ -65,7 +65,7 @@ export default {
   'app.nftables.status.iptablesNftActive':
     'IPTables-NFT (Compatibility Layer) Active',
   'app.nftables.status.noFirewall': 'No Firewall System',
-  'app.nftables.status.uncertain': 'Uncertain State',
+  'app.nftables.status.uncertain': 'Unknown state',
   'app.nftables.status.currentActive': 'Currently Active',
   'app.nftables.status.inactive': 'Inactive',
   'app.nftables.status.stop': 'Stop',
@@ -75,8 +75,8 @@ export default {
   'app.nftables.status.stopping': 'Stopping',
   'app.nftables.status.error': 'Error',
   'app.nftables.status.unhealthy': 'Unhealthy',
-  'app.nftables.status.autoStartEnabled': 'Auto-start Enabled',
-  'app.nftables.status.autoStartDisabled': 'Auto-start Disabled',
+  'app.nftables.status.autoStartEnabled': 'Auto-start enabled',
+  'app.nftables.status.autoStartDisabled': 'Auto-start disabled',
 
   // Installation guide
   'app.nftables.installation.title': 'Install NFTables',
@@ -105,10 +105,10 @@ export default {
   // Visual configuration
   'app.nftables.config.visual.title': 'Visual Configuration',
   'app.nftables.config.visual.desc':
-    'Configure firewall rules through form interface, simple and intuitive',
+    'Configure firewall rules in a simple form-based interface',
   'app.nftables.config.visual.developing': 'Feature Under Development',
   'app.nftables.config.visual.developingDesc':
-    'The visual configuration interface is under development. Please use file mode for configuration temporarily.',
+    'The visual editor is under development. Please use file mode for now.',
 
   // File configuration
   'app.nftables.config.file.title': 'File Configuration',
@@ -120,7 +120,7 @@ export default {
   // Form configuration
   'app.nftables.config.form.title': 'Form Configuration',
   'app.nftables.config.form.desc':
-    'Configure port rules through form interface, simple and intuitive',
+    'Configure port rules in a simple form-based interface',
   'app.nftables.form.portHelp': 'Single port: 80, Port list: 80, 443, 9918',
   'app.nftables.form.portRangeHelp': 'Supports port ranges, e.g. 8000-9000',
 
@@ -146,7 +146,7 @@ export default {
   'app.nftables.form.srcIp': 'Source IP Restriction',
   'app.nftables.form.srcIpPlaceholder': 'e.g. 192.168.1.100 or 192.168.1.0/24',
   'app.nftables.form.srcIpHelp':
-    'Specify the IP address or network segment allowed to access this port. Leave empty to allow all IPs',
+    'Specify the IP or CIDR allowed to access this port. Leave empty to allow all IPs.',
 
   // Configuration types
   'app.nftables.config.type.local': 'Local',
@@ -156,12 +156,12 @@ export default {
   'app.nftables.config.localDescription':
     'Local configuration only applies to the current host',
   'app.nftables.config.activateHint':
-    'Currently viewing {viewing} configuration, but {active} configuration is active',
+    'You are viewing {viewing} configuration, but {active} is currently active',
 
   // Control bar
   'nftables.controlBar.title': 'Configuration Management',
   'nftables.controlBar.currentStatus':
-    'Current Config: {configType}, Current Mode: {configMode}',
+    'Current config: {configType}, mode: {configMode}',
 
   // Config types
   'nftables.configType.local': 'Local',
@@ -214,15 +214,15 @@ export default {
   'app.nftables.config.rules.portPlaceholder': '80',
   'app.nftables.config.rules.descPlaceholder': 'Rule description',
   'app.nftables.config.rules.deleteConfirm':
-    'Are you sure to delete the rule for port {port}?',
+    'Are you sure you want to delete the rule for port {port}?',
 
   // Ping configuration
   'app.nftables.ping.title': 'Ping Configuration',
   'app.nftables.ping.description':
     'Configure whether the server responds to ICMP ping requests',
   'app.nftables.ping.currentStatus': 'Current Status',
-  'app.nftables.ping.allowed': 'Ping Allowed',
-  'app.nftables.ping.blocked': 'Ping Blocked',
+  'app.nftables.ping.allowed': 'Ping allowed',
+  'app.nftables.ping.blocked': 'Ping blocked',
   'app.nftables.ping.allowPing': 'Allow Ping',
   'app.nftables.ping.blockPing': 'Block Ping',
   'app.nftables.ping.statusDescription.allowed':
@@ -246,7 +246,7 @@ export default {
     'Please enter NFTables configuration...',
   'app.nftables.config.editor.lineCount': '{count} lines',
   'app.nftables.config.editor.reloadTip':
-    'Note: After saving the configuration, you need to reload the firewall rules for them to take effect',
+    'Note: After saving the configuration, reload firewall rules for changes to take effect',
 
   // Mode switch
   'app.nftables.config.modeSwitch.form': 'Switched to form mode',
@@ -279,7 +279,7 @@ export default {
   'app.nftables.monitoring.title': 'Monitoring Center',
   'app.nftables.monitoring.developing': 'Feature Under Development',
   'app.nftables.monitoring.developingDesc':
-    'Monitoring and logging features are under development. Stay tuned.',
+    'Monitoring and logging features are under development.',
 
   // Port configuration
   'app.nftables.ports.title': 'Port Configuration',
@@ -290,7 +290,7 @@ export default {
     'Manage IP blacklist rules to block malicious IP access',
   'app.nftables.ipBlacklist.form.title': 'Visual Configuration',
   'app.nftables.ipBlacklist.form.desc':
-    'Configure IP blacklist rules through form interface, simple and intuitive',
+    'Configure IP blacklist rules in a simple form-based interface',
   'app.nftables.ipBlacklist.file.title': 'File Configuration',
   'app.nftables.ipBlacklist.file.desc':
     'Directly edit NFTables IP blacklist configuration file',
@@ -335,7 +335,7 @@ export default {
   'app.nftables.message.statusRefreshed': 'Status refreshed successfully',
   'app.nftables.message.refreshFailed': 'Status refresh failed',
   'app.nftables.message.fetchSuccess':
-    'Process data loaded successfully, {count} records in total',
+    'Loaded process data successfully. Total records: {count}',
   'app.nftables.message.fetchFailed': 'Failed to fetch data',
   'app.nftables.message.statusFetchSuccess':
     'Firewall status fetched successfully',
@@ -370,7 +370,7 @@ export default {
   'app.nftables.message.initializingDefaultConfig':
     'Initializing default configuration...',
   'app.nftables.message.defaultConfigInitialized':
-    'Default configuration initialized',
+    'Default configuration initialized successfully',
   'app.nftables.message.defaultConfigInitFailed':
     'Default configuration initialization failed',
 
@@ -427,10 +427,10 @@ export default {
   'app.nftables.form.configMode': 'Configuration Mode',
   'app.nftables.form.simpleMode': 'Simple Mode',
   'app.nftables.form.simpleModeDesc':
-    'Suitable for beginners, just select port and action to configure quickly',
+    'Best for beginners: quickly configure by selecting a port and action',
   'app.nftables.form.advancedMode': 'Advanced Mode',
   'app.nftables.form.advancedModeDesc':
-    'Suitable for advanced users, supports complex rules like rate limiting and concurrent limiting',
+    'Best for advanced users: supports rate limits, connection limits, and other complex rules',
   'app.nftables.form.accessControl': 'Access Control',
   'app.nftables.form.allowDesc': 'Allow access to this port',
   'app.nftables.form.denyDesc':
@@ -454,7 +454,8 @@ export default {
 
   // Form validation
   'app.nftables.validation.portRequired': 'Please enter port number',
-  'app.nftables.validation.portRange': 'Port number must be between 1-65535',
+  'app.nftables.validation.portRange':
+    'Port number must be between 1 and 65535',
   'app.nftables.validation.protocolRequired': 'Please select protocol type',
   'app.nftables.validation.actionRequired': 'Please select action',
   'app.nftables.validation.sourceFormat':
@@ -494,7 +495,7 @@ export default {
   // Security Warning
   'app.nftables.baseRules.warningTitle': 'Security Notice',
   'app.nftables.baseRules.warningDescription':
-    'When using "Drop" policy, ensure necessary port rules are properly configured to avoid server access issues',
+    'When using "Drop", ensure required port rules are configured to avoid locking yourself out',
 
   // Base Rules Messages
   'app.nftables.message.baseRulesSaved': 'Base rules saved successfully',
@@ -509,7 +510,7 @@ export default {
     'Configuration refreshed successfully',
   'app.nftables.message.operationFailed': 'Operation failed',
   'app.nftables.message.batchNotSupported':
-    'Batch port submission is not supported in the current version. Please select a single port.',
+    'Batch port submission is not supported in this version. Please select a single port.',
 
   'app.nftables.message.actionRequired': 'Please select an action',
   'app.nftables.message.protocolRequired': 'Please select a protocol type',
@@ -521,7 +522,7 @@ export default {
   'app.nftables.config.editor.modeReadOnly': 'Read-only Mode',
   'app.nftables.config.editor.modeEditing': 'Editing Mode',
   'app.nftables.config.editor.modeReadOnlyHint':
-    'Currently read-only. Double-click editor content to enter editing.',
+    'Currently read-only. Double-click the editor to start editing.',
   'app.nftables.config.editor.modeEditingHint':
     'You can edit now. Save your changes before closing.',
   'app.nftables.config.editor.enableEdit': 'Enter Edit',
@@ -532,7 +533,7 @@ export default {
   'app.nftables.config.editor.confirmExitEditContent':
     'Exiting edit mode will discard current unsaved changes. Continue?',
   'app.nftables.config.editor.tips':
-    'Press Ctrl+S to save, or use the Save button above',
+    'Press Ctrl+S to save, or click Save above',
   'app.nftables.config.editor.doubleClickToEdit':
     'Double-click the editor area to enable editing',
   'app.nftables.config.editor.emptyContent':

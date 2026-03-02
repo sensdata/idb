@@ -33,7 +33,7 @@ export default {
   'app.logrotate.list.operation.history': 'History',
   'app.logrotate.list.delete.title': 'Confirm Delete',
   'app.logrotate.list.delete.content':
-    'Are you sure to delete config "{name}"? This action cannot be undone.',
+    'Are you sure you want to delete config "{name}"? This action cannot be undone.',
   'app.logrotate.list.message.fetch_failed': 'Failed to fetch config list',
   'app.logrotate.list.message.delete_success': 'Config deleted successfully',
   'app.logrotate.list.message.delete_failed': 'Failed to delete config',
@@ -123,7 +123,7 @@ export default {
   'app.logrotate.history.operation.diff': 'Diff',
   'app.logrotate.history.restore.title': 'Confirm Restore',
   'app.logrotate.history.restore.content':
-    'Are you sure to restore to commit {commit}?',
+    'Are you sure you want to restore to commit {commit}?',
   'app.logrotate.history.restore.button': 'Restore to this version',
   'app.logrotate.history.diff.title': 'File Diff',
   'app.logrotate.history.diff.current': 'Current Version',
@@ -153,7 +153,7 @@ export default {
     'Category name can only contain letters, numbers, underscores and hyphens',
   'app.logrotate.category.manage.delete.title': 'Confirm Delete',
   'app.logrotate.category.manage.delete.content':
-    'Are you sure to delete category "{name}"? This action cannot be undone.',
+    'Are you sure you want to delete category "{name}"? This action cannot be undone.',
   'app.logrotate.category.manage.message.load_failed':
     'Failed to load category list',
   'app.logrotate.category.manage.message.create_success':

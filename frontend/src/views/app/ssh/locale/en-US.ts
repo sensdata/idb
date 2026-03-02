@@ -1,11 +1,11 @@
 export default {
   'app.ssh.pageTitle': 'SSH Management',
   'app.ssh.tabs.config': 'SSH Config',
-  'app.ssh.tabs.keyPairs': 'Key Pairs Management',
-  'app.ssh.tabs.publicKeys': 'Public Keys Management',
+  'app.ssh.tabs.keyPairs': 'Key Pair Management',
+  'app.ssh.tabs.publicKeys': 'Public Key Management',
   'app.ssh.config.title': 'SSH Configuration',
-  'app.ssh.keyPairs.title': 'Key Pairs Management',
-  'app.ssh.publicKeys.title': 'Public Keys Management',
+  'app.ssh.keyPairs.title': 'Key Pair Management',
+  'app.ssh.publicKeys.title': 'Public Key Management',
 
   // Mode switch
   'app.ssh.mode.visual': 'Form Mode',
@@ -19,10 +19,10 @@ export default {
   'app.ssh.source.reset': 'Reset',
   'app.ssh.source.placeholder': 'Edit SSH configuration file content here',
   'app.ssh.source.info':
-    'This text editor allows direct editing of the SSH configuration file. After making changes, click the "Save" button to apply them.',
+    'Edit the SSH configuration file directly here. Click "Save" to apply changes.',
   'app.ssh.source.saveSuccess': 'Source configuration saved successfully',
   'app.ssh.source.saveError': 'Failed to save source configuration',
-  'app.ssh.source.resetSuccess': 'Source configuration reset',
+  'app.ssh.source.resetSuccess': 'Source configuration reset successfully',
   'app.ssh.source.parseSuccess': 'Source configuration parsed successfully',
   'app.ssh.source.parseError': 'Failed to parse source configuration',
   'app.ssh.source.emptyConfig': 'Configuration content is empty',
@@ -58,17 +58,17 @@ export default {
     'Specify the IP address for SSH service to listen on.',
   'app.ssh.root.label': 'Root User',
   'app.ssh.root.description':
-    'SSH login method for root user, allows SSH login by default.',
+    'Control whether root can log in over SSH. Enabled by default.',
   'app.ssh.password.label': 'Password Auth',
   'app.ssh.password.description':
-    'Whether to enable password authentication, enabled by default.',
+    'Enable or disable password authentication. Enabled by default.',
   'app.ssh.key.label': 'Public Key Auth',
   'app.ssh.key.description':
-    'Whether to enable public key authentication, enabled by default.',
+    'Enable or disable public key authentication. Enabled by default.',
   'app.ssh.passwordInfo.label': 'Password Info',
   'app.ssh.reverse.label': 'Reverse Lookup',
   'app.ssh.reverse.description':
-    'Specify whether the SSH service should perform DNS resolution for clients, to speed up connection establishment time.',
+    'Enable or disable DNS reverse lookup for SSH clients.',
   'app.ssh.sftp.label': 'SFTP Subsystem',
   'app.ssh.sftp.description':
     'Enable or disable the SFTP (SSH File Transfer Protocol) subsystem for secure file transfers.',
@@ -100,7 +100,7 @@ export default {
   'app.ssh.rootModal.title': 'Root User Settings',
   'app.ssh.rootModal.label': 'Allow root user login',
   'app.ssh.rootModal.description':
-    'Whether to allow root user to login via SSH, enabled by default.',
+    'Allow or deny root login over SSH. Enabled by default.',
   'app.ssh.rootModal.save': 'Save',
   'app.ssh.rootModal.cancel': 'Cancel',
   'app.ssh.rootModal.allow': 'Allow SSH Login',
@@ -220,6 +220,6 @@ export default {
   'app.ssh.status.reloadFailed': 'Failed to reload SSH service',
   'app.ssh.status.restartSuccess': 'SSH service restarted successfully',
   'app.ssh.status.restartFailed': 'Failed to restart SSH service',
-  'app.ssh.status.autoStartEnabled': 'Auto-start Enabled',
-  'app.ssh.status.autoStartDisabled': 'Auto-start Disabled',
+  'app.ssh.status.autoStartEnabled': 'Auto-start enabled',
+  'app.ssh.status.autoStartDisabled': 'Auto-start disabled',
 };

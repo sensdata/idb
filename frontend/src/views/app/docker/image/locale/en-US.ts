@@ -52,7 +52,7 @@ export default {
   'app.docker.image.form.name.required': 'Please enter image name',
   'app.docker.image.form.tag': 'Tag',
   'app.docker.image.form.tag.placeholder': 'Enter tag name',
-  'app.docker.image.form.tag.required': 'Please Enter tag name',
+  'app.docker.image.form.tag.required': 'Please enter tag name',
   'app.docker.image.build.success': 'Image built successfully',
   'app.docker.image.export.form.tag': 'Tag',
   'app.docker.image.export.form.tag.placeholder':
