@@ -285,12 +285,13 @@
   .host-status {
     box-sizing: border-box;
     display: inline-flex;
-    flex: 0 0 500px;
+    flex: 0 1 auto;
     flex-wrap: nowrap;
     gap: 0 10px;
     align-items: center;
-    width: 500px;
-    min-width: 0;
+    width: fit-content;
+    min-width: 500px;
+    max-width: 100%;
     height: 36px;
     padding: 0 12px;
     margin-left: auto;
@@ -316,19 +317,21 @@
 
   .status-value {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: flex-end;
     font-feature-settings: 'tnum';
     font-variant-numeric: tabular-nums;
     color: var(--color-text-1);
+    white-space: nowrap;
   }
 
   .cpu-value {
-    width: 5.5ch;
+    min-width: 5.5ch;
   }
 
   .memory-value {
-    width: 13ch;
+    min-width: 16ch;
   }
 
   .network {
@@ -337,7 +340,8 @@
   }
 
   .network-value {
-    width: 8.5ch;
+    display: inline-block;
+    width: auto;
     min-width: 8.5ch;
     font-feature-settings: 'tnum';
     font-variant-numeric: tabular-nums;
@@ -401,8 +405,7 @@
       max-width: 28%;
     }
     .host-status {
-      flex-basis: 460px;
-      width: 460px;
+      min-width: 460px;
       font-size: 11px;
     }
   }
