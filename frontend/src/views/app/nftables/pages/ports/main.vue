@@ -219,7 +219,6 @@
             })
           )
         );
-        Message.success(t('app.nftables.message.configSaved'));
         return true;
       }
 
@@ -233,8 +232,6 @@
         port_end: portEnd,
         rules: rulesLocal,
       });
-
-      Message.success(t('app.nftables.message.configSaved'));
 
       // 端口页无需全局刷新，交由调用方按需刷新（避免多余的 process/port 请求）
       return true;
@@ -330,28 +327,15 @@
 
   const handleRuleDelete = async (ruleToDelete: PortRule): Promise<void> => {
     try {
-      let portStart: number;
-      let portEnd: number;
-      if (typeof ruleToDelete.port === 'number') {
-        portStart = ruleToDelete.port;
-        portEnd = ruleToDelete.port;
-      } else if (Array.isArray(ruleToDelete.port)) {
-        const arr = ruleToDelete.port as number[];
-        if (arr.length === 1) {
-          portStart = arr[0];
-          portEnd = arr[0];
-        } else {
-          portStart = Math.min(arr[0], arr[1]);
-          portEnd = Math.max(arr[0], arr[1]);
-        }
-      } else {
+      const range = getPortRange(ruleToDelete.port);
+      if (!range) {
         Message.error(t('app.nftables.message.operationFailed'));
         return;
       }
 
       await deletePortRulesApi({
-        port_start: portStart,
-        port_end: portEnd,
+        port_start: range.start,
+        port_end: range.end,
       });
 
       // 刷新端口规则列表

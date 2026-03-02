@@ -25,15 +25,18 @@ export default {
   'app.service.list.operation.status': 'Query Status',
   'app.service.list.operation.logs': 'View Logs',
   'app.service.list.operation.history': 'History',
-  'app.service.list.confirm.action': 'Are you sure to {action} service {name}?',
+  'app.service.list.confirm.action':
+    'Are you sure you want to {action} service {name}?',
   'app.service.list.confirm.operation':
-    'Are you sure to {operation} service {name}?',
-  'app.service.list.confirm.delete': 'Are you sure to delete service {name}?',
-  'app.service.list.confirm.sync': 'Are you sure to sync global repository?',
+    'Are you sure you want to {operation} service {name}?',
+  'app.service.list.confirm.delete':
+    'Are you sure you want to delete service {name}?',
+  'app.service.list.confirm.sync':
+    'Are you sure you want to sync the global repository?',
   'app.service.list.success.action': '{action} successful',
   'app.service.list.success.operation': '{operation} successful',
-  'app.service.list.success.delete': 'Delete successful',
-  'app.service.list.success.sync': 'Sync successful',
+  'app.service.list.success.delete': 'Deleted successfully',
+  'app.service.list.success.sync': 'Synced successfully',
   'app.service.list.error.fetch': 'Failed to fetch service list',
   'app.service.list.error.action': 'Operation failed',
   'app.service.list.error.operation': 'Operation failed',
@@ -66,7 +69,7 @@ export default {
   'app.service.form.field.name': 'Service Name',
   'app.service.form.field.category': 'Category',
   'app.service.form.field.category.placeholder':
-    'Please select or enter category, new categories will be created automatically',
+    'Select or enter a category. New categories are created automatically',
   'app.service.form.field.description': 'Description',
   'app.service.form.field.content':
     'Enter systemd service configuration content...',
@@ -128,10 +131,10 @@ export default {
   'app.service.form.validate.exec_start.required': 'Please enter start command',
   'app.service.form.validate.working_directory.required':
     'Please enter working directory',
-  'app.service.form.success.create': 'Created successfully',
-  'app.service.form.success.update': 'Updated successfully',
-  'app.service.form.error.create': 'Failed to create',
-  'app.service.form.error.update': 'Failed to update',
+  'app.service.form.success.create': 'Service created successfully',
+  'app.service.form.success.update': 'Service updated successfully',
+  'app.service.form.error.create': 'Failed to create service',
+  'app.service.form.error.update': 'Failed to update service',
   'app.service.form.error.load': 'Failed to load data',
   'app.service.form.error.parse': 'Failed to parse configuration',
   'app.service.form.error.mode_switch': 'Failed to switch mode',
@@ -140,8 +143,8 @@ export default {
   'app.service.form.error.create_category': 'Failed to create category',
 
   'app.service.logs.title': 'Service Logs',
-  'app.service.logs.auto_refresh': 'Auto Refresh',
-  'app.service.logs.manual': 'Manual Refresh',
+  'app.service.logs.auto_refresh': 'Auto-refresh',
+  'app.service.logs.manual': 'Refresh',
   'app.service.logs.connecting': 'Connecting to service logs...',
   'app.service.logs.connected': 'Connected to service logs for {name}',
   'app.service.logs.no_entries': 'No log entries found',
@@ -163,7 +166,7 @@ export default {
   'app.service.history.operation.restore': 'Restore',
   'app.service.history.restore.title': 'Confirm Restore',
   'app.service.history.restore.content':
-    'Are you sure to restore to commit {commit}?',
+    'Are you sure you want to restore to commit {commit}?',
   'app.service.history.restore.button': 'Restore to this version',
   'app.service.history.restore.success': 'Service restored successfully',
   'app.service.history.restore.error': 'Failed to restore service',

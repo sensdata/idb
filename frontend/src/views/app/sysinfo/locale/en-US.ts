@@ -46,7 +46,7 @@ export default {
   'app.sysinfo.overview.button.auto_clear_setting': 'Auto Clear Settings',
   'app.sysinfo.overview.button.delete_swap': 'Delete Swap',
   'app.sysinfo.overview.button.clear_cache_confirm':
-    'Are you sure to clear cache?',
+    'Are you sure you want to clear the cache?',
   'app.sysinfo.overview.button.create_virtual_memory': 'Create Virtual Memory',
   'app.sysinfo.overview.sync.syncing': 'Syncing time...',
   'app.sysinfo.overview.sync.success': 'Time updated successfully',
@@ -62,7 +62,7 @@ export default {
   'app.sysinfo.autoClearCache.hours': 'hours',
   'app.sysinfo.autoClearCache.interval_required': 'Please enter clear interval',
   'app.sysinfo.autoClearCache.interval_invalid':
-    'Clear interval must be between 1-24 hours',
+    'Clear interval must be between 1 and 24 hours',
   'app.sysinfo.autoClearCache.success':
     'Auto clear cache settings saved successfully',
   'app.sysinfo.autoClearCache.failed':

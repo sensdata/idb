@@ -477,7 +477,7 @@
               return cb();
             }
 
-            // 端口列表校验（至少3个），全部在范围内
+            // 端口列表校验（至少2个），全部在范围内
             const parts = vv.split(',').map((s) => toInteger(trim(s)));
             if (parts.some((p) => !inRange(p, 1, 65536)))
               return cb(t('app.nftables.validation.portRange'));
@@ -509,9 +509,20 @@
     () => props.editingRule,
     (newRule) => {
       if (newRule) {
-        // 确定配置模式
-        const hasAdvancedRules = newRule.rules && newRule.rules.length > 0;
-        configMode.value = hasAdvancedRules ? 'advanced' : 'simple';
+        // 确定配置模式：
+        // - 仅默认规则（单条 default）走简单模式
+        // - 多条规则或存在限速/并发规则走高级模式
+        const ruleList = newRule.rules || [];
+        const hasComplexRules =
+          ruleList.length > 1 ||
+          ruleList.some(
+            (r) =>
+              r.type === 'rate_limit' ||
+              r.type === 'concurrent_limit' ||
+              (r.type === 'default' && !!r.rate) ||
+              (r.type === 'default' && !!r.count)
+          );
+        configMode.value = hasComplexRules ? 'advanced' : 'simple';
 
         // 生成端口输入字符串（支持区间 a-b 或单端口）
         const getPortStrFromRule = (rule: PortRule): string => {

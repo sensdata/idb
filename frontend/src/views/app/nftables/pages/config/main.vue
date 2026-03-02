@@ -187,8 +187,6 @@
         rules: rulesLocal,
       });
 
-      Message.success(t('app.nftables.message.configSaved'));
-
       // 配置应用成功后刷新当前配置列表
       await handleConfigApplied();
 
@@ -218,6 +216,8 @@
   // 提交规则表单
   const handleRuleSubmit = async (rule: PortRule): Promise<void> => {
     try {
+      const isEditing = !!editingRule.value;
+
       // 保存规则到服务器
       const ok = await savePortRule(rule);
       if (!ok) return; // stop on validation or api failure
@@ -227,7 +227,7 @@
       editingRule.value = null;
 
       Message.success(
-        editingRule.value
+        isEditing
           ? t('app.nftables.message.ruleUpdated')
           : t('app.nftables.message.ruleAdded')
       );

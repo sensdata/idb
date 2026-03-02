@@ -26,16 +26,16 @@ export default {
   'manage.host.list.operation.updateSSH': 'SSH Config',
   'manage.host.list.operation.activate': 'Activate',
   'manage.host.list.restart.confirm':
-    'Are you sure to restart the agent of the current host?',
+    'Are you sure you want to restart the agent on this host?',
   'manage.host.list.restart.success': 'Agent restarted successfully',
   'manage.host.list.delete.confirm':
-    'Are you sure to delete the selected host?',
-  'manage.host.list.delete.success': 'Delete successfully',
+    'Are you sure you want to delete the selected host?',
+  'manage.host.list.delete.success': 'Host deleted successfully',
   'manage.host.list.agent.online': 'Online',
   'manage.host.list.agent.offline': 'Offline',
   'manage.host.list.agent.uninstalled': 'Uninstalled',
   'manage.host.list.activated.yes': 'Activated',
-  'manage.host.list.activated.no': 'Not Activated',
+  'manage.host.list.activated.no': 'Not activated',
   'manage.host.list.activate.success': 'Activation successful',
   'manage.host.list.activate.error': 'Activation failed',
 
@@ -58,17 +58,17 @@ export default {
   'manage.host.form.user.label': 'Username',
   'manage.host.form.user.placeholder': 'Please enter username',
   'manage.host.form.user.required': 'Please enter username',
-  'manage.host.form.auth_mode.label': 'Auth Mode',
-  'manage.host.form.auth_mode.required': 'Please select auth mode',
+  'manage.host.form.auth_mode.label': 'Authentication Mode',
+  'manage.host.form.auth_mode.required': 'Please select an authentication mode',
   'manage.host.form.password.label': 'Password',
   'manage.host.form.password.placeholder': 'Please enter password',
   'manage.host.form.password.required': 'Please enter password',
   'manage.host.form.private_key.label': 'Private Key',
   'manage.host.form.private_key.placeholder': 'Please select private key file',
   'manage.host.form.private_key.required': 'Please select private key file',
-  'manage.host.form.pass_phrase.label': 'Pass Phrase',
-  'manage.host.form.pass_phrase.placeholder': 'Please enter pass phrase',
-  'manage.host.form.save.success': 'Save successfully',
+  'manage.host.form.pass_phrase.label': 'Passphrase',
+  'manage.host.form.pass_phrase.placeholder': 'Please enter a passphrase',
+  'manage.host.form.save.success': 'Saved successfully',
 
   'manage.host.terminal.title': 'SSH Terminal',
 
@@ -95,12 +95,12 @@ export default {
   'manage.host.installAgent.close': 'Close',
 
   'manage.host.list.uninstallAgent.confirm':
-    'Are you sure to uninstall the agent of the current host?',
-  'manage.host.list.uninstallAgent.success': 'Uninstall successfully',
+    'Are you sure you want to uninstall the agent on this host?',
+  'manage.host.list.uninstallAgent.success': 'Agent uninstalled successfully',
   'manage.host.list.uninstallAgent.failed': 'Uninstall failed',
 
   'manage.host.list.operation.upgradeAgent.confirm':
-    'Are you sure to upgrade the agent of the current host?',
+    'Are you sure you want to upgrade the agent on this host?',
 
   'manage.host.group.form.title.create': 'Add Group',
   'manage.host.group.form.title.edit': 'Edit Group',
@@ -125,9 +125,9 @@ export default {
   // Uninstall agent related
   'manage.host.uninstallAgent.title': 'Uninstall Agent',
   'manage.host.uninstallAgent.statusUninstalling': 'Uninstalling',
-  'manage.host.uninstallAgent.statusCompleted': 'Uninstall Completed',
-  'manage.host.uninstallAgent.statusFailed': 'Uninstall Failed',
-  'manage.host.uninstallAgent.statusTimeout': 'Uninstall Timeout',
+  'manage.host.uninstallAgent.statusCompleted': 'Completed',
+  'manage.host.uninstallAgent.statusFailed': 'Failed',
+  'manage.host.uninstallAgent.statusTimeout': 'Timeout',
   'manage.host.uninstallAgent.uninstallSuccess':
     'Agent uninstalled successfully',
   'manage.host.uninstallAgent.uninstallFailed': 'Failed to uninstall agent',

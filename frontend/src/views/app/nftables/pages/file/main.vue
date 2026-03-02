@@ -10,6 +10,20 @@
       </div>
       <div class="header-right">
         <a-space>
+          <a-button
+            :disabled="loading || saving || hasError"
+            @click="handleToggleEditMode"
+          >
+            <template #icon>
+              <icon-edit v-if="!isEditMode" />
+              <icon-lock v-else />
+            </template>
+            {{
+              isEditMode
+                ? $t('app.nftables.config.editor.exitEdit')
+                : $t('app.nftables.config.editor.enableEdit')
+            }}
+          </a-button>
           <a-button :loading="loading" @click="handleRefresh">
             <template #icon>
               <icon-refresh />
@@ -19,7 +33,7 @@
           <a-button
             type="primary"
             :loading="saving"
-            :disabled="!hasChanges || !content.trim()"
+            :disabled="editorReadOnly || !hasChanges || !content.trim()"
             @click="handleSave"
           >
             <template #icon>
@@ -53,14 +67,57 @@
 
     <!-- 编辑器 -->
     <div v-else class="editor-container">
-      <div class="editor-wrapper">
+      <div class="editor-topbar">
+        <div class="editor-info">
+          <div class="meta-chip file-chip">
+            <icon-file />
+            <span>/etc/nftables.conf</span>
+          </div>
+          <div v-if="content" class="meta-chip">
+            {{
+              $t('app.nftables.config.editor.lineCount', { count: lineCount })
+            }}
+          </div>
+          <div
+            class="meta-chip mode-chip"
+            :class="isEditMode ? 'editing' : 'readonly'"
+          >
+            {{
+              $t(
+                isEditMode
+                  ? 'app.nftables.config.editor.modeEditing'
+                  : 'app.nftables.config.editor.modeReadOnly'
+              )
+            }}
+          </div>
+          <div v-if="hasChanges" class="meta-chip modified-chip">
+            <icon-edit />
+            <span>{{ $t('app.nftables.config.editor.modified') }}</span>
+          </div>
+        </div>
+        <div class="editor-tips">
+          <a-typography-text type="secondary" class="tip-text">
+            {{
+              isEditMode
+                ? $t('app.nftables.config.editor.tips')
+                : $t('app.nftables.config.editor.doubleClickToEdit')
+            }}
+          </a-typography-text>
+        </div>
+      </div>
+
+      <div
+        class="editor-wrapper"
+        :class="{ readonly: !isEditMode }"
+        @dblclick="handleEnableEditMode"
+      >
         <code-editor
           v-model="content"
           :autofocus="true"
           :indent-with-tab="true"
           :tab-size="2"
           :extensions="editorExtensions"
-          :read-only="saving"
+          :read-only="editorReadOnly"
           :file="nftablesFile"
           class="nftables-editor"
           @editor-ready="handleEditorReady"
@@ -70,47 +127,6 @@
         <div v-if="saving" class="saving-overlay">
           <a-spin :size="24" />
           <span class="saving-text">{{ $t('common.saving') }}</span>
-        </div>
-      </div>
-
-      <!-- 编辑器底部信息栏 -->
-      <div class="editor-footer">
-        <div class="editor-info">
-          <a-space size="small">
-            <a-tag :color="'rgb(var(--primary-6))'" size="small">
-              <template #icon>
-                <icon-file />
-              </template>
-              /etc/nftables.conf
-            </a-tag>
-
-            <a-tag
-              v-if="content"
-              :color="'rgb(var(--color-text-4))'"
-              size="small"
-            >
-              {{
-                $t('app.nftables.config.editor.lineCount', { count: lineCount })
-              }}
-            </a-tag>
-
-            <a-tag
-              v-if="hasChanges"
-              :color="'rgb(var(--warning-6))'"
-              size="small"
-            >
-              <template #icon>
-                <icon-edit />
-              </template>
-              {{ $t('app.nftables.config.editor.modified') }}
-            </a-tag>
-          </a-space>
-        </div>
-
-        <div class="editor-tips">
-          <a-typography-text type="secondary" class="tip-text">
-            {{ $t('app.nftables.config.editor.tips') }}
-          </a-typography-text>
         </div>
       </div>
     </div>
@@ -127,6 +143,7 @@
     IconSave,
     IconFile,
     IconEdit,
+    IconLock,
   } from '@arco-design/web-vue/es/icon';
   import { useLogger } from '@/composables/use-logger';
   import useCurrentHost from '@/composables/current-host';
@@ -165,12 +182,14 @@
   const saving = ref<boolean>(false);
   const hasError = ref<boolean>(false);
   const errorMessage = ref<string>('');
+  const isEditMode = ref<boolean>(false);
   const content = ref<string>('');
   const originalContent = ref<string>('');
   const editorView = ref<EditorView | null>(null);
 
   // 计算属性
   const hasChanges = computed(() => content.value !== originalContent.value);
+  const editorReadOnly = computed(() => saving.value || !isEditMode.value);
 
   const lineCount = computed(() => {
     if (!content.value) return 0;
@@ -200,6 +219,7 @@
 
       content.value = response.content || '';
       originalContent.value = response.content || '';
+      isEditMode.value = false;
 
       logInfo('Successfully loaded nftables raw config');
     } catch (error) {
@@ -280,6 +300,40 @@
     logInfo('Editor ready');
   };
 
+  // 切换编辑模式
+  const handleToggleEditMode = (): void => {
+    if (saving.value || loading.value || hasError.value) return;
+
+    if (!isEditMode.value) {
+      isEditMode.value = true;
+      editorView.value?.focus();
+      return;
+    }
+
+    if (hasChanges.value) {
+      Modal.confirm({
+        title: t('app.nftables.config.editor.confirmExitEdit'),
+        content: t('app.nftables.config.editor.confirmExitEditContent'),
+        onOk: () => {
+          content.value = originalContent.value;
+          isEditMode.value = false;
+        },
+      });
+      return;
+    }
+
+    isEditMode.value = false;
+  };
+
+  // 双击编辑区进入编辑模式
+  const handleEnableEditMode = (): void => {
+    if (saving.value || loading.value || hasError.value || isEditMode.value) {
+      return;
+    }
+    isEditMode.value = true;
+    editorView.value?.focus();
+  };
+
   // 页面离开前的确认
   const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
     if (hasChanges.value) {
@@ -293,7 +347,16 @@
     // Ctrl+S 保存
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault();
-      if (!saving.value && hasChanges.value && content.value.trim()) {
+      if (!isEditMode.value) {
+        Message.warning(t('app.nftables.config.editor.readOnlyNoSave'));
+        return;
+      }
+      if (
+        isEditMode.value &&
+        !saving.value &&
+        hasChanges.value &&
+        content.value.trim()
+      ) {
         handleSave();
       }
     }
@@ -375,11 +438,75 @@
     flex-direction: column;
     padding: 16px 24px;
     overflow: hidden;
+    .editor-topbar {
+      display: flex;
+      flex-shrink: 0;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      background: var(--color-bg-2);
+      border: 1px solid var(--color-border-2);
+      border-radius: 6px;
+      .editor-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .meta-chip {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        padding: 3px 10px;
+        font-size: 12px;
+        color: var(--color-text-2);
+        background: var(--color-fill-2);
+        border: 1px solid var(--color-border-2);
+        border-radius: 999px;
+      }
+      .file-chip {
+        color: rgb(var(--primary-6));
+        background: rgb(var(--primary-1));
+        border-color: rgb(var(--primary-3));
+      }
+      .mode-chip.readonly {
+        color: rgb(var(--warning-7));
+        background: rgb(var(--warning-1));
+        border-color: rgb(var(--warning-3));
+      }
+      .mode-chip.editing {
+        color: rgb(var(--success-7));
+        background: rgb(var(--success-1));
+        border-color: rgb(var(--success-3));
+      }
+      .modified-chip {
+        color: rgb(var(--warning-7));
+        background: rgb(var(--warning-1));
+        border-color: rgb(var(--warning-3));
+      }
+      .editor-tips {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .tip-text {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+    }
     .editor-wrapper {
       position: relative;
       flex: 1;
       overflow: hidden;
       border-radius: 8px;
+      &.readonly {
+        :deep(.cm-content) {
+          cursor: default;
+        }
+      }
       .nftables-editor {
         width: 100%;
         height: 100%;
@@ -414,27 +541,6 @@
         }
       }
     }
-    .editor-footer {
-      display: flex;
-      flex-shrink: 0;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      margin-top: 16px;
-      background: var(--color-bg-2);
-      border-radius: 6px;
-      .editor-info {
-        display: flex;
-        align-items: center;
-      }
-      .editor-tips {
-        display: flex;
-        align-items: center;
-      }
-      .tip-text {
-        font-size: 12px;
-      }
-    }
   }
 
   // 响应式设计
@@ -447,7 +553,7 @@
         align-self: flex-end;
       }
     }
-    .editor-container .editor-footer {
+    .editor-container .editor-topbar {
       flex-direction: column;
       gap: 12px;
       align-items: flex-start;

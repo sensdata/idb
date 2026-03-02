@@ -2,6 +2,7 @@ export default {
   'app.certificate.title': '证书管理',
   'app.certificate.createGroup': '创建证书组',
   'app.certificate.import': '导入证书',
+  'app.certificate.openDirectory': '打开证书目录',
   'app.certificate.updateCertificate': '更新证书',
   'app.certificate.generateSelfSigned': '生成自签名证书',
   'app.certificate.viewCertificate': '查看证书',
@@ -14,6 +15,9 @@ export default {
   'app.certificate.certificateActions': '证书操作',
   'app.certificate.groupActions': '证书组操作',
   'app.certificate.noCertificateActions': '暂无可用证书操作',
+  'app.certificate.empty.title': '还没有证书被管理',
+  'app.certificate.empty.description':
+    '你可以先创建证书组，或直接导入已有证书并开始管理。',
   'app.certificate.certificateDetail': '证书详情',
   'app.certificate.privateKeyInfo': '私钥信息',
   'app.certificate.privateKeyPath': '私钥路径',

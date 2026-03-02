@@ -166,6 +166,11 @@ export default {
   'app.nftables.config.columns.process': '进程',
   'app.nftables.config.columns.port': '端口',
   'app.nftables.config.columns.addresses': '监听地址',
+  'app.nftables.config.addressType.external': '外网',
+  'app.nftables.config.addressType.internal': '内网',
+  'app.nftables.config.addressType.local': '本地',
+  'app.nftables.config.addressFamily.ipv4': 'IPv4',
+  'app.nftables.config.addressFamily.ipv6': 'IPv6',
   'app.nftables.config.accessible': '可访问',
   'app.nftables.config.fullyAccessible': '完全可访问',
   'app.nftables.config.rejected': '已拒绝',
@@ -358,7 +363,21 @@ export default {
 
   // 编辑器相关
   'app.nftables.config.editor.modified': '已修改',
+  'app.nftables.config.editor.readonly': '只读',
+  'app.nftables.config.editor.modeReadOnly': '只读模式',
+  'app.nftables.config.editor.modeEditing': '编辑模式',
+  'app.nftables.config.editor.modeReadOnlyHint':
+    '当前只读，双击编辑区内容可进入编辑模式',
+  'app.nftables.config.editor.modeEditingHint': '当前可编辑，修改后请点击保存',
+  'app.nftables.config.editor.enableEdit': '进入编辑',
+  'app.nftables.config.editor.exitEdit': '退出编辑',
+  'app.nftables.config.editor.readOnlyNoSave':
+    '只读模式下无法保存。请先进入编辑模式。',
+  'app.nftables.config.editor.confirmExitEdit': '确认退出编辑',
+  'app.nftables.config.editor.confirmExitEditContent':
+    '退出编辑模式将丢弃当前未保存的更改。是否继续？',
   'app.nftables.config.editor.tips': '按 Ctrl+S 保存，或使用上方的保存按钮',
+  'app.nftables.config.editor.doubleClickToEdit': '双击编辑区进入编辑模式',
   'app.nftables.config.editor.emptyContent': '配置内容不能为空',
   'app.nftables.config.editor.unsavedChanges':
     '您有未保存的更改。确定要离开吗？',

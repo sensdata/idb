@@ -11,6 +11,7 @@ export default {
 
   'app.process.list.operation.detail': 'Details',
   'app.process.list.operation.kill': 'Kill',
-  'app.process.list.message.killConfirm': 'Are you sure to kill process {pid}?',
+  'app.process.list.message.killConfirm':
+    'Are you sure you want to kill process {pid}?',
   'app.process.list.message.killSuccess': 'Process has been killed',
 };

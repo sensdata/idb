@@ -28,7 +28,7 @@ export default {
   'app.docker.compose.edit.env_content': '.env',
   'app.docker.compose.edit.compose_content_required':
     'Please enter the Compose content',
-  'app.docker.compose.edit.success': 'Edit successfully',
+  'app.docker.compose.edit.success': 'Saved successfully',
 
   'app.docker.compose.create.title': 'Create Compose',
   'app.docker.compose.create.form.name': 'Project Name',

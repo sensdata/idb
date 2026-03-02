@@ -6,8 +6,9 @@ export default {
   'app.docker.network.list.column.gateway': 'Gateway',
   'app.docker.network.list.operation.delete': 'Delete',
   'app.docker.network.list.operation.delete.confirm':
-    'Are you sure to delete this network?',
-  'app.docker.network.list.operation.delete.success': 'Delete succeeded',
+    'Are you sure you want to delete this network?',
+  'app.docker.network.list.operation.delete.success':
+    'Network deleted successfully',
   'app.docker.network.list.operation.delete.failed': 'Delete failed',
   'app.docker.network.create.title': 'Create Network',
   'app.docker.network.create.form.name': 'Network Name',

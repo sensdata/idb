@@ -120,6 +120,13 @@
     });
   };
 
+  const handleCancel = () => {
+    model.old_password = '';
+    model.new_password = '';
+    model.confirm_password = '';
+    formRef.value?.clearValidate();
+  };
+
   const handleOk = async () => {
     if (!formRef.value) {
       return;
@@ -136,19 +143,13 @@
         password: model.new_password,
       });
       Message.success(t('components.changePassword.success'));
-      visible.value = true;
+      visible.value = false;
+      handleCancel();
     } catch (err: any) {
       Message.error(err?.message);
     } finally {
       hideLoading();
     }
-  };
-
-  const handleCancel = () => {
-    model.old_password = '';
-    model.new_password = '';
-    model.confirm_password = '';
-    formRef.value?.clearValidate();
   };
 
   defineExpose({

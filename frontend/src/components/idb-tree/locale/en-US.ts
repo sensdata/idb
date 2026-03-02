@@ -18,7 +18,7 @@ export default {
   'category.form.name': 'Category Name',
   'category.form.name.placeholder': 'Please enter category name',
   'category.form.name.required': 'Please enter category name',
-  'category.delete.confirm': 'Are you sure to delete category {name}?',
+  'category.delete.confirm': 'Are you sure you want to delete category {name}?',
   'category.message.create_success': 'Category created successfully',
   'category.message.update_success': 'Category updated successfully',
   'category.message.delete_success': 'Category deleted successfully',
