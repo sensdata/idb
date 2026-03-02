@@ -4,7 +4,7 @@
       ref="tableRef"
       :loading="loading"
       :dataSource="dataSource"
-      row-key="key"
+      row-key="content"
       :pagination="false"
       :columns="columns"
       @reload="handleReload"
@@ -53,6 +53,8 @@
   const emit = defineEmits<{
     (e: 'reload'): void;
     (e: 'showAddModal'): void;
+    (e: 'view', record: AuthKeyInfo): void;
+    (e: 'copy', record: AuthKeyInfo): void;
     (e: 'remove', record: AuthKeyInfo): void;
   }>();
 
@@ -65,10 +67,20 @@
   // 事件处理函数
   const handleReload = () => emit('reload');
   const handleShowAddModal = () => emit('showAddModal');
+  const handleView = (record: AuthKeyInfo) => emit('view', record);
+  const handleCopy = (record: AuthKeyInfo) => emit('copy', record);
   const handleRemove = (record: AuthKeyInfo) => emit('remove', record);
 
   // 获取操作选项
   const getOperationOptions = (record: AuthKeyInfo) => [
+    {
+      text: t('app.ssh.publicKeys.view'),
+      click: () => handleView(record),
+    },
+    {
+      text: t('app.ssh.publicKeys.copy'),
+      click: () => handleCopy(record),
+    },
     {
       text: t('app.ssh.publicKeys.remove'),
       status: 'danger' as const,
@@ -92,19 +104,20 @@
       width: 100,
     },
     {
-      title: t('app.ssh.publicKeys.columns.key'),
-      dataIndex: 'key',
+      title: t('app.ssh.publicKeys.columns.fingerprint'),
+      dataIndex: 'fingerprint',
       ellipsis: true,
+      width: 280,
     },
     {
       title: t('app.ssh.publicKeys.columns.comment'),
       dataIndex: 'comment',
-      width: 150,
+      width: 220,
     },
     {
       title: t('app.ssh.publicKeys.columns.operations'),
       dataIndex: 'operations',
-      width: 100,
+      width: 220,
       align: 'left' as const,
       slotName: 'operations',
     },
@@ -123,7 +136,6 @@
 
   .generate-key-btn {
     background-color: rgb(var(--primary-6));
-
     &:hover,
     &:focus {
       background-color: rgb(var(--primary-5));

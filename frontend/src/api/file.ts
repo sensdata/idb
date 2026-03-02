@@ -181,7 +181,7 @@ export function uploadFileApi(data: { dest: string; file: File }) {
   return request.post('files/{host}/upload', formData);
 }
 
-export function getFavoriteFilesApi(data: ApiListParams) {
+export function getFavoriteFilesApi(data: ApiListParams & { host?: number }) {
   return request.get<ApiListResult<FavoriteFileEntity>>(
     'files/{host}/favorites',
     data

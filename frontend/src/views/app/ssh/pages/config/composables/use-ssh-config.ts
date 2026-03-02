@@ -30,9 +30,12 @@ export function useSSHConfig(
 
   // 缓存30秒
   const configContentCache = {
+    hostId: null as number | null,
     content: '',
     timestamp: 0,
-    isValid: () => Date.now() - configContentCache.timestamp < 30000,
+    isValid: (hostId: number) =>
+      configContentCache.hostId === hostId &&
+      Date.now() - configContentCache.timestamp < 30000,
   };
 
   // 获取SSH配置内容
@@ -43,22 +46,27 @@ export function useSSHConfig(
         Message.error(t('app.ssh.error.noHost'));
         return;
       }
+      const currentHostId = sshStore.hostId;
+
       if (isContentFetching.value) {
         logDebug('已有请求正在进行中，跳过重复请求');
         return;
       }
-      if (configContentCache.isValid() && configContentCache.content) {
+      if (
+        configContentCache.isValid(currentHostId) &&
+        configContentCache.content
+      ) {
         logInfo('使用缓存的SSH配置内容');
         sourceConfig.value = configContentCache.content;
         originalSourceConfig.value = configContentCache.content;
         return;
       }
 
-      logInfo(`开始获取主机(${sshStore.hostId})的SSH配置内容`);
+      logInfo(`开始获取主机(${currentHostId})的SSH配置内容`);
       isContentFetching.value = true;
       loadingStates.sourceConfig = true;
 
-      const contentRes = await getSSHConfigContent(sshStore.hostId);
+      const contentRes = await getSSHConfigContent(currentHostId);
       if (!contentRes || !contentRes.content) {
         logError('SSH配置内容为空');
         Message.error(t('app.ssh.error.emptyConfig'));
@@ -66,6 +74,7 @@ export function useSSHConfig(
       }
 
       logInfo('成功获取SSH配置内容');
+      configContentCache.hostId = currentHostId;
       configContentCache.content = contentRes.content;
       configContentCache.timestamp = Date.now();
       sourceConfig.value = contentRes.content;
@@ -180,6 +189,7 @@ export function useSSHConfig(
       loadingStates.sourceConfig = true;
 
       await updateSSHConfigContent(sshStore.hostId, sourceConfig.value);
+      configContentCache.hostId = sshStore.hostId;
       configContentCache.content = sourceConfig.value;
       configContentCache.timestamp = Date.now();
       originalSourceConfig.value = sourceConfig.value;

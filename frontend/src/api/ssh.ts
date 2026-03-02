@@ -68,8 +68,8 @@ export function generateSSHKey(
   hostId: number,
   data: {
     key_name: string;
-    encryption_mode: 'rsa' | 'ed25519' | 'ecdsa' | 'dsa';
-    key_bits: 1024 | 2048;
+    encryption_mode: 'rsa' | 'ed25519' | 'ecdsa';
+    key_bits: 256 | 384 | 521 | 2048 | 3072 | 4096;
     password?: string;
     enable?: boolean;
   }

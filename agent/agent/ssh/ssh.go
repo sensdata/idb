@@ -353,6 +353,9 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 	if utils.CheckIllegal(req.KeyName, req.EncryptionMode, req.Password) {
 		return errors.New(constant.ErrCmdIllegal)
 	}
+	if err := validateKeySpec(req.EncryptionMode, req.KeyBits); err != nil {
+		return err
+	}
 
 	currentUser, err := user.Current()
 	if err != nil {
@@ -384,10 +387,14 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 
 	// 构造 ssh-keygen 命令
 	var command []string
+	baseCommand := []string{"ssh-keygen", "-t", req.EncryptionMode}
+	if req.EncryptionMode != "ed25519" {
+		baseCommand = append(baseCommand, "-b", fmt.Sprintf("%d", req.KeyBits))
+	}
 	if len(req.Password) != 0 {
-		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-N", req.Password, "-C", comment, "-f", secretFile}
+		command = append(baseCommand, "-N", req.Password, "-C", comment, "-f", secretFile)
 	} else {
-		command = []string{"ssh-keygen", "-t", req.EncryptionMode, "-b", fmt.Sprintf("%d", req.KeyBits), "-C", comment, "-f", secretFile}
+		command = append(baseCommand, "-C", comment, "-f", secretFile)
 	}
 
 	// 使用 exec.Command 执行 ssh-keygen 命令
@@ -426,6 +433,33 @@ func (u *SSHService) CreateKey(req model.GenerateKey) error {
 		return fmt.Errorf("failed to rename public key file: %v", err)
 	}
 
+	return nil
+}
+
+func validateKeySpec(mode string, bits uint) error {
+	allowedBits := map[string]map[uint]struct{}{
+		"rsa": {
+			2048: {},
+			3072: {},
+			4096: {},
+		},
+		"ecdsa": {
+			256: {},
+			384: {},
+			521: {},
+		},
+		"ed25519": {
+			256: {},
+		},
+	}
+
+	allowSet, ok := allowedBits[mode]
+	if !ok {
+		return fmt.Errorf("unsupported encryption mode: %s", mode)
+	}
+	if _, ok := allowSet[bits]; !ok {
+		return fmt.Errorf("invalid key_bits %d for %s", bits, mode)
+	}
 	return nil
 }
 

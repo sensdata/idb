@@ -9,4 +9,9 @@ export default {
   'components.file.fileSelector.back': 'Back',
   'components.file.fileSelector.createFolder': 'New Folder',
   'components.file.fileSelector.upload': 'Upload Files',
+  'components.file.fileSelector.favorites': 'Favorite Directories',
+  'components.file.fileSelector.noFavorites': 'No favorite directories',
+  'components.file.fileSelector.quickDirectories': 'Quick Directories',
+  'components.file.fileSelector.quickDir.certificateManage':
+    'Certificate Management',
 };

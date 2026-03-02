@@ -41,6 +41,9 @@
   const { confirm } = useConfirm();
   const MAX_WS_QUEUE_SIZE = 100;
   let suppressCloseNotice = false;
+  let connectedAt = 0;
+  let hasUserInput = false;
+  let autoNormalizeDone = false;
 
   // 终端主题配置 - 始终使用深色主题，不跟随系统主题变化
   // 使用硬编码颜色值，确保在黑色背景上所有文字清晰可见
@@ -166,6 +169,53 @@
   type WebSocketInitializer = (term: Terminal) => void;
   let initWebSocket: WebSocketInitializer;
 
+  // Some resumed sessions land the prompt near the bottom with many leading blank lines.
+  // During initial connect, normalize once by asking the remote shell to repaint (Ctrl+L).
+  const maybeNormalizePromptPosition = () => {
+    if (autoNormalizeDone || !termRef.value) {
+      return;
+    }
+
+    // Only run shortly after connect and before user starts typing.
+    if (Date.now() - connectedAt > 5000 || hasUserInput) {
+      autoNormalizeDone = true;
+      return;
+    }
+
+    const term = termRef.value;
+    const buf = term.buffer.active;
+    const rows = term.rows;
+    const startY = buf.baseY;
+
+    let nonEmptyCount = 0;
+    let firstNonEmpty = -1;
+
+    for (let i = 0; i < rows; i += 1) {
+      const line = buf.getLine(startY + i);
+      if (!line) continue;
+      const text = line.translateToString(true).trim();
+      if (text.length > 0) {
+        nonEmptyCount += 1;
+        if (firstNonEmpty < 0) {
+          firstNonEmpty = i;
+        }
+      }
+    }
+
+    // Typical anomaly: viewport is mostly empty and first visible content starts very low.
+    const looksLikeBottomPrompt =
+      firstNonEmpty >= Math.floor(rows * 0.6) && nonEmptyCount <= 3;
+
+    if (looksLikeBottomPrompt) {
+      sendWsMsg({
+        type: MsgType.Cmd,
+        data: '\f',
+      });
+    }
+
+    autoNormalizeDone = true;
+  };
+
   // 使用const定义onWsMsgReceived函数
   const onWsMsgReceived = async (ev: MessageEvent) => {
     const msg: ReceiveMsgDo = JSON.parse(ev.data);
@@ -195,6 +245,7 @@
     switch (msg.type) {
       case MsgType.Cmd:
         termRef.value?.write(msg.data!);
+        maybeNormalizePromptPosition();
         break;
       case MsgType.Heartbeat:
         // latencyRef.value = Date.now() - msg.timestamp!;
@@ -238,6 +289,9 @@
     wsRef.value.onerror = onWsError;
     wsRef.value.onclose = onWsClose;
     wsRef.value.onopen = () => {
+      connectedAt = Date.now();
+      hasUserInput = false;
+      autoNormalizeDone = false;
       emit('wsopen');
       flushWsQueue();
       if (props.sendHeartbeat) {
@@ -274,6 +328,7 @@
     termRef.value.loadAddon(fitRef.value);
     termRef.value.open(domRef.value!);
     termRef.value.onData((data) => {
+      hasUserInput = true;
       sendWsMsg({
         type: MsgType.Cmd,
         data,

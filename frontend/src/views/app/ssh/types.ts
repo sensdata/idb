@@ -38,8 +38,8 @@ export interface SSHConfig {
 
 // SSHKey 相关类型定义
 
-export type EncryptionMode = 'rsa' | 'ed25519' | 'ecdsa' | 'dsa';
-export type KeyBits = 1024 | 2048;
+export type EncryptionMode = 'rsa' | 'ed25519' | 'ecdsa';
+export type KeyBits = 256 | 384 | 521 | 2048 | 3072 | 4096;
 
 export interface SSHKeyRecord {
   key_name: string;
@@ -70,6 +70,7 @@ export interface AuthKeyInfo {
   algorithm: string;
   key: string;
   comment: string;
+  fingerprint?: string;
   content?: string;
 }
 

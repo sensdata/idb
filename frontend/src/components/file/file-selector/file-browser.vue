@@ -48,6 +48,47 @@
       </a-button>
     </div>
 
+    <div class="shortcut-section mb-3">
+      <div class="section-title">
+        {{ t('components.file.fileSelector.favorites') }}
+      </div>
+      <div class="section-body">
+        <a-spin :loading="isFavoritesLoading" dot>
+          <a-space v-if="favoriteDirectories.length > 0" wrap>
+            <a-tag
+              v-for="item in favoriteDirectories"
+              :key="`fav-${item.path}`"
+              class="shortcut-tag"
+              @click="handleShortcutClick(item.path)"
+            >
+              {{ item.name }}
+            </a-tag>
+          </a-space>
+          <span v-else class="empty-text">
+            {{ t('components.file.fileSelector.noFavorites') }}
+          </span>
+        </a-spin>
+      </div>
+    </div>
+
+    <div class="shortcut-section mb-4">
+      <div class="section-title">
+        {{ t('components.file.fileSelector.quickDirectories') }}
+      </div>
+      <div class="section-body">
+        <a-space wrap>
+          <a-tag
+            v-for="item in quickDirectories"
+            :key="`quick-${item.path}`"
+            class="shortcut-tag"
+            @click="handleShortcutClick(item.path)"
+          >
+            {{ item.name }}
+          </a-tag>
+        </a-space>
+      </div>
+    </div>
+
     <div class="search-box mb-4">
       <a-input-search
         v-model="searchQuery"
@@ -115,9 +156,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue';
+  import { ref, onMounted, computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { getFileListApi } from '@/api/file';
+  import { getFavoriteFilesApi, getFileListApi } from '@/api/file';
   import { useHostStore } from '@/store';
   import CreateFolderDrawer from '@/components/file/create-folder-drawer/index.vue';
   import UploadFilesDrawer from '@/components/file/upload-files-drawer/index.vue';
@@ -153,6 +194,22 @@
   const fileList = ref<FileItem[]>([]);
   const isLoading = ref<boolean>(false);
   const hasError = ref<boolean>(false);
+  const isFavoritesLoading = ref<boolean>(false);
+  const favoriteDirectories = ref<Array<{ name: string; path: string }>>([]);
+
+  const normalizePath = (path: string): string => {
+    if (!path) return '/';
+    const normalized = path.trim().replace(/\/+$/, '');
+    if (!normalized) return '/';
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  };
+
+  const quickDirectories = computed(() => [
+    {
+      name: t('components.file.fileSelector.quickDir.certificateManage'),
+      path: '/var/lib/idb/data/certificates/',
+    },
+  ]);
 
   const filteredFileList = computed(() => {
     return fileList.value.filter((file) =>
@@ -195,6 +252,40 @@
     return '/' + parts.join('/');
   };
 
+  const loadFavoriteDirectories = async (): Promise<void> => {
+    if (!hostId.value) {
+      favoriteDirectories.value = [];
+      return;
+    }
+    isFavoritesLoading.value = true;
+    try {
+      const data = await getFavoriteFilesApi({
+        host: hostId.value,
+        page: 1,
+        page_size: 1000,
+      });
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const dedupMap = new Map<string, { name: string; path: string }>();
+      for (const item of items) {
+        if (!item?.is_dir) continue;
+        const path = normalizePath(item.source || '/');
+        if (!path || dedupMap.has(path)) continue;
+        dedupMap.set(path, {
+          name: String(item.name || path.split('/').pop() || path),
+          path,
+        });
+      }
+      favoriteDirectories.value = Array.from(dedupMap.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+    } catch (error) {
+      favoriteDirectories.value = [];
+      console.error('Failed to load favorite directories:', error);
+    } finally {
+      isFavoritesLoading.value = false;
+    }
+  };
+
   const loadFileList = async (path: string): Promise<void> => {
     isLoading.value = true;
     hasError.value = false;
@@ -206,7 +297,12 @@
         show_hidden: true,
         path,
       });
-      fileList.value = data.items;
+      fileList.value = [...data.items].sort((a, b) => {
+        if (a.is_dir !== b.is_dir) {
+          return a.is_dir ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
     } catch (error) {
       hasError.value = true;
       console.error('Failed to load file list:', error);
@@ -215,10 +311,19 @@
     }
   };
 
+  const navigateToPath = async (path: string): Promise<void> => {
+    const normalized = normalizePath(path);
+    if (normalized === currentPath.value) {
+      return;
+    }
+    currentPath.value = normalized;
+    searchQuery.value = '';
+    await loadFileList(normalized);
+  };
+
   const handleItemClick = async (file: FileItem): Promise<void> => {
     if (file.is_dir) {
-      currentPath.value = file.path;
-      await loadFileList(file.path);
+      await navigateToPath(file.path);
     } else if (isFileSelectable(file)) {
       emit('select', file);
     }
@@ -237,18 +342,16 @@
   const handleGoBack = async (): Promise<void> => {
     if (canGoBack.value) {
       const parentPath = getParentPath(currentPath.value);
-      currentPath.value = parentPath;
-      await loadFileList(parentPath);
+      await navigateToPath(parentPath);
     }
   };
 
   const handlePathClick = async (path: string): Promise<void> => {
-    if (path === currentPath.value) {
-      return;
-    }
-    currentPath.value = path;
-    searchQuery.value = '';
-    await loadFileList(path);
+    await navigateToPath(path);
+  };
+
+  const handleShortcutClick = async (path: string): Promise<void> => {
+    await navigateToPath(path);
   };
 
   const createFolderDrawerRef = ref();
@@ -272,8 +375,27 @@
     await loadFileList(currentPath.value);
   };
 
-  onMounted(() => {
-    loadFileList(currentPath.value);
+  watch(
+    () => props.initialPath,
+    async (newValue: string) => {
+      if (!newValue || newValue === currentPath.value) {
+        return;
+      }
+      await navigateToPath(newValue);
+    }
+  );
+
+  watch(hostId, async () => {
+    searchQuery.value = '';
+    await loadFavoriteDirectories();
+    await loadFileList(currentPath.value);
+  });
+
+  onMounted(async () => {
+    await Promise.all([
+      loadFavoriteDirectories(),
+      loadFileList(normalizePath(currentPath.value)),
+    ]);
   });
 </script>
 
@@ -323,6 +445,25 @@
       .arco-icon {
         margin-right: 4px;
       }
+    }
+  }
+
+  .shortcut-section {
+    .section-title {
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--color-text-2);
+    }
+    .section-body {
+      min-height: 24px;
+    }
+    .empty-text {
+      font-size: 12px;
+      color: var(--color-text-3);
+    }
+    .shortcut-tag {
+      cursor: pointer;
+      user-select: none;
     }
   }
 </style>
