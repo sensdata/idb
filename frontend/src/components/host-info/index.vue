@@ -1,11 +1,13 @@
 <template>
   <div class="host-info" :class="{ collapsed: collapsed }">
     <div class="ctrl">
-      <a-button class="back" @click="gotoManage">
-        <template #icon>
-          <icon-arrow-left />
-        </template>
-      </a-button>
+      <router-link v-slot="{ navigate }" to="/manage/host" custom>
+        <a-button class="back" @click="navigate">
+          <template #icon>
+            <icon-arrow-left />
+          </template>
+        </a-button>
+      </router-link>
       <div class="host-name truncate"
         >{{ hostStore.current?.addr || hostStore.current?.name }}
       </div>
@@ -27,7 +29,6 @@
 
 <script lang="ts" setup>
   import { inject } from 'vue';
-  import router from '@/router';
   import { useHostStore } from '@/store';
 
   defineProps<{
@@ -35,11 +36,6 @@
   }>();
 
   const hostStore = useHostStore();
-
-  const gotoManage = () => {
-    console.log('gotoManage clicked, navigating to /manage/host');
-    router.push('/manage/host');
-  };
 
   const openTerminal = inject<() => void>('openTerminal');
 </script>

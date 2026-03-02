@@ -68,6 +68,24 @@
   const isPopoverVisible = ref<boolean>(false);
   const currentPath = ref<string>(props.initialPath);
 
+  const normalizePath = (path: string): string => {
+    if (!path) return '/';
+    const trimmed = path.trim();
+    if (!trimmed) return '/';
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  };
+
+  const resolveBrowsePath = (path: string): string => {
+    const normalized = normalizePath(path);
+    if (normalized === '/') return normalized;
+    if (normalized.endsWith('/')) {
+      return normalized.slice(0, -1) || '/';
+    }
+    const segments = normalized.split('/').filter(Boolean);
+    if (segments.length <= 1) return '/';
+    return `/${segments.slice(0, -1).join('/')}`;
+  };
+
   const closePopover = (): void => {
     isPopoverVisible.value = false;
   };
@@ -76,6 +94,16 @@
     () => props.modelValue,
     (newValue: string) => {
       inputValue.value = newValue;
+      currentPath.value = resolveBrowsePath(newValue || props.initialPath);
+    }
+  );
+
+  watch(
+    () => props.initialPath,
+    (newValue: string) => {
+      if (!inputValue.value) {
+        currentPath.value = normalizePath(newValue);
+      }
     }
   );
 
@@ -86,6 +114,9 @@
 
   const handleOpenSelector = (): void => {
     if (!props.disabled) {
+      currentPath.value = resolveBrowsePath(
+        inputValue.value || props.initialPath
+      );
       isPopoverVisible.value = true;
     }
   };
@@ -108,19 +139,16 @@
   .file-selector {
     display: inline-block;
     width: 100%;
-
     :deep(.arco-input-group) {
       display: flex;
       gap: 0.5rem;
-
       .arco-input-wrapper {
         flex: 1;
         border-radius: 0.375rem !important;
       }
-
       .arco-btn {
-        border-radius: 0.375rem !important;
         flex-shrink: 0;
+        border-radius: 0.375rem !important;
       }
     }
   }
