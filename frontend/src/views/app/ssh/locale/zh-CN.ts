@@ -1,11 +1,11 @@
 export default {
-  'app.ssh.pageTitle': 'SSH 管理',
+  'app.ssh.pageTitle': 'SSH 访问管理',
   'app.ssh.tabs.config': 'SSH 配置',
-  'app.ssh.tabs.keyPairs': '密钥对管理',
-  'app.ssh.tabs.publicKeys': '公钥管理',
+  'app.ssh.tabs.keyPairs': 'SSH 密钥对管理',
+  'app.ssh.tabs.publicKeys': 'SSH 登录授权',
   'app.ssh.config.title': 'SSH 配置',
-  'app.ssh.keyPairs.title': '密钥对管理',
-  'app.ssh.publicKeys.title': '公钥管理',
+  'app.ssh.keyPairs.title': 'SSH 密钥对管理',
+  'app.ssh.publicKeys.title': 'SSH 登录授权',
 
   // 模式切换
   'app.ssh.mode.visual': '表单模式',
@@ -27,7 +27,15 @@ export default {
   'app.ssh.source.parseError': '解析源文件配置失败',
   'app.ssh.source.emptyConfig': '配置内容为空',
   'app.ssh.source.noChanges': '未检测到有效的配置更改',
+  'app.ssh.source.changeSummary': '检测到 {count} 项关键配置变更：{keys}',
   'app.ssh.savingConfig': '正在保存SSH配置...',
+  'app.ssh.risk.title': '高风险变更提示',
+  'app.ssh.risk.confirmTitle': '确认高风险变更',
+  'app.ssh.risk.lockoutWarning':
+    '同时关闭密码认证和公钥认证可能导致 SSH 无法登录（锁死风险）。',
+  'app.ssh.risk.rootPasswordEnabled':
+    '当前允许 root 登录且开启密码认证，存在被暴力破解风险。',
+  'app.ssh.risk.invalidPort': '端口配置超出范围（需在 1-65535）。',
 
   // 未保存更改弹窗
   'app.ssh.unsavedChanges.title': '未保存的更改',
@@ -88,6 +96,15 @@ export default {
   'app.ssh.listenModal.cancel': '取消',
   'app.ssh.listenModal.saveSuccess': '监听地址设置已保存',
   'app.ssh.listenModal.saveError': '监听地址设置保存失败',
+  'app.ssh.listenModal.loadIpsFailed':
+    '获取本机 IP 列表失败，请手动输入监听地址',
+  'app.ssh.listenModal.option.current': '当前',
+  'app.ssh.listenModal.option.recommended': '推荐',
+  'app.ssh.listenModal.option.private': '内网',
+  'app.ssh.listenModal.option.public': '公网',
+  'app.ssh.listenModal.option.loopback': '回环',
+  'app.ssh.listenModal.option.ipv6': 'IPv6',
+  'app.ssh.listenModal.option.linklocal': '链路本地',
 
   // Root用户设置弹窗
   'app.ssh.rootModal.title': 'Root用户设置',
@@ -101,11 +118,14 @@ export default {
   'app.ssh.rootModal.saveSuccess': 'Root用户设置已保存',
   'app.ssh.rootModal.saveError': 'Root用户设置保存失败',
 
-  // 密码管理标签页
+  // SSH 密钥对标签页
   'app.ssh.keyPairs.generateKey': '生成密钥',
   'app.ssh.keyPairs.hasPassword': '已设置密码',
   'app.ssh.keyPairs.noPassword': '未设置密码',
   'app.ssh.keyPairs.download': '下载',
+  'app.ssh.keyPairs.view': '查看密钥',
+  'app.ssh.keyPairs.viewPublicKey': '查看公钥',
+  'app.ssh.keyPairs.copyPublicKey': '复制公钥',
   'app.ssh.keyPairs.set': '设置密码',
   'app.ssh.keyPairs.update': '更新密码',
   'app.ssh.keyPairs.clear': '清除密码',
@@ -121,10 +141,31 @@ export default {
   'app.ssh.keyPairs.columns.keyPath': '密钥路径',
   'app.ssh.keyPairs.columns.fingerprint': '指纹',
   'app.ssh.keyPairs.columns.status': '状态',
+  'app.ssh.keyPairs.columns.security': '安全评级',
   'app.ssh.keyPairs.enabled': '已启用',
   'app.ssh.keyPairs.disabled': '已禁用',
   'app.ssh.keyPairs.enable': '启用',
   'app.ssh.keyPairs.disable': '禁用',
+  'app.ssh.keyPairs.security.recommended': '推荐',
+  'app.ssh.keyPairs.security.acceptable': '可用',
+  'app.ssh.keyPairs.security.warning': '注意',
+  'app.ssh.keyPairs.security.weak': '较弱',
+  'app.ssh.keyPairs.security.unknown': '未知',
+  'app.ssh.keyPairs.security.reason.ed25519': 'Ed25519 为当前主流推荐算法。',
+  'app.ssh.keyPairs.security.reason.ecdsa':
+    'ECDSA 在主流环境可用，建议优先使用 Ed25519。',
+  'app.ssh.keyPairs.security.reason.rsa3072':
+    'RSA 3072 位及以上符合当前主流安全建议。',
+  'app.ssh.keyPairs.security.reason.rsa2048':
+    'RSA 2048 位仍被广泛使用，但建议逐步升级到 3072 位或 Ed25519。',
+  'app.ssh.keyPairs.security.reason.rsaWeak':
+    'RSA 低于 2048 位已不建议继续使用。',
+  'app.ssh.keyPairs.security.reason.dsa':
+    'DSA 已被主流安全实践淘汰，不建议使用。',
+  'app.ssh.keyPairs.security.reason.unknownWeakBits':
+    '密钥位数偏低，存在安全风险，建议更换为强密钥。',
+  'app.ssh.keyPairs.security.reason.unknown':
+    '无法识别算法，建议确认后升级到 Ed25519 或 RSA 3072+。',
 
   'app.ssh.keyPairs.generateSuccess': 'SSH密钥生成成功',
   'app.ssh.keyPairs.enableSuccess': 'SSH密钥启用成功',
@@ -135,6 +176,12 @@ export default {
   'app.ssh.keyPairs.clearSuccess': 'SSH密钥密码清除成功',
   'app.ssh.keyPairs.deleteSuccess': 'SSH密钥删除成功',
   'app.ssh.keyPairs.operationFailed': '操作失败',
+  'app.ssh.keyPairs.privateKeyLoadFailed': '密钥内容加载失败',
+  'app.ssh.keyPairs.publicKeyLoadFailed': '公钥加载失败',
+  'app.ssh.keyPairs.publicKeyCopySuccess': '公钥已复制',
+  'app.ssh.keyPairs.publicKeyCopyFailed': '公钥复制失败',
+  'app.ssh.keyPairs.privateKeyModal.title': '密钥内容 - {keyName}',
+  'app.ssh.keyPairs.publicKeyModal.title': '公钥内容 - {keyName}',
 
   'app.ssh.keyPairs.clearConfirm': '确定要清除密钥 "{keyName}" 的密码吗？',
   'app.ssh.keyPairs.deleteConfirm': '确定要删除密钥 "{keyName}" 吗？',
@@ -149,6 +196,8 @@ export default {
   'app.ssh.keyPairs.generateModal.keyNameRequired': '请输入密钥名称',
   'app.ssh.keyPairs.generateModal.encryptionModeRequired': '请选择加密方式',
   'app.ssh.keyPairs.generateModal.keyBitsRequired': '请选择密钥位数',
+  'app.ssh.keyPairs.generateModal.keyBitsEd25519Fixed':
+    '固定 256 位（ED25519）',
 
   // 设置密码弹窗
   'app.ssh.keyPairs.setModal.title': '设置密钥密码',
@@ -162,19 +211,25 @@ export default {
   'app.ssh.keyPairs.updateModal.oldPasswordRequired': '请输入旧密码',
   'app.ssh.keyPairs.updateModal.newPasswordRequired': '请输入新密码',
 
-  // 授权密钥标签页
+  // SSH 登录授权标签页
   'app.ssh.publicKeys.add': '添加密钥',
   'app.ssh.publicKeys.addPublicKey': '添加公钥',
+  'app.ssh.publicKeys.view': '查看完整',
+  'app.ssh.publicKeys.copy': '复制',
   'app.ssh.publicKeys.remove': '删除',
   'app.ssh.publicKeys.addSuccess': 'SSH 密钥添加成功',
+  'app.ssh.publicKeys.copySuccess': '公钥已复制',
   'app.ssh.publicKeys.removeSuccess': 'SSH 密钥删除成功',
   'app.ssh.publicKeys.addError': 'SSH 密钥添加失败',
+  'app.ssh.publicKeys.copyError': '公钥复制失败',
   'app.ssh.publicKeys.removeError': 'SSH 密钥删除失败',
   'app.ssh.publicKeys.loadError': 'SSH 密钥加载失败',
   'app.ssh.publicKeys.columns.algorithm': '算法',
   'app.ssh.publicKeys.columns.key': '密钥',
+  'app.ssh.publicKeys.columns.fingerprint': '指纹',
   'app.ssh.publicKeys.columns.comment': '备注',
   'app.ssh.publicKeys.columns.operations': '操作',
+  'app.ssh.publicKeys.viewModal.title': '授权公钥内容',
   'app.ssh.publicKeys.modal.title': '添加 SSH 密钥',
   'app.ssh.publicKeys.modal.addPublicKey': '添加公钥',
   'app.ssh.publicKeys.modal.content': '密钥内容',

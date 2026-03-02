@@ -49,6 +49,7 @@
           </a-select>
         </a-form-item>
         <a-form-item
+          v-if="formData.encryption_mode !== 'ed25519'"
           field="key_bits"
           :label="$t('app.ssh.keyPairs.generateModal.keyBits')"
           :rules="[
@@ -60,13 +61,24 @@
         >
           <a-select v-model="formData.key_bits">
             <a-option
-              v-for="option in keyBitsOptions"
+              v-for="option in currentKeyBitsOptions"
               :key="option.value"
               :value="option.value"
             >
               {{ option.label }}
             </a-option>
           </a-select>
+        </a-form-item>
+        <a-form-item
+          v-else
+          :label="$t('app.ssh.keyPairs.generateModal.keyBits')"
+        >
+          <a-input
+            :model-value="
+              $t('app.ssh.keyPairs.generateModal.keyBitsEd25519Fixed')
+            "
+            disabled
+          />
         </a-form-item>
         <a-form-item
           field="password"
@@ -109,7 +121,7 @@
     visible: boolean;
     loading: boolean;
     encryptionOptions: EncryptionOption[];
-    keyBitsOptions: KeyBitsOption[];
+    keyBitsOptions: Record<EncryptionMode, KeyBitsOption[]>;
     form: GenerateKeyForm;
   }>();
 
@@ -141,6 +153,31 @@
       emit('update:form', newValue);
     },
   });
+
+  const currentKeyBitsOptions = computed<KeyBitsOption[]>(() => {
+    return props.keyBitsOptions[formData.value.encryption_mode] || [];
+  });
+
+  watch(
+    () => formData.value.encryption_mode,
+    (mode) => {
+      const options = props.keyBitsOptions[mode] || [];
+      if (!options.length) {
+        return;
+      }
+
+      const exists = options.some(
+        (option) => option.value === formData.value.key_bits
+      );
+      if (!exists) {
+        formData.value = {
+          ...formData.value,
+          key_bits: options[0].value,
+        };
+      }
+    },
+    { immediate: true }
+  );
 
   const handleConfirm = async () => {
     if (!formRef.value) {

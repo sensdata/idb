@@ -32,9 +32,9 @@ type SSHOperate struct {
 
 type GenerateKey struct {
 	KeyName        string `json:"key_name" validate:"required"`
-	KeyBits        uint   `json:"key_bits" validate:"required,oneof=1024 2048"`
+	KeyBits        uint   `json:"key_bits" validate:"required,oneof=256 384 521 2048 3072 4096"`
 	Enable         bool   `json:"enable"`
-	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
+	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa"`
 	Password       string `json:"password"`
 }
 
@@ -74,7 +74,7 @@ type KeyInfo struct {
 }
 
 type GenerateLoad struct {
-	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa dsa"`
+	EncryptionMode string `json:"encryption_mode" validate:"required,oneof=rsa ed25519 ecdsa"`
 }
 
 type SearchSSHLog struct {

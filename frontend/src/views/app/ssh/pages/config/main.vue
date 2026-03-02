@@ -76,6 +76,7 @@
   import { useI18n } from 'vue-i18n';
   import { IconLoading } from '@arco-design/web-vue/es/icon';
   import { Message } from '@arco-design/web-vue';
+  import { useConfirm } from '@/composables/confirm';
   import useSSHStore from '../../store';
   import SshStatus from '../../components/ssh-status/index.vue';
   import { useSSHConfig } from './composables/use-ssh-config';
@@ -89,6 +90,7 @@
 
   const { t } = useI18n();
   const sshStore = useSSHStore();
+  const { confirm } = useConfirm();
 
   const pageLoading = ref<boolean>(true);
   const dataInitialized = ref<boolean>(false);
@@ -146,8 +148,21 @@
 
   watch(
     () => sshStore.hostId,
-    async (newVal) => {
-      if (newVal && !dataInitialized.value) {
+    async (newVal, oldVal) => {
+      if (!newVal) {
+        dataInitialized.value = false;
+        pageLoading.value = false;
+        return;
+      }
+
+      if (newVal !== oldVal) {
+        dataInitialized.value = false;
+        configMode.value = 'visual';
+        unsavedChangesModalVisible.value = false;
+        pendingModeChange.value = null;
+      }
+
+      if (!dataInitialized.value) {
         await initializeSSHData();
       }
     },
@@ -235,6 +250,17 @@
         return;
       }
 
+      if (
+        enabled &&
+        sshConfig.value.passwordAuth &&
+        !(await confirm({
+          title: t('app.ssh.risk.confirmTitle'),
+          content: t('app.ssh.risk.rootPasswordEnabled'),
+        }))
+      ) {
+        return;
+      }
+
       loadingStates.root = true;
 
       await sshStore.updateRootLogin(enabled);
@@ -252,6 +278,17 @@
     try {
       if (!sshStore.hostId) return;
 
+      if (
+        !value &&
+        !sshConfig.value.keyAuth &&
+        !(await confirm({
+          title: t('app.ssh.risk.confirmTitle'),
+          content: t('app.ssh.risk.lockoutWarning'),
+        }))
+      ) {
+        return;
+      }
+
       loadingStates.passwordAuth = true;
       await sshStore.updatePasswordAuth(value);
       await refreshSourceConfig();
@@ -266,6 +303,17 @@
   const handleKeyAuthChange = async (value: boolean): Promise<void> => {
     try {
       if (!sshStore.hostId) return;
+
+      if (
+        !value &&
+        !sshConfig.value.passwordAuth &&
+        !(await confirm({
+          title: t('app.ssh.risk.confirmTitle'),
+          content: t('app.ssh.risk.lockoutWarning'),
+        }))
+      ) {
+        return;
+      }
 
       loadingStates.keyAuth = true;
       await sshStore.updateKeyAuth(value);
@@ -311,11 +359,11 @@
 
 <style scoped lang="less">
   .ssh-page-container {
+    position: relative;
     padding: 0 16px;
     background-color: var(--color-bg-2);
-    border-radius: 6px;
-    position: relative;
     border: 1px solid var(--color-border-2);
+    border-radius: 6px;
     box-shadow: 0 2px 8px var(--color-fill-2);
   }
 
@@ -332,10 +380,10 @@
   }
 
   .page-title {
+    margin: 0;
     font-size: 18px;
     font-weight: 500;
     color: var(--color-text-1);
-    margin: 0;
   }
 
   .ssh-status-container {
@@ -343,11 +391,11 @@
   }
 
   .content-container {
-    background-color: var(--color-bg-2);
-    border-radius: 4px;
-    border: 1px solid var(--color-border-2);
     padding: 16px 20px;
     margin-bottom: 16px;
+    background-color: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
   }
 
   .loading-container {
@@ -355,17 +403,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-bg-2);
-    border-radius: 4px;
-    border: 1px solid var(--color-border-2);
+    min-height: 200px;
     padding: 40px 20px;
     margin-bottom: 16px;
-    min-height: 200px;
-
+    background-color: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 4px;
     .loading-text {
       margin-top: 16px;
-      color: var(--color-text-2);
       font-size: 14px;
+      color: var(--color-text-2);
     }
   }
 </style>

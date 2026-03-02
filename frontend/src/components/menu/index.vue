@@ -1,5 +1,15 @@
 <script lang="tsx">
-  import { defineComponent, ref, h, compile, computed, inject } from 'vue';
+  import {
+    defineComponent,
+    ref,
+    h,
+    compile,
+    computed,
+    inject,
+    nextTick,
+    watch,
+    onMounted,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter, RouteRecordRaw } from 'vue-router';
   import type { RouteMeta } from 'vue-router';
@@ -39,8 +49,72 @@
       const topMenu = computed(() => appStore.topMenu);
       const openKeys = ref<string[]>([]);
       const selectedKey = ref<string[]>([]);
+      const menuScrollRef = ref<HTMLElement | null>(null);
 
       const openTerminal = inject<() => void>('openTerminal');
+
+      const scrollSelectedMenuIntoView = (): boolean => {
+        const container = menuScrollRef.value;
+        if (!container) return false;
+
+        const selectedItem = container.querySelector(
+          '.arco-menu-item.arco-menu-selected, .arco-menu-item-selected, .arco-menu-inline-header.arco-menu-selected'
+        ) as HTMLElement | null;
+        if (!selectedItem) return false;
+
+        const containerRect = container.getBoundingClientRect();
+        const itemRect = selectedItem.getBoundingClientRect();
+        // Keep one row above the selected item for context whenever possible.
+        const topContextOffset = itemRect.height * 1.2;
+        const targetTop =
+          container.scrollTop +
+          (itemRect.top - containerRect.top) -
+          topContextOffset;
+        const maxTop = Math.max(
+          0,
+          container.scrollHeight - container.clientHeight
+        );
+        const nextTop = Math.min(Math.max(targetTop, 0), maxTop);
+
+        container.scrollTo({
+          top: nextTop,
+          behavior: 'smooth',
+        });
+        return true;
+      };
+
+      const queueScrollToSelected = (retry = 8) => {
+        nextTick(() => {
+          requestAnimationFrame(() => {
+            const success = scrollSelectedMenuIntoView();
+            if (!success && retry > 0) {
+              setTimeout(() => {
+                queueScrollToSelected(retry - 1);
+              }, 80);
+            }
+          });
+        });
+      };
+
+      onMounted(() => {
+        queueScrollToSelected();
+      });
+
+      watch(
+        () => selectedKey.value.join(','),
+        () => {
+          queueScrollToSelected();
+        },
+        { flush: 'post' }
+      );
+
+      watch(
+        () => openKeys.value.join(','),
+        () => {
+          queueScrollToSelected();
+        },
+        { flush: 'post' }
+      );
 
       const goto = (item: RouteRecordRaw) => {
         if (item.meta?.command === 'openTerminal') {
@@ -171,6 +245,7 @@
         }
         // 更新打开的菜单键值
         openKeys.value = keys;
+        queueScrollToSelected();
       };
 
       listenerRouteChange((newRoute) => {
@@ -193,6 +268,7 @@
           selectedKey.value = [
             activeMenu || menuOpenKeys[menuOpenKeys.length - 1],
           ];
+          queueScrollToSelected();
         }
       }, true);
       const setCollapse = (val: boolean) => {
@@ -254,7 +330,7 @@
               <HostInfo collapsed={collapsed.value} />
             </div>
           )}
-          <div class="menu-scroll">
+          <div class="menu-scroll" ref={menuScrollRef}>
             <a-menu
               mode={topMenu.value ? 'horizontal' : 'vertical'}
               v-model:collapsed={collapsed.value}
@@ -280,7 +356,7 @@
 </script>
 
 <style scoped lang="less">
-  @import '@/assets/style/mixin.less';
+  @import url('@/assets/style/mixin.less');
 
   .menu-container {
     display: flex;
@@ -293,12 +369,10 @@
   }
 
   .menu-scroll {
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: visible;
-    position: relative;
-
+    overflow: visible auto;
     :deep(.arco-menu) {
       .custom-scrollbar();
 
@@ -331,54 +405,51 @@
     > .arco-menu-group-title,
     > .arco-menu-inline-header,
     > .arco-menu-pop-header {
+      position: relative;
       box-sizing: border-box;
       height: 40px;
-      line-height: 40px;
       padding: 0 20px 0 48px !important; // 固定左侧内边距
-      position: relative;
-
+      line-height: 40px;
       &::before {
-        content: '';
         position: absolute;
         top: 0;
         left: 0;
         width: 3px;
         height: 100%;
+        content: '';
         background-color: transparent;
       }
     }
 
     // 子菜单项样式 - 使用自然缩进
     .arco-menu-inline .arco-menu-item {
-      box-sizing: border-box;
-      height: 40px;
-      line-height: 40px;
       position: relative;
-      padding-right: 20px !important;
+      box-sizing: border-box;
       display: flex;
       align-items: center;
-
+      height: 40px;
+      padding-right: 20px !important;
+      line-height: 40px;
       &::before {
-        content: '';
         position: absolute;
         top: 0;
         left: 0;
         width: 3px;
         height: 100%;
+        content: '';
         background-color: transparent;
       }
 
       // 确保缩进列表和内容在同一行
       .arco-menu-indent-list {
         display: flex;
-        align-items: center;
         flex-shrink: 0;
+        align-items: center;
       }
-
       .arco-menu-item-inner {
         display: flex;
-        align-items: center;
         flex: 1;
+        align-items: center;
         min-width: 0;
       }
     }
@@ -387,10 +458,10 @@
     > .arco-menu-item > .arco-menu-icon,
     > .arco-menu-inline-header > .arco-menu-icon {
       position: absolute;
-      left: 16px;
       top: 50%;
-      transform: translateY(-50%);
+      left: 16px;
       margin: 0;
+      transform: translateY(-50%);
     }
 
     // 菜单图标颜色 - 基础状态
@@ -413,26 +484,25 @@
     .arco-menu-title,
     .arco-menu-item > span {
       display: block;
-      white-space: nowrap;
-      text-overflow: ellipsis;
       overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     // 统一菜单项文本样式
     .menu-title {
+      position: relative;
       display: inline-block;
       width: auto;
-      text-align: left;
       padding-left: 0;
-      position: relative;
       vertical-align: middle;
+      text-align: left;
     }
 
     // 确保整个菜单项可点击，而不仅是标题区域
     .arco-menu-inline-header {
-      cursor: pointer;
       width: 100%;
-
+      cursor: pointer;
       &:hover {
         background-color: var(--color-fill-2);
       }

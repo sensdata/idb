@@ -1,11 +1,11 @@
 export default {
-  'app.ssh.pageTitle': 'SSH Management',
+  'app.ssh.pageTitle': 'SSH Access Management',
   'app.ssh.tabs.config': 'SSH Config',
-  'app.ssh.tabs.keyPairs': 'Key Pair Management',
-  'app.ssh.tabs.publicKeys': 'Public Key Management',
+  'app.ssh.tabs.keyPairs': 'SSH Key Pair Management',
+  'app.ssh.tabs.publicKeys': 'SSH Login Authorization',
   'app.ssh.config.title': 'SSH Configuration',
-  'app.ssh.keyPairs.title': 'Key Pair Management',
-  'app.ssh.publicKeys.title': 'Public Key Management',
+  'app.ssh.keyPairs.title': 'SSH Key Pair Management',
+  'app.ssh.publicKeys.title': 'SSH Login Authorization',
 
   // Mode switch
   'app.ssh.mode.visual': 'Form Mode',
@@ -27,7 +27,16 @@ export default {
   'app.ssh.source.parseError': 'Failed to parse source configuration',
   'app.ssh.source.emptyConfig': 'Configuration content is empty',
   'app.ssh.source.noChanges': 'No valid configuration changes detected',
+  'app.ssh.source.changeSummary':
+    '{count} key configuration changes detected: {keys}',
   'app.ssh.savingConfig': 'Saving SSH configuration...',
+  'app.ssh.risk.title': 'Risky Change Warning',
+  'app.ssh.risk.confirmTitle': 'Confirm Risky Change',
+  'app.ssh.risk.lockoutWarning':
+    'Disabling both password and public key authentication may lock you out of SSH.',
+  'app.ssh.risk.rootPasswordEnabled':
+    'Allowing root login with password authentication enabled increases brute-force risk.',
+  'app.ssh.risk.invalidPort': 'Port is out of range (must be 1-65535).',
 
   // Unsaved changes modal
   'app.ssh.unsavedChanges.title': 'Unsaved Changes',
@@ -95,6 +104,15 @@ export default {
   'app.ssh.listenModal.saveSuccess':
     'Listen address settings saved successfully',
   'app.ssh.listenModal.saveError': 'Failed to save listen address settings',
+  'app.ssh.listenModal.loadIpsFailed':
+    'Failed to load local IP list, please enter listen address manually',
+  'app.ssh.listenModal.option.current': 'Current',
+  'app.ssh.listenModal.option.recommended': 'Recommended',
+  'app.ssh.listenModal.option.private': 'Private',
+  'app.ssh.listenModal.option.public': 'Public',
+  'app.ssh.listenModal.option.loopback': 'Loopback',
+  'app.ssh.listenModal.option.ipv6': 'IPv6',
+  'app.ssh.listenModal.option.linklocal': 'Link-local',
 
   // Root user setting modal
   'app.ssh.rootModal.title': 'Root User Settings',
@@ -108,11 +126,14 @@ export default {
   'app.ssh.rootModal.saveSuccess': 'Root user settings saved successfully',
   'app.ssh.rootModal.saveError': 'Failed to save root user settings',
 
-  // Password tab
+  // SSH key pairs tab
   'app.ssh.keyPairs.generateKey': 'Generate Key',
   'app.ssh.keyPairs.hasPassword': 'Has Password',
   'app.ssh.keyPairs.noPassword': 'No Password',
   'app.ssh.keyPairs.download': 'Download',
+  'app.ssh.keyPairs.view': 'View Key',
+  'app.ssh.keyPairs.viewPublicKey': 'View Public Key',
+  'app.ssh.keyPairs.copyPublicKey': 'Copy Public Key',
   'app.ssh.keyPairs.set': 'Set Password',
   'app.ssh.keyPairs.update': 'Update Password',
   'app.ssh.keyPairs.clear': 'Clear Password',
@@ -128,10 +149,32 @@ export default {
   'app.ssh.keyPairs.columns.keyPath': 'Key Path',
   'app.ssh.keyPairs.columns.fingerprint': 'Fingerprint',
   'app.ssh.keyPairs.columns.status': 'Status',
+  'app.ssh.keyPairs.columns.security': 'Security',
   'app.ssh.keyPairs.enabled': 'Enabled',
   'app.ssh.keyPairs.disabled': 'Disabled',
   'app.ssh.keyPairs.enable': 'Enable',
   'app.ssh.keyPairs.disable': 'Disable',
+  'app.ssh.keyPairs.security.recommended': 'Recommended',
+  'app.ssh.keyPairs.security.acceptable': 'Acceptable',
+  'app.ssh.keyPairs.security.warning': 'Warning',
+  'app.ssh.keyPairs.security.weak': 'Weak',
+  'app.ssh.keyPairs.security.unknown': 'Unknown',
+  'app.ssh.keyPairs.security.reason.ed25519':
+    'Ed25519 is broadly recommended by current best practices.',
+  'app.ssh.keyPairs.security.reason.ecdsa':
+    'ECDSA is acceptable in mainstream deployments, but Ed25519 is preferred.',
+  'app.ssh.keyPairs.security.reason.rsa3072':
+    'RSA 3072 bits or higher aligns with current mainstream guidance.',
+  'app.ssh.keyPairs.security.reason.rsa2048':
+    'RSA 2048 is still common, but upgrading to RSA 3072+ or Ed25519 is recommended.',
+  'app.ssh.keyPairs.security.reason.rsaWeak':
+    'RSA keys below 2048 bits are no longer recommended.',
+  'app.ssh.keyPairs.security.reason.dsa':
+    'DSA is deprecated in mainstream security practice and should be avoided.',
+  'app.ssh.keyPairs.security.reason.unknownWeakBits':
+    'Low key size detected; replacing with a stronger key is recommended.',
+  'app.ssh.keyPairs.security.reason.unknown':
+    'Algorithm not recognized; verify it and prefer Ed25519 or RSA 3072+.',
 
   'app.ssh.keyPairs.generateSuccess': 'SSH key generated successfully',
   'app.ssh.keyPairs.enableSuccess': 'SSH key enabled successfully',
@@ -142,6 +185,12 @@ export default {
   'app.ssh.keyPairs.clearSuccess': 'SSH key password cleared successfully',
   'app.ssh.keyPairs.deleteSuccess': 'SSH key deleted successfully',
   'app.ssh.keyPairs.operationFailed': 'Operation failed',
+  'app.ssh.keyPairs.privateKeyLoadFailed': 'Failed to load key content',
+  'app.ssh.keyPairs.publicKeyLoadFailed': 'Failed to load public key',
+  'app.ssh.keyPairs.publicKeyCopySuccess': 'Public key copied',
+  'app.ssh.keyPairs.publicKeyCopyFailed': 'Failed to copy public key',
+  'app.ssh.keyPairs.privateKeyModal.title': 'Key Content - {keyName}',
+  'app.ssh.keyPairs.publicKeyModal.title': 'Public Key - {keyName}',
 
   'app.ssh.keyPairs.clearConfirm':
     'Are you sure you want to clear the password for key "{keyName}"?',
@@ -159,6 +208,8 @@ export default {
   'app.ssh.keyPairs.generateModal.encryptionModeRequired':
     'Please select an encryption mode',
   'app.ssh.keyPairs.generateModal.keyBitsRequired': 'Please select key bits',
+  'app.ssh.keyPairs.generateModal.keyBitsEd25519Fixed':
+    'Fixed at 256 bits (ED25519)',
 
   // Set password modal
   'app.ssh.keyPairs.setModal.title': 'Set Key Password',
@@ -174,19 +225,25 @@ export default {
   'app.ssh.keyPairs.updateModal.newPasswordRequired':
     'Please enter a new password',
 
-  // Auth Key tab
+  // SSH login authorization tab
   'app.ssh.publicKeys.add': 'Add Key',
   'app.ssh.publicKeys.addPublicKey': 'Add Public Key',
+  'app.ssh.publicKeys.view': 'View Full',
+  'app.ssh.publicKeys.copy': 'Copy',
   'app.ssh.publicKeys.remove': 'Remove',
   'app.ssh.publicKeys.addSuccess': 'SSH key added successfully',
+  'app.ssh.publicKeys.copySuccess': 'Public key copied',
   'app.ssh.publicKeys.removeSuccess': 'SSH key removed successfully',
   'app.ssh.publicKeys.addError': 'Failed to add SSH key',
+  'app.ssh.publicKeys.copyError': 'Failed to copy public key',
   'app.ssh.publicKeys.removeError': 'Failed to remove SSH key',
   'app.ssh.publicKeys.loadError': 'Failed to load SSH keys',
   'app.ssh.publicKeys.columns.algorithm': 'Algorithm',
   'app.ssh.publicKeys.columns.key': 'Key',
+  'app.ssh.publicKeys.columns.fingerprint': 'Fingerprint',
   'app.ssh.publicKeys.columns.comment': 'Comment',
   'app.ssh.publicKeys.columns.operations': 'Operations',
+  'app.ssh.publicKeys.viewModal.title': 'Authorized Public Key',
   'app.ssh.publicKeys.modal.title': 'Add SSH Key',
   'app.ssh.publicKeys.modal.addPublicKey': 'Add Public Key',
   'app.ssh.publicKeys.modal.content': 'Key Content',
