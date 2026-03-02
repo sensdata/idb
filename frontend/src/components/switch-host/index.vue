@@ -11,6 +11,25 @@
     <div v-if="currentModuleName" class="current-module truncate">
       {{ currentModuleName }}
     </div>
+    <div class="host-status">
+      <div class="status-item cpu-item">
+        <span class="status-label">CPU:</span>
+        <span class="status-value cpu-value">{{ state.cpu_usage }}</span>
+      </div>
+      <div class="status-item memory-item">
+        <span class="status-label">{{ $t('host.info.memory') }}:</span>
+        <span class="status-value memory-value">{{ state.memory_usage }}</span>
+      </div>
+      <div class="status-item network-item">
+        <span class="status-label">{{ $t('host.info.network') }}:</span>
+        <span class="status-value network">
+          <up-stream-icon class="status-icon" />
+          <span class="network-value">{{ state.network_up }}</span>
+          <down-stream-icon class="status-icon downstream" />
+          <span class="network-value">{{ state.network_down }}</span>
+        </span>
+      </div>
+    </div>
   </div>
   <a-drawer
     :width="640"
@@ -64,13 +83,21 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref } from 'vue';
+  import { computed, reactive, ref, watch, onUnmounted } from 'vue';
   import { useRoute } from 'vue-router';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
   import { HostEntity } from '@/entity/Host';
-  import { getHostListApi } from '@/api/host';
+  import {
+    getHostListApi,
+    connectHostStatusFollowApi,
+    getHostStatusApi,
+  } from '@/api/host';
   import { useHostStore } from '@/store';
+  import { formatTransferSpeed } from '@/utils/format';
   import usetCurrentHost from '@/composables/current-host';
+  import DownStreamIcon from '@/assets/icons/downstream.svg';
+  import UpStreamIcon from '@/assets/icons/upstream.svg';
 
   const { t } = useI18n();
 
@@ -130,6 +157,93 @@
     switchHost(record.id, true);
     handleCancel();
   };
+
+  const state = reactive({
+    cpu_usage: '0%',
+    memory_usage: '0MB/0MB',
+    network_up: '0KB/s',
+    network_down: '0KB/s',
+  });
+
+  const isLoading = ref(false);
+  const esRef = ref<EventSource>();
+  const connectedHostId = ref<number | null>(null);
+  const lastRequestedHostId = ref<number | null>(null);
+
+  const refreshStatus = async () => {
+    if (!hostStore.currentId || isLoading.value) {
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      const result = await getHostStatusApi(hostStore.currentId);
+      state.cpu_usage = result.cpu + '%';
+      state.memory_usage = result.mem_used + '/' + result.mem_total;
+      state.network_up = formatTransferSpeed(result.tx);
+      state.network_down = formatTransferSpeed(result.rx);
+    } catch (error) {
+      Message.error(t('host.info.status.failed'));
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const stopSSE = () => {
+    if (esRef.value) {
+      esRef.value.close();
+      esRef.value = undefined;
+    }
+    connectedHostId.value = null;
+  };
+
+  const startSSE = () => {
+    if (!hostStore.currentId) {
+      return;
+    }
+
+    if (connectedHostId.value === hostStore.currentId && esRef.value) {
+      return;
+    }
+
+    stopSSE();
+    const es = connectHostStatusFollowApi(hostStore.currentId);
+    esRef.value = es;
+    connectedHostId.value = hostStore.currentId;
+
+    es.addEventListener('status', (event) => {
+      const data = JSON.parse(event.data);
+      state.cpu_usage = data.cpu + '%';
+      state.memory_usage = data.mem_used + '/' + data.mem_total;
+      state.network_up = formatTransferSpeed(data.tx);
+      state.network_down = formatTransferSpeed(data.rx);
+    });
+
+    es.addEventListener('error', (err) => {
+      console.error('SSE error', err);
+    });
+  };
+
+  watch(
+    () => hostStore.currentId,
+    (v?: number) => {
+      if (v) {
+        if (v !== lastRequestedHostId.value) {
+          lastRequestedHostId.value = v;
+          refreshStatus();
+          startSSE();
+        }
+      } else {
+        lastRequestedHostId.value = null;
+        stopSSE();
+      }
+    },
+    { immediate: true }
+  );
+
+  onUnmounted(() => {
+    stopSSE();
+  });
 </script>
 
 <style scoped>
@@ -150,6 +264,7 @@
   }
 
   .current-module {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     max-width: 36%;
@@ -163,8 +278,79 @@
     text-align: left;
     background-color: var(--color-fill-2);
     border: 1px solid var(--color-border-2);
-    border-radius: 999px;
+    border-radius: 18px;
     transition: all 0.2s ease;
+  }
+
+  .host-status {
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: 0 0 500px;
+    flex-wrap: nowrap;
+    gap: 0 10px;
+    align-items: center;
+    width: 500px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    margin-left: auto;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-text-2);
+    background-color: var(--color-fill-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 18px;
+  }
+
+  .status-item {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .status-label {
+    color: var(--color-text-3);
+  }
+
+  .status-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-1);
+  }
+
+  .cpu-value {
+    width: 5.5ch;
+  }
+
+  .memory-value {
+    width: 13ch;
+  }
+
+  .network {
+    gap: 4px;
+    min-width: 23ch;
+  }
+
+  .network-value {
+    width: 8.5ch;
+    min-width: 8.5ch;
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .status-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .downstream {
+    margin-left: 4px;
   }
 
   .current-module::before {
@@ -209,10 +395,31 @@
 
   @media (width <= 1280px) {
     .host-switch {
-      max-width: 55%;
+      max-width: 45%;
     }
     .current-module {
-      max-width: 42%;
+      max-width: 28%;
+    }
+    .host-status {
+      flex-basis: 460px;
+      width: 460px;
+      font-size: 11px;
+    }
+  }
+
+  @media (width <= 992px) {
+    .host-switch {
+      max-width: 100%;
+    }
+    .host-status {
+      flex-basis: auto;
+      width: 100%;
+      max-width: 100%;
+      margin-left: 0;
+      overflow: auto hidden;
+    }
+    .current-module {
+      max-width: 50%;
     }
   }
 </style>
