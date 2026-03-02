@@ -2,6 +2,7 @@ export default {
   'app.certificate.title': 'Certificate Management',
   'app.certificate.createGroup': 'Create Certificate Group',
   'app.certificate.import': 'Import Certificate',
+  'app.certificate.openDirectory': 'Open Certificate Directory',
   'app.certificate.updateCertificate': 'Update Certificate',
   'app.certificate.generateSelfSigned': 'Generate Self-Signed Certificate',
   'app.certificate.viewCertificate': 'View Certificate',
@@ -14,6 +15,9 @@ export default {
   'app.certificate.certificateActions': 'Certificate Actions',
   'app.certificate.groupActions': 'Group Actions',
   'app.certificate.noCertificateActions': 'No certificate actions available',
+  'app.certificate.empty.title': 'No certificates are being managed yet',
+  'app.certificate.empty.description':
+    'Create a certificate group first, or import an existing certificate to get started.',
   'app.certificate.certificateDetail': 'Certificate Details',
   'app.certificate.privateKeyInfo': 'Private Key Information',
   'app.certificate.privateKeyPath': 'Private Key Path',

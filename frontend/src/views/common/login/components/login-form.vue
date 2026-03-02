@@ -48,11 +48,10 @@
       <a-space :size="16" direction="vertical">
         <div class="login-form-password-actions">
           <a-checkbox
-            checked="rememberPassword"
-            :model-value="loginConfig.rememberPassword"
-            @change="setRememberPassword as any"
+            :model-value="loginConfig.rememberAccount"
+            @change="setRememberAccount as any"
           >
-            {{ $t('login.form.rememberPassword') }}
+            {{ $t('login.form.rememberAccount') }}
           </a-checkbox>
           <a-link @click="showForgotPasswordModal">
             {{ $t('login.form.forgetPassword') }}
@@ -91,20 +90,6 @@
   import { DEFAULT_ROUTE_NAME } from '@/router/constants';
   import ForgotPasswordModal from './forgot-password-modal.vue';
 
-  function serialize(str: string): string {
-    const encoded = btoa(str);
-    return encoded.split('').reverse().join('');
-  }
-
-  function unserialize(str: string): string {
-    try {
-      const reversed = str.split('').reverse().join('');
-      return atob(reversed);
-    } catch (err) {
-      return '';
-    }
-  }
-
   const router = useRouter();
   const { t } = useI18n();
   const errorMessage = ref('');
@@ -115,13 +100,20 @@
   const forgotPasswordModalVisible = ref(false);
 
   const loginConfig = useStorage('login-config', {
-    name: 'admin',
-    password: serialize('admin123'),
-    rememberPassword: true,
+    name: '',
+    rememberAccount: true,
   });
+  if (
+    loginConfig.value.rememberAccount === undefined &&
+    'rememberPassword' in loginConfig.value
+  ) {
+    loginConfig.value.rememberAccount = Boolean(
+      (loginConfig.value as any).rememberPassword
+    );
+  }
   const userInfo = reactive({
-    name: loginConfig.value.name,
-    password: unserialize(loginConfig.value.password),
+    name: loginConfig.value.rememberAccount ? loginConfig.value.name : '',
+    password: '',
   });
 
   const handleSubmit = async ({
@@ -156,12 +148,11 @@
         }
 
         Message.success(t('login.form.login.success'));
-        const { rememberPassword } = loginConfig.value;
-        const { name, password } = values;
-        loginConfig.value.name = rememberPassword ? name : '';
-        loginConfig.value.password = rememberPassword
-          ? serialize(password)
-          : '';
+        const { rememberAccount } = loginConfig.value;
+        const { name } = values;
+        loginConfig.value.name = rememberAccount ? name : '';
+        (loginConfig.value as any).password = '';
+        (loginConfig.value as any).rememberPassword = undefined;
       } catch (err) {
         errorMessage.value = (err as Error).message;
         Message.error(errorMessage.value || 'Login failed');
@@ -170,8 +161,8 @@
       }
     }
   };
-  const setRememberPassword = (value: boolean) => {
-    loginConfig.value.rememberPassword = value;
+  const setRememberAccount = (value: boolean) => {
+    loginConfig.value.rememberAccount = value;
   };
 
   // 显示忘记密码模态框
@@ -195,16 +186,16 @@
     &-title {
       margin-top: 32px;
       margin-bottom: 8px;
-      color: var(--color-text-3);
-      font-weight: 500;
       font-size: 24px;
+      font-weight: 500;
       line-height: 32px;
+      color: var(--color-text-3);
       text-align: center;
     }
     &-error-msg {
       height: 32px;
-      color: rgb(var(--red-6));
       line-height: 32px;
+      color: rgb(var(--red-6));
     }
     &-password-actions {
       display: flex;

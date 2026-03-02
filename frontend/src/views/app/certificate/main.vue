@@ -14,12 +14,45 @@
           </template>
           {{ $t('app.certificate.import') }}
         </a-button>
+        <a-button @click="handleOpenCertificateDirectory">
+          <template #icon>
+            <icon-folder />
+          </template>
+          {{ $t('app.certificate.openDirectory') }}
+        </a-button>
       </div>
     </div>
 
     <div class="content-container">
       <div class="certificate-content">
+        <div v-if="isEmptyState" class="certificate-empty-state">
+          <a-empty>
+            <template #description>
+              <div class="empty-title">
+                {{ $t('app.certificate.empty.title') }}
+              </div>
+              <div class="empty-description">
+                {{ $t('app.certificate.empty.description') }}
+              </div>
+            </template>
+          </a-empty>
+          <div class="empty-actions">
+            <a-button type="primary" @click="showCreateGroupModal">
+              <template #icon>
+                <icon-plus />
+              </template>
+              {{ $t('app.certificate.createGroup') }}
+            </a-button>
+            <a-button @click="showImportModal()">
+              <template #icon>
+                <icon-import />
+              </template>
+              {{ $t('app.certificate.import') }}
+            </a-button>
+          </div>
+        </div>
         <CertificateGroupTable
+          v-else
           :loading="loading"
           :groups="certificateGroups"
           @view-certificate="handleViewCertificate"
@@ -83,15 +116,21 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, watch } from 'vue';
+  import { ref, watch, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
-  import { IconPlus, IconImport } from '@arco-design/web-vue/es/icon';
+  import {
+    IconPlus,
+    IconImport,
+    IconFolder,
+  } from '@arco-design/web-vue/es/icon';
   import useCurrentHost from '@/composables/current-host';
   import { useApiWithLoading } from '@/composables/use-api-with-loading';
   import useLoading from '@/composables/loading';
   import { useLogger } from '@/composables/use-logger';
   import { useConfirm } from '@/composables/confirm';
+  import { createFileRoute } from '@/utils/file-route';
 
   import {
     getCertificateGroups,
@@ -121,6 +160,7 @@
   import CSRModal from './components/csr-modal.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
   const { currentHostId } = useCurrentHost();
   const { setLoading } = useLoading();
   const { executeApi } = useApiWithLoading(setLoading);
@@ -147,6 +187,13 @@
   const selectedCertificate = ref<CertificateInfo | null>(null);
   const selectedPrivateKey = ref<PrivateKeyInfo | null>(null);
   const selectedCSR = ref<CSRInfo | null>(null);
+  const certificateDirectory = '/var/lib/idb/data/certificates/';
+  const isEmptyState = computed(
+    () =>
+      Boolean(currentHostId.value) &&
+      !loading.value &&
+      certificateGroups.value.length === 0
+  );
 
   const getHostIdOrNotify = (notify = true) => {
     const hostId = currentHostId.value;
@@ -197,6 +244,14 @@
 
   const handleImportCertificateModal = (alias: string) => {
     showImportModal(alias);
+  };
+
+  const handleOpenCertificateDirectory = () => {
+    const hostId = getHostIdOrNotify();
+    if (!hostId) {
+      return;
+    }
+    router.push(createFileRoute(certificateDirectory, { id: hostId }));
   };
 
   const handleCreateGroup = async (form: CreateGroupRequest) => {
@@ -486,5 +541,34 @@
     background: var(--color-bg-2);
     border: 1px solid var(--color-border-2);
     border-radius: 0.67rem;
+  }
+
+  .certificate-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+  }
+
+  .empty-title {
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text-1);
+    text-align: center;
+  }
+
+  .empty-description {
+    color: var(--color-text-3);
+    text-align: center;
+  }
+
+  .empty-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
   }
 </style>
