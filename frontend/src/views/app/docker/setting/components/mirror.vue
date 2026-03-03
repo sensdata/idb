@@ -8,6 +8,14 @@
     @before-ok="handleBeforeOk"
   >
     <a-spin :loading="loading" class="w-full">
+      <a-alert class="mb-4" type="info" :show-icon="true">
+        <div class="guide-title">
+          {{ t('app.docker.setting.mirror.guide.title') }}
+        </div>
+        <div class="guide-desc">
+          {{ t('app.docker.setting.mirror.guide.desc') }}
+        </div>
+      </a-alert>
       <a-form ref="formRef" :model="form" :rules="rules">
         <a-row type="flex" justify="center">
           <a-col :span="22">
@@ -15,6 +23,12 @@
               field="registry_mirrors"
               :label="t('app.docker.setting.mirror.mirrors')"
             >
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ t('app.docker.setting.mirror.mirrors.help') }}
+                </span>
+              </template>
               <a-textarea
                 v-model="form.registry_mirrors"
                 :placeholder="
@@ -88,7 +102,7 @@
   };
 
   const setData = (params: any) => {
-    if (Array.isArray(params.mirrors)) {
+    if (Array.isArray(params.registry_mirrors)) {
       form.registry_mirrors = params.registry_mirrors.join('\n');
     } else {
       form.registry_mirrors = params.registry_mirrors || '';
@@ -139,3 +153,23 @@
     setData,
   });
 </script>
+
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .field-help {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-text-3);
+  }
+</style>

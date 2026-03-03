@@ -7,7 +7,9 @@ export default {
   'app.docker.compose.list.operation.stop': '停止',
   'app.docker.compose.list.operation.restart': '重启',
   'app.docker.compose.list.operation.up': '上线',
+  'app.docker.compose.list.operation.pull': '拉取镜像',
   'app.docker.compose.list.operation.down': '下线',
+  'app.docker.compose.list.operation.downWithVolumes': '下线并删除卷',
   'app.docker.compose.list.operation.edit': '编辑',
   'app.docker.compose.list.operation.log': '日志',
   'app.docker.compose.list.operation.openDirectory': '打开目录',
@@ -18,6 +20,12 @@ export default {
   'app.docker.compose.list.operation.delete.confirm':
     '停止并删除整个项目资源和数据',
   'app.docker.compose.list.operation.stop.confirm': '仅停止容器，不会删除容器',
+  'app.docker.compose.list.operation.down.confirm':
+    '停止并下线容器（保留数据卷）',
+  'app.docker.compose.list.operation.downWithVolumes.confirm1':
+    '危险操作：将下线容器并删除数据卷，数据可能不可恢复',
+  'app.docker.compose.list.operation.downWithVolumes.confirm2':
+    '请再次确认：继续执行 down -v（删除数据卷）？',
   'app.docker.compose.down.confirm.message': '停止并删除容器',
   'app.docker.compose.down.confirm.removeVolumes': '删除数据卷',
 

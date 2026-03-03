@@ -8,6 +8,22 @@
     @before-ok="onBeforeOk"
     @cancel="onCancel"
   >
+    <a-alert class="mb-4" type="info" :show-icon="true">
+      <div class="guide-title">{{
+        t('app.docker.network.create.guide.title')
+      }}</div>
+      <div class="guide-desc">{{
+        t('app.docker.network.create.guide.desc')
+      }}</div>
+    </a-alert>
+    <a-alert
+      v-if="formState.driver === 'host'"
+      class="mb-4"
+      type="warning"
+      :show-icon="true"
+    >
+      {{ t('app.docker.network.create.guide.host') }}
+    </a-alert>
     <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
       <a-form-item
         field="name"
@@ -226,6 +242,12 @@
   import type { FormInstance } from '@arco-design/web-vue';
   import { Message } from '@arco-design/web-vue';
   import { createNetworkApi } from '@/api/docker';
+  import {
+    validateCIDR,
+    validateSingleIP,
+    validateSingleIPv6,
+    validateIPRange,
+  } from '@/utils/ip-validator';
 
   const emit = defineEmits(['success']);
   const { t } = useI18n();
@@ -259,6 +281,96 @@
       {
         required: true,
         message: t('app.docker.network.create.form.driver.required'),
+      },
+    ],
+    subnet: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv4 || !value) {
+            callback();
+            return;
+          }
+          if (!validateCIDR(value) || value.includes(':')) {
+            callback(t('app.docker.network.create.form.subnet.invalid'));
+            return;
+          }
+          callback();
+        },
+      },
+    ],
+    gateway: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv4 || !value) {
+            callback();
+            return;
+          }
+          if (!validateSingleIP(value)) {
+            callback(t('app.docker.network.create.form.gateway.invalid'));
+            return;
+          }
+          callback();
+        },
+      },
+    ],
+    ip_range: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv4 || !value) {
+            callback();
+            return;
+          }
+          if (!validateIPRange(value) || value.includes(':')) {
+            callback(t('app.docker.network.create.form.ip_range.invalid'));
+            return;
+          }
+          callback();
+        },
+      },
+    ],
+    subnet_v6: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv6 || !value) {
+            callback();
+            return;
+          }
+          if (!validateCIDR(value) || !value.includes(':')) {
+            callback(t('app.docker.network.create.form.subnet_v6.invalid'));
+            return;
+          }
+          callback();
+        },
+      },
+    ],
+    gateway_v6: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv6 || !value) {
+            callback();
+            return;
+          }
+          if (!validateSingleIPv6(value)) {
+            callback(t('app.docker.network.create.form.gateway_v6.invalid'));
+            return;
+          }
+          callback();
+        },
+      },
+    ],
+    ip_range_v6: [
+      {
+        validator: (value: string, callback: (error?: string) => void) => {
+          if (!formState.ipv6 || !value) {
+            callback();
+            return;
+          }
+          if (!validateIPRange(value) || !value.includes(':')) {
+            callback(t('app.docker.network.create.form.ip_range_v6.invalid'));
+            return;
+          }
+          callback();
+        },
       },
     ],
   };
@@ -335,4 +447,14 @@
   defineExpose({ show });
 </script>
 
-<style scoped></style>
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>

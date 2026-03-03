@@ -8,6 +8,15 @@
     @ok="onOk"
     @cancel="onCancel"
   >
+    <a-alert class="mb-4 pull-guide-alert" type="info" :show-icon="true">
+      <div class="guide-title">{{
+        t('app.docker.image.pull.guide.title')
+      }}</div>
+      <div class="guide-desc">{{ t('app.docker.image.pull.guide.desc') }}</div>
+      <a-link @click="openDockerHub">
+        {{ t('app.docker.image.pull.guide.link') }}
+      </a-link>
+    </a-alert>
     <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
       <a-form-item
         field="image_name"
@@ -67,6 +76,9 @@
       return !errors;
     });
   };
+  const openDockerHub = () => {
+    window.open('https://hub.docker.com/search?type=image', '_blank');
+  };
   const onOk = async () => {
     if (!(await validate())) {
       return;
@@ -82,7 +94,7 @@
           })
         );
       } else {
-        Message.success(t('app.docker.image.list.pull.failed'));
+        Message.error(t('app.docker.image.list.pull.failed'));
       }
       emit('success');
       hide();
@@ -97,4 +109,15 @@
   defineExpose({ show });
 </script>
 
-<style scoped></style>
+<style scoped>
+  .pull-guide-alert .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .pull-guide-alert .guide-desc {
+    margin-bottom: 0.25rem;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>

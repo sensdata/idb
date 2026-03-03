@@ -273,6 +273,12 @@ func (s *DockerMan) composeOperation(hostID uint64, req model.OperateCompose) (*
 	result.Success = actionResponse.Data.Action.Result
 	if !result.Success {
 		global.LOG.Error("compose operation failed")
+		if actionResponse.Data.Action.Data != "" {
+			return &result, fmt.Errorf(
+				"failed to operate compose: %s",
+				actionResponse.Data.Action.Data,
+			)
+		}
 		return &result, fmt.Errorf("failed to operate compose")
 	} else {
 		var composeCreateResult model.ComposeCreateResult

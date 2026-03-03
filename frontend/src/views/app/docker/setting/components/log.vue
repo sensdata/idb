@@ -8,6 +8,14 @@
     @before-ok="handleBeforeOk"
   >
     <a-spin :loading="loading" class="w-full">
+      <a-alert class="mb-4" type="info" :show-icon="true">
+        <div class="guide-title">
+          {{ t('app.docker.setting.log.guide.title') }}
+        </div>
+        <div class="guide-desc">
+          {{ t('app.docker.setting.log.guide.desc') }}
+        </div>
+      </a-alert>
       <a-form ref="formRef" :model="form" :rules="rules">
         <a-row type="flex" justify="center">
           <a-col :span="22">
@@ -15,6 +23,12 @@
               field="log_max_size"
               :label="t('app.docker.setting.log.max_size')"
             >
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ t('app.docker.setting.log.max_size.help') }}
+                </span>
+              </template>
               <a-input
                 v-model="form.log_max_size"
                 :placeholder="t('app.docker.setting.log.max_size.placeholder')"
@@ -24,6 +38,12 @@
               field="log_max_file"
               :label="t('app.docker.setting.log.max_file')"
             >
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ t('app.docker.setting.log.max_file.help') }}
+                </span>
+              </template>
               <a-input
                 v-model="form.log_max_file"
                 :placeholder="t('app.docker.setting.log.max_file.placeholder')"
@@ -144,3 +164,23 @@
     setData,
   });
 </script>
+
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .field-help {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-text-3);
+  }
+</style>

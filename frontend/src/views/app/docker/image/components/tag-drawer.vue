@@ -12,7 +12,6 @@
         <a-input
           v-model="formState.tag"
           :placeholder="t('app.docker.image.form.tag.placeholder')"
-          :max="1"
         />
       </a-form-item>
     </a-form>
@@ -68,6 +67,7 @@
     if (!(await validate())) {
       return false;
     }
+    let success = false;
     try {
       loading.value = true;
       await setImageTagApi({
@@ -77,13 +77,14 @@
       Message.success(t('common.message.operationSuccess'));
       emit('success');
       hide();
+      success = true;
     } catch (e: any) {
       Message.error(e?.message || t('common.message.operationError'));
     } finally {
       loading.value = false;
     }
 
-    return true;
+    return success;
   };
   const onCancel = hide;
 

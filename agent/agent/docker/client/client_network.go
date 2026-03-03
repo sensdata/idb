@@ -129,7 +129,7 @@ func (c DockerClient) NetworkCreate(req model.NetworkCreate) error {
 	if req.Ipv6 {
 		enableV6 = true
 		var itemIpam network.IPAMConfig
-		if len(req.AuxAddress) != 0 {
+		if len(req.AuxAddressV6) != 0 {
 			itemIpam.AuxAddress = make(map[string]string)
 		}
 		if len(req.SubnetV6) != 0 {

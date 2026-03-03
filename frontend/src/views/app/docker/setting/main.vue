@@ -12,7 +12,7 @@
             <div class="flex flex-wrap gap-4">
               <a-tag :color="'rgb(var(--success-6))'">Docker</a-tag>
               <a-tag
-                v-if="formState.status === 'Running'"
+                v-if="isDockerRunning"
                 :color="'rgb(var(--success-6))'"
                 bordered
                 class="rounded-file"
@@ -20,7 +20,7 @@
                 {{ $t('app.docker.setting.status.running') }}
               </a-tag>
               <a-tag
-                v-if="formState.status === 'stopped'"
+                v-if="isDockerStopped"
                 :color="'rgb(var(--color-text-4))'"
                 bordered
               >
@@ -31,30 +31,38 @@
               </a-tag>
             </div>
             <div class="flex items-center">
-              <a-button
-                v-if="formState.status === 'Running'"
-                type="primary"
-                size="mini"
-                @click="handleOperator('stop')"
-              >
-                {{ $t('app.docker.setting.status.stop') }}
-              </a-button>
-              <a-button
-                v-if="formState.status === 'Stopped'"
-                type="primary"
-                size="mini"
-                @click="handleOperator('start')"
-              >
-                {{ $t('app.docker.setting.status.start') }}
-              </a-button>
+              <a-tooltip :content="$t('app.docker.setting.status.stop.help')">
+                <a-button
+                  v-if="isDockerRunning"
+                  type="primary"
+                  size="mini"
+                  @click="handleOperator('stop')"
+                >
+                  {{ $t('app.docker.setting.status.stop') }}
+                </a-button>
+              </a-tooltip>
+              <a-tooltip :content="$t('app.docker.setting.status.start.help')">
+                <a-button
+                  v-if="isDockerStopped"
+                  type="primary"
+                  size="mini"
+                  @click="handleOperator('start')"
+                >
+                  {{ $t('app.docker.setting.status.start') }}
+                </a-button>
+              </a-tooltip>
               <a-divider direction="vertical" />
-              <a-button
-                type="primary"
-                size="mini"
-                @click="handleOperator('restart')"
+              <a-tooltip
+                :content="$t('app.docker.setting.status.restart.help')"
               >
-                {{ $t('app.docker.setting.status.restart') }}
-              </a-button>
+                <a-button
+                  type="primary"
+                  size="mini"
+                  @click="handleOperator('restart')"
+                >
+                  {{ $t('app.docker.setting.status.restart') }}
+                </a-button>
+              </a-tooltip>
             </div>
           </div>
         </a-card>
@@ -68,6 +76,10 @@
                 {{ $t('app.docker.setting.mode.file') }}
               </a-radio>
             </a-radio-group>
+            <div class="mode-help mt-2">
+              <icon-question-circle />
+              <span>{{ $t('app.docker.setting.mode.help') }}</span>
+            </div>
           </div>
           <a-form
             v-if="mode === 'form'"
@@ -165,12 +177,24 @@
               </div>
             </a-form-item>
             <a-form-item label="iptables" field="iptables">
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ $t('app.docker.setting.iptables.help') }}
+                </span>
+              </template>
               <a-switch
                 v-model="formState.iptables"
                 :before-change="($event) => handleSaveField('iptables', $event)"
               ></a-switch>
             </a-form-item>
             <a-form-item label="Live restore" field="live_restore">
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ $t('app.docker.setting.live_restore.help') }}
+                </span>
+              </template>
               <a-switch
                 v-model="formState.live_restore"
                 :disabled="formState.is_swarm"
@@ -180,6 +204,12 @@
               ></a-switch>
             </a-form-item>
             <a-form-item label="cgroup driver" field="cgroup_driver">
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ $t('app.docker.setting.cgroup_driver.help') }}
+                </span>
+              </template>
               <a-radio-group
                 :model-value="formState.cgroup_driver"
                 @change="handleSaveField('cgroup_driver', $event, true)"
@@ -275,12 +305,22 @@
   });
   const mode = ref('form');
   const daemonJsonContent = ref('');
+  const keyMap: Partial<Record<keyof typeof formState, string>> = {
+    iptables: 'IPtables',
+    live_restore: 'LiveRestore',
+    cgroup_driver: 'Driver',
+  };
 
   // 创建 JSON 文件对象
   const jsonFile = computed(() => ({
     name: 'daemon.json',
     path: '/etc/docker/daemon.json',
   }));
+  const normalizedStatus = computed(() =>
+    String(formState.status || '').toLowerCase()
+  );
+  const isDockerRunning = computed(() => normalizedStatus.value === 'running');
+  const isDockerStopped = computed(() => normalizedStatus.value === 'stopped');
 
   const extensions = [json()];
   const { confirm } = useConfirm();
@@ -315,8 +355,21 @@
         formState.log_option_show = !!(res.log_max_file || res.log_max_size);
         formState.log_max_size = res.log_max_size;
         formState.log_max_file = res.log_max_file;
+        try {
+          const rawConf = await getDockerConfRawApi();
+          const daemonObj = JSON.parse(rawConf.content || '{}');
+          const hosts = Array.isArray(daemonObj.hosts) ? daemonObj.hosts : [];
+          const socketHost = hosts.find((host: string) =>
+            String(host).startsWith('unix://')
+          );
+          formState.dockerSocketPath = socketHost
+            ? socketHost.replace(/^unix:\/\//, '')
+            : '/var/run/docker.sock';
+        } catch {
+          formState.dockerSocketPath = '/var/run/docker.sock';
+        }
       } catch (err) {
-        console.error(err);
+        await showErrorWithDockerCheck((err as any)?.message, err);
       } finally {
         loading.value = false;
       }
@@ -326,7 +379,7 @@
         const res = await getDockerConfRawApi();
         daemonJsonContent.value = res.content;
       } catch (err) {
-        console.error(err);
+        await showErrorWithDockerCheck((err as any)?.message, err);
       } finally {
         loading.value = false;
       }
@@ -395,6 +448,18 @@
     value: any,
     changeEvent?: boolean
   ) => {
+    const mappedKey = keyMap[key];
+    if (!mappedKey) {
+      return false;
+    }
+    let mappedValue = String(value);
+    if (key === 'iptables') {
+      mappedValue = value ? 'enable' : 'disable';
+    }
+    if (key === 'live_restore') {
+      mappedValue = value ? 'enable' : 'disable';
+    }
+
     if (
       await confirm({
         title: t('app.docker.setting.log.confirm.title'),
@@ -403,9 +468,9 @@
     ) {
       try {
         loading.value = true;
-        updateDockerConfApi({
-          key,
-          value,
+        await updateDockerConfApi({
+          key: mappedKey,
+          value: mappedValue,
         });
         Message.success(t('common.message.saveSuccess'));
         if (changeEvent) {
@@ -436,7 +501,7 @@
     ) {
       try {
         loading.value = true;
-        updateDockerConfRawApi({
+        await updateDockerConfRawApi({
           content: daemonJsonContent.value,
         });
         Message.success(t('common.message.saveSuccess'));
@@ -466,3 +531,14 @@
     load();
   };
 </script>
+
+<style scoped>
+  .field-help,
+  .mode-help {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-text-3);
+  }
+</style>
