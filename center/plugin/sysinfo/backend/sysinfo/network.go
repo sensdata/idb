@@ -25,6 +25,7 @@ func (s *SysInfo) getNetwork(hostID uint) (*model.NetworkInfo, error) {
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &network)
 	if err != nil {
 		LOG.Error("Error unmarshaling data to Network: %v", err)
+		return &network, err
 	}
 
 	return &network, nil

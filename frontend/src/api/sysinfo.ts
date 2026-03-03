@@ -41,25 +41,32 @@ export interface SysInfoOverviewRes {
     used_rate: number;
   };
 }
-export function getSysInfoOverviewtApi() {
+export function getSysInfoOverviewApi() {
   return request.get<SysInfoOverviewRes>('sysinfo/{host}/overview');
 }
+
+// backward compatibility for existing imports
+export const getSysInfoOverviewtApi = getSysInfoOverviewApi;
 
 export interface SysInfoNetworkRes {
   dns: {
     retry: number;
     servers: string[];
+    source?: string;
     timeout: number;
   };
   networks: Array<{
     address: Array<{
-      gate: string | null;
+      gate: string[] | null;
       ip: string;
       mask: string | null;
       type: string; // e.g., IPv4/IPv6
     }>;
+    link_type?: string;
     mac: string;
+    mtu?: number;
     name: string;
+    oper_state?: string;
     proto: string; // dhcp | static
     status: string; // up | down
     traffic: {
@@ -77,9 +84,17 @@ export function getSysInfoNetworkApi() {
 }
 
 export interface SysInfoSystemRes {
+  arch?: string;
+  distribution?: string;
+  distribution_version?: string;
+  fqdn?: string;
   host_name: string;
   kernel: string;
+  machine_id?: string;
+  os?: string;
   platform: string;
+  uptime?: number;
+  virtual?: string;
   version: string;
   vertual: string;
 }
@@ -90,6 +105,34 @@ export function getSysInfoSystemApi() {
 export interface SysInfoHardwareRes {
   cpu_count: number;
   cpu_cores: number;
+  cpu_models?: Array<{
+    model: string;
+    count: number;
+  }>;
+  disk_count?: number;
+  disks?: Array<{
+    available_spare?: string;
+    health?: string;
+    life_used?: string;
+    model: string;
+    name: string;
+    pending_sectors?: string;
+    power_cycle_count?: string;
+    power_on_hours?: string;
+    reallocated_sectors?: string;
+    size: string;
+    temperature?: string;
+    type: string;
+  }>;
+  memory_modules?: Array<{
+    locator: string;
+    manufacturer: string;
+    part_number: string;
+    size: string;
+    speed: string;
+    type: string;
+  }>;
+  memory_slots?: number;
   processor: number;
   module_names: string[];
   memory: string;
@@ -155,16 +198,38 @@ export function deleteSwapApi() {
 }
 
 export interface SysInfoSettingsRes {
+  file_max: number;
   max_open_files: number;
+  max_map_count: number;
+  max_queued_events: number;
+  max_watch_instances: number;
   max_watch_files: number;
+  overcommit_memory: number;
+  overcommit_ratio: number;
+  pid_max: number;
+  somaxconn: number;
+  swappiness: number;
+  tcp_max_syn_backlog: number;
+  transparent_huge_page: 'always' | 'madvise' | 'never';
 }
 export function getSysInfoSettingsApi() {
   return request.get<SysInfoSettingsRes>('sysinfo/{host}/settings');
 }
 
 export interface UpdateSettingsParams {
+  file_max: number;
   max_open_files: number;
+  max_map_count: number;
+  max_queued_events: number;
+  max_watch_instances: number;
   max_watch_files: number;
+  overcommit_memory: number;
+  overcommit_ratio: number;
+  pid_max: number;
+  somaxconn: number;
+  swappiness: number;
+  tcp_max_syn_backlog: number;
+  transparent_huge_page: 'always' | 'madvise' | 'never';
 }
 
 export function updateSysInfoSettingsApi(data: UpdateSettingsParams) {

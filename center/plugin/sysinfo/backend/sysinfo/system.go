@@ -25,6 +25,7 @@ func (s *SysInfo) getSystemInfo(hostID uint) (*model.SystemInfo, error) {
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &systemInfo)
 	if err != nil {
 		LOG.Error("Error unmarshaling data to SystemInfo: %v", err)
+		return &systemInfo, err
 	}
 
 	return &systemInfo, nil

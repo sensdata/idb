@@ -25,6 +25,7 @@ func (s *SysInfo) getHardware(hostID uint) (*model.HardwareInfo, error) {
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &hardwareInfo)
 	if err != nil {
 		LOG.Error("Error unmarshaling data to HardwareInfo: %v", err)
+		return &hardwareInfo, err
 	}
 
 	return &hardwareInfo, nil

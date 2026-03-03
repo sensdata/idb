@@ -281,13 +281,12 @@ func (s *SysInfo) GetSystemInfo(c *gin.Context) {
 
 // @Tags Sysinfo
 // @Summary Get hardware info
-// @Description (not implemented yet) Get hardware info
+// @Description Get hardware info
 // @Accept json
 // @Produce json
 // @Param host path uint true "Host ID"
 // @Success 200 {object} model.HardwareInfo
 // @Router /sysinfo/{host}/hardware [get]
-// @Deprecated
 func (s *SysInfo) GetHardware(c *gin.Context) {
 	hostID, err := strconv.ParseUint(c.Param("host"), 10, 32)
 	if err != nil {
