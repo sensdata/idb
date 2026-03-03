@@ -6,6 +6,7 @@ KEY_FILE=key.pem
 AGENT_CERT_DIR=agent/global/certs
 CENTER_CERT_DIR=center/global/certs
 FRONTEND_DIR=frontend
+NPM_INSTALL_FLAGS=--prefer-offline --no-audit --no-fund --progress=false --ignore-scripts
 
 BUILD_KEY=.build.key
 BUILD_JWT_KEY=.build.jwt.key
@@ -19,7 +20,7 @@ deploy: build-frontend generate-key generate-jwt-key generate-certs
 	$(MAKE) -C agent install
 
 build-frontend:
-	cd $(FRONTEND_DIR) && npm install && npm run build
+	cd $(FRONTEND_DIR) && (npm ci $(NPM_INSTALL_FLAGS) || npm install $(NPM_INSTALL_FLAGS)) && IDB_ENABLE_IMAGEMIN=0 npm run build
 
 # 生成密钥（仅首次）
 generate-key:

@@ -76,6 +76,34 @@ install: build
 		fi; \
 	fi; \
 
+	# 首次安装时初始化 idb.conf 的 host，后续安装保持已有配置
+	if [ ! -f $(DB_FILE) ]; then \
+		PUBLIC_IP=$$(curl -s -4 --connect-timeout 3 --max-time 5 https://api.ipify.org 2>/dev/null); \
+		if [ -z "$$PUBLIC_IP" ]; then \
+			PUBLIC_IP=$$(curl -s -4 --connect-timeout 3 --max-time 5 https://api64.ipify.org 2>/dev/null); \
+		fi; \
+		LOCAL_IP=$$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]*' | awk '{print $$2}' | head -n1); \
+		TARGET_IP=$$PUBLIC_IP; \
+		if [ -z "$$TARGET_IP" ] || echo "$$TARGET_IP" | grep -q ':'; then \
+			TARGET_IP=$$LOCAL_IP; \
+		fi; \
+		if [ -z "$$TARGET_IP" ]; then \
+			TARGET_IP=127.0.0.1; \
+		fi; \
+		TMP_CONFIG=$$(mktemp); \
+		cp $(CONFIG_FILE) $$TMP_CONFIG; \
+		if grep -q '^host=' $$TMP_CONFIG; then \
+			sed -i "s/^host=.*/host=$$TARGET_IP/" $$TMP_CONFIG; \
+		else \
+			printf "host=%s\n" "$$TARGET_IP" >> $$TMP_CONFIG; \
+		fi; \
+		sudo cp $$TMP_CONFIG $(CONFIG_DIR)/$(CONFIG_FILE); \
+		rm -f $$TMP_CONFIG; \
+		echo "Initialized $(CONFIG_DIR)/$(CONFIG_FILE) with host=$$TARGET_IP"; \
+	else \
+		echo "Keep existing $(CONFIG_DIR)/$(CONFIG_FILE)"; \
+	fi; \
+
 	# 拷贝前端编译结果
 	sudo rm -rf $(HOME_DIR)/*; \
 	sudo cp -r $(FRONTEND_DIR)/dist/* $(HOME_DIR); \
@@ -85,8 +113,8 @@ install: build
 	sudo cp ${KEY_FILE} $(BIN_DIR); \
 
 	# 拷贝其他必要的文件
+	sudo systemctl stop $(BINARY_NAME).service 2>/dev/null || true; \
 	sudo cp $(BINARY_NAME) $(BIN_DIR); \
-	sudo cp $(CONFIG_FILE) $(CONFIG_DIR); \
 	sudo cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
 	sudo chmod +x $(BIN_DIR)/$(BINARY_NAME); \
 	sudo touch $(LOG_FILE); \

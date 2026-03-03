@@ -48,6 +48,7 @@ install: build
 	sudo mkdir -p $(DATA_DIR); \
 	sudo mkdir -p $(LOG_DIR); \
 	sudo mkdir -p $(RUN_DIR); \
+	sudo systemctl stop $(BINARY_NAME).service 2>/dev/null || true; \
 	sudo cp $(BINARY_NAME) $(BIN_DIR); \
 	sudo cp $(CONFIG_FILE) $(CONFIG_DIR); \
 	sudo cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
