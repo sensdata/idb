@@ -15,21 +15,22 @@
     </template>
 
     <div class="form-drawer">
-      <a-tabs v-model:active-key="activeMode" @change="handleModeChange">
-        <a-tab-pane key="form" :title="$t('app.logrotate.mode.form')">
-          <FormTab
-            ref="formRef"
+      <a-tabs v-model:active-key="activeMode" @change="handleTabChange">
+        <a-tab-pane key="overview" :title="$t('app.logrotate.mode.overview')">
+          <ConfigOverview
             :form-data="formData"
-            :form-rules="formRules"
-            :frequency-options="frequencyOptions"
+            :raw-content="rawContent"
+            :editing="overviewEditing"
             :is-edit="isEdit"
+            :current-type="currentType"
+            :frequency-options="frequencyOptions"
             :host-id="currentHostId ? Number(currentHostId) : undefined"
             @update-form-data="handleUpdateFormData"
           />
         </a-tab-pane>
 
         <a-tab-pane key="raw" :title="$t('app.logrotate.mode.raw')">
-          <RawTab v-model:content="rawContent" />
+          <RawTab v-model:content="rawContent" :readonly="!overviewEditing" />
         </a-tab-pane>
       </a-tabs>
 
@@ -39,9 +40,28 @@
             {{ $t('common.cancel') }}
           </a-button>
           <a-button
+            v-if="activeMode === 'overview' && !overviewEditing"
+            type="primary"
+            :disabled="isSystemType"
+            @click="overviewEditing = true"
+          >
+            {{ $t('app.logrotate.overview.edit_button') }}
+          </a-button>
+          <a-button
+            v-if="activeMode === 'overview' && overviewEditing"
+            @click="overviewEditing = false"
+          >
+            {{ $t('app.logrotate.overview.view_button') }}
+          </a-button>
+          <a-button
             type="primary"
             :loading="loading"
-            :disabled="isSystemType || !isFormChanged"
+            :disabled="
+              isSystemType ||
+              !isFormChanged ||
+              (activeMode === 'overview' && !overviewEditing) ||
+              (activeMode === 'raw' && !overviewEditing)
+            "
             @click="handleSubmit"
           >
             {{ $t('common.save') }}
@@ -53,41 +73,38 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, watch } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useI18n } from 'vue-i18n';
   import { LOGROTATE_TYPE } from '@/config/enum';
 
-  // 组合式API
   import useLoading from '@/composables/loading';
   import useCurrentHost from '@/composables/current-host';
   import useVisible from '@/composables/visible';
   import { useLogger } from '@/composables/use-logger';
   import { DEFAULT_LOGROTATE_CATEGORY } from '../../constants';
   import { useRawContentParser } from './composables/use-raw-content-parser';
-
   import { useFormState } from './composables/use-form-state';
-  import { useModeManager } from './composables/use-mode-manager';
   import { useLogrotateApi } from './composables/use-logrotate-api';
 
-  import FormTab from './form-tab.vue';
+  import ConfigOverview from './config-overview.vue';
   import RawTab from './raw-tab.vue';
 
-  import type { ShowParams } from './types';
+  import type { ActiveMode, ShowParams } from './types';
 
-  const DRAWER_WIDTH = 800;
+  const DRAWER_WIDTH = 960;
   const { t } = useI18n();
 
   const emit = defineEmits<{
     ok: [];
   }>();
+  const overviewEditing = ref(false);
 
-  const { log } = useLogger('LogrotateFormDrawer');
+  const { log } = useLogger('LogrotateConfigViewDrawer');
   const { loading, setLoading } = useLoading();
   const { currentHostId } = useCurrentHost();
   const { visible, show: showDrawer, hide: hideDrawer } = useVisible();
 
-  // 表单状态管理
   const {
     activeMode,
     previousMode,
@@ -98,41 +115,26 @@
     originalFormData,
     originalRawContent,
     formData,
-    formRef,
-    formRules,
     frequencyOptions,
     drawerTitle,
     resetForm,
     resetState,
     updateForm,
     updateOriginalState,
-    submitFormData,
   } = useFormState();
+
   const isSystemType = computed(
     () => currentType.value === LOGROTATE_TYPE.System
   );
 
-  // 原始内容解析器
   const { rawContent, generateRawContent, parseRawContentToForm } =
     useRawContentParser();
 
-  // API操作
   const { loadContent, submitLogrotate } = useLogrotateApi(setLoading);
-
-  // 模式管理
-  const { handleModeChange } = useModeManager(
-    activeMode,
-    previousMode,
-    generateRawContent,
-    parseRawContentToForm,
-    updateForm,
-    formData
-  );
-
-  // 取消操作
   const handleCancel = () => {
     hideDrawer();
     resetState();
+    overviewEditing.value = false;
     rawContent.value = '';
   };
 
@@ -140,22 +142,69 @@
     updateForm({ [field]: value });
   };
 
-  // 判断原始内容是否已更改
   const isRawContentChanged = computed(
     () => rawContent.value !== originalRawContent.value
   );
 
-  // 判断表单是否已更改
   const isFormChanged = computed(() => {
     if (activeMode.value === 'raw') {
       return isRawContentChanged.value;
     }
-    return formData.category && originalFormData.value
+    return originalFormData.value
       ? JSON.stringify(formData) !== JSON.stringify(originalFormData.value)
       : false;
   });
 
-  // 提交表单数据
+  const handleTabChange = async (mode: string | number) => {
+    const targetMode = String(mode) as ActiveMode;
+    const currentMode = previousMode.value;
+
+    if (targetMode === currentMode) {
+      return;
+    }
+
+    if (targetMode === 'raw' && currentMode === 'overview') {
+      // 仅在进入编辑态后才将结构化字段写回 raw，避免只读查看触发漂移
+      if (overviewEditing.value && formData.path && formData.name) {
+        generateRawContent(formData);
+      }
+    }
+
+    if (targetMode === 'overview' && currentMode === 'raw') {
+      const parsedData = parseRawContentToForm(formData);
+      if (parsedData) {
+        updateForm(parsedData);
+      }
+    }
+
+    previousMode.value = targetMode;
+    activeMode.value = targetMode;
+  };
+
+  const validateForOverviewSubmit = (): boolean => {
+    if (!formData.name?.trim()) {
+      Message.warning(t('app.logrotate.form.name_required'));
+      return false;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(formData.name.trim())) {
+      Message.warning(t('app.logrotate.form.name_pattern'));
+      return false;
+    }
+
+    if (!formData.path?.trim()) {
+      Message.warning(t('app.logrotate.form.path_required'));
+      return false;
+    }
+
+    if (!formData.count || formData.count < 1) {
+      Message.warning(t('app.logrotate.form.count_min'));
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (isSystemType.value) {
       Message.warning(t('app.logrotate.form.system_readonly'));
@@ -169,14 +218,16 @@
     }
 
     try {
-      // 表单模式下验证表单
-      if (activeMode.value === 'form') {
-        await submitFormData();
+      if (activeMode.value === 'raw' && !overviewEditing.value) {
+        return;
       }
 
-      // 提交到API
+      if (activeMode.value === 'overview' && !validateForOverviewSubmit()) {
+        return;
+      }
+
       const successMessage = await submitLogrotate(
-        activeMode.value,
+        activeMode.value === 'raw' ? 'raw' : 'form',
         formData,
         rawContent.value,
         isEdit.value,
@@ -187,7 +238,6 @@
       );
 
       Message.success(successMessage);
-
       emit('ok');
       handleCancel();
     } catch (error) {
@@ -195,11 +245,11 @@
     }
   };
 
-  // 加载数据并显示抽屉
   const show = async (params?: ShowParams) => {
     showDrawer();
-    activeMode.value = 'form';
-    previousMode.value = 'form';
+    activeMode.value = 'overview';
+    previousMode.value = 'overview';
+    overviewEditing.value = !params?.isEdit;
 
     if (params) {
       currentType.value = params.type || LOGROTATE_TYPE.Local;
@@ -209,7 +259,6 @@
         originalName.value = params.record.name;
         originalCategory.value = params.record.category;
 
-        // 设置基本信息
         updateForm({
           name: params.record.name,
           category:
@@ -229,7 +278,6 @@
           postRotate: '',
         });
 
-        // 加载原始内容并解析
         try {
           const hostId = currentHostId.value;
           if (!hostId) {
@@ -243,7 +291,6 @@
             Number(hostId)
           );
 
-          // 将原始内容解析为表单字段
           if (rawContent.value) {
             const parsedData = parseRawContentToForm(formData);
             if (parsedData) {
@@ -251,13 +298,8 @@
             }
           }
 
-          // 设置原始表单数据作为"原始状态"
           await updateOriginalState();
           originalRawContent.value = rawContent.value;
-          log('📋 原始数据已设置', {
-            name: originalName.value,
-            category: originalCategory.value,
-          });
         } catch (error) {
           log('加载内容失败:', error);
         }
@@ -269,7 +311,6 @@
               ? ''
               : DEFAULT_LOGROTATE_CATEGORY,
         });
-        // 设置原始表单数据
         await updateOriginalState();
         originalRawContent.value = rawContent.value;
       }
@@ -286,23 +327,16 @@
     }
   };
 
-  // 监听表单数据变化以同步到文件模式
   watch(
     formData,
     (newData) => {
-      if (activeMode.value === 'form' && newData.path && newData.name) {
+      if (activeMode.value === 'overview' && newData.path && newData.name) {
         generateRawContent(newData);
       }
     },
     { deep: true }
   );
 
-  // 当原始内容更改时，确保更改检测正常工作
-  watch(rawContent, () => {
-    log('📄 原始内容已更新');
-  });
-
-  // 暴露方法
   defineExpose({
     show,
     hide: handleCancel,

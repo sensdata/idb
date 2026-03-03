@@ -67,19 +67,7 @@ export type SubmitData = {
   form: Array<{ key: string; value: string }>;
 };
 
-export type ActiveMode = 'form' | 'raw';
-
-export interface FormRules {
-  name: Array<{ required?: boolean; message: string; pattern?: RegExp }>;
-  category: Array<{ required?: boolean; message: string }>;
-  path: Array<{ required?: boolean; message: string }>;
-  count: Array<{
-    required?: boolean;
-    message: string;
-    type?: string;
-    min?: number;
-  }>;
-}
+export type ActiveMode = 'overview' | 'raw';
 
 export type CategoryValue =
   | string

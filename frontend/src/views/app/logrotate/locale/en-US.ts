@@ -4,6 +4,7 @@ export default {
   'app.logrotate.enum.type.system': 'System Config',
 
   // Mode
+  'app.logrotate.mode.overview': 'Structured Mode',
   'app.logrotate.mode.form': 'Form Mode',
   'app.logrotate.mode.raw': 'Raw Mode',
 
@@ -59,6 +60,8 @@ export default {
   'app.logrotate.form.category_placeholder':
     'Please select or enter a category, new categories will be created automatically',
   'app.logrotate.form.category_required': 'Please enter category name',
+  'app.logrotate.form.category_help':
+    'Used to group rules. You can create a new category when creating; category is immutable in edit mode',
   'app.logrotate.form.category_create_failed': 'Failed to create category',
   'app.logrotate.form.path': 'Log Path',
   'app.logrotate.form.path_placeholder':
@@ -95,6 +98,17 @@ export default {
   'app.logrotate.form.section.script': 'Execution Scripts',
   'app.logrotate.form.section.script_desc':
     'Run custom shell commands before and after rotation',
+  'app.logrotate.form.summary.title': 'Live Structured Summary',
+  'app.logrotate.form.summary.desc':
+    'Shows a live structured view from current form values for quick validation',
+  'app.logrotate.form.advanced.permission': 'Advanced: File and Permission',
+  'app.logrotate.form.advanced.script': 'Advanced: Execution Scripts',
+  'app.logrotate.form.preview.title': 'Generated Config Preview',
+  'app.logrotate.form.preview.desc':
+    'This content will be written to the config file after saving',
+  'app.logrotate.form.preview.empty':
+    'Please fill in log path to generate preview',
+  'app.logrotate.form.clear': 'Clear',
 
   // Permission settings
   'app.logrotate.permission.owner': 'Owner Permission',
@@ -153,6 +167,18 @@ export default {
   'app.logrotate.form.system_readonly':
     'System configuration is read-only and cannot be saved',
   'app.logrotate.form.readonly_tag': 'Read-only',
+  'app.logrotate.overview.tip_view':
+    'View mode: review the structured configuration first.',
+  'app.logrotate.overview.tip_edit':
+    'Edit mode: modify structured fields with live preview.',
+  'app.logrotate.overview.basic': 'Basic Information',
+  'app.logrotate.overview.strategy': 'Rotation Strategy',
+  'app.logrotate.overview.script': 'Scripts',
+  'app.logrotate.overview.script_empty': 'No script configured',
+  'app.logrotate.overview.raw_preview': 'Configuration Preview',
+  'app.logrotate.overview.edit_button': 'Switch to Edit',
+  'app.logrotate.overview.view_button': 'Back to View',
+  'app.logrotate.overview.edit_title': 'Structured Edit',
 
   // History
   'app.logrotate.history.title': 'Config History',

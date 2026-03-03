@@ -4,6 +4,7 @@ export default {
   'app.logrotate.enum.type.system': '系统配置',
 
   // 模式
+  'app.logrotate.mode.overview': '结构化模式',
   'app.logrotate.mode.form': '表单模式',
   'app.logrotate.mode.raw': '文件模式',
 
@@ -57,6 +58,8 @@ export default {
   'app.logrotate.form.category_placeholder':
     '请选择或输入分类，新分类会自动创建',
   'app.logrotate.form.category_required': '请输入分类名称',
+  'app.logrotate.form.category_help':
+    '用于区分业务规则；创建时可填写新分类，编辑时分类不可修改',
   'app.logrotate.form.category_create_failed': '创建分类失败',
   'app.logrotate.form.path': '日志路径',
   'app.logrotate.form.path_placeholder':
@@ -90,6 +93,15 @@ export default {
     '设置轮转后新日志文件的创建策略',
   'app.logrotate.form.section.script': '执行脚本',
   'app.logrotate.form.section.script_desc': '在轮转前后执行自定义 shell 命令',
+  'app.logrotate.form.summary.title': '实时结构化摘要',
+  'app.logrotate.form.summary.desc':
+    '根据当前表单输入实时展示配置结构，便于快速校验',
+  'app.logrotate.form.advanced.permission': '高级设置：文件与权限',
+  'app.logrotate.form.advanced.script': '高级设置：执行脚本',
+  'app.logrotate.form.preview.title': '生成配置预览',
+  'app.logrotate.form.preview.desc': '保存后将以此内容写入配置文件',
+  'app.logrotate.form.preview.empty': '请先填写日志路径以生成预览',
+  'app.logrotate.form.clear': '清空',
 
   // 权限设置
   'app.logrotate.permission.owner': '所有者权限',
@@ -142,6 +154,18 @@ export default {
   'app.logrotate.form.load_content_failed': '加载配置内容失败',
   'app.logrotate.form.system_readonly': '系统配置为只读，不支持保存',
   'app.logrotate.form.readonly_tag': '只读',
+  'app.logrotate.overview.tip_view':
+    '当前为查看模式：用于确认结构化配置是否符合预期。',
+  'app.logrotate.overview.tip_edit':
+    '当前为编辑模式：可直接修改结构化配置并实时预览。',
+  'app.logrotate.overview.basic': '基础信息',
+  'app.logrotate.overview.strategy': '轮转策略',
+  'app.logrotate.overview.script': '脚本内容',
+  'app.logrotate.overview.script_empty': '未配置脚本',
+  'app.logrotate.overview.raw_preview': '配置预览',
+  'app.logrotate.overview.edit_button': '切换到编辑',
+  'app.logrotate.overview.view_button': '返回查看',
+  'app.logrotate.overview.edit_title': '结构化编辑',
 
   // 历史记录
   'app.logrotate.history.title': '配置历史',
