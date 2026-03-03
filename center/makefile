@@ -25,12 +25,14 @@ SYSTEM_SERVICE_DIR=/etc/systemd/system/
 
 # 配置文件路径
 CONFIG_FILE=idb.conf
+ADMIN_ENV_FILE=idb.env
 
 # 注册服务文件路径
 SERVICE_FILE=idb.service
 
 # 日志文件路径
 LOG_FILE=/var/log/idb/idb.log
+DB_FILE=/var/lib/idb/data/idb.db
 
 # 证书文件路径
 CERT_FILE=./global/certs/cert.pem
@@ -59,8 +61,23 @@ install: build
 	sudo mkdir -p $(LOG_DIR); \
 	sudo mkdir -p $(RUN_DIR); \
 	sudo mkdir -p $(HOME_DIR); \
+	sudo touch $(CONFIG_DIR)/$(ADMIN_ENV_FILE); \
+	sudo chmod 600 $(CONFIG_DIR)/$(ADMIN_ENV_FILE); \
+
+	# 首次安装生成 admin 密码，供 migration 初始化使用
+	if [ ! -f $(DB_FILE) ]; then \
+		if ! sudo grep -q '^PASSWORD=' $(CONFIG_DIR)/$(ADMIN_ENV_FILE); then \
+			ADMIN_PASS=$$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 8); \
+			echo "PASSWORD=$$ADMIN_PASS" | sudo tee $(CONFIG_DIR)/$(ADMIN_ENV_FILE) > /dev/null; \
+			sudo chmod 600 $(CONFIG_DIR)/$(ADMIN_ENV_FILE); \
+			echo "Initial admin password: $$ADMIN_PASS"; \
+		else \
+			echo "Keep existing admin password in $(CONFIG_DIR)/$(ADMIN_ENV_FILE)"; \
+		fi; \
+	fi; \
 
 	# 拷贝前端编译结果
+	sudo rm -rf $(HOME_DIR)/*; \
 	sudo cp -r $(FRONTEND_DIR)/dist/* $(HOME_DIR); \
 
 	# 拷贝证书文件
@@ -75,7 +92,7 @@ install: build
 	sudo touch $(LOG_FILE); \
 	sudo systemctl daemon-reload; \
 	sudo systemctl enable $(BINARY_NAME).service; \
-	sudo systemctl start $(BINARY_NAME).service; \
+	sudo systemctl restart $(BINARY_NAME).service; \
 	sudo ln -sf /var/lib/idb/idb /usr/local/bin/idb
 	$(MAKE) clean  # 在安装后调用clean目标
 

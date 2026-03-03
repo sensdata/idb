@@ -57,7 +57,7 @@ docker run -d \
   sensdb/idb
 ```
 
-### 手动安装
+### 手动编译安装
 
 1. 克隆仓库
 ```bash
@@ -65,23 +65,23 @@ git clone https://github.com/sensdata/idb.git
 cd idb
 ```
 
-2. 编译前端
+2. 一键编译并安装
 ```bash
-cd frontend
-npm install
-npm run build
-cd ..
+make deploy
 ```
 
-3. 编译后端
-```bash
-cd center
-make build
-```
+`make deploy` 会自动执行：
+- 编译前端并产出 `frontend/dist`
+- 生成并分发 key / jwt-key / certs（已存在则复用）
+- 安装并重启 `center` 服务
+- 安装并重启 `agent` 服务
 
-4. 安装
+首次部署时会生成管理员密码并在终端输出一次，同时写入：
+`/etc/idb/idb.env`（`PASSWORD=...`，权限 `600`）
+
+如果错过首次输出，可执行：
 ```bash
-make install
+sudo grep '^PASSWORD=' /etc/idb/idb.env
 ```
 
 ---
@@ -90,7 +90,10 @@ make install
 
 1. **访问控制台**
    - 安装完成后，访问 `http://your-server-ip:9918`
-   - 默认用户名：`admin`，密码：随机生成，并在安装完成后的终端输出中可以找到
+   - 默认用户名：`admin`
+   - 密码：
+     - 一键脚本/Docker 安装：安装完成后的终端输出可见
+     - 手动编译安装（`make deploy`）：首次部署时终端输出，并可在 `/etc/idb/idb.env` 查看 `PASSWORD`
 
 2. **添加服务器**
    - 登录后，点击左侧菜单栏的「主机管理」
