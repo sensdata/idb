@@ -43,17 +43,17 @@ generate-jwt-key:
 
 # 生成证书（仅首次）并分发
 generate-certs:
-	mkdir -p $(AGENT_DIR)
-	mkdir -p $(CENTER_DIR)
+	mkdir -p $(AGENT_CERT_DIR)
+	mkdir -p $(CENTER_CERT_DIR)
 	@if [ -s $(AGENT_CERT_FILE) ] && [ -s $(AGENT_KEY_FILE) ] && [ -s $(CENTER_CERT_FILE) ] && [ -s $(CENTER_KEY_FILE) ]; then \
 		echo "Keep existing certs"; \
 	else \
 		echo "Generating certs"; \
 		openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout $(KEY_FILE) -out $(CERT_FILE) -config ssl.cnf -extensions v3_ca; \
-		cp -f $(CERT_FILE) $(AGENT_DIR)/; \
-		cp -f $(KEY_FILE) $(AGENT_DIR)/; \
-		cp -f $(CERT_FILE) $(CENTER_DIR)/; \
-		cp -f $(KEY_FILE) $(CENTER_DIR)/; \
+		cp -f $(CERT_FILE) $(AGENT_CERT_DIR)/; \
+		cp -f $(KEY_FILE) $(AGENT_CERT_DIR)/; \
+		cp -f $(CERT_FILE) $(CENTER_CERT_DIR)/; \
+		cp -f $(KEY_FILE) $(CENTER_CERT_DIR)/; \
 		$(MAKE) clean; \
 	fi
 
