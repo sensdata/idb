@@ -2,55 +2,21 @@ import { ref } from 'vue';
 import { LOGROTATE_FREQUENCY } from '@/config/enum';
 import { useLogger } from '@/composables/use-logger';
 import type { FormData } from '../types';
+import {
+  extractCreateDirective,
+  extractScriptContent,
+  generateLogrotateContentFromForm,
+} from '../../../utils/content';
 
 export function useRawContentParser() {
   const rawContent = ref('');
   const { log } = useLogger('RawContentParser');
 
   const generateRawContent = (formData: FormData) => {
-    let content = `# Logrotate configuration for ${formData.name}\n`;
-    content += `${formData.path} {\n`;
-
-    // 将枚举值转换为小写字符串以匹配配置文件格式
-    const frequencyStr = formData.frequency.toLowerCase();
-    content += `  ${frequencyStr}\n`;
-
-    content += `  rotate ${formData.count}\n`;
-
-    if (formData.compress) {
-      content += '  compress\n';
-    }
-
-    if (formData.delayCompress) {
-      content += '  delaycompress\n';
-    }
-
-    if (formData.missingOk) {
-      content += '  missingok\n';
-    }
-
-    if (formData.notIfEmpty) {
-      content += '  notifempty\n';
-    }
-
-    if (formData.create) {
-      content += `  create ${formData.create}\n`;
-    }
-
-    if (formData.preRotate) {
-      content += '  prerotate\n';
-      content += `    ${formData.preRotate}\n`;
-      content += '  endscript\n';
-    }
-
-    if (formData.postRotate) {
-      content += '  postrotate\n';
-      content += `    ${formData.postRotate}\n`;
-      content += '  endscript\n';
-    }
-
-    content += '}\n';
-    rawContent.value = content;
+    rawContent.value = generateLogrotateContentFromForm(formData, {
+      includeHeader: true,
+      indent: '  ',
+    });
   };
 
   // 解析文件路径
@@ -100,29 +66,6 @@ export function useRawContentParser() {
     };
   };
 
-  // 解析create选项
-  const parseCreateOption = (configContent: string): string => {
-    const createMatch = configContent.match(/^\s*create\s+(.+?)\s*$/m);
-    return createMatch ? createMatch[1].trim() : '';
-  };
-
-  // 解析脚本内容
-  const parseScriptContent = (
-    configContent: string,
-    scriptType: 'prerotate' | 'postrotate'
-  ): string => {
-    const regex = new RegExp(
-      `^\\s*${scriptType}\\s*\\n([\\s\\S]*?)^\\s*endscript\\s*$`,
-      'm'
-    );
-    const match = configContent.match(regex);
-    if (match) {
-      // 清理缩进，保留脚本内容
-      return match[1].replace(/^\s{4}/gm, '').trim();
-    }
-    return '';
-  };
-
   const parseRawContentToForm = (baseFormData: FormData): FormData | null => {
     const content = rawContent.value;
     if (!content) return null;
@@ -167,13 +110,13 @@ export function useRawContentParser() {
     parsedData.notIfEmpty = boolOptions.notIfEmpty;
 
     // 解析create选项
-    parsedData.create = parseCreateOption(configContent);
+    parsedData.create = extractCreateDirective(configContent);
 
     // 解析prerotate脚本
-    parsedData.preRotate = parseScriptContent(configContent, 'prerotate');
+    parsedData.preRotate = extractScriptContent(configContent, 'prerotate');
 
     // 解析postrotate脚本
-    parsedData.postRotate = parseScriptContent(configContent, 'postrotate');
+    parsedData.postRotate = extractScriptContent(configContent, 'postrotate');
 
     log('✅ 解析结果:', parsedData);
     return parsedData;

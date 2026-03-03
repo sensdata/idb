@@ -1,11 +1,19 @@
 <template>
   <a-drawer
     v-model:visible="visible"
-    :title="drawerTitle"
     :width="DRAWER_WIDTH"
     :footer="false"
     unmount-on-close
   >
+    <template #title>
+      <a-space size="small">
+        <span>{{ drawerTitle }}</span>
+        <a-tag v-if="isSystemType" color="arcoblue">
+          {{ $t('app.logrotate.form.readonly_tag') }}
+        </a-tag>
+      </a-space>
+    </template>
+
     <div class="form-drawer">
       <a-tabs v-model:active-key="activeMode" @change="handleModeChange">
         <a-tab-pane key="form" :title="$t('app.logrotate.mode.form')">
@@ -14,11 +22,8 @@
             :form-data="formData"
             :form-rules="formRules"
             :frequency-options="frequencyOptions"
-            :category-loading="categoryLoading"
-            :category-options="categoryOptions"
             :is-edit="isEdit"
-            @category-change="handleCategoryChange"
-            @category-visible-change="handleCategoryVisibleChangeWrapper"
+            :host-id="currentHostId ? Number(currentHostId) : undefined"
             @update-form-data="handleUpdateFormData"
           />
         </a-tab-pane>
@@ -36,7 +41,7 @@
           <a-button
             type="primary"
             :loading="loading"
-            :disabled="!isFormChanged"
+            :disabled="isSystemType || !isFormChanged"
             @click="handleSubmit"
           >
             {{ $t('common.save') }}
@@ -58,8 +63,8 @@
   import useCurrentHost from '@/composables/current-host';
   import useVisible from '@/composables/visible';
   import { useLogger } from '@/composables/use-logger';
+  import { DEFAULT_LOGROTATE_CATEGORY } from '../../constants';
   import { useRawContentParser } from './composables/use-raw-content-parser';
-  import { useCategories } from './composables/use-categories';
 
   import { useFormState } from './composables/use-form-state';
   import { useModeManager } from './composables/use-mode-manager';
@@ -75,7 +80,6 @@
 
   const emit = defineEmits<{
     ok: [];
-    categoryChange: [category: string];
   }>();
 
   const { log } = useLogger('LogrotateFormDrawer');
@@ -104,19 +108,13 @@
     updateOriginalState,
     submitFormData,
   } = useFormState();
+  const isSystemType = computed(
+    () => currentType.value === LOGROTATE_TYPE.System
+  );
 
   // 原始内容解析器
   const { rawContent, generateRawContent, parseRawContentToForm } =
     useRawContentParser();
-
-  // 分类管理
-  const {
-    categoryLoading,
-    categoryOptions,
-    handleCategoryChange: handleCategoryChangeInternal,
-    handleCategoryVisibleChange,
-    ensureCategoryInOptions,
-  } = useCategories();
 
   // API操作
   const { loadContent, submitLogrotate } = useLogrotateApi(setLoading);
@@ -136,14 +134,6 @@
     hideDrawer();
     resetState();
     rawContent.value = '';
-  };
-
-  const handleCategoryChange = () => {
-    handleCategoryChangeInternal();
-  };
-
-  const handleCategoryVisibleChangeWrapper = (isVisible: boolean) => {
-    handleCategoryVisibleChange(isVisible, currentType.value);
   };
 
   const handleUpdateFormData = (field: string, value: any) => {
@@ -167,6 +157,11 @@
 
   // 提交表单数据
   const handleSubmit = async () => {
+    if (isSystemType.value) {
+      Message.warning(t('app.logrotate.form.system_readonly'));
+      return;
+    }
+
     const hostId = currentHostId.value;
     if (!hostId) {
       Message.error(t('common.host_id_required'));
@@ -193,11 +188,6 @@
 
       Message.success(successMessage);
 
-      // 如果分类已更改，通知父组件
-      if (formData.category !== originalCategory.value) {
-        emit('categoryChange', formData.category);
-      }
-
       emit('ok');
       handleCancel();
     } catch (error) {
@@ -222,7 +212,11 @@
         // 设置基本信息
         updateForm({
           name: params.record.name,
-          category: params.record.category,
+          category:
+            params.record.category ||
+            (currentType.value === LOGROTATE_TYPE.System
+              ? ''
+              : DEFAULT_LOGROTATE_CATEGORY),
           path: '',
           frequency: formData.frequency,
           count: 7,
@@ -269,20 +263,26 @@
         }
       } else {
         resetForm();
-        updateForm({ category: params.category || '' });
+        updateForm({
+          category:
+            params.type === LOGROTATE_TYPE.System
+              ? ''
+              : DEFAULT_LOGROTATE_CATEGORY,
+        });
         // 设置原始表单数据
         await updateOriginalState();
         originalRawContent.value = rawContent.value;
       }
     } else {
       resetForm();
+      updateForm({
+        category:
+          currentType.value === LOGROTATE_TYPE.System
+            ? ''
+            : DEFAULT_LOGROTATE_CATEGORY,
+      });
       await updateOriginalState();
       originalRawContent.value = rawContent.value;
-    }
-
-    // 确保当前分类在选项中
-    if (formData.category) {
-      ensureCategoryInOptions(formData.category);
     }
   };
 

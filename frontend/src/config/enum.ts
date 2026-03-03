@@ -38,6 +38,7 @@ export enum TASK_STATUS {
 export enum LOGROTATE_TYPE {
   Local = 'local',
   Global = 'global',
+  System = 'system',
 }
 
 export enum LOGROTATE_MODE {

@@ -1,6 +1,7 @@
 export default {
-  'app.logrotate.enum.type.local': 'Local Config',
+  'app.logrotate.enum.type.local': 'Host Config',
   'app.logrotate.enum.type.global': 'Global Config',
+  'app.logrotate.enum.type.system': 'System Config',
 
   // Mode
   'app.logrotate.mode.form': 'Form Mode',
@@ -52,6 +53,8 @@ export default {
   'app.logrotate.form.name_required': 'Please enter config name',
   'app.logrotate.form.name_pattern':
     'Config name can only contain letters, numbers, underscores and hyphens',
+  'app.logrotate.form.name_help':
+    'Used to identify this rotation rule. A short business-oriented name is recommended',
   'app.logrotate.form.category': 'Category',
   'app.logrotate.form.category_placeholder':
     'Please select or enter a category, new categories will be created automatically',
@@ -61,20 +64,39 @@ export default {
   'app.logrotate.form.path_placeholder':
     'Please enter log file path, e.g.: /var/log/nginx/*.log',
   'app.logrotate.form.path_required': 'Please enter log file path',
+  'app.logrotate.form.path_help':
+    'Use absolute paths when possible. Wildcards are supported, e.g. /var/log/nginx/*.log',
   'app.logrotate.form.frequency': 'Frequency',
   'app.logrotate.form.frequency_placeholder': 'Please select frequency',
   'app.logrotate.form.frequency_required': 'Please select frequency',
+  'app.logrotate.form.frequency_help':
+    'Maps to logrotate time directives and controls how often rotation runs',
   'app.logrotate.form.count': 'Rotate Count',
   'app.logrotate.form.count_placeholder': 'Please enter rotate count, e.g.: 7',
   'app.logrotate.form.count_required': 'Please enter rotate count',
   'app.logrotate.form.count_min': 'Rotate count must be greater than 0',
+  'app.logrotate.form.count_help':
+    'Example: 7 means keeping up to 7 rotated history files',
   'app.logrotate.form.create': 'File Permission',
+  'app.logrotate.form.create_help':
+    'Permission, user, and group used when creating a new log file after rotation',
+  'app.logrotate.form.rotate_options': 'Rotation Options',
   'app.logrotate.form.create_placeholder':
     'Please enter file permission, e.g.: create 0644 root root',
+  'app.logrotate.form.section.basic': 'Basic Parameters',
+  'app.logrotate.form.section.basic_desc':
+    'Define the rule name and target log file path first',
+  'app.logrotate.form.section.strategy': 'Rotation Strategy',
+  'app.logrotate.form.section.strategy_desc':
+    'Configure trigger frequency, retention count, and behavior flags',
+  'app.logrotate.form.section.permission': 'File and Permission',
+  'app.logrotate.form.section.permission_desc':
+    'Control how new log files are created after rotation',
+  'app.logrotate.form.section.script': 'Execution Scripts',
+  'app.logrotate.form.section.script_desc':
+    'Run custom shell commands before and after rotation',
 
   // Permission settings
-  'app.logrotate.permission.title': 'Permission Settings',
-  'app.logrotate.permission.ownership': 'Ownership Settings',
   'app.logrotate.permission.owner': 'Owner Permission',
   'app.logrotate.permission.group': 'Group Permission',
   'app.logrotate.permission.other': 'Other Permission',
@@ -88,18 +110,35 @@ export default {
   'app.logrotate.permission.group_name': 'Group',
   'app.logrotate.permission.group_placeholder': 'e.g.: root',
   'app.logrotate.permission.preview': 'Preview',
-  'app.logrotate.permission.settings': 'Settings',
-  'app.logrotate.permission.modal_title': 'File Permission Settings',
+  'app.logrotate.permission.advanced_show': 'Show advanced permissions',
+  'app.logrotate.permission.advanced_hide': 'Hide advanced permissions',
   'app.logrotate.form.compress': 'Compress Old Files',
+  'app.logrotate.form.compress_help':
+    'Compress rotated history log files when enabled',
   'app.logrotate.form.delay_compress': 'Delay Compress',
+  'app.logrotate.form.delay_compress_help':
+    'Use with compression to skip the newest rotated file and compress it in the next cycle',
   'app.logrotate.form.missing_ok': 'Ignore Missing Files',
+  'app.logrotate.form.missing_ok_help':
+    'Do not fail when the target log file does not exist',
   'app.logrotate.form.not_if_empty': 'Ignore Empty Files',
+  'app.logrotate.form.not_if_empty_help':
+    'Skip rotation for empty logs to avoid meaningless history files',
   'app.logrotate.form.pre_rotate': 'Pre-rotate Command',
   'app.logrotate.form.pre_rotate_placeholder':
     'Please enter command to execute before rotation',
+  'app.logrotate.form.pre_rotate_help':
+    'Run preparation steps before rotation. Multi-line shell commands are supported',
   'app.logrotate.form.post_rotate': 'Post-rotate Command',
   'app.logrotate.form.post_rotate_placeholder':
     'Please enter command to execute after rotation',
+  'app.logrotate.form.post_rotate_help':
+    'Commonly used to reload services so new log files take effect. Multi-line shell commands are supported',
+  'app.logrotate.form.script_tpl.sharedscripts': 'Insert sharedscripts',
+  'app.logrotate.form.script_tpl.reload_nginx': 'Insert reload nginx',
+  'app.logrotate.form.script_tpl.reload_rsyslog': 'Insert reload rsyslog',
+  'app.logrotate.form.script_tpl.select_placeholder': 'Select script template',
+  'app.logrotate.form.script_tpl.insert': 'Insert template',
   'app.logrotate.form.raw_placeholder':
     'Please enter complete logrotate configuration content',
   'app.logrotate.form.raw_create_not_supported':
@@ -111,6 +150,9 @@ export default {
   'app.logrotate.form.update_success': 'Config updated successfully',
   'app.logrotate.form.update_failed': 'Failed to update config',
   'app.logrotate.form.load_content_failed': 'Failed to load config content',
+  'app.logrotate.form.system_readonly':
+    'System configuration is read-only and cannot be saved',
+  'app.logrotate.form.readonly_tag': 'Read-only',
 
   // History
   'app.logrotate.history.title': 'Config History',

@@ -13,7 +13,7 @@ import useLoading from '@/composables/loading';
 import { useConfirm } from '@/composables/confirm';
 import useCurrentHost from '@/composables/current-host';
 import { useLogger } from '@/composables/use-logger';
-import { TABLE_CONFIG } from '../constants';
+import { DEFAULT_LOGROTATE_CATEGORY, TABLE_CONFIG } from '../constants';
 
 export function useLogrotateList(type: LOGROTATE_TYPE) {
   const { t } = useI18n();
@@ -33,7 +33,7 @@ export function useLogrotateList(type: LOGROTATE_TYPE) {
     host?: number;
   }>({
     type,
-    category: '',
+    category: type === LOGROTATE_TYPE.System ? '' : DEFAULT_LOGROTATE_CATEGORY,
     page: TABLE_CONFIG.DEFAULT_PAGE,
     page_size: TABLE_CONFIG.DEFAULT_PAGE_SIZE,
     host: currentHostId.value,
@@ -65,12 +65,15 @@ export function useLogrotateList(type: LOGROTATE_TYPE) {
         };
       }
 
-      // 使用当前 params 中的分类，而不是传入的 queryParams
-      const currentCategory = params.value.category || queryParams.category;
+      const isSystemType = params.value.type === LOGROTATE_TYPE.System;
+      const currentCategory = isSystemType ? '' : DEFAULT_LOGROTATE_CATEGORY;
       logInfo('使用的分类:', currentCategory);
 
       // 如果 category 为空，不发起请求
-      if (!currentCategory || currentCategory.trim() === '') {
+      if (
+        !isSystemType &&
+        (!currentCategory || currentCategory.trim() === '')
+      ) {
         logInfo('分类为空，返回空结果');
         return {
           items: [],

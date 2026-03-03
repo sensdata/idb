@@ -1,6 +1,7 @@
 export default {
-  'app.logrotate.enum.type.local': '本地配置',
+  'app.logrotate.enum.type.local': '本机配置',
   'app.logrotate.enum.type.global': '全局配置',
+  'app.logrotate.enum.type.system': '系统配置',
 
   // 模式
   'app.logrotate.mode.form': '表单模式',
@@ -50,6 +51,8 @@ export default {
   'app.logrotate.form.name_required': '请输入配置名称',
   'app.logrotate.form.name_pattern':
     '配置名称只能包含字母、数字、下划线和连字符',
+  'app.logrotate.form.name_help':
+    '用于标识该轮转规则，建议使用有业务含义的短名称',
   'app.logrotate.form.category': '分类',
   'app.logrotate.form.category_placeholder':
     '请选择或输入分类，新分类会自动创建',
@@ -59,20 +62,36 @@ export default {
   'app.logrotate.form.path_placeholder':
     '请输入日志文件路径，如：/var/log/nginx/*.log',
   'app.logrotate.form.path_required': '请输入日志文件路径',
+  'app.logrotate.form.path_help':
+    '支持直接输入，建议使用绝对路径；也可使用通配符，如 /var/log/nginx/*.log',
   'app.logrotate.form.frequency': '轮转频率',
   'app.logrotate.form.frequency_placeholder': '请选择轮转频率',
   'app.logrotate.form.frequency_required': '请选择轮转频率',
+  'app.logrotate.form.frequency_help':
+    '对应 logrotate 的时间指令，决定轮转触发周期',
   'app.logrotate.form.count': '保留数量',
   'app.logrotate.form.count_placeholder': '请输入保留数量，如：7',
   'app.logrotate.form.count_required': '请输入保留数量',
   'app.logrotate.form.count_min': '保留数量必须大于0',
+  'app.logrotate.form.count_help': '示例：7 表示最多保留 7 个历史轮转文件',
   'app.logrotate.form.create': '文件权限',
+  'app.logrotate.form.create_help':
+    '轮转后新建日志文件时使用的权限、用户和用户组',
+  'app.logrotate.form.rotate_options': '轮转选项',
   'app.logrotate.form.create_placeholder':
     '请输入文件权限，如：create 0644 root root',
+  'app.logrotate.form.section.basic': '基础信息',
+  'app.logrotate.form.section.basic_desc': '先定义规则名和日志文件路径',
+  'app.logrotate.form.section.strategy': '轮转策略',
+  'app.logrotate.form.section.strategy_desc':
+    '配置触发频率、保留数量和轮转行为',
+  'app.logrotate.form.section.permission': '文件与权限',
+  'app.logrotate.form.section.permission_desc':
+    '设置轮转后新日志文件的创建策略',
+  'app.logrotate.form.section.script': '执行脚本',
+  'app.logrotate.form.section.script_desc': '在轮转前后执行自定义 shell 命令',
 
   // 权限设置
-  'app.logrotate.permission.title': '权限设置',
-  'app.logrotate.permission.ownership': '所有者设置',
   'app.logrotate.permission.owner': '所有者权限',
   'app.logrotate.permission.group': '用户组权限',
   'app.logrotate.permission.other': '其他用户权限',
@@ -86,16 +105,32 @@ export default {
   'app.logrotate.permission.group_name': '用户组',
   'app.logrotate.permission.group_placeholder': '如：root',
   'app.logrotate.permission.preview': '预览',
-  'app.logrotate.permission.settings': '设置',
-  'app.logrotate.permission.modal_title': '文件权限设置',
+  'app.logrotate.permission.advanced_show': '显示高级权限',
+  'app.logrotate.permission.advanced_hide': '隐藏高级权限',
   'app.logrotate.form.compress': '压缩旧文件',
+  'app.logrotate.form.compress_help': '开启后会对轮转后的历史日志做压缩',
   'app.logrotate.form.delay_compress': '延迟压缩',
+  'app.logrotate.form.delay_compress_help':
+    '配合压缩使用，跳过最新一份轮转文件，下一次再压缩',
   'app.logrotate.form.missing_ok': '忽略缺失文件',
+  'app.logrotate.form.missing_ok_help':
+    '日志文件不存在时不报错，继续执行其它规则',
   'app.logrotate.form.not_if_empty': '忽略空文件',
+  'app.logrotate.form.not_if_empty_help':
+    '日志为空时不轮转，避免产生无意义历史文件',
   'app.logrotate.form.pre_rotate': '轮转前命令',
   'app.logrotate.form.pre_rotate_placeholder': '请输入轮转前执行的命令',
+  'app.logrotate.form.pre_rotate_help':
+    '用于轮转前执行准备动作，支持多行 shell 命令',
   'app.logrotate.form.post_rotate': '轮转后命令',
   'app.logrotate.form.post_rotate_placeholder': '请输入轮转后执行的命令',
+  'app.logrotate.form.post_rotate_help':
+    '常用于重载服务使新日志文件生效，支持多行 shell 命令',
+  'app.logrotate.form.script_tpl.sharedscripts': '插入 sharedscripts',
+  'app.logrotate.form.script_tpl.reload_nginx': '插入重载 nginx',
+  'app.logrotate.form.script_tpl.reload_rsyslog': '插入重载 rsyslog',
+  'app.logrotate.form.script_tpl.select_placeholder': '选择脚本模板',
+  'app.logrotate.form.script_tpl.insert': '插入模板',
   'app.logrotate.form.raw_placeholder': '请输入完整的logrotate配置内容',
   'app.logrotate.form.raw_create_not_supported':
     '文件模式暂不支持创建，请使用表单模式',
@@ -105,6 +140,8 @@ export default {
   'app.logrotate.form.update_success': '更新配置成功',
   'app.logrotate.form.update_failed': '更新配置失败',
   'app.logrotate.form.load_content_failed': '加载配置内容失败',
+  'app.logrotate.form.system_readonly': '系统配置为只读，不支持保存',
+  'app.logrotate.form.readonly_tag': '只读',
 
   // 历史记录
   'app.logrotate.history.title': '配置历史',
