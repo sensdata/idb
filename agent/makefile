@@ -48,6 +48,7 @@ install: build
 	sudo mkdir -p $(DATA_DIR); \
 	sudo mkdir -p $(LOG_DIR); \
 	sudo mkdir -p $(RUN_DIR); \
+	sudo systemctl stop $(BINARY_NAME).service 2>/dev/null || true; \
 	sudo cp $(BINARY_NAME) $(BIN_DIR); \
 	sudo cp $(CONFIG_FILE) $(CONFIG_DIR); \
 	sudo cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
@@ -55,7 +56,7 @@ install: build
 	sudo touch $(LOG_FILE); \
 	sudo systemctl daemon-reload; \
 	sudo systemctl enable $(BINARY_NAME).service; \
-	sudo systemctl start $(BINARY_NAME).service; \
+	sudo systemctl restart $(BINARY_NAME).service; \
 	sudo ln -sf /var/lib/idb-agent/idb-agent /usr/local/bin/idb-agent
 	$(MAKE) clean  # 在安装后调用clean目标
 

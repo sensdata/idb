@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+EnvironmentFile=-/etc/idb/idb.env
 ExecStart=/var/lib/idb/idb start
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always

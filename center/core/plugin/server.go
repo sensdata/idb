@@ -220,6 +220,10 @@ func (s *PluginServer) loadPlugins() {
 					return
 				}
 			} else {
+				if err := s.ensurePluginExecutable(e); err != nil {
+					global.LOG.Error("ensure plugin %s executable: %v", e.Name, err)
+					return
+				}
 				// 已安装的，检查一下版本，是否需要更新
 				if err := s.checkPluginVersion(e); err != nil {
 					global.LOG.Error("check plugin %s version: %v", e.Name, err)
@@ -251,6 +255,26 @@ func (s *PluginServer) isPluginInstalled(e PluginEntry) bool {
 	execPath := filepath.Join(e.Path, e.Name)
 	info, err := os.Stat(execPath)
 	return err == nil && !info.IsDir()
+}
+
+func (s *PluginServer) ensurePluginExecutable(e PluginEntry) error {
+	execPath := filepath.Join(e.Path, e.Name)
+	info, err := os.Stat(execPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat plugin executable %s: %w", execPath, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("plugin executable path is a directory: %s", execPath)
+	}
+	if info.Mode()&0111 != 0 {
+		return nil
+	}
+
+	if err := os.Chmod(execPath, 0755); err != nil {
+		return fmt.Errorf("failed to chmod plugin executable %s: %w", execPath, err)
+	}
+	global.LOG.Warn("plugin %s executable bit was missing, fixed permissions on %s", e.Name, execPath)
+	return nil
 }
 
 func (s *PluginServer) installPlugin(e PluginEntry) error {
@@ -359,7 +383,11 @@ func extractTarGz(gzipStream io.Reader, dest string) error {
 			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 				return fmt.Errorf("mkdir for file error: %w", err)
 			}
-			outFile, err := os.Create(targetPath)
+			mode := os.FileMode(header.Mode & 0o777)
+			if mode == 0 {
+				mode = 0o644
+			}
+			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 			if err != nil {
 				return fmt.Errorf("create file error: %w", err)
 			}
