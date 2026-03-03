@@ -4,8 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -422,8 +424,20 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 	if _, err := os.Stat("/run/systemd/resolve/resolv.conf"); err == nil {
 		// 使用 systemd-resolved 的方式修改 DNS，一次性设置所有 DNS 服务器
 		dnsServers := strings.Join(req.Servers, " ")
-		if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns eth0 %s", dnsServers)); err != nil {
-			return fmt.Errorf("update DNS settings failed: %v", err)
+		targets := getActiveDNSInterfaces()
+		if len(targets) == 0 {
+			if out, cmdErr := utils.Exec("resolvectl dns"); cmdErr == nil {
+				targets = parseResolvectlTargets(out)
+			}
+		}
+		if len(targets) == 0 {
+			return fmt.Errorf("no active network interface found for DNS update")
+		}
+
+		for _, iface := range targets {
+			if err := utils.ExecCmd(fmt.Sprintf("sudo resolvectl dns %s %s", iface, dnsServers)); err != nil {
+				return fmt.Errorf("update DNS settings failed on %s: %v", iface, err)
+			}
 		}
 
 		// 对于 systemd-resolved，我们将超时和重试设置写入 resolved.conf
@@ -507,6 +521,65 @@ func UpdateDnsSettings(req model.UpdateDnsSettingsReq) error {
 	return nil
 }
 
+func getActiveDNSInterfaces() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+
+	names := make([]string, 0, len(ifaces))
+	for _, iface := range ifaces {
+		if iface.Name == "" {
+			continue
+		}
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		names = append(names, iface.Name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func parseResolvectlTargets(output string) []string {
+	targetSet := map[string]struct{}{}
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		idx := strings.Index(line, ":")
+		if idx == -1 {
+			continue
+		}
+
+		left := strings.TrimSpace(line[:idx])
+		if left == "" {
+			continue
+		}
+
+		if strings.HasPrefix(left, "Link ") {
+			start := strings.LastIndex(left, "(")
+			end := strings.LastIndex(left, ")")
+			if start != -1 && end > start+1 {
+				left = strings.TrimSpace(left[start+1 : end])
+			}
+		}
+
+		if left == "" || strings.EqualFold(left, "global") {
+			continue
+		}
+		targetSet[left] = struct{}{}
+	}
+
+	targets := make([]string, 0, len(targetSet))
+	for name := range targetSet {
+		targets = append(targets, name)
+	}
+	sort.Strings(targets)
+	return targets
+}
+
 func UpdateHostName(req model.UpdateHostNameReq) error {
 	global.LOG.Info("start update hostname", "hostname", req.HostName)
 
@@ -555,96 +628,194 @@ func UpdateHostName(req model.UpdateHostNameReq) error {
 }
 
 func UpdateSystemSettings(req model.UpdateSystemSettingsReq) error {
-	// 修改最大监控文件个数
-	if req.MaxWatchFiles > 0 {
-		// 立即生效
-		if err := utils.ExecCmd(fmt.Sprintf("sudo sysctl -w fs.inotify.max_user_watches=%d", req.MaxWatchFiles)); err != nil {
-			return fmt.Errorf("set max watch files failed: %v", err)
-		}
-
-		// 持久化到 sysctl.d
-		confFile := "/etc/sysctl.d/90-max-watches.conf"
-		content := fmt.Sprintf("fs.inotify.max_user_watches = %d\n", req.MaxWatchFiles)
-		if err := os.WriteFile(confFile, []byte(content), 0644); err != nil {
-			return fmt.Errorf("persist max watch files setting failed: %v", err)
-		}
+	sysctlConfDir := "/etc/sysctl.d"
+	sysctlConfFile := "/etc/sysctl.d/90-idb-sysinfo.conf"
+	sysctlLines := []string{
+		fmt.Sprintf("fs.inotify.max_user_watches = %d", req.MaxWatchFiles),
+		fmt.Sprintf("fs.inotify.max_user_instances = %d", req.MaxWatchInstances),
+		fmt.Sprintf("fs.inotify.max_queued_events = %d", req.MaxQueuedEvents),
+		fmt.Sprintf("vm.swappiness = %d", req.Swappiness),
+		fmt.Sprintf("vm.max_map_count = %d", req.MaxMapCount),
+		fmt.Sprintf("net.core.somaxconn = %d", req.Somaxconn),
+		fmt.Sprintf("net.ipv4.tcp_max_syn_backlog = %d", req.TcpMaxSynBacklog),
+		fmt.Sprintf("fs.file-max = %d", req.FileMax),
+		fmt.Sprintf("kernel.pid_max = %d", req.PidMax),
+		fmt.Sprintf("vm.overcommit_memory = %d", req.OvercommitMemory),
+		fmt.Sprintf("vm.overcommit_ratio = %d", req.OvercommitRatio),
 	}
 
-	// 修改最大文件打开数量
-	if req.MaxOpenFiles > 0 {
-		confFile := "/etc/systemd/system.conf"
-		cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, confFile)
-		if err != nil {
-			// 文件不存在 → 创建
-			cfg = ini.Empty()
-		}
-		sec := cfg.Section("Manager")
-		if k := sec.Key("DefaultLimitNOFILE"); k != nil && k.Value() != "" {
-			k.SetValue(strconv.Itoa(req.MaxOpenFiles))
-		} else {
-			if _, err := sec.NewKey("DefaultLimitNOFILE", strconv.Itoa(req.MaxOpenFiles)); err != nil {
-				return fmt.Errorf("failed to create key DefaultLimitNOFILE: %w", err)
-			}
-		}
-		if err := cfg.SaveTo(confFile); err != nil {
-			return fmt.Errorf("update system.conf failed: %v", err)
-		}
-		// 让 systemd 立即重新加载配置
-		if err := utils.ExecCmd("sudo systemctl daemon-reexec"); err != nil {
-			return fmt.Errorf("reload systemd daemon failed: %v", err)
-		}
+	if err := utils.ExecCmd("sudo mkdir -p " + sysctlConfDir); err != nil {
+		return fmt.Errorf("prepare sysctl.d directory failed: %v", err)
 	}
 
-	// 重新加载 sysctl 配置
-	if err := utils.ExecCmd("sudo sysctl --system"); err != nil {
+	sysctlContent := strings.Join(sysctlLines, "\n")
+	if err := utils.ExecCmd(
+		fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", sysctlContent, sysctlConfFile),
+	); err != nil {
+		return fmt.Errorf("persist sysctl settings failed: %v", err)
+	}
+
+	// 定向加载配置，避免 sysctl --system 受其他无关配置影响
+	if err := utils.ExecCmd("sudo sysctl -p " + sysctlConfFile); err != nil {
 		return fmt.Errorf("reload sysctl settings failed: %v", err)
+	}
+
+	// 修改最大文件打开数量（使用 system.conf.d drop-in，避免直接改主配置）
+	systemdConfDir := "/etc/systemd/system.conf.d"
+	systemdConfFile := "/etc/systemd/system.conf.d/90-idb.conf"
+	systemdContent := fmt.Sprintf("[Manager]\nDefaultLimitNOFILE=%d", req.MaxOpenFiles)
+
+	if err := utils.ExecCmd("sudo mkdir -p " + systemdConfDir); err != nil {
+		return fmt.Errorf("prepare system.conf.d directory failed: %v", err)
+	}
+
+	if err := utils.ExecCmd(
+		fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", systemdContent, systemdConfFile),
+	); err != nil {
+		return fmt.Errorf("persist open files setting failed: %v", err)
+	}
+
+	if err := utils.ExecCmd("sudo systemctl daemon-reexec"); err != nil {
+		return fmt.Errorf("reload systemd daemon failed: %v", err)
+	}
+
+	if err := applyAndPersistTHP(req.TransparentHugePage); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func GetSystemSettings() (*model.SystemSettings, error) {
-	var maxWatchFilesInt, maxOpenFilesInt int
-
-	// 获取最大监控文件个数
-	data, err := os.ReadFile("/proc/sys/fs/inotify/max_user_watches")
-	if err != nil {
-		return nil, fmt.Errorf("get max watch files failed: %v", err)
-	}
-	if maxWatchFilesInt, err = strconv.Atoi(strings.TrimSpace(string(data))); err != nil {
-		return nil, fmt.Errorf("parse max watch files failed: %v", err)
+	settings := model.SystemSettings{
+		MaxWatchFiles:       readProcIntWithDefault("/proc/sys/fs/inotify/max_user_watches", 8192),
+		MaxWatchInstances:   readProcIntWithDefault("/proc/sys/fs/inotify/max_user_instances", 128),
+		MaxQueuedEvents:     readProcIntWithDefault("/proc/sys/fs/inotify/max_queued_events", 16384),
+		Swappiness:          readProcIntWithDefault("/proc/sys/vm/swappiness", 60),
+		MaxMapCount:         readProcIntWithDefault("/proc/sys/vm/max_map_count", 65530),
+		Somaxconn:           readProcIntWithDefault("/proc/sys/net/core/somaxconn", 4096),
+		TcpMaxSynBacklog:    readProcIntWithDefault("/proc/sys/net/ipv4/tcp_max_syn_backlog", 4096),
+		FileMax:             readProcIntWithDefault("/proc/sys/fs/file-max", 65535),
+		PidMax:              readProcIntWithDefault("/proc/sys/kernel/pid_max", 32768),
+		OvercommitMemory:    readProcIntWithDefault("/proc/sys/vm/overcommit_memory", 0),
+		OvercommitRatio:     readProcIntWithDefault("/proc/sys/vm/overcommit_ratio", 50),
+		TransparentHugePage: readTHPMode(),
 	}
 
 	// 获取最大文件打开数量
-	// 读取 systemd 配置
-	confFile := "/etc/systemd/system.conf"
-	if cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, confFile); err == nil {
+	// 优先读取 drop-in 配置，后者覆盖前者
+	systemConf := "/etc/systemd/system.conf"
+	dropInConf := "/etc/systemd/system.conf.d/90-idb.conf"
+	files := []string{systemConf}
+	if _, err := os.Stat(dropInConf); err == nil {
+		files = append(files, dropInConf)
+	}
+	var cfg *ini.File
+	var err error
+	if len(files) > 0 {
+		sources := make([]interface{}, 0, len(files)-1)
+		for _, file := range files[1:] {
+			sources = append(sources, file)
+		}
+		cfg, err = ini.Load(files[0], sources...)
+	}
+	if err == nil && cfg != nil {
 		if noFile := cfg.Section("Manager").Key("DefaultLimitNOFILE").String(); noFile != "" {
-			if maxOpenFilesInt, err = strconv.Atoi(noFile); err != nil {
-				maxOpenFilesInt = 0
+			if maxOpenFilesInt, err := strconv.Atoi(noFile); err == nil {
+				settings.MaxOpenFiles = maxOpenFilesInt
 			}
 		}
 	}
 	// fallback：读取当前 shell 的ulimit值或系统最大值
-	if maxOpenFilesInt == 0 {
+	if settings.MaxOpenFiles == 0 {
 		if out, err := utils.Exec("ulimit -n"); err == nil {
 			if v, err := strconv.Atoi(strings.TrimSpace(out)); err == nil {
-				maxOpenFilesInt = v
+				settings.MaxOpenFiles = v
 			}
 		}
 	}
-	if maxOpenFilesInt == 0 {
+	if settings.MaxOpenFiles == 0 {
 		if data, err := os.ReadFile("/proc/sys/fs/file-max"); err == nil {
 			if v, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil {
-				maxOpenFilesInt = v
+				settings.MaxOpenFiles = v
 			}
 		}
 	}
-	if maxOpenFilesInt == 0 {
-		maxOpenFilesInt = 65535
+	if settings.MaxOpenFiles == 0 {
+		settings.MaxOpenFiles = 65535
 	}
-	return &model.SystemSettings{
-		MaxWatchFiles: maxWatchFilesInt,
-		MaxOpenFiles:  maxOpenFilesInt,
-	}, nil
+
+	return &settings, nil
+}
+
+func readProcIntWithDefault(path string, fallback int) int {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fallback
+	}
+	value, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return fallback
+	}
+	return value
+}
+
+func readTHPMode() string {
+	data, err := os.ReadFile("/sys/kernel/mm/transparent_hugepage/enabled")
+	if err != nil {
+		return "madvise"
+	}
+	parts := strings.Fields(string(data))
+	for _, part := range parts {
+		if strings.HasPrefix(part, "[") && strings.HasSuffix(part, "]") {
+			return strings.Trim(part, "[]")
+		}
+	}
+	return "madvise"
+}
+
+func applyAndPersistTHP(mode string) error {
+	if mode != "always" && mode != "madvise" && mode != "never" {
+		return fmt.Errorf("invalid transparent huge page mode: %s", mode)
+	}
+
+	thpPath := "/sys/kernel/mm/transparent_hugepage/enabled"
+	if err := utils.ExecCmd(fmt.Sprintf("echo %s | sudo tee %s >/dev/null", mode, thpPath)); err != nil {
+		return fmt.Errorf("apply THP mode failed: %v", err)
+	}
+
+	serviceDir := "/etc/systemd/system"
+	serviceFile := "/etc/systemd/system/idb-thp.service"
+	serviceContent := strings.Join([]string{
+		"[Unit]",
+		"Description=Apply Transparent Hugepage policy for IDB",
+		"After=local-fs.target",
+		"",
+		"[Service]",
+		"Type=oneshot",
+		fmt.Sprintf("ExecStart=/bin/sh -c 'echo %s > %s'", mode, thpPath),
+		"RemainAfterExit=yes",
+		"",
+		"[Install]",
+		"WantedBy=multi-user.target",
+	}, "\n")
+
+	if err := utils.ExecCmd("sudo mkdir -p " + serviceDir); err != nil {
+		return fmt.Errorf("prepare THP service directory failed: %v", err)
+	}
+
+	if err := utils.ExecCmd(
+		fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", serviceContent, serviceFile),
+	); err != nil {
+		return fmt.Errorf("persist THP mode failed: %v", err)
+	}
+
+	if err := utils.ExecCmd("sudo systemctl daemon-reload"); err != nil {
+		return fmt.Errorf("reload systemd daemon failed: %v", err)
+	}
+	if err := utils.ExecCmd("sudo systemctl enable --now idb-thp.service"); err != nil {
+		return fmt.Errorf("enable THP service failed: %v", err)
+	}
+
+	return nil
 }

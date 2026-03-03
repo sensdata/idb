@@ -7,7 +7,9 @@ export default {
   'app.docker.compose.list.operation.stop': 'Stop',
   'app.docker.compose.list.operation.restart': 'Restart',
   'app.docker.compose.list.operation.up': 'Up',
+  'app.docker.compose.list.operation.pull': 'Pull Image',
   'app.docker.compose.list.operation.down': 'Down',
+  'app.docker.compose.list.operation.downWithVolumes': 'Down with Volumes',
   'app.docker.compose.list.operation.edit': 'Edit',
   'app.docker.compose.list.operation.log': 'Log',
   'app.docker.compose.list.operation.openDirectory': 'Open Directory',
@@ -19,6 +21,12 @@ export default {
   'app.docker.compose.list.operation.error': 'Failed to execute',
   'app.docker.compose.list.operation.stop.confirm':
     'Only stop containers, not delete them.',
+  'app.docker.compose.list.operation.down.confirm':
+    'Stop and take down containers (keep volumes).',
+  'app.docker.compose.list.operation.downWithVolumes.confirm1':
+    'Dangerous operation: this will take down containers and delete volumes.',
+  'app.docker.compose.list.operation.downWithVolumes.confirm2':
+    'Please confirm again: continue down -v (delete volumes)?',
   'app.docker.compose.list.operation.delete.confirm':
     'Stop and delete all resources and data of the project',
   'app.docker.compose.down.confirm.removeVolumes': 'Remove volumes',

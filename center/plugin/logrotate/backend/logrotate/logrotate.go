@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/copier"
 	"github.com/sensdata/idb/center/core/api/service"
@@ -15,6 +17,40 @@ import (
 	"github.com/sensdata/idb/core/utils"
 )
 
+const systemCategory = "system"
+const systemMainConfName = "logrotate.conf"
+
+func isSystemType(t string) bool {
+	return strings.EqualFold(t, "system")
+}
+
+func resolveSystemConfPath(name string) (string, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "", fmt.Errorf("invalid name")
+	}
+	if strings.Contains(trimmed, "/") || trimmed == "." || trimmed == ".." {
+		return "", fmt.Errorf("invalid name")
+	}
+	if trimmed == systemMainConfName {
+		return "/etc/logrotate.conf", nil
+	}
+	return filepath.Join("/etc/logrotate.d", trimmed), nil
+}
+
+func splitNonEmptyLines(content string) []string {
+	lines := strings.Split(content, "\n")
+	results := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		results = append(results, trimmed)
+	}
+	return results
+}
+
 func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
 	var serviceForm model.ServiceForm
 
@@ -23,37 +59,7 @@ func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.Fo
 		return serviceForm, fmt.Errorf("invalid conf bytes")
 	}
 
-	boolOptions := make(map[string]model.FormField)
-	var pathOption model.FormField
-	var frequencyOption model.FormField
-	var rotateCountOption model.FormField
-	var createOption model.FormField
-	var preRotateOption model.FormField
-	var postRotateOption model.FormField
-	for _, field := range standardFormFields {
-		downCaseKey := strings.ToLower(field.Key)
-		switch downCaseKey {
-		case "path":
-			pathOption = field
-		case "frequency":
-			frequencyOption = field
-		case "count":
-			rotateCountOption = field
-		case "create":
-			createOption = field
-		case "prerotate":
-			preRotateOption = field
-		case "postrotate":
-			postRotateOption = field
-		default:
-			if utils.MatchPattern(
-				downCaseKey,
-				"^(compress|delaycompress|missingok|notifempty)$",
-			) {
-				boolOptions[downCaseKey] = field
-			}
-		}
-	}
+	fieldSet := parseFormFieldSet(standardFormFields)
 
 	// 将 confBytes 转换为字符串
 	confContent := string(confBytes)
@@ -71,17 +77,21 @@ func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.Fo
 	if logPath == "" {
 		return serviceForm, fmt.Errorf("invalid log file path: %s", logPath)
 	}
-	var pathFormField model.ServiceFormField
-	if err := copier.Copy(&pathFormField, &pathOption); err != nil {
+	pathFormField, err := buildServiceFormField(fieldSet.pathOption, logPath)
+	if err != nil {
 		LOG.Error("Failed to copy frequencyOption field")
 		return serviceForm, err
 	}
-	pathFormField.Value = logPath
 	serviceForm.Fields = append(serviceForm.Fields, pathFormField)
 
 	// 3. 截取选项内容并按行分割
 	options := confContent[startIndex+1 : endIndex]
 	lines := strings.Split(options, "\n")
+	boolValues := make(map[string]string, len(fieldSet.boolOrder))
+	for _, key := range fieldSet.boolOrder {
+		boolValues[key] = "false"
+	}
+	inScript := false
 
 	// 4. 解析每一行选项
 	for _, line := range lines {
@@ -90,100 +100,85 @@ func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.Fo
 		if option == "" || strings.HasPrefix(option, "#") {
 			continue
 		}
+		downCaseOption := strings.ToLower(option)
+
+		if inScript {
+			if downCaseOption == "endscript" {
+				inScript = false
+			}
+			continue
+		}
+
+		if downCaseOption == "prerotate" || downCaseOption == "postrotate" {
+			inScript = true
+			continue
+		}
 
 		// 如果是频率设置
-		if frequencyOption.Validation != nil && utils.MatchPattern(option, frequencyOption.Validation.Pattern) {
-			var serviceFormField model.ServiceFormField
-			if err := copier.Copy(&serviceFormField, &frequencyOption); err != nil {
+		if fieldSet.frequencyOption.Validation != nil && utils.MatchPattern(option, fieldSet.frequencyOption.Validation.Pattern) {
+			serviceFormField, copyErr := buildServiceFormField(fieldSet.frequencyOption, option)
+			if copyErr != nil {
 				LOG.Error("Failed to copy frequencyOption field")
 				continue
 			}
-			serviceFormField.Value = option
 			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
 			continue
 		}
 
 		// 如果是轮转数量
-		if rotateCountOption.Validation != nil && utils.MatchPattern(option, rotateCountOption.Validation.Pattern) {
-			var serviceFormField model.ServiceFormField
-			if err := copier.Copy(&serviceFormField, &rotateCountOption); err != nil {
+		if fieldSet.rotateCountOption.Validation != nil && utils.MatchPattern(option, fieldSet.rotateCountOption.Validation.Pattern) {
+			serviceFormField, copyErr := buildServiceFormField(fieldSet.rotateCountOption, option)
+			if copyErr != nil {
 				LOG.Error("Failed to copy rotateCountOption field")
 				continue
 			}
-			serviceFormField.Value = option
 			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
 			continue
 		}
 
 		// 如果是创建新日志文件
-		if createOption.Validation != nil && utils.MatchPattern(option, createOption.Validation.Pattern) {
-			var serviceFormField model.ServiceFormField
-			if err := copier.Copy(&serviceFormField, &createOption); err != nil {
+		if fieldSet.createOption.Validation != nil && utils.MatchPattern(option, fieldSet.createOption.Validation.Pattern) {
+			serviceFormField, copyErr := buildServiceFormField(fieldSet.createOption, option)
+			if copyErr != nil {
 				LOG.Error("Failed to copy createOption field")
 				continue
 			}
-			serviceFormField.Value = option
 			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
 			continue
 		}
 
 		// 如果是bool选项
-		for _, boolOption := range boolOptions {
-			// 这种选项，用key来承载了写入配置文件的值
-			// 文件中已配置的，或者未配置的，都入列
-			var serviceFormField model.ServiceFormField
-			if err := copier.Copy(&serviceFormField, &boolOption); err != nil {
-				LOG.Error("Failed to copy createOption field")
-				continue
-			}
-			// 如果命中，为true
-			if option == strings.ToLower(boolOption.Key) {
-				serviceFormField.Value = "true"
-			} else {
-				serviceFormField.Value = "false"
-			}
-			serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
+		if _, exists := fieldSet.boolOptions[downCaseOption]; exists {
+			boolValues[downCaseOption] = "true"
 		}
+	}
+
+	for _, key := range fieldSet.boolOrder {
+		boolOption := fieldSet.boolOptions[key]
+		serviceFormField, copyErr := buildServiceFormField(boolOption, boolValues[key])
+		if copyErr != nil {
+			LOG.Error("Failed to copy createOption field")
+			continue
+		}
+		serviceForm.Fields = append(serviceForm.Fields, serviceFormField)
 	}
 
 	// 匹配 prerotate 到第一个 endscript
-	preRotateCommand := ""
-	prerotatePattern := `prerotate(.*?)endscript`
-	prerotateRe := regexp.MustCompile(prerotatePattern)
-
-	prerotateMatch := prerotateRe.FindStringSubmatch(confContent)
-	if len(prerotateMatch) > 0 {
-		preRotateCommand = strings.TrimSpace(prerotateMatch[1])
-		if preRotateCommand == ":" {
-			preRotateCommand = ""
-		}
-	}
-	var prerotateFormField model.ServiceFormField
-	if err := copier.Copy(&prerotateFormField, &preRotateOption); err != nil {
+	preRotateCommand := normalizeScriptCommand(extractScriptCommand(confContent, "prerotate"))
+	prerotateFormField, err := buildServiceFormField(fieldSet.preRotateOption, preRotateCommand)
+	if err != nil {
 		LOG.Error("Failed to copy preRotateOption field")
 		return serviceForm, err
 	}
-	prerotateFormField.Value = preRotateCommand
 	serviceForm.Fields = append(serviceForm.Fields, prerotateFormField)
 
 	// 匹配 postrotate 到第一个 endscript
-	postRotateCommand := ""
-	postrotatePattern := `postrotate(.*?)endscript`
-	postrotateRe := regexp.MustCompile(postrotatePattern)
-
-	postrotateMatch := postrotateRe.FindStringSubmatch(confContent)
-	if len(postrotateMatch) > 0 {
-		postRotateCommand = strings.TrimSpace(postrotateMatch[1])
-		if postRotateCommand == ":" {
-			postRotateCommand = ""
-		}
-	}
-	var postrotateFormField model.ServiceFormField
-	if err := copier.Copy(&postrotateFormField, &postRotateOption); err != nil {
+	postRotateCommand := normalizeScriptCommand(extractScriptCommand(confContent, "postrotate"))
+	postrotateFormField, err := buildServiceFormField(fieldSet.postRotateOption, postRotateCommand)
+	if err != nil {
 		LOG.Error("Failed to copy postRotateOption field")
 		return serviceForm, err
 	}
-	postrotateFormField.Value = postRotateCommand
 	serviceForm.Fields = append(serviceForm.Fields, postrotateFormField)
 
 	return serviceForm, nil
@@ -198,37 +193,7 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 		keyValuesMap[strings.ToLower(field.Key)] = field.Value
 	}
 
-	boolOptions := make(map[string]model.FormField)
-	var pathOption model.FormField
-	var frequencyOption model.FormField
-	var rotateCountOption model.FormField
-	var createOption model.FormField
-	var preRotateOption model.FormField
-	var postRotateOption model.FormField
-	for _, field := range standardFormFields {
-		downCaseKey := strings.ToLower(field.Key)
-		switch downCaseKey {
-		case "path":
-			pathOption = field
-		case "frequency":
-			frequencyOption = field
-		case "count":
-			rotateCountOption = field
-		case "create":
-			createOption = field
-		case "prerotate":
-			preRotateOption = field
-		case "postrotate":
-			postRotateOption = field
-		default:
-			if utils.MatchPattern(
-				downCaseKey,
-				"^(compress|delaycompress|missingok|notifempty)$",
-			) {
-				boolOptions[downCaseKey] = field
-			}
-		}
-	}
+	fieldSet := parseFormFieldSet(standardFormFields)
 
 	// 将 confBytes 转换为字符串
 	confContent := string(confBytes)
@@ -245,18 +210,20 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	logPath := strings.TrimSpace(confContent[:startIndex])
 	if logPath != "" {
 		// 检查 key 是否在 keyValuesMap 中
-		if newValue, exists := keyValuesMap[strings.ToLower(pathOption.Key)]; exists {
+		if newValue, exists := keyValuesMap[strings.ToLower(fieldSet.pathOption.Key)]; exists {
 			// 如果 key 存在于 keyValuesMap 中，用新值替换
-			newLines = append(newLines, newValue+"{")
+			newLines = append(newLines, fmt.Sprintf("%s {", strings.TrimSpace(newValue)))
 		} else {
 			// 如果 key 不存在于 keyValuesMap 中，保留原始行
-			newLines = append(newLines, logPath+"{")
+			newLines = append(newLines, fmt.Sprintf("%s {", logPath))
 		}
 	}
 
 	// 3. 截取选项内容并按行分割
 	options := confContent[startIndex+1 : endIndex]
 	lines := strings.Split(options, "\n")
+	boolSeen := make(map[string]bool, len(fieldSet.boolOrder))
+	inScript := false
 
 	// 4. 解析每一行选项
 	for _, line := range lines {
@@ -266,11 +233,24 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 			newLines = append(newLines, line)
 			continue
 		}
+		downCaseOption := strings.ToLower(option)
+
+		if inScript {
+			if downCaseOption == "endscript" {
+				inScript = false
+			}
+			continue
+		}
+
+		if downCaseOption == "prerotate" || downCaseOption == "postrotate" {
+			inScript = true
+			continue
+		}
 
 		// 如果是频率设置
-		if frequencyOption.Validation != nil && utils.MatchPattern(option, frequencyOption.Validation.Pattern) {
+		if fieldSet.frequencyOption.Validation != nil && utils.MatchPattern(option, fieldSet.frequencyOption.Validation.Pattern) {
 			// 检查 key 是否在 keyValuesMap 中
-			if newValue, exists := keyValuesMap[strings.ToLower(frequencyOption.Key)]; exists {
+			if newValue, exists := keyValuesMap[strings.ToLower(fieldSet.frequencyOption.Key)]; exists {
 				// 如果 key 存在于 keyValuesMap 中，用新值替换
 				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
 			} else {
@@ -281,9 +261,9 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 		}
 
 		// 如果是轮转数量
-		if rotateCountOption.Validation != nil && utils.MatchPattern(option, rotateCountOption.Validation.Pattern) {
+		if fieldSet.rotateCountOption.Validation != nil && utils.MatchPattern(option, fieldSet.rotateCountOption.Validation.Pattern) {
 			// 检查 key 是否在 keyValuesMap 中
-			if newValue, exists := keyValuesMap[strings.ToLower(rotateCountOption.Key)]; exists {
+			if newValue, exists := keyValuesMap[strings.ToLower(fieldSet.rotateCountOption.Key)]; exists {
 				// 如果 key 存在于 keyValuesMap 中，用新值替换
 				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
 			} else {
@@ -294,9 +274,9 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 		}
 
 		// 如果是创建新日志文件
-		if createOption.Validation != nil && utils.MatchPattern(option, createOption.Validation.Pattern) {
+		if fieldSet.createOption.Validation != nil && utils.MatchPattern(option, fieldSet.createOption.Validation.Pattern) {
 			// 检查 key 是否在 keyValuesMap 中
-			if newValue, exists := keyValuesMap[strings.ToLower(createOption.Key)]; exists {
+			if newValue, exists := keyValuesMap[strings.ToLower(fieldSet.createOption.Key)]; exists {
 				// 如果 key 存在于 keyValuesMap 中，用新值替换
 				newLines = append(newLines, strings.ReplaceAll(line, option, newValue))
 			} else {
@@ -309,9 +289,10 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 		// 如果是bool选项
 		// 这种选项，用key来承载了写入配置文件的值
 		// 文件中命中了，入列
-		if _, exists := boolOptions[option]; exists {
+		if _, exists := fieldSet.boolOptions[downCaseOption]; exists {
+			boolSeen[downCaseOption] = true
 			// 检查 key 是否在 keyValuesMap 中
-			if newValue, exists := keyValuesMap[option]; exists {
+			if newValue, exists := keyValuesMap[downCaseOption]; exists {
 				// 如果是true，则保留，否则不添加
 				if newValue == "true" {
 					newLines = append(newLines, line)
@@ -322,49 +303,30 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 			}
 			continue
 		}
+
+		newLines = append(newLines, line)
 	}
 
-	// 匹配 prerotate 到第一个 endscript
-	prerotatePattern := `prerotate(.*?)endscript`
-	prerotateRe := regexp.MustCompile(prerotatePattern)
-	prerotateMatch := prerotateRe.FindStringSubmatch(confContent)
-	if len(prerotateMatch) > 0 {
-		preRotateCommand := strings.TrimSpace(prerotateMatch[1])
-		newLines = append(newLines, "prerotate")
-		// 检查 key 是否在 keyValuesMap 中
-		if newValue, exists := keyValuesMap[strings.ToLower(preRotateOption.Key)]; exists {
-			// 如果 key 存在于 keyValuesMap 中，用新值替换
-			if newValue == "" {
-				newLines = append(newLines, ":")
-			} else {
-				newLines = append(newLines, newValue)
-			}
-		} else {
-			// 如果 key 不存在于 keyValuesMap 中，保留原始行
-			newLines = append(newLines, preRotateCommand)
+	for _, boolOption := range fieldSet.boolOrder {
+		if boolSeen[boolOption] {
+			continue
 		}
+		if newValue, exists := keyValuesMap[boolOption]; exists && newValue == "true" {
+			newLines = append(newLines, boolOption)
+		}
+	}
+
+	preRotateValue, hasPreRotateValue := keyValuesMap[strings.ToLower(fieldSet.preRotateOption.Key)]
+	if preRotateCommand, exists := resolveScriptCommand(confContent, "prerotate", preRotateValue, hasPreRotateValue); exists {
+		newLines = append(newLines, "prerotate")
+		newLines = append(newLines, preRotateCommand)
 		newLines = append(newLines, "endscript")
 	}
 
-	// 匹配 postrotate 到第一个 endscript
-	postrotatePattern := `postrotate(.*?)endscript`
-	postrotateRe := regexp.MustCompile(postrotatePattern)
-	postrotateMatch := postrotateRe.FindStringSubmatch(confContent)
-	if len(postrotateMatch) > 0 {
-		postRotateCommand := strings.TrimSpace(postrotateMatch[1])
+	postRotateValue, hasPostRotateValue := keyValuesMap[strings.ToLower(fieldSet.postRotateOption.Key)]
+	if postRotateCommand, exists := resolveScriptCommand(confContent, "postrotate", postRotateValue, hasPostRotateValue); exists {
 		newLines = append(newLines, "postrotate")
-		// 检查 key 是否在 keyValuesMap 中
-		if newValue, exists := keyValuesMap[strings.ToLower(postRotateOption.Key)]; exists {
-			// 如果 key 存在于 keyValuesMap 中，用新值替换
-			if newValue == "" {
-				newLines = append(newLines, ":")
-			} else {
-				newLines = append(newLines, newValue)
-			}
-		} else {
-			// 如果 key 不存在于 keyValuesMap 中，保留原始行
-			newLines = append(newLines, postRotateCommand)
-		}
+		newLines = append(newLines, postRotateCommand)
 		newLines = append(newLines, "endscript")
 	}
 
@@ -379,6 +341,95 @@ func replaceValuesInServiceBytes(confBytes []byte, keyValues []model.KeyValue, s
 	// 将 newLines 转换成单个字符串
 	newContent := strings.Join(newLines, "\n")
 	return newContent, nil
+}
+
+type formFieldSet struct {
+	pathOption        model.FormField
+	frequencyOption   model.FormField
+	rotateCountOption model.FormField
+	createOption      model.FormField
+	preRotateOption   model.FormField
+	postRotateOption  model.FormField
+	boolOptions       map[string]model.FormField
+	boolOrder         []string
+}
+
+func parseFormFieldSet(standardFormFields []model.FormField) formFieldSet {
+	fieldSet := formFieldSet{
+		boolOptions: make(map[string]model.FormField),
+	}
+
+	for _, field := range standardFormFields {
+		downCaseKey := strings.ToLower(field.Key)
+		switch downCaseKey {
+		case "path":
+			fieldSet.pathOption = field
+		case "frequency":
+			fieldSet.frequencyOption = field
+		case "count":
+			fieldSet.rotateCountOption = field
+		case "create":
+			fieldSet.createOption = field
+		case "prerotate":
+			fieldSet.preRotateOption = field
+		case "postrotate":
+			fieldSet.postRotateOption = field
+		default:
+			if utils.MatchPattern(downCaseKey, "^(compress|delaycompress|missingok|notifempty)$") {
+				fieldSet.boolOptions[downCaseKey] = field
+				fieldSet.boolOrder = append(fieldSet.boolOrder, downCaseKey)
+			}
+		}
+	}
+
+	return fieldSet
+}
+
+func buildServiceFormField(base model.FormField, value string) (model.ServiceFormField, error) {
+	var serviceFormField model.ServiceFormField
+	if err := copier.Copy(&serviceFormField, &base); err != nil {
+		return serviceFormField, err
+	}
+	serviceFormField.Value = value
+	return serviceFormField, nil
+}
+
+func extractScriptCommand(confContent, blockName string) string {
+	pattern := fmt.Sprintf(`(?is)\b%s\b(.*?)\bendscript\b`, regexp.QuoteMeta(blockName))
+	re := regexp.MustCompile(pattern)
+	match := re.FindStringSubmatch(confContent)
+	if len(match) < 2 {
+		return ""
+	}
+	return strings.TrimSpace(match[1])
+}
+
+func normalizeScriptCommand(command string) string {
+	trimmed := strings.TrimSpace(command)
+	if trimmed == ":" {
+		return ""
+	}
+	return trimmed
+}
+
+func resolveScriptCommand(confContent, blockName, overrideValue string, hasOverride bool) (string, bool) {
+	pattern := fmt.Sprintf(`(?is)\b%s\b(.*?)\bendscript\b`, regexp.QuoteMeta(blockName))
+	hasBlock := regexp.MustCompile(pattern).FindStringSubmatch(confContent) != nil
+	originCommand := normalizeScriptCommand(extractScriptCommand(confContent, blockName))
+	if hasOverride {
+		overrideValue = strings.TrimSpace(overrideValue)
+		if overrideValue == "" {
+			return ":", true
+		}
+		return overrideValue, true
+	}
+	if !hasBlock {
+		return "", false
+	}
+	if originCommand == "" {
+		return ":", true
+	}
+	return originCommand, true
 }
 
 func (s *LogRotate) sendAction(actionRequest model.HostAction) (*model.ActionResponse, error) {
@@ -546,6 +597,17 @@ func (s *LogRotate) deleteFile(hostID uint64, op model.FileDelete) error {
 
 func (s *LogRotate) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
+	if isSystemType(req.Type) {
+		pageResult.Total = 1
+		pageResult.Items = []model.GitFile{
+			{
+				Name:    systemCategory,
+				Source:  systemCategory,
+				ModTime: time.Now(),
+			},
+		}
+		return &pageResult, nil
+	}
 
 	var repoPath string
 	switch req.Type {
@@ -779,6 +841,9 @@ func (s *LogRotate) deleteCategory(hostID uint64, req model.DeleteGitCategory) e
 
 func (s *LogRotate) getConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
+	if isSystemType(req.Type) {
+		return s.getSystemConfList(hostID, req)
+	}
 
 	var repoPath string
 	switch req.Type {
@@ -843,6 +908,19 @@ func (s *LogRotate) getConfList(hostID uint64, req model.QueryGitFile) (*model.P
 }
 
 func (s *LogRotate) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
+	if isSystemType(req.Type) {
+		gitFile, err := s.getSystemContent(hostID, req)
+		if err != nil {
+			return nil, err
+		}
+		serviceForm, err := parseConfBytesToServiceForm([]byte(gitFile.Content), s.form.Fields)
+		if err != nil {
+			LOG.Error("Failed to parse system conf content: %v", err)
+			return nil, fmt.Errorf("failed to parse conf content")
+		}
+		return &serviceForm, nil
+	}
+
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateForm, nil
@@ -1267,6 +1345,10 @@ func (s *LogRotate) create(hostID uint64, req model.CreateGitFile, extension str
 }
 
 func (s *LogRotate) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
+	if isSystemType(req.Type) {
+		return s.getSystemContent(hostID, req)
+	}
+
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1331,6 +1413,97 @@ func (s *LogRotate) getContent(hostID uint64, req model.GetGitFileDetail) (*mode
 	}
 
 	return &gitFile, nil
+}
+
+func (s *LogRotate) getSystemConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	pageResult := &model.PageResult{Total: 0, Items: []model.GitFile{}}
+	if req.Category != "" && req.Category != systemCategory {
+		return pageResult, nil
+	}
+
+	command := `if [ -f /etc/logrotate.conf ]; then echo logrotate.conf; fi; if [ -d /etc/logrotate.d ]; then find /etc/logrotate.d -maxdepth 1 -type f -printf '%f\n'; fi`
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{})
+	names := make([]string, 0)
+	for _, item := range splitNonEmptyLines(commandResult.Result) {
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		names = append(names, item)
+	}
+	sort.Strings(names)
+
+	items := make([]model.GitFile, 0, len(names))
+	for _, name := range names {
+		confPath, pathErr := resolveSystemConfPath(name)
+		if pathErr != nil {
+			continue
+		}
+		items = append(items, model.GitFile{
+			Source:    confPath,
+			Name:      name,
+			Extension: filepath.Ext(name),
+			ModTime:   time.Now(),
+			Linked:    true,
+		})
+	}
+
+	total := len(items)
+	start, end := paginateRange(total, req.Page, req.PageSize)
+	pageResult.Items = items[start:end]
+	pageResult.Total = int64(total)
+	return pageResult, nil
+}
+
+func paginateRange(total, page, pageSize int) (int, int) {
+	if pageSize <= 0 {
+		pageSize = total
+	}
+	if pageSize <= 0 {
+		pageSize = 1
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	return start, end
+}
+
+func (s *LogRotate) getSystemContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
+	confPath, err := resolveSystemConfPath(req.Name)
+	if err != nil {
+		return nil, err
+	}
+	command := fmt.Sprintf("cat '%s'", confPath)
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+	if strings.Contains(strings.ToLower(commandResult.Result), "no such file or directory") {
+		return nil, fmt.Errorf("conf file not found")
+	}
+
+	return &model.GitFile{
+		Source:    confPath,
+		Name:      req.Name,
+		Extension: filepath.Ext(req.Name),
+		Content:   commandResult.Result,
+		ModTime:   time.Now(),
+		Linked:    true,
+	}, nil
 }
 
 func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {

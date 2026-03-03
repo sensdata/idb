@@ -222,7 +222,7 @@ export const createComposeApi = (params: CreateCompose) =>
 // 操作 compose
 export const operateComposeApi = (params: {
   name: string;
-  operation: 'start' | 'stop' | 'restart' | 'up' | 'down';
+  operation: 'start' | 'stop' | 'restart' | 'up' | 'pull' | 'down';
   remove_volumes?: boolean;
 }) =>
   request.post<{
@@ -423,7 +423,7 @@ export const createNetworkApi = (params: NetworkCreate) =>
 
 // 批量删除网络
 export const batchDeleteNetworkApi = (params: {
-  force: string;
+  force: boolean;
   sources: string;
 }) => request.delete('docker/{host}/networks', params);
 
@@ -463,7 +463,7 @@ export const createVolumeApi = (params: VolumeCreate) =>
 
 // 批量删除卷
 export const batchDeleteVolumeApi = (params: {
-  force: string;
+  force: boolean;
   sources: string;
 }) => request.delete('docker/{host}/volumes', params);
 

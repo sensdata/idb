@@ -8,6 +8,14 @@
     @before-ok="onBeforeOk"
     @cancel="onCancel"
   >
+    <a-alert class="mb-4" type="info" :show-icon="true">
+      <div class="guide-title">{{
+        t('app.docker.volume.create.guide.title')
+      }}</div>
+      <div class="guide-desc">{{
+        t('app.docker.volume.create.guide.desc')
+      }}</div>
+    </a-alert>
     <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
       <a-form-item
         field="name"
@@ -68,7 +76,7 @@
   const formRef = ref<FormInstance>();
   const formState = reactive({
     name: '',
-    driver: '',
+    driver: 'local',
     optionsText: '',
     labelsText: '',
   });
@@ -89,7 +97,7 @@
   const show = () => {
     visible.value = true;
     formState.name = '';
-    formState.driver = '';
+    formState.driver = 'local';
     formState.optionsText = '';
     formState.labelsText = '';
     formRef.value?.resetFields();
@@ -103,6 +111,7 @@
     if (errors) {
       return false;
     }
+    let success = false;
     try {
       loading.value = true;
       await createVolumeApi({
@@ -120,15 +129,26 @@
       Message.success(t('app.docker.volume.create.success'));
       emit('success');
       hide();
+      success = true;
     } catch (e: any) {
       Message.error(e?.message || t('app.docker.volume.create.failed'));
     } finally {
       loading.value = false;
     }
-    return true;
+    return success;
   };
   const onCancel = hide;
   defineExpose({ show });
 </script>
 
-<style scoped></style>
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>

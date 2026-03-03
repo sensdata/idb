@@ -66,9 +66,13 @@ func GetOverview() (*model.Overview, error) {
 	}
 	overview.ServerTimeZone = strings.TrimSpace(serverTimezone)
 
-	info, _ := host.Info()
-	overview.BootTime = utils.FormatTime(int64(info.BootTime))
-	overview.RunTime = int64(info.Uptime)
+	info, err := host.Info()
+	if err != nil {
+		global.LOG.Error("failed to get host info: %v", err)
+	} else {
+		overview.BootTime = utils.FormatTime(int64(info.BootTime))
+		overview.RunTime = int64(info.Uptime)
+	}
 
 	timesList, err := cpu.Times(true) // true 表示返回每个CPU核心的统计
 	if err == nil && len(timesList) > 0 {
@@ -89,8 +93,10 @@ func GetOverview() (*model.Overview, error) {
 		overview.IdleRate = math.Round(idleRate*100) / 100
 	}
 
-	percents, _ := cpu.Percent(0, false)
-	if len(percents) > 0 {
+	percents, err := cpu.Percent(0, false)
+	if err != nil {
+		global.LOG.Error("failed to get cpu percent: %v", err)
+	} else if len(percents) > 0 {
 		overview.CpuUsage = fmt.Sprintf("%.2f%%", percents[0])
 	}
 
@@ -116,38 +122,76 @@ func GetOverview() (*model.Overview, error) {
 	overview.CurrentLoad.ProcessCount5 = fmt.Sprintf("%.2f%%", calcPercent(avg.Load5))
 	overview.CurrentLoad.ProcessCount15 = fmt.Sprintf("%.2f%%", calcPercent(avg.Load15))
 
-	v, _ := mem.VirtualMemory()
-	overview.MemoryUsage.Physical = utils.FormatMemorySize(v.Total)
-	overview.MemoryUsage.Kernel = utils.FormatMemorySize(v.Buffers + v.Slab)
-	overview.MemoryUsage.Total = utils.FormatMemorySize(v.Available + v.Used)
-	overview.MemoryUsage.Used = utils.FormatMemorySize(v.Used)
-	overview.MemoryUsage.UsedRate = math.Round(v.UsedPercent*100) / 100
-	overview.MemoryUsage.Free = utils.FormatMemorySize(v.Available)
-	overview.MemoryUsage.FreeRate = 100 - overview.MemoryUsage.UsedRate
-	overview.MemoryUsage.Buffered = utils.FormatMemorySize(v.Buffers)
-	overview.MemoryUsage.Cached = utils.FormatMemorySize(v.Cached)
-	overview.MemoryUsage.RealUsed = utils.FormatMemorySize(v.Used)
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		global.LOG.Error("failed to get virtual memory: %v", err)
+	} else if v != nil {
+		kernelUsed := v.Buffers + v.Slab
+		totalAvailable := uint64(0)
+		if v.Total > kernelUsed {
+			totalAvailable = v.Total - kernelUsed
+		}
 
-	swap, _ := mem.SwapMemory()
-	overview.SwapUsage.Total = utils.FormatMemorySize(swap.Total)
-	overview.SwapUsage.Free = utils.FormatMemorySize(swap.Free)
-	overview.SwapUsage.Used = utils.FormatMemorySize(swap.Used)
-	overview.SwapUsage.UsedRate = math.Round(swap.UsedPercent*100) / 100
-	overview.SwapUsage.FreeRate = math.Round((100-swap.UsedPercent)*100) / 100
+		realUsed := uint64(0)
+		if v.Used > (v.Buffers + v.Cached) {
+			realUsed = v.Used - v.Buffers - v.Cached
+		}
+		usedInTotal := uint64(0)
+		if totalAvailable > v.Available {
+			usedInTotal = totalAvailable - v.Available
+		}
 
-	partitions, _ := disk.Partitions(false)
-	for _, part := range partitions {
-		usage, _ := disk.Usage(part.Mountpoint)
-		overview.Storage = append(
-			overview.Storage,
-			model.Partition{
-				Name:     part.Mountpoint,
-				Total:    utils.FormatMemorySize(usage.Total),
-				Free:     utils.FormatMemorySize(usage.Free),
-				Used:     utils.FormatMemorySize(usage.Used),
-				UsedRate: math.Round(usage.UsedPercent*100) / 100,
-			},
-		)
+		usedRate := 0.0
+		freeRate := 0.0
+		if totalAvailable > 0 {
+			usedRate = (float64(usedInTotal) / float64(totalAvailable)) * 100
+			freeRate = (float64(v.Available) / float64(totalAvailable)) * 100
+		}
+
+		overview.MemoryUsage.Physical = utils.FormatMemorySize(v.Total)
+		overview.MemoryUsage.Kernel = utils.FormatMemorySize(kernelUsed)
+		overview.MemoryUsage.Total = utils.FormatMemorySize(totalAvailable)
+		overview.MemoryUsage.Used = utils.FormatMemorySize(usedInTotal)
+		overview.MemoryUsage.UsedRate = math.Round(usedRate*100) / 100
+		overview.MemoryUsage.Free = utils.FormatMemorySize(v.Available)
+		overview.MemoryUsage.FreeRate = math.Round(freeRate*100) / 100
+		overview.MemoryUsage.Buffered = utils.FormatMemorySize(v.Buffers)
+		overview.MemoryUsage.Cached = utils.FormatMemorySize(v.Cached)
+		overview.MemoryUsage.RealUsed = utils.FormatMemorySize(realUsed)
+	}
+
+	swap, err := mem.SwapMemory()
+	if err != nil {
+		global.LOG.Error("failed to get swap memory: %v", err)
+	} else if swap != nil {
+		overview.SwapUsage.Total = utils.FormatMemorySize(swap.Total)
+		overview.SwapUsage.Free = utils.FormatMemorySize(swap.Free)
+		overview.SwapUsage.Used = utils.FormatMemorySize(swap.Used)
+		overview.SwapUsage.UsedRate = math.Round(swap.UsedPercent*100) / 100
+		overview.SwapUsage.FreeRate = math.Round((100-swap.UsedPercent)*100) / 100
+	}
+
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		global.LOG.Error("failed to get disk partitions: %v", err)
+	} else {
+		for _, part := range partitions {
+			usage, usageErr := disk.Usage(part.Mountpoint)
+			if usageErr != nil {
+				global.LOG.Error("failed to get disk usage for %s: %v", part.Mountpoint, usageErr)
+				continue
+			}
+			overview.Storage = append(
+				overview.Storage,
+				model.Partition{
+					Name:     part.Mountpoint,
+					Total:    utils.FormatMemorySize(usage.Total),
+					Free:     utils.FormatMemorySize(usage.Free),
+					Used:     utils.FormatMemorySize(usage.Used),
+					UsedRate: math.Round(usage.UsedPercent*100) / 100,
+				},
+			)
+		}
 	}
 	return &overview, nil
 }

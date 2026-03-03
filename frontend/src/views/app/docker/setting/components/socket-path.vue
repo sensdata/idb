@@ -8,6 +8,14 @@
     @before-ok="handleBeforeOk"
   >
     <a-spin :loading="loading" class="w-full">
+      <a-alert class="mb-4" type="warning" :show-icon="true">
+        <div class="guide-title">
+          {{ t('app.docker.setting.socketPath.guide.title') }}
+        </div>
+        <div class="guide-desc">
+          {{ t('app.docker.setting.socketPath.guide.desc') }}
+        </div>
+      </a-alert>
       <a-form ref="formRef" :model="form" :rules="rules">
         <a-row type="flex" justify="center">
           <a-col :span="22">
@@ -15,6 +23,12 @@
               field="socketPath"
               :label="t('app.docker.setting.socketPath.socket_path')"
             >
+              <template #extra>
+                <span class="field-help">
+                  <icon-question-circle />
+                  {{ t('app.docker.setting.socketPath.socket_path.help') }}
+                </span>
+              </template>
               <a-input
                 v-model="form.socketPath"
                 :placeholder="
@@ -33,7 +47,7 @@
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
-  import { updateDockerConfApi } from '@/api/docker';
+  import { getDockerConfRawApi, updateDockerConfRawApi } from '@/api/docker';
   import { useConfirm } from '@/composables/confirm';
 
   const { t } = useI18n();
@@ -99,7 +113,19 @@
     ) {
       loading.value = true;
       try {
-        await updateDockerConfApi({ key: 'socket_path', value: socketPath });
+        const raw = await getDockerConfRawApi();
+        const daemonObj = JSON.parse(raw.content || '{}');
+        let normalizedSocket = socketPath;
+        if (
+          !socketPath.startsWith('tcp://') &&
+          !socketPath.startsWith('unix://')
+        ) {
+          normalizedSocket = `unix://${socketPath}`;
+        }
+        daemonObj.hosts = [normalizedSocket];
+        await updateDockerConfRawApi({
+          content: JSON.stringify(daemonObj, null, 2),
+        });
         emit('ok');
       } catch (err: any) {
         loading.value = false;
@@ -117,3 +143,23 @@
     setData,
   });
 </script>
+
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .field-help {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-text-3);
+  }
+</style>

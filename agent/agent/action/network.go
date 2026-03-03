@@ -42,21 +42,30 @@ func getDNSInfo() (*model.DNSInfo, error) {
 		// 获取 DNS 服务器列表
 		out, err := utils.Exec("resolvectl dns")
 		if err == nil {
+			serverSet := map[string]struct{}{}
 			for _, line := range strings.Split(out, "\n") {
-				// 跳过空行
-				if len(strings.TrimSpace(line)) == 0 {
+				line = strings.TrimSpace(line)
+				if line == "" {
 					continue
 				}
-				// 查找包含 eth0 的行
-				if strings.Contains(line, "eth0") {
-					// 使用更可靠的方式提取DNS服务器信息
-					if idx := strings.Index(line, ":"); idx != -1 {
-						dnsServers := strings.TrimSpace(line[idx+1:])
-						if len(dnsServers) > 0 {
-							servers := strings.Fields(dnsServers)
-							dnsInfo.Servers = append(dnsInfo.Servers, servers...)
-						}
+				idx := strings.Index(line, ":")
+				if idx == -1 {
+					continue
+				}
+				dnsServers := strings.TrimSpace(line[idx+1:])
+				if dnsServers == "" {
+					continue
+				}
+				for _, server := range strings.Fields(dnsServers) {
+					// 仅保留合法 IP，避免引入噪声字段
+					if net.ParseIP(server) == nil {
+						continue
 					}
+					if _, exists := serverSet[server]; exists {
+						continue
+					}
+					serverSet[server] = struct{}{}
+					dnsInfo.Servers = append(dnsInfo.Servers, server)
 				}
 			}
 		}
@@ -79,6 +88,7 @@ func getDNSInfo() (*model.DNSInfo, error) {
 		}
 
 		if len(dnsInfo.Servers) > 0 {
+			dnsInfo.Source = "systemd-resolved"
 			return dnsInfo, nil
 		}
 	}
@@ -90,7 +100,12 @@ func getDNSInfo() (*model.DNSInfo, error) {
 	}
 	defer file.Close()
 
-	return parseDNSConfig(file)
+	parsed, err := parseDNSConfig(file)
+	if err != nil {
+		return nil, err
+	}
+	parsed.Source = "resolv.conf"
+	return parsed, nil
 }
 
 // 解析 DNS 配置文件
@@ -183,17 +198,27 @@ func getNetwork() ([]model.NetworkInterface, error) {
 		}
 
 		stat := link.Attrs().Statistics
+		rxBytes := uint64(0)
+		txBytes := uint64(0)
+		if stat != nil {
+			rxBytes = stat.RxBytes
+			txBytes = stat.TxBytes
+		}
 
 		interfaces = append(interfaces, model.NetworkInterface{
-			Name:    name,
-			Mac:     mac,
-			Status:  status,
-			Address: addrInfos,
+			Name:      name,
+			Status:    status,
+			OperState: strings.ToLower(link.Attrs().OperState.String()),
+			LinkType:  link.Type(),
+			MTU:       link.Attrs().MTU,
+			Mac:       mac,
+			Proto:     "unknown",
+			Address:   addrInfos,
 			Traffic: model.TrafficInfo{
-				Rx:      utils.FormatMemorySize(stat.RxBytes),
-				RxBytes: int(stat.RxBytes),
-				Tx:      utils.FormatMemorySize(stat.TxBytes),
-				TxBytes: int(stat.TxBytes),
+				Rx:      utils.FormatMemorySize(rxBytes),
+				RxBytes: int(rxBytes),
+				Tx:      utils.FormatMemorySize(txBytes),
+				TxBytes: int(txBytes),
 			},
 		})
 	}

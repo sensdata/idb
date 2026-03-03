@@ -241,7 +241,7 @@ func (s *LogRotate) GetCategories(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
@@ -358,7 +358,7 @@ func (s *LogRotate) DeleteCategory(c *gin.Context) {
 	}
 
 	category := c.Query("category")
-	if category == "" {
+	if scriptType != "system" && category == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
 		return
 	}
@@ -401,13 +401,13 @@ func (s *LogRotate) GetConfList(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
 	category := c.Query("category")
-	if category == "" {
+	if scriptType != "system" && category == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
 		return
 	}
@@ -491,13 +491,13 @@ func (s *LogRotate) GetContent(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
 	category := c.Query("category")
-	if category == "" {
+	if scriptType != "system" && category == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
 		return
 	}
@@ -574,13 +574,13 @@ func (s *LogRotate) GetForm(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
 	category := c.Query("category")
-	if category == "" {
+	if scriptType != "system" && category == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
 		return
 	}

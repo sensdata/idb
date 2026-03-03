@@ -4,6 +4,8 @@ export const TABLE_CONFIG = {
   DEFAULT_PAGE: 1,
 } as const;
 
+export const DEFAULT_LOGROTATE_CATEGORY = 'default';
+
 // 布局常量
 export const LAYOUT_CONFIG = {
   LEFT_PANEL_WIDTH: 200,

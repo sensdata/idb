@@ -25,6 +25,7 @@ func (s *SysInfo) getOverview(hostID uint) (*model.Overview, error) {
 	err = json.Unmarshal([]byte(actionResponse.Data.Action.Data), &overview)
 	if err != nil {
 		LOG.Error("Error unmarshaling data to Overview: %v", err)
+		return &overview, err
 	}
 
 	return &overview, nil

@@ -34,6 +34,22 @@
         </div>
       </div>
       <div class="line">
+        <div class="col1">{{ $t('app.sysinfo.overview.data_status') }}</div>
+        <div class="col2">
+          {{ formatTime(lastUpdatedAt || undefined) }}
+        </div>
+        <div class="col3"></div>
+        <div class="col4">
+          <a-tag :color="dataFresh ? 'green' : 'red'">
+            {{
+              dataFresh
+                ? $t('app.sysinfo.overview.data_fresh')
+                : $t('app.sysinfo.overview.data_stale')
+            }}
+          </a-tag>
+        </div>
+      </div>
+      <div class="line">
         <div class="col1">{{
           $t('app.sysinfo.overview.server_time_zone')
         }}</div>
@@ -49,11 +65,7 @@
         <div class="col1">{{ $t('app.sysinfo.overview.boot_time') }}</div>
         <div class="col2"> {{ formatTime(data.boot_time) }} </div>
         <div class="col3"></div>
-        <div class="col4">
-          <a-tag :color="'rgb(var(--primary-6))'">{{
-            $t('app.sysinfo.overview.tag.busy')
-          }}</a-tag>
-        </div>
+        <div class="col4"></div>
       </div>
       <div class="line">
         <div class="col1">{{ $t('app.sysinfo.overview.run_time') }}</div>
@@ -131,7 +143,7 @@
             <div class="col3">{{ data.memory_usage?.free }}</div>
             <div class="col4">
               <a-tag
-                v-if="data.memory_usage?.free_rate"
+                v-if="data.memory_usage?.free_rate !== undefined"
                 :color="'rgb(var(--warning-6))'"
                 >{{
                   $t('app.sysinfo.overview.tag.leave_unused', {
@@ -159,7 +171,7 @@
             }}</div>
             <div class="col3"> {{ data.memory_usage?.real_used }}</div>
             <div class="col4">
-              <a-link class="text-sm">{{
+              <a-link class="text-sm" @click="handleViewMemoryDetail">{{
                 $t('app.sysinfo.overview.button.view_memory')
               }}</a-link>
             </div>
@@ -293,11 +305,56 @@
   <create-swap-modal ref="createSwapModalRef" @ok="load" />
   <timezone-modify ref="timezoneModifyRef" @ok="load" />
   <auto-clear-cache ref="autoClearCacheRef" @ok="load" />
+  <a-modal
+    v-model:visible="memoryDetailVisible"
+    :title="$t('app.sysinfo.overview.memory_detail.title')"
+    :footer="false"
+    width="520px"
+  >
+    <a-descriptions
+      :column="1"
+      size="medium"
+      layout="horizontal"
+      :label-style="{ width: '220px' }"
+    >
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.total')"
+      >
+        {{ data.memory_usage?.total || '-' }}
+      </a-descriptions-item>
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.used')"
+      >
+        {{ data.memory_usage?.used || '-' }}
+      </a-descriptions-item>
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.free')"
+      >
+        {{ data.memory_usage?.free || '-' }}
+      </a-descriptions-item>
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.process')"
+      >
+        {{ data.memory_usage?.real_used || '-' }}
+      </a-descriptions-item>
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.buffered')"
+      >
+        {{ data.memory_usage?.buffered || '-' }}
+      </a-descriptions-item>
+      <a-descriptions-item
+        :label="$t('app.sysinfo.overview.memory_detail.cached')"
+      >
+        {{ data.memory_usage?.cached || '-' }}
+      </a-descriptions-item>
+    </a-descriptions>
+  </a-modal>
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import {
+    computed,
     h,
     onBeforeUnmount,
     onMounted,
@@ -308,7 +365,7 @@
   import { formatSeconds, formatTime } from '@/utils/format';
   import useLoading from '@/composables/loading';
   import {
-    getSysInfoOverviewtApi,
+    getSysInfoOverviewApi,
     SysInfoOverviewRes,
     syncTimeApi,
     deleteSwapApi,
@@ -358,34 +415,44 @@
 
   const isSyncingTime = ref(false);
   const syncTimeStatus = ref<'syncing' | 'success' | null>(null);
+  const memoryDetailVisible = ref(false);
+  const lastUpdatedAt = ref<number | null>(null);
+  const nowTick = ref(Date.now());
+  const polling = ref(false);
+  let syncStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const timeModifyRef = ref<InstanceType<typeof TimeModify>>();
   const createSwapModalRef = ref<InstanceType<typeof CreateSwapModal>>();
   const timezoneModifyRef = ref<InstanceType<typeof TimezoneModify>>();
   const autoClearCacheRef = ref<InstanceType<typeof AutoClearCache>>();
 
+  const dataFresh = computed(() => {
+    if (!lastUpdatedAt.value) return false;
+    return nowTick.value - lastUpdatedAt.value <= 12000;
+  });
+
   const ProcessCountTag = ({ count }: { count?: string }) => {
     if (!count) {
       return null;
     }
     const rate = parseFloat(count);
-    if (!rate) {
+    if (Number.isNaN(rate)) {
       return null;
     }
-    if (rate > 50) {
+    if (rate >= 85) {
       return h(
         resolveComponent('a-tag'),
         {
-          color: 'blue',
+          color: 'red',
         },
         () => t('app.sysinfo.overview.tag.busy')
       );
     }
-    if (rate > 30) {
+    if (rate >= 70) {
       return h(
         resolveComponent('a-tag'),
         {
-          color: 'blue',
+          color: 'orange',
         },
         () => t('app.sysinfo.overview.tag.normal')
       );
@@ -400,17 +467,23 @@
   };
 
   const load = async (silent = false) => {
+    if (silent && polling.value) return;
+
     if (!silent) {
       setLoading(true);
     }
     try {
-      const res = await getSysInfoOverviewtApi();
+      polling.value = true;
+      const res = await getSysInfoOverviewApi();
       Object.assign(data, res);
+      lastUpdatedAt.value = Date.now();
+      nowTick.value = lastUpdatedAt.value;
     } catch (err: any) {
       if (!silent) {
         Message.error(err?.message);
       }
     } finally {
+      polling.value = false;
       if (!silent) {
         setLoading(false);
       }
@@ -420,7 +493,10 @@
   // 定时刷新数据
   let timer: number | null = null;
   const startTimer = () => {
+    if (timer) return;
     timer = window.setInterval(() => {
+      nowTick.value = Date.now();
+      if (document.visibilityState !== 'visible') return;
       load(true);
     }, 5000);
   };
@@ -432,12 +508,21 @@
     }
   };
 
-  const getStorageUsedColor = (rate: number) => {
-    if (rate >= 80) {
-      return 'blue';
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      load(true);
+      startTimer();
+      return;
     }
-    if (rate >= 60) {
-      return 'cyan';
+    stopTimer();
+  };
+
+  const getStorageUsedColor = (rate: number) => {
+    if (rate >= 85) {
+      return 'red';
+    }
+    if (rate >= 70) {
+      return 'orange';
     }
     return 'green';
   };
@@ -460,7 +545,10 @@
       syncTimeStatus.value = 'success';
       await load();
 
-      setTimeout(() => {
+      if (syncStatusTimer) {
+        clearTimeout(syncStatusTimer);
+      }
+      syncStatusTimer = setTimeout(() => {
         syncTimeStatus.value = null;
       }, 3000);
     } catch (err: any) {
@@ -505,6 +593,10 @@
     }
   };
 
+  const handleViewMemoryDetail = () => {
+    memoryDetailVisible.value = true;
+  };
+
   const handleDeleteSwap = async () => {
     try {
       if (
@@ -530,18 +622,24 @@
   onMounted(() => {
     load();
     startTimer();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   });
 
   onBeforeUnmount(() => {
     stopTimer();
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    if (syncStatusTimer) {
+      clearTimeout(syncStatusTimer);
+      syncStatusTimer = null;
+    }
   });
 </script>
 
 <style lang="less" scoped>
   .box {
     width: 940px;
-    margin: 0 auto;
     padding: 0 16px;
+    margin: 0 auto;
     border: 1px solid var(--color-border-2);
   }
 
@@ -579,23 +677,23 @@
   .col1 {
     width: 160px;
     margin-right: 40px;
-    color: var(--color-text-2);
     font-size: 14px;
+    color: var(--color-text-2);
     text-align: right;
   }
 
   .col2 {
     width: 160px;
     margin-right: 40px;
-    color: var(--color-text-1);
     font-size: 14px;
+    color: var(--color-text-1);
   }
 
   .col3 {
     width: 50px;
     margin-right: 30px;
-    color: var(--color-text-1);
     font-size: 14px;
+    color: var(--color-text-1);
   }
 
   .col4 {

@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-  import { nextTick, ref } from 'vue';
+  import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import LogsView from '@/components/logs-view/index.vue';
   import { resolveApiUrl } from '@/helper/api-helper';
@@ -27,9 +27,9 @@
   const visible = ref(false);
   const contentArrayRef = ref<string[]>([]);
   const hostStore = useHostStore();
-  const hostId = hostStore.currentId;
+  const hostId = computed(() => hostStore.currentId);
   const logsRef = ref<InstanceType<typeof LogsView>>();
-  const eventSourceRef = ref();
+  const eventSourceRef = ref<EventSource | null>(null);
 
   const contentRef = ref('');
   const updateContent = () => {
@@ -45,22 +45,32 @@
     maxWait: 1000,
   });
 
+  const closeEventSource = () => {
+    eventSourceRef.value?.close();
+    eventSourceRef.value = null;
+    updateContentWithDebounce.cancel();
+  };
+
   function connect(configFiles: string) {
+    closeEventSource();
     contentArrayRef.value = [];
-    const url = resolveApiUrl(`/docker/${hostId}/compose/logs/tail`, {
+    contentRef.value = '';
+    const url = resolveApiUrl('/docker/{host}/compose/logs/tail', {
+      host: hostId.value,
       config_files: configFiles,
     });
-    eventSourceRef.value = new EventSource(url);
+    const eventSource = new EventSource(url);
+    eventSourceRef.value = eventSource;
 
     const handleClose = () => {
-      eventSourceRef.value.close();
+      closeEventSource();
       emit('ok');
     };
 
-    eventSourceRef.value.addEventListener('close', handleClose);
-    eventSourceRef.value.addEventListener('end', handleClose);
+    eventSource.addEventListener('close', handleClose);
+    eventSource.addEventListener('end', handleClose);
 
-    eventSourceRef.value.addEventListener('log', (event: Event) => {
+    eventSource.addEventListener('log', (event: Event) => {
       if (event instanceof MessageEvent) {
         if (event.data) {
           const rawData = event.data;
@@ -76,7 +86,7 @@
         }
       }
     });
-    eventSourceRef.value.addEventListener('error', (event: Event) => {
+    eventSource.addEventListener('error', (event: Event) => {
       if (event.type === 'error') {
         Message.error(t('app.docker.compose.logsModal.error'));
       }
@@ -88,9 +98,13 @@
   }
 
   function handleCancel() {
-    eventSourceRef.value?.close();
+    closeEventSource();
     visible.value = false;
   }
+
+  onBeforeUnmount(() => {
+    closeEventSource();
+  });
 
   defineExpose({
     show,

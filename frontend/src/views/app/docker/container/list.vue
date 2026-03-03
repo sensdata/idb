@@ -11,12 +11,26 @@
       ref="tableRef"
       :columns="columns"
       :params="params"
-      :filters="filters"
+      :has-search="enableNameSearch"
       :fetch="queryContainersApi"
       :beforeFetchHook="beforeFetchHook"
       :afterFetchHook="afterFetchHook"
     >
       <template #leftActions>
+        <a-radio-group
+          v-model="stateFilter"
+          type="button"
+          size="small"
+          @change="handleStateFilterChange"
+        >
+          <a-radio
+            v-for="option in stateFilterOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </a-radio>
+        </a-radio-group>
         <a-button type="primary" @click="handlePrune">
           {{ t('app.docker.container.list.action.prune') }}
         </a-button>
@@ -46,7 +60,38 @@
         </div>
       </template>
       <template #operation="{ record }">
-        <idb-table-operation :options="getOperationOptions(record)" />
+        <div class="container-operation-bar">
+          <a-button
+            v-for="option in getPrimaryOptions(record)"
+            :key="option.key"
+            type="text"
+            size="small"
+            @click="handleOptionClick(option)"
+          >
+            {{ option.text }}
+          </a-button>
+          <a-dropdown v-if="getMoreOptions(record).length > 0" trigger="click">
+            <a-button type="text" size="small">
+              {{ $t('common.table.operation') }}
+              <icon-down />
+            </a-button>
+            <template #content>
+              <a-doption
+                v-for="option in getMoreOptions(record)"
+                :key="option.key"
+                @click="handleOptionClick(option)"
+              >
+                <span
+                  :class="{
+                    'danger-option': option.status === 'danger',
+                  }"
+                >
+                  {{ option.text }}
+                </span>
+              </a-doption>
+            </template>
+          </a-dropdown>
+        </div>
       </template>
     </idb-table>
     <logs-modal ref="logsRef" />
@@ -57,7 +102,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { h, onUnmounted, ref, resolveComponent } from 'vue';
+  import { computed, h, onUnmounted, ref, resolveComponent } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
@@ -83,58 +128,39 @@
   const { getDatabaseType, isDatabaseCompose } = useDatabaseManager();
 
   const route = useRoute();
-  const params = {
-    composeId: +route.params.composeId || undefined,
-  };
-
-  const filters = [
+  const stateFilter = ref('all');
+  const stateFilterOptions = computed(() => [
+    { label: t('app.docker.container.list.state.all'), value: 'all' },
+    { label: t('app.docker.container.list.state.running'), value: 'running' },
+    { label: t('app.docker.container.list.state.paused'), value: 'paused' },
     {
-      label: t('app.docker.container.list.filter.state'),
-      field: 'state',
-      type: 'select' as const,
-      defaultValue: 'all',
-      options: [
-        {
-          label: t('app.docker.container.list.state.all'),
-          value: 'all',
-        },
-        {
-          label: t('app.docker.container.list.state.created'),
-          value: 'created',
-        },
-        {
-          label: t('app.docker.container.list.state.running'),
-          value: 'running',
-        },
-        {
-          label: t('app.docker.container.list.state.paused'),
-          value: 'paused',
-        },
-        {
-          label: t('app.docker.container.list.state.restarting'),
-          value: 'restarting',
-        },
-        {
-          label: t('app.docker.container.list.state.removing'),
-          value: 'removing',
-        },
-        {
-          label: t('app.docker.container.list.state.exited'),
-          value: 'exited',
-        },
-        {
-          label: t('app.docker.container.list.state.dead'),
-          value: 'dead',
-        },
-      ],
+      label: t('app.docker.container.list.state.restarting'),
+      value: 'restarting',
     },
-  ];
+    { label: t('app.docker.container.list.state.exited'), value: 'exited' },
+    { label: t('app.docker.container.list.state.dead'), value: 'dead' },
+    { label: t('app.docker.container.list.state.created'), value: 'created' },
+    { label: t('app.docker.container.list.state.removing'), value: 'removing' },
+  ]);
+  const composeId = computed(() =>
+    typeof route.params.composeId === 'string' && route.params.composeId.trim()
+      ? route.params.composeId.trim()
+      : undefined
+  );
+  const enableNameSearch = computed(() => !composeId.value);
+  const params = computed(() => ({
+    info: composeId.value,
+    state: stateFilter.value,
+  }));
 
   const columns = [
     {
       dataIndex: 'name',
       title: t('app.docker.container.list.column.name'),
       width: 180,
+      sortable: {
+        sortDirections: ['ascend', 'descend'],
+      },
     },
     {
       dataIndex: 'image_name',
@@ -145,6 +171,9 @@
       dataIndex: 'state',
       title: t('app.docker.container.list.column.state'),
       width: 110,
+      sortable: {
+        sortDirections: ['ascend', 'descend'],
+      },
       render: ({ record }: { record: any }) => {
         const stateMap = {
           created: {
@@ -204,7 +233,34 @@
       title: t('app.docker.container.list.column.ip'),
       width: 140,
       render: ({ record }: { record: any }) => {
-        return record.network.join(',');
+        const networks = Array.isArray(record.network)
+          ? record.network.filter(Boolean)
+          : [];
+        if (!networks.length) {
+          return '-';
+        }
+        const preview = networks.slice(0, 2).join(', ');
+        const text =
+          networks.length > 2 ? `${preview} +${networks.length - 2}` : preview;
+        if (networks.length <= 2) {
+          return text;
+        }
+        return h(
+          resolveComponent('a-tooltip'),
+          {
+            content: networks.join('\n'),
+          },
+          {
+            default: () =>
+              h(
+                'span',
+                {
+                  class: 'ip-preview',
+                },
+                text
+              ),
+          }
+        );
       },
     },
     {
@@ -229,6 +285,12 @@
 
   const tableRef = ref();
   const reload = () => tableRef.value?.reload();
+  const handleStateFilterChange = () => {
+    tableRef.value?.load?.({
+      state: stateFilter.value,
+      page: 1,
+    });
+  };
   const dataRef = ref<ApiListResult<any>>();
   const currentSSE = ref<EventSource | null>(null);
   const currentSSEParams = ref<string>('');
@@ -311,8 +373,36 @@
 
   // 在 fetch 之前捕获参数
   const beforeFetchHook = (fetchParams: any) => {
-    lastFetchParams.value = { ...fetchParams };
-    return fetchParams;
+    const nextParams = { ...fetchParams };
+
+    // 通用表格搜索参数统一映射为后端容器查询参数 info
+    if (composeId.value) {
+      nextParams.info = composeId.value;
+    } else if (typeof nextParams.search === 'string') {
+      const keyword = nextParams.search.trim();
+      nextParams.info = keyword || undefined;
+    }
+    delete nextParams.search;
+
+    // 通用表格排序参数映射为后端容器查询排序参数
+    const orderByMap: Record<string, string> = {
+      name: 'name',
+      state: 'state',
+      create_time: 'created',
+    };
+    const mappedOrderBy = orderByMap[nextParams.sort_field];
+    if (mappedOrderBy && ['asc', 'desc'].includes(nextParams.sort_order)) {
+      nextParams.order_by = mappedOrderBy;
+      nextParams.order = nextParams.sort_order;
+    } else {
+      delete nextParams.order_by;
+      delete nextParams.order;
+    }
+    delete nextParams.sort_field;
+    delete nextParams.sort_order;
+
+    lastFetchParams.value = { ...nextParams };
+    return nextParams;
   };
 
   const afterFetchHook = async (data: ApiListResult<any>) => {
@@ -404,6 +494,22 @@
   const stopConfirmRef = ref<InstanceType<typeof StopConfirmModal>>();
   const databaseManagerRef = ref<InstanceType<typeof DatabaseManagerDrawer>>();
 
+  interface ContainerOperationOption {
+    key: string;
+    text: string;
+    visible?: boolean;
+    confirm?: string | null;
+    status?: 'normal' | 'success' | 'warning' | 'danger';
+    click: () => void | Promise<void>;
+  }
+
+  const handleOptionClick = async (option: ContainerOperationOption) => {
+    if (option.confirm && !(await confirm(option.confirm))) {
+      return;
+    }
+    await option.click();
+  };
+
   // 处理数据库管理
   const handleManageDatabase = (containerName: string) => {
     const dbType = getDatabaseType(containerName);
@@ -413,71 +519,164 @@
     databaseManagerRef.value?.show(dbType, containerName);
   };
 
-  const getOperationOptions = (record: any) => [
-    // 数据库容器显示管理按钮
-    {
-      text: t('app.docker.container.list.operation.manage'),
-      visible: isDatabaseCompose(record.name),
-      click: () => handleManageDatabase(record.name),
-    },
-    {
-      text: t('app.docker.container.list.operation.terminal'),
-      click: () => {
-        termRef?.value?.show(record.container_id);
+  const getOperationOptions = (record: any): ContainerOperationOption[] => {
+    const manageOptions: ContainerOperationOption[] = [
+      // 数据库容器显示管理按钮
+      {
+        key: 'manage',
+        text: t('app.docker.container.list.operation.manage'),
+        visible: isDatabaseCompose(record.name),
+        click: () => handleManageDatabase(record.name),
       },
-    },
-    {
-      text: t('app.docker.container.list.operation.log'),
-      click: () => {
-        logsRef.value?.connect(record.name);
-        logsRef.value?.show();
+      {
+        key: 'terminal',
+        text: t('app.docker.container.list.operation.terminal'),
+        click: () => {
+          termRef?.value?.show(record.container_id);
+        },
       },
-    },
-    {
-      text: t('app.docker.container.list.operation.start'),
-      visible: record.state !== 'running',
-      confirm: record.compose
-        ? t('app.docker.container.recommendCompose')
-        : null,
-      click: () => handleOperate(record.name, 'start'),
-    },
-    {
-      text: t('app.docker.container.list.operation.stop'),
-      visible: record.state === 'running',
-      confirm: record.compose
-        ? t('app.docker.container.recommendCompose')
-        : null,
-      click: () => stopConfirmRef.value?.show(record.container_id),
-    },
-    {
-      text: t('app.docker.container.list.operation.restart'),
-      visible: record.state === 'running',
-      confirm: record.compose
-        ? t('app.docker.container.recommendCompose')
-        : null,
-      click: () => handleOperate(record.name, 'restart'),
-    },
-    {
-      text: t('app.docker.container.list.operation.pause'),
-      visible: record.state === 'running',
-      confirm: t('app.docker.container.list.operation.pause.confirm'),
-      click: () => handleOperate(record.name, 'pause'),
-    },
-    {
-      text: t('app.docker.container.list.operation.unpause'),
-      visible: record.state === 'paused',
-      confirm: t('app.docker.container.list.operation.unpause.confirm'),
-      click: () => handleOperate(record.name, 'unpause'),
-    },
-    {
-      text: t('app.docker.container.list.operation.delete'),
-      // confirm: t('app.docker.container.list.operation.delete.confirm'),
-      confirm: record.compose
-        ? t('app.docker.container.recommendCompose')
-        : t('app.docker.container.list.operation.delete.confirm'),
-      click: () => handleOperate(record.name, 'remove'),
-    },
-  ];
+      {
+        key: 'log',
+        text: t('app.docker.container.list.operation.log'),
+        click: () => {
+          logsRef.value?.connect(record.name);
+          logsRef.value?.show();
+        },
+      },
+    ];
+
+    const lifecycleOptions: ContainerOperationOption[] = [
+      {
+        key: 'start',
+        text: t('app.docker.container.list.operation.start'),
+        visible: ['created', 'exited', 'dead'].includes(record.state),
+        confirm: record.compose
+          ? t('app.docker.container.recommendCompose')
+          : null,
+        click: () => handleOperate(record.name, 'start'),
+      },
+      {
+        key: 'stop',
+        text: t('app.docker.container.list.operation.stop'),
+        visible: ['running', 'restarting'].includes(record.state),
+        confirm: record.compose
+          ? t('app.docker.container.recommendCompose')
+          : null,
+        click: () => stopConfirmRef.value?.show(record.name),
+      },
+      {
+        key: 'restart',
+        text: t('app.docker.container.list.operation.restart'),
+        visible: ['running', 'restarting'].includes(record.state),
+        confirm: record.compose
+          ? t('app.docker.container.recommendCompose')
+          : null,
+        click: () => handleOperate(record.name, 'restart'),
+      },
+      {
+        key: 'pause',
+        text: t('app.docker.container.list.operation.pause'),
+        visible: record.state === 'running',
+        confirm: t('app.docker.container.list.operation.pause.confirm'),
+        click: () => handleOperate(record.name, 'pause'),
+      },
+      {
+        key: 'unpause',
+        text: t('app.docker.container.list.operation.unpause'),
+        visible: record.state === 'paused',
+        confirm: t('app.docker.container.list.operation.unpause.confirm'),
+        click: () => handleOperate(record.name, 'unpause'),
+      },
+    ];
+
+    const dangerOptions: ContainerOperationOption[] = [
+      {
+        key: 'delete',
+        text: t('app.docker.container.list.operation.delete'),
+        status: 'danger',
+        confirm: record.compose
+          ? t('app.docker.container.recommendCompose')
+          : t('app.docker.container.list.operation.delete.confirm'),
+        visible: record.state !== 'removing',
+        click: () => handleOperate(record.name, 'remove'),
+      },
+    ];
+
+    const primaryKeyByState: Record<string, string> = {
+      created: 'start',
+      exited: 'start',
+      dead: 'start',
+      running: 'stop',
+      restarting: 'stop',
+      paused: 'unpause',
+    };
+
+    const visibleLifecycle = lifecycleOptions.filter((item) => item.visible);
+    const preferredPrimaryKey = primaryKeyByState[record.state];
+    const primaryLifecycle =
+      visibleLifecycle.find((item) => item.key === preferredPrimaryKey) ||
+      visibleLifecycle[0];
+    const secondaryLifecycle = visibleLifecycle.filter(
+      (item) => item.key !== primaryLifecycle?.key
+    );
+
+    const visibleManage = manageOptions.filter(
+      (item) => item.visible !== false
+    );
+    const visibleDanger = dangerOptions.filter(
+      (item) => item.visible !== false
+    );
+
+    const primaryAction =
+      primaryLifecycle || visibleManage[0] || visibleDanger[0];
+    if (!primaryAction) {
+      return [];
+    }
+
+    return [
+      primaryAction,
+      ...secondaryLifecycle,
+      ...visibleManage.filter((item) => item.key !== primaryAction.key),
+      ...visibleDanger.filter((item) => item.key !== primaryAction.key),
+    ];
+  };
+
+  const getPrimaryOptions = (record: any) => {
+    const options = getOperationOptions(record).filter(
+      (item) => item.visible !== false
+    );
+    return options.filter((item) => ['terminal', 'log'].includes(item.key));
+  };
+
+  const getMoreOptions = (record: any) => {
+    const primaryKeys = new Set(
+      getPrimaryOptions(record).map((item) => item.key)
+    );
+    return getOperationOptions(record).filter(
+      (item) => item.visible !== false && !primaryKeys.has(item.key)
+    );
+  };
 </script>
 
-<style scoped></style>
+<style scoped>
+  .container-operation-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .danger-option {
+    color: rgb(var(--danger-6));
+  }
+
+  .ip-preview {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: help;
+  }
+</style>

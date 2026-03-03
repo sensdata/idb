@@ -94,19 +94,28 @@
   const testing = ref(false);
   const formRef = ref<FormInstance>();
 
-  const show = () => {
-    visible.value = true;
-  };
-  const hide = () => {
-    visible.value = false;
-  };
-
   const formState = reactive({
     name: '',
     active: 'compose_content',
     compose_content: '',
     env_content: '',
   });
+
+  const resetForm = () => {
+    formState.name = '';
+    formState.active = 'compose_content';
+    formState.compose_content = '';
+    formState.env_content = '';
+  };
+
+  const show = () => {
+    resetForm();
+    visible.value = true;
+  };
+  const hide = () => {
+    resetForm();
+    visible.value = false;
+  };
 
   const validate = () => {
     if (!formState.name?.trim()) {

@@ -252,7 +252,7 @@ type CreateCompose struct {
 
 type OperateCompose struct {
 	Name          string `json:"name" validate:"required"`
-	Operation     string `json:"operation" validate:"required,oneof=start stop restart up down"`
+	Operation     string `json:"operation" validate:"required,oneof=start stop restart up pull down"`
 	RemoveVolumes bool   `json:"remove_volumes"`
 }
 
@@ -272,7 +272,7 @@ type ComposeRemove struct {
 
 type ComposeOperation struct {
 	Name          string `json:"name" validate:"required"`
-	Operation     string `json:"operation" validate:"required,oneof=start stop down"`
+	Operation     string `json:"operation" validate:"required,oneof=start stop restart up pull down"`
 	RemoveVolumes bool   `json:"remove_volumes"`
 	WorkDir       string `json:"work_dir"`
 }

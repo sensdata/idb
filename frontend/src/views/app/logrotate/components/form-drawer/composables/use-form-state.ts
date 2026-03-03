@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { useForm } from '@/composables/use-form';
 import { useLogger } from '@/composables/use-logger';
 import { LOGROTATE_FREQUENCY, LOGROTATE_TYPE } from '@/config/enum';
+import { DEFAULT_LOGROTATE_CATEGORY } from '../../../constants';
 import type { FormData } from '../types';
 
 export function useFormState() {
@@ -21,7 +22,7 @@ export function useFormState() {
   // 初始表单数据
   const initialFormData: FormData = {
     name: '',
-    category: '',
+    category: DEFAULT_LOGROTATE_CATEGORY,
     path: '',
     frequency: LOGROTATE_FREQUENCY.Daily,
     count: 7,

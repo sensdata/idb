@@ -173,10 +173,10 @@ func (c DockerClient) initConf(path string, content string, upgrade bool) error 
 	return nil
 }
 
-// func pull(filePath string) (string, error) {
-// 	stdout, err := utils.Execf("docker compose -f %s pull", filePath)
-// 	return stdout, err
-// }
+func pull(filePath string) (string, error) {
+	stdout, err := utils.Execf("docker compose -f %s pull", filePath)
+	return stdout, err
+}
 
 func up(filePath string) (string, error) {
 	stdout, err := utils.Execf("docker compose -f %s up -d", filePath)
@@ -668,6 +668,12 @@ func (c DockerClient) ComposeOperation(req model.ComposeOperation) (*model.Compo
 			if stdout, err := up(composePath); err != nil {
 				logger.Error("docker compose up %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 				global.LOG.Error("docker compose up %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				return
+			}
+		case "pull":
+			if stdout, err := pull(composePath); err != nil {
+				logger.Error("docker compose pull %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
+				global.LOG.Error("docker compose pull %s failed, out:%s, err: %v", req.Name, strings.TrimSpace(stdout), err)
 				return
 			}
 		case "down":

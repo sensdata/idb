@@ -10,16 +10,20 @@ type DNSInfo struct {
 	Servers []string `json:"servers"` //dns服务器
 	Timeout int      `json:"timeout"` //超时时间
 	Retry   int      `json:"retry"`   //重试次数
+	Source  string   `json:"source"`  //配置来源
 }
 
 // 网络接口
 type NetworkInterface struct {
-	Name    string        `json:"name"`    //名称
-	Status  string        `json:"status"`  //状态
-	Mac     string        `json:"mac"`     //mac地址
-	Proto   string        `json:"proto"`   //分配方式
-	Address []AddressInfo `json:"address"` // 多个地址信息
-	Traffic TrafficInfo   `json:"traffic"` //流量信息
+	Name      string        `json:"name"`       //名称
+	Status    string        `json:"status"`     //状态
+	OperState string        `json:"oper_state"` //运行状态
+	LinkType  string        `json:"link_type"`  //链路类型
+	MTU       int           `json:"mtu"`        //MTU
+	Mac       string        `json:"mac"`        //mac地址
+	Proto     string        `json:"proto"`      //分配方式
+	Address   []AddressInfo `json:"address"`    // 多个地址信息
+	Traffic   TrafficInfo   `json:"traffic"`    //流量信息
 }
 
 // 地址信息

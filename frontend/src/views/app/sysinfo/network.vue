@@ -8,12 +8,17 @@
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.dns_servers') }}</div>
             <div class="col3">
-              <div
-                v-for="(server, index) in dnsServers"
-                :key="`${server}-${index}`"
-              >
-                {{ server }}
-              </div>
+              <template v-if="dnsServers.length">
+                <div
+                  v-for="(server, index) in dnsServers"
+                  :key="`${server}-${index}`"
+                >
+                  {{ server }}
+                </div>
+              </template>
+              <span v-else class="empty-value">
+                {{ $t('app.sysinfo.network.none') }}
+              </span>
             </div>
             <div class="col4">
               <a-button type="primary" size="mini" @click="handleModifyDNS">{{
@@ -22,17 +27,30 @@
             </div>
           </div>
           <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.network.dns_source') }}</div>
+            <div class="col3">
+              {{ dnsSourceText }}
+            </div>
+          </div>
+          <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.dns_timeout') }}</div>
-            <div class="col3"
-              >{{ data.dns?.timeout
-              }}{{ $t('app.sysinfo.network.seconds') }}</div
-            >
+            <div class="col3">
+              {{
+                data.dns?.timeout
+                  ? `${data.dns.timeout}${$t('app.sysinfo.network.seconds')}`
+                  : $t('app.sysinfo.network.none')
+              }}
+            </div>
           </div>
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.dns_retry') }}</div>
-            <div class="col3"
-              >{{ data.dns?.retry }}{{ $t('app.sysinfo.network.times') }}</div
-            >
+            <div class="col3">
+              {{
+                data.dns?.retry
+                  ? `${data.dns.retry}${$t('app.sysinfo.network.times')}`
+                  : $t('app.sysinfo.network.none')
+              }}
+            </div>
           </div>
         </div>
       </div>
@@ -76,10 +94,19 @@
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.name') }}</div>
             <div class="col3">
-              {{ network.name }}
+              {{ network.name || '-' }}
               <span v-if="getNetworkTypeText(network.name)">
                 ({{ getNetworkTypeText(network.name) }})
               </span>
+              <a-button
+                v-if="network.name"
+                type="text"
+                size="mini"
+                class="ml-2"
+                @click="copyText(network.name)"
+              >
+                {{ $t('app.sysinfo.network.copy') }}
+              </a-button>
             </div>
           </div>
           <div class="subline">
@@ -90,14 +117,37 @@
           </div>
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.mac') }}</div>
-            <div class="col3">{{ network.mac }}</div>
+            <div class="col3">
+              {{ network.mac || '-' }}
+              <a-button
+                v-if="network.mac"
+                type="text"
+                size="mini"
+                class="ml-2"
+                @click="copyText(network.mac)"
+              >
+                {{ $t('app.sysinfo.network.copy') }}
+              </a-button>
+            </div>
+          </div>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.network.oper_state') }}</div>
+            <div class="col3">{{ formatOperState(network.oper_state) }}</div>
+          </div>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.network.link_type') }}</div>
+            <div class="col3">{{ network.link_type || '-' }}</div>
+          </div>
+          <div class="subline">
+            <div class="col2">{{ $t('app.sysinfo.network.mtu') }}</div>
+            <div class="col3">{{ network.mtu || '-' }}</div>
           </div>
           <div class="subline">
             <div class="col2">{{ $t('app.sysinfo.network.ip_info') }}</div>
             <div class="col3">
               <a-table
                 :columns="ipColumns"
-                :data="network.address || []"
+                :data="getIpRows(network.address || [])"
                 :pagination="false"
                 :row-key="getIpRowKey"
                 size="small"
@@ -131,7 +181,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+  import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { Message } from '@arco-design/web-vue';
   import { getSysInfoNetworkApi, SysInfoNetworkRes } from '@/api/sysinfo';
@@ -142,14 +192,18 @@
   const { loading, setLoading } = useLoading(true);
   const dnsModifyRef = ref<InstanceType<typeof DnsModify>>();
   const polling = ref(false);
+  const NETWORK_FILTER_STORAGE_KEY = 'sysinfo.network.activeFilter';
+  const FILTER_KEYS = ['all', 'physical', 'loopback', 'virtual'] as const;
 
   type NetworkItem = SysInfoNetworkRes['networks'][number];
   type NetworkAddress = NetworkItem['address'][number];
+  type IpRow = NetworkAddress & { gateText: string };
 
   const getDefaultData = (): SysInfoNetworkRes => ({
     dns: {
       retry: 0,
       servers: [],
+      source: '',
       timeout: 0,
     },
     networks: [],
@@ -157,8 +211,23 @@
 
   const data = ref<SysInfoNetworkRes>(getDefaultData());
   const dnsServers = computed(() => data.value.dns?.servers || []);
+  const dnsSourceText = computed(() => {
+    const source = data.value.dns?.source;
+    if (source === 'systemd-resolved') {
+      return t('app.sysinfo.network.dns_source_systemd');
+    }
+    if (source === 'resolv.conf') {
+      return t('app.sysinfo.network.dns_source_resolv_conf');
+    }
+    return t('app.sysinfo.network.unknown');
+  });
   const networks = computed(() => data.value.networks || []);
-  const activeFilter = ref('physical');
+  const storedFilter = localStorage.getItem(NETWORK_FILTER_STORAGE_KEY);
+  const activeFilter = ref(
+    FILTER_KEYS.includes(storedFilter as (typeof FILTER_KEYS)[number])
+      ? storedFilter!
+      : 'physical'
+  );
 
   const getNetworkKind = (name: string) => {
     if (name === 'lo') return 'loopback';
@@ -203,7 +272,7 @@
     },
     {
       title: t('app.sysinfo.network.ip_gate'),
-      dataIndex: 'gate',
+      dataIndex: 'gateText',
     },
   ]);
 
@@ -231,10 +300,20 @@
       ? t('app.sysinfo.network.status_enabled')
       : t('app.sysinfo.network.status_disabled');
 
-  const getProtoText = (proto: string) =>
-    proto === 'dhcp'
-      ? t('app.sysinfo.network.proto_dhcp')
-      : t('app.sysinfo.network.proto_static');
+  const getProtoText = (proto: string) => {
+    if (proto === 'dhcp') {
+      return t('app.sysinfo.network.proto_dhcp');
+    }
+    if (proto === 'static') {
+      return t('app.sysinfo.network.proto_static');
+    }
+    return t('app.sysinfo.network.unknown');
+  };
+
+  const formatOperState = (state?: string) => {
+    if (!state) return t('app.sysinfo.network.unknown');
+    return state;
+  };
 
   const getNetworkTypeText = (name: string) => {
     if (name === 'eth0') return t('app.sysinfo.network.ethernet');
@@ -242,7 +321,13 @@
     return '';
   };
 
-  const getIpRowKey = (row: NetworkAddress) => `${row.type}-${row.ip}`;
+  const getIpRows = (rows: NetworkAddress[]): IpRow[] =>
+    rows.map((row) => ({
+      ...row,
+      gateText: row.gate?.length ? row.gate.join(', ') : '-',
+    }));
+
+  const getIpRowKey = (row: IpRow) => `${row.type}-${row.ip}`;
 
   const getTrafficRows = (network: NetworkItem) => [
     {
@@ -258,6 +343,15 @@
   ];
 
   const getTrafficRowKey = (row: { type: string }) => row.type;
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      Message.success(t('app.sysinfo.network.copy_success'));
+    } catch {
+      Message.error(t('app.sysinfo.network.copy_failed'));
+    }
+  };
 
   // 获取网络信息数据
   const fetchData = async (silent = false) => {
@@ -327,6 +421,14 @@
     // 立即刷新数据
     fetchData();
   };
+
+  watch(
+    activeFilter,
+    (value) => {
+      localStorage.setItem(NETWORK_FILTER_STORAGE_KEY, value);
+    },
+    { immediate: true }
+  );
 
   onMounted(() => {
     fetchData();
@@ -432,6 +534,10 @@
 
   .empty-network-text {
     font-size: 14px;
+    color: var(--color-text-3);
+  }
+
+  .empty-value {
     color: var(--color-text-3);
   }
 </style>

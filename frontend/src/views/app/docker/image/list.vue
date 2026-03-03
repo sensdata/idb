@@ -5,7 +5,13 @@
       @status-change="handleDockerStatusChange"
       @install-complete="handleDockerInstallComplete"
     />
-    <idb-table ref="gridRef" :columns="columns" :fetch="queryImagesApi">
+    <idb-table
+      ref="gridRef"
+      :columns="columns"
+      :has-search="true"
+      :fetch="queryImagesApi"
+      :beforeFetchHook="beforeFetchHook"
+    >
       <template #leftActions>
         <div class="flex gap-2">
           <a-button type="primary" @click="onPullImageClick">{{
@@ -17,16 +23,16 @@
           <a-button @click="onBuildImageClick">{{
             $t('app.docker.image.list.action.build')
           }}</a-button>
-          <a-button type="primary" @click="onPruneClick">
+          <a-button status="danger" @click="onPruneClick">
             {{ t('app.docker.image.list.action.prune') }}
           </a-button>
         </div>
       </template>
       <template #state="{ record }">
-        <a-tag v-if="record.is_used" :color="'rgb(var(--success-6))'">
+        <a-tag v-if="record.is_used" color="green">
           {{ $t('app.docker.image.list.state.used') }}
         </a-tag>
-        <a-tag v-else :color="'rgb(var(--color-text-4))'">
+        <a-tag v-else color="orange">
           {{ $t('app.docker.image.list.state.unused') }}
         </a-tag>
       </template>
@@ -42,10 +48,38 @@
         </div>
       </template>
       <template #operation="{ record }">
-        <idb-table-operation
-          type="dropdown"
-          :options="getOperationOptions(record)"
-        />
+        <div class="image-operation-bar">
+          <a-button
+            v-for="option in getPrimaryOptions(record)"
+            :key="option.key"
+            type="text"
+            size="small"
+            @click="handleOptionClick(option)"
+          >
+            {{ option.text }}
+          </a-button>
+          <a-dropdown v-if="getMoreOptions(record).length > 0" trigger="click">
+            <a-button type="text" size="small">
+              {{ $t('common.table.operation') }}
+              <icon-down />
+            </a-button>
+            <template #content>
+              <a-doption
+                v-for="option in getMoreOptions(record)"
+                :key="option.key"
+                @click="handleOptionClick(option)"
+              >
+                <span
+                  :class="{
+                    'danger-option': option.status === 'danger',
+                  }"
+                >
+                  {{ option.text }}
+                </span>
+              </a-doption>
+            </template>
+          </a-dropdown>
+        </div>
       </template>
     </idb-table>
     <pull-image-drawer ref="pullImageRef" @success="reload" />
@@ -54,7 +88,7 @@
     <tag-drawer ref="tagRef" @success="reload" />
     <push-drawer ref="pushRef" @success="reload" />
     <export-drawer ref="exportRef" @success="reload" />
-    <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+    <inspect-drawer ref="inspectRef" />
   </div>
 </template>
 
@@ -71,13 +105,13 @@
     pruneApi,
     inspectApi,
   } from '@/api/docker';
-  import YamlDrawer from '@/components/yaml-drawer/index.vue';
   import PullImageDrawer from './components/pull-image-drawer.vue';
   import ImportImageDrawer from './components/import-image-drawer.vue';
   import BuildImageDrawer from './components/build-image-drawer.vue';
   import TagDrawer from './components/tag-drawer.vue';
   import PushDrawer from './components/push-drawer.vue';
   import ExportDrawer from './components/export-drawer.vue';
+  import InspectDrawer from './components/inspect-drawer.vue';
 
   const { t } = useI18n();
   const gridRef = ref();
@@ -89,7 +123,7 @@
   const tagRef = ref<InstanceType<typeof TagDrawer>>();
   const pushRef = ref<InstanceType<typeof PushDrawer>>();
   const exportRef = ref<InstanceType<typeof ExportDrawer>>();
-  const inspectRef = ref<InstanceType<typeof YamlDrawer>>();
+  const inspectRef = ref<InstanceType<typeof InspectDrawer>>();
 
   async function handleInspect(record: any) {
     try {
@@ -97,14 +131,21 @@
         type: 'image',
         id: record.id!,
       });
-      inspectRef.value?.setContent(
-        JSON.stringify(JSON.parse(data.info), null, 2)
-      );
-      inspectRef.value?.show();
+      inspectRef.value?.show(data.info);
     } catch (err: any) {
       await showErrorWithDockerCheck(err?.message, err);
     }
   }
+
+  const beforeFetchHook = (fetchParams: any) => {
+    const nextParams = { ...fetchParams };
+    if (typeof nextParams.search === 'string') {
+      const keyword = nextParams.search.trim();
+      nextParams.info = keyword || undefined;
+    }
+    delete nextParams.search;
+    return nextParams;
+  };
 
   const columns = [
     {
@@ -181,48 +222,88 @@
     }
   };
 
-  const getOperationOptions = (record: any) => [
+  interface ImageOperationOption {
+    key: string;
+    text: string;
+    visible?: boolean;
+    confirm?: string | null;
+    status?: 'normal' | 'success' | 'warning' | 'danger';
+    click: () => void | Promise<void>;
+  }
+
+  const handleDelete = async (record: any) => {
+    try {
+      const result = await batchDeleteImagesApi({
+        sources: record.id,
+        force: false,
+      });
+      if (result.success) {
+        Message.success(
+          t('app.docker.image.list.operation.delete.success', {
+            command: result.command,
+          })
+        );
+      } else {
+        Message.error(t('app.docker.image.list.operation.delete.failed'));
+      }
+      reload();
+    } catch (e: any) {
+      await showErrorWithDockerCheck(e.message, e);
+    }
+  };
+
+  const getOperationOptions = (record: any): ImageOperationOption[] => [
     {
+      key: 'inspect',
       text: t('app.docker.image.list.operation.inspect'),
       click: () => handleInspect(record),
     },
     {
-      text: t('app.docker.image.list.operation.tag'),
-      click: () => tagRef.value?.show(record),
-    },
-    {
+      key: 'push',
       text: t('app.docker.image.list.operation.push'),
       click: () => pushRef.value?.show(record),
     },
     {
+      key: 'tag',
+      text: t('app.docker.image.list.operation.tag'),
+      click: () => tagRef.value?.show(record),
+    },
+    {
+      key: 'export',
       text: t('app.docker.image.list.operation.export'),
       click: () => exportRef.value?.show(record),
     },
     {
+      key: 'delete',
       text: t('app.docker.image.list.operation.delete'),
+      status: 'danger',
       confirm: t('app.docker.image.list.operation.delete.confirm'),
-      click: async () => {
-        try {
-          const result = await batchDeleteImagesApi({
-            sources: record.id,
-            force: false,
-          });
-          if (result.success) {
-            Message.success(
-              t('app.docker.image.list.operation.delete.success', {
-                command: result.command,
-              })
-            );
-          } else {
-            Message.success(t('app.docker.image.list.operation.delete.failed'));
-          }
-          reload();
-        } catch (e: any) {
-          await showErrorWithDockerCheck(e.message, e);
-        }
-      },
+      click: () => handleDelete(record),
     },
   ];
+
+  const handleOptionClick = async (option: ImageOperationOption) => {
+    if (option.confirm && !(await confirm(option.confirm))) {
+      return;
+    }
+    await option.click();
+  };
+
+  const getPrimaryOptions = (record: any) => {
+    const options = getOperationOptions(record).filter(
+      (item) => item.visible !== false
+    );
+    return options.filter((item) => ['inspect', 'push'].includes(item.key));
+  };
+
+  const getMoreOptions = (record: any) => {
+    const primaryKeys = new Set(
+      getPrimaryOptions(record).map((item) => item.key)
+    );
+    return getOperationOptions(record).filter(
+      (item) => item.visible !== false && !primaryKeys.has(item.key)
+    );
+  };
 
   // Docker 状态变化处理
   const handleDockerStatusChange = (status: string) => {
@@ -239,4 +320,16 @@
   };
 </script>
 
-<style scoped></style>
+<style scoped>
+  .image-operation-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  .danger-option {
+    color: rgb(var(--danger-6));
+  }
+</style>

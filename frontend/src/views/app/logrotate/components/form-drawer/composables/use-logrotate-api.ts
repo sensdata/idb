@@ -9,6 +9,7 @@ import {
   updateLogrotateContentApi,
   getLogrotateContentApi,
 } from '@/api/logrotate';
+import { generateLogrotateContentFromForm } from '../../../utils/content';
 
 import type { FormData } from '../types';
 
@@ -38,60 +39,6 @@ export function useLogrotateApi(setLoading: (loading: boolean) => void) {
         },
       }
     );
-  };
-
-  // 根据表单数据生成logrotate配置内容
-  const generateLogrotateContentFromForm = (formData: FormData): string => {
-    let content = `${formData.path} {\n`;
-
-    // 添加基本选项
-    content += `    ${formData.frequency}\n`;
-    content += `    rotate ${formData.count}\n`;
-
-    // 添加布尔选项
-    if (formData.compress) {
-      content += '    compress\n';
-
-      // 延迟压缩选项
-      if (formData.delayCompress) {
-        content += '    delaycompress\n';
-      }
-    }
-
-    // 创建新文件选项
-    if (formData.create && formData.create.trim()) {
-      const createValue = formData.create.startsWith('create ')
-        ? formData.create
-        : `create ${formData.create}`;
-      content += `    ${createValue}\n`;
-    }
-
-    // 缺失日志文件不报错选项
-    if (formData.missingOk) {
-      content += '    missingok\n';
-    }
-
-    // 空日志文件不轮转选项
-    if (formData.notIfEmpty) {
-      content += '    notifempty\n';
-    }
-
-    // 前置命令
-    if (formData.preRotate && formData.preRotate.trim()) {
-      content += '    prerotate\n';
-      content += `        ${formData.preRotate}\n`;
-      content += '    endscript\n';
-    }
-
-    // 后置命令
-    if (formData.postRotate && formData.postRotate.trim()) {
-      content += '    postrotate\n';
-      content += `        ${formData.postRotate}\n`;
-      content += '    endscript\n';
-    }
-
-    content += '}';
-    return content;
   };
 
   // 提交表单数据

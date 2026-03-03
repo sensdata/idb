@@ -332,7 +332,9 @@ export const getLogrotateListApi = async (
       name: item.name,
       type: params.type,
       category: params.category,
-      path: parseLogPathFromContent(item.content || ''),
+      path:
+        parseLogPathFromContent(item.content || '') ||
+        (params.type === LOGROTATE_TYPE.System ? item.source || '' : ''),
       frequency: DEFAULT_VALUES.FREQUENCY,
       count: DEFAULT_VALUES.COUNT,
       compress: false,

@@ -8,6 +8,14 @@
     @before-ok="onBeforeOk"
     @cancel="onCancel"
   >
+    <a-alert class="mb-4" type="info" :show-icon="true">
+      <div class="guide-title">{{
+        t('app.docker.image.import.guide.title')
+      }}</div>
+      <div class="guide-desc">{{
+        t('app.docker.image.import.guide.desc')
+      }}</div>
+    </a-alert>
     <a-form
       ref="formRef"
       :model="formState"
@@ -80,12 +88,14 @@
       return false;
     }
 
+    let success = false;
     try {
       loading.value = true;
       await importImageApi({ path: formState.path });
       Message.success(t('app.docker.image.list.import.success'));
       emit('success');
       hide();
+      success = true;
     } catch (e: any) {
       if (e?.message) {
         Message.error(e.message);
@@ -94,11 +104,21 @@
       loading.value = false;
     }
 
-    return true;
+    return success;
   };
   const onCancel = hide;
 
   defineExpose({ show });
 </script>
 
-<style scoped></style>
+<style scoped>
+  .guide-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  .guide-desc {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+</style>

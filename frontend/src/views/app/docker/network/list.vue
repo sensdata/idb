@@ -5,7 +5,13 @@
       @status-change="handleDockerStatusChange"
       @install-complete="handleDockerInstallComplete"
     />
-    <idb-table ref="tableRef" :columns="columns" :fetch="fetchNetworks">
+    <idb-table
+      ref="tableRef"
+      :columns="columns"
+      :has-search="true"
+      :fetch="fetchNetworks"
+      :beforeFetchHook="beforeFetchHook"
+    >
       <template #leftActions>
         <a-button type="primary" @click="onCreateNetworkClick">
           {{ t('app.docker.network.list.action.create') }}
@@ -13,13 +19,13 @@
       </template>
       <template #operation="{ record }">
         <idb-table-operation
-          type="button"
+          type="dropdown"
           :options="getOperationOptions(record)"
         />
       </template>
     </idb-table>
     <create-network-drawer ref="createNetworkRef" @success="reload" />
-    <yaml-drawer ref="inspectRef" :title="$t('common.detail')" />
+    <inspect-drawer ref="inspectRef" />
   </div>
 </template>
 
@@ -33,18 +39,28 @@
     batchDeleteNetworkApi,
     inspectApi,
   } from '@/api/docker';
-  import YamlDrawer from '@/components/yaml-drawer/index.vue';
   import IdbTableOperation from '@/components/idb-table-operation/index.vue';
   import CreateNetworkDrawer from './components/create-network-drawer.vue';
+  import InspectDrawer from './components/inspect-drawer.vue';
 
   const { t } = useI18n();
   const tableRef = ref();
   const createNetworkRef = ref();
-  const inspectRef = ref<InstanceType<typeof YamlDrawer>>();
+  const inspectRef = ref<InstanceType<typeof InspectDrawer>>();
   const reload = () => tableRef.value?.reload();
 
   const fetchNetworks = async (params: any) => {
     return getNetworksApi(params);
+  };
+
+  const beforeFetchHook = (fetchParams: any) => {
+    const nextParams = { ...fetchParams };
+    if (typeof nextParams.search === 'string') {
+      const keyword = nextParams.search.trim();
+      nextParams.info = keyword || undefined;
+    }
+    delete nextParams.search;
+    return nextParams;
   };
 
   async function handleInspect(record: any) {
@@ -53,10 +69,7 @@
         type: 'network',
         id: record.id!,
       });
-      inspectRef.value?.setContent(
-        JSON.stringify(JSON.parse(data.info), null, 2)
-      );
-      inspectRef.value?.show();
+      inspectRef.value?.show(data.info);
     } catch (err: any) {
       await showErrorWithDockerCheck(err?.message, err);
     }
@@ -112,11 +125,16 @@
 
   const getOperationOptions = (record: any) => [
     {
+      text: t('app.docker.network.list.operation.inspect'),
+      click: () => handleInspect(record),
+    },
+    {
       text: t('app.docker.network.list.operation.delete'),
+      status: 'danger' as const,
       confirm: t('app.docker.network.list.operation.delete.confirm'),
       click: async () => {
         try {
-          await batchDeleteNetworkApi({ force: 'false', sources: record.name });
+          await batchDeleteNetworkApi({ force: false, sources: record.name });
           Message.success(
             t('app.docker.network.list.operation.delete.success')
           );

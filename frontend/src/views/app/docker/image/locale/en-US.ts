@@ -14,7 +14,7 @@ export default {
   'app.docker.image.list.operation.export': 'Export',
   'app.docker.image.list.operation.delete': 'Delete',
   'app.docker.image.list.operation.delete.confirm':
-    'Must stop the container first',
+    'Delete this image? The operation may fail if it is in use by containers.',
   'app.docker.image.list.operation.delete.success':
     'Successfully executed: {command}',
   'app.docker.image.list.operation.delete.failed': 'Delete failed',
@@ -26,6 +26,13 @@ export default {
   'app.docker.image.form.image_name': 'Image Name',
   'app.docker.image.form.image_name.placeholder': 'e.g. library/nginx:latest',
   'app.docker.image.form.image_name.required': 'Please enter image name',
+  'app.docker.image.pull.guide.title': 'How to choose an image',
+  'app.docker.image.pull.guide.desc':
+    'You can search official/community images on Docker Hub. Examples: nginx:latest, redis:7, postgres:16.',
+  'app.docker.image.pull.guide.link': 'Open Docker Hub image search',
+  'app.docker.image.import.guide.title': 'Import image tips',
+  'app.docker.image.import.guide.desc':
+    'Select an image archive file on the server (for example, a .tar file). After import, you can use it to create containers.',
   'app.docker.image.list.pull.success': 'Successfully executed: {command}',
   'app.docker.image.list.pull.failed': 'Pull image failed',
   'app.docker.image.form.path': 'File Path',
@@ -54,6 +61,22 @@ export default {
   'app.docker.image.form.tag.placeholder': 'Enter tag name',
   'app.docker.image.form.tag.required': 'Please enter tag name',
   'app.docker.image.build.success': 'Image built successfully',
+  'app.docker.image.build.guide.title': 'Build image tips',
+  'app.docker.image.build.guide.desc':
+    'You can edit a Dockerfile directly or choose an existing Dockerfile path. We recommend adding a version tag, e.g. my-app:1.0.0.',
+  'app.docker.image.push.guide.title': 'Push image tips',
+  'app.docker.image.push.guide.desc':
+    'Use this when publishing local images to a remote registry (Docker Hub/private registry), so other servers can pull and deploy them. Fill in the target repository and select a tag.',
+  'app.docker.image.inspect.title': 'Image Details',
+  'app.docker.image.inspect.tab.friendly': 'Structured View',
+  'app.docker.image.inspect.tab.raw': 'Raw (JSON)',
+  'app.docker.image.inspect.section.basic': 'Basic Information',
+  'app.docker.image.inspect.section.command': 'Startup Command',
+  'app.docker.image.inspect.section.env': 'Environment Variables',
+  'app.docker.image.inspect.section.labels': 'Labels',
+  'app.docker.image.inspect.section.layers': 'Image Layers',
+  'app.docker.image.inspect.field.os': 'OS',
+  'app.docker.image.inspect.field.architecture': 'Architecture',
   'app.docker.image.export.form.tag': 'Tag',
   'app.docker.image.export.form.tag.placeholder':
     'Please select the tag to export',
