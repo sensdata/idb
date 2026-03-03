@@ -9,6 +9,7 @@
           <a-input
             :model-value="modeInput"
             :placeholder="$t('app.logrotate.permission.mode_placeholder')"
+            :disabled="disabled"
             @update:model-value="handleModeInput"
             @blur="handleModeBlur"
           />
@@ -20,6 +21,7 @@
           <a-input
             :model-value="userInput"
             :placeholder="$t('app.logrotate.permission.user_placeholder')"
+            :disabled="disabled"
             @update:model-value="handleUserInput"
           />
         </a-col>
@@ -30,6 +32,7 @@
           <a-input
             :model-value="groupInput"
             :placeholder="$t('app.logrotate.permission.group_placeholder')"
+            :disabled="disabled"
             @update:model-value="handleGroupInput"
           />
         </a-col>
@@ -39,6 +42,7 @@
         <a-button
           type="text"
           size="small"
+          :disabled="disabled"
           @click="showAdvanced = !showAdvanced"
         >
           {{
@@ -57,6 +61,7 @@
           <a-checkbox-group
             v-model="accessState.owner"
             :options="accessOptions"
+            :disabled="disabled"
             @change="handleAccessChange"
           />
         </a-col>
@@ -67,6 +72,7 @@
           <a-checkbox-group
             v-model="accessState.group"
             :options="accessOptions"
+            :disabled="disabled"
             @change="handleAccessChange"
           />
         </a-col>
@@ -77,6 +83,7 @@
           <a-checkbox-group
             v-model="accessState.other"
             :options="accessOptions"
+            :disabled="disabled"
             @change="handleAccessChange"
           />
         </a-col>
@@ -105,6 +112,7 @@
 
   interface Props {
     modelValue?: string;
+    disabled?: boolean;
   }
 
   interface Emits {
@@ -113,6 +121,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: 'create 0644 root root',
+    disabled: false,
   });
 
   const emit = defineEmits<Emits>();
@@ -128,6 +137,7 @@
   } = usePermission(props.modelValue);
 
   const showAdvanced = ref(false);
+  const disabled = computed(() => props.disabled);
   const modeInput = ref('0644');
   const userInput = ref('root');
   const groupInput = ref('root');

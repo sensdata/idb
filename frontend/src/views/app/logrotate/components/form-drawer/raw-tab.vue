@@ -4,6 +4,7 @@
       <CodeEditor
         :model-value="content"
         :file="logrotateFile"
+        :read-only="readonly"
         :autofocus="true"
         :indent-with-tab="true"
         :tab-size="2"
@@ -19,6 +20,7 @@
 
   interface Props {
     content: string;
+    readonly?: boolean;
     extensions?: any[]; // 保留 extensions 属性以保持向后兼容，但不再使用
   }
 

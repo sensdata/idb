@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -598,12 +599,13 @@ func (s *LogRotate) deleteFile(hostID uint64, op model.FileDelete) error {
 func (s *LogRotate) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 	if isSystemType(req.Type) {
+		modTime := s.getSystemCategoryModTime(hostID)
 		pageResult.Total = 1
 		pageResult.Items = []model.GitFile{
 			{
 				Name:    systemCategory,
 				Source:  systemCategory,
-				ModTime: time.Now(),
+				ModTime: modTime,
 			},
 		}
 		return &pageResult, nil
@@ -1444,11 +1446,15 @@ func (s *LogRotate) getSystemConfList(hostID uint64, req model.QueryGitFile) (*m
 		if pathErr != nil {
 			continue
 		}
+		modTime, modTimeErr := s.getSystemFileModTime(hostID, confPath)
+		if modTimeErr != nil {
+			LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
+		}
 		items = append(items, model.GitFile{
 			Source:    confPath,
 			Name:      name,
 			Extension: filepath.Ext(name),
-			ModTime:   time.Now(),
+			ModTime:   modTime,
 			Linked:    true,
 		})
 	}
@@ -1495,15 +1501,46 @@ func (s *LogRotate) getSystemContent(hostID uint64, req model.GetGitFileDetail) 
 	if strings.Contains(strings.ToLower(commandResult.Result), "no such file or directory") {
 		return nil, fmt.Errorf("conf file not found")
 	}
+	modTime, modTimeErr := s.getSystemFileModTime(hostID, confPath)
+	if modTimeErr != nil {
+		LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
+	}
 
 	return &model.GitFile{
 		Source:    confPath,
 		Name:      req.Name,
 		Extension: filepath.Ext(req.Name),
 		Content:   commandResult.Result,
-		ModTime:   time.Now(),
+		ModTime:   modTime,
 		Linked:    true,
 	}, nil
+}
+
+func (s *LogRotate) getSystemCategoryModTime(hostID uint64) time.Time {
+	command := `max=0; for f in /etc/logrotate.conf /etc/logrotate.d/*; do [ -f "$f" ] || continue; t=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0); [ "$t" -gt "$max" ] && max="$t"; done; echo "$max"`
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("failed to get system category mod time: %v", err)
+		return time.Time{}
+	}
+	secs, err := strconv.ParseInt(strings.TrimSpace(commandResult.Result), 10, 64)
+	if err != nil || secs <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(secs, 0)
+}
+
+func (s *LogRotate) getSystemFileModTime(hostID uint64, confPath string) (time.Time, error) {
+	command := fmt.Sprintf(`if [ -e '%s' ]; then stat -c %%Y '%s' 2>/dev/null || stat -f %%m '%s' 2>/dev/null; fi`, confPath, confPath, confPath)
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return time.Time{}, err
+	}
+	secs, err := strconv.ParseInt(strings.TrimSpace(commandResult.Result), 10, 64)
+	if err != nil || secs <= 0 {
+		return time.Time{}, fmt.Errorf("invalid mod time: %q", strings.TrimSpace(commandResult.Result))
+	}
+	return time.Unix(secs, 0), nil
 }
 
 func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {

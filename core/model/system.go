@@ -55,13 +55,13 @@ type UpdateSystemSettingsReq struct {
 	MaxQueuedEvents     int    `json:"max_queued_events" validate:"required,min=16384"`                      // inotify 队列长度上限
 	MaxOpenFiles        int    `json:"max_open_files" validate:"required,min=1024"`                          // 系统最大打开文件数
 	FileMax             int    `json:"file_max" validate:"required,min=65535"`                               // 系统文件句柄上限
-	Swappiness          int    `json:"swappiness" validate:"required,min=0"`                                 // 交换分区倾向
+	Swappiness          int    `json:"swappiness" validate:"min=0"`                                          // 交换分区倾向
 	MaxMapCount         int    `json:"max_map_count" validate:"required,min=65530"`                          // 进程最大虚拟内存映射数量
 	Somaxconn           int    `json:"somaxconn" validate:"required,min=128"`                                // socket 监听队列上限
 	TcpMaxSynBacklog    int    `json:"tcp_max_syn_backlog" validate:"required,min=128"`                      // TCP SYN 队列上限
 	PidMax              int    `json:"pid_max" validate:"required,min=32768"`                                // PID 上限
-	OvercommitMemory    int    `json:"overcommit_memory" validate:"required,min=0,max=2"`                    // 内存 overcommit 策略
-	OvercommitRatio     int    `json:"overcommit_ratio" validate:"required,min=0,max=100"`                   // overcommit 比例
+	OvercommitMemory    int    `json:"overcommit_memory" validate:"min=0,max=2"`                             // 内存 overcommit 策略
+	OvercommitRatio     int    `json:"overcommit_ratio" validate:"min=0,max=100"`                            // overcommit 比例
 	TransparentHugePage string `json:"transparent_huge_page" validate:"required,oneof=always madvise never"` // THP 策略
 }
 

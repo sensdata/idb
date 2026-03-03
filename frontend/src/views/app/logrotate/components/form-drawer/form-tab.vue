@@ -6,6 +6,53 @@
     layout="vertical"
     hide-asterisk
   >
+    <section class="summary-section">
+      <header class="section-header compact">
+        <h3 class="section-title">{{
+          $t('app.logrotate.form.summary.title')
+        }}</h3>
+        <p class="section-desc">{{ $t('app.logrotate.form.summary.desc') }}</p>
+      </header>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">{{ $t('app.logrotate.form.name') }}</span>
+          <code class="summary-value">{{ formData.name || '-' }}</code>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">{{
+            $t('app.logrotate.form.category')
+          }}</span>
+          <code class="summary-value">{{ formData.category || '-' }}</code>
+        </div>
+        <div class="summary-item full">
+          <span class="summary-label">{{ $t('app.logrotate.form.path') }}</span>
+          <code class="summary-value">{{ formData.path || '-' }}</code>
+        </div>
+      </div>
+
+      <div class="summary-tags">
+        <a-tag color="arcoblue">{{
+          $t(`app.logrotate.frequency.${formData.frequency}`)
+        }}</a-tag>
+        <a-tag color="blue"
+          >{{ $t('app.logrotate.form.count') }} {{ formData.count }}</a-tag
+        >
+        <a-tag :color="formData.compress ? 'green' : 'gray'">
+          {{ formData.compress ? 'compress' : 'nocompress' }}
+        </a-tag>
+        <a-tag :color="formData.delayCompress ? 'green' : 'gray'">
+          {{ formData.delayCompress ? 'delaycompress' : 'nodelaycompress' }}
+        </a-tag>
+        <a-tag :color="formData.missingOk ? 'green' : 'gray'">
+          {{ formData.missingOk ? 'missingok' : 'nomissingok' }}
+        </a-tag>
+        <a-tag :color="formData.notIfEmpty ? 'green' : 'gray'">
+          {{ formData.notIfEmpty ? 'notifempty' : 'ifempty' }}
+        </a-tag>
+      </div>
+    </section>
+
     <section class="param-section">
       <header class="section-header">
         <h3 class="section-title">{{
@@ -30,6 +77,38 @@
           />
         </div>
         <p class="param-help">{{ $t('app.logrotate.form.name_help') }}</p>
+      </a-form-item>
+
+      <a-form-item field="category" class="param-item">
+        <div class="param-head">
+          <span class="param-label">{{
+            $t('app.logrotate.form.category')
+          }}</span>
+          <code class="param-key">category</code>
+        </div>
+        <div class="param-value">
+          <a-select
+            :model-value="formData.category"
+            :placeholder="$t('app.logrotate.form.category_placeholder')"
+            allow-search
+            allow-create
+            :disabled="isSystemType || isEdit"
+            :loading="categoryLoading"
+            @visible-change="handleCategoryVisibleChange"
+            @update:model-value="
+              (value: string) => updateFormData('category', value)
+            "
+          >
+            <a-option
+              v-for="option in categoryOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </a-option>
+          </a-select>
+        </div>
+        <p class="param-help">{{ $t('app.logrotate.form.category_help') }}</p>
       </a-form-item>
 
       <a-form-item field="path" class="param-item">
@@ -180,146 +259,172 @@
       </a-form-item>
     </section>
 
-    <section class="param-section">
-      <header class="section-header">
-        <h3 class="section-title">
-          {{ $t('app.logrotate.form.section.permission') }}
-        </h3>
-        <p class="section-desc">
-          {{ $t('app.logrotate.form.section.permission_desc') }}
-        </p>
-      </header>
-
-      <a-form-item class="param-item">
-        <div class="param-head">
-          <span class="param-label">{{ $t('app.logrotate.form.create') }}</span>
-          <code class="param-key">create 0644 root root</code>
-        </div>
-        <div class="param-value">
-          <PermissionInput
-            :model-value="formData.create"
-            @update:model-value="
-              (value: string) => updateFormData('create', value)
-            "
-          />
-        </div>
-        <p class="param-help">{{ $t('app.logrotate.form.create_help') }}</p>
-      </a-form-item>
-    </section>
-
-    <section class="param-section">
-      <header class="section-header">
-        <h3 class="section-title">{{
-          $t('app.logrotate.form.section.script')
-        }}</h3>
-        <p class="section-desc">{{
-          $t('app.logrotate.form.section.script_desc')
-        }}</p>
-      </header>
-
-      <a-form-item field="preRotate" class="param-item">
-        <div class="param-head">
-          <span class="param-label">{{
-            $t('app.logrotate.form.pre_rotate')
-          }}</span>
-          <code class="param-key">prerotate ... endscript</code>
-        </div>
-        <div class="param-value">
-          <div class="script-toolbar">
-            <a-space size="small" wrap>
-              <a-select
-                :model-value="preRotateTemplate"
-                :placeholder="
-                  $t('app.logrotate.form.script_tpl.select_placeholder')
-                "
-                style="width: 220px"
-                size="small"
+    <a-collapse :default-active-key="['permission']" class="advanced-collapse">
+      <a-collapse-item
+        key="permission"
+        :header="$t('app.logrotate.form.advanced.permission')"
+      >
+        <section class="param-section nested">
+          <a-form-item class="param-item">
+            <div class="param-head">
+              <span class="param-label">{{
+                $t('app.logrotate.form.create')
+              }}</span>
+              <code class="param-key">create 0644 root root</code>
+            </div>
+            <div class="param-value">
+              <PermissionInput
+                :model-value="formData.create"
                 @update:model-value="
-                  (value: ScriptTemplateKey) => (preRotateTemplate = value)
+                  (value: string) => updateFormData('create', value)
                 "
-              >
-                <a-option
-                  v-for="item in preScriptTemplateOptions"
-                  :key="item.value"
-                  :value="item.value"
-                >
-                  {{ item.label }}
-                </a-option>
-              </a-select>
-              <a-button
-                size="small"
-                type="outline"
-                :disabled="!preRotateTemplate"
-                @click="insertScriptTemplate('preRotate', preRotateTemplate)"
-              >
-                {{ $t('app.logrotate.form.script_tpl.insert') }}
-              </a-button>
-            </a-space>
-          </div>
-          <a-textarea
-            class="script-editor"
-            :model-value="formData.preRotate"
-            :placeholder="$t('app.logrotate.form.pre_rotate_placeholder')"
-            :auto-size="{ minRows: 4, maxRows: 12 }"
-            @update:model-value="(value: string) => updateFormData('preRotate', value)"
-          />
-        </div>
-        <p class="param-help">{{ $t('app.logrotate.form.pre_rotate_help') }}</p>
-      </a-form-item>
+              />
+            </div>
+            <p class="param-help">{{ $t('app.logrotate.form.create_help') }}</p>
+          </a-form-item>
+        </section>
+      </a-collapse-item>
 
-      <a-form-item field="postRotate" class="param-item">
-        <div class="param-head">
-          <span class="param-label">{{
-            $t('app.logrotate.form.post_rotate')
-          }}</span>
-          <code class="param-key">postrotate ... endscript</code>
-        </div>
-        <div class="param-value">
-          <div class="script-toolbar">
-            <a-space size="small" wrap>
-              <a-select
-                :model-value="postRotateTemplate"
-                :placeholder="
-                  $t('app.logrotate.form.script_tpl.select_placeholder')
-                "
-                style="width: 220px"
-                size="small"
+      <a-collapse-item
+        key="script"
+        :header="$t('app.logrotate.form.advanced.script')"
+      >
+        <section class="param-section nested">
+          <a-form-item field="preRotate" class="param-item">
+            <div class="param-head">
+              <span class="param-label">{{
+                $t('app.logrotate.form.pre_rotate')
+              }}</span>
+              <code class="param-key">prerotate ... endscript</code>
+            </div>
+            <div class="param-value">
+              <div class="script-toolbar">
+                <a-space size="small" wrap>
+                  <a-select
+                    :model-value="preRotateTemplate"
+                    :placeholder="
+                      $t('app.logrotate.form.script_tpl.select_placeholder')
+                    "
+                    style="width: 220px"
+                    size="small"
+                    @update:model-value="
+                      (value: ScriptTemplateKey) => (preRotateTemplate = value)
+                    "
+                  >
+                    <a-option
+                      v-for="item in preScriptTemplateOptions"
+                      :key="item.value"
+                      :value="item.value"
+                    >
+                      {{ item.label }}
+                    </a-option>
+                  </a-select>
+                  <a-button
+                    size="small"
+                    type="outline"
+                    :disabled="!preRotateTemplate"
+                    @click="
+                      insertScriptTemplate('preRotate', preRotateTemplate)
+                    "
+                  >
+                    {{ $t('app.logrotate.form.script_tpl.insert') }}
+                  </a-button>
+                  <a-button
+                    size="small"
+                    type="text"
+                    :disabled="!formData.preRotate"
+                    @click="updateFormData('preRotate', '')"
+                  >
+                    {{ $t('app.logrotate.form.clear') }}
+                  </a-button>
+                </a-space>
+              </div>
+              <a-textarea
+                class="script-editor"
+                :model-value="formData.preRotate"
+                :placeholder="$t('app.logrotate.form.pre_rotate_placeholder')"
+                :auto-size="{ minRows: 4, maxRows: 12 }"
+                @update:model-value="(value: string) => updateFormData('preRotate', value)"
+              />
+            </div>
+            <p class="param-help">{{
+              $t('app.logrotate.form.pre_rotate_help')
+            }}</p>
+          </a-form-item>
+
+          <a-form-item field="postRotate" class="param-item">
+            <div class="param-head">
+              <span class="param-label">{{
+                $t('app.logrotate.form.post_rotate')
+              }}</span>
+              <code class="param-key">postrotate ... endscript</code>
+            </div>
+            <div class="param-value">
+              <div class="script-toolbar">
+                <a-space size="small" wrap>
+                  <a-select
+                    :model-value="postRotateTemplate"
+                    :placeholder="
+                      $t('app.logrotate.form.script_tpl.select_placeholder')
+                    "
+                    style="width: 220px"
+                    size="small"
+                    @update:model-value="
+                      (value: ScriptTemplateKey) => (postRotateTemplate = value)
+                    "
+                  >
+                    <a-option
+                      v-for="item in postScriptTemplateOptions"
+                      :key="item.value"
+                      :value="item.value"
+                    >
+                      {{ item.label }}
+                    </a-option>
+                  </a-select>
+                  <a-button
+                    size="small"
+                    type="outline"
+                    :disabled="!postRotateTemplate"
+                    @click="
+                      insertScriptTemplate('postRotate', postRotateTemplate)
+                    "
+                  >
+                    {{ $t('app.logrotate.form.script_tpl.insert') }}
+                  </a-button>
+                  <a-button
+                    size="small"
+                    type="text"
+                    :disabled="!formData.postRotate"
+                    @click="updateFormData('postRotate', '')"
+                  >
+                    {{ $t('app.logrotate.form.clear') }}
+                  </a-button>
+                </a-space>
+              </div>
+              <a-textarea
+                class="script-editor"
+                :model-value="formData.postRotate"
+                :placeholder="$t('app.logrotate.form.post_rotate_placeholder')"
+                :auto-size="{ minRows: 4, maxRows: 12 }"
                 @update:model-value="
-                  (value: ScriptTemplateKey) => (postRotateTemplate = value)
+                  (value: string) => updateFormData('postRotate', value)
                 "
-              >
-                <a-option
-                  v-for="item in postScriptTemplateOptions"
-                  :key="item.value"
-                  :value="item.value"
-                >
-                  {{ item.label }}
-                </a-option>
-              </a-select>
-              <a-button
-                size="small"
-                type="outline"
-                :disabled="!postRotateTemplate"
-                @click="insertScriptTemplate('postRotate', postRotateTemplate)"
-              >
-                {{ $t('app.logrotate.form.script_tpl.insert') }}
-              </a-button>
-            </a-space>
-          </div>
-          <a-textarea
-            class="script-editor"
-            :model-value="formData.postRotate"
-            :placeholder="$t('app.logrotate.form.post_rotate_placeholder')"
-            :auto-size="{ minRows: 4, maxRows: 12 }"
-            @update:model-value="
-              (value: string) => updateFormData('postRotate', value)
-            "
-          />
-        </div>
-        <p class="param-help">{{
-          $t('app.logrotate.form.post_rotate_help')
-        }}</p>
-      </a-form-item>
+              />
+            </div>
+            <p class="param-help">{{
+              $t('app.logrotate.form.post_rotate_help')
+            }}</p>
+          </a-form-item>
+        </section>
+      </a-collapse-item>
+    </a-collapse>
+
+    <section class="preview-section">
+      <div class="preview-head">
+        <h4>{{ $t('app.logrotate.form.preview.title') }}</h4>
+        <span>{{ $t('app.logrotate.form.preview.desc') }}</span>
+      </div>
+      <pre class="preview-content">{{ generatedPreview }}</pre>
     </section>
   </a-form>
 </template>
@@ -327,15 +432,20 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { LOGROTATE_TYPE } from '@/config/enum';
   import FileSelector from '@/components/file/file-selector/index.vue';
-  import type { FormData, SelectOption } from './types';
   import PermissionInput from './permission-input.vue';
+  import type { FormData, SelectOption } from './types';
+  import { generateLogrotateContentFromForm } from '../../utils/content';
 
   interface Props {
     formData: FormData;
     formRules: Record<string, any>;
     frequencyOptions: SelectOption[];
+    categoryOptions: SelectOption[];
+    categoryLoading: boolean;
     isEdit: boolean;
+    currentType: LOGROTATE_TYPE;
     hostId?: number;
   }
 
@@ -347,11 +457,15 @@
 
   const emit = defineEmits<{
     updateFormData: [field: keyof FormData, value: any];
+    fetchCategories: [];
   }>();
 
   const props = defineProps<Props>();
   const { t } = useI18n();
   const formRef = ref();
+  const isSystemType = computed(
+    () => props.currentType === LOGROTATE_TYPE.System
+  );
 
   const preRotateTemplate = ref<ScriptTemplateKey>('');
   const postRotateTemplate = ref<ScriptTemplateKey>('');
@@ -388,8 +502,25 @@
     },
   ]);
 
+  const generatedPreview = computed(() => {
+    if (!props.formData.path?.trim()) {
+      return t('app.logrotate.form.preview.empty');
+    }
+    return generateLogrotateContentFromForm(props.formData, {
+      includeHeader: true,
+      indent: '  ',
+    });
+  });
+
   const updateFormData = (field: keyof FormData, value: any) => {
     emit('updateFormData', field, value);
+  };
+
+  const handleCategoryVisibleChange = (visible: boolean) => {
+    if (!visible || isSystemType.value) {
+      return;
+    }
+    emit('fetchCategories');
   };
 
   const handleCompressChange = (value: boolean) => {
@@ -429,7 +560,9 @@
     margin-top: 0;
   }
 
-  .param-section {
+  .summary-section,
+  .param-section,
+  .preview-section {
     padding: 14px;
     margin-bottom: 20px;
     background: var(--color-fill-1);
@@ -439,6 +572,10 @@
 
   .section-header {
     margin-bottom: 10px;
+  }
+
+  .section-header.compact {
+    margin-bottom: 12px;
   }
 
   .section-title {
@@ -453,6 +590,60 @@
     font-size: 12px;
     line-height: 1.5;
     color: var(--color-text-3);
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 6px;
+  }
+
+  .summary-item.full {
+    grid-column: 1 / -1;
+  }
+
+  .summary-label {
+    font-size: 12px;
+    color: var(--color-text-3);
+  }
+
+  .summary-value {
+    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
+  .summary-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .advanced-collapse {
+    margin-bottom: 20px;
+  }
+
+  .advanced-collapse :deep(.arco-collapse-item-header-title) {
+    font-weight: 600;
+  }
+
+  .param-section.nested {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
   }
 
   .param-item {
@@ -535,6 +726,42 @@
     line-height: 1.5;
   }
 
+  .preview-section {
+    margin-bottom: 0;
+  }
+
+  .preview-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: var(--color-text-3);
+  }
+
+  .preview-head h4 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-text-1);
+  }
+
+  .preview-head span {
+    font-size: 12px;
+  }
+
+  .preview-content {
+    min-height: 140px;
+    max-height: 260px;
+    padding: 10px;
+    margin: 0;
+    overflow: auto;
+    font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    background: var(--color-bg-2);
+    border: 1px solid var(--color-border-2);
+    border-radius: 6px;
+  }
+
   :deep(.arco-checkbox-checked .arco-checkbox-icon) {
     background-color: var(--idblue-6) !important;
     border-color: var(--idblue-6) !important;
@@ -557,10 +784,13 @@
   }
 
   @media (width <= 768px) {
-    .param-head {
+    .param-head,
+    .preview-head {
       flex-direction: column;
+      gap: 4px;
       align-items: flex-start;
     }
+    .summary-grid,
     .option-grid {
       grid-template-columns: 1fr;
     }

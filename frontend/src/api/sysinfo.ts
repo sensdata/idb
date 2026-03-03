@@ -136,6 +136,7 @@ export interface SysInfoHardwareRes {
   processor: number;
   module_names: string[];
   memory: string;
+  updated_at?: string;
 }
 export function getSysInfoHardwareApi() {
   return request.get<SysInfoHardwareRes>('sysinfo/{host}/hardware');

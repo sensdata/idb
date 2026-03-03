@@ -2,10 +2,12 @@ package action
 
 import (
 	"encoding/json"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
@@ -110,8 +112,32 @@ func GetHardware() (*model.HardwareInfo, error) {
 	hardware.MemorySlots = len(hardware.MemoryMods)
 	hardware.Disks = collectDiskInfo()
 	hardware.DiskCount = len(hardware.Disks)
+	updatedAt := latestModTime(
+		"/proc/cpuinfo",
+		"/proc/meminfo",
+		"/proc/partitions",
+		"/sys/devices/virtual/dmi/id/product_name",
+		"/sys/devices/virtual/dmi/id/product_uuid",
+	)
+	if !updatedAt.IsZero() {
+		hardware.UpdatedAt = updatedAt
+	}
 
 	return &hardware, nil
+}
+
+func latestModTime(paths ...string) time.Time {
+	latest := time.Time{}
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if mod := info.ModTime(); mod.After(latest) {
+			latest = mod
+		}
+	}
+	return latest
 }
 
 func buildCpuModels(counter map[string]int, displayName map[string]string) []model.CpuModelInfo {
