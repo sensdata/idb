@@ -93,7 +93,7 @@
 
   const { t } = useI18n();
   const { loading, setLoading } = useLoading(true);
-  const lastUpdatedAt = ref<number | null>(null);
+  const lastUpdatedAt = ref<string | null>(null);
 
   const emptyData = (): SysInfoHardwareRes => ({
     cpu_count: 0,
@@ -128,7 +128,7 @@
       disks: normalizeRows(res.disks),
       memory_modules: normalizeRows(res.memory_modules),
     };
-    lastUpdatedAt.value = Date.now();
+    lastUpdatedAt.value = res.updated_at || null;
   };
 
   const cpuModelRows = computed(() => {

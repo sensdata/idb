@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // 硬件信息
 type HardwareInfo struct {
 	CpuCount    int            `json:"cpu_count"`      //cpu个数
@@ -12,6 +14,7 @@ type HardwareInfo struct {
 	MemoryMods  []MemoryModule `json:"memory_modules"` //内存条明细
 	DiskCount   int            `json:"disk_count"`     //磁盘数量
 	Disks       []DiskInfo     `json:"disks"`          //磁盘明细
+	UpdatedAt   time.Time      `json:"updated_at,omitempty"`
 }
 
 type CpuModelInfo struct {
