@@ -710,7 +710,16 @@ func GetSystemSettings() (*model.SystemSettings, error) {
 	if _, err := os.Stat(dropInConf); err == nil {
 		files = append(files, dropInConf)
 	}
-	if cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, files...); err == nil {
+	var cfg *ini.File
+	var err error
+	if len(files) > 0 {
+		sources := make([]interface{}, 0, len(files)-1)
+		for _, file := range files[1:] {
+			sources = append(sources, file)
+		}
+		cfg, err = ini.Load(files[0], sources...)
+	}
+	if err == nil && cfg != nil {
 		if noFile := cfg.Section("Manager").Key("DefaultLimitNOFILE").String(); noFile != "" {
 			if maxOpenFilesInt, err := strconv.Atoi(noFile); err == nil {
 				settings.MaxOpenFiles = maxOpenFilesInt
