@@ -78,6 +78,9 @@
           <icon-edit v-if="isEditing" />
           <icon-lock v-else />
           <span>{{ modeHintText }}</span>
+          <span v-if="showSaveSuccessHint" class="save-success-hint">
+            {{ t('common.message.saveSuccess') }}
+          </span>
         </div>
 
         <!-- 编辑器内容 -->
@@ -155,6 +158,7 @@
   const drawerRef = ref<HTMLElement | null>(null);
   const resizeHandleRef = ref<HTMLElement | null>(null);
   const readOnly = ref(true); // 默认为只读模式
+  const showSaveSuccessHint = ref(false);
 
   // 拖拽状态变量
   const isResizing = ref(false);
@@ -218,9 +222,13 @@
   const toggleEditMode = () => {
     if (viewMode.value !== 'full') {
       readOnly.value = true;
+      showSaveSuccessHint.value = false;
       return;
     }
     readOnly.value = !readOnly.value;
+    if (readOnly.value) {
+      showSaveSuccessHint.value = false;
+    }
   };
 
   // ----- 拖拽调整大小相关函数 -----
@@ -314,6 +322,7 @@
 
     // 无论如何关闭时都回到只读模式
     readOnly.value = true;
+    showSaveSuccessHint.value = false;
 
     // 关闭抽屉，但不触发ok事件，从而不会导致页面刷新
     visible.value = false;
@@ -325,6 +334,7 @@
     cleanup();
     // 重置编辑模式为只读
     readOnly.value = true;
+    showSaveSuccessHint.value = false;
   };
 
   const handleSave = async () => {
@@ -334,6 +344,7 @@
       const success = await saveFile();
       // 只有保存成功时才触发ok事件关闭抽屉
       if (success) {
+        showSaveSuccessHint.value = true;
         emit('ok');
       }
       // 如果保存失败，saveFile内部已经显示了错误信息，这里不需要额外处理
@@ -354,6 +365,7 @@
     (newMode) => {
       if (newMode !== 'full') {
         readOnly.value = true;
+        showSaveSuccessHint.value = false;
       }
       // 当视图模式变化时，确保滚动到顶部
       nextTick(() => {
@@ -382,6 +394,15 @@
     }
   );
 
+  watch(
+    () => isEdited.value,
+    (edited) => {
+      if (edited) {
+        showSaveSuccessHint.value = false;
+      }
+    }
+  );
+
   // 当打开小文件时，检查视图模式以确保不在head或tail模式
   watch(
     () => file.value?.size,
@@ -399,6 +420,7 @@
   const setFile = (nextFile: FileItem) => {
     // 切换文件时默认回到只读，避免误改
     readOnly.value = true;
+    showSaveSuccessHint.value = false;
     loadFile(nextFile);
   };
 
@@ -417,6 +439,7 @@
     hide: () => {
       // 确保停止实时追踪连接
       cleanup();
+      showSaveSuccessHint.value = false;
       visible.value = false;
     },
   });
@@ -522,6 +545,11 @@
     font-size: 12px;
     border: 1px solid var(--color-border-2);
     border-radius: 4px;
+  }
+
+  .save-success-hint {
+    margin-left: auto;
+    font-weight: 500;
   }
 
   .editor-mode-banner.is-readonly {

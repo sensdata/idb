@@ -205,20 +205,17 @@
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const historyRef = ref<InstanceType<typeof HistoryDrawer>>();
   const sourceFilter = ref<'all' | 'builtin' | 'custom'>('all');
-  const runtimeFilter = ref<'all' | 'running' | 'stopped' | 'failed'>(
-    'running'
-  );
+  const runtimeFilter = ref<'all' | 'running' | 'stopped' | 'failed'>('all');
   const currentRecords = ref<ServiceEntity[]>([]);
-  const runtimeStatusMap = ref<
-    Record<
-      string,
-      {
-        status: string;
-        activeEnterTimestamp: string;
-        startAt: number | null;
-      }
-    >
-  >({});
+  const RUNTIME_STATUS_TTL_MS = 10 * 1000;
+  const RUNTIME_STATUS_CONCURRENCY = 6;
+  type RuntimeStatusEntry = {
+    status: string;
+    activeEnterTimestamp: string;
+    startAt: number | null;
+    fetchedAt: number;
+  };
+  const runtimeStatusMap = ref<Record<string, RuntimeStatusEntry>>({});
   const runtimeStatusLoading = ref<Record<string, boolean>>({});
 
   const columns = [
@@ -419,9 +416,24 @@
 
   const queryServiceRuntimeStatus = async (
     record: ServiceEntity,
-    withToast = false
+    options?: {
+      withToast?: boolean;
+      force?: boolean;
+    }
   ) => {
+    const withToast = options?.withToast ?? false;
+    const force = options?.force ?? false;
     const serviceKey = buildServiceKey(record);
+    const cachedStatus = runtimeStatusMap.value[serviceKey];
+    if (
+      !force &&
+      cachedStatus &&
+      Date.now() - cachedStatus.fetchedAt <= RUNTIME_STATUS_TTL_MS
+    ) {
+      return;
+    }
+    if (runtimeStatusLoading.value[serviceKey]) return;
+
     runtimeStatusLoading.value[serviceKey] = true;
     try {
       const response = await serviceOperateApi({
@@ -430,9 +442,10 @@
         name: record.name,
         operation: SERVICE_OPERATION.Status,
       });
-      runtimeStatusMap.value[serviceKey] = parseRuntimeStatus(
-        response.result || ''
-      );
+      runtimeStatusMap.value[serviceKey] = {
+        ...parseRuntimeStatus(response.result || ''),
+        fetchedAt: Date.now(),
+      };
       if (withToast && response.result) {
         Message.info(response.result);
       }
@@ -441,6 +454,7 @@
         status: 'query_failed',
         activeEnterTimestamp: '',
         startAt: null,
+        fetchedAt: Date.now(),
       };
       if (withToast) {
         Message.error(t('app.service.list.runtime.query_failed'));
@@ -450,11 +464,56 @@
     }
   };
 
+  const runWithConcurrency = async (
+    items: ServiceEntity[],
+    limit: number,
+    worker: (item: ServiceEntity) => Promise<void>
+  ) => {
+    if (!items.length) return;
+    let index = 0;
+    const next = async () => {
+      if (index >= items.length) return;
+      const current = items[index];
+      index += 1;
+      await worker(current);
+      await next();
+    };
+    const workers = Array.from(
+      { length: Math.min(limit, items.length) },
+      async () => next()
+    );
+    await Promise.all(workers);
+  };
+
+  const refreshRuntimeStatusForRecords = (
+    records: ServiceEntity[],
+    options?: {
+      force?: boolean;
+      awaitCompletion?: boolean;
+    }
+  ) => {
+    const force = options?.force ?? false;
+    const awaitCompletion = options?.awaitCompletion ?? false;
+    const task = runWithConcurrency(
+      records,
+      RUNTIME_STATUS_CONCURRENCY,
+      async (record) => {
+        await queryServiceRuntimeStatus(record, { force });
+      }
+    );
+    if (awaitCompletion) return task;
+    task.catch((error) => {
+      logError(error);
+    });
+    return Promise.resolve();
+  };
+
   const handleRefreshRuntimeStatus = async () => {
     if (!currentRecords.value.length) return;
-    await Promise.all(
-      currentRecords.value.map((record) => queryServiceRuntimeStatus(record))
-    );
+    await refreshRuntimeStatusForRecords(currentRecords.value, {
+      force: true,
+      awaitCompletion: true,
+    });
   };
 
   const handleSegmentFilterChange = () => {
@@ -473,19 +532,14 @@
       page_size: needClientFilter ? 1000 : pageSize,
     });
 
-    runtimeStatusMap.value = {};
-
     let items: ServiceEntity[] = (response.items || []).filter(
       matchSourceFilter
     );
 
-    if (items.length > 0) {
-      await Promise.all(
-        items.map((record) => queryServiceRuntimeStatus(record))
-      );
-    }
-
     if (runtimeFilter.value !== 'all') {
+      await refreshRuntimeStatusForRecords(items, {
+        awaitCompletion: true,
+      });
       items = items.filter(matchRuntimeFilter);
     }
 
@@ -494,6 +548,11 @@
       const end = start + pageSize;
       const pagedItems = items.slice(start, end);
       currentRecords.value = pagedItems;
+      if (runtimeFilter.value === 'all') {
+        refreshRuntimeStatusForRecords(pagedItems).catch((error) => {
+          logError(error);
+        });
+      }
       return {
         ...response,
         items: pagedItems,
@@ -504,6 +563,11 @@
     }
 
     currentRecords.value = items;
+    if (runtimeFilter.value === 'all') {
+      refreshRuntimeStatusForRecords(items).catch((error) => {
+        logError(error);
+      });
+    }
     return {
       ...response,
       items,
@@ -590,7 +654,10 @@
     operation: SERVICE_OPERATION
   ) => {
     if (operation === SERVICE_OPERATION.Status) {
-      await queryServiceRuntimeStatus(record, true);
+      await queryServiceRuntimeStatus(record, {
+        withToast: true,
+        force: true,
+      });
       return;
     }
 
