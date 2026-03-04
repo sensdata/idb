@@ -10,19 +10,25 @@
     unmountOnClose
     :ok-loading="submitLoading"
     :ok-text="t('common.form.submitText')"
-    :ok-button-props="{ disabled: isSystemType }"
+    :ok-button-props="{ disabled: isReadOnlyMode }"
     @ok="handleOk"
     @cancel="handleCancel"
     @before-open="handleBeforeOpen"
     @before-close="handleBeforeClose"
   >
     <a-spin :loading="loading" style="width: 100%">
-      <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
+      <a-form
+        ref="formRef"
+        :model="formState"
+        :rules="rules"
+        :disabled="isReadOnlyMode"
+        layout="vertical"
+      >
         <a-form-item field="name" :label="t('app.crontab.form.name.label')">
           <a-input
             v-model="formState.name"
             :placeholder="t('app.crontab.form.name.placeholder')"
-            :disabled="isEdit || isSystemType"
+            :disabled="isEdit || isReadOnlyMode"
             class="form-input"
           />
         </a-form-item>
@@ -31,7 +37,7 @@
           <a-input
             v-model="formState.user"
             :placeholder="t('app.crontab.form.user.placeholder')"
-            :disabled="isSystemType"
+            :disabled="isReadOnlyMode"
             class="form-input"
           />
         </a-form-item>
@@ -66,7 +72,7 @@
               :loading="scriptSourceCategoryLoading"
               :placeholder="t('app.crontab.form.script_category.placeholder')"
               :options="scriptSourceCategoryOptions"
-              :disabled="isSystemType"
+              :disabled="isReadOnlyMode"
               class="form-input"
               @change="handleScriptSourceCategoryChange"
             />
@@ -100,7 +106,7 @@
             <a-input
               v-model="scriptParams"
               :placeholder="t('app.crontab.form.script_params.placeholder')"
-              :disabled="isSystemType"
+              :disabled="isReadOnlyMode"
               class="form-input"
               @change="updateScriptContent"
             />
@@ -126,6 +132,7 @@
             <a-input
               v-model="formState.command"
               :placeholder="t('app.crontab.form.command.placeholder')"
+              :disabled="isReadOnlyMode"
               class="form-input"
               @update:model-value="handleCommandChange"
             />
@@ -159,7 +166,7 @@
             :placeholder="t('app.crontab.form.mark.placeholder')"
             class="form-textarea"
             :rows="4"
-            :disabled="isSystemType"
+            :disabled="isReadOnlyMode"
             @blur="handleMarkBlur"
           />
         </a-form-item>
@@ -219,6 +226,7 @@
     type?: CRONTAB_TYPE;
     category?: string;
     isEdit?: boolean;
+    isView?: boolean;
     record?: CrontabEntity;
   }>();
 
@@ -231,6 +239,8 @@
   const isSystemType = computed(
     () => (paramsRef.value?.type || formState.type) === CRONTAB_TYPE.System
   );
+  const isViewMode = computed(() => !!paramsRef.value?.isView);
+  const isReadOnlyMode = computed(() => isSystemType.value || isViewMode.value);
 
   const { updateContentWithPeriod, updateContentWithParams } =
     useContentHandler();
@@ -398,6 +408,7 @@
     type?: CRONTAB_TYPE;
     category?: string;
     isEdit?: boolean;
+    isView?: boolean;
     record?: CrontabEntity;
   }) => {
     paramsRef.value = params;
@@ -405,7 +416,7 @@
 
   // 处理表单提交
   const handleOk = async () => {
-    if (isSystemType.value) {
+    if (isReadOnlyMode.value) {
       visible.value = false;
       return;
     }
@@ -459,6 +470,7 @@
     type?: CRONTAB_TYPE;
     category?: string;
     isEdit?: boolean;
+    isView?: boolean;
     record?: CrontabEntity;
   }) => {
     if (params?.record || params?.name) {
@@ -468,6 +480,7 @@
         type: params.type || props.type,
         category: 'default',
         isEdit: true,
+        isView: params.isView,
         record: params.record,
       });
     } else {

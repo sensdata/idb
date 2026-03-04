@@ -85,6 +85,7 @@
       type?: CRONTAB_TYPE;
       category?: string;
       isEdit?: boolean;
+      isView?: boolean;
       record?: CrontabEntity;
     }) => Promise<void>;
   }
@@ -183,7 +184,9 @@
     return getCrontabListApi({
       ...fetchParams,
       type: params.value.type,
-      category: params.value.category || DEFAULT_CRONTAB_CATEGORY,
+      category: isSystemType.value
+        ? ''
+        : params.value.category || DEFAULT_CRONTAB_CATEGORY,
     });
   };
 
@@ -206,6 +209,16 @@
   const handleEdit = async (record: CrontabEntity) => {
     if (!formRef.value) return;
     try {
+      if (isSystemType.value) {
+        formRef.value.show({
+          name: record.name,
+          type: params.value.type,
+          category: '',
+          isEdit: true,
+          isView: true,
+        });
+        return;
+      }
       formRef.value.show({
         record,
         isEdit: true,

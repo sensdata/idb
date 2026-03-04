@@ -56,4 +56,5 @@ export default {
   'app.crontab.form.category.placeholder':
     '请选择或输入分类，新分类按回车键会自动生成',
   'app.crontab.form.category.required': '请输入分类',
+  'app.crontab.form.open_config_dir': '打开配置目录',
 };

@@ -20,6 +20,9 @@ import (
 
 const systemCategory = "system"
 const systemMainConfName = "crontab"
+const managedCrontabFileMode = "0644"
+
+var cronDFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 func isSystemType(t string) bool {
 	return strings.EqualFold(t, "system")
@@ -50,6 +53,32 @@ func splitNonEmptyLines(content string) []string {
 		results = append(results, trimmed)
 	}
 	return results
+}
+
+func isValidSystemCrontabName(name string) bool {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed == systemMainConfName {
+		return true
+	}
+	// crond typically ignores dot-files or uncommon names under /etc/cron.d.
+	return cronDFileNamePattern.MatchString(trimmed)
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func (s *CronTab) ensureManagedConfFileMode(hostID uint64, confPath string) error {
+	command := fmt.Sprintf("chmod %s -- %s", managedCrontabFileMode, shellQuote(confPath))
+	_, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to set file mode for %s: %v", confPath, err)
+		return err
+	}
+	return nil
 }
 
 func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
@@ -641,6 +670,11 @@ func (s *CronTab) createForm(hostID uint64, req model.CreateServiceForm) error {
 		return fmt.Errorf("failed to get create conf file")
 	}
 
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -809,6 +843,11 @@ func (s *CronTab) updateForm(hostID uint64, req model.UpdateServiceForm) error {
 		return fmt.Errorf("failed to update conf file")
 	}
 
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -868,6 +907,11 @@ func (s *CronTab) create(hostID uint64, req model.CreateGitFile, extension strin
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to get create conf file")
+	}
+
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -950,7 +994,7 @@ func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*mod
 		return pageResult, nil
 	}
 
-	command := `if [ -f /etc/crontab ]; then echo crontab; fi; if [ -d /etc/cron.d ]; then find /etc/cron.d -maxdepth 1 -type f -printf '%f\n'; fi`
+	command := `if [ -f /etc/crontab ]; then echo crontab; fi; if [ -d /etc/cron.d ]; then find /etc/cron.d -maxdepth 1 \( -type f -o -type l \) -printf '%f\n'; fi`
 	commandResult, err := s.sendCommand(uint(hostID), command)
 	if err != nil {
 		return nil, err
@@ -959,6 +1003,9 @@ func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*mod
 	seen := make(map[string]struct{})
 	names := make([]string, 0)
 	for _, item := range splitNonEmptyLines(commandResult.Result) {
+		if !isValidSystemCrontabName(item) {
+			continue
+		}
 		if _, exists := seen[item]; exists {
 			continue
 		}
@@ -973,6 +1020,15 @@ func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*mod
 		if pathErr != nil {
 			continue
 		}
+		detail, detailErr := s.getSystemContent(hostID, model.GetGitFileDetail{
+			Type:     "system",
+			Category: systemCategory,
+			Name:     name,
+		})
+		if detailErr != nil {
+			LOG.Error("failed to get content for %s: %v", confPath, detailErr)
+			continue
+		}
 		modTime, modTimeErr := s.getSystemFileModTime(hostID, confPath)
 		if modTimeErr != nil {
 			LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
@@ -981,6 +1037,7 @@ func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*mod
 			Source:    confPath,
 			Name:      name,
 			Extension: filepath.Ext(name),
+			Content:   detail.Content,
 			ModTime:   modTime,
 			Linked:    true,
 		})
@@ -1146,6 +1203,11 @@ func (s *CronTab) update(hostID uint64, req model.UpdateGitFile) error {
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to update conf file")
+	}
+
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -1558,6 +1620,9 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 		err := s.createFile(uint64(hostID), createFile)
 		if err != nil {
 			LOG.Error("Failed to create conf file")
+			return err
+		}
+		if err := s.ensureManagedConfFileMode(hostID, confLinkPath); err != nil {
 			return err
 		}
 

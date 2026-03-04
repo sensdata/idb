@@ -28,6 +28,24 @@ const convertToCronstrueLocale = (bcp47Locale: string): string => {
  */
 export const useCronDescription = () => {
   const { locale } = useI18n();
+  const envVarLinePattern = /^[A-Za-z_][A-Za-z0-9_]*\s*=/;
+
+  const tryGetCronDescription = (
+    cronExpression: string
+  ): { ok: boolean; text: string } => {
+    if (!cronExpression) return { ok: false, text: '' };
+
+    try {
+      const cronstrueLocale = convertToCronstrueLocale(locale.value);
+      const text = cronstrue.toString(cronExpression, {
+        locale: cronstrueLocale,
+        use24HourTimeFormat: true,
+      });
+      return { ok: true, text };
+    } catch (error) {
+      return { ok: false, text: '' };
+    }
+  };
 
   /**
    * 将 cron 表达式转换为人类可读的描述
@@ -35,18 +53,8 @@ export const useCronDescription = () => {
    * @returns 人类可读的描述，如 "每 3 小时"
    */
   const getCronDescription = (cronExpression: string): string => {
-    if (!cronExpression) return '';
-
-    try {
-      const cronstrueLocale = convertToCronstrueLocale(locale.value);
-      return cronstrue.toString(cronExpression, {
-        locale: cronstrueLocale,
-        use24HourTimeFormat: true,
-      });
-    } catch (error) {
-      console.error('Failed to parse cron expression:', cronExpression, error);
-      return cronExpression;
-    }
+    const result = tryGetCronDescription(cronExpression);
+    return result.ok ? result.text : cronExpression;
   };
 
   /**
@@ -58,16 +66,23 @@ export const useCronDescription = () => {
     if (!content) return '';
 
     const lines = content.split('\n');
-    // 找到第一个非注释行
-    const cronLine = lines.find((line) => line.trim() && !line.startsWith('#'));
-    if (!cronLine) return '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (
+        !trimmed ||
+        trimmed.startsWith('#') ||
+        envVarLinePattern.test(trimmed)
+      )
+        continue;
 
-    // 提取 cron 表达式（前5个字段）
-    const parts = cronLine.trim().split(/\s+/);
-    if (parts.length < 5) return '';
+      const parts = trimmed.split(/\s+/);
+      if (parts.length < 6) continue;
 
-    const cronExpression = parts.slice(0, 5).join(' ');
-    return getCronDescription(cronExpression);
+      const cronExpression = parts.slice(0, 5).join(' ');
+      const result = tryGetCronDescription(cronExpression);
+      if (result.ok) return result.text;
+    }
+    return '';
   };
 
   return {

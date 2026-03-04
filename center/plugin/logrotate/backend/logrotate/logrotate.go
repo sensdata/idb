@@ -1453,7 +1453,7 @@ func (s *LogRotate) getSystemConfList(hostID uint64, req model.QueryGitFile) (*m
 		return pageResult, nil
 	}
 
-	command := `if [ -f /etc/logrotate.conf ]; then echo logrotate.conf; fi; if [ -d /etc/logrotate.d ]; then find /etc/logrotate.d -maxdepth 1 -type f -printf '%f\n'; fi`
+	command := `if [ -f /etc/logrotate.conf ]; then echo logrotate.conf; fi; if [ -d /etc/logrotate.d ]; then find /etc/logrotate.d -maxdepth 1 \( -type f -o -type l \) -printf '%f\n'; fi`
 	commandResult, err := s.sendCommand(uint(hostID), command)
 	if err != nil {
 		return nil, err

@@ -57,4 +57,5 @@ export default {
   'app.crontab.form.category.placeholder':
     'Please select or enter a category, press Enter to create a new category',
   'app.crontab.form.category.required': 'Please enter category',
+  'app.crontab.form.open_config_dir': 'Open Config Directory',
 };
