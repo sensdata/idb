@@ -303,7 +303,7 @@ export const useDataLoader = (
   // 重置表单基本信息
   const resetBasicFormInfo = (record: CrontabEntity) => {
     formState.name = record.name || '';
-    formState.type = record.type || CRONTAB_TYPE.Local;
+    formState.type = record.type || formState.type || CRONTAB_TYPE.Local;
     formState.mark = record.mark || '';
     formState.content_mode = record.content_mode || 'direct';
     formState.command = '';
@@ -366,7 +366,10 @@ export const useDataLoader = (
 
       // 重置表单基本信息
       resetBasicFormInfo(record);
-      formState.category = record.category || DEFAULT_CRONTAB_CATEGORY;
+      formState.category =
+        formState.type === CRONTAB_TYPE.System
+          ? ''
+          : record.category || DEFAULT_CRONTAB_CATEGORY;
 
       // 处理周期详情
       const { usedExistingPeriod, commandContent } = await handlePeriodDetails(
@@ -411,8 +414,12 @@ export const useDataLoader = (
         return;
       }
 
-      // 使用相同的加载逻辑处理返回的数据
-      await loadDataFromRecord(data);
+      // 详情接口不保证返回 type/category，补齐上下文，避免系统配置被误判为 local。
+      await loadDataFromRecord({
+        ...(data as CrontabEntity),
+        type: paramsRef.value.type,
+        category: paramsRef.value.category,
+      });
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

@@ -799,7 +799,8 @@ func (b *BaseApi) GetScriptRunLogDetail(c *gin.Context) {
 
 	path := c.Query("path")
 	if path == "" {
-		path = "/"
+		ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid path", nil)
+		return
 	}
 
 	// 获取插件

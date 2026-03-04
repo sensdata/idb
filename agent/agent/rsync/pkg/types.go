@@ -20,8 +20,8 @@ const (
 	StateFailed    TaskState = "failed"
 	StateStopped   TaskState = "stopped"
 
-	AuthModePassword AuthMode = "password"
-	AuthModeAnonymous AuthMode = "anonymous"
+	AuthModePassword   AuthMode = "password"
+	AuthModeAnonymous  AuthMode = "anonymous"
 	AuthModePrivateKey AuthMode = "private_key"
 )
 
@@ -37,7 +37,7 @@ type RsyncTask struct {
 	Username      string        `json:"username"`
 	Password      string        `json:"password,omitempty"`
 	SSHPrivateKey string        `json:"ssh_private_key,omitempty"` // path to key or empty
-	AuthMode      AuthMode      `json:"auth_mode"`                  // 认证模式：密码、匿名、私钥
+	AuthMode      AuthMode      `json:"auth_mode"`                 // 认证模式：密码、匿名、私钥
 	RemotePath    string        `json:"remote_path"`
 	Module        string        `json:"module,omitempty"` // rsync daemon module
 	CreatedAt     time.Time     `json:"created_at"`

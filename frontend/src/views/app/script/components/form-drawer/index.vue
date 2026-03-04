@@ -54,7 +54,6 @@
               :placeholder="$t('app.script.form.category.placeholder')"
               :loading="categoryLoading"
               :options="categoryOptions"
-              allow-clear
               allow-create
             />
           </a-form-item>
@@ -112,7 +111,7 @@
   const formState = reactive({
     name: '',
     type: props.type,
-    category: undefined as string | undefined,
+    category: '',
     content: '',
     // mark: '',
   });
@@ -135,7 +134,7 @@
 #Description:
 #Author:${username}
 `;
-    formState.category = undefined;
+    formState.category = '';
     // 保留type，因为这是根据props传递的，不需要重置
     formState.type = props.type;
   };
@@ -234,7 +233,7 @@
           type: props.type,
           ...paramsRef.value!,
           new_name: formState.name,
-          new_category: formState.category!,
+          new_category: formState.category,
           content: formState.content,
         });
       } else {

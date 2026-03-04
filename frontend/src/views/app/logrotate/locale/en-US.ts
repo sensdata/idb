@@ -1,7 +1,7 @@
 export default {
   'app.logrotate.enum.type.local': 'Host Config',
   'app.logrotate.enum.type.global': 'Global Config',
-  'app.logrotate.enum.type.system': 'System Config',
+  'app.logrotate.enum.type.system': 'System Rotation Status',
 
   // Mode
   'app.logrotate.mode.overview': 'Structured Mode',
@@ -26,12 +26,12 @@ export default {
   'app.logrotate.list.column.path': 'Log Path',
   'app.logrotate.list.column.frequency': 'Frequency',
   'app.logrotate.list.column.count': 'Rotate Count',
-  'app.logrotate.list.column.status': 'Status',
+  'app.logrotate.list.column.status': 'Enablement',
   'app.logrotate.list.column.updated_at': 'Updated At',
-  'app.logrotate.list.status.active': 'Active',
-  'app.logrotate.list.status.inactive': 'Inactive',
-  'app.logrotate.list.operation.activate': 'Activate',
-  'app.logrotate.list.operation.deactivate': 'Deactivate',
+  'app.logrotate.list.status.active': 'Enabled',
+  'app.logrotate.list.status.inactive': 'Disabled',
+  'app.logrotate.list.operation.activate': 'Enable',
+  'app.logrotate.list.operation.deactivate': 'Disable',
   'app.logrotate.list.operation.history': 'History',
   'app.logrotate.list.delete.title': 'Confirm Delete',
   'app.logrotate.list.delete.content':
@@ -39,12 +39,11 @@ export default {
   'app.logrotate.list.message.fetch_failed': 'Failed to fetch config list',
   'app.logrotate.list.message.delete_success': 'Config deleted successfully',
   'app.logrotate.list.message.delete_failed': 'Failed to delete config',
-  'app.logrotate.list.message.activate_success':
-    'Config activated successfully',
-  'app.logrotate.list.message.activate_failed': 'Failed to activate config',
+  'app.logrotate.list.message.activate_success': 'Config enabled successfully',
+  'app.logrotate.list.message.activate_failed': 'Failed to enable config',
   'app.logrotate.list.message.deactivate_success':
-    'Config deactivated successfully',
-  'app.logrotate.list.message.deactivate_failed': 'Failed to deactivate config',
+    'Config disabled successfully',
+  'app.logrotate.list.message.deactivate_failed': 'Failed to disable config',
   'app.logrotate.list.message.no_host_selected': 'Please select a host first',
 
   // System config operations

@@ -1043,7 +1043,7 @@ func (s *CronTab) ConfOperate(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	if req.Type != "global" && req.Type != "local" {
+	if req.Type != "global" && req.Type != "local" && req.Type != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
 		return
 	}

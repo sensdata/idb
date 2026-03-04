@@ -24,14 +24,14 @@
           class="status-tag"
           style="color: rgb(var(--success-6))"
         >
-          生效中
+          {{ $t('app.crontab.list.status.running') }}
         </span>
         <span
           v-else-if="record.linked === false"
           class="status-tag"
           style="color: rgb(var(--color-text-4))"
         >
-          未激活
+          {{ $t('app.crontab.list.status.not_running') }}
         </span>
         <span v-else class="status-tag">
           {{ record.linked }}
@@ -49,6 +49,18 @@
 
   <form-drawer ref="formRef" :type="type" @ok="handleFormOk" />
   <logs-drawer ref="logsRef" />
+
+  <a-modal
+    v-model:visible="operateResultVisible"
+    :title="operateResultTitle"
+    :footer="false"
+    :width="760"
+    :mask-closable="true"
+  >
+    <a-typography-paragraph :copyable="true" class="operate-result-content">
+      {{ operateResultText }}
+    </a-typography-paragraph>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
@@ -69,6 +81,7 @@
     deleteCrontabApi,
     getCrontabListApi,
     actionCrontabApi,
+    operateCrontabApi,
   } from '@/api/crontab';
   import useLoading from '@/composables/loading';
   import { useConfirm } from '@/composables/confirm';
@@ -105,6 +118,9 @@
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref<FormDrawerInstance>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
+  const operateResultVisible = ref(false);
+  const operateResultTitle = ref('');
+  const operateResultText = ref('');
   const { loading, setLoading } = useLoading();
   const { confirm } = useConfirm();
 
@@ -291,9 +307,77 @@
     }
   };
 
+  const showOperateResult = (
+    operation: 'test' | 'execute',
+    result: string
+  ): void => {
+    operateResultTitle.value = t(
+      operation === 'test'
+        ? 'app.crontab.system.operate.result.test_title'
+        : 'app.crontab.system.operate.result.execute_title'
+    );
+    operateResultText.value =
+      result?.trim() || t('app.crontab.system.operate.result.empty');
+    operateResultVisible.value = true;
+  };
+
+  const handleSystemOperate = async (
+    record: CrontabEntity,
+    operation: 'test' | 'execute'
+  ): Promise<void> => {
+    try {
+      if (currentHostId.value === undefined) {
+        Message.error(t('app.crontab.list.message.no_host_selected'));
+        return;
+      }
+
+      if (operation === 'execute') {
+        const confirmed = await confirm({
+          title: t('app.crontab.system.operate.execute_confirm.title'),
+          content: t('app.crontab.system.operate.execute_confirm.content', {
+            name: record.name,
+          }),
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const response = await operateCrontabApi({
+        type: record.type,
+        category: record.category || '',
+        name: record.name,
+        operation,
+        host: currentHostId.value,
+      });
+
+      Message.success(
+        operation === 'test'
+          ? t('app.crontab.system.operate.test_success')
+          : t('app.crontab.system.operate.execute_success')
+      );
+      showOperateResult(operation, response.result);
+    } catch (error: any) {
+      Message.error(
+        error?.message ||
+          (operation === 'test'
+            ? t('app.crontab.system.operate.test_failed')
+            : t('app.crontab.system.operate.execute_failed'))
+      );
+    }
+  };
+
   const getCrontabOperationOptions = (record: CrontabEntity) => {
     if (isSystemType.value) {
       return [
+        {
+          text: t('app.crontab.system.operate.test'),
+          click: () => handleSystemOperate(record, 'test'),
+        },
+        {
+          text: t('app.crontab.system.operate.execute'),
+          click: () => handleSystemOperate(record, 'execute'),
+        },
         {
           text: t('common.view'),
           click: () => handleEdit(record),
@@ -366,5 +450,11 @@
     padding: 4px 8px;
     font-size: 12px;
     border-radius: 4px;
+  }
+
+  .operate-result-content {
+    max-height: 480px;
+    overflow: auto;
+    white-space: pre-wrap;
   }
 </style>

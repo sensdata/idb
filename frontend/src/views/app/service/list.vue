@@ -5,7 +5,7 @@
     :loading="loading"
     :params="params"
     :columns="columns"
-    :fetch="fetchServiceList"
+    :fetch="fetchAndDecorateServiceList"
     :auto-load="false"
   >
     <template #leftActions>
@@ -22,29 +22,116 @@
         {{ $t('app.service.list.action.sync') }}
       </a-button>
     </template>
-
-    <template #status="{ record }: { record: ServiceEntity }">
-      <div class="status-cell">
-        <a-tag
-          :color="
-            record.linked ? 'rgb(var(--success-6))' : 'rgb(var(--color-text-4))'
-          "
-          class="status-tag"
+    <template #rightActions>
+      <div class="right-actions">
+        <a-radio-group
+          v-model="sourceFilter"
+          type="button"
+          size="small"
+          @change="handleSegmentFilterChange"
         >
-          {{
-            record.linked
-              ? $t('app.service.list.status.activated')
-              : $t('app.service.list.status.deactivated')
-          }}
+          <a-radio value="all">
+            {{ $t('app.service.list.filter.source.all') }}
+          </a-radio>
+          <a-radio value="builtin">
+            {{ $t('app.service.list.filter.source.builtin') }}
+          </a-radio>
+          <a-radio value="custom">
+            {{ $t('app.service.list.filter.source.custom') }}
+          </a-radio>
+        </a-radio-group>
+
+        <a-radio-group
+          v-model="runtimeFilter"
+          type="button"
+          size="small"
+          @change="handleSegmentFilterChange"
+        >
+          <a-radio value="all">
+            {{ $t('app.service.list.filter.runtime.all') }}
+          </a-radio>
+          <a-radio value="running">
+            {{ $t('app.service.list.filter.runtime.running') }}
+          </a-radio>
+          <a-radio value="stopped">
+            {{ $t('app.service.list.filter.runtime.stopped') }}
+          </a-radio>
+          <a-radio value="failed">
+            {{ $t('app.service.list.filter.runtime.failed') }}
+          </a-radio>
+        </a-radio-group>
+
+        <a-button @click="handleRefreshRuntimeStatus">
+          <template #icon>
+            <icon-sync />
+          </template>
+          {{ $t('app.service.list.action.refresh_runtime') }}
+        </a-button>
+      </div>
+    </template>
+
+    <template #name="{ record }: { record: ServiceEntity }">
+      <div class="name-cell">
+        <span class="name-text">{{ record.name }}</span>
+        <a-tag
+          v-if="isIdbEnabled(record)"
+          color="green"
+          size="small"
+          class="source-tag"
+        >
+          {{ $t('app.service.list.source.idb_enabled') }}
         </a-tag>
       </div>
     </template>
 
+    <template #source="{ record }: { record: ServiceEntity }">
+      <div class="source-cell">
+        <a-tag size="small" :color="resolveSourceColor(record)">
+          {{ resolveSourceText(record) }}
+        </a-tag>
+      </div>
+    </template>
+
+    <template #runtime_status="{ record }: { record: ServiceEntity }">
+      <div class="runtime-status-cell">
+        <a-tag
+          :color="resolveRuntimeStatusColor(record)"
+          size="small"
+          class="status-tag runtime-tag"
+        >
+          {{ resolveRuntimeStatusText(record) }}
+        </a-tag>
+        <a-button
+          size="mini"
+          type="text"
+          :loading="Boolean(runtimeStatusLoading[buildServiceKey(record)])"
+          @click="handleServiceOperate(record, SERVICE_OPERATION.Status)"
+        >
+          {{ $t('app.service.list.runtime.refresh') }}
+        </a-button>
+      </div>
+    </template>
+
+    <template #start_time="{ record }: { record: ServiceEntity }">
+      <div class="start-time-cell">
+        <span class="start-time">{{ resolveStartTimeText(record) }}</span>
+        <span v-if="resolveUptimeText(record)" class="uptime">
+          {{ resolveUptimeText(record) }}
+        </span>
+      </div>
+    </template>
+
     <template #operation="{ record }: { record: ServiceEntity }">
-      <idb-table-operation
-        type="button"
-        :options="getServiceOperationOptions(record)"
-      />
+      <div class="operation-cell">
+        <idb-table-operation
+          type="button"
+          :options="getServiceQuickOperationOptions(record)"
+        />
+        <idb-table-operation
+          type="button"
+          :options="getServiceOperationOptions(record)"
+        />
+      </div>
     </template>
   </idb-table>
 
@@ -71,7 +158,7 @@
   } from '@/config/enum';
   import { formatTime } from '@/utils/format';
   import { ServiceEntity } from '@/entity/Service';
-  import { syncGlobalServiceApi } from '@/api/service';
+  import { serviceOperateApi, syncGlobalServiceApi } from '@/api/service';
   import { useConfirm } from '@/composables/confirm';
   import { useLogger } from '@/composables/use-logger';
   import { useServiceList } from './composables/use-service-list';
@@ -117,14 +204,37 @@
   const formRef = ref<FormDrawerInstance>();
   const logsRef = ref<InstanceType<typeof LogsDrawer>>();
   const historyRef = ref<InstanceType<typeof HistoryDrawer>>();
+  const sourceFilter = ref<'all' | 'builtin' | 'custom'>('all');
+  const runtimeFilter = ref<'all' | 'running' | 'stopped' | 'failed'>(
+    'running'
+  );
+  const currentRecords = ref<ServiceEntity[]>([]);
+  const runtimeStatusMap = ref<
+    Record<
+      string,
+      {
+        status: string;
+        activeEnterTimestamp: string;
+        startAt: number | null;
+      }
+    >
+  >({});
+  const runtimeStatusLoading = ref<Record<string, boolean>>({});
 
   const columns = [
     {
       title: t('app.service.list.columns.name'),
       dataIndex: 'name',
+      slotName: 'name',
       width: 220,
       ellipsis: true,
       tooltip: true,
+    },
+    {
+      title: t('app.service.list.columns.source'),
+      dataIndex: 'source',
+      slotName: 'source',
+      width: 140,
     },
     {
       title: t('app.service.list.columns.description'),
@@ -144,34 +254,264 @@
       },
     },
     {
-      title: t('app.service.list.columns.status'),
-      dataIndex: 'status',
-      slotName: 'status',
-      width: 120,
-    },
-    {
-      title: t('app.service.list.columns.size'),
-      dataIndex: 'size',
-      width: 100,
-      render: ({ record }: { record: ServiceEntity }) => {
-        return `${(record.size / 1024).toFixed(2)} KB`;
-      },
-    },
-    {
-      title: t('app.service.list.columns.mod_time'),
-      dataIndex: 'mod_time',
+      title: t('app.service.list.columns.runtime_status'),
+      dataIndex: 'runtime_status',
+      slotName: 'runtime_status',
       width: 180,
-      render: ({ record }: { record: ServiceEntity }) => {
-        return formatTime(record.mod_time);
-      },
+    },
+    {
+      title: t('app.service.list.columns.start_time'),
+      dataIndex: 'start_time',
+      slotName: 'start_time',
+      width: 220,
     },
     {
       title: t('app.service.list.columns.operation'),
       slotName: 'operation',
-      width: 260,
+      width: 380,
       align: 'left' as const,
     },
   ];
+
+  const buildServiceKey = (record: ServiceEntity): string =>
+    `${record.name}::${record.source || ''}`;
+
+  const parseRuntimeStatus = (rawStatus: string) => {
+    const activeMatch = rawStatus.match(/ActiveState=([^\n\r]+)/);
+    const subMatch = rawStatus.match(/SubState=([^\n\r]+)/);
+    const activeEnterMatch = rawStatus.match(/ActiveEnterTimestamp=([^\n\r]+)/);
+    const activeState = activeMatch?.[1]?.trim()?.toLowerCase() || '';
+    const subState = subMatch?.[1]?.trim()?.toLowerCase() || '';
+    const activeEnterTimestamp = activeEnterMatch?.[1]?.trim() || '';
+    const parsedStartAt = Date.parse(activeEnterTimestamp);
+    const startAt = Number.isNaN(parsedStartAt) ? null : parsedStartAt;
+    let status = 'unknown';
+
+    if (activeState === 'active') {
+      status = 'running';
+    } else if (activeState === 'activating') {
+      status = 'activating';
+    } else if (activeState === 'deactivating') {
+      status = 'deactivating';
+    } else if (activeState === 'failed') {
+      status = 'failed';
+    } else if (activeState === 'inactive') {
+      status = 'stopped';
+    } else if (subState === 'dead') {
+      status = 'stopped';
+    }
+
+    return {
+      status,
+      activeEnterTimestamp,
+      startAt,
+    };
+  };
+
+  const resolveRuntimeStatusText = (record: ServiceEntity): string => {
+    const runtimeInfo = runtimeStatusMap.value[buildServiceKey(record)];
+    return t(`app.service.list.runtime.${runtimeInfo?.status || 'unknown'}`);
+  };
+
+  const resolveRuntimeStatusColor = (record: ServiceEntity): string => {
+    const runtimeStatus =
+      runtimeStatusMap.value[buildServiceKey(record)]?.status || '';
+    if (runtimeStatus === 'running') return 'green';
+    if (runtimeStatus === 'failed') return 'red';
+    if (runtimeStatus === 'activating' || runtimeStatus === 'deactivating') {
+      return 'orange';
+    }
+    if (runtimeStatus === 'query_failed') return 'red';
+    return 'gray';
+  };
+
+  const formatDuration = (durationMs: number): string => {
+    const totalSeconds = Math.floor(durationMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const parts: string[] = [];
+
+    if (days > 0) parts.push(`${days}${t('app.service.list.uptime.day')}`);
+    if (hours > 0 || days > 0)
+      parts.push(`${hours}${t('app.service.list.uptime.hour')}`);
+    if (minutes > 0 || hours > 0 || days > 0)
+      parts.push(`${minutes}${t('app.service.list.uptime.minute')}`);
+    parts.push(`${seconds}${t('app.service.list.uptime.second')}`);
+
+    return parts.join(' ');
+  };
+
+  const resolveStartTimeText = (record: ServiceEntity): string => {
+    const runtimeInfo = runtimeStatusMap.value[buildServiceKey(record)];
+    if (!runtimeInfo) return t('app.service.list.start.unknown');
+    if (
+      runtimeInfo.status !== 'running' &&
+      runtimeInfo.status !== 'activating'
+    ) {
+      return t('app.service.list.start.not_running');
+    }
+    if (!runtimeInfo.startAt) return t('app.service.list.start.unknown');
+    return formatTime(new Date(runtimeInfo.startAt).toISOString());
+  };
+
+  const resolveUptimeText = (record: ServiceEntity): string => {
+    const runtimeInfo = runtimeStatusMap.value[buildServiceKey(record)];
+    if (!runtimeInfo || !runtimeInfo.startAt) return '';
+    if (
+      runtimeInfo.status !== 'running' &&
+      runtimeInfo.status !== 'activating'
+    ) {
+      return '';
+    }
+    const durationMs = Date.now() - runtimeInfo.startAt;
+    if (durationMs <= 0) return '';
+    return formatDuration(durationMs);
+  };
+
+  const isSystemBuiltinService = (record: ServiceEntity): boolean => {
+    return (
+      isSystemType.value &&
+      (record.source?.startsWith('/usr/lib/systemd/system') ||
+        record.source?.startsWith('/lib/systemd/system'))
+    );
+  };
+
+  const isSystemCustomService = (record: ServiceEntity): boolean => {
+    return (
+      isSystemType.value && record.source?.startsWith('/etc/systemd/system')
+    );
+  };
+
+  const isIdbEnabled = (record: ServiceEntity): boolean => {
+    return !isSystemType.value && Boolean(record.linked);
+  };
+
+  const matchSourceFilter = (record: ServiceEntity): boolean => {
+    if (sourceFilter.value === 'all') return true;
+    if (sourceFilter.value === 'builtin') return isSystemBuiltinService(record);
+    return !isSystemBuiltinService(record);
+  };
+
+  const matchRuntimeFilter = (record: ServiceEntity): boolean => {
+    if (runtimeFilter.value === 'all') return true;
+    const runtimeStatus =
+      runtimeStatusMap.value[buildServiceKey(record)]?.status || '';
+    return runtimeStatus === runtimeFilter.value;
+  };
+
+  const resolveSourceText = (record: ServiceEntity): string => {
+    if (isSystemBuiltinService(record)) {
+      return t('app.service.list.source.system_builtin');
+    }
+    if (isSystemCustomService(record)) {
+      return t('app.service.list.source.system_custom');
+    }
+    return t('app.service.list.source.user_config');
+  };
+
+  const resolveSourceColor = (record: ServiceEntity): string => {
+    if (isSystemBuiltinService(record)) return 'rgb(var(--arcoblue-6))';
+    if (isSystemCustomService(record)) return 'rgb(var(--orangered-6))';
+    return 'rgb(var(--gray-6))';
+  };
+
+  const queryServiceRuntimeStatus = async (
+    record: ServiceEntity,
+    withToast = false
+  ) => {
+    const serviceKey = buildServiceKey(record);
+    runtimeStatusLoading.value[serviceKey] = true;
+    try {
+      const response = await serviceOperateApi({
+        type: type.value,
+        category: params.value.category,
+        name: record.name,
+        operation: SERVICE_OPERATION.Status,
+      });
+      runtimeStatusMap.value[serviceKey] = parseRuntimeStatus(
+        response.result || ''
+      );
+      if (withToast && response.result) {
+        Message.info(response.result);
+      }
+    } catch (error) {
+      runtimeStatusMap.value[serviceKey] = {
+        status: 'query_failed',
+        activeEnterTimestamp: '',
+        startAt: null,
+      };
+      if (withToast) {
+        Message.error(t('app.service.list.runtime.query_failed'));
+      }
+    } finally {
+      runtimeStatusLoading.value[serviceKey] = false;
+    }
+  };
+
+  const handleRefreshRuntimeStatus = async () => {
+    if (!currentRecords.value.length) return;
+    await Promise.all(
+      currentRecords.value.map((record) => queryServiceRuntimeStatus(record))
+    );
+  };
+
+  const handleSegmentFilterChange = () => {
+    gridRef.value?.load({ page: 1 });
+  };
+
+  const fetchAndDecorateServiceList = async (queryParams: any) => {
+    const page = Number(queryParams.page) || 1;
+    const pageSize = Number(queryParams.page_size) || 20;
+    const needClientFilter =
+      sourceFilter.value !== 'all' || runtimeFilter.value !== 'all';
+
+    const response = await fetchServiceList({
+      ...queryParams,
+      page: needClientFilter ? 1 : page,
+      page_size: needClientFilter ? 1000 : pageSize,
+    });
+
+    runtimeStatusMap.value = {};
+
+    let items: ServiceEntity[] = (response.items || []).filter(
+      matchSourceFilter
+    );
+
+    if (items.length > 0) {
+      await Promise.all(
+        items.map((record) => queryServiceRuntimeStatus(record))
+      );
+    }
+
+    if (runtimeFilter.value !== 'all') {
+      items = items.filter(matchRuntimeFilter);
+    }
+
+    if (needClientFilter) {
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const pagedItems = items.slice(start, end);
+      currentRecords.value = pagedItems;
+      return {
+        ...response,
+        items: pagedItems,
+        total: items.length,
+        page,
+        page_size: pageSize,
+      };
+    }
+
+    currentRecords.value = items;
+    return {
+      ...response,
+      items,
+      total: items.length,
+      page,
+      page_size: pageSize,
+    };
+  };
 
   const reload = () => {
     gridRef.value?.reload();
@@ -249,30 +589,66 @@
     record: ServiceEntity,
     operation: SERVICE_OPERATION
   ) => {
+    if (operation === SERVICE_OPERATION.Status) {
+      await queryServiceRuntimeStatus(record, true);
+      return;
+    }
+
     try {
       const operationText = t(
         `app.service.list.operation.${operation.toLowerCase()}`
       );
 
-      if (operation !== SERVICE_OPERATION.Status) {
-        await confirm(
-          t('app.service.list.confirm.operation', {
-            operation: operationText,
-            name: record.name,
-          })
-        );
-      }
+      await confirm(
+        t('app.service.list.confirm.operation', {
+          operation: operationText,
+          name: record.name,
+        })
+      );
 
       const result = await operateService(record, operation);
       if (result !== null) {
-        if (operation === SERVICE_OPERATION.Status) {
-          Message.info(result);
-        }
         reload();
       }
     } catch (error) {
       logError('Failed to operate service:', error);
     }
+  };
+
+  const getServiceQuickOperationOptions = (record: ServiceEntity) => {
+    const quickOptions: Array<{
+      text: string;
+      click: () => void;
+    }> = [
+      {
+        text: record.linked
+          ? t('app.service.list.operation.disable')
+          : t('app.service.list.operation.enable'),
+        click: () =>
+          handleServiceOperate(
+            record,
+            record.linked ? SERVICE_OPERATION.Disable : SERVICE_OPERATION.Enable
+          ),
+      },
+      {
+        text: t('app.service.list.operation.start'),
+        click: () => handleServiceOperate(record, SERVICE_OPERATION.Start),
+      },
+      {
+        text: t('app.service.list.operation.stop'),
+        click: () => handleServiceOperate(record, SERVICE_OPERATION.Stop),
+      },
+      {
+        text: t('app.service.list.operation.restart'),
+        click: () => handleServiceOperate(record, SERVICE_OPERATION.Restart),
+      },
+      {
+        text: t('app.service.list.operation.status'),
+        click: () => handleServiceOperate(record, SERVICE_OPERATION.Status),
+      },
+    ];
+
+    return isSystemType.value ? quickOptions.slice(1) : quickOptions;
   };
 
   const getServiceOperationOptions = (record: ServiceEntity) => {
@@ -285,6 +661,10 @@
         {
           text: t('app.service.list.operation.logs'),
           click: () => handleViewLogs(record),
+        },
+        {
+          text: t('app.service.list.operation.history'),
+          click: () => handleViewHistory(record),
         },
       ];
     }
@@ -325,39 +705,6 @@
         click: () => handleViewHistory(record),
       }
     );
-
-    if (record.linked) {
-      options.push(
-        {
-          text: t('app.service.list.operation.start'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Start),
-        },
-        {
-          text: t('app.service.list.operation.stop'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Stop),
-        },
-        {
-          text: t('app.service.list.operation.restart'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Restart),
-        },
-        {
-          text: t('app.service.list.operation.reload'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Reload),
-        },
-        {
-          text: t('app.service.list.operation.enable'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Enable),
-        },
-        {
-          text: t('app.service.list.operation.disable'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Disable),
-        },
-        {
-          text: t('app.service.list.operation.status'),
-          click: () => handleServiceOperate(record, SERVICE_OPERATION.Status),
-        }
-      );
-    }
 
     return options;
   };
@@ -411,7 +758,74 @@
     align-items: center;
   }
 
+  .runtime-status-cell {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .start-time-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+
+  .start-time {
+    font-weight: 500;
+  }
+
+  .uptime {
+    margin-top: 2px;
+    font-size: 12px;
+    color: rgb(var(--color-text-3));
+  }
+
+  .operation-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+  }
+
+  .right-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .name-cell {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .name-text {
+    display: inline-block;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .source-cell {
+    display: flex;
+    align-items: center;
+  }
+
+  .source-tag {
+    margin: 0;
+  }
+
   .status-tag {
     margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .runtime-tag {
+    justify-content: center;
+    min-width: 64px;
   }
 </style>

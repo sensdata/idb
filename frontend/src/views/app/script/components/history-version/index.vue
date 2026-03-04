@@ -81,12 +81,12 @@
   const { confirm } = useConfirm();
 
   const handleRestore = async (record: any) => {
-    if (await confirm('app.script.history_version.restore_confirm')) {
+    if (await confirm(t('app.script.history_version.restore_confirm'))) {
       await restoreScriptVersionApi({
         ...toRaw(params),
         commit_hash: record.commit_hash,
       });
-      Message.success('common.message.operationSuccess');
+      Message.success(t('common.message.operationSuccess'));
       reload();
     }
   };

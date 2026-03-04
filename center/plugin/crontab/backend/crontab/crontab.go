@@ -1670,45 +1670,53 @@ func (s *CronTab) confActivate(hostID uint64, req model.ServiceActivate) error {
 }
 
 func (s *CronTab) confOperate(hostID uint64, req model.CrontabOperate) (*model.ServiceOperateResult, error) {
-	var result model.ServiceOperateResult
-
-	// 先看是否需要同步
-	needSync, err := s.needSync(req.Type, hostID)
-	if err != nil {
-		LOG.Error("Failed to check if sync is needed: %v", err)
-		return &result, err
-	}
-	// 执行同步
-	if needSync {
-		if err := s.syncGlobal(uint(hostID)); err != nil {
-			LOG.Error("Failed to sync global services: %v", err)
-			return &result, err
-		}
-	}
-
-	var repoPath string
+	var confContent string
 	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	case "system":
+		gitFile, err := s.getSystemContent(hostID, model.GetGitFileDetail{
+			Type:     req.Type,
+			Category: req.Category,
+			Name:     req.Name,
+		})
+		if err != nil {
+			return nil, err
+		}
+		confContent = gitFile.Content
 	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-	var relativePath string
-	if req.Category != "" {
-		relativePath = filepath.Join(req.Category, req.Name+".crontab")
-	} else {
-		relativePath = req.Name + ".crontab"
-	}
+		// 先看是否需要同步
+		needSync, err := s.needSync(req.Type, hostID)
+		if err != nil {
+			LOG.Error("Failed to check if sync is needed: %v", err)
+			return nil, err
+		}
+		// 执行同步
+		if needSync {
+			if err := s.syncGlobal(uint(hostID)); err != nil {
+				LOG.Error("Failed to sync global services: %v", err)
+				return nil, err
+			}
+		}
 
-	// 检查repo
-	err = s.checkRepo(uint(hostID), repoPath)
-	if err != nil {
-		return &result, err
-	}
+		var repoPath string
+		switch req.Type {
+		case "global":
+			repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
+		default:
+			repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+		}
+		var relativePath string
+		if req.Category != "" {
+			relativePath = filepath.Join(req.Category, req.Name+".crontab")
+		} else {
+			relativePath = req.Name + ".crontab"
+		}
 
-	// 执行操作
-	switch req.Operation {
-	case "execute":
+		// 检查repo
+		err = s.checkRepo(uint(hostID), repoPath)
+		if err != nil {
+			return nil, err
+		}
+
 		// 获取脚本内容
 		gitGetFile := model.GitGetFile{
 			HostID:       uint(hostID),
@@ -1717,7 +1725,7 @@ func (s *CronTab) confOperate(hostID uint64, req model.CrontabOperate) (*model.S
 		}
 		data, err := utils.ToJSONString(gitGetFile)
 		if err != nil {
-			return &result, err
+			return nil, err
 		}
 		actionRequest := model.HostAction{
 			HostID: gitGetFile.HostID,
@@ -1729,31 +1737,52 @@ func (s *CronTab) confOperate(hostID uint64, req model.CrontabOperate) (*model.S
 		actionResponse, err := s.sendAction(actionRequest)
 		if err != nil {
 			LOG.Error("Failed to send action: %v", err)
-			return &result, err
+			return nil, err
 		}
 		if !actionResponse.Data.Action.Result {
 			LOG.Error("Action failed")
-			return &result, fmt.Errorf("failed to get conf detail")
+			return nil, fmt.Errorf("failed to get conf detail")
 		}
 		var gitFile model.GitFile
 		err = utils.FromJSONString(actionResponse.Data.Action.Data, &gitFile)
 		if err != nil {
 			LOG.Error("Error unmarshaling data to conf detail: %v", err)
-			return &result, fmt.Errorf("json err: %v", err)
+			return nil, fmt.Errorf("json err: %v", err)
 		}
-		// 从脚本提取命令
-		commandLines := extractCrontabCommands(gitFile.Content)
-		if len(commandLines) == 0 {
-			return &result, fmt.Errorf("no commands found in the crontab file")
+		confContent = gitFile.Content
+	}
+
+	commandLines := extractCrontabCommands(confContent)
+	return s.runCrontabOperateCommand(hostID, req.Operation, commandLines)
+}
+
+func (s *CronTab) runCrontabOperateCommand(hostID uint64, operation string, commandLines []string) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+
+	if len(commandLines) == 0 {
+		return &result, fmt.Errorf("no commands found in the crontab file")
+	}
+
+	switch operation {
+	case "test":
+		result.Result = strings.Join(commandLines, "\n")
+	case "execute":
+		outputLines := make([]string, 0, len(commandLines)*2)
+		for index, command := range commandLines {
+			commandResult, err := s.sendCommand(uint(hostID), command)
+			if err != nil {
+				LOG.Error("Failed to execute conf command: %v", err)
+				return &result, err
+			}
+			outputLines = append(outputLines, fmt.Sprintf("[%d] %s", index+1, command))
+			trimmed := strings.TrimSpace(commandResult.Result)
+			if trimmed != "" {
+				outputLines = append(outputLines, trimmed)
+			}
 		}
-		// 执行命令
-		command := commandLines[0]
-		commandResult, err := s.sendCommand(uint(hostID), command)
-		if err != nil {
-			LOG.Error("Failed to execute conf")
-			return &result, err
-		}
-		result.Result = commandResult.Result
+		result.Result = strings.Join(outputLines, "\n")
+	default:
+		return &result, fmt.Errorf("unsupported operation")
 	}
 	return &result, nil
 }
@@ -1772,8 +1801,16 @@ func extractCrontabCommands(content string) []string {
 		}
 		if strings.HasPrefix(fields[0], "@") && len(fields) > 1 {
 			// 兼容 @reboot、@daily 等
-			commands = append(commands, strings.Join(fields[1:], " "))
+			if len(fields) > 2 {
+				commands = append(commands, strings.Join(fields[2:], " "))
+			} else {
+				commands = append(commands, strings.Join(fields[1:], " "))
+			}
+		} else if len(fields) > 6 {
+			// Time-User-Command 格式
+			commands = append(commands, strings.Join(fields[6:], " "))
 		} else if len(fields) > 5 {
+			// 兼容旧格式 Time-Command
 			// 标准时间表达式
 			commands = append(commands, strings.Join(fields[5:], " "))
 		}
