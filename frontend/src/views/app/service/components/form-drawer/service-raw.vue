@@ -8,6 +8,7 @@
         :tab-size="2"
         :extensions="serviceExtensions"
         :file="serviceFile"
+        :readonly="readonly"
         class="service-codemirror"
         @update:model-value="handleContentChange"
       />
@@ -27,11 +28,11 @@
     type: SERVICE_TYPE;
     category: string;
     isEdit: boolean;
+    isView?: boolean;
     record?: ServiceEntity;
   }>();
 
   const emit = defineEmits<{
-    'categoryChange': [category: string];
     'update:content': [content: string];
     'change': [];
   }>();
@@ -40,6 +41,7 @@
 
   // 日志记录
   const { logDebug } = useLogger('ServiceRaw');
+  const readonly = computed(() => Boolean(props.isView));
 
   // 创建 service 文件对象
   const serviceFile = computed(() => ({
@@ -53,6 +55,7 @@
 
   // 处理内容变化
   const handleContentChange = (value: string) => {
+    if (readonly.value) return;
     logDebug('内容变化，长度:', value.length);
 
     content.value = value;

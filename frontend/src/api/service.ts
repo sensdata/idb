@@ -3,29 +3,46 @@ import request from '@/helper/api-helper';
 import { ApiListParams, ApiListResult } from '@/types/global';
 import { SERVICE_TYPE, SERVICE_OPERATION, SERVICE_ACTION } from '@/config/enum';
 
+export const DEFAULT_SERVICE_CATEGORY = 'default';
+
+const normalizeServiceCategory = (type: SERVICE_TYPE, category?: string) => {
+  if (type === SERVICE_TYPE.System) {
+    return category || '';
+  }
+  return category && category.trim()
+    ? category.trim()
+    : DEFAULT_SERVICE_CATEGORY;
+};
+
 export interface ServiceListApiParams extends ApiListParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   host?: number;
 }
 
 export function getServiceListApi(params: ServiceListApiParams) {
-  return request.get<ApiListResult<ServiceEntity>>('services/{host}', params);
+  return request.get<ApiListResult<ServiceEntity>>('services/{host}', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface ServiceDetailApiParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
 }
 
 export function getServiceDetailApi(params: ServiceDetailApiParams) {
-  return request.get<string>('services/{host}/raw', params);
+  return request.get<string>('services/{host}/raw', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface ServiceFormApiParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name?: string;
 }
 
@@ -51,54 +68,70 @@ export interface ServiceForm {
 }
 
 export function getServiceFormApi(params: ServiceFormApiParams) {
-  return request.get<ServiceForm>('services/{host}/form', params);
+  return request.get<ServiceForm>('services/{host}/form', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface CreateServiceRawParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   content: string;
 }
 
 export function createServiceRawApi(params: CreateServiceRawParams) {
-  return request.post('services/{host}/raw', params);
+  return request.post('services/{host}/raw', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface UpdateServiceRawParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   new_name: string;
   content: string;
 }
 
 export function updateServiceRawApi(params: UpdateServiceRawParams) {
-  return request.put('services/{host}/raw', params);
+  return request.put('services/{host}/raw', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface CreateServiceFormParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   form: Array<{ key: string; value: string }>;
 }
 
 export function createServiceFormApi(params: CreateServiceFormParams) {
-  return request.post('services/{host}/form', params);
+  return request.post('services/{host}/form', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface UpdateServiceFormParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   new_name: string;
-  new_category: string;
+  new_category?: string;
   form: Array<{ key: string; value: string }>;
 }
 
 export function updateServiceFormApi(params: UpdateServiceFormParams) {
-  return request.put('services/{host}/form', params);
+  return request.put('services/{host}/form', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+    new_category: normalizeServiceCategory(params.type, params.new_category),
+  });
 }
 
 export interface ServiceCategoryListApiParams extends ApiListParams {
@@ -121,29 +154,39 @@ export function getServiceCategoryListApi(
 
 export function createServiceCategoryApi(params: {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
 }) {
-  return request.post('services/{host}/category', params);
+  return request.post('services/{host}/category', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export function updateServiceCategoryApi(params: {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   new_name: string;
 }) {
-  return request.put('services/{host}/category', params);
+  return request.put('services/{host}/category', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+    new_name: normalizeServiceCategory(params.type, params.new_name),
+  });
 }
 
 export function deleteServiceCategoryApi(params: {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
 }) {
-  return request.delete('services/{host}/category', params);
+  return request.delete('services/{host}/category', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface ServiceHistoryApiParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   page: number;
   pageSize: number;
@@ -170,7 +213,7 @@ export function getServiceHistoryApi(
   return request
     .get<PageResult<ServiceHistoryResponse>>('services/{host}/history', {
       type: params.type,
-      category: params.category,
+      category: normalizeServiceCategory(params.type, params.category),
       name: params.name,
       page: params.page,
       page_size: params.pageSize,
@@ -198,18 +241,21 @@ export function getServiceHistoryApi(
 
 export interface ServiceDiffApiParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   commit: string;
 }
 
 export function getServiceDiffApi(params: ServiceDiffApiParams) {
-  return request.get<string>('services/{host}/diff', params);
+  return request.get<string>('services/{host}/diff', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface RestoreServiceParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   commit: string;
 }
@@ -217,7 +263,7 @@ export interface RestoreServiceParams {
 export function restoreServiceApi(params: RestoreServiceParams) {
   return request.put('services/{host}/restore', {
     type: params.type,
-    category: params.category,
+    category: normalizeServiceCategory(params.type, params.category),
     name: params.name,
     commit_hash: params.commit, // 后端期望 commit_hash 而不是 commit
   });
@@ -225,18 +271,21 @@ export function restoreServiceApi(params: RestoreServiceParams) {
 
 export interface ServiceActivateParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   action: SERVICE_ACTION;
 }
 
 export function serviceActivateApi(params: ServiceActivateParams) {
-  return request.post('services/{host}/activate', params);
+  return request.post('services/{host}/activate', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface ServiceOperateParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
   operation: SERVICE_OPERATION;
 }
@@ -246,17 +295,23 @@ export interface ServiceOperateResult {
 }
 
 export function serviceOperateApi(params: ServiceOperateParams) {
-  return request.post<ServiceOperateResult>('services/{host}/operate', params);
+  return request.post<ServiceOperateResult>('services/{host}/operate', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export interface DeleteServiceParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
 }
 
 export function deleteServiceApi(params: DeleteServiceParams) {
-  return request.delete('services/{host}', params);
+  return request.delete('services/{host}', {
+    ...params,
+    category: normalizeServiceCategory(params.type, params.category),
+  });
 }
 
 export function syncGlobalServiceApi() {

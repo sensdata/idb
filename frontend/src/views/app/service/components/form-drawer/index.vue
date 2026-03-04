@@ -16,8 +16,8 @@
             :type="params.type"
             :category="params.category"
             :is-edit="params.isEdit"
+            :is-view="params.isView"
             :record="params.record"
-            @category-change="handleCategoryChange"
             @change="handleFormChange"
           />
         </a-tab-pane>
@@ -28,8 +28,8 @@
             :type="params.type"
             :category="params.category"
             :is-edit="params.isEdit"
+            :is-view="params.isView"
             :record="params.record"
-            @category-change="handleCategoryChange"
             @change="handleRawChange"
           />
         </a-tab-pane>
@@ -39,6 +39,7 @@
       <div class="drawer-footer">
         <a-button @click="handleCancel">{{ $t('common.cancel') }}</a-button>
         <a-button
+          v-if="!params.isView"
           type="primary"
           :loading="loading"
           :disabled="!hasChanges"
@@ -63,8 +64,7 @@
     createServiceFormApi,
     updateServiceFormApi,
     getServiceDetailApi,
-    createServiceCategoryApi,
-    getServiceCategoryListApi,
+    DEFAULT_SERVICE_CATEGORY,
   } from '@/api/service';
   import { useForm } from '@/composables/use-form';
   import { useLogger } from '@/composables/use-logger';
@@ -77,22 +77,20 @@
 
   interface DrawerParams {
     type: SERVICE_TYPE;
-    category: string;
+    category?: string;
     name?: string;
-    isEdit: boolean;
+    isEdit?: boolean;
+    isView?: boolean;
     record?: ServiceEntity;
   }
 
   const emit = defineEmits<{
     ok: [];
-    categoryChange: [category: string];
-    categoryCreated: [category: string];
   }>();
 
   const { t } = useI18n();
   const { logDebug, logError } = useLogger('ServiceFormDrawer');
 
-  // 使用状态管理hook
   const {
     visible,
     activeTab,
@@ -105,50 +103,49 @@
     setFormChanged,
   } = useServiceFormState();
 
-  // 组件引用
   const serviceFormRef = ref<InstanceType<typeof ServiceForm>>();
   const serviceRawRef = ref<InstanceType<typeof ServiceRaw>>();
 
-  // 初始化 service parser
   const { parseServiceConfig, parseServiceConfigStructured } =
     useServiceParser();
 
-  // 创建独立的loading状态
   const loading = ref(false);
 
-  // 加载服务数据
+  const normalizeCategory = (type: SERVICE_TYPE, category?: string) => {
+    if (type === SERVICE_TYPE.System) return '';
+    return category && category.trim() ? category : DEFAULT_SERVICE_CATEGORY;
+  };
+
   const loadServiceData = async () => {
     if (!params.value.record) return;
 
     try {
       loading.value = true;
 
-      const category = params.value.category;
+      const category = normalizeCategory(
+        params.value.type,
+        params.value.category
+      );
       const serviceName = params.value.record.name;
 
-      if (!category || !serviceName) {
-        Message.error(t('app.service.form.error.missing_category'));
+      if (!serviceName) {
         return;
       }
 
-      // 从API获取最新的服务内容
       const latestContent = await getServiceDetailApi({
         type: params.value.type,
         category,
         name: serviceName,
       });
 
-      // 设置原始内容为最新获取的内容
       rawContent.value = latestContent;
       originalRawContent.value = latestContent;
 
-      // 从最新的原始配置解析出表单数据
       if (latestContent) {
         try {
           const parsedConfig = parseServiceConfig(latestContent);
           const structuredConfig = parseServiceConfigStructured(latestContent);
 
-          // 传递解析后的数据给表单组件
           const initialFormData = {
             name: serviceName,
             category,
@@ -171,24 +168,25 @@
     }
   };
 
-  // 使用通用表单hook处理提交
   const { submitForm, setFormRef } = useForm({
     initialValues: formData.value,
     async onSubmit() {
-      // 设置loading状态
+      if (params.value.isView) return;
+
       loading.value = true;
       try {
         if (activeTab.value === 'form') {
-          // 表单模式提交 - 使用 form API
           const currentFormData = await serviceFormRef.value?.getFormData();
           if (!currentFormData) return;
 
-          // 从表单模型获取字段数据
           const formModel = serviceFormRef.value?.getFormModel();
           if (!formModel) return;
 
-          // 构建表单字段数组 - 只包含后端 form.yaml 中定义的字段
-          // 后端只接受这7个字段: Description, Type, ExecStart, WorkingDirectory, User, Group, Environment
+          const normalizedCategory = normalizeCategory(
+            params.value.type,
+            currentFormData.category
+          );
+
           const formFields = [
             { key: 'Description', value: formModel.description || '' },
             { key: 'Type', value: formModel.serviceType || 'simple' },
@@ -205,35 +203,43 @@
           if (params.value.isEdit) {
             await updateServiceFormApi({
               type: currentFormData.type,
-              category: currentFormData.category,
+              category: normalizedCategory,
               name: params.value.record?.name || currentFormData.name,
               new_name: currentFormData.name,
-              new_category: currentFormData.category,
+              new_category: normalizedCategory,
               form: formFields,
             });
           } else {
             await createServiceFormApi({
               type: currentFormData.type,
-              category: currentFormData.category,
+              category: normalizedCategory,
               name: currentFormData.name,
               form: formFields,
             });
           }
         } else {
-          // 原始模式提交 - 使用 raw API
           const isValid = await serviceRawRef.value?.validate();
           if (!isValid) return;
 
           const submitData = serviceRawRef.value?.getSubmitData();
           if (!submitData) return;
 
+          const normalizedCategory = normalizeCategory(
+            params.value.type,
+            submitData.category
+          );
+
           if (params.value.isEdit) {
             await updateServiceRawApi({
               ...submitData,
+              category: normalizedCategory,
               new_name: submitData.name,
             });
           } else {
-            await createServiceRawApi(submitData);
+            await createServiceRawApi({
+              ...submitData,
+              category: normalizedCategory,
+            });
           }
         }
 
@@ -245,27 +251,20 @@
 
         hasChanges.value = false;
 
-        // 如果是编辑模式，保存后不关闭弹框，只重置变更状态
         if (params.value.isEdit) {
-          // 编辑模式：重新加载数据但保持弹框打开
           await loadServiceData();
-          // 等待数据更新完成，然后强制表单组件刷新
           await nextTick();
           if (activeTab.value === 'form' && serviceFormRef.value) {
-            // 对于表单模式，使用 setFormData 更新数据
             serviceFormRef.value.setFormData(formData.value);
           }
-          // 对于原始模式，rawContent 已经在 loadServiceData 中更新了
-          emit('ok'); // 通知父组件刷新列表，但不传递关闭信号
+          emit('ok');
         } else {
-          // 新建模式：保存后关闭弹框
           resetState();
           emit('ok');
         }
       } catch (error: any) {
         logError('保存失败', error as Error);
 
-        // 提取并格式化后端错误信息
         const defaultMessage = params.value.isEdit
           ? t('app.service.form.error.update')
           : t('app.service.form.error.create');
@@ -278,7 +277,6 @@
     },
   });
 
-  // 使用模式同步hook
   const { syncFormToRaw, syncRawToForm, checkFormChanges } = useServiceModeSync(
     formData,
     rawContent,
@@ -289,7 +287,6 @@
     setFormChanged
   );
 
-  // 监听 serviceFormRef 变化，设置表单引用
   watch(
     () => serviceFormRef.value,
     (newRef: InstanceType<typeof ServiceForm> | undefined) => {
@@ -301,224 +298,105 @@
   );
 
   const drawerTitle = computed(() => {
-    const action = params.value.isEdit
-      ? t('app.service.form.title.edit')
-      : t('app.service.form.title.create');
+    let action = t('app.service.form.title.create');
+    if (params.value.isView) {
+      action = t('common.view');
+    } else if (params.value.isEdit) {
+      action = t('app.service.form.title.edit');
+    }
     return `${action} - ${t(`app.service.enum.type.${params.value.type}`)}`;
   });
 
-  // 保存上一个标签页的状态
   const lastActiveTab = ref('form');
 
-  // 监听标签页切换
   const handleTabChange = async (key: string | number) => {
     const newMode = String(key);
     const previousMode = lastActiveTab.value;
 
     logDebug(`模式切换: ${previousMode} -> ${newMode}`);
 
-    // 如果没有真正的模式切换，直接返回
-    if (previousMode === newMode) {
+    if (newMode === previousMode) {
       return;
     }
 
     try {
-      // 先显示加载状态
-      loading.value = true;
+      if (previousMode === 'form' && newMode === 'raw') {
+        await syncFormToRaw();
+      } else if (previousMode === 'raw' && newMode === 'form') {
+        await syncRawToForm();
+      }
 
-      // 更新上一个标签页状态
       lastActiveTab.value = newMode;
 
-      // 模式切换同步逻辑
-      if (newMode === 'raw' && previousMode === 'form') {
-        // 从表单模式切换到文件模式
-        const success = await syncFormToRaw();
-        if (!success) {
-          throw new Error('从表单模式同步到文件模式失败');
-        }
-      } else if (newMode === 'form' && previousMode === 'raw') {
-        // 从文件模式切换到表单模式
-        logDebug('从文件模式切换到表单模式');
-
-        // 1. 先同步原始内容到表单数据对象
-        const success = await syncRawToForm();
-        if (!success) {
-          throw new Error('从文件模式同步到表单模式失败');
-        }
-
-        // 2. 确保等待数据同步完成
+      if (newMode === 'form') {
         await nextTick();
-
-        // 3. 强制表单组件刷新数据
-        if (serviceFormRef.value) {
-          // 通过resetForm方法直接更新表单组件的内部状态
-          serviceFormRef.value.resetForm(formData.value);
-
-          // 4. 再次检查表单组件是否已更新
-          await nextTick();
-        }
       }
     } catch (error) {
       logError('模式切换失败', error as Error);
       Message.error(t('app.service.form.error.mode_switch'));
-      // 如果切换失败，回退到原模式
-      lastActiveTab.value = previousMode;
-    } finally {
-      // 隐藏加载状态
-      loading.value = false;
-
-      // 确保在切换后重新设置表单引用
-      await nextTick();
-      if (newMode === 'form' && serviceFormRef.value?.formRef) {
-        setFormRef(serviceFormRef.value.formRef);
-      }
+      activeTab.value = previousMode;
     }
   };
 
-  // 取消
-  const handleCancel = () => {
+  const handleFormChange = async () => {
+    if (activeTab.value !== 'form') return;
+    await checkFormChanges(originalRawContent.value);
+  };
+
+  const handleRawChange = async () => {
+    if (activeTab.value !== 'raw') return;
+    await checkFormChanges(originalRawContent.value);
+  };
+
+  const resetDrawerState = () => {
     resetState();
-  };
-
-  // 显示抽屉
-  const show = async (newParams?: Partial<DrawerParams>) => {
-    if (newParams) {
-      params.value = {
-        ...params.value,
-        ...newParams,
-      };
-    }
-
-    visible.value = true;
     activeTab.value = 'form';
     lastActiveTab.value = 'form';
-    hasChanges.value = false;
+    loading.value = false;
+  };
 
-    await nextTick();
+  const handleCancel = () => {
+    resetDrawerState();
+  };
 
-    // 如果是编辑模式，加载服务数据
-    if (params.value.isEdit && params.value.record) {
+  const handleSubmit = async () => {
+    await submitForm();
+  };
+
+  const show = async (
+    showParams: DrawerParams = { type: SERVICE_TYPE.Local }
+  ) => {
+    resetDrawerState();
+
+    params.value = {
+      type: showParams.type || SERVICE_TYPE.Local,
+      category: normalizeCategory(
+        showParams.type || SERVICE_TYPE.Local,
+        showParams.category
+      ),
+      isEdit: showParams.isEdit || false,
+      isView: showParams.isView || false,
+      record: showParams.record,
+    };
+
+    visible.value = true;
+
+    if (showParams.isEdit && showParams.record) {
       await loadServiceData();
     } else {
-      // 新建模式，设置默认的表单数据
-      const initialFormData = {
+      formData.value = {
         name: '',
-        category: params.value.category,
-        parsedConfig: {},
+        category: normalizeCategory(params.value.type, params.value.category),
+        parsedConfig: parseServiceConfig(''),
+        structuredConfig: parseServiceConfigStructured(''),
       };
-
-      formData.value = initialFormData;
       rawContent.value = '';
       originalRawContent.value = '';
     }
 
-    // 确保在显示抽屉后设置表单引用
-    await nextTick();
-    if (activeTab.value === 'form' && serviceFormRef.value?.formRef) {
-      setFormRef(serviceFormRef.value.formRef);
-      // 刷新分类选项以确保显示最新的分类列表
-      serviceFormRef.value.refreshCategories?.();
-    }
+    hasChanges.value = false;
   };
 
-  // 确保分类存在（如果不存在则创建）
-  const ensureCategoryExists = async (category: string): Promise<boolean> => {
-    if (!category.trim()) return true;
-
-    try {
-      // 获取当前分类列表，检查分类是否已存在
-      const response = await getServiceCategoryListApi({
-        type: params.value.type,
-        page: 1,
-        page_size: 1000,
-      });
-
-      const existingCategories = response.items.map((item: any) => item.name);
-
-      // 如果分类已存在，直接返回true
-      if (existingCategories.includes(category)) {
-        return true;
-      }
-
-      // 分类不存在，创建新分类
-      await createServiceCategoryApi({
-        type: params.value.type,
-        category,
-      });
-
-      logDebug(`成功创建新分类: ${category}`);
-
-      // 通知父组件刷新分类树
-      emit('categoryCreated', category);
-
-      // 刷新当前表单的分类选项列表
-      if (
-        activeTab.value === 'form' &&
-        serviceFormRef.value?.refreshCategories
-      ) {
-        await serviceFormRef.value.refreshCategories(category);
-      }
-
-      return true;
-    } catch (error) {
-      logError('创建分类失败', error as Error);
-      Message.error(t('app.service.form.error.create_category'));
-      return false;
-    }
-  };
-
-  // 处理分类变化
-  const handleCategoryChange = async (category: string) => {
-    // 更新参数中的分类
-    params.value.category = category;
-
-    // 如果分类不为空，确保分类存在
-    if (category.trim()) {
-      const categoryExists = await ensureCategoryExists(category);
-      if (!categoryExists) {
-        // 分类创建失败，不继续执行
-        return;
-      }
-    }
-
-    // 向父组件发射分类变化事件
-    emit('categoryChange', category);
-  };
-
-  // 处理表单变化
-  const handleFormChange = async () => {
-    // 表单模式下检查变更并同步
-    if (activeTab.value === 'form') {
-      await syncFormToRaw();
-    }
-  };
-
-  // 处理原始编辑器内容变化
-  const handleRawChange = async () => {
-    // 原始模式下直接标记为已变更
-    if (activeTab.value === 'raw') {
-      // 检查变更状态
-      await checkFormChanges(originalRawContent.value);
-    }
-  };
-
-  // 提交
-  const handleSubmit = async () => {
-    try {
-      if (activeTab.value === 'form') {
-        // 表单模式提交 - 先验证
-        const isValid = await serviceFormRef.value?.validate();
-        if (!isValid) return;
-      }
-
-      // 使用submitForm提交表单
-      await submitForm();
-    } catch (error) {
-      // 错误已在submitForm中处理
-    }
-  };
-
-  // 暴露方法给父组件
   defineExpose({
     show,
   });
@@ -526,14 +404,17 @@
 
 <style scoped>
   .form-drawer-content {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 120px);
+    height: calc(100vh - 180px);
+    overflow-y: auto;
   }
 
   .drawer-footer {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: flex-end;
+  }
+
+  :deep(.arco-tabs-content) {
+    padding-top: 16px;
   }
 </style>

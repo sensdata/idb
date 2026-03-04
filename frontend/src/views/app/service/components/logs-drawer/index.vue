@@ -74,7 +74,7 @@
 
   interface LogsParams {
     type: SERVICE_TYPE;
-    category: string;
+    category?: string;
     name: string;
   }
 
@@ -121,7 +121,7 @@
     // 构建SSE URL
     const streamParams: ServiceLogStreamParams = {
       type: currentParams.value.type,
-      category: currentParams.value.category,
+      category: currentParams.value.category || '',
       name: currentParams.value.name,
       follow: autoRefresh.value,
       tail: 30, // 默认显示最后30行

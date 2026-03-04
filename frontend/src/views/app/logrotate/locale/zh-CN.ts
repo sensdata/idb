@@ -43,6 +43,21 @@ export default {
   'app.logrotate.list.message.activate_failed': '激活配置失败',
   'app.logrotate.list.message.deactivate_success': '停用配置成功',
   'app.logrotate.list.message.deactivate_failed': '停用配置失败',
+  'app.logrotate.list.message.no_host_selected': '请先选择主机',
+
+  // 系统配置操作
+  'app.logrotate.system.operate.test': '测试运行',
+  'app.logrotate.system.operate.execute': '立即执行',
+  'app.logrotate.system.operate.test_success': '测试运行成功',
+  'app.logrotate.system.operate.test_failed': '测试运行失败',
+  'app.logrotate.system.operate.execute_success': '执行成功',
+  'app.logrotate.system.operate.execute_failed': '执行失败',
+  'app.logrotate.system.operate.execute_confirm.title': '确认立即执行',
+  'app.logrotate.system.operate.execute_confirm.content':
+    '确定要立即执行配置 "{name}" 吗？',
+  'app.logrotate.system.operate.result.test_title': '测试运行输出',
+  'app.logrotate.system.operate.result.execute_title': '执行输出',
+  'app.logrotate.system.operate.result.empty': '无输出',
 
   // 表单
   'app.logrotate.form.create_title': '创建日志轮转配置',

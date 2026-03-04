@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { useLogger } from '@/composables/use-logger';
 import type { SERVICE_TYPE } from '@/config/enum';
+import { DEFAULT_SERVICE_CATEGORY } from '@/api/service';
 import type { ParsedServiceConfig } from '../types';
 
 export const useFormModel = (type: SERVICE_TYPE, category: string) => {
@@ -9,7 +10,7 @@ export const useFormModel = (type: SERVICE_TYPE, category: string) => {
   // 初始化表单数据模型
   const formModel = ref({
     name: '',
-    category: category || '',
+    category: category || DEFAULT_SERVICE_CATEGORY,
     description: '',
     serviceType: 'simple',
     execStart: '',
@@ -42,7 +43,7 @@ export const useFormModel = (type: SERVICE_TYPE, category: string) => {
 
       formModel.value = {
         name: data.name || '',
-        category: data.category || category || '', // 优先使用传入的分类
+        category: data.category || category || DEFAULT_SERVICE_CATEGORY,
         description: config.description || '',
         serviceType: config.serviceType || 'simple',
         execStart: config.execStart || '',
@@ -73,7 +74,7 @@ export const useFormModel = (type: SERVICE_TYPE, category: string) => {
 
       formModel.value = {
         name: data.name || '',
-        category: data.category || category || '', // 优先使用传入的分类
+        category: data.category || category || DEFAULT_SERVICE_CATEGORY,
         description: fieldMap.Description || '',
         serviceType: fieldMap.Type || 'simple',
         execStart: fieldMap.ExecStart || '',

@@ -45,6 +45,21 @@ export default {
   'app.logrotate.list.message.deactivate_success':
     'Config deactivated successfully',
   'app.logrotate.list.message.deactivate_failed': 'Failed to deactivate config',
+  'app.logrotate.list.message.no_host_selected': 'Please select a host first',
+
+  // System config operations
+  'app.logrotate.system.operate.test': 'Test Run',
+  'app.logrotate.system.operate.execute': 'Run Now',
+  'app.logrotate.system.operate.test_success': 'Test run succeeded',
+  'app.logrotate.system.operate.test_failed': 'Test run failed',
+  'app.logrotate.system.operate.execute_success': 'Execution succeeded',
+  'app.logrotate.system.operate.execute_failed': 'Execution failed',
+  'app.logrotate.system.operate.execute_confirm.title': 'Confirm Run Now',
+  'app.logrotate.system.operate.execute_confirm.content':
+    'Are you sure you want to run config "{name}" immediately?',
+  'app.logrotate.system.operate.result.test_title': 'Test Run Output',
+  'app.logrotate.system.operate.result.execute_title': 'Execution Output',
+  'app.logrotate.system.operate.result.empty': 'No output',
 
   // Form
   'app.logrotate.form.create_title': 'Create Logrotate Config',

@@ -2094,6 +2094,13 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 
 func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*model.ServiceOperateResult, error) {
 	var result model.ServiceOperateResult
+	if isSystemType(req.Type) {
+		confPath, err := resolveSystemConfPath(req.Name)
+		if err != nil {
+			return &result, err
+		}
+		return s.runLogrotateOperateCommand(hostID, req.Operation, confPath)
+	}
 
 	// 先看是否需要同步
 	needSync, err := s.needSync(req.Type, hostID)
@@ -2131,11 +2138,17 @@ func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*mod
 
 	// conf file path
 	confPath := filepath.Join(repoPath, relativePath)
+	return s.runLogrotateOperateCommand(hostID, req.Operation, confPath)
+}
 
-	switch req.Operation {
+
+func (s *LogRotate) runLogrotateOperateCommand(hostID uint64, operation string, confPath string) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+	quotedPath := shellQuote(confPath)
+	switch operation {
 	case "test":
 		// 进行-d测试
-		command := fmt.Sprintf("logrotate -d %s", confPath)
+		command := fmt.Sprintf("logrotate -d %s", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
@@ -2144,13 +2157,15 @@ func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*mod
 		result.Result = commandResult.Result
 	case "execute":
 		// 进行-f测试
-		command := fmt.Sprintf("logrotate -f %s", confPath)
+		command := fmt.Sprintf("logrotate -f %s", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to execute conf")
 			return &result, err
 		}
 		result.Result = commandResult.Result
+	default:
+		return &result, fmt.Errorf("unsupported operation")
 	}
 	return &result, nil
 }

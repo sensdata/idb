@@ -2,7 +2,7 @@ import { SERVICE_TYPE } from '@/config/enum';
 
 export interface HistoryParams {
   type: SERVICE_TYPE;
-  category: string;
+  category?: string;
   name: string;
 }
 

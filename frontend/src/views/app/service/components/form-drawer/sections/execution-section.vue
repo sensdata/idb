@@ -20,6 +20,7 @@
           v-model="formData.execStart"
           :placeholder="$t('app.service.form.placeholder.exec_start')"
           allow-clear
+          :disabled="readonly"
         >
           <template #prefix>
             <icon-command />
@@ -47,6 +48,7 @@
           v-model="formData.workingDirectory"
           :placeholder="$t('app.service.form.placeholder.working_directory')"
           allow-clear
+          :disabled="readonly"
         >
           <template #prefix>
             <icon-folder-opened />
@@ -64,13 +66,17 @@
               v-model="formData.environment"
               :placeholder="$t('app.service.form.placeholder.environment')"
               readonly
-              @click="openEnvironmentEditor"
+              @click="!readonly && openEnvironmentEditor()"
             >
               <template #prefix>
                 <icon-apps />
               </template>
             </a-input>
-            <a-button type="outline" @click="openEnvironmentEditor">
+            <a-button
+              type="outline"
+              :disabled="readonly"
+              @click="openEnvironmentEditor"
+            >
               <template #icon>
                 <icon-settings />
               </template>
@@ -93,6 +99,7 @@
           v-model="formData.user"
           :placeholder="$t('app.service.form.placeholder.user')"
           allow-clear
+          :disabled="readonly"
         >
           <template #prefix>
             <icon-user />
@@ -109,6 +116,7 @@
           v-model="formData.group"
           :placeholder="$t('app.service.form.placeholder.group')"
           allow-clear
+          :disabled="readonly"
         >
           <template #prefix>
             <icon-team />
@@ -143,6 +151,7 @@
   interface Props {
     formModel: ServiceExecutionForm;
     styles: ServiceFormStyles;
+    readonly?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -151,6 +160,8 @@
     'openEnvironmentEditor': [];
     'update:formModel': [value: ServiceExecutionForm];
   }>();
+
+  const readonly = computed(() => Boolean(props.readonly));
 
   // Create a computed proxy for v-model binding
   const formData = computed({

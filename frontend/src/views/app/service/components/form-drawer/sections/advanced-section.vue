@@ -22,6 +22,7 @@
             :model-value="formModel.execStop"
             :placeholder="$t('app.service.form.placeholder.exec_stop')"
             allow-clear
+            :disabled="readonly"
             @update:model-value="updateField('execStop', $event)"
           >
             <template #prefix>
@@ -39,6 +40,7 @@
             :model-value="formModel.execReload"
             :placeholder="$t('app.service.form.placeholder.exec_reload')"
             allow-clear
+            :disabled="readonly"
             @update:model-value="updateField('execReload', $event)"
           >
             <template #prefix>
@@ -61,6 +63,7 @@
           <a-select
             :model-value="formModel.restart"
             :placeholder="$t('app.service.form.field.restart')"
+            :disabled="readonly"
             @update:model-value="updateField('restart', $event)"
           >
             <a-option value="no">No</a-option>
@@ -84,6 +87,7 @@
             :min="0"
             :precision="0"
             mode="button"
+            :disabled="readonly"
             :class="styles.full_width"
             @update:model-value="updateField('restartSec', $event)"
           />
@@ -111,6 +115,7 @@
             :min="0"
             :precision="0"
             mode="button"
+            :disabled="readonly"
             :class="styles.full_width"
             @update:model-value="updateField('timeoutStartSec', $event)"
           />
@@ -132,6 +137,7 @@
             :min="0"
             :precision="0"
             mode="button"
+            :disabled="readonly"
             :class="styles.full_width"
             @update:model-value="updateField('timeoutStopSec', $event)"
           />
@@ -147,12 +153,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, computed } from 'vue';
   import type { ParsedServiceConfig } from '../types';
 
   const props = defineProps<{
     formModel: ParsedServiceConfig;
     styles: Record<string, string>;
+    readonly?: boolean;
   }>();
 
   const emit = defineEmits<{
@@ -160,6 +167,7 @@
   }>();
 
   const showAdvanced = ref(false);
+  const readonly = computed(() => Boolean(props.readonly));
 
   const toggleAdvanced = () => {
     showAdvanced.value = !showAdvanced.value;

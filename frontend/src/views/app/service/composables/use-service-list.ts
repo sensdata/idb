@@ -4,6 +4,7 @@ import { Message } from '@arco-design/web-vue';
 import { SERVICE_TYPE, SERVICE_ACTION, SERVICE_OPERATION } from '@/config/enum';
 import { ServiceEntity } from '@/entity/Service';
 import {
+  DEFAULT_SERVICE_CATEGORY,
   deleteServiceApi,
   getServiceListApi,
   serviceActivateApi,
@@ -20,6 +21,9 @@ export function useServiceList(type: SERVICE_TYPE) {
   const { confirm } = useConfirm();
   const { currentHostId } = useCurrentHost();
 
+  const getCategoryByType = (currentType: SERVICE_TYPE) =>
+    currentType === SERVICE_TYPE.System ? '' : DEFAULT_SERVICE_CATEGORY;
+
   // 查询参数
   const params = ref<{
     type: SERVICE_TYPE;
@@ -29,7 +33,7 @@ export function useServiceList(type: SERVICE_TYPE) {
     host?: number;
   }>({
     type,
-    category: '',
+    category: getCategoryByType(type),
     page: 1,
     page_size: 20,
     host: currentHostId.value,
@@ -50,17 +54,7 @@ export function useServiceList(type: SERVICE_TYPE) {
       }
 
       // 使用当前 params 中的分类，而不是传入的 queryParams
-      const currentCategory = params.value.category || queryParams.category;
-
-      // 如果 category 为空，不发起请求
-      if (!currentCategory || currentCategory.trim() === '') {
-        return {
-          items: [],
-          total: 0,
-          page: queryParams.page || 1,
-          page_size: queryParams.page_size || 20,
-        };
-      }
+      const currentCategory = getCategoryByType(params.value.type);
 
       // 确保 host 参数正确设置，并使用最新的分类信息
       const requestParams = {
@@ -100,15 +94,9 @@ export function useServiceList(type: SERVICE_TYPE) {
         return false;
       }
 
-      // 使用当前选中的分类
-      if (!params.value.category || params.value.category.trim() === '') {
-        Message.error(t('app.service.list.error.invalid_category'));
-        return false;
-      }
-
       await deleteServiceApi({
         type,
-        category: params.value.category,
+        category: getCategoryByType(type),
         name: record.name,
       });
       Message.success(t('app.service.list.success.delete'));
@@ -131,15 +119,9 @@ export function useServiceList(type: SERVICE_TYPE) {
         return false;
       }
 
-      // 使用当前选中的分类
-      if (!params.value.category || params.value.category.trim() === '') {
-        Message.error(t('app.service.list.error.invalid_category'));
-        return false;
-      }
-
       await serviceActivateApi({
         type,
-        category: params.value.category,
+        category: getCategoryByType(type),
         name: record.name,
         action,
       });
@@ -171,15 +153,9 @@ export function useServiceList(type: SERVICE_TYPE) {
         return null;
       }
 
-      // 使用当前选中的分类
-      if (!params.value.category || params.value.category.trim() === '') {
-        Message.error(t('app.service.list.error.invalid_category'));
-        return null;
-      }
-
       const response = await serviceOperateApi({
         type,
-        category: params.value.category,
+        category: getCategoryByType(type),
         name: record.name,
         operation,
       });

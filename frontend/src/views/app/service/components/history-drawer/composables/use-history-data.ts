@@ -27,7 +27,7 @@ export function useHistoryData() {
   const historyList = ref<ServiceHistoryEntity[]>([]);
   const currentParams = ref<HistoryParams>({
     type: SERVICE_TYPE.Local,
-    category: '',
+    category: 'default',
     name: '',
   });
 
@@ -51,7 +51,7 @@ export function useHistoryData() {
     if (!hostId) {
       return t('app.service.history.validation.host_required');
     }
-    if (!currentParams.value.category || !currentParams.value.name) {
+    if (!currentParams.value.name) {
       return t('app.service.history.validation.category_name_required');
     }
     return null;
@@ -194,7 +194,7 @@ export function useHistoryData() {
 
   // 刷新当前页数据
   const refresh = (): void => {
-    if (currentParams.value.category && currentParams.value.name) {
+    if (currentParams.value.name) {
       loadHistory();
     }
   };
