@@ -2141,7 +2141,6 @@ func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*mod
 	return s.runLogrotateOperateCommand(hostID, req.Operation, confPath)
 }
 
-
 func (s *LogRotate) runLogrotateOperateCommand(hostID uint64, operation string, confPath string) (*model.ServiceOperateResult, error) {
 	var result model.ServiceOperateResult
 	quotedPath := shellQuote(confPath)

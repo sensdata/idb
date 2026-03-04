@@ -1,6 +1,6 @@
 export default {
-  'app.script.enum.type.local': 'Local',
-  'app.script.enum.type.global': 'Global',
+  'app.script.enum.type.local': 'Local Script',
+  'app.script.enum.type.global': 'Global Script',
 
   'app.script.category.all': 'All',
   'app.script.category.tree.create': 'Create Now',
@@ -8,7 +8,6 @@ export default {
 
   'app.script.list.column.name': 'Name',
   'app.script.list.column.mod_time': 'Modified Time',
-  'app.script.list.column.create_time': 'Created Time',
   'app.script.list.column.category': 'Category',
   'app.script.list.column.history_version': 'History Version',
 

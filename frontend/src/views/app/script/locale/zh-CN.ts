@@ -1,6 +1,6 @@
 export default {
-  'app.script.enum.type.local': '本机',
-  'app.script.enum.type.global': '全局',
+  'app.script.enum.type.local': '本机脚本',
+  'app.script.enum.type.global': '全局脚本',
 
   'app.script.category.all': '全部',
   'app.script.category.tree.create': '立即创建',
@@ -8,7 +8,6 @@ export default {
 
   'app.script.list.column.name': '名称',
   'app.script.list.column.mod_time': '修改时间',
-  'app.script.list.column.create_time': '创建时间',
   'app.script.list.column.category': '分类',
   'app.script.list.column.history_version': '历史版本',
 

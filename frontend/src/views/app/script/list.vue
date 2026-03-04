@@ -150,14 +150,6 @@
       },
     },
     {
-      dataIndex: 'create_time',
-      title: t('app.script.list.column.create_time'),
-      width: 125,
-      render: ({ record }: { record: ScriptEntity }) => {
-        return formatTime(record.create_time);
-      },
-    },
-    {
       dataIndex: 'history_version',
       title: t('app.script.list.column.history_version'),
       width: 120,

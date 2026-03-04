@@ -3,14 +3,15 @@
     :width="800"
     :visible="visible"
     :title="
-      isEdit
+      isReadOnlyMode
+        ? t('common.view')
+        : isEdit
         ? t('app.crontab.form.title.edit')
         : t('app.crontab.form.title.add')
     "
     unmountOnClose
     :ok-loading="submitLoading"
-    :ok-text="t('common.form.submitText')"
-    :ok-button-props="{ disabled: isReadOnlyMode }"
+    :ok-text="isReadOnlyMode ? t('common.close') : t('common.form.submitText')"
     @ok="handleOk"
     @cancel="handleCancel"
     @before-open="handleBeforeOpen"
@@ -150,7 +151,7 @@
                 v-model="formState.content"
                 :file="{ name: 'crontab.sh', path: '/tmp/crontab.sh' }"
                 :extensions="lightThemeExtensions"
-                :readonly="true"
+                :read-only="isReadOnlyMode"
                 @blur="handleContentBlur"
               />
             </div>

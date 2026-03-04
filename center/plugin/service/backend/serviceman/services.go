@@ -1588,7 +1588,7 @@ func (s *ServiceMan) operateService(hostID uint64, req model.ServiceOperate) (*m
 	case "start", "stop", "restart", "reload", "enable", "disable":
 		command = fmt.Sprintf("systemctl %s %s", req.Operation, req.Name)
 	case "status":
-		command = fmt.Sprintf("systemctl show %s --property=ActiveState,SubState", req.Name)
+		command = fmt.Sprintf("systemctl show %s --property=ActiveState,SubState,ActiveEnterTimestamp", req.Name)
 	default:
 		return &result, errors.New("unsupported operation")
 	}

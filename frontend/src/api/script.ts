@@ -58,7 +58,7 @@ export function deleteScriptCategoryApi(params: {
 export interface CreateScriptApiParams {
   name: string;
   type: SCRIPT_TYPE;
-  category?: string;
+  category: string;
   content: string;
   mark?: string;
 }
@@ -96,7 +96,7 @@ export interface RestoreScriptVersionsApiParams {
 export function restoreScriptVersionApi(
   params: RestoreScriptVersionsApiParams
 ) {
-  return request.put('scripts/{host}/history', params);
+  return request.put('scripts/{host}/restore', params);
 }
 
 export function runScriptApi(params: { host_id: number; script_path: string }) {
@@ -131,12 +131,4 @@ export function deleteScriptApi(params: {
   name: string;
 }) {
   return request.delete('scripts/{host}', params);
-}
-
-export interface RestoreScriptApiParams {
-  id: number;
-  commit_hash: string;
-}
-export function restoreScriptApi(params: RestoreScriptApiParams) {
-  return request.put('scripts/{host}/restore', params);
 }

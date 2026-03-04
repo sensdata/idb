@@ -104,6 +104,28 @@ export function actionCrontabApi(params: ActionCrontabParams) {
   return request.post('crontab/{host}/activate', params);
 }
 
+export interface OperateCrontabParams {
+  type: CRONTAB_TYPE;
+  category: string;
+  name: string;
+  operation: 'test' | 'execute';
+  host: number;
+}
+
+interface OperateCrontabResult {
+  result: string;
+}
+
+export function operateCrontabApi(params: OperateCrontabParams) {
+  return request.post<OperateCrontabResult>('crontab/{host}/operate', {
+    type: params.type,
+    category: params.category,
+    name: params.name,
+    operation: params.operation,
+    host: params.host,
+  });
+}
+
 export interface CrontabRunRecordsApiParams extends ApiListParams {
   id: number;
 }

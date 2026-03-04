@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/hashicorp/go-plugin"
@@ -50,6 +51,17 @@ type ScriptManagerGRPCClient struct {
 }
 
 var _ ScriptManager = (*ScriptManagerGRPCClient)(nil)
+
+func parseScriptTime(raw string) (time.Time, error) {
+	if raw == "" {
+		return time.Time{}, nil
+	}
+	if t, err := time.Parse(time.RFC3339Nano, raw); err == nil {
+		return t, nil
+	}
+	// Backward compatibility for old plugin format.
+	return time.Parse("2006-01-02T15:04:05+08:00", raw)
+}
 
 func (c *ScriptManagerGRPCClient) ListCategories(hostID uint64, req model.QueryGitFile) (*model.ScriptList, error) {
 	resp, err := c.client.ListCategories(context.Background(), &proto.ListScriptsRequest{
@@ -229,7 +241,10 @@ func (c *ScriptManagerGRPCClient) GetScriptHistory(hostID uint64, req model.GitF
 	}
 	var result model.ScriptHistoryList
 	for _, history := range resp.Items {
-		date, _ := time.Parse("2006-01-02T15:04:05+08:00", history.Date)
+		date, err := parseScriptTime(history.Date)
+		if err != nil {
+			return nil, err
+		}
 		result.Items = append(result.Items, &model.ScriptHistory{
 			CommitHash:    history.CommitHash,
 			Author:        history.Author,
@@ -273,15 +288,21 @@ func (c *ScriptManagerGRPCClient) ScriptExec(hostID uint, req model.ExecuteScrip
 	if err != nil {
 		return nil, err
 	}
-	start, _ := time.Parse("2006-01-02T15:04:05+08:00", resp.Start)
-	end, _ := time.Parse("2006-01-02T15:04:05+08:00", resp.End)
+	start, err := parseScriptTime(resp.Start)
+	if err != nil {
+		return nil, err
+	}
+	end, err := parseScriptTime(resp.End)
+	if err != nil {
+		return nil, err
+	}
 	return &model.ScriptResult{
 		LogHost: uint(resp.LogHost),
 		LogPath: resp.LogPath,
 		Start:   start,
 		End:     end,
 		Out:     resp.Out,
-		Err:     resp.End,
+		Err:     resp.Err,
 	}, nil
 }
 func (c *ScriptManagerGRPCClient) GetScriptRunLogs(hostID uint, scriptPath string, page int, pageSize int) (*model.RunLogList, error) {
@@ -563,7 +584,7 @@ func (s *ScriptManagerGRPCServer) GetScriptHistory(ctx context.Context, req *pro
 			CommitHash:    item.CommitHash,
 			Author:        item.Author,
 			Email:         item.Email,
-			Date:          item.Time.Format("2006-01-02T15:04:05+08:00"),
+			Date:          item.Time.Format(time.RFC3339Nano),
 			CommitMessage: item.CommitMessage,
 		})
 	}
@@ -610,8 +631,8 @@ func (s *ScriptManagerGRPCServer) ScriptExec(ctx context.Context, req *proto.Scr
 	return &proto.ScriptExecResponse{
 		LogHost: uint32(result.LogHost),
 		LogPath: result.LogPath,
-		Start:   result.Start.Format("2006-01-02T15:04:05+08:00"),
-		End:     result.End.Format("2006-01-02T15:04:05+08:00"),
+		Start:   result.Start.Format(time.RFC3339Nano),
+		End:     result.End.Format(time.RFC3339Nano),
 		Out:     result.Out,
 		Err:     result.Err,
 	}, nil
@@ -628,11 +649,18 @@ func (s *ScriptManagerGRPCServer) GetScriptRunLogs(ctx context.Context, req *pro
 	}
 	var resp proto.ScriptRunLogsResponse
 	for _, item := range result.Items {
+		size := item.Size
+		if size > math.MaxInt32 {
+			size = math.MaxInt32
+		}
+		if size < math.MinInt32 {
+			size = math.MinInt32
+		}
 		resp.Items = append(resp.Items, &proto.RunLogInfo{
 			Path:      item.Path,
 			Name:      item.Name,
 			Extension: item.Extension,
-			Size:      int32(item.Size),
+			Size:      int32(size),
 			IsDir:     item.IsDir,
 			IsHidden:  item.IsHidden,
 			CreatedAt: item.CreatedAt,

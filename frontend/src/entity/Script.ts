@@ -6,7 +6,6 @@ export interface ScriptEntity extends BaseEntity {
   name: string;
   category?: string;
   content: string;
-  create_time: string;
   mod_time: string;
   source: string;
 }
