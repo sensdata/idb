@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,119 @@ import (
 const (
 	heartbeatInterval = 10 * time.Second // 心跳间隔
 )
+
+func isSystemServiceType(serviceType string) bool {
+	return strings.EqualFold(serviceType, "system")
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func splitNonEmptyLines(content string) []string {
+	lines := strings.Split(content, "\n")
+	results := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		results = append(results, trimmed)
+	}
+	return results
+}
+
+func paginateRange(total, page, pageSize int) (int, int) {
+	if pageSize <= 0 {
+		pageSize = total
+	}
+	if pageSize <= 0 {
+		pageSize = 1
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	return start, end
+}
+
+func (s *ServiceMan) resolveRepoPath(serviceType string) string {
+	if serviceType == "global" {
+		return filepath.Join(s.pluginConf.Items.WorkDir, "global")
+	}
+	return filepath.Join(s.pluginConf.Items.WorkDir, "local")
+}
+
+func normalizeServiceName(name string) (string, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "", fmt.Errorf("invalid name")
+	}
+	if strings.Contains(trimmed, "/") || trimmed == "." || trimmed == ".." {
+		return "", fmt.Errorf("invalid name")
+	}
+	if !strings.HasSuffix(trimmed, ".service") {
+		trimmed += ".service"
+	}
+	return trimmed, nil
+}
+
+func (s *ServiceMan) resolveSystemServicePath(hostID uint64, name string) (string, error) {
+	serviceName, err := normalizeServiceName(name)
+	if err != nil {
+		return "", err
+	}
+	candidates := []string{
+		filepath.Join("/etc/systemd/system", serviceName),
+		filepath.Join("/usr/lib/systemd/system", serviceName),
+		filepath.Join("/lib/systemd/system", serviceName),
+	}
+	for _, candidate := range candidates {
+		command := fmt.Sprintf("if [ -e %s ]; then echo %s; fi", shellQuote(candidate), shellQuote(candidate))
+		commandResult, commandErr := s.sendCommand(uint(hostID), command)
+		if commandErr != nil {
+			return "", commandErr
+		}
+		if strings.TrimSpace(commandResult.Result) != "" {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("service file not found")
+}
+
+func (s *ServiceMan) getSystemServiceModTime(hostID uint64, confPath string) time.Time {
+	command := fmt.Sprintf(`if [ -e %s ]; then stat -c %%Y %s 2>/dev/null || stat -f %%m %s 2>/dev/null; fi`,
+		shellQuote(confPath), shellQuote(confPath), shellQuote(confPath))
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("failed to get system service mod time: %v", err)
+		return time.Time{}
+	}
+	secs, err := strconv.ParseInt(strings.TrimSpace(commandResult.Result), 10, 64)
+	if err != nil || secs <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(secs, 0)
+}
+
+func (s *ServiceMan) isServiceLinked(hostID uint64, serviceName string) bool {
+	linkPath := filepath.Join("/etc/systemd/system", serviceName)
+	command := fmt.Sprintf("if [ -L %s ]; then echo 1; else echo 0; fi", shellQuote(linkPath))
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("failed to check linked status for %s: %v", serviceName, err)
+		return false
+	}
+	return strings.TrimSpace(commandResult.Result) == "1"
+}
 
 func parseServiceBytesToServiceForm(serviceBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
 	var serviceForm model.ServiceForm
@@ -324,249 +438,14 @@ func (s *ServiceMan) deleteFile(hostID uint64, op model.FileDelete) error {
 	return nil
 }
 
-func (s *ServiceMan) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
-	var pageResult = model.PageResult{Total: 0, Items: nil}
-
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return &pageResult, err
-	}
-
-	gitQuery := model.GitQuery{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Extension:    "directory",
-		Page:         req.Page,
-		PageSize:     req.PageSize,
-	}
-
-	// 检查repo
-	err = s.checkRepo(gitQuery.HostID, gitQuery.RepoPath)
-	if err != nil {
-		return &pageResult, nil
-	}
-
-	// 查询脚本
-	data, err := utils.ToJSONString(gitQuery)
-	if err != nil {
-		return &pageResult, nil
-	}
-
-	actionRequest := model.HostAction{
-		HostID: gitQuery.HostID,
-		Action: model.Action{
-			Action: model.Git_File_List,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return &pageResult, err
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return &pageResult, fmt.Errorf("failed to get conf list")
-	}
-
-	err = utils.FromJSONString(actionResponse.Data.Action.Data, &pageResult)
-	if err != nil {
-		LOG.Error("Error unmarshaling data to conf list: %v", err)
-		return &pageResult, fmt.Errorf("json err: %v", err)
-	}
-
-	return &pageResult, nil
-}
-
-func (s *ServiceMan) createCategory(hostID uint64, req model.CreateGitCategory) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
-	gitCreate := model.GitCreate{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Dir:          true,
-		Content:      "",
-	}
-
-	// 检查repo
-	err = s.checkRepo(gitCreate.HostID, gitCreate.RepoPath)
-	if err != nil {
-		return err
-	}
-
-	// 创建
-	data, err := utils.ToJSONString(gitCreate)
-	if err != nil {
-		return err
-	}
-
-	actionRequest := model.HostAction{
-		HostID: gitCreate.HostID,
-		Action: model.Action{
-			Action: model.Git_Create,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to get create conf file")
-	}
-
-	return nil
-}
-
-func (s *ServiceMan) updateCategory(hostID uint64, req model.UpdateGitCategory) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
-	gitUpdate := model.GitUpdate{
-		HostID:          hid,
-		RepoPath:        repoPath,
-		RelativePath:    req.Category,
-		NewRelativePath: req.NewName,
-		Dir:             true,
-		Content:         "",
-	}
-
-	// 检查repo
-	err = s.checkRepo(gitUpdate.HostID, gitUpdate.RepoPath)
-	if err != nil {
-		return err
-	}
-
-	// 更新
-	data, err := utils.ToJSONString(gitUpdate)
-	if err != nil {
-		return err
-	}
-
-	actionRequest := model.HostAction{
-		HostID: gitUpdate.HostID,
-		Action: model.Action{
-			Action: model.Git_Update,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to update conf file")
-	}
-
-	return nil
-}
-
-func (s *ServiceMan) deleteCategory(hostID uint64, req model.DeleteGitCategory) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// global的情况，操作本机
-	hid, err := s.handleHostID(req.Type, hostID)
-	if err != nil {
-		return err
-	}
-
-	gitDelete := model.GitDelete{
-		HostID:       hid,
-		RepoPath:     repoPath,
-		RelativePath: req.Category,
-		Dir:          true,
-	}
-
-	// 检查repo
-	err = s.checkRepo(gitDelete.HostID, gitDelete.RepoPath)
-	if err != nil {
-		return err
-	}
-
-	// 删除
-	data, err := utils.ToJSONString(gitDelete)
-	if err != nil {
-		return err
-	}
-
-	actionRequest := model.HostAction{
-		HostID: gitDelete.HostID,
-		Action: model.Action{
-			Action: model.Git_Delete,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := s.sendAction(actionRequest)
-	if err != nil {
-		return err
-	}
-
-	if !actionResponse.Data.Action.Result {
-		LOG.Error("action failed")
-		return fmt.Errorf("failed to delete conf file")
-	}
-
-	return nil
-}
-
 func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	if isSystemServiceType(req.Type) {
+		return s.getSystemServiceList(hostID, req)
+	}
+
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 
 	// global的情况，操作本机
 	hid, err := s.handleHostID(req.Type, hostID)
@@ -622,20 +501,136 @@ func (s *ServiceMan) getServiceList(hostID uint64, req model.QueryGitFile) (*mod
 	return &pageResult, nil
 }
 
+func (s *ServiceMan) getSystemServiceList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	pageResult := &model.PageResult{Total: 0, Items: []model.GitFile{}}
+	if req.Category != "" && req.Category != "system" {
+		return pageResult, nil
+	}
+
+	command := `for d in /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system; do [ -d "$d" ] || continue; find "$d" -maxdepth 1 \( -type f -o -type l \) -name '*.service' -printf '%f|%p\n'; done`
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+
+	pathByName := make(map[string]string)
+	priorityByName := make(map[string]int)
+	priority := map[string]int{
+		"/etc/systemd/system":     0,
+		"/usr/lib/systemd/system": 1,
+		"/lib/systemd/system":     2,
+	}
+
+	for _, line := range splitNonEmptyLines(commandResult.Result) {
+		parts := strings.SplitN(line, "|", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		name := strings.TrimSpace(parts[0])
+		path := strings.TrimSpace(parts[1])
+		if name == "" || path == "" {
+			continue
+		}
+		currentPriority := 99
+		for prefix, value := range priority {
+			if strings.HasPrefix(path, prefix) {
+				currentPriority = value
+				break
+			}
+		}
+		if existingPriority, exists := priorityByName[name]; exists && existingPriority <= currentPriority {
+			continue
+		}
+		priorityByName[name] = currentPriority
+		pathByName[name] = path
+	}
+
+	names := make([]string, 0, len(pathByName))
+	for name := range pathByName {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	pageResult.Total = int64(len(names))
+
+	start, end := paginateRange(len(names), req.Page, req.PageSize)
+	if start >= end {
+		return pageResult, nil
+	}
+
+	items := make([]model.GitFile, 0, end-start)
+	for _, name := range names[start:end] {
+		confPath := pathByName[name]
+		detail, detailErr := s.getSystemContent(hostID, model.GetGitFileDetail{
+			Type:     "system",
+			Category: "system",
+			Name:     name,
+		})
+		if detailErr != nil {
+			LOG.Error("failed to get system service content %s: %v", name, detailErr)
+			continue
+		}
+		items = append(items, model.GitFile{
+			Name:      name,
+			Source:    confPath,
+			Extension: filepath.Ext(name),
+			Content:   detail.Content,
+			ModTime:   detail.ModTime,
+			Linked:    s.isServiceLinked(hostID, name),
+		})
+	}
+
+	pageResult.Items = items
+	return pageResult, nil
+}
+
+func (s *ServiceMan) getSystemContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
+	serviceName, err := normalizeServiceName(req.Name)
+	if err != nil {
+		return nil, err
+	}
+	confPath, err := s.resolveSystemServicePath(hostID, serviceName)
+	if err != nil {
+		return nil, err
+	}
+	command := fmt.Sprintf("cat %s", shellQuote(confPath))
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+	return &model.GitFile{
+		Name:      serviceName,
+		Source:    confPath,
+		Extension: filepath.Ext(serviceName),
+		Content:   commandResult.Result,
+		ModTime:   s.getSystemServiceModTime(hostID, confPath),
+		Linked:    s.isServiceLinked(hostID, serviceName),
+	}, nil
+}
+
 func (s *ServiceMan) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
+	if isSystemServiceType(req.Type) {
+		if req.Name == "" {
+			return &s.templateServiceForm, nil
+		}
+		detail, err := s.getSystemContent(hostID, req)
+		if err != nil {
+			return nil, err
+		}
+		serviceForm, err := parseServiceBytesToServiceForm([]byte(detail.Content), s.form.Fields)
+		if err != nil {
+			LOG.Error("Failed to parse system service content: %v", err)
+			return nil, fmt.Errorf("failed to parse service content")
+		}
+		return &serviceForm, nil
+	}
+
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateServiceForm, nil
 	}
 
 	// Get content
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -756,13 +751,7 @@ func (s *ServiceMan) createForm(hostID uint64, req model.CreateServiceForm) erro
 		return constant.ErrInternalServer
 	}
 
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -862,13 +851,7 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 	}
 
 	// Get content
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -988,13 +971,7 @@ func (s *ServiceMan) updateForm(hostID uint64, req model.UpdateServiceForm) erro
 }
 
 func (s *ServiceMan) create(hostID uint64, req model.CreateGitFile, extension string) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+extension)
@@ -1049,13 +1026,10 @@ func (s *ServiceMan) create(hostID uint64, req model.CreateGitFile, extension st
 }
 
 func (s *ServiceMan) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
+	if isSystemServiceType(req.Type) {
+		return s.getSystemContent(hostID, req)
 	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1116,13 +1090,7 @@ func (s *ServiceMan) getContent(hostID uint64, req model.GetGitFileDetail) (*mod
 }
 
 func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1197,13 +1165,7 @@ func (s *ServiceMan) update(hostID uint64, req model.UpdateGitFile) error {
 }
 
 func (s *ServiceMan) delete(hostID uint64, req model.DeleteGitFile, extension string) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+extension)
@@ -1257,13 +1219,7 @@ func (s *ServiceMan) delete(hostID uint64, req model.DeleteGitFile, extension st
 }
 
 func (s *ServiceMan) restore(hostID uint64, req model.RestoreGitFile) error {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1320,13 +1276,7 @@ func (s *ServiceMan) restore(hostID uint64, req model.RestoreGitFile) error {
 func (s *ServiceMan) getServiceLog(hostID uint64, req model.GitFileLog) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
 
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1388,13 +1338,7 @@ func (s *ServiceMan) getServiceLog(hostID uint64, req model.GitFileLog) (*model.
 }
 
 func (s *ServiceMan) getServiceDiff(hostID uint64, req model.GitFileDiff) (string, error) {
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1513,6 +1457,9 @@ func (s *ServiceMan) syncGlobal(hostID uint) error {
 }
 
 func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) error {
+	if isSystemServiceType(req.Type) {
+		return fmt.Errorf("system type does not support activate action")
+	}
 
 	// 先看是否需要同步
 	needSync, err := s.needSync(req.Type, hostID)
@@ -1529,13 +1476,7 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 	}
 
 	// 执行激活
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
+	repoPath := s.resolveRepoPath(req.Type)
 	var relativePath string
 	if req.Category != "" {
 		relativePath = filepath.Join(req.Category, req.Name+".service")
@@ -1633,18 +1574,13 @@ func (s *ServiceMan) serviceActivate(hostID uint64, req model.ServiceActivate) e
 func (s *ServiceMan) operateService(hostID uint64, req model.ServiceOperate) (*model.ServiceOperateResult, error) {
 	var result model.ServiceOperateResult
 
-	var repoPath string
-	switch req.Type {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// 检查repo
-	err := s.checkRepo(uint(hostID), repoPath)
-	if err != nil {
-		return &result, err
+	if !isSystemServiceType(req.Type) {
+		repoPath := s.resolveRepoPath(req.Type)
+		// 检查repo
+		err := s.checkRepo(uint(hostID), repoPath)
+		if err != nil {
+			return &result, err
+		}
 	}
 
 	var command string
@@ -1685,9 +1621,12 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 		global.LOG.Info("Invalid repo type")
 		return errors.New("Invalid type")
 	}
+	if repoType != "global" && repoType != "local" && repoType != "system" {
+		global.LOG.Info("Invalid repo type")
+		return errors.New("Invalid type")
+	}
 
-	category := c.Query("category")
-	if category == "" {
+	if _, err = normalizeCategoryByType(repoType, c.Query("category")); err != nil {
 		global.LOG.Info("Invalid category")
 		return errors.New("Invalid category")
 	}
@@ -1698,18 +1637,13 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 		return errors.New("Invalid name")
 	}
 
-	var repoPath string
-	switch repoType {
-	case "global":
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "global")
-	default:
-		repoPath = filepath.Join(s.pluginConf.Items.WorkDir, "local")
-	}
-
-	// 检查repo
-	err = s.checkRepo(uint(hostID), repoPath)
-	if err != nil {
-		return err
+	if !isSystemServiceType(repoType) {
+		repoPath := s.resolveRepoPath(repoType)
+		// 检查repo
+		err = s.checkRepo(uint(hostID), repoPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	// 构造服务日志参数 service:serviceName

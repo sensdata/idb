@@ -20,6 +20,7 @@ import (
 
 const systemCategory = "system"
 const systemMainConfName = "logrotate.conf"
+const managedLogrotateFileMode = "0644"
 
 func isSystemType(t string) bool {
 	return strings.EqualFold(t, "system")
@@ -50,6 +51,20 @@ func splitNonEmptyLines(content string) []string {
 		results = append(results, trimmed)
 	}
 	return results
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func (s *LogRotate) ensureManagedConfFileMode(hostID uint64, confPath string) error {
+	command := fmt.Sprintf("chmod %s -- %s", managedLogrotateFileMode, shellQuote(confPath))
+	_, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to set file mode for %s: %v", confPath, err)
+		return err
+	}
+	return nil
 }
 
 func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
@@ -1112,6 +1127,11 @@ func (s *LogRotate) createForm(hostID uint64, req model.CreateServiceForm) error
 		return fmt.Errorf("failed to get create conf file")
 	}
 
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1282,6 +1302,11 @@ func (s *LogRotate) updateForm(hostID uint64, req model.UpdateServiceForm) error
 		return fmt.Errorf("failed to update conf file")
 	}
 
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1341,6 +1366,11 @@ func (s *LogRotate) create(hostID uint64, req model.CreateGitFile, extension str
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to get create conf file")
+	}
+
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -1423,7 +1453,7 @@ func (s *LogRotate) getSystemConfList(hostID uint64, req model.QueryGitFile) (*m
 		return pageResult, nil
 	}
 
-	command := `if [ -f /etc/logrotate.conf ]; then echo logrotate.conf; fi; if [ -d /etc/logrotate.d ]; then find /etc/logrotate.d -maxdepth 1 -type f -printf '%f\n'; fi`
+	command := `if [ -f /etc/logrotate.conf ]; then echo logrotate.conf; fi; if [ -d /etc/logrotate.d ]; then find /etc/logrotate.d -maxdepth 1 \( -type f -o -type l \) -printf '%f\n'; fi`
 	commandResult, err := s.sendCommand(uint(hostID), command)
 	if err != nil {
 		return nil, err
@@ -1619,6 +1649,11 @@ func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to update conf file")
+	}
+
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -1978,6 +2013,9 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 
 	// conf file path
 	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
 	// conf file name
 	confName := filepath.Base(confPath)
 	// conf link file path
@@ -2056,6 +2094,13 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 
 func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*model.ServiceOperateResult, error) {
 	var result model.ServiceOperateResult
+	if isSystemType(req.Type) {
+		confPath, err := resolveSystemConfPath(req.Name)
+		if err != nil {
+			return &result, err
+		}
+		return s.runLogrotateOperateCommand(hostID, req.Operation, confPath)
+	}
 
 	// 先看是否需要同步
 	needSync, err := s.needSync(req.Type, hostID)
@@ -2093,11 +2138,17 @@ func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*mod
 
 	// conf file path
 	confPath := filepath.Join(repoPath, relativePath)
+	return s.runLogrotateOperateCommand(hostID, req.Operation, confPath)
+}
 
-	switch req.Operation {
+
+func (s *LogRotate) runLogrotateOperateCommand(hostID uint64, operation string, confPath string) (*model.ServiceOperateResult, error) {
+	var result model.ServiceOperateResult
+	quotedPath := shellQuote(confPath)
+	switch operation {
 	case "test":
 		// 进行-d测试
-		command := fmt.Sprintf("logrotate -d %s", confPath)
+		command := fmt.Sprintf("logrotate -d %s", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
@@ -2106,13 +2157,15 @@ func (s *LogRotate) confOperate(hostID uint64, req model.LogrotateOperate) (*mod
 		result.Result = commandResult.Result
 	case "execute":
 		// 进行-f测试
-		command := fmt.Sprintf("logrotate -f %s", confPath)
+		command := fmt.Sprintf("logrotate -f %s", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to execute conf")
 			return &result, err
 		}
 		result.Result = commandResult.Result
+	default:
+		return &result, fmt.Errorf("unsupported operation")
 	}
 	return &result, nil
 }

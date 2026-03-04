@@ -676,7 +676,7 @@
     const ruleData: PortRule = {
       port: portOut as any,
       portInputType,
-      description: form.description || `TCP ${form.port}`,
+      description: trim(form.description),
       rules,
     };
 

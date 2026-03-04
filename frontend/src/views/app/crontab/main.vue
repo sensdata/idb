@@ -1,5 +1,17 @@
 <template>
   <a-tabs v-model:active-key="activeTab" lazy-load @change="handleTabChange">
+    <template #extra>
+      <a-button
+        v-if="activeTab === CRONTAB_TYPE.System"
+        size="small"
+        @click="handleOpenConfigDirectory"
+      >
+        <template #icon>
+          <icon-folder />
+        </template>
+        {{ $t('app.crontab.form.open_config_dir') }}
+      </a-button>
+    </template>
     <a-tab-pane
       :key="CRONTAB_TYPE.System"
       :title="$t('app.crontab.enum.type.system')"
@@ -34,7 +46,13 @@
 </template>
 
 <script setup lang="ts">
+  import { Message } from '@arco-design/web-vue';
+  import { IconFolder } from '@arco-design/web-vue/es/icon';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
   import { CRONTAB_TYPE } from '@/config/enum';
+  import useCurrentHost from '@/composables/current-host';
+  import { createFileRoute } from '@/utils/file-route';
   import { ref, onMounted, nextTick } from 'vue';
   import List from './list.vue';
 
@@ -43,10 +61,23 @@
     resetComponentsState?: () => void;
   }
 
+  const { t } = useI18n();
+  const router = useRouter();
+  const { currentHostId } = useCurrentHost();
+
   const activeTab = ref(CRONTAB_TYPE.System);
   const localListRef = ref<ListInstance | null>(null);
   const globalListRef = ref<ListInstance | null>(null);
   const systemListRef = ref<ListInstance | null>(null);
+
+  const handleOpenConfigDirectory = () => {
+    const hostId = currentHostId.value;
+    if (!hostId) {
+      Message.error(t('common.host_id_required'));
+      return;
+    }
+    router.push(createFileRoute('/etc/cron.d', { id: hostId }));
+  };
 
   // 确保在tab切换时强制刷新列表
   const handleTabChange = async (key: string | number) => {

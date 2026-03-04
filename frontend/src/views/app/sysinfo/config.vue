@@ -447,7 +447,13 @@
       originalData.value = { ...formState };
       Message.success(t('app.sysinfo.config.save_success'));
     } catch (err: any) {
-      Message.error(err.message || t('app.sysinfo.config.save_failed'));
+      const detail =
+        typeof err?.response?.data?.data === 'string'
+          ? err.response.data.data
+          : '';
+      Message.error(
+        detail || err.message || t('app.sysinfo.config.save_failed')
+      );
     } finally {
       saving.value = false;
     }

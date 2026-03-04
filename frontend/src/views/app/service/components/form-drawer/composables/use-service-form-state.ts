@@ -1,12 +1,14 @@
 import { reactive, toRefs } from 'vue';
 import { SERVICE_TYPE } from '@/config/enum';
 import { ServiceEntity } from '@/entity/Service';
+import { DEFAULT_SERVICE_CATEGORY } from '@/api/service';
 
 interface DrawerParams {
   type: SERVICE_TYPE;
   category: string;
   name?: string;
   isEdit: boolean;
+  isView?: boolean;
   record?: ServiceEntity;
 }
 
@@ -28,12 +30,13 @@ export function useServiceFormState() {
     activeTab: 'form' as string,
     params: {
       type: SERVICE_TYPE.Local,
-      category: '',
+      category: DEFAULT_SERVICE_CATEGORY,
       isEdit: false,
+      isView: false,
     } as DrawerParams,
     formData: {
       name: '',
-      category: '',
+      category: DEFAULT_SERVICE_CATEGORY,
       parsedConfig: {},
     } as FormDataType,
     rawContent: '',
@@ -46,7 +49,7 @@ export function useServiceFormState() {
     state.visible = false;
     state.formData = {
       name: '',
-      category: '',
+      category: DEFAULT_SERVICE_CATEGORY,
       parsedConfig: {},
     };
     state.rawContent = '';

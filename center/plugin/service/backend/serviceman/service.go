@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
@@ -45,6 +46,23 @@ var formYaml []byte
 
 //go:embed template.service
 var templateService []byte
+
+const defaultCategory = "default"
+
+func normalizeCategoryByType(serviceType, category string) (string, error) {
+	if strings.EqualFold(serviceType, "system") {
+		return strings.TrimSpace(category), nil
+	}
+
+	normalized := strings.TrimSpace(category)
+	if normalized == "" {
+		return defaultCategory, nil
+	}
+	if normalized != defaultCategory {
+		return "", fmt.Errorf("invalid category: only %s is supported", defaultCategory)
+	}
+	return normalized, nil
+}
 
 func (s *ServiceMan) Initialize() {
 	global.LOG.Info("serviceman init begin \n")
@@ -236,13 +254,14 @@ func (s *ServiceMan) GetCategories(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
+	_ = hostID
 
 	scriptType := c.Query("type")
 	if scriptType == "" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
@@ -252,27 +271,37 @@ func (s *ServiceMan) GetCategories(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page", err)
 		return
 	}
+	_ = page
 
 	pageSize, err := strconv.ParseInt(c.Query("page_size"), 10, 32)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid page_size", err)
 		return
 	}
+	_ = pageSize
 
-	req := model.QueryGitFile{
-		Type:     scriptType,
-		Category: "",
-		Page:     int(page),
-		PageSize: int(pageSize),
-	}
-
-	categories, err := s.getCategories(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+	if scriptType == "system" {
+		helper.SuccessWithData(c, &model.PageResult{
+			Total: 1,
+			Items: []model.GitFile{
+				{
+					Name:   "system",
+					Source: "system",
+				},
+			},
+		})
 		return
 	}
 
-	helper.SuccessWithData(c, categories)
+	helper.SuccessWithData(c, &model.PageResult{
+		Total: 1,
+		Items: []model.GitFile{
+			{
+				Name:   defaultCategory,
+				Source: defaultCategory,
+			},
+		},
+	})
 }
 
 // @Tags Service
@@ -290,16 +319,22 @@ func (s *ServiceMan) CreateCategory(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
+	_ = hostID
 
 	var req model.CreateGitCategory
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.createCategory(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
 		return
 	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	helper.SuccessWithData(c, nil)
 }
 
@@ -318,16 +353,26 @@ func (s *ServiceMan) UpdateCategory(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
+	_ = hostID
 
 	var req model.UpdateGitCategory
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
-	err = s.updateCategory(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
 		return
 	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	if req.NewName != "" && req.NewName != defaultCategory {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid new_name", nil)
+		return
+	}
+	req.Category = category
 	helper.SuccessWithData(c, nil)
 }
 
@@ -347,6 +392,7 @@ func (s *ServiceMan) DeleteCategory(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid host", err)
 		return
 	}
+	_ = hostID
 
 	scriptType := c.Query("type")
 	if scriptType == "" {
@@ -358,23 +404,11 @@ func (s *ServiceMan) DeleteCategory(c *gin.Context) {
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	_, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
-
-	req := model.DeleteGitCategory{
-		Type:     scriptType,
-		Category: category,
-	}
-
-	err = s.deleteCategory(hostID, req)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
-		return
-	}
-
 	helper.SuccessWithData(c, nil)
 }
 
@@ -402,14 +436,14 @@ func (s *ServiceMan) GetServiceList(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -461,6 +495,16 @@ func (s *ServiceMan) CreateContent(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	err = s.create(hostID, req, ".service")
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
@@ -492,14 +536,14 @@ func (s *ServiceMan) GetContent(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -544,6 +588,24 @@ func (s *ServiceMan) UpdateContent(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
+	if req.NewCategory != "" {
+		newCategory, newCategoryErr := normalizeCategoryByType(req.Type, req.NewCategory)
+		if newCategoryErr != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid new_category", newCategoryErr)
+			return
+		}
+		req.NewCategory = newCategory
+	}
 	err = s.update(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
@@ -575,14 +637,14 @@ func (s *ServiceMan) GetForm(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
-	if scriptType != "global" && scriptType != "local" {
+	if scriptType != "global" && scriptType != "local" && scriptType != "system" {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", err)
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -623,6 +685,16 @@ func (s *ServiceMan) CreateForm(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	err = s.createForm(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
@@ -650,6 +722,24 @@ func (s *ServiceMan) UpdateForm(c *gin.Context) {
 	var req model.UpdateServiceForm
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
+	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
+	if req.NewCategory != "" {
+		newCategory, newCategoryErr := normalizeCategoryByType(req.Type, req.NewCategory)
+		if newCategoryErr != nil {
+			helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid new_category", newCategoryErr)
+			return
+		}
+		req.NewCategory = newCategory
 	}
 	err = s.updateForm(hostID, req)
 	if err != nil {
@@ -687,9 +777,9 @@ func (s *ServiceMan) Delete(c *gin.Context) {
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -734,6 +824,16 @@ func (s *ServiceMan) Restore(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	err = s.restore(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
@@ -772,9 +872,9 @@ func (s *ServiceMan) GetServiceLog(c *gin.Context) {
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -842,9 +942,9 @@ func (s *ServiceMan) GetServiceDiff(c *gin.Context) {
 		return
 	}
 
-	category := c.Query("category")
-	if category == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", err)
+	category, categoryErr := normalizeCategoryByType(scriptType, c.Query("category"))
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
 		return
 	}
 
@@ -919,6 +1019,16 @@ func (s *ServiceMan) ServiceActivate(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	err = s.serviceActivate(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
@@ -947,6 +1057,16 @@ func (s *ServiceMan) OperateService(c *gin.Context) {
 	if err := helper.CheckBindAndValidate(&req, c); err != nil {
 		return
 	}
+	if req.Type != "global" && req.Type != "local" && req.Type != "system" {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid type", nil)
+		return
+	}
+	category, categoryErr := normalizeCategoryByType(req.Type, req.Category)
+	if categoryErr != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, "Invalid category", categoryErr)
+		return
+	}
+	req.Category = category
 	result, err := s.operateService(hostID, req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)

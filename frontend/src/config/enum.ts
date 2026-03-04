@@ -57,6 +57,7 @@ export enum LOGROTATE_FREQUENCY {
 export enum SERVICE_TYPE {
   Local = 'local',
   Global = 'global',
+  System = 'system',
 }
 
 export enum SERVICE_MODE {

@@ -1,4 +1,5 @@
 export default {
+  'app.service.enum.type.system': 'System',
   'app.service.enum.type.local': 'Local',
   'app.service.enum.type.global': 'Global',
 
@@ -49,6 +50,7 @@ export default {
   'app.service.form.title.edit': 'Edit Service',
   'app.service.form.tab.form': 'Form Mode',
   'app.service.form.tab.raw': 'File Mode',
+  'app.service.form.open_config_dir': 'Open Config Directory',
 
   // Form sections
   'app.service.form.section.basic': 'Basic Information',

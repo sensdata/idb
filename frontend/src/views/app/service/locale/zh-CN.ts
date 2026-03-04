@@ -1,8 +1,9 @@
 export default {
   'menu.app.service': '服务管理',
 
-  'app.service.enum.type.local': '本地',
-  'app.service.enum.type.global': '全局',
+  'app.service.enum.type.system': '系统配置',
+  'app.service.enum.type.local': '本机配置',
+  'app.service.enum.type.global': '全局配置',
 
   'app.service.category.title': '分类',
   'app.service.category.all': '全部',
@@ -56,6 +57,7 @@ export default {
   'app.service.form.title.edit': '编辑服务',
   'app.service.form.tab.form': '表单模式',
   'app.service.form.tab.raw': '文件模式',
+  'app.service.form.open_config_dir': '打开配置目录',
 
   // 表单分区
   'app.service.form.section.basic': '基本信息',

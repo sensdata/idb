@@ -618,7 +618,7 @@ func (s *SysInfo) UpdateSysSetting(c *gin.Context) {
 	}
 	err = s.updateSystemSettings(uint(hostID), req)
 	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeFailed, "Failed to update system settings", err)
+		helper.ErrorWithDetail(c, constant.CodeFailed, err.Error(), err)
 		return
 	}
 	helper.SuccessWithData(c, nil)

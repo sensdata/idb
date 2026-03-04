@@ -180,6 +180,18 @@ interface LogrotateRestoreParams {
   host: number;
 }
 
+interface LogrotateOperateParams {
+  type: LOGROTATE_TYPE;
+  category: string;
+  name: string;
+  operation: 'test' | 'execute';
+  host: number;
+}
+
+interface LogrotateOperateResult {
+  result: string;
+}
+
 /**
  * 从logrotate配置内容中解析日志路径
  * @param content - logrotate配置文件内容
@@ -599,6 +611,18 @@ export const restoreLogrotateApi = async (
 
   await request.put('logrotate/{host}/restore', {
     ...requestData,
+    host: params.host,
+  });
+};
+
+export const operateLogrotateApi = async (
+  params: LogrotateOperateParams
+): Promise<LogrotateOperateResult> => {
+  return request.post<LogrotateOperateResult>('logrotate/{host}/operate', {
+    type: params.type,
+    category: params.category,
+    name: params.name,
+    operation: params.operation,
     host: params.host,
   });
 };

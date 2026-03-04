@@ -131,6 +131,7 @@
     useRawContentParser();
 
   const { loadContent, submitLogrotate } = useLogrotateApi(setLoading);
+
   const handleCancel = () => {
     hideDrawer();
     resetState();

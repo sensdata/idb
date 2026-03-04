@@ -48,6 +48,18 @@
   <!-- 子组件 -->
   <form-drawer ref="formRef" :type="type" @ok="handleFormOk" />
   <history-drawer ref="historyRef" />
+
+  <a-modal
+    v-model:visible="operateResultVisible"
+    :title="operateResultTitle"
+    :footer="false"
+    :width="760"
+    :mask-closable="true"
+  >
+    <a-typography-paragraph :copyable="true" class="operate-result-content">
+      {{ operateResultText }}
+    </a-typography-paragraph>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
@@ -63,9 +75,13 @@
 
   import { PropType, ref, watch, onMounted, computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { Message } from '@arco-design/web-vue';
   import { LOGROTATE_TYPE, LOGROTATE_FREQUENCY } from '@/config/enum';
   import { LogrotateEntity } from '@/entity/Logrotate';
   import { useLogger } from '@/composables/use-logger';
+  import { useConfirm } from '@/composables/confirm';
+  import useCurrentHost from '@/composables/current-host';
+  import { operateLogrotateApi } from '@/api/logrotate';
   import FormDrawer from './components/form-drawer/index.vue';
   import HistoryDrawer from './components/history-drawer/index.vue';
 
@@ -80,6 +96,8 @@
 
   // 国际化
   const { t } = useI18n();
+  const { confirm } = useConfirm();
+  const { currentHostId } = useCurrentHost();
 
   // 日志记录
   const { logError, logInfo } = useLogger('LogrotateList');
@@ -113,6 +131,9 @@
   const gridRef = ref<GridInstance>();
   const formRef = ref<FormDrawerInstance>();
   const historyRef = ref<InstanceType<typeof HistoryDrawer>>();
+  const operateResultVisible = ref(false);
+  const operateResultTitle = ref('');
+  const operateResultText = ref('');
 
   // 使用组合式函数
   const {
@@ -252,10 +273,78 @@
     });
   };
 
+  const showOperateResult = (
+    operation: 'test' | 'execute',
+    result: string
+  ): void => {
+    operateResultTitle.value = t(
+      operation === 'test'
+        ? 'app.logrotate.system.operate.result.test_title'
+        : 'app.logrotate.system.operate.result.execute_title'
+    );
+    operateResultText.value =
+      result?.trim() || t('app.logrotate.system.operate.result.empty');
+    operateResultVisible.value = true;
+  };
+
+  const handleSystemOperate = async (
+    record: LogrotateEntity,
+    operation: 'test' | 'execute'
+  ): Promise<void> => {
+    try {
+      if (currentHostId.value === undefined) {
+        Message.error(t('app.logrotate.list.message.no_host_selected'));
+        return;
+      }
+
+      if (operation === 'execute') {
+        const confirmed = await confirm({
+          title: t('app.logrotate.system.operate.execute_confirm.title'),
+          content: t('app.logrotate.system.operate.execute_confirm.content', {
+            name: record.name,
+          }),
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const response = await operateLogrotateApi({
+        type: record.type,
+        category: record.category || '',
+        name: record.name,
+        operation,
+        host: currentHostId.value,
+      });
+
+      Message.success(
+        operation === 'test'
+          ? t('app.logrotate.system.operate.test_success')
+          : t('app.logrotate.system.operate.execute_success')
+      );
+      showOperateResult(operation, response.result);
+    } catch (error: any) {
+      Message.error(
+        error?.message ||
+          (operation === 'test'
+            ? t('app.logrotate.system.operate.test_failed')
+            : t('app.logrotate.system.operate.execute_failed'))
+      );
+    }
+  };
+
   // 获取操作按钮配置
   const getLogrotateOperationOptions = (record: LogrotateEntity) => {
     if (isSystemType.value) {
       return [
+        {
+          text: t('app.logrotate.system.operate.test'),
+          click: () => handleSystemOperate(record, 'test'),
+        },
+        {
+          text: t('app.logrotate.system.operate.execute'),
+          click: () => handleSystemOperate(record, 'execute'),
+        },
         {
           text: t('common.view'),
           click: () => handleEdit(record),
@@ -333,5 +422,12 @@
 
   .status-tag {
     margin: 0;
+  }
+
+  .operate-result-content {
+    max-height: 420px;
+    overflow: auto;
+    word-break: break-word;
+    white-space: pre-wrap;
   }
 </style>

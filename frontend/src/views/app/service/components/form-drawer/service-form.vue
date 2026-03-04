@@ -7,18 +7,15 @@
       :class="typedStyles.service_form_container"
     >
       <BasicInfoSection
-        ref="basicSectionRef"
         :form-model="formModel"
-        :type="type"
-        :initial-category="category"
-        :is-edit="isEdit"
+        :readonly="readonly"
         :styles="typedStyles"
-        @category-change="handleCategoryChange"
         @update:form-model="updateFormModel"
       />
 
       <ExecutionSection
         :form-model="formModel"
+        :readonly="readonly"
         :styles="typedStyles"
         @open-environment-editor="openEnvironmentEditor"
         @update:form-model="updateFormModel"
@@ -26,6 +23,7 @@
 
       <AdvancedSection
         :form-model="formModel"
+        :readonly="readonly"
         :styles="typedStyles"
         @update:form-model="updateFormModel"
       />
@@ -39,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch, nextTick } from 'vue';
+  import { ref, watch, nextTick, computed } from 'vue';
   import { SERVICE_TYPE } from '@/config/enum';
   import { ServiceEntity } from '@/entity/Service';
   import { useLogger } from '@/composables/use-logger';
@@ -56,11 +54,11 @@
     type: SERVICE_TYPE;
     category: string;
     isEdit: boolean;
+    isView?: boolean;
     record?: ServiceEntity;
   }>();
 
   const emit = defineEmits<{
-    categoryChange: [category: string];
     change: [];
   }>();
 
@@ -72,7 +70,7 @@
 
   // 表单引用
   const formRef = ref();
-  const basicSectionRef = ref();
+  const readonly = computed(() => Boolean(props.isView));
 
   // 使用表单模型钩子
   const { formModel, setFormData, getFormData } = useFormModel(
@@ -88,13 +86,9 @@
     formModel.value = newModel;
   };
 
-  // 处理分类变化
-  const handleCategoryChange = (category: string) => {
-    emit('categoryChange', category);
-  };
-
   // 环境变量编辑器方法
   const openEnvironmentEditor = () => {
+    if (readonly.value) return;
     environmentEditorRef.value?.show(formModel.value.environment);
   };
 
@@ -122,12 +116,6 @@
         // 使用Vue.nextTick确保DOM更新
         nextTick(() => {
           setFormData(newValue);
-          // 确保分类在选项中
-          if (formModel.value.category) {
-            basicSectionRef.value?.ensureCategoryInOptions?.(
-              formModel.value.category
-            );
-          }
         });
       }
     },
@@ -188,13 +176,6 @@
       nextTick(() => {
         // 确保子组件接收到更新
         emit('change');
-
-        // 确保分类选项包含当前分类
-        if (formModel.value.category && basicSectionRef.value) {
-          basicSectionRef.value.ensureCategoryInOptions?.(
-            formModel.value.category
-          );
-        }
       });
     } catch (error) {
       logError('表单重置失败:', error as Error);
@@ -204,13 +185,6 @@
   // 获取当前表单模型
   const getFormModel = () => {
     return { ...formModel.value };
-  };
-
-  // 刷新分类选项
-  const refreshCategories = async (category?: string) => {
-    if (basicSectionRef.value?.refreshCategoriesAndEnsure) {
-      await basicSectionRef.value.refreshCategoriesAndEnsure(category);
-    }
   };
 
   // CSS模块类型处理（解决类型错误）
@@ -235,7 +209,6 @@
     setFormData,
     resetForm,
     getFormModel,
-    refreshCategories,
     formRef,
   });
 </script>
