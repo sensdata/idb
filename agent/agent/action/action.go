@@ -661,22 +661,26 @@ func UpdateSystemSettings(req model.UpdateSystemSettingsReq) error {
 	}
 
 	// 修改最大文件打开数量（使用 system.conf.d drop-in，避免直接改主配置）
-	systemdConfDir := "/etc/systemd/system.conf.d"
-	systemdConfFile := "/etc/systemd/system.conf.d/90-idb.conf"
-	systemdContent := fmt.Sprintf("[Manager]\nDefaultLimitNOFILE=%d", req.MaxOpenFiles)
+	if hasSystemd() {
+		systemdConfDir := "/etc/systemd/system.conf.d"
+		systemdConfFile := "/etc/systemd/system.conf.d/90-idb.conf"
+		systemdContent := fmt.Sprintf("[Manager]\nDefaultLimitNOFILE=%d", req.MaxOpenFiles)
 
-	if err := utils.ExecCmd("sudo mkdir -p " + systemdConfDir); err != nil {
-		return fmt.Errorf("prepare system.conf.d directory failed: %v", err)
-	}
+		if err := utils.ExecCmd("sudo mkdir -p " + systemdConfDir); err != nil {
+			return fmt.Errorf("prepare system.conf.d directory failed: %v", err)
+		}
 
-	if err := utils.ExecCmd(
-		fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", systemdContent, systemdConfFile),
-	); err != nil {
-		return fmt.Errorf("persist open files setting failed: %v", err)
-	}
+		if err := utils.ExecCmd(
+			fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", systemdContent, systemdConfFile),
+		); err != nil {
+			return fmt.Errorf("persist open files setting failed: %v", err)
+		}
 
-	if err := utils.ExecCmd("sudo systemctl daemon-reexec"); err != nil {
-		return fmt.Errorf("reload systemd daemon failed: %v", err)
+		if err := utils.ExecCmd("sudo systemctl daemon-reexec"); err != nil {
+			global.LOG.Warn("skip systemd daemon reexec due to error", "err", err)
+		}
+	} else {
+		global.LOG.Warn("systemd is not available, skip applying DefaultLimitNOFILE")
 	}
 
 	if err := applyAndPersistTHP(req.TransparentHugePage); err != nil {
@@ -780,8 +784,17 @@ func applyAndPersistTHP(mode string) error {
 	}
 
 	thpPath := "/sys/kernel/mm/transparent_hugepage/enabled"
+	if _, err := os.Stat(thpPath); err != nil {
+		global.LOG.Warn("transparent hugepage is not available, skip applying", "err", err)
+		return nil
+	}
 	if err := utils.ExecCmd(fmt.Sprintf("echo %s | sudo tee %s >/dev/null", mode, thpPath)); err != nil {
 		return fmt.Errorf("apply THP mode failed: %v", err)
+	}
+
+	if !hasSystemd() {
+		global.LOG.Warn("systemd is not available, skip persisting THP service")
+		return nil
 	}
 
 	serviceDir := "/etc/systemd/system"
@@ -818,4 +831,14 @@ func applyAndPersistTHP(mode string) error {
 	}
 
 	return nil
+}
+
+func hasSystemd() bool {
+	if !utils.Which("systemctl") {
+		return false
+	}
+	if _, err := os.Stat("/run/systemd/system"); err != nil {
+		return false
+	}
+	return true
 }

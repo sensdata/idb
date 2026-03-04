@@ -1,6 +1,7 @@
 export default {
-  'app.crontab.enum.type.local': '本地',
-  'app.crontab.enum.type.global': '全局',
+  'app.crontab.enum.type.local': '本机配置',
+  'app.crontab.enum.type.global': '全局配置',
+  'app.crontab.enum.type.system': '系统配置',
   'app.crontab.enum.periodType.monthly': '每月',
   'app.crontab.enum.periodType.weekly': '每周',
   'app.crontab.enum.periodType.daily': '每天',

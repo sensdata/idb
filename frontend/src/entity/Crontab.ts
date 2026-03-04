@@ -26,4 +26,5 @@ export interface CrontabEntity extends BaseEntity {
   create_time: string;
   mod_time: string;
   linked: boolean; // Whether the crontab is running or not
+  category?: string;
 }

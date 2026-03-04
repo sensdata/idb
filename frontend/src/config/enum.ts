@@ -11,6 +11,7 @@ export enum SCRIPT_TYPE {
 export enum CRONTAB_TYPE {
   Local = 'local',
   Global = 'global',
+  System = 'system',
 }
 
 export enum CRONTAB_KIND {

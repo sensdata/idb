@@ -10,6 +10,7 @@
     unmountOnClose
     :ok-loading="submitLoading"
     :ok-text="t('common.form.submitText')"
+    :ok-button-props="{ disabled: isSystemType }"
     @ok="handleOk"
     @cancel="handleCancel"
     @before-open="handleBeforeOpen"
@@ -21,25 +22,8 @@
           <a-input
             v-model="formState.name"
             :placeholder="t('app.crontab.form.name.placeholder')"
-            :disabled="isEdit"
+            :disabled="isEdit || isSystemType"
             class="form-input"
-          />
-        </a-form-item>
-
-        <a-form-item
-          field="category"
-          :label="t('app.crontab.form.category.label')"
-        >
-          <a-select
-            v-model="formState.category"
-            :placeholder="t('app.crontab.form.category.placeholder')"
-            :loading="categoryLoading"
-            :options="categoryOptions"
-            allow-clear
-            allow-create
-            class="form-input"
-            @change="handleCategoryChange"
-            @visible-change="(visible: boolean) => visible && fetchCategories()"
           />
         </a-form-item>
 
@@ -47,11 +31,12 @@
           <a-input
             v-model="formState.user"
             :placeholder="t('app.crontab.form.user.placeholder')"
+            :disabled="isSystemType"
             class="form-input"
           />
         </a-form-item>
 
-        <a-form-item>
+        <a-form-item v-if="!isSystemType">
           <template #label>
             {{ t('app.crontab.form.content_mode.label') }}
           </template>
@@ -81,6 +66,7 @@
               :loading="scriptSourceCategoryLoading"
               :placeholder="t('app.crontab.form.script_category.placeholder')"
               :options="scriptSourceCategoryOptions"
+              :disabled="isSystemType"
               class="form-input"
               @change="handleScriptSourceCategoryChange"
             />
@@ -114,6 +100,7 @@
             <a-input
               v-model="scriptParams"
               :placeholder="t('app.crontab.form.script_params.placeholder')"
+              :disabled="isSystemType"
               class="form-input"
               @change="updateScriptContent"
             />
@@ -121,6 +108,7 @@
         </template>
 
         <a-form-item
+          v-if="!isSystemType"
           field="period_details"
           :label="t('app.crontab.form.period.label')"
         >
@@ -130,7 +118,7 @@
           />
         </a-form-item>
 
-        <template v-if="formState.content_mode === 'direct'">
+        <template v-if="formState.content_mode === 'direct' && !isSystemType">
           <a-form-item field="command">
             <template #label>
               {{ t('app.crontab.form.command.label') }}
@@ -171,6 +159,7 @@
             :placeholder="t('app.crontab.form.mark.placeholder')"
             class="form-textarea"
             :rows="4"
+            :disabled="isSystemType"
             @blur="handleMarkBlur"
           />
         </a-form-item>
@@ -206,7 +195,7 @@
   });
 
   const emit = defineEmits<{
-    (e: 'ok', category?: string): void;
+    (e: 'ok'): void;
     (e: 'categoryChange', category: string): void;
   }>();
 
@@ -239,6 +228,9 @@
   const isEdit = computed(
     () => !!paramsRef.value?.isEdit || !!paramsRef.value?.name
   );
+  const isSystemType = computed(
+    () => (paramsRef.value?.type || formState.type) === CRONTAB_TYPE.System
+  );
 
   const { updateContentWithPeriod, updateContentWithParams } =
     useContentHandler();
@@ -246,13 +238,9 @@
   // 脚本处理相关
   const scriptHandler = useScriptHandler(formState, flags, currentHostId);
   const {
-    categoryLoading,
     scriptsLoading,
-    categoryOptions,
     scriptOptions,
-    fetchCategories,
     fetchScripts,
-    handleCategoryChange,
     handleScriptChange,
     selectedScriptSourceCategory,
     selectedScript,
@@ -303,9 +291,7 @@
   };
 
   // 设置直接命令模式
-  const setupDirectMode = () => {
-    fetchCategories();
-  };
+  const setupDirectMode = () => {};
 
   // 刷新内容编辑器
   const refreshContentEditor = () => {
@@ -322,7 +308,7 @@
       setupDirectMode();
     }
 
-    initializeContentModeChange(fetchCategories);
+    initializeContentModeChange(async () => {});
     refreshContentEditor();
   };
 
@@ -379,20 +365,13 @@
     if (isEdit.value) {
       if (paramsRef.value?.record) {
         await dataLoader.loadDataFromRecord(paramsRef.value.record);
-        // 优先级：如果从列表视图显式传递了类别，则使用它
-        // 这确保表单使用与列表视图相同的类别
-        if (paramsRef.value?.category) {
-          formState.category = paramsRef.value.category;
-        }
       } else if (paramsRef.value) {
         await loadData();
       }
     } else {
       resetFormState();
       setFormType();
-      if (paramsRef.value?.category) {
-        formState.category = paramsRef.value.category;
-      }
+      formState.category = 'default';
       initializePeriodDetails();
       formState.content = '';
       formState.command = '';
@@ -426,11 +405,16 @@
 
   // 处理表单提交
   const handleOk = async () => {
+    if (isSystemType.value) {
+      visible.value = false;
+      return;
+    }
+
     try {
       await formSubmit.handleSubmit(
         formRef.value,
         () => {
-          emit('ok', formState.category);
+          emit('ok');
         },
         visible,
         isEdit.value,
@@ -450,12 +434,9 @@
 
   // 抽屉打开前处理
   const handleBeforeOpen = () => {
-    fetchCategories();
+    formState.category = 'default';
     if (formState.content_mode === 'script') {
       fetchScriptSourceCategories();
-    }
-    if (!isEdit.value && paramsRef.value?.category) {
-      formState.category = paramsRef.value.category;
     }
     setFormType();
   };
@@ -485,7 +466,7 @@
       setParams({
         name: params.name || params.record?.name,
         type: params.type || props.type,
-        category: params.category || '',
+        category: 'default',
         isEdit: true,
         record: params.record,
       });
@@ -493,10 +474,10 @@
       // 添加模式：设置默认参数
       paramsRef.value = {
         type: props.type,
-        category: params?.category || '',
+        category: 'default',
         isEdit: false,
       };
-      formState.category = params?.category || '';
+      formState.category = 'default';
     }
 
     visible.value = true;
@@ -515,7 +496,6 @@
       if (formState.content_mode === 'script') {
         setupScriptMode();
       }
-      fetchCategories();
     }
   );
 
@@ -550,8 +530,8 @@
   }
 
   :deep(.arco-form-item-label) {
-    font-weight: 500;
     margin-bottom: 0;
+    font-weight: 500;
     color: var(--color-text-1);
   }
 

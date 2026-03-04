@@ -1,6 +1,7 @@
 export default {
-  'app.crontab.enum.type.local': 'Local',
-  'app.crontab.enum.type.global': 'Global',
+  'app.crontab.enum.type.local': 'Host Config',
+  'app.crontab.enum.type.global': 'Global Config',
+  'app.crontab.enum.type.system': 'System Config',
   'app.crontab.enum.periodType.monthly': 'Monthly',
   'app.crontab.enum.periodType.weekly': 'Weekly',
   'app.crontab.enum.periodType.daily': 'Daily',

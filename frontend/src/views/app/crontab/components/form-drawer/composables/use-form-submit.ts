@@ -1,11 +1,7 @@
 import { ref, Ref, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Message } from '@arco-design/web-vue';
-import {
-  createUpdateCrontabRawApi,
-  createCrontabCategoryApi,
-  getCrontabCategoryListApi,
-} from '@/api/crontab';
+import { createUpdateCrontabRawApi } from '@/api/crontab';
 import { useContentHandler } from './use-content-handler';
 import { FormState, StateFlags } from './use-form-state';
 
@@ -21,6 +17,7 @@ export const useFormSubmit = (
   selections: ScriptSelections,
   currentHostId?: any
 ) => {
+  const DEFAULT_CRONTAB_CATEGORY = 'default';
   const { t } = useI18n();
   const submitLoading = ref(false);
 
@@ -36,36 +33,6 @@ export const useFormSubmit = (
     return formRef.validate().then((errors: any) => {
       return !errors;
     });
-  };
-
-  const ensureCategoryExists = async (category: string): Promise<boolean> => {
-    if (!category.trim()) return true;
-
-    try {
-      // 获取当前分类列表
-      const resp = await getCrontabCategoryListApi({
-        type: formState.type,
-        page: 1,
-        page_size: 1000,
-      });
-
-      const existingCategories = resp.items.map((item) => item.name);
-
-      // 如果已存在，直接返回true
-      if (existingCategories.includes(category)) {
-        return true;
-      }
-
-      // 需要创建新分类
-      await createCrontabCategoryApi({
-        type: formState.type,
-        category,
-      });
-      return true;
-    } catch (err) {
-      console.error('分类处理失败:', err);
-      return false;
-    }
   };
 
   /**
@@ -134,14 +101,9 @@ export const useFormSubmit = (
       // 步骤1: 更新内容（确保包含周期信息和标记）
       await updateContentBeforeSubmit();
 
-      // 步骤2: 确保分类存在
-      formState.category = formState.category || '';
-      const originalCategory = formState.category.trim();
-      const categoryCreated = await ensureCategoryExists(originalCategory);
-
-      if (!categoryCreated) {
-        throw new Error(t('app.crontab.form.category.create.failed'));
-      }
+      // 步骤2: 固定使用default分类（分类对用户侧收敛）
+      const originalCategory = DEFAULT_CRONTAB_CATEGORY;
+      formState.category = originalCategory;
 
       // 步骤3: 创建/更新定时任务
       await createUpdateCrontabRawApi({
@@ -155,10 +117,7 @@ export const useFormSubmit = (
       // 步骤4: 处理成功响应
       visible.value = false;
 
-      // 通知分类变更
-      if (originalCategory && onCategoryChange) {
-        onCategoryChange(originalCategory);
-      }
+      if (onCategoryChange) onCategoryChange(originalCategory);
 
       Message.success(t('app.crontab.form.success'));
       onSuccess();
