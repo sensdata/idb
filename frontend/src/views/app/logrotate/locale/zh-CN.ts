@@ -153,6 +153,7 @@ export default {
   'app.logrotate.form.update_failed': '更新配置失败',
   'app.logrotate.form.load_content_failed': '加载配置内容失败',
   'app.logrotate.form.system_readonly': '系统配置为只读，不支持保存',
+  'app.logrotate.form.open_config_dir': '打开配置目录',
   'app.logrotate.form.readonly_tag': '只读',
   'app.logrotate.overview.tip_view':
     '当前为查看模式：用于确认结构化配置是否符合预期。',

@@ -20,6 +20,7 @@ import (
 
 const systemCategory = "system"
 const systemMainConfName = "logrotate.conf"
+const managedLogrotateFileMode = "0644"
 
 func isSystemType(t string) bool {
 	return strings.EqualFold(t, "system")
@@ -50,6 +51,20 @@ func splitNonEmptyLines(content string) []string {
 		results = append(results, trimmed)
 	}
 	return results
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func (s *LogRotate) ensureManagedConfFileMode(hostID uint64, confPath string) error {
+	command := fmt.Sprintf("chmod %s -- %s", managedLogrotateFileMode, shellQuote(confPath))
+	_, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("Failed to set file mode for %s: %v", confPath, err)
+		return err
+	}
+	return nil
 }
 
 func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
@@ -1112,6 +1127,11 @@ func (s *LogRotate) createForm(hostID uint64, req model.CreateServiceForm) error
 		return fmt.Errorf("failed to get create conf file")
 	}
 
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1282,6 +1302,11 @@ func (s *LogRotate) updateForm(hostID uint64, req model.UpdateServiceForm) error
 		return fmt.Errorf("failed to update conf file")
 	}
 
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1341,6 +1366,11 @@ func (s *LogRotate) create(hostID uint64, req model.CreateGitFile, extension str
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to get create conf file")
+	}
+
+	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -1619,6 +1649,11 @@ func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {
 	if !actionResponse.Data.Action.Result {
 		LOG.Error("action failed")
 		return fmt.Errorf("failed to update conf file")
+	}
+
+	confPath := filepath.Join(repoPath, newRelativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
 	}
 
 	return nil
@@ -1978,6 +2013,9 @@ func (s *LogRotate) confActivate(hostID uint64, req model.ServiceActivate) error
 
 	// conf file path
 	confPath := filepath.Join(repoPath, relativePath)
+	if err := s.ensureManagedConfFileMode(hostID, confPath); err != nil {
+		return err
+	}
 	// conf file name
 	confName := filepath.Base(confPath)
 	// conf link file path

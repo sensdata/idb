@@ -166,6 +166,7 @@ export default {
   'app.logrotate.form.load_content_failed': 'Failed to load config content',
   'app.logrotate.form.system_readonly':
     'System configuration is read-only and cannot be saved',
+  'app.logrotate.form.open_config_dir': 'Open Config Directory',
   'app.logrotate.form.readonly_tag': 'Read-only',
   'app.logrotate.overview.tip_view':
     'View mode: review the structured configuration first.',
