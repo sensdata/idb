@@ -38,7 +38,7 @@ const createDefaultFormState = (): FormState => ({
   mark: '',
   command: '',
   user: 'root',
-  category: '',
+  category: 'default',
 });
 
 export const useFormState = () => {
@@ -69,9 +69,6 @@ export const useFormState = () => {
 
     const rules: ValidationRules = {
       name: [{ required: true, message: t('app.crontab.form.name.required') }],
-      category: [
-        { required: true, message: t('app.crontab.form.category.required') },
-      ],
       period_details: [
         {
           required: true,
@@ -90,6 +87,10 @@ export const useFormState = () => {
   // 类型选项
   const getTypeOptions = (): RadioOption[] => {
     return [
+      {
+        label: t('app.crontab.enum.type.system'),
+        value: CRONTAB_TYPE.System,
+      },
       {
         label: t('app.crontab.enum.type.local'),
         value: CRONTAB_TYPE.Local,

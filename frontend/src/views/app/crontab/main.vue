@@ -1,6 +1,16 @@
 <template>
   <a-tabs v-model:active-key="activeTab" lazy-load @change="handleTabChange">
     <a-tab-pane
+      :key="CRONTAB_TYPE.System"
+      :title="$t('app.crontab.enum.type.system')"
+    >
+      <list
+        :key="`list-${CRONTAB_TYPE.System}`"
+        ref="systemListRef"
+        :type="CRONTAB_TYPE.System"
+      />
+    </a-tab-pane>
+    <a-tab-pane
       :key="CRONTAB_TYPE.Local"
       :title="$t('app.crontab.enum.type.local')"
     >
@@ -33,9 +43,10 @@
     resetComponentsState?: () => void;
   }
 
-  const activeTab = ref(CRONTAB_TYPE.Local);
+  const activeTab = ref(CRONTAB_TYPE.System);
   const localListRef = ref<ListInstance | null>(null);
   const globalListRef = ref<ListInstance | null>(null);
+  const systemListRef = ref<ListInstance | null>(null);
 
   // 确保在tab切换时强制刷新列表
   const handleTabChange = async (key: string | number) => {
@@ -48,6 +59,9 @@
     } else if (key === CRONTAB_TYPE.Global && globalListRef.value) {
       // 强制重置全局列表的状态
       globalListRef.value.resetComponentsState?.();
+    } else if (key === CRONTAB_TYPE.System && systemListRef.value) {
+      // 强制重置系统列表的状态
+      systemListRef.value.resetComponentsState?.();
     }
   };
 

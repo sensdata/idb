@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/copier"
 	"github.com/sensdata/idb/center/core/api/service"
@@ -14,6 +17,40 @@ import (
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 )
+
+const systemCategory = "system"
+const systemMainConfName = "crontab"
+
+func isSystemType(t string) bool {
+	return strings.EqualFold(t, "system")
+}
+
+func resolveSystemConfPath(name string) (string, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "", fmt.Errorf("invalid name")
+	}
+	if strings.Contains(trimmed, "/") || trimmed == "." || trimmed == ".." {
+		return "", fmt.Errorf("invalid name")
+	}
+	if trimmed == systemMainConfName {
+		return "/etc/crontab", nil
+	}
+	return filepath.Join("/etc/cron.d", trimmed), nil
+}
+
+func splitNonEmptyLines(content string) []string {
+	lines := strings.Split(content, "\n")
+	results := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		results = append(results, trimmed)
+	}
+	return results
+}
 
 func parseConfBytesToServiceForm(confBytes []byte, standardFormFields []model.FormField) (model.ServiceForm, error) {
 	var serviceForm model.ServiceForm
@@ -260,6 +297,18 @@ func (s *CronTab) deleteFile(hostID uint64, op model.FileDelete) error {
 
 func (s *CronTab) getCategories(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
+	if isSystemType(req.Type) {
+		modTime := s.getSystemCategoryModTime(hostID)
+		pageResult.Total = 1
+		pageResult.Items = []model.GitFile{
+			{
+				Name:    systemCategory,
+				Source:  systemCategory,
+				ModTime: modTime,
+			},
+		}
+		return &pageResult, nil
+	}
 
 	var repoPath string
 	switch req.Type {
@@ -493,6 +542,9 @@ func (s *CronTab) deleteCategory(hostID uint64, req model.DeleteGitCategory) err
 
 func (s *CronTab) getConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
 	var pageResult = model.PageResult{Total: 0, Items: nil}
+	if isSystemType(req.Type) {
+		return s.getSystemConfList(hostID, req)
+	}
 
 	var repoPath string
 	switch req.Type {
@@ -557,6 +609,19 @@ func (s *CronTab) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 }
 
 func (s *CronTab) getForm(hostID uint64, req model.GetGitFileDetail) (*model.ServiceForm, error) {
+	if isSystemType(req.Type) {
+		gitFile, err := s.getSystemContent(hostID, req)
+		if err != nil {
+			return nil, err
+		}
+		serviceForm, err := parseConfBytesToServiceForm([]byte(gitFile.Content), s.form.Fields)
+		if err != nil {
+			LOG.Error("Failed to parse system conf content: %v", err)
+			return nil, fmt.Errorf("failed to parse conf content")
+		}
+		return &serviceForm, nil
+	}
+
 	// If name is empty, return template data
 	if req.Name == "" {
 		return &s.templateForm, nil
@@ -977,6 +1042,10 @@ func (s *CronTab) create(hostID uint64, req model.CreateGitFile, extension strin
 }
 
 func (s *CronTab) getContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
+	if isSystemType(req.Type) {
+		return s.getSystemContent(hostID, req)
+	}
+
 	var repoPath string
 	switch req.Type {
 	case "global":
@@ -1041,6 +1110,132 @@ func (s *CronTab) getContent(hostID uint64, req model.GetGitFileDetail) (*model.
 	}
 
 	return &gitFile, nil
+}
+
+func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*model.PageResult, error) {
+	pageResult := &model.PageResult{Total: 0, Items: []model.GitFile{}}
+	if req.Category != "" && req.Category != systemCategory {
+		return pageResult, nil
+	}
+
+	command := `if [ -f /etc/crontab ]; then echo crontab; fi; if [ -d /etc/cron.d ]; then find /etc/cron.d -maxdepth 1 -type f -printf '%f\n'; fi`
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{})
+	names := make([]string, 0)
+	for _, item := range splitNonEmptyLines(commandResult.Result) {
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		names = append(names, item)
+	}
+	sort.Strings(names)
+
+	items := make([]model.GitFile, 0, len(names))
+	for _, name := range names {
+		confPath, pathErr := resolveSystemConfPath(name)
+		if pathErr != nil {
+			continue
+		}
+		modTime, modTimeErr := s.getSystemFileModTime(hostID, confPath)
+		if modTimeErr != nil {
+			LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
+		}
+		items = append(items, model.GitFile{
+			Source:    confPath,
+			Name:      name,
+			Extension: filepath.Ext(name),
+			ModTime:   modTime,
+			Linked:    true,
+		})
+	}
+
+	total := len(items)
+	start, end := paginateRange(total, req.Page, req.PageSize)
+	pageResult.Items = items[start:end]
+	pageResult.Total = int64(total)
+	return pageResult, nil
+}
+
+func paginateRange(total, page, pageSize int) (int, int) {
+	if pageSize <= 0 {
+		pageSize = total
+	}
+	if pageSize <= 0 {
+		pageSize = 1
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	return start, end
+}
+
+func (s *CronTab) getSystemContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {
+	confPath, err := resolveSystemConfPath(req.Name)
+	if err != nil {
+		return nil, err
+	}
+	command := fmt.Sprintf("cat '%s'", confPath)
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+	if strings.Contains(strings.ToLower(commandResult.Result), "no such file or directory") {
+		return nil, fmt.Errorf("conf file not found")
+	}
+	modTime, modTimeErr := s.getSystemFileModTime(hostID, confPath)
+	if modTimeErr != nil {
+		LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
+	}
+
+	return &model.GitFile{
+		Source:    confPath,
+		Name:      req.Name,
+		Extension: filepath.Ext(req.Name),
+		Content:   commandResult.Result,
+		ModTime:   modTime,
+		Linked:    true,
+	}, nil
+}
+
+func (s *CronTab) getSystemCategoryModTime(hostID uint64) time.Time {
+	command := `max=0; for f in /etc/crontab /etc/cron.d/*; do [ -f "$f" ] || continue; t=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo 0); [ "$t" -gt "$max" ] && max="$t"; done; echo "$max"`
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("failed to get system category mod time: %v", err)
+		return time.Time{}
+	}
+	secs, err := strconv.ParseInt(strings.TrimSpace(commandResult.Result), 10, 64)
+	if err != nil || secs <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(secs, 0)
+}
+
+func (s *CronTab) getSystemFileModTime(hostID uint64, confPath string) (time.Time, error) {
+	command := fmt.Sprintf(`if [ -e '%s' ]; then stat -c %%Y '%s' 2>/dev/null || stat -f %%m '%s' 2>/dev/null; fi`, confPath, confPath, confPath)
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return time.Time{}, err
+	}
+	secs, err := strconv.ParseInt(strings.TrimSpace(commandResult.Result), 10, 64)
+	if err != nil || secs <= 0 {
+		return time.Time{}, fmt.Errorf("invalid mod time: %q", strings.TrimSpace(commandResult.Result))
+	}
+	return time.Unix(secs, 0), nil
 }
 
 func (s *CronTab) update(hostID uint64, req model.UpdateGitFile) error {

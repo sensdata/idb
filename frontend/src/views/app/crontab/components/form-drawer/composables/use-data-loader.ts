@@ -29,6 +29,7 @@ export const useDataLoader = (
   fetchScripts: () => Promise<void>,
   currentHostId?: any
 ) => {
+  const DEFAULT_CRONTAB_CATEGORY = 'default';
   const { t } = useI18n();
   const { parseCronExpression } = usePeriodUtils();
 
@@ -162,6 +163,9 @@ export const useDataLoader = (
 
   const parseScriptFromContent = async (content: string): Promise<boolean> => {
     if (!content) {
+      return false;
+    }
+    if (formState.type === CRONTAB_TYPE.System) {
       return false;
     }
 
@@ -362,6 +366,7 @@ export const useDataLoader = (
 
       // 重置表单基本信息
       resetBasicFormInfo(record);
+      formState.category = record.category || DEFAULT_CRONTAB_CATEGORY;
 
       // 处理周期详情
       const { usedExistingPeriod, commandContent } = await handlePeriodDetails(
@@ -389,12 +394,7 @@ export const useDataLoader = (
     flags.isInitialLoad.value = true;
 
     try {
-      if (
-        !paramsRef.value ||
-        !paramsRef.value.name ||
-        !paramsRef.value.type ||
-        !paramsRef.value.category
-      ) {
+      if (!paramsRef.value || !paramsRef.value.name || !paramsRef.value.type) {
         return;
       }
 
@@ -402,7 +402,7 @@ export const useDataLoader = (
       const params = {
         name: paramsRef.value.name,
         type: paramsRef.value.type,
-        category: paramsRef.value.category,
+        category: paramsRef.value.category || DEFAULT_CRONTAB_CATEGORY,
       };
 
       const data = await getCrontabDetailApi(params);
