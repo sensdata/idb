@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/sensdata/idb/center/global"
 	"github.com/sensdata/idb/core/model"
@@ -272,8 +273,12 @@ func (s *SysInfo) updateSystemSettings(hostID uint, req model.UpdateSystemSettin
 		return err
 	}
 	if !actionResponse.Data.Action.Result {
-		global.LOG.Error("failed to update system settings")
-		return fmt.Errorf("failed to update system settings")
+		detail := strings.TrimSpace(actionResponse.Data.Action.Data)
+		if detail == "" {
+			detail = "failed to update system settings"
+		}
+		global.LOG.Error("failed to update system settings: %s", detail)
+		return fmt.Errorf("%s", detail)
 	}
 	return nil
 }
