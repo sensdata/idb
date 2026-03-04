@@ -44,16 +44,18 @@ type RuleItem struct {
 }
 
 type PortRule struct {
-	Protocol  string     `json:"protocol"`
-	PortStart int        `json:"port_start"`
-	PortEnd   int        `json:"port_end"`
-	Rules     []RuleItem `json:"rules"`
+	Protocol    string     `json:"protocol"`
+	PortStart   int        `json:"port_start"`
+	PortEnd     int        `json:"port_end"`
+	Description string     `json:"description,omitempty"`
+	Rules       []RuleItem `json:"rules"`
 }
 
 type SetPortRule struct {
-	PortStart int        `json:"port_start"`
-	PortEnd   int        `json:"port_end"`
-	Rules     []RuleItem `json:"rules"`
+	PortStart   int        `json:"port_start"`
+	PortEnd     int        `json:"port_end"`
+	Description string     `json:"description,omitempty"`
+	Rules       []RuleItem `json:"rules"`
 }
 
 type IPRequest struct {

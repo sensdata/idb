@@ -84,6 +84,7 @@ export interface PortRule {
 export interface PortRangeRule {
   port_start: number;
   port_end: number; // 单端口时与 port_start 相同
+  description?: string;
   protocol?: 'tcp' | 'udp' | 'both';
   rules: RuleItem[];
 }
@@ -92,6 +93,7 @@ export interface PortRangeRule {
 export interface SetPortRuleReq {
   port_start: number;
   port_end: number; // 单端口时可以等于 port_start，或传 0
+  description?: string;
   rules: RuleItem[];
 }
 

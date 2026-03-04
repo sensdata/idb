@@ -137,6 +137,7 @@
     return {
       port: portVal as any,
       protocol: ruleSet.protocol ?? 'tcp',
+      description: ruleSet.description || '',
       rules: ruleSet.rules,
       action,
       source,
@@ -210,11 +211,13 @@
       }
 
       if (batchPorts && batchPorts.length) {
+        const description = (rule.description || '').trim();
         await Promise.all(
           batchPorts.map((p) =>
             setPortRulesApi({
               port_start: p,
               port_end: p,
+              description,
               rules: rulesLocal,
             })
           )
@@ -230,6 +233,7 @@
       await setPortRulesApi({
         port_start: portStart,
         port_end: portEnd,
+        description: (rule.description || '').trim(),
         rules: rulesLocal,
       });
 

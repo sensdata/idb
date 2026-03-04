@@ -2216,11 +2216,15 @@ func parseNftRules(lines []string) []model.PortRule {
 			key := fmt.Sprintf("%d-%d", ri.PortStart, ri.PortEnd)
 			if _, exists := rulesByRange[key]; !exists {
 				rulesByRange[key] = &model.PortRule{
-					Protocol:  "tcp",
-					PortStart: ri.PortStart,
-					PortEnd:   ri.PortEnd,
-					Rules:     []model.RuleItem{},
+					Protocol:    "tcp",
+					PortStart:   ri.PortStart,
+					PortEnd:     ri.PortEnd,
+					Description: ri.Description,
+					Rules:       []model.RuleItem{},
 				}
+			}
+			if rulesByRange[key].Description == "" && ri.Description != "" {
+				rulesByRange[key].Description = ri.Description
 			}
 			rulesByRange[key].Rules = append(rulesByRange[key].Rules, ri.Rule)
 		}
@@ -2235,9 +2239,10 @@ func parseNftRules(lines []string) []model.PortRule {
 
 // RuleParseResult 用于 parseRuleLine 返回多端口规则
 type RuleParseResult struct {
-	PortStart int
-	PortEnd   int
-	Rule      model.RuleItem
+	PortStart   int
+	PortEnd     int
+	Description string
+	Rule        model.RuleItem
 }
 
 func parseRuleLine(line string) ([]RuleParseResult, error) {
@@ -2264,6 +2269,7 @@ func parseRuleLine(line string) ([]RuleParseResult, error) {
 		ruleType = model.RuleDefault
 	}
 	srcIp := extractSrcIP(line)
+	description := extractDescription(line)
 
 	ri := model.RuleItem{
 		Type:   ruleType,
@@ -2291,12 +2297,12 @@ func parseRuleLine(line string) ([]RuleParseResult, error) {
 				start, err1 := strconv.Atoi(rangeParts[0])
 				end, err2 := strconv.Atoi(rangeParts[1])
 				if err1 == nil && err2 == nil {
-					results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Rule: ri})
+					results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Description: description, Rule: ri})
 				}
 			} else {
 				port, err := strconv.Atoi(p)
 				if err == nil {
-					results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Rule: ri})
+					results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Description: description, Rule: ri})
 				}
 			}
 		}
@@ -2307,14 +2313,14 @@ func parseRuleLine(line string) ([]RuleParseResult, error) {
 			start, err1 := strconv.Atoi(ports[0])
 			end, err2 := strconv.Atoi(ports[1])
 			if err1 == nil && err2 == nil {
-				results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Rule: ri})
+				results = append(results, RuleParseResult{PortStart: start, PortEnd: end, Description: description, Rule: ri})
 			}
 		}
 	} else {
 		// 单端口
 		port, err := strconv.Atoi(portExpr)
 		if err == nil {
-			results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Rule: ri})
+			results = append(results, RuleParseResult{PortStart: port, PortEnd: port, Description: description, Rule: ri})
 		}
 	}
 
@@ -2341,12 +2347,10 @@ func extractCount(line string) int {
 }
 
 func extractAction(line string) string {
-	if strings.HasSuffix(line, " accept") {
-		return "accept"
-	} else if strings.HasSuffix(line, " drop") {
-		return "drop"
-	} else if strings.HasSuffix(line, " reject") {
-		return "reject"
+	re := regexp.MustCompile(`\b(accept|drop|reject)\b(?:\s+comment\s+"(?:[^"\\]|\\.)*")?\s*$`)
+	match := re.FindStringSubmatch(line)
+	if len(match) > 1 {
+		return match[1]
 	}
 	return ""
 }
@@ -2360,6 +2364,18 @@ func extractSrcIP(line string) string {
 	return ""
 }
 
+func extractDescription(line string) string {
+	re := regexp.MustCompile(`\bcomment\s+"((?:[^"\\]|\\.)*)"`)
+	match := re.FindStringSubmatch(line)
+	if len(match) <= 1 {
+		return ""
+	}
+	// 只处理双引号和反斜杠转义，满足当前 comment 生成逻辑
+	text := strings.ReplaceAll(match[1], `\"`, `"`)
+	text = strings.ReplaceAll(text, `\\`, `\`)
+	return text
+}
+
 func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
 	// 获取 /etc/nftables.conf 内容
 	confContent, err := s.fileContent(hostID, "/etc/nftables.conf")
@@ -2371,10 +2387,11 @@ func (s *NFTable) setPortRules(hostID uint, req model.SetPortRule) error {
 	newConfContent, err := updatePortRuleInConfContent(
 		confContent,
 		model.PortRule{
-			Protocol:  "tcp",
-			PortStart: req.PortStart,
-			PortEnd:   req.PortEnd,
-			Rules:     req.Rules,
+			Protocol:    "tcp",
+			PortStart:   req.PortStart,
+			PortEnd:     req.PortEnd,
+			Description: req.Description,
+			Rules:       req.Rules,
 		},
 	)
 	if err != nil {
@@ -2413,10 +2430,11 @@ func updatePortRuleInConfContent(confContent string, newRule model.PortRule) (st
 					var splitRules []model.PortRule
 					for _, pr := range parsed {
 						splitRules = append(splitRules, model.PortRule{
-							Protocol:  "tcp",
-							PortStart: pr.PortStart,
-							PortEnd:   pr.PortEnd,
-							Rules:     []model.RuleItem{pr.Rule},
+							Protocol:    "tcp",
+							PortStart:   pr.PortStart,
+							PortEnd:     pr.PortEnd,
+							Description: pr.Description,
+							Rules:       []model.RuleItem{pr.Rule},
 						})
 					}
 					for _, nl := range generateNftRules(splitRules) {
@@ -2486,11 +2504,20 @@ func generateNftRules(rules []model.PortRule) []string {
 				lineParts = append(lineParts, rule.Action)
 			}
 
+			if portRule.Description != "" {
+				lineParts = append(lineParts, `comment "`+escapeNftComment(portRule.Description)+`"`)
+			}
+
 			line := strings.Join(lineParts, " ")
 			output = append(output, line)
 		}
 	}
 	return output
+}
+
+func escapeNftComment(text string) string {
+	escaped := strings.ReplaceAll(text, `\`, `\\`)
+	return strings.ReplaceAll(escaped, `"`, `\"`)
 }
 
 func ipExpr(rule model.RuleItem) string {
