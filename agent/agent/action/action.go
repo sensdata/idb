@@ -818,7 +818,7 @@ func applyAndPersistTHP(mode string) error {
 	}
 
 	if err := utils.ExecCmd(
-		fmt.Sprintf("printf '%s\\n' | sudo tee %s >/dev/null", serviceContent, serviceFile),
+		fmt.Sprintf("cat <<'EOF' | sudo tee %s >/dev/null\n%s\nEOF", serviceFile, serviceContent),
 	); err != nil {
 		return fmt.Errorf("persist THP mode failed: %v", err)
 	}
