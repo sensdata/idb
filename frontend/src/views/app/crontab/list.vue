@@ -344,7 +344,7 @@
       }
 
       const response = await operateCrontabApi({
-        type: record.type,
+        type: params.value.type,
         category: record.category || '',
         name: record.name,
         operation,

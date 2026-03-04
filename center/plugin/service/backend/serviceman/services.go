@@ -507,13 +507,14 @@ func (s *ServiceMan) getSystemServiceList(hostID uint64, req model.QueryGitFile)
 		return pageResult, nil
 	}
 
-	command := `for d in /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system; do [ -d "$d" ] || continue; find "$d" -maxdepth 1 \( -type f -o -type l \) -name '*.service' -printf '%f|%p\n'; done`
+	command := `for d in /etc/systemd/system /usr/lib/systemd/system /lib/systemd/system; do [ -d "$d" ] || continue; find "$d" -maxdepth 1 \( -type f -o -type l \) -name '*.service' -printf '%f|%p|%T@\n'; done`
 	commandResult, err := s.sendCommand(uint(hostID), command)
 	if err != nil {
 		return nil, err
 	}
 
 	pathByName := make(map[string]string)
+	modTimeByName := make(map[string]time.Time)
 	priorityByName := make(map[string]int)
 	priority := map[string]int{
 		"/etc/systemd/system":     0,
@@ -522,12 +523,13 @@ func (s *ServiceMan) getSystemServiceList(hostID uint64, req model.QueryGitFile)
 	}
 
 	for _, line := range splitNonEmptyLines(commandResult.Result) {
-		parts := strings.SplitN(line, "|", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(line, "|", 3)
+		if len(parts) != 3 {
 			continue
 		}
 		name := strings.TrimSpace(parts[0])
 		path := strings.TrimSpace(parts[1])
+		modTimeRaw := strings.TrimSpace(parts[2])
 		if name == "" || path == "" {
 			continue
 		}
@@ -543,6 +545,13 @@ func (s *ServiceMan) getSystemServiceList(hostID uint64, req model.QueryGitFile)
 		}
 		priorityByName[name] = currentPriority
 		pathByName[name] = path
+		if modTimeFloat, parseErr := strconv.ParseFloat(modTimeRaw, 64); parseErr == nil && modTimeFloat > 0 {
+			secs := int64(modTimeFloat)
+			nanos := int64((modTimeFloat - float64(secs)) * float64(time.Second))
+			modTimeByName[name] = time.Unix(secs, nanos)
+		} else {
+			modTimeByName[name] = time.Time{}
+		}
 	}
 
 	names := make([]string, 0, len(pathByName))
@@ -560,27 +569,58 @@ func (s *ServiceMan) getSystemServiceList(hostID uint64, req model.QueryGitFile)
 	items := make([]model.GitFile, 0, end-start)
 	for _, name := range names[start:end] {
 		confPath := pathByName[name]
-		detail, detailErr := s.getSystemContent(hostID, model.GetGitFileDetail{
-			Type:     "system",
-			Category: "system",
-			Name:     name,
-		})
+		detail, detailErr := s.getSystemServiceListItem(hostID, name, confPath, modTimeByName[name])
 		if detailErr != nil {
 			LOG.Error("failed to get system service content %s: %v", name, detailErr)
 			continue
 		}
-		items = append(items, model.GitFile{
-			Name:      name,
-			Source:    confPath,
-			Extension: filepath.Ext(name),
-			Content:   detail.Content,
-			ModTime:   detail.ModTime,
-			Linked:    s.isServiceLinked(hostID, name),
-		})
+		items = append(items, *detail)
 	}
 
 	pageResult.Items = items
 	return pageResult, nil
+}
+
+func (s *ServiceMan) getSystemServiceListItem(hostID uint64, name, confPath string, modTime time.Time) (*model.GitFile, error) {
+	serviceName, err := normalizeServiceName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	linkPath := filepath.Join("/etc/systemd/system", serviceName)
+	command := fmt.Sprintf("if [ -L %s ]; then echo '__IDB_LINKED__=1'; else echo '__IDB_LINKED__=0'; fi; cat %s",
+		shellQuote(linkPath),
+		shellQuote(confPath),
+	)
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return nil, err
+	}
+
+	output := commandResult.Result
+	linked := false
+	content := output
+
+	if idx := strings.Index(output, "\n"); idx >= 0 {
+		header := strings.TrimSpace(output[:idx])
+		linked = header == "__IDB_LINKED__=1"
+		content = output[idx+1:]
+	} else {
+		header := strings.TrimSpace(output)
+		if header == "__IDB_LINKED__=1" || header == "__IDB_LINKED__=0" {
+			linked = header == "__IDB_LINKED__=1"
+			content = ""
+		}
+	}
+
+	return &model.GitFile{
+		Name:      serviceName,
+		Source:    confPath,
+		Extension: filepath.Ext(serviceName),
+		Content:   content,
+		ModTime:   modTime,
+		Linked:    linked,
+	}, nil
 }
 
 func (s *ServiceMan) getSystemContent(hostID uint64, req model.GetGitFileDetail) (*model.GitFile, error) {

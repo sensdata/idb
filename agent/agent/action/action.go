@@ -826,6 +826,9 @@ func applyAndPersistTHP(mode string) error {
 	if err := utils.ExecCmd("sudo systemctl daemon-reload"); err != nil {
 		return fmt.Errorf("reload systemd daemon failed: %v", err)
 	}
+	if err := utils.ExecCmd("sudo systemctl unmask idb-thp.service"); err != nil {
+		return fmt.Errorf("unmask THP service failed: %v", err)
+	}
 	if err := utils.ExecCmd("sudo systemctl enable --now idb-thp.service"); err != nil {
 		return fmt.Errorf("enable THP service failed: %v", err)
 	}

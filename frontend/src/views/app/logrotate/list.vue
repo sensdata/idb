@@ -324,6 +324,10 @@
       );
       showOperateResult(operation, response.result);
     } catch (error: any) {
+      const detail = error?.response?.data?.data;
+      if (typeof detail === 'string' && detail.trim()) {
+        showOperateResult(operation, detail);
+      }
       Message.error(
         error?.message ||
           (operation === 'test'

@@ -2146,8 +2146,10 @@ func (s *LogRotate) runLogrotateOperateCommand(hostID uint64, operation string, 
 	quotedPath := shellQuote(confPath)
 	switch operation {
 	case "test":
-		// 进行-d测试
-		command := fmt.Sprintf("logrotate -d %s", quotedPath)
+		// 进行-d测试。logrotate 在检测到问题时常返回非0，
+		// 若直接返回错误会导致 agent 侧只回传固定 "error" 字符串而丢失具体输出。
+		// 这里强制回传真实测试输出，便于前端“测试运行输出”展示排障信息。
+		command := fmt.Sprintf("logrotate -d %s || true", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to test conf")
@@ -2155,8 +2157,9 @@ func (s *LogRotate) runLogrotateOperateCommand(hostID uint64, operation string, 
 		}
 		result.Result = commandResult.Result
 	case "execute":
-		// 进行-f测试
-		command := fmt.Sprintf("logrotate -f %s", quotedPath)
+		// 进行-f执行。为避免 agent 在非0退出码时仅回传固定 "error"，
+		// 这里统一收集 stdout/stderr 并附带退出码返回给前端展示。
+		command := fmt.Sprintf("logrotate -f %s 2>&1; __idb_exit_code=$?; echo \"[exit_code=${__idb_exit_code}]\"", quotedPath)
 		commandResult, err := s.sendCommand(uint(hostID), command)
 		if err != nil {
 			LOG.Error("Failed to execute conf")
