@@ -23,7 +23,19 @@
 
     <template #status="{ record }: { record: LogrotateEntity }">
       <div class="status-cell">
-        <a-tag :color="getStatusInfo(record).color" class="status-tag">
+        <a-tooltip
+          v-if="isSystemType && record.sourcePackage"
+          :content="
+            $t('app.logrotate.list.source_package', {
+              package: record.sourcePackage,
+            })
+          "
+        >
+          <a-tag :color="getStatusInfo(record).color" class="status-tag">
+            {{ getStatusInfo(record).text }}
+          </a-tag>
+        </a-tooltip>
+        <a-tag v-else :color="getStatusInfo(record).color" class="status-tag">
           {{ getStatusInfo(record).text }}
         </a-tag>
       </div>
@@ -144,7 +156,7 @@
     toggleLogrotateStatus,
   } = useLogrotateList(props.type);
 
-  const { columns } = useLogrotateColumns();
+  const { columns } = useLogrotateColumns(props.type);
   const { getStatusInfo, getActionButtonInfo } = useLogrotateActions();
 
   // 格式化轮转数量，从 content 中解析实际值

@@ -301,7 +301,7 @@ export const useDataLoader = (
   };
 
   // 重置表单基本信息
-  const resetBasicFormInfo = (record: CrontabEntity) => {
+  const resetBasicFormInfo = (record: Partial<CrontabEntity>) => {
     formState.name = record.name || '';
     formState.type = record.type || formState.type || CRONTAB_TYPE.Local;
     formState.mark = record.mark || '';
@@ -310,7 +310,7 @@ export const useDataLoader = (
   };
 
   // 处理周期详情
-  const handlePeriodDetails = async (record: CrontabEntity) => {
+  const handlePeriodDetails = async (record: Partial<CrontabEntity>) => {
     // 如果有period_details，直接使用
     if (record.period_details && record.period_details.length > 0) {
       formState.period_details = record.period_details;
@@ -342,7 +342,7 @@ export const useDataLoader = (
 
   // 处理内容模式
   const handleContentMode = async (
-    record: CrontabEntity,
+    record: Partial<CrontabEntity>,
     commandContent: string,
     hasExplicitMode: boolean
   ) => {
@@ -356,7 +356,9 @@ export const useDataLoader = (
     }
   };
 
-  const loadDataFromRecord = async (record: CrontabEntity): Promise<void> => {
+  const loadDataFromRecord = async (
+    record: Partial<CrontabEntity>
+  ): Promise<void> => {
     flags.isInitialLoad.value = true;
 
     try {
@@ -405,18 +407,22 @@ export const useDataLoader = (
       const params = {
         name: paramsRef.value.name,
         type: paramsRef.value.type,
-        category: paramsRef.value.category || DEFAULT_CRONTAB_CATEGORY,
+        category:
+          paramsRef.value.type === CRONTAB_TYPE.System
+            ? ''
+            : paramsRef.value.category || DEFAULT_CRONTAB_CATEGORY,
       };
 
-      const data = await getCrontabDetailApi(params);
+      const content = await getCrontabDetailApi(params);
 
-      if (!data) {
+      if (typeof content !== 'string') {
         return;
       }
 
-      // 详情接口不保证返回 type/category，补齐上下文，避免系统配置被误判为 local。
+      // raw 详情接口只返回内容文本，这里补齐上下文后按统一记录结构处理。
       await loadDataFromRecord({
-        ...(data as CrontabEntity),
+        content,
+        name: paramsRef.value.name,
         type: paramsRef.value.type,
         category: paramsRef.value.category,
       });

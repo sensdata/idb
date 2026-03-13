@@ -169,6 +169,24 @@ var (
 	digitsRE    = regexp.MustCompile(`\d+`)
 )
 
+type lsblkValue struct {
+	raw string
+}
+
+type lsblkDevice struct {
+	Name     string        `json:"name"`
+	Path     string        `json:"path"`
+	Size     lsblkValue    `json:"size"`
+	Model    string        `json:"model"`
+	Type     string        `json:"type"`
+	Rota     lsblkValue    `json:"rota"`
+	Children []lsblkDevice `json:"children"`
+}
+
+type lsblkPayload struct {
+	Blockdevices []lsblkDevice `json:"blockdevices"`
+}
+
 func normalizeCPUModelName(raw string) string {
 	name := strings.TrimSpace(raw)
 	if name == "" {
@@ -261,76 +279,178 @@ func collectMemoryModules() []model.MemoryModule {
 }
 
 func collectDiskInfo() []model.DiskInfo {
-	output, err := shell.ExecuteCommand("lsblk -J -b -d -o NAME,SIZE,MODEL,TYPE,ROTA 2>/dev/null")
+	output, err := shell.ExecuteCommand("lsblk -J -b -o NAME,PATH,SIZE,MODEL,TYPE,ROTA 2>/dev/null")
 	if err != nil {
 		return nil
 	}
 
-	type lsblkDevice struct {
-		Name  string `json:"name"`
-		Size  string `json:"size"`
-		Model string `json:"model"`
-		Type  string `json:"type"`
-		Rota  bool   `json:"rota"`
-	}
-	var payload struct {
-		Blockdevices []lsblkDevice `json:"blockdevices"`
-	}
+	return parseLsblkDisks(output)
+}
 
-	if err = json.Unmarshal([]byte(output), &payload); err != nil {
+func parseLsblkDisks(output string) []model.DiskInfo {
+	var data lsblkPayload
+	if err := json.Unmarshal([]byte(output), &data); err != nil {
 		return nil
 	}
 
-	disks := make([]model.DiskInfo, 0, len(payload.Blockdevices))
-	for _, dev := range payload.Blockdevices {
-		if dev.Name == "" {
-			continue
-		}
-		sizeUint, sizeErr := strconv.ParseUint(strings.TrimSpace(dev.Size), 10, 64)
-		sizeText := "-"
-		if sizeErr == nil {
-			sizeText = utils.FormatMemorySize(sizeUint)
-		}
+	disks := make([]model.DiskInfo, 0, len(data.Blockdevices))
+	seen := make(map[string]struct{})
 
-		modelText := strings.TrimSpace(dev.Model)
-		if modelText == "" {
-			modelText = "-"
-		}
-
-		diskType := strings.TrimSpace(dev.Type)
-		if strings.HasPrefix(dev.Name, "nvme") {
-			diskType = "nvme"
-		} else if diskType == "disk" {
-			if dev.Rota {
-				diskType = "hdd"
-			} else {
-				diskType = "ssd"
+	var walk func(devices []lsblkDevice)
+	walk = func(devices []lsblkDevice) {
+		for _, dev := range devices {
+			if disk, ok := buildDiskInfo(dev); ok {
+				key := disk.Name
+				if key == "" {
+					key = dev.Name
+				}
+				if _, exists := seen[key]; !exists {
+					seen[key] = struct{}{}
+					disks = append(disks, disk)
+				}
+			}
+			if len(dev.Children) > 0 {
+				walk(dev.Children)
 			}
 		}
-		if diskType == "" {
-			diskType = "-"
-		}
-
-		disk := model.DiskInfo{
-			Name:               "/dev/" + dev.Name,
-			Model:              modelText,
-			Size:               sizeText,
-			Type:               diskType,
-			Health:             "-",
-			LifeUsed:           "-",
-			PowerOnHours:       "-",
-			PowerCycleCount:    "-",
-			Temperature:        "-",
-			AvailableSpare:     "-",
-			ReallocatedSectors: "-",
-			PendingSectors:     "-",
-		}
-
-		fillDiskHealth(&disk)
-		disks = append(disks, disk)
 	}
 
+	walk(data.Blockdevices)
 	return disks
+}
+
+func (v *lsblkValue) UnmarshalJSON(data []byte) error {
+	v.raw = strings.TrimSpace(strings.Trim(string(data), `"`))
+	if v.raw == "null" {
+		v.raw = ""
+	}
+	return nil
+}
+
+func (v lsblkValue) String() string {
+	return strings.TrimSpace(v.raw)
+}
+
+func (v lsblkValue) Uint64() (uint64, bool) {
+	if v.raw == "" {
+		return 0, false
+	}
+	n, err := strconv.ParseUint(v.raw, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
+
+func (v lsblkValue) Bool() (bool, bool) {
+	switch strings.ToLower(v.raw) {
+	case "1", "true", "yes":
+		return true, true
+	case "0", "false", "no":
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func buildDiskInfo(dev lsblkDevice) (model.DiskInfo, bool) {
+	if dev.Name == "" || !shouldIncludeDisk(dev) {
+		return model.DiskInfo{}, false
+	}
+
+	sizeText := "-"
+	if sizeUint, ok := dev.Size.Uint64(); ok {
+		sizeText = utils.FormatMemorySize(sizeUint)
+	}
+
+	modelText := strings.TrimSpace(dev.Model)
+	if modelText == "" {
+		modelText = defaultDiskModel(dev)
+	}
+	if modelText == "" {
+		modelText = "-"
+	}
+
+	disk := model.DiskInfo{
+		Name:               diskPath(dev),
+		Model:              modelText,
+		Size:               sizeText,
+		Type:               classifyDiskType(dev),
+		Health:             "-",
+		LifeUsed:           "-",
+		PowerOnHours:       "-",
+		PowerCycleCount:    "-",
+		Temperature:        "-",
+		AvailableSpare:     "-",
+		ReallocatedSectors: "-",
+		PendingSectors:     "-",
+	}
+
+	if isPhysicalDisk(dev) {
+		fillDiskHealth(&disk)
+	}
+
+	return disk, true
+}
+
+func diskPath(dev lsblkDevice) string {
+	if path := strings.TrimSpace(dev.Path); path != "" {
+		return path
+	}
+	return "/dev/" + strings.TrimSpace(dev.Name)
+}
+
+func shouldIncludeDisk(dev lsblkDevice) bool {
+	switch strings.ToLower(strings.TrimSpace(dev.Type)) {
+	case "disk", "raid0", "raid1", "raid4", "raid5", "raid6", "raid10":
+		return true
+	}
+
+	name := strings.TrimSpace(dev.Name)
+	return strings.HasPrefix(name, "md") || strings.HasPrefix(name, "nvme")
+}
+
+func isPhysicalDisk(dev lsblkDevice) bool {
+	return strings.EqualFold(strings.TrimSpace(dev.Type), "disk")
+}
+
+func defaultDiskModel(dev lsblkDevice) string {
+	diskType := strings.ToLower(strings.TrimSpace(dev.Type))
+	name := strings.TrimSpace(dev.Name)
+	if strings.HasPrefix(name, "md") || strings.HasPrefix(diskType, "raid") {
+		return "Linux Software RAID"
+	}
+	return ""
+}
+
+func classifyDiskType(dev lsblkDevice) string {
+	name := strings.TrimSpace(dev.Name)
+	rawType := strings.ToLower(strings.TrimSpace(dev.Type))
+
+	if strings.HasPrefix(name, "nvme") && rawType == "disk" {
+		return "nvme"
+	}
+
+	if strings.HasPrefix(name, "md") || strings.HasPrefix(rawType, "raid") {
+		if rawType == "" {
+			return "raid"
+		}
+		return rawType
+	}
+
+	if rawType == "disk" {
+		if rota, ok := dev.Rota.Bool(); ok {
+			if rota {
+				return "hdd"
+			}
+			return "ssd"
+		}
+	}
+
+	if rawType == "" {
+		return "-"
+	}
+	return rawType
 }
 
 type smartCtlPayload struct {

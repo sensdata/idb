@@ -122,7 +122,6 @@ export interface HostStatusFollowItem {
   id: number;
   installed: string;
   connected: string;
-  activated: boolean;
   can_upgrade: boolean;
   cpu: number;
   mem: number;
@@ -140,8 +139,4 @@ export function connectAllHostsStatusFollowApi(ids: number[]): EventSource {
 
 export const restartHostAgentApi = (hostId: number): Promise<void> => {
   return request.post(`hosts/${hostId}/agent/restart`);
-};
-
-export const activateHostApi = (hostId: number): Promise<void> => {
-  return request.post(`hosts/${hostId}/activate`);
 };

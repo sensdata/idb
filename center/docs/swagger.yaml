@@ -386,6 +386,15 @@ definitions:
     - image
     - name
     type: object
+  model.CpuModelInfo:
+    properties:
+      count:
+        description: 逻辑处理器数量
+        type: integer
+      model:
+        description: 型号
+        type: string
+    type: object
   model.CreateCompose:
     properties:
       compose_content:
@@ -535,6 +544,7 @@ definitions:
         type: string
       operation:
         enum:
+        - test
         - execute
         type: string
       type:
@@ -554,6 +564,9 @@ definitions:
         items:
           type: string
         type: array
+      source:
+        description: 配置来源
+        type: string
       timeout:
         description: 超时时间
         type: integer
@@ -604,6 +617,45 @@ definitions:
         type: number
     required:
     - size
+    type: object
+  model.DiskInfo:
+    properties:
+      available_spare:
+        description: 可用备用空间
+        type: string
+      health:
+        description: 健康状态
+        type: string
+      life_used:
+        description: 寿命消耗
+        type: string
+      model:
+        description: 型号
+        type: string
+      name:
+        description: 设备名
+        type: string
+      pending_sectors:
+        description: 待处理扇区
+        type: string
+      power_cycle_count:
+        description: 上电次数
+        type: string
+      power_on_hours:
+        description: 通电时长(小时)
+        type: string
+      reallocated_sectors:
+        description: 重映射扇区
+        type: string
+      size:
+        description: 容量
+        type: string
+      temperature:
+        description: 温度
+        type: string
+      type:
+        description: 类型
+        type: string
     type: object
   model.DockerInstallStatus:
     properties:
@@ -890,12 +942,15 @@ definitions:
         - rsa
         - ed25519
         - ecdsa
-        - dsa
         type: string
       key_bits:
         enum:
-        - 1024
+        - 256
+        - 384
+        - 521
         - 2048
+        - 3072
+        - 4096
         type: integer
       key_name:
         type: string
@@ -964,6 +1019,10 @@ definitions:
         type: integer
       source:
         type: string
+      source_package:
+        type: string
+      source_status:
+        type: string
     type: object
   model.GroupInfo:
     properties:
@@ -982,17 +1041,40 @@ definitions:
       cpu_count:
         description: cpu个数
         type: integer
+      cpu_models:
+        description: CPU型号明细
+        items:
+          $ref: '#/definitions/model.CpuModelInfo'
+        type: array
+      disk_count:
+        description: 磁盘数量
+        type: integer
+      disks:
+        description: 磁盘明细
+        items:
+          $ref: '#/definitions/model.DiskInfo'
+        type: array
       memory:
         description: 内存大小
         type: string
+      memory_modules:
+        description: 内存条明细
+        items:
+          $ref: '#/definitions/model.MemoryModule'
+        type: array
+      memory_slots:
+        description: 内存条数量
+        type: integer
       module_names:
-        description: 型号
+        description: '兼容字段: CPU型号列表'
         items:
           type: string
         type: array
       processor:
         description: 线程数
         type: integer
+      updated_at:
+        type: string
     type: object
   model.HostAction:
     properties:
@@ -1046,8 +1128,6 @@ definitions:
     type: object
   model.HostStatusInfo:
     properties:
-      activated:
-        type: boolean
       can_upgrade:
         type: boolean
       connected:
@@ -1266,6 +1346,27 @@ definitions:
     - operation
     - type
     type: object
+  model.MemoryModule:
+    properties:
+      locator:
+        description: 插槽
+        type: string
+      manufacturer:
+        description: 厂商
+        type: string
+      part_number:
+        description: 型号
+        type: string
+      size:
+        description: 容量
+        type: string
+      speed:
+        description: 速率
+        type: string
+      type:
+        description: 类型
+        type: string
+    type: object
   model.MemoryState:
     properties:
       buffered:
@@ -1360,11 +1461,20 @@ definitions:
         items:
           $ref: '#/definitions/model.AddressInfo'
         type: array
+      link_type:
+        description: 链路类型
+        type: string
       mac:
         description: mac地址
         type: string
+      mtu:
+        description: MTU
+        type: integer
       name:
         description: 名称
+        type: string
+      oper_state:
+        description: 运行状态
         type: string
       proto:
         description: 分配方式
@@ -1394,6 +1504,7 @@ definitions:
         - stop
         - restart
         - up
+        - pull
         - down
         type: string
       remove_volumes:
@@ -2236,6 +2347,8 @@ definitions:
     type: object
   model.SetPortRule:
     properties:
+      description:
+        type: string
       port_end:
         type: integer
       port_start:
@@ -2322,30 +2435,87 @@ definitions:
     type: object
   model.SystemInfo:
     properties:
+      arch:
+        description: 系统架构 x86_64, arm64, etc.
+        type: string
+      distribution:
+        description: 发行版
+        type: string
+      distribution_version:
+        description: 发行版版本
+        type: string
+      fqdn:
+        description: 主机完整域名
+        type: string
       host_name:
         description: 主机名称
         type: string
       kernel:
         description: 内核版本
         type: string
-      platform:
-        description: 系统类型 x86_64, arm64, etc.
+      machine_id:
+        description: 机器标识
         type: string
+      os:
+        description: 操作系统家族 linux/windows/darwin
+        type: string
+      platform:
+        description: 兼容字段：发行版
+        type: string
+      uptime:
+        description: 运行时长(秒)
+        type: integer
       version:
-        description: 发行版本
+        description: 兼容字段：系统版本
         type: string
       vertual:
+        description: 兼容字段：虚拟化平台(拼写历史遗留)
+        type: string
+      virtual:
         description: 虚拟化平台
         type: string
     type: object
   model.SystemSettings:
     properties:
+      file_max:
+        description: 系统文件句柄上限
+        type: integer
+      max_map_count:
+        description: 进程最大虚拟内存映射数量
+        type: integer
       max_open_files:
         description: 系统最大打开文件数
+        type: integer
+      max_queued_events:
+        description: inotify 队列长度上限
         type: integer
       max_watch_files:
         description: inotify 监控的最大文件数
         type: integer
+      max_watch_instances:
+        description: inotify 实例数上限
+        type: integer
+      overcommit_memory:
+        description: 内存 overcommit 策略
+        type: integer
+      overcommit_ratio:
+        description: overcommit 比例
+        type: integer
+      pid_max:
+        description: PID 上限
+        type: integer
+      somaxconn:
+        description: socket 监听队列上限
+        type: integer
+      swappiness:
+        description: 交换分区倾向
+        type: integer
+      tcp_max_syn_backlog:
+        description: TCP SYN 队列上限
+        type: integer
+      transparent_huge_page:
+        description: THP 策略
+        type: string
     type: object
   model.TerminalRequest:
     properties:
@@ -2512,15 +2682,10 @@ definitions:
     properties:
       agent_addr:
         type: string
-      agent_key:
-        type: string
-      agent_mode:
-        type: string
       agent_port:
         type: integer
     required:
     - agent_addr
-    - agent_mode
     - agent_port
     type: object
   model.UpdateHostNameReq:
@@ -2619,17 +2784,74 @@ definitions:
     type: object
   model.UpdateSystemSettingsReq:
     properties:
+      file_max:
+        description: 系统文件句柄上限
+        minimum: 65535
+        type: integer
+      max_map_count:
+        description: 进程最大虚拟内存映射数量
+        minimum: 65530
+        type: integer
       max_open_files:
         description: 系统最大打开文件数
         minimum: 1024
+        type: integer
+      max_queued_events:
+        description: inotify 队列长度上限
+        minimum: 16384
         type: integer
       max_watch_files:
         description: inotify 监控的最大文件数
         minimum: 8192
         type: integer
+      max_watch_instances:
+        description: inotify 实例数上限
+        minimum: 128
+        type: integer
+      overcommit_memory:
+        description: 内存 overcommit 策略
+        maximum: 2
+        minimum: 0
+        type: integer
+      overcommit_ratio:
+        description: overcommit 比例
+        maximum: 100
+        minimum: 0
+        type: integer
+      pid_max:
+        description: PID 上限
+        minimum: 32768
+        type: integer
+      somaxconn:
+        description: socket 监听队列上限
+        minimum: 128
+        type: integer
+      swappiness:
+        description: 交换分区倾向
+        minimum: 0
+        type: integer
+      tcp_max_syn_backlog:
+        description: TCP SYN 队列上限
+        minimum: 128
+        type: integer
+      transparent_huge_page:
+        description: THP 策略
+        enum:
+        - always
+        - madvise
+        - never
+        type: string
     required:
+    - file_max
+    - max_map_count
     - max_open_files
+    - max_queued_events
     - max_watch_files
+    - max_watch_instances
+    - pid_max
+    - somaxconn
+    - tcp_max_syn_backlog
+    - transparent_huge_page
     type: object
   model.UpdateUser:
     properties:
@@ -6233,25 +6455,6 @@ paths:
           schema:
             $ref: '#/definitions/model.HostInfo'
       summary: Get host info
-      tags:
-      - Host
-  /hosts/{host}/activate:
-    post:
-      consumes:
-      - application/json
-      description: Activate host
-      parameters:
-      - description: Host ID
-        in: path
-        name: host
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Activate host
       tags:
       - Host
   /hosts/{host}/agent/install:
@@ -11400,8 +11603,7 @@ paths:
     get:
       consumes:
       - application/json
-      deprecated: true
-      description: (not implemented yet) Get hardware info
+      description: Get hardware info
       parameters:
       - description: Host ID
         in: path

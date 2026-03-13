@@ -7,7 +7,6 @@ export default {
   'manage.host.list.column.addr': '主机地址',
   'manage.host.list.column.group_name': '分组',
   'manage.host.list.column.agent': '受控端',
-  'manage.host.list.column.activated': '激活状态',
   'manage.host.list.column.cpu': 'CPU',
   'manage.host.list.column.memory': '内存',
   'manage.host.list.column.disk': '存储',
@@ -25,7 +24,6 @@ export default {
   'manage.host.list.operation.restart': '重启受控端',
   'manage.host.list.operation.delete': '删除',
   'manage.host.list.operation.updateSSH': 'SSH设置',
-  'manage.host.list.operation.activate': '激活',
   'manage.host.list.restart.confirm': '确定重启当前节点的受控端吗？',
   'manage.host.list.restart.success': '重启受控端成功',
   'manage.host.list.delete.confirm': '确定删除选中的节点吗？',
@@ -33,11 +31,6 @@ export default {
   'manage.host.list.agent.online': '在线',
   'manage.host.list.agent.offline': '离线',
   'manage.host.list.agent.uninstalled': '未安装',
-  'manage.host.list.activated.yes': '已激活',
-  'manage.host.list.activated.no': '未激活',
-  'manage.host.list.activate.success': '激活成功',
-  'manage.host.list.activate.error': '激活失败',
-
   'manage.host.form.title.create': '添加节点',
   'manage.host.form.title.edit': '节点设置',
 

@@ -24,6 +24,12 @@ const managedCrontabFileMode = "0644"
 
 var cronDFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
+const (
+	crontabSourceStatusIDBManaged    = "idb_managed"
+	crontabSourceStatusSystemBuiltin = "system_builtin"
+	crontabSourceStatusSystemCustom  = "system_custom"
+)
+
 func isSystemType(t string) bool {
 	return strings.EqualFold(t, "system")
 }
@@ -69,6 +75,47 @@ func isValidSystemCrontabName(name string) bool {
 
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func (s *CronTab) getCrontabSourceMeta(hostID uint64, confPath string) (string, string) {
+	command := fmt.Sprintf(`path=%s
+pkg=""
+if command -v dpkg-query >/dev/null 2>&1; then
+	pkg=$(dpkg-query -S "$path" 2>/dev/null | head -n 1 | cut -d: -f1)
+elif command -v rpm >/dev/null 2>&1; then
+	pkg=$(rpm -qf "$path" --qf '%%{NAME}\n' 2>/dev/null | head -n 1)
+elif command -v apk >/dev/null 2>&1; then
+	pkg=$(apk info -W "$path" 2>/dev/null | head -n 1 | cut -d: -f1)
+elif command -v pacman >/dev/null 2>&1; then
+	pkg=$(pacman -Qo "$path" 2>/dev/null | awk 'NR==1 {print $5}')
+fi
+if [ -n "$pkg" ]; then
+	printf 'builtin|%%s\n' "$pkg"
+else
+	printf 'custom|\n'
+fi`, shellQuote(confPath))
+
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		LOG.Error("failed to detect source meta for %s: %v", confPath, err)
+		return crontabSourceStatusSystemCustom, ""
+	}
+
+	parts := strings.SplitN(strings.TrimSpace(commandResult.Result), "|", 2)
+	if len(parts) == 0 {
+		return crontabSourceStatusSystemCustom, ""
+	}
+
+	switch strings.TrimSpace(parts[0]) {
+	case "builtin":
+		pkg := ""
+		if len(parts) > 1 {
+			pkg = strings.TrimSpace(parts[1])
+		}
+		return crontabSourceStatusSystemBuiltin, pkg
+	default:
+		return crontabSourceStatusSystemCustom, ""
+	}
 }
 
 func (s *CronTab) ensureManagedConfFileMode(hostID uint64, confPath string) error {
@@ -464,6 +511,18 @@ func (s *CronTab) getConfList(hostID uint64, req model.QueryGitFile) (*model.Pag
 	if err != nil {
 		LOG.Error("Error unmarshaling data to conf list: %v", err)
 		return &pageResult, fmt.Errorf("json err: %v", err)
+	}
+
+	if items, ok := pageResult.Items.([]interface{}); ok {
+		for i, rawItem := range items {
+			itemMap, mapOK := rawItem.(map[string]interface{})
+			if !mapOK {
+				continue
+			}
+			itemMap["source_status"] = crontabSourceStatusIDBManaged
+			items[i] = itemMap
+		}
+		pageResult.Items = items
 	}
 
 	return &pageResult, nil
@@ -1033,13 +1092,16 @@ func (s *CronTab) getSystemConfList(hostID uint64, req model.QueryGitFile) (*mod
 		if modTimeErr != nil {
 			LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
 		}
+		sourceStatus, sourcePackage := s.getCrontabSourceMeta(hostID, confPath)
 		items = append(items, model.GitFile{
-			Source:    confPath,
-			Name:      name,
-			Extension: filepath.Ext(name),
-			Content:   detail.Content,
-			ModTime:   modTime,
-			Linked:    true,
+			Source:        confPath,
+			Name:          name,
+			Extension:     filepath.Ext(name),
+			Content:       detail.Content,
+			ModTime:       modTime,
+			Linked:        true,
+			SourceStatus:  sourceStatus,
+			SourcePackage: sourcePackage,
 		})
 	}
 
@@ -1089,14 +1151,17 @@ func (s *CronTab) getSystemContent(hostID uint64, req model.GetGitFileDetail) (*
 	if modTimeErr != nil {
 		LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
 	}
+	sourceStatus, sourcePackage := s.getCrontabSourceMeta(hostID, confPath)
 
 	return &model.GitFile{
-		Source:    confPath,
-		Name:      req.Name,
-		Extension: filepath.Ext(req.Name),
-		Content:   commandResult.Result,
-		ModTime:   modTime,
-		Linked:    true,
+		Source:        confPath,
+		Name:          req.Name,
+		Extension:     filepath.Ext(req.Name),
+		Content:       commandResult.Result,
+		ModTime:       modTime,
+		Linked:        true,
+		SourceStatus:  sourceStatus,
+		SourcePackage: sourcePackage,
 	}, nil
 }
 

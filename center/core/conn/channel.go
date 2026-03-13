@@ -20,8 +20,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"github.com/sensdata/idb/center/core/plugin"
-	"github.com/sensdata/idb/center/core/plugin/shared"
 	"github.com/sensdata/idb/center/db/model"
 	"github.com/sensdata/idb/center/db/repo"
 	"github.com/sensdata/idb/center/global"
@@ -53,7 +51,6 @@ type hostConnState struct {
 type ICenter interface {
 	Start() error
 	Stop() error
-	ActivateHost(host *model.Host) error
 	ExecuteCommand(req core.Command) (string, error)
 	ExecuteCommandGroup(req core.CommandGroup) ([]string, error)
 	ExecuteAction(req core.HostAction) (*core.Action, error)
@@ -357,183 +354,6 @@ func (c *Center) handleHost(host *model.Host) {
 	}
 }
 
-func getAuthPlugin() (shared.Auth, error) {
-	// 获取插件客户端
-	plugin, err := plugin.PLUGINSERVER.GetPlugin("auth")
-	if err != nil {
-		return nil, err
-	}
-	// 类型断言为 gRPC client
-	client, ok := plugin.Stub.(shared.Auth)
-	if !ok {
-		return nil, errors.New("invalid plugin client")
-	}
-	return client, nil
-}
-
-func (c *Center) ActivateHost(host *model.Host) error {
-	return c.activateHost(host)
-}
-
-func (c *Center) activateHost(host *model.Host) error {
-	global.LOG.Info("activate host %d - %s begin", host.ID, host.Addr)
-	// 获取指纹
-	var fingerprint core.Fingerprint
-	actionRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Fingerprint,
-			Data:   "",
-		},
-	}
-	actionResponse, err := c.ExecuteAction(actionRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
-		return fmt.Errorf("Failed to send action Host_Fingerprint %w", err)
-	}
-	if !actionResponse.Result {
-		global.LOG.Error("action Host_Fingerprint failed")
-		return errors.New("action Host_Fingerprint failed")
-	}
-	err = utils.FromJSONString(actionResponse.Data, &fingerprint)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
-		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
-	}
-
-	// 使用auth插件注册
-	auth, err := getAuthPlugin()
-	if err != nil {
-		global.LOG.Error("Failed to get auth plugin: %v", err)
-		return fmt.Errorf("Failed to get auth plugin: %w", err)
-	}
-	registerResp, err := auth.RegisterFingerprint(core.RegisterFingerprintReq{
-		Fingerprint: fingerprint.Fingerprint,
-		Ip:          fingerprint.IP,
-		Mac:         fingerprint.MAC,
-	})
-	if err != nil {
-		global.LOG.Error("Failed to verify fingerprint: %v", err)
-		return fmt.Errorf("Failed to verify fingerprint: %w", err)
-	}
-
-	// 将注册结果发给agent
-	fingerprint.License = registerResp.License
-	fingerprint.Signature = registerResp.Signature
-
-	data, err := utils.ToJSONString(fingerprint)
-	if err != nil {
-		global.LOG.Error("Error marshaling fingerprint to JSON: %v", err)
-		return fmt.Errorf("Error marshaling fingerprint to JSON: %w", err)
-	}
-	licenseRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_License,
-			Data:   data,
-		},
-	}
-	licenseResponse, err := c.ExecuteAction(licenseRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_License %v", err)
-		return fmt.Errorf("Failed to send action Host_License %w", err)
-	}
-	if !licenseResponse.Result {
-		global.LOG.Error("action Host_License failed")
-		return fmt.Errorf("action Host_License failed")
-	}
-	global.LOG.Info("activate host %d - %s success", host.ID, host.Addr)
-	return nil
-}
-
-func (c *Center) checkLicense(host *model.Host, timestamp int64) error {
-	// 如果是0，说明还未获取license
-	if timestamp == 0 {
-		global.LOG.Info("host %d - %s not get license", host.ID, host.Addr)
-		return nil
-	}
-
-	// 判断last_verify_at是否已经过去24小时，如果是，则检查license
-	lastVerifyAt := time.Unix(timestamp, 0)
-	if time.Since(lastVerifyAt) < 24*time.Hour {
-		global.LOG.Info("host %d - %s no need check license", host.ID, host.Addr)
-		return nil
-	}
-
-	global.LOG.Info("host %d - %s check license", host.ID, host.Addr)
-
-	// 获取指纹
-	var fingerprint core.Fingerprint
-	actionRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_Fingerprint,
-			Data:   "",
-		},
-	}
-	actionResponse, err := c.ExecuteAction(actionRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_Fingerprint %v", err)
-		return fmt.Errorf("Failed to send action Host_Fingerprint %w", err)
-	}
-	if !actionResponse.Result {
-		global.LOG.Error("action Host_Fingerprint failed")
-		return errors.New("action Host_Fingerprint failed")
-	}
-	err = utils.FromJSONString(actionResponse.Data, &fingerprint)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to fingerprint: %v", err)
-		return fmt.Errorf("Error unmarshaling data to fingerprint: %w", err)
-	}
-
-	// 如果还没有license, 则不检查
-	if fingerprint.License == "" {
-		global.LOG.Info("host %d - %s not get license", host.ID, host.Addr)
-		return nil
-	}
-
-	// 使用auth插件验证
-	auth, err := getAuthPlugin()
-	if err != nil {
-		global.LOG.Error("Failed to get auth plugin: %v", err)
-		return fmt.Errorf("Failed to get auth plugin: %w", err)
-	}
-	verifyResp, err := auth.VerifyLicense(core.VerifyLicenseRequest{
-		License:   fingerprint.License,
-		Signature: fingerprint.Signature,
-	})
-	if err != nil {
-		global.LOG.Error("Failed to verify fingerprint: %v", err)
-		return fmt.Errorf("Failed to verify fingerprint: %w", err)
-	}
-
-	// 将验证结果发送给agent
-	verifyRespData, err := utils.ToJSONString(verifyResp)
-	if err != nil {
-		global.LOG.Error("Error marshaling verifyResp to JSON: %v", err)
-		return fmt.Errorf("Error marshaling verifyResp to JSON: %w", err)
-	}
-	verifyRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.Host_License_Verify,
-			Data:   verifyRespData,
-		},
-	}
-	verifyResponse, err := c.ExecuteAction(verifyRequest)
-	if err != nil {
-		global.LOG.Error("Failed to send action Host_License_Verify %v", err)
-		return fmt.Errorf("Failed to send action Host_License_Verify %w", err)
-	}
-	if !verifyResponse.Result {
-		global.LOG.Error("action Host_License_Verify failed")
-		return fmt.Errorf("action Host_License_Verify failed")
-	}
-
-	global.LOG.Info("host %d verify license success", host.ID)
-	return nil
-}
-
 func formatAgentID(host *model.Host) string {
 	return fmt.Sprintf("%d:%s:%d", host.ID, host.AgentAddr, host.AgentPort)
 }
@@ -614,15 +434,6 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 	// 处理连接
 	go c.handleConnection(host, conn)
 
-	// 如果是default设备, 检查是否已激活
-	if host.IsDefault {
-		go func() {
-			err := c.activateHost(host)
-			if err != nil {
-				global.LOG.Error("Failed to activate default host: %v", err)
-			}
-		}()
-	}
 }
 
 func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
@@ -769,7 +580,6 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 			hostStatusInfo := &core.HostStatusInfo{
 				Installed:     "installed",
 				Connected:     "online",
-				Activated:     heartbeat.Activated,
 				CanUpgrade:    msg.Version != global.Version,
 				Cpu:           heartbeat.Cpu,
 				Memory:        heartbeat.Memory,
@@ -795,15 +605,6 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 				}
 			}()
 
-			// 已激活的, 检查license
-			if heartbeat.Activated {
-				go func() {
-					err := c.checkLicense(host, heartbeat.LastVerifyAt)
-					if err != nil {
-						global.LOG.Error("Failed to check license: %v", err)
-					}
-				}()
-			}
 		}
 
 	case message.CmdMessage: // 收到Cmd 类型的回复

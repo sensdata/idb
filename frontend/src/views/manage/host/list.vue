@@ -30,19 +30,6 @@
         >{{ $t('manage.host.list.agent.offline') }}</div
       >
     </template>
-    <template #activated="{ record }: { record: HostItem }">
-      <div
-        v-if="record.statusReady && record.agent_status?.connected === 'online'"
-      >
-        <div v-if="record.activated" class="color-success">
-          {{ $t('manage.host.list.activated.yes') }}
-        </div>
-        <div v-else class="color-warning">
-          {{ $t('manage.host.list.activated.no') }}
-        </div>
-      </div>
-      <div v-else class="color-text-3">-</div>
-    </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
       <div>
@@ -131,7 +118,6 @@
     getHostListApi,
     restartHostAgentApi,
     connectAllHostsStatusFollowApi,
-    activateHostApi,
     type HostStatusFollowItem,
   } from '@/api/host';
   import { DEFAULT_APP_ROUTE_NAME } from '@/router/constants';
@@ -185,12 +171,6 @@
       slotName: 'agent',
     },
     {
-      dataIndex: 'activated',
-      title: t('manage.host.list.column.activated'),
-      width: 100,
-      slotName: 'activated',
-    },
-    {
       dataIndex: 'cpu',
       title: t('manage.host.list.column.cpu'),
       width: 110,
@@ -228,22 +208,6 @@
 
   const getOperationOptions = (record: HostItem) => {
     return [
-      {
-        text: t('manage.host.list.operation.activate'),
-        visible: record.statusReady && !record.activated && !record.default,
-        click: async () => {
-          try {
-            await activateHostApi(record.id);
-            Message.success(t('manage.host.list.activate.success'));
-            // 刷新表格以获取最新的 agent_version/agent_latest 等字段，避免需要手动刷新页面
-            tableRef.value?.reload();
-          } catch (error: any) {
-            Message.error(
-              error?.message || t('manage.host.list.activate.error')
-            );
-          }
-        },
-      },
       {
         text: t('manage.host.list.operation.upgradeAgent'),
         visible: record.can_upgrade,
@@ -378,30 +342,6 @@
     stopAllSSE();
   });
 
-  const autoActivateDefaultHosts = async () => {
-    if (!dataRef.value?.items) {
-      return;
-    }
-
-    const autoActivatePromises = dataRef.value.items
-      .filter((item) => item.default && item.statusReady && !item.activated)
-      .map(async (item) => {
-        try {
-          await activateHostApi(item.id);
-          item.activated = true; // Update the local state immediately
-        } catch (error) {
-          console.error(
-            `Failed to auto-activate default host ${item.id}:`,
-            error
-          );
-        }
-      });
-
-    if (autoActivatePromises.length > 0) {
-      await Promise.all(autoActivatePromises);
-    }
-  };
-
   const handleAllHostsStatusUpdate = (event: Event) => {
     try {
       const statusList: HostStatusFollowItem[] = JSON.parse(
@@ -417,7 +357,6 @@
         const item = dataRef.value?.items?.find((i) => i.id === statusData.id);
         if (item) {
           // 更新监控数据
-          item.activated = statusData.activated;
           item.cpu = statusData.cpu;
           item.disk = statusData.disk;
           item.mem = statusData.mem;
@@ -437,9 +376,6 @@
       });
 
       tableRef.value?.setData(dataRef.value);
-
-      // 自动激活默认主机（如果尚未激活）
-      autoActivateDefaultHosts();
     } catch (e) {
       console.error('Failed to parse hosts status:', e);
     }

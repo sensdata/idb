@@ -18,7 +18,7 @@ export interface CrontabDetailApiParams {
 }
 
 export function getCrontabDetailApi(params: CrontabDetailApiParams) {
-  return request.get<CrontabEntity>('crontab/{host}/raw', params);
+  return request.get<string>('crontab/{host}/raw', params);
 }
 
 export function createCrontabApi(data: Partial<CrontabEntity>) {

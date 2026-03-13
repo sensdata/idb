@@ -26,7 +26,6 @@ import (
 	"github.com/sensdata/idb/agent/agent/ssh"
 	"github.com/sensdata/idb/agent/agent/terminal"
 	"github.com/sensdata/idb/agent/config"
-	"github.com/sensdata/idb/agent/db"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/constant"
 	"github.com/sensdata/idb/core/files"
@@ -67,9 +66,6 @@ type Agent struct {
 	readerMu   sync.RWMutex
 }
 
-//go:embed idbauth.pub.b64
-var PK []byte
-
 //go:embed screen_install.sh
 var installScreenShell []byte
 
@@ -96,9 +92,6 @@ func (a *Agent) Start() error {
 
 	fmt.Println("Agent Starting")
 
-	// 初始化指纹
-	go a.initFingerprint()
-
 	// 启动 Unix 域套接字监听器
 	go a.listenToUnix()
 
@@ -121,66 +114,6 @@ func (a *Agent) Stop() error {
 	close(a.done)
 
 	return nil
-}
-
-func (a *Agent) initFingerprint() {
-	global.LOG.Info("init fingerprint")
-	fingerprint, err := db.FingerprintRepo.GetFirst()
-	if err != nil {
-		global.LOG.Error("get fingerprint error: %v", err)
-	}
-
-	if fingerprint.ID > 0 {
-		global.LOG.Info("fingerprint already exists")
-
-		// 初始化 global.License
-		if err := action.InitLicense(); err != nil {
-			global.LOG.Error("init license error: %v", err)
-		}
-		return
-	}
-
-	fingerprint, err = a.collectFingerprint()
-	if err != nil {
-		global.LOG.Error("init fingerprint error: %v", err)
-		return
-	}
-	if err := db.FingerprintRepo.Create(fingerprint); err != nil {
-		global.LOG.Error("init fingerprint error: %v", err)
-	}
-	global.LOG.Info("init fingerprint success, fingerprint: %v", fingerprint)
-}
-
-func (a *Agent) collectFingerprint() (*model.Fingerprint, error) {
-	var ip string
-	var hasPublicIP bool
-
-	pubIP, err := utils.GetPublicIP()
-	if err == nil && pubIP != "" {
-		ip = pubIP
-		hasPublicIP = true
-	} else {
-		priIP, err := utils.GetPrivateIP()
-		if err != nil {
-			return nil, fmt.Errorf("no usable IP found")
-		}
-		ip = priIP
-		hasPublicIP = false
-	}
-
-	mac, err := utils.GetMACAddress()
-	if err != nil {
-		return nil, err
-	}
-
-	fingerprint := utils.GenerateFingerprint(ip, mac)
-
-	return &model.Fingerprint{
-		IP:          ip,
-		MAC:         mac,
-		HasPublicIP: hasPublicIP,
-		Fingerprint: fingerprint,
-	}, nil
 }
 
 func (a *Agent) listenToUnix() {
@@ -594,18 +527,6 @@ func (a *Agent) startHeartbeat(conn net.Conn, stop <-chan struct{}) {
 
 			// 构造心跳
 			heartbeat := model.NewHeartbeat()
-			// 激活状态
-			license := global.GetLicense()
-			if license != nil {
-				heartbeat.Activated = !license.IssuedAt.IsZero()
-			}
-			// 验证时间
-			fp, err := db.FingerprintRepo.GetFirst()
-			if err != nil {
-				heartbeat.LastVerifyAt = 0
-			} else {
-				heartbeat.LastVerifyAt = fp.LastVerifyAt.Unix()
-			}
 			// 流量
 			heartbeat.Rx = math.Round(a.rx*100) / 100
 			heartbeat.Tx = math.Round(a.tx*100) / 100
@@ -676,19 +597,6 @@ func (a *Agent) getCenterConn() net.Conn {
 	return a.centerConn
 }
 
-// 检查缓存的证书
-func (a *Agent) checkLicense() error {
-	license := global.GetLicense()
-	if license == nil {
-		return fmt.Errorf("no license")
-	}
-	if !license.ExpireAt.IsZero() && license.ExpireAt.Before(time.Now()) {
-		global.LOG.Error("License expire")
-		return fmt.Errorf("license expire")
-	}
-	return nil
-}
-
 func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 	global.LOG.Info("Message: %v", msg)
 
@@ -698,14 +606,6 @@ func (a *Agent) processMessage(conn net.Conn, msg *message.Message) {
 
 	case message.CmdMessage: // 处理 Cmd 类型的消息
 		global.LOG.Info("recv cmd message: %s", msg.Data)
-
-		// 检查指纹
-		err := a.checkLicense()
-		if err != nil {
-			global.LOG.Error("Failed to check license: %v", err)
-			a.sendCmdResult(conn, msg.MsgID, "error")
-			return
-		}
 
 		if strings.Contains(msg.Data, message.Separator) {
 			commands := strings.Split(msg.Data, message.Separator)
@@ -1228,10 +1128,8 @@ func (c *Agent) followLog(conn net.Conn, taskId string, logPath string, offset i
 
 func (a *Agent) processAction(actionData *model.Action) (*model.Action, error) {
 	switch actionData.Action {
-	// Host_* action 不受限
-	case model.Host_Status, model.Host_Fingerprint, model.Host_License, model.Host_License_Verify:
+	case model.Host_Status:
 		return a.processBasicAction(actionData)
-	// 其他 action 需要校验 licence 并根据 licenseType 来判断业务是否受限
 	default:
 		return a.processBusinessAction(actionData)
 	}
@@ -1241,19 +1139,12 @@ func (a *Agent) processBasicAction(actionData *model.Action) (*model.Action, err
 	switch actionData.Action {
 	// 获取host status
 	case model.Host_Status:
-		activated := false
-		license := global.GetLicense()
-		if license != nil {
-			activated = !license.IssuedAt.IsZero()
-		}
-
 		status, err := action.GetStatus()
 		if err != nil {
 			return nil, err
 		}
 		status.Rx = math.Round(a.rx*100) / 100
 		status.Tx = math.Round(a.tx*100) / 100
-		status.Activated = activated
 
 		result, err := utils.ToJSONString(status)
 		if err != nil {
@@ -1261,55 +1152,12 @@ func (a *Agent) processBasicAction(actionData *model.Action) (*model.Action, err
 		}
 		return actionSuccessResult(actionData.Action, result)
 
-	// 获取 fingerprint
-	case model.Host_Fingerprint:
-		fingerprint, err := action.GetFingerprint()
-		if err != nil {
-			return nil, err
-		}
-
-		result, err := utils.ToJSONString(fingerprint)
-		if err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, result)
-
-	// license result
-	case model.Host_License:
-		var fingerprint model.Fingerprint
-		if err := json.Unmarshal([]byte(actionData.Data), &fingerprint); err != nil {
-			return nil, err
-		}
-		if err := action.SaveLicense(&fingerprint, PK); err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, "")
-
-	// license verify result
-	case model.Host_License_Verify:
-		var verifyResp model.VerifyLicenseResponse
-		if err := json.Unmarshal([]byte(actionData.Data), &verifyResp); err != nil {
-			return nil, err
-		}
-		if err := action.UpdateLicense(&verifyResp); err != nil {
-			return nil, err
-		}
-		return actionSuccessResult(actionData.Action, "")
 	default:
 		return nil, nil
 	}
 }
 
 func (a *Agent) processBusinessAction(actionData *model.Action) (*model.Action, error) {
-	// 检查指纹
-	err := a.checkLicense()
-	if err != nil {
-		global.LOG.Error("Failed to check license: %v", err)
-		return nil, err
-	}
-
-	// TODO: 根据 licenseType 对具体的业务做出限制
-	// license := global.GetLicense()
 	switch actionData.Action {
 	// 获取overview
 	case model.SysInfo_OverView:

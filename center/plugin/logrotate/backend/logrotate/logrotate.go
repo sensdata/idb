@@ -21,6 +21,13 @@ import (
 const systemCategory = "system"
 const systemMainConfName = "logrotate.conf"
 const managedLogrotateFileMode = "0644"
+const (
+	systemSourceStatusUnknown         = "unknown"
+	systemSourceStatusPackagePristine = "package_pristine"
+	systemSourceStatusPackageModified = "package_modified"
+	systemSourceStatusPackageOwned    = "package_owned"
+	systemSourceStatusLocal           = "local"
+)
 
 func isSystemType(t string) bool {
 	return strings.EqualFold(t, "system")
@@ -55,6 +62,10 @@ func splitNonEmptyLines(content string) []string {
 
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func trimLine(value string) string {
+	return strings.TrimSpace(strings.ReplaceAll(value, "\r", ""))
 }
 
 func (s *LogRotate) ensureManagedConfFileMode(hostID uint64, confPath string) error {
@@ -1480,12 +1491,18 @@ func (s *LogRotate) getSystemConfList(hostID uint64, req model.QueryGitFile) (*m
 		if modTimeErr != nil {
 			LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
 		}
+		sourceStatus, sourcePackage, sourceErr := s.getSystemFileSourceInfo(hostID, confPath)
+		if sourceErr != nil {
+			LOG.Error("failed to get source info for %s: %v", confPath, sourceErr)
+		}
 		items = append(items, model.GitFile{
-			Source:    confPath,
-			Name:      name,
-			Extension: filepath.Ext(name),
-			ModTime:   modTime,
-			Linked:    true,
+			Source:        confPath,
+			Name:          name,
+			Extension:     filepath.Ext(name),
+			ModTime:       modTime,
+			Linked:        true,
+			SourceStatus:  sourceStatus,
+			SourcePackage: sourcePackage,
 		})
 	}
 
@@ -1535,14 +1552,20 @@ func (s *LogRotate) getSystemContent(hostID uint64, req model.GetGitFileDetail) 
 	if modTimeErr != nil {
 		LOG.Error("failed to get mod time for %s: %v", confPath, modTimeErr)
 	}
+	sourceStatus, sourcePackage, sourceErr := s.getSystemFileSourceInfo(hostID, confPath)
+	if sourceErr != nil {
+		LOG.Error("failed to get source info for %s: %v", confPath, sourceErr)
+	}
 
 	return &model.GitFile{
-		Source:    confPath,
-		Name:      req.Name,
-		Extension: filepath.Ext(req.Name),
-		Content:   commandResult.Result,
-		ModTime:   modTime,
-		Linked:    true,
+		Source:        confPath,
+		Name:          req.Name,
+		Extension:     filepath.Ext(req.Name),
+		Content:       commandResult.Result,
+		ModTime:       modTime,
+		Linked:        true,
+		SourceStatus:  sourceStatus,
+		SourcePackage: sourcePackage,
 	}, nil
 }
 
@@ -1571,6 +1594,80 @@ func (s *LogRotate) getSystemFileModTime(hostID uint64, confPath string) (time.T
 		return time.Time{}, fmt.Errorf("invalid mod time: %q", strings.TrimSpace(commandResult.Result))
 	}
 	return time.Unix(secs, 0), nil
+}
+
+func (s *LogRotate) getSystemFileSourceInfo(hostID uint64, confPath string) (string, string, error) {
+	quotedPath := shellQuote(confPath)
+	command := fmt.Sprintf(`
+path=%s
+if command -v dpkg-query >/dev/null 2>&1; then
+	pkg=$(dpkg-query -S -- "$path" 2>/dev/null | head -n 1 | cut -d: -f1)
+	if [ -z "$pkg" ]; then
+		echo "status=%s"
+		exit 0
+	fi
+	conf_md5=$(dpkg-query -W -f='${Conffiles}\n' "$pkg" 2>/dev/null | awk -v p="$path" '$1 == p { print $2; exit }')
+	if [ -n "$conf_md5" ] && command -v md5sum >/dev/null 2>&1; then
+		actual_md5=$(md5sum "$path" 2>/dev/null | awk '{print $1}')
+		if [ -n "$actual_md5" ] && [ "$actual_md5" = "$conf_md5" ]; then
+			echo "status=%s"
+		else
+			echo "status=%s"
+		fi
+	else
+		echo "status=%s"
+	fi
+	echo "package=$pkg"
+	exit 0
+fi
+if command -v rpm >/dev/null 2>&1; then
+	pkg=$(rpm -qf --qf '%%{NAME}\n' "$path" 2>/dev/null | head -n 1)
+	if [ -z "$pkg" ] || [ "$pkg" = "file $path is not owned by any package" ]; then
+		echo "status=%s"
+		exit 0
+	fi
+	verify=$(rpm -V -- "$pkg" 2>/dev/null | awk -v p="$path" 'index($0, p) > 0 { print; exit }')
+	if [ -n "$verify" ]; then
+		echo "status=%s"
+	else
+		echo "status=%s"
+	fi
+	echo "package=$pkg"
+	exit 0
+fi
+echo "status=%s"
+`, quotedPath,
+		systemSourceStatusLocal,
+		systemSourceStatusPackagePristine,
+		systemSourceStatusPackageModified,
+		systemSourceStatusPackageOwned,
+		systemSourceStatusLocal,
+		systemSourceStatusPackageModified,
+		systemSourceStatusPackagePristine,
+		systemSourceStatusUnknown,
+	)
+
+	commandResult, err := s.sendCommand(uint(hostID), command)
+	if err != nil {
+		return systemSourceStatusUnknown, "", err
+	}
+
+	status := systemSourceStatusUnknown
+	sourcePackage := ""
+	for _, line := range strings.Split(commandResult.Result, "\n") {
+		trimmed := trimLine(line)
+		switch {
+		case strings.HasPrefix(trimmed, "status="):
+			status = strings.TrimSpace(strings.TrimPrefix(trimmed, "status="))
+		case strings.HasPrefix(trimmed, "package="):
+			sourcePackage = strings.TrimSpace(strings.TrimPrefix(trimmed, "package="))
+		}
+	}
+
+	if status == "" {
+		status = systemSourceStatusUnknown
+	}
+	return status, sourcePackage, nil
 }
 
 func (s *LogRotate) update(hostID uint64, req model.UpdateGitFile) error {

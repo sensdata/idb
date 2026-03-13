@@ -38,7 +38,6 @@ type IHostService interface {
 	Info(id uint) (*core.HostInfo, error)
 	HostStatus(id uint) (*core.HostStatusInfo, error)
 	HostStatusFollow(c *gin.Context) error
-	ActivateHost(id uint) error
 	UpdateSSH(id uint, req core.UpdateHostSSH) error
 	UpdateAgent(id uint, req core.UpdateHostAgent) error
 	TestSSH(req core.TestSSH) error
@@ -329,7 +328,6 @@ func (s *HostService) StatusFollow(c *gin.Context) error {
 				ID:         uint(id),
 				Installed:  status.Installed,
 				Connected:  status.Connected,
-				Activated:  status.Activated,
 				CanUpgrade: status.CanUpgrade,
 				Cpu:        status.Cpu,
 				Memory:     status.Memory,
@@ -494,17 +492,6 @@ func (s *HostService) HostStatusFollow(c *gin.Context) error {
 			timer.Stop()
 		}
 	}
-}
-
-func (s *HostService) ActivateHost(id uint) error {
-	//找host
-	host, err := HostRepo.Get(HostRepo.WithByID(id))
-	if err != nil {
-		return errors.WithMessage(constant.ErrRecordNotFound, err.Error())
-	}
-
-	// 激活host
-	return conn.CENTER.ActivateHost(&host)
 }
 
 func (s *HostService) UpdateSSH(id uint, req core.UpdateHostSSH) error {
