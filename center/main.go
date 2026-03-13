@@ -1,3 +1,4 @@
+//go:generate go run github.com/swaggo/swag/cmd/swag@v1.16.4 init -g main.go -o docs --parseDependency --parseInternal
 // @title IDB API Documentation
 // @version 1.0
 // @description This is the API documentation for idb application.

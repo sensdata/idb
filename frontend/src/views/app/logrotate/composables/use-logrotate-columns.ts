@@ -1,9 +1,10 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { LOGROTATE_TYPE } from '@/config/enum';
 import { LogrotateEntity } from '@/entity/Logrotate';
 import { COLUMN_WIDTHS } from '../constants';
 
-export function useLogrotateColumns() {
+export function useLogrotateColumns(type: LOGROTATE_TYPE) {
   const { t } = useI18n();
 
   // 格式化日期
@@ -57,9 +58,13 @@ export function useLogrotateColumns() {
       slotName: 'count',
     },
     {
-      title: t('app.logrotate.list.column.status'),
+      title:
+        type === LOGROTATE_TYPE.System
+          ? t('app.logrotate.list.column.source_status')
+          : t('app.logrotate.list.column.status'),
       slotName: 'status',
       width: COLUMN_WIDTHS.STATUS,
+      dataIndex: type === LOGROTATE_TYPE.System ? 'sourceStatus' : 'linked',
     },
     {
       title: t('app.logrotate.list.column.updated_at'),

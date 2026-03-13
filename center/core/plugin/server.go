@@ -536,8 +536,6 @@ func (s *PluginServer) loadPlugin(entry PluginEntry) error {
 	// 动态检查插件类型
 	var ok bool
 	switch entry.Name {
-	case "auth":
-		_, ok = raw.(shared.Auth)
 	case "scriptmanager":
 		_, ok = raw.(shared.ScriptManager)
 	case "mysqlmanager":

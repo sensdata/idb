@@ -36,6 +36,8 @@ interface LogrotateItemResponse {
   size: number;
   mod_time: string;
   linked: boolean;
+  source_status?: string;
+  source_package?: string;
 }
 
 interface LogrotateHistoryResponse {
@@ -357,6 +359,8 @@ export const getLogrotateListApi = async (
       preRotate: '',
       postRotate: '',
       linked: item.linked || false,
+      sourceStatus: item.source_status,
+      sourcePackage: item.source_package,
       createdAt: item.mod_time,
       updatedAt: item.mod_time,
       content: item.content || '',

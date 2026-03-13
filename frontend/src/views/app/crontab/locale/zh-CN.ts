@@ -29,6 +29,7 @@ export default {
 
   'app.crontab.list.column.name': '名称',
   'app.crontab.list.column.status': '启用状态',
+  'app.crontab.list.column.source': '来源',
   'app.crontab.list.column.period': '执行周期',
   'app.crontab.list.column.last_run_time': '最近执行时间',
   'app.crontab.list.column.mod_time': '修改时间',
@@ -36,6 +37,9 @@ export default {
   'app.crontab.list.column.history_version': '历史版本',
 
   'app.crontab.list.action.create': '创建',
+  'app.crontab.list.filter.source.all': '全部来源',
+  'app.crontab.list.filter.source.builtin': '系统默认',
+  'app.crontab.list.filter.source.custom': '用户自定义',
   'app.crontab.list.operation.view_history': '查看',
   'app.crontab.list.operation.activate': '启用',
   'app.crontab.list.operation.deactivate': '停用',
@@ -51,6 +55,9 @@ export default {
   'app.crontab.list.status.disabled': '已禁用',
   'app.crontab.list.status.running': '已启用',
   'app.crontab.list.status.not_running': '未启用',
+  'app.crontab.list.source.idb_managed': 'iDB 托管',
+  'app.crontab.list.source.system_builtin': '系统默认',
+  'app.crontab.list.source.system_custom': '用户自定义',
   'app.crontab.system.operate.test': '测试',
   'app.crontab.system.operate.execute': '立即执行',
   'app.crontab.system.operate.test_success': '测试完成',

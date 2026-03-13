@@ -5434,35 +5434,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/hosts/{host}/activate": {
-            "post": {
-                "description": "Activate host",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Host"
-                ],
-                "summary": "Activate host",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Host ID",
-                        "name": "host",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            }
-        },
         "/hosts/{host}/agent/install": {
             "post": {
                 "description": "Install agent in host",
@@ -13004,7 +12975,7 @@ const docTemplate = `{
         },
         "/sysinfo/{host}/hardware": {
             "get": {
-                "description": "(not implemented yet) Get hardware info",
+                "description": "Get hardware info",
                 "consumes": [
                     "application/json"
                 ],
@@ -13015,7 +12986,6 @@ const docTemplate = `{
                     "Sysinfo"
                 ],
                 "summary": "Get hardware info",
-                "deprecated": true,
                 "parameters": [
                     {
                         "type": "integer",
@@ -14473,6 +14443,19 @@ const docTemplate = `{
                 }
             }
         },
+        "model.CpuModelInfo": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "description": "逻辑处理器数量",
+                    "type": "integer"
+                },
+                "model": {
+                    "description": "型号",
+                    "type": "string"
+                }
+            }
+        },
         "model.CreateCompose": {
             "type": "object",
             "properties": {
@@ -14694,6 +14677,7 @@ const docTemplate = `{
                 "operation": {
                     "type": "string",
                     "enum": [
+                        "test",
                         "execute"
                     ]
                 },
@@ -14715,6 +14699,10 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "source": {
+                    "description": "配置来源",
+                    "type": "string"
                 },
                 "timeout": {
                     "description": "超时时间",
@@ -14791,6 +14779,59 @@ const docTemplate = `{
             "properties": {
                 "size": {
                     "type": "number"
+                }
+            }
+        },
+        "model.DiskInfo": {
+            "type": "object",
+            "properties": {
+                "available_spare": {
+                    "description": "可用备用空间",
+                    "type": "string"
+                },
+                "health": {
+                    "description": "健康状态",
+                    "type": "string"
+                },
+                "life_used": {
+                    "description": "寿命消耗",
+                    "type": "string"
+                },
+                "model": {
+                    "description": "型号",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "设备名",
+                    "type": "string"
+                },
+                "pending_sectors": {
+                    "description": "待处理扇区",
+                    "type": "string"
+                },
+                "power_cycle_count": {
+                    "description": "上电次数",
+                    "type": "string"
+                },
+                "power_on_hours": {
+                    "description": "通电时长(小时)",
+                    "type": "string"
+                },
+                "reallocated_sectors": {
+                    "description": "重映射扇区",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "容量",
+                    "type": "string"
+                },
+                "temperature": {
+                    "description": "温度",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "类型",
+                    "type": "string"
                 }
             }
         },
@@ -15223,15 +15264,18 @@ const docTemplate = `{
                     "enum": [
                         "rsa",
                         "ed25519",
-                        "ecdsa",
-                        "dsa"
+                        "ecdsa"
                     ]
                 },
                 "key_bits": {
                     "type": "integer",
                     "enum": [
-                        1024,
-                        2048
+                        256,
+                        384,
+                        521,
+                        2048,
+                        3072,
+                        4096
                     ]
                 },
                 "key_name": {
@@ -15331,6 +15375,12 @@ const docTemplate = `{
                 },
                 "source": {
                     "type": "string"
+                },
+                "source_package": {
+                    "type": "string"
+                },
+                "source_status": {
+                    "type": "string"
                 }
             }
         },
@@ -15359,12 +15409,41 @@ const docTemplate = `{
                     "description": "cpu个数",
                     "type": "integer"
                 },
+                "cpu_models": {
+                    "description": "CPU型号明细",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.CpuModelInfo"
+                    }
+                },
+                "disk_count": {
+                    "description": "磁盘数量",
+                    "type": "integer"
+                },
+                "disks": {
+                    "description": "磁盘明细",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.DiskInfo"
+                    }
+                },
                 "memory": {
                     "description": "内存大小",
                     "type": "string"
                 },
+                "memory_modules": {
+                    "description": "内存条明细",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MemoryModule"
+                    }
+                },
+                "memory_slots": {
+                    "description": "内存条数量",
+                    "type": "integer"
+                },
                 "module_names": {
-                    "description": "型号",
+                    "description": "兼容字段: CPU型号列表",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -15373,6 +15452,9 @@ const docTemplate = `{
                 "processor": {
                     "description": "线程数",
                     "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -15455,9 +15537,6 @@ const docTemplate = `{
         "model.HostStatusInfo": {
             "type": "object",
             "properties": {
-                "activated": {
-                    "type": "boolean"
-                },
                 "can_upgrade": {
                     "type": "boolean"
                 },
@@ -15785,6 +15864,35 @@ const docTemplate = `{
                 }
             }
         },
+        "model.MemoryModule": {
+            "type": "object",
+            "properties": {
+                "locator": {
+                    "description": "插槽",
+                    "type": "string"
+                },
+                "manufacturer": {
+                    "description": "厂商",
+                    "type": "string"
+                },
+                "part_number": {
+                    "description": "型号",
+                    "type": "string"
+                },
+                "size": {
+                    "description": "容量",
+                    "type": "string"
+                },
+                "speed": {
+                    "description": "速率",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "类型",
+                    "type": "string"
+                }
+            }
+        },
         "model.MemoryState": {
             "type": "object",
             "properties": {
@@ -15923,12 +16031,24 @@ const docTemplate = `{
                         "$ref": "#/definitions/model.AddressInfo"
                     }
                 },
+                "link_type": {
+                    "description": "链路类型",
+                    "type": "string"
+                },
                 "mac": {
                     "description": "mac地址",
                     "type": "string"
                 },
+                "mtu": {
+                    "description": "MTU",
+                    "type": "integer"
+                },
                 "name": {
                     "description": "名称",
+                    "type": "string"
+                },
+                "oper_state": {
+                    "description": "运行状态",
                     "type": "string"
                 },
                 "proto": {
@@ -15977,6 +16097,7 @@ const docTemplate = `{
                         "stop",
                         "restart",
                         "up",
+                        "pull",
                         "down"
                     ]
                 },
@@ -17223,6 +17344,9 @@ const docTemplate = `{
         "model.SetPortRule": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "port_end": {
                     "type": "integer"
                 },
@@ -17352,6 +17476,22 @@ const docTemplate = `{
         "model.SystemInfo": {
             "type": "object",
             "properties": {
+                "arch": {
+                    "description": "系统架构 x86_64, arm64, etc.",
+                    "type": "string"
+                },
+                "distribution": {
+                    "description": "发行版",
+                    "type": "string"
+                },
+                "distribution_version": {
+                    "description": "发行版版本",
+                    "type": "string"
+                },
+                "fqdn": {
+                    "description": "主机完整域名",
+                    "type": "string"
+                },
                 "host_name": {
                     "description": "主机名称",
                     "type": "string"
@@ -17360,15 +17500,31 @@ const docTemplate = `{
                     "description": "内核版本",
                     "type": "string"
                 },
-                "platform": {
-                    "description": "系统类型 x86_64, arm64, etc.",
+                "machine_id": {
+                    "description": "机器标识",
                     "type": "string"
                 },
+                "os": {
+                    "description": "操作系统家族 linux/windows/darwin",
+                    "type": "string"
+                },
+                "platform": {
+                    "description": "兼容字段：发行版",
+                    "type": "string"
+                },
+                "uptime": {
+                    "description": "运行时长(秒)",
+                    "type": "integer"
+                },
                 "version": {
-                    "description": "发行版本",
+                    "description": "兼容字段：系统版本",
                     "type": "string"
                 },
                 "vertual": {
+                    "description": "兼容字段：虚拟化平台(拼写历史遗留)",
+                    "type": "string"
+                },
+                "virtual": {
                     "description": "虚拟化平台",
                     "type": "string"
                 }
@@ -17377,13 +17533,57 @@ const docTemplate = `{
         "model.SystemSettings": {
             "type": "object",
             "properties": {
+                "file_max": {
+                    "description": "系统文件句柄上限",
+                    "type": "integer"
+                },
+                "max_map_count": {
+                    "description": "进程最大虚拟内存映射数量",
+                    "type": "integer"
+                },
                 "max_open_files": {
                     "description": "系统最大打开文件数",
+                    "type": "integer"
+                },
+                "max_queued_events": {
+                    "description": "inotify 队列长度上限",
                     "type": "integer"
                 },
                 "max_watch_files": {
                     "description": "inotify 监控的最大文件数",
                     "type": "integer"
+                },
+                "max_watch_instances": {
+                    "description": "inotify 实例数上限",
+                    "type": "integer"
+                },
+                "overcommit_memory": {
+                    "description": "内存 overcommit 策略",
+                    "type": "integer"
+                },
+                "overcommit_ratio": {
+                    "description": "overcommit 比例",
+                    "type": "integer"
+                },
+                "pid_max": {
+                    "description": "PID 上限",
+                    "type": "integer"
+                },
+                "somaxconn": {
+                    "description": "socket 监听队列上限",
+                    "type": "integer"
+                },
+                "swappiness": {
+                    "description": "交换分区倾向",
+                    "type": "integer"
+                },
+                "tcp_max_syn_backlog": {
+                    "description": "TCP SYN 队列上限",
+                    "type": "integer"
+                },
+                "transparent_huge_page": {
+                    "description": "THP 策略",
+                    "type": "string"
                 }
             }
         },
@@ -17626,17 +17826,10 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "agent_addr",
-                "agent_mode",
                 "agent_port"
             ],
             "properties": {
                 "agent_addr": {
-                    "type": "string"
-                },
-                "agent_key": {
-                    "type": "string"
-                },
-                "agent_mode": {
                     "type": "string"
                 },
                 "agent_port": {
@@ -17785,19 +17978,88 @@ const docTemplate = `{
         "model.UpdateSystemSettingsReq": {
             "type": "object",
             "required": [
+                "file_max",
+                "max_map_count",
                 "max_open_files",
-                "max_watch_files"
+                "max_queued_events",
+                "max_watch_files",
+                "max_watch_instances",
+                "pid_max",
+                "somaxconn",
+                "tcp_max_syn_backlog",
+                "transparent_huge_page"
             ],
             "properties": {
+                "file_max": {
+                    "description": "系统文件句柄上限",
+                    "type": "integer",
+                    "minimum": 65535
+                },
+                "max_map_count": {
+                    "description": "进程最大虚拟内存映射数量",
+                    "type": "integer",
+                    "minimum": 65530
+                },
                 "max_open_files": {
                     "description": "系统最大打开文件数",
                     "type": "integer",
                     "minimum": 1024
                 },
+                "max_queued_events": {
+                    "description": "inotify 队列长度上限",
+                    "type": "integer",
+                    "minimum": 16384
+                },
                 "max_watch_files": {
                     "description": "inotify 监控的最大文件数",
                     "type": "integer",
                     "minimum": 8192
+                },
+                "max_watch_instances": {
+                    "description": "inotify 实例数上限",
+                    "type": "integer",
+                    "minimum": 128
+                },
+                "overcommit_memory": {
+                    "description": "内存 overcommit 策略",
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0
+                },
+                "overcommit_ratio": {
+                    "description": "overcommit 比例",
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "pid_max": {
+                    "description": "PID 上限",
+                    "type": "integer",
+                    "minimum": 32768
+                },
+                "somaxconn": {
+                    "description": "socket 监听队列上限",
+                    "type": "integer",
+                    "minimum": 128
+                },
+                "swappiness": {
+                    "description": "交换分区倾向",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "tcp_max_syn_backlog": {
+                    "description": "TCP SYN 队列上限",
+                    "type": "integer",
+                    "minimum": 128
+                },
+                "transparent_huge_page": {
+                    "description": "THP 策略",
+                    "type": "string",
+                    "enum": [
+                        "always",
+                        "madvise",
+                        "never"
+                    ]
                 }
             }
         },

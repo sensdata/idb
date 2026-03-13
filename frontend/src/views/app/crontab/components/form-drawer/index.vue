@@ -479,7 +479,10 @@
       setParams({
         name: params.name || params.record?.name,
         type: params.type || props.type,
-        category: 'default',
+        category:
+          params.type === CRONTAB_TYPE.System
+            ? ''
+            : params.category || params.record?.category || 'default',
         isEdit: true,
         isView: params.isView,
         record: params.record,

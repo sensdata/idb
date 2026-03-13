@@ -16,6 +16,8 @@ export interface LogrotateEntity {
   preRotate: string;
   postRotate: string;
   linked: boolean;
+  sourceStatus?: string;
+  sourcePackage?: string;
   createdAt?: string;
   updatedAt?: string;
   content?: string;

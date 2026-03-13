@@ -1,8 +1,6 @@
 package action
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -12,136 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sensdata/idb/agent/db"
 	"github.com/sensdata/idb/agent/global"
 	"github.com/sensdata/idb/core/model"
 	"github.com/sensdata/idb/core/utils"
 	"gopkg.in/ini.v1"
 )
-
-func GetFingerprint() (*model.Fingerprint, error) {
-	fingerprint, err := db.FingerprintRepo.GetFirst()
-	if err != nil {
-		global.LOG.Error("Failed to get fingerprint: %v", err)
-		return nil, fmt.Errorf("failed to get fingerprint: %w", err)
-	}
-	return fingerprint, nil
-}
-
-func InitLicense() error {
-	// 查找fp
-	fp, err := db.FingerprintRepo.GetFirst()
-	if err != nil {
-		return fmt.Errorf("failed to get fingerprint: %w", err)
-	}
-	// 拿到licencePayload
-	var licensePayload model.LicensePayload
-	licenseBytes, err := base64.StdEncoding.DecodeString(fp.License)
-	if err != nil {
-		return fmt.Errorf("failed to decode license: %w", err)
-	}
-	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
-		return fmt.Errorf("failed to parse license: %w", err)
-	}
-	// 更新缓存
-	global.SetLicense(&licensePayload)
-	return nil
-}
-
-func SaveLicense(fingerprint *model.Fingerprint, publicKeyB64 []byte) error {
-	defer func() {
-		if err := recover(); err != nil {
-			global.LOG.Error("SaveLicense failed: %v", err)
-		}
-	}()
-
-	// 先验证签名
-	if err := utils.VerifyLicenseSignature(fingerprint.License, fingerprint.Signature, publicKeyB64); err != nil {
-		return fmt.Errorf("failed to verify license signature: %w", err)
-	}
-
-	// 根据指纹值查找
-	fp, err := db.FingerprintRepo.GetFirst(
-		db.FingerprintRepo.WithByFingerprint(fingerprint.Fingerprint))
-	if err != nil {
-		return fmt.Errorf("failed to get fingerprint: %w", err)
-	}
-	// 更新验证结果
-	if err := db.FingerprintRepo.Update(
-		fp.ID,
-		map[string]interface{}{
-			"license":        fingerprint.License,
-			"signature":      fingerprint.Signature,
-			"last_verify_at": time.Now(), //首次获取，设置验证时间为本地时间
-		}); err != nil {
-		return fmt.Errorf("failed to save license: %w", err)
-	}
-
-	// Base64 decode license
-	licenseBytes, err := base64.StdEncoding.DecodeString(fingerprint.License)
-	if err != nil {
-		return fmt.Errorf("failed to decode license: %w", err)
-	}
-
-	// Parse JSON
-	var licensePayload model.LicensePayload
-	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
-		return fmt.Errorf("failed to parse license: %w", err)
-	}
-	global.SetLicense(&licensePayload)
-
-	return nil
-}
-
-func UpdateLicense(verifyResp *model.VerifyLicenseResponse) error {
-	if !verifyResp.Valid {
-		// TODO: 验证失败时，进行一些管控
-		return fmt.Errorf("license is invalid")
-	}
-
-	// 解析过期时间
-	expireAt, err := time.Parse(time.RFC3339, verifyResp.ExpireAt)
-	if err != nil {
-		return fmt.Errorf("failed to parse expire time: %w", err)
-	}
-
-	// 查找fp
-	fp, err := db.FingerprintRepo.GetFirst()
-	if err != nil {
-		return fmt.Errorf("failed to get fingerprint: %w", err)
-	}
-
-	// 更新 license 内容
-	var licensePayload model.LicensePayload
-	licenseBytes, err := base64.StdEncoding.DecodeString(fp.License)
-	if err != nil {
-		return fmt.Errorf("failed to decode license: %w", err)
-	}
-	if err := json.Unmarshal(licenseBytes, &licensePayload); err != nil {
-		return fmt.Errorf("failed to parse license: %w", err)
-	}
-	licensePayload.LicenseType = verifyResp.LicenseType
-	licensePayload.ExpireAt = expireAt
-
-	licenseJson, err := utils.ToJSONString(licensePayload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal license: %w", err)
-	}
-	license := base64.StdEncoding.EncodeToString([]byte(licenseJson))
-
-	if err := db.FingerprintRepo.Update(
-		fp.ID,
-		map[string]interface{}{
-			"last_verify_at": time.Now(),
-			"license":        license,
-		}); err != nil {
-		return fmt.Errorf("failed to update fingerprint: %w", err)
-	}
-
-	// 更新缓存
-	global.SetLicense(&licensePayload)
-	return nil
-}
 
 func SetTime(req model.SetTimeReq) error {
 	// 将时间戳转换为时间对象

@@ -16,6 +16,26 @@
         {{ $t('app.crontab.list.action.create') }}
       </a-button>
     </template>
+    <template #rightActions>
+      <div v-if="isSystemType" class="right-actions">
+        <a-radio-group
+          v-model="sourceFilter"
+          type="button"
+          size="small"
+          @change="handleSourceFilterChange"
+        >
+          <a-radio value="all">
+            {{ $t('app.crontab.list.filter.source.all') }}
+          </a-radio>
+          <a-radio value="system_builtin">
+            {{ $t('app.crontab.list.filter.source.builtin') }}
+          </a-radio>
+          <a-radio value="system_custom">
+            {{ $t('app.crontab.list.filter.source.custom') }}
+          </a-radio>
+        </a-radio-group>
+      </div>
+    </template>
 
     <template #status="{ record }: { record: CrontabEntity }">
       <div class="status-cell">
@@ -35,6 +55,17 @@
         </span>
         <span v-else class="status-tag">
           {{ record.linked }}
+        </span>
+      </div>
+    </template>
+
+    <template #source="{ record }: { record: CrontabEntity }">
+      <div class="source-cell">
+        <a-tag size="small" :color="resolveSourceColor(record)">
+          {{ resolveSourceText(record) }}
+        </a-tag>
+        <span v-if="record.source_package" class="source-package">
+          {{ record.source_package }}
         </span>
       </div>
     </template>
@@ -114,6 +145,7 @@
   const { getCronDescriptionFromContent } = useCronDescription();
   const isSystemType = computed(() => props.type === CRONTAB_TYPE.System);
   const { currentHostId } = usetCurrentHost();
+  const sourceFilter = ref<'all' | 'system_builtin' | 'system_custom'>('all');
 
   const gridRef = ref<InstanceType<GlobalComponents['IdbTable']>>();
   const formRef = ref<FormDrawerInstance>();
@@ -161,6 +193,13 @@
       slotName: 'status',
     },
     {
+      dataIndex: 'source',
+      title: t('app.crontab.list.column.source'),
+      width: 160,
+      align: 'left' as const,
+      slotName: 'source',
+    },
+    {
       dataIndex: 'period',
       title: t('app.crontab.list.column.period'),
       width: 150,
@@ -186,6 +225,37 @@
     },
   ];
 
+  function resolveSourceText(record: CrontabEntity): string {
+    switch (record.source_status) {
+      case 'system_builtin':
+        return t('app.crontab.list.source.system_builtin');
+      case 'system_custom':
+        return t('app.crontab.list.source.system_custom');
+      case 'idb_managed':
+      default:
+        return t('app.crontab.list.source.idb_managed');
+    }
+  }
+
+  function resolveSourceColor(record: CrontabEntity): string {
+    switch (record.source_status) {
+      case 'system_builtin':
+        return 'arcoblue';
+      case 'system_custom':
+        return 'orange';
+      case 'idb_managed':
+      default:
+        return 'green';
+    }
+  }
+
+  function matchSourceFilter(record: CrontabEntity): boolean {
+    if (sourceFilter.value === 'all') {
+      return true;
+    }
+    return record.source_status === sourceFilter.value;
+  }
+
   const fetchCrontabList = async (fetchParams: Record<string, unknown>) => {
     if (!currentHostId.value) {
       console.warn('hostId is undefined, skipping API request');
@@ -197,17 +267,43 @@
       });
     }
 
-    return getCrontabListApi({
+    const page = Number(fetchParams.page) || 1;
+    const pageSize = Number(fetchParams.page_size) || 20;
+    const needClientFilter = isSystemType.value && sourceFilter.value !== 'all';
+
+    const response = await getCrontabListApi({
       ...fetchParams,
+      page: needClientFilter ? 1 : page,
+      page_size: needClientFilter ? 1000 : pageSize,
       type: params.value.type,
       category: isSystemType.value
         ? ''
         : params.value.category || DEFAULT_CRONTAB_CATEGORY,
     });
+
+    if (!needClientFilter) {
+      return response;
+    }
+
+    const items = (response.items || []).filter(matchSourceFilter);
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+
+    return {
+      ...response,
+      items: items.slice(start, end),
+      total: items.length,
+      page,
+      page_size: pageSize,
+    };
   };
 
   const reload = () => {
     gridRef.value?.reload();
+  };
+
+  const handleSourceFilterChange = () => {
+    gridRef.value?.load({ page: 1 });
   };
 
   const handleCreate = () => {
@@ -414,6 +510,7 @@
       params.value.page_size = 20;
       params.value.category =
         newType === CRONTAB_TYPE.System ? '' : DEFAULT_CRONTAB_CATEGORY;
+      sourceFilter.value = 'all';
       reload();
     }
   );
@@ -430,6 +527,7 @@
       params.value.category = isSystemType.value
         ? ''
         : DEFAULT_CRONTAB_CATEGORY;
+      sourceFilter.value = 'all';
       reload();
     },
   });
@@ -450,6 +548,22 @@
     padding: 4px 8px;
     font-size: 12px;
     border-radius: 4px;
+  }
+
+  .right-actions,
+  .source-cell {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .source-cell {
+    flex-wrap: wrap;
+  }
+
+  .source-package {
+    font-size: 12px;
+    color: rgb(var(--color-text-3));
   }
 
   .operate-result-content {

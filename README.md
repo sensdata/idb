@@ -211,6 +211,9 @@ idb/
 - [插件开发指南](docs/plugin-development.md)
 - [常见问题](docs/faq.md)
 
+重新生成 Swagger 文档：
+在 `center/` 目录执行 `go generate .`
+
 ---
 
 ## 📬 联系
