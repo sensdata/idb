@@ -403,9 +403,9 @@ function Install_IDB() {
     fi
 
     # 下载 .env和docker-compose.yaml 到 PANEL_DIR 中
-    # .env 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    # .env 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     # docker-compose.yaml 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
-    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
 
     log "正在下载 .env 文件..."

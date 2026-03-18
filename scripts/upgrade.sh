@@ -119,7 +119,7 @@ function Upgrade_IDB() {
     Backup_Data
     
     # 下载新版本配置文件
-    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
