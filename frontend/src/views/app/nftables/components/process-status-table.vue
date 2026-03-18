@@ -160,7 +160,7 @@
       title: t('app.nftables.config.columns.process'),
       dataIndex: 'process',
       slotName: 'process',
-      width: 280,
+      width: 220,
       align: 'left',
     },
     {
@@ -174,7 +174,7 @@
       title: t('app.nftables.config.columns.addresses'),
       dataIndex: 'addresses',
       slotName: 'addresses',
-      width: 300,
+      width: 520,
       align: 'left',
     },
     {
@@ -351,7 +351,8 @@
           color: var(--color-text-3);
         }
         .address-row {
-          display: flex;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
           gap: 6px;
           align-items: center;
           max-width: 100%;
@@ -366,7 +367,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-size: 12px;
-            word-break: break-all;
+            white-space: nowrap;
           }
           .address-type-tag {
             flex-shrink: 0;
