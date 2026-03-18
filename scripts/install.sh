@@ -22,6 +22,17 @@ EOF
 
 log "======================= 开始安装 ======================="
 
+# 加速代理支持
+# 用法: IDB_GITHUB_PROXY=http://your-proxy:8443 bash install.sh
+GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
+GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
+GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
+GITHUB_RELEASES_URL="${GITHUB_RELEASES_URL:-https://github.com}"
+
+if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+    log "使用加速代理: ${IDB_GITHUB_PROXY}"
+fi
+
 function Check_Root() {
     if [[ $EUID -ne 0 ]]; then
         log "请使用 root 或 sudo 权限运行此脚本"
@@ -373,7 +384,7 @@ function Set_Container_Port(){
 function Pull_Image_From_GitHub() {
     local VERSION="$1"
     local IMAGE_TAR="idb_image_${VERSION}.tar"
-    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+    local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
 
     log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
     curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
@@ -402,7 +413,7 @@ function Pull_Image_From_GitHub() {
 
 function Install_IDB() {
     # 获取版本号
-    VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    VERSION=$(curl -s ${GITHUB_API_URL}/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
 
     if [[ "x${VERSION}" == "x" ]];then
         log "获取最新版本失败，请稍候重试"
@@ -412,8 +423,8 @@ function Install_IDB() {
     # 下载 .env和docker-compose.yaml 到 PANEL_DIR 中
     # .env 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     # docker-compose.yaml 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
-    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
-    DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
+    ENV_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/idb.env"
+    DOCKER_COMPOSE_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
 
     log "正在下载 .env 文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env" 2>&1 | tee -a ${CURRENT_DIR}/install.log

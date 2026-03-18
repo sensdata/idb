@@ -321,8 +321,6 @@ func (c *Center) checkHostStatus(host *model.Host) {
 }
 
 func (c *Center) handleHost(host *model.Host) {
-	global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
-
 	c.hostStateMu.Lock()
 	st := c.hostStates[host.ID]
 	if st == nil {
@@ -348,6 +346,7 @@ func (c *Center) handleHost(host *model.Host) {
 	// 查找agent conn
 	conn, err := c.getAgentConn(host)
 	if err != nil || conn == nil {
+		global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
 		// 连接
 		resultCh := make(chan error, 1)
 		c.connectToAgent(host, resultCh)

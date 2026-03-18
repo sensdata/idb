@@ -32,6 +32,8 @@ type SSHService struct {
 	agentCheckMu       sync.Mutex           // 用于agent状态检查的锁
 	lastAgentCheck     map[string]time.Time // 记录每个主机上次检查agent状态的时间
 	agentCheckInterval time.Duration        // agent状态检查间隔
+	sshBackoff         map[string]time.Time // 下次允许SSH重试的时间
+	sshFailCount       map[string]int       // 连续失败次数
 }
 
 type ISSHService interface {
@@ -51,6 +53,8 @@ func NewSSHService() ISSHService {
 		responseChMap:      make(map[string]chan string),
 		lastAgentCheck:     make(map[string]time.Time),
 		agentCheckInterval: 20 * time.Second,
+		sshBackoff:         make(map[string]time.Time),
+		sshFailCount:       make(map[string]int),
 	}
 }
 
@@ -657,14 +661,44 @@ func (s *SSHService) ensureConnections() {
 
 // handleHost 负责处理单个 host 的 SSH 检查与连接逻辑
 func (s *SSHService) handleHost(host *model.Host) {
-	global.LOG.Info("Ensure ssh connection for host %s", host.Addr)
+	// 如果agent已经在线，跳过SSH连接尝试
+	hostStatus := global.GetHostStatus(host.ID)
+	if hostStatus != nil && hostStatus.Connected == "online" {
+		return
+	}
 
 	client, err := s.getClient(*host)
 	if err != nil || client == nil {
-		if err := s.connectToHost(host); err != nil {
-			global.LOG.Warn("SSH reconnect failed for host %s: %v", host.Addr, err)
+		// 检查是否在退避期内
+		s.agentCheckMu.Lock()
+		nextRetry, exists := s.sshBackoff[host.Addr]
+		if exists && time.Now().Before(nextRetry) {
+			s.agentCheckMu.Unlock()
 			return
 		}
+		s.agentCheckMu.Unlock()
+
+		global.LOG.Info("Ensure ssh connection for host %s", host.Addr)
+		if err := s.connectToHost(host); err != nil {
+			s.agentCheckMu.Lock()
+			s.sshFailCount[host.Addr]++
+			failCount := s.sshFailCount[host.Addr]
+			// 指数退避: 10s, 20s, 40s, 80s, 最大160s
+			backoff := time.Duration(10<<min(failCount-1, 4)) * time.Second
+			s.sshBackoff[host.Addr] = time.Now().Add(backoff)
+			s.agentCheckMu.Unlock()
+			if failCount <= 3 {
+				global.LOG.Warn("SSH reconnect failed for host %s: %v (retry in %v)", host.Addr, err, backoff)
+			} else if failCount%10 == 0 {
+				global.LOG.Warn("SSH reconnect still failing for host %s after %d attempts (retry in %v)", host.Addr, failCount, backoff)
+			}
+			return
+		}
+		// 连接成功，重置退避
+		s.agentCheckMu.Lock()
+		delete(s.sshBackoff, host.Addr)
+		delete(s.sshFailCount, host.Addr)
+		s.agentCheckMu.Unlock()
 		global.LOG.Info("SSH connection re-established for host %s", host.Addr)
 		return
 	}
