@@ -1,29 +1,22 @@
 plugins:
   - name: auth
     path: /var/lib/idb/data/plugins/auth
-    repo: sensdata/plugins
     enabled: true
   - name: scriptmanager
     path: /var/lib/idb/data/plugins/scriptmanager
-    repo: sensdata/plugins
     enabled: true
   - name: mysqlmanager
     path: /var/lib/idb/data/plugins/mysqlmanager
-    repo: sensdata/plugins
     enabled: true
   - name: postgresql
     path: /var/lib/idb/data/plugins/postgresql
-    repo: sensdata/plugins
     enabled: true
   - name: redis
     path: /var/lib/idb/data/plugins/redis
-    repo: sensdata/plugins
     enabled: true
   - name: idb-rsync
     path: /var/lib/idb/data/plugins/idb-rsync
-    repo: sensdata/plugins
     enabled: true
   - name: pma
     path: /var/lib/idb/data/plugins/pma
-    repo: sensdata/plugins
     enabled: true
