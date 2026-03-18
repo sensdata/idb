@@ -10,7 +10,7 @@ function log() {
     echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
 }
 
-# 备份数据
+# 备份数据（PANEL_DIR 由调用方提前设置）
 function Backup_Data() {
     local BACKUP_DIR="/tmp/idb-cache"
     
@@ -25,12 +25,6 @@ function Backup_Data() {
     fi
     
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then
-        # 通过 compose label 获取项目目录（.env 和 docker-compose.yaml 所在位置）
-        PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
-        if [[ -z "$PANEL_DIR" ]]; then
-            PANEL_DIR="/var/lib/idb"
-        fi
-        
         # 分别获取三个挂载的宿主机真实路径
         local DATA_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
         local LOG_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
@@ -149,16 +143,29 @@ function Upgrade_IDB() {
     
     log "开始升级到版本 ${VERSION}..."
     
-    # 备份当前数据
-    Backup_Data
+    # 通过 compose label 获取项目目录（在停容器之前获取）
+    PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
+    if [[ -z "$PANEL_DIR" ]]; then
+        PANEL_DIR="/var/lib/idb"
+    fi
     
-    # 下载新版本配置文件
+    # 下载新版本配置文件（在停容器之前下载到临时位置）
     ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"
+    if [[ $? -ne 0 ]]; then
+        log "下载 .env 失败，中止升级"
+        rm -f "${PANEL_DIR}/.env.new"
+        exit 1
+    fi
     curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yaml.new"
+    if [[ $? -ne 0 ]]; then
+        log "下载 docker-compose.yaml 失败，中止升级"
+        rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
+        exit 1
+    fi
     
     # 合并配置文件（保留原有的自定义配置）
     if [[ -f "${PANEL_DIR}/.env.new" ]]; then
@@ -207,7 +214,20 @@ function Upgrade_IDB() {
         mv "${PANEL_DIR}/docker-compose.yaml.new" "${PANEL_DIR}/docker-compose.yaml"
     fi
     
-    # 启动新版本容器
+    # 预拉取新镜像（旧容器仍在运行，服务不中断）
+    log "预拉取新版本镜像..."
+    cd "${PANEL_DIR}" || exit 1
+    docker compose pull
+    if [[ $? -ne 0 ]]; then
+        log "镜像拉取失败，中止升级"
+        exit 1
+    fi
+    log "镜像拉取完成"
+    
+    # 现在才停止旧容器并备份
+    Backup_Data
+    
+    # 启动新版本容器（镜像已预拉取，几乎瞬时启动）
     cd "${PANEL_DIR}" || exit 1
     docker compose up -d
     
