@@ -47,34 +47,11 @@ function Check_Architecture() {
     fi
 }
 
-function Configure_Docker_Mirror() {
-    if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-        log "配置 Docker 镜像加速器..."
-        mkdir -p /etc/docker
-        cat > /etc/docker/daemon.json <<EOF
-{
-    "registry-mirrors": [
-	    "https://docker.1ms.run",
-        "https://docker.1panel.live",
-        "https://hub.fast360.xyz",
-        "https://docker-0.unsee.tech",
-        "https://docker.tbedu.top",
-        "https://dockerpull.cn"
-    ]
-}
-EOF
-        systemctl daemon-reload
-        systemctl restart docker
-        log "Docker 镜像加速器配置完成"
-    fi
-}
-
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
         systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        Configure_Docker_Mirror  # 配置镜像加速
     else
         log "... 在线安装 docker"
 
@@ -153,7 +130,6 @@ function Install_Docker(){
             exit 1
         fi
         log "docker 安装成功"
-        Configure_Docker_Mirror
     fi
 }
 
