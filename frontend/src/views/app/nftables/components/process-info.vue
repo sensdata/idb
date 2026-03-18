@@ -41,6 +41,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 
     .process-icon {
       width: 32px;
@@ -103,12 +104,16 @@
 
     .process-details {
       flex: 1;
+      min-width: 0;
 
       .process-name {
         font-size: 14px;
         font-weight: 500;
         color: var(--color-text-1);
         margin-bottom: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .process-pid {
