@@ -78,6 +78,8 @@ main() {
     log "configure $CONFIG_FILE"
     update_config "host" "$HOST"
     update_config "port" "$PORT"
+    # 迁移：移除旧版本的 latest 配置项
+    sed -i '/^latest=/d' "$CONFIG_FILE" 2>/dev/null
     update_config "github_repo" "$GITHUB_REPO"
 
     log "配置文件内容："
