@@ -1,7 +1,4 @@
 plugins:
-  - name: auth
-    path: /var/lib/idb/data/plugins/auth
-    enabled: true
   - name: scriptmanager
     path: /var/lib/idb/data/plugins/scriptmanager
     enabled: true

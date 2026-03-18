@@ -109,9 +109,6 @@ RUN go mod download
 
 RUN GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
     -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/auth ./auth && \
-    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
     -o /out/scriptmanager ./scriptmanager && \
     GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
     -ldflags="-s -w -X 'main.Version=${VERSION}'" \
@@ -188,7 +185,6 @@ COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
 # 预装插件
-COPY --from=plugins-builder /out/auth /var/lib/idb/data/plugins/auth/auth
 COPY --from=plugins-builder /out/scriptmanager /var/lib/idb/data/plugins/scriptmanager/scriptmanager
 COPY --from=plugins-builder /out/mysqlmanager /var/lib/idb/data/plugins/mysqlmanager/mysqlmanager
 COPY --from=plugins-builder /out/postgresql /var/lib/idb/data/plugins/postgresql/postgresql
