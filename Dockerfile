@@ -104,7 +104,7 @@ ARG GOARCH=amd64
 ARG VERSION
 
 WORKDIR /plugins
-RUN git clone --depth 1 https://github.com/sensdata/plugins.git .
+COPY plugins/ .
 RUN go mod download
 
 RUN GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
