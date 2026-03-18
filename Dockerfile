@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---------- 生成证书和密钥 ---------- #
-FROM golang:1.23.4 AS certs-builder
+FROM golang:1.25.8 AS certs-builder
 WORKDIR /app/certs
 COPY ssl.cnf ./
 # 生成 PKCS#8 格式的私钥
@@ -47,7 +47,7 @@ RUN yum install -y epel-release && \
     && yum clean all
 
 # 安装 golang
-RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
+RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.25.8.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go
 
@@ -96,8 +96,28 @@ RUN mkdir -p /app/agent-pkg && \
 # 创建 agent.version文件
 RUN echo "${VERSION}" > /app/idb-agent.version
 
+# ---------- 构建 plugins ---------- #
+FROM golang:1.25.8 AS plugins-builder
+ENV CGO_ENABLED=0
+ARG GOOS=linux
+ARG GOARCH=amd64
+ARG VERSION
+
+COPY plugins/ /plugins
+
+RUN for p in scriptmanager mysqlmanager postgresql redis pma; do \
+        cd /plugins/$p && go mod download && \
+        GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
+        -ldflags="-s -w -X 'main.Version=${VERSION}'" \
+        -o /out/$p . ; \
+    done && \
+    cd /plugins/rsync && go mod download && \
+    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
+    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
+    -o /out/idb-rsync .
+
 # ---------- 构建 center ---------- #
-FROM golang:1.23.4 AS center-builder
+FROM golang:1.25.8 AS center-builder
 # 环境变量
 ENV CGO_ENABLED=1
 # 编译参数
@@ -153,6 +173,14 @@ COPY --from=agent-builder /app/idb-agent.tar.gz /var/lib/idb/agent/idb-agent.tar
 COPY --from=agent-builder /app/idb-agent.version /var/lib/idb/agent/idb-agent.version
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
+
+# 预装插件到暂存区（避免被 volume 挂载覆盖）
+COPY --from=plugins-builder /out/scriptmanager /var/lib/idb/plugins-dist/scriptmanager/scriptmanager
+COPY --from=plugins-builder /out/mysqlmanager /var/lib/idb/plugins-dist/mysqlmanager/mysqlmanager
+COPY --from=plugins-builder /out/postgresql /var/lib/idb/plugins-dist/postgresql/postgresql
+COPY --from=plugins-builder /out/redis /var/lib/idb/plugins-dist/redis/redis
+COPY --from=plugins-builder /out/idb-rsync /var/lib/idb/plugins-dist/idb-rsync/idb-rsync
+COPY --from=plugins-builder /out/pma /var/lib/idb/plugins-dist/pma/pma
 
 # 创建软链接到 /usr/local/bin
 RUN ln -sf /var/lib/idb/idb /usr/local/bin/idb

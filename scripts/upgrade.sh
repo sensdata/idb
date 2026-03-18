@@ -25,29 +25,45 @@ function Backup_Data() {
     fi
     
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then
-        # 保存当前环境变量值和容器配置
-        docker inspect idb > "$BACKUP_DIR/container_info.json"
-        
-        # 获取当前的安装目录
-        PANEL_DIR=$(docker inspect idb --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb" }}{{ .Source }}{{ end }}{{ end }}')
+        # 通过 compose label 获取项目目录（.env 和 docker-compose.yaml 所在位置）
+        PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
         if [[ -z "$PANEL_DIR" ]]; then
-            PANEL_DIR="/var/lib/idb"  # 使用默认目录
+            PANEL_DIR="/var/lib/idb"
         fi
         
-        # 备份关键文件
+        # 分别获取三个挂载的宿主机真实路径
+        local DATA_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
+        local LOG_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
+        local CONF_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/etc/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
+        
+        # 写入元数据，供回滚时使用（不依赖容器状态）
+        cat > "$BACKUP_DIR/paths.meta" <<EOF
+PANEL_DIR=${PANEL_DIR}
+DATA_DIR=${DATA_DIR}
+LOG_DIR=${LOG_DIR}
+CONF_DIR=${CONF_DIR}
+EOF
+        
+        # 备份 .env 和 docker-compose.yaml
         cp "${PANEL_DIR}/.env" "$BACKUP_DIR/.env"
         cp "${PANEL_DIR}/docker-compose.yaml" "$BACKUP_DIR/docker-compose.yaml"
         
         # 备份数据目录
-        if [[ -d "${PANEL_DIR}/data" ]]; then
-            log "备份数据目录..."
-            cp -r "${PANEL_DIR}/data" "$BACKUP_DIR/"
+        if [[ -n "$DATA_DIR" && -d "$DATA_DIR" ]]; then
+            log "备份数据目录: ${DATA_DIR}"
+            cp -r "$DATA_DIR" "$BACKUP_DIR/data"
         fi
         
         # 备份日志目录
-        if [[ -d "${PANEL_DIR}/logs" ]]; then
-            log "备份日志目录..."
-            cp -r "${PANEL_DIR}/logs" "$BACKUP_DIR/"
+        if [[ -n "$LOG_DIR" && -d "$LOG_DIR" ]]; then
+            log "备份日志目录: ${LOG_DIR}"
+            cp -r "$LOG_DIR" "$BACKUP_DIR/logs"
+        fi
+        
+        # 备份配置目录
+        if [[ -n "$CONF_DIR" && -d "$CONF_DIR" ]]; then
+            log "备份配置目录: ${CONF_DIR}"
+            cp -r "$CONF_DIR" "$BACKUP_DIR/conf"
         fi
         
         log "删除旧容器..."
@@ -62,7 +78,7 @@ function Backup_Data() {
     return 1
 }
 
-# 恢复数据
+# 恢复数据（仅从备份元数据读取路径，不依赖容器状态）
 function Restore_Data() {
     local BACKUP_DIR="/tmp/idb-cache"
     
@@ -71,28 +87,46 @@ function Restore_Data() {
         exit 1
     fi
     
-    # 获取安装目录
-    PANEL_DIR=$(jq -r '.[] | select(.Name=="/idb") | .Mounts[] | select(.Destination=="/var/lib/idb") | .Source' "$BACKUP_DIR/container_info.json" 2>/dev/null)
-    if [[ -z "$PANEL_DIR" ]]; then
+    # 从备份元数据读取路径
+    if [[ -f "$BACKUP_DIR/paths.meta" ]]; then
+        source "$BACKUP_DIR/paths.meta"
+    else
+        log "未找到路径元数据，使用默认路径"
         PANEL_DIR="/var/lib/idb"
+        DATA_DIR="/var/lib/idb/data"
+        LOG_DIR="/var/log/idb"
+        CONF_DIR="/etc/idb"
     fi
     
-    log "开始恢复数据到 ${PANEL_DIR}..."
+    log "开始恢复数据..."
+    log "  项目目录: ${PANEL_DIR}"
+    log "  数据目录: ${DATA_DIR}"
+    log "  日志目录: ${LOG_DIR}"
+    log "  配置目录: ${CONF_DIR}"
     
     # 恢复 .env 和 docker-compose.yaml
     cp "$BACKUP_DIR/.env" "${PANEL_DIR}/.env"
     cp "$BACKUP_DIR/docker-compose.yaml" "${PANEL_DIR}/docker-compose.yaml"
     
     # 恢复数据目录
-    if [[ -d "$BACKUP_DIR/data" ]]; then
-        log "恢复数据目录..."
-        cp -r "$BACKUP_DIR/data/." "${PANEL_DIR}/data/"
+    if [[ -d "$BACKUP_DIR/data" && -n "$DATA_DIR" ]]; then
+        log "恢复数据目录到: ${DATA_DIR}"
+        mkdir -p "$DATA_DIR"
+        cp -r "$BACKUP_DIR/data/." "${DATA_DIR}/"
     fi
     
     # 恢复日志目录
-    if [[ -d "$BACKUP_DIR/logs" ]]; then
-        log "恢复日志目录..."
-        cp -r "$BACKUP_DIR/logs/." "${PANEL_DIR}/logs/"
+    if [[ -d "$BACKUP_DIR/logs" && -n "$LOG_DIR" ]]; then
+        log "恢复日志目录到: ${LOG_DIR}"
+        mkdir -p "$LOG_DIR"
+        cp -r "$BACKUP_DIR/logs/." "${LOG_DIR}/"
+    fi
+    
+    # 恢复配置目录
+    if [[ -d "$BACKUP_DIR/conf" && -n "$CONF_DIR" ]]; then
+        log "恢复配置目录到: ${CONF_DIR}"
+        mkdir -p "$CONF_DIR"
+        cp -r "$BACKUP_DIR/conf/." "${CONF_DIR}/"
     fi
     
     log "数据恢复完成"
@@ -128,10 +162,15 @@ function Upgrade_IDB() {
     
     # 合并配置文件（保留原有的自定义配置）
     if [[ -f "${PANEL_DIR}/.env.new" ]]; then
-        # 保存用户自定义的配置
+        # 保存用户自定义的配置（包括路径配置）
         local USER_HOST=$(grep "^iDB_service_host_ip=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
         local USER_PORT=$(grep "^iDB_service_port=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
         local USER_CONTAINER_PORT=$(grep "^iDB_service_container_port=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
+        local USER_DATA_PATH=$(grep "^iDB_service_data_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
+        local USER_LOG_PATH=$(grep "^iDB_service_log_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
+        local USER_CONF_PATH=$(grep "^iDB_service_conf_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
+        local USER_NETWORK_MODE=$(grep "^iDB_service_network_mode=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
+        local USER_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
         
         # 使用新的配置文件
         mv "${PANEL_DIR}/.env.new" "${PANEL_DIR}/.env"
@@ -145,6 +184,21 @@ function Upgrade_IDB() {
         fi
         if [[ -n "$USER_CONTAINER_PORT" ]]; then
             sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${USER_CONTAINER_PORT}/" "${PANEL_DIR}/.env"
+        fi
+        if [[ -n "$USER_DATA_PATH" ]]; then
+            sed -i "s|^iDB_service_data_path=.*|iDB_service_data_path=${USER_DATA_PATH}|" "${PANEL_DIR}/.env"
+        fi
+        if [[ -n "$USER_LOG_PATH" ]]; then
+            sed -i "s|^iDB_service_log_path=.*|iDB_service_log_path=${USER_LOG_PATH}|" "${PANEL_DIR}/.env"
+        fi
+        if [[ -n "$USER_CONF_PATH" ]]; then
+            sed -i "s|^iDB_service_conf_path=.*|iDB_service_conf_path=${USER_CONF_PATH}|" "${PANEL_DIR}/.env"
+        fi
+        if [[ -n "$USER_NETWORK_MODE" ]]; then
+            sed -i "s|^iDB_service_network_mode=.*|iDB_service_network_mode=${USER_NETWORK_MODE}|" "${PANEL_DIR}/.env"
+        fi
+        if [[ -n "$USER_IMAGE_REPO" ]]; then
+            sed -i "s|^iDB_image_repo=.*|iDB_image_repo=${USER_IMAGE_REPO}|" "${PANEL_DIR}/.env"
         fi
     fi
 

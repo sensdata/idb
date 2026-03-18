@@ -121,6 +121,9 @@ func (m *Manager) loadConfig() error {
 			config.Port = portValue
 		case "github_repo":
 			config.GithubRepo = value
+		case "latest":
+			// 向后兼容：忽略旧版本的 latest 配置项
+			continue
 		case "admin_pass":
 			// 向后兼容：忽略 admin_pass，不解析到结构体中
 			// 密码不应该保存在配置文件中，如果需要读取，使用 GetAdminPassFromConfig()

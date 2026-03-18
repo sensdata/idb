@@ -1,21 +1,15 @@
 package plugin
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -212,22 +206,14 @@ func (s *PluginServer) loadPlugins() {
 		go func(e PluginEntry) {
 			defer s.wg.Done()
 
-			// 未安装的，先安装
 			if !s.isPluginInstalled(e) {
-				global.LOG.Info("plugin %s not installed, installing...", e.Name)
-				if err := s.installPlugin(e); err != nil {
-					global.LOG.Error("install plugin %s: %v", e.Name, err)
-					return
-				}
-			} else {
-				if err := s.ensurePluginExecutable(e); err != nil {
-					global.LOG.Error("ensure plugin %s executable: %v", e.Name, err)
-					return
-				}
-				// 已安装的，检查一下版本，是否需要更新
-				if err := s.checkPluginVersion(e); err != nil {
-					global.LOG.Error("check plugin %s version: %v", e.Name, err)
-				}
+				global.LOG.Error("plugin %s not found at %s, skipping", e.Name, e.Path)
+				return
+			}
+
+			if err := s.ensurePluginExecutable(e); err != nil {
+				global.LOG.Error("ensure plugin %s executable: %v", e.Name, err)
+				return
 			}
 
 			if err := s.loadPlugin(e); err != nil {
@@ -274,223 +260,6 @@ func (s *PluginServer) ensurePluginExecutable(e PluginEntry) error {
 		return fmt.Errorf("failed to chmod plugin executable %s: %w", execPath, err)
 	}
 	global.LOG.Warn("plugin %s executable bit was missing, fixed permissions on %s", e.Name, execPath)
-	return nil
-}
-
-func (s *PluginServer) installPlugin(e PluginEntry) error {
-	global.LOG.Info("fetching latest version info for plugin %s from %s", e.Name, e.Url)
-
-	// 先获取 latest 文件内容（版本号）
-	latest, err := getLatest(e.Name, e.Url)
-	if err != nil {
-		return fmt.Errorf("failed to get latest version info for plugin %s: %w", e.Name, err)
-	}
-
-	// 拼接真实的 tar.gz 下载地址
-	tarballURL := fmt.Sprintf("https://static.sensdata.com/idb/plugins/%s/%s/%s.tar.gz",
-		e.Name, latest, e.Name)
-
-	global.LOG.Info("downloading plugin %s version %s from %s", e.Name, latest, tarballURL)
-
-	// 下载 tar.gz 包
-	resp, err := http.Get(tarballURL)
-	if err != nil {
-		return fmt.Errorf("failed to download plugin %s: %w", e.Name, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		global.LOG.Error("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
-		return fmt.Errorf("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
-	}
-
-	// 创建插件目录
-	if err := os.MkdirAll(e.Path, 0755); err != nil {
-		global.LOG.Error("failed to create plugin path %s: %v", e.Path, err)
-		return fmt.Errorf("failed to create plugin path %s: %w", e.Path, err)
-	}
-
-	// 解压 tar.gz 到 e.Path
-	if err := extractTarGz(resp.Body, e.Path); err != nil {
-		global.LOG.Error("failed to extract plugin tar.gz: %v", err)
-		return fmt.Errorf("failed to extract plugin tar.gz: %w", err)
-	}
-
-	// 设置主执行文件为可执行
-	execPath := filepath.Join(e.Path, e.Name)
-	if err := os.Chmod(execPath, 0755); err != nil {
-		global.LOG.Error("failed to chmod plugin exec file: %v", err)
-		return fmt.Errorf("failed to chmod plugin exec file: %w", err)
-	}
-
-	global.LOG.Info("plugin %s installed at %s", e.Name, e.Path)
-	return nil
-}
-
-func getLatest(name, url string) (string, error) {
-	// 先获取 latest 文件内容（版本号）
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch latest version info for plugin %s: %w", name, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected HTTP status %d when fetching latest version info for plugin %s", resp.StatusCode, name)
-	}
-
-	latestBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read latest version info for plugin %s: %w", name, err)
-	}
-	latest := strings.TrimSpace(string(latestBytes))
-	if latest == "" {
-		return "", fmt.Errorf("latest version info for plugin %s is empty", name)
-	}
-	return latest, nil
-}
-
-// 解压 tar.gz 到指定目录
-func extractTarGz(gzipStream io.Reader, dest string) error {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		return fmt.Errorf("gzip reader error: %w", err)
-	}
-	defer uncompressedStream.Close()
-
-	tarReader := tar.NewReader(uncompressedStream)
-
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break // 解压完毕
-		}
-		if err != nil {
-			return fmt.Errorf("tar read error: %w", err)
-		}
-
-		name := header.Name
-		relPath := filepath.Clean(name)
-		targetPath := filepath.Join(dest, relPath)
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
-				return fmt.Errorf("mkdir error: %w", err)
-			}
-		case tar.TypeReg:
-			// 保证父目录存在
-			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-				return fmt.Errorf("mkdir for file error: %w", err)
-			}
-			mode := os.FileMode(header.Mode & 0o777)
-			if mode == 0 {
-				mode = 0o644
-			}
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
-			if err != nil {
-				return fmt.Errorf("create file error: %w", err)
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				outFile.Close()
-				return fmt.Errorf("copy file error: %w", err)
-			}
-			outFile.Close()
-		default:
-			global.LOG.Warn("unsupported tar entry: %s", name)
-		}
-	}
-
-	return nil
-}
-
-func (s *PluginServer) checkPluginVersion(e PluginEntry) error {
-	global.LOG.Info("checking version for plugin %s", e.Name)
-
-	// 获取当前版本
-	execPath := filepath.Join(e.Path, e.Name)
-	cmd := exec.Command(execPath, "--version")
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("failed to get plugin %s version: %w", e.Name, err)
-	}
-	current := strings.TrimSpace(string(output))
-
-	latest, err := getLatest(e.Name, e.Url)
-	if err != nil {
-		return fmt.Errorf("failed to get latest version info for plugin %s: %w", e.Name, err)
-	}
-
-	if latest == current {
-		global.LOG.Info("plugin %s version %s is up-to-date", e.Name, current)
-		return nil
-	}
-
-	// 需要升级
-	global.LOG.Info("plugin %s upgrading %s -> %s", e.Name, current, latest)
-
-	tarballURL := fmt.Sprintf("https://static.sensdata.com/idb/plugins/%s/%s/%s.tar.gz",
-		e.Name, latest, e.Name)
-
-	resp, err := http.Get(tarballURL)
-	if err != nil {
-		return fmt.Errorf("failed to download plugin %s: %w", e.Name, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected HTTP status %d for plugin %s", resp.StatusCode, e.Name)
-	}
-
-	// 创建临时目录
-	tmpDir := e.Path + ".tmp"
-	os.RemoveAll(tmpDir) // 清理残留
-	if err := os.MkdirAll(tmpDir, 0755); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %w", err)
-	}
-
-	// 解压到临时目录（不会破坏旧版本）
-	if err := extractTarGz(resp.Body, tmpDir); err != nil {
-		os.RemoveAll(tmpDir)
-		return fmt.Errorf("failed to extract plugin: %w", err)
-	}
-
-	// 检查新版本是否完整（至少要有主执行文件）
-	newExec := filepath.Join(tmpDir, e.Name)
-	if _, err := os.Stat(newExec); err != nil {
-		os.RemoveAll(tmpDir)
-		return fmt.Errorf("new plugin binary missing: %w", err)
-	}
-
-	// 设置执行权限
-	if err := os.Chmod(newExec, 0755); err != nil {
-		os.RemoveAll(tmpDir)
-		return fmt.Errorf("chmod failed: %w", err)
-	}
-
-	// 原子替换
-	backupDir := e.Path + ".bak"
-	if err := os.RemoveAll(backupDir); err != nil {
-		return fmt.Errorf("failed to remove old backup dir: %w", err)
-	}
-	if err := os.Rename(e.Path, backupDir); err != nil { // 旧版本备份
-		return fmt.Errorf("failed to backup old plugin dir: %w", err)
-	}
-	if err := os.Rename(tmpDir, e.Path); err != nil {
-		// 恢复旧版本
-		if renameErr := os.Rename(backupDir, e.Path); renameErr != nil {
-			return fmt.Errorf("failed to replace plugin dir and restore backup: %w, restore err: %v", err, renameErr)
-		}
-		return fmt.Errorf("failed to replace plugin dir: %w", err)
-	}
-
-	// 最终清理
-	if err := os.RemoveAll(backupDir); err != nil {
-		log.Printf("warning: failed to clean up backup dir: %v", err)
-		// 不返回错误，因为主流程已经成功
-	}
-
-	global.LOG.Info("plugin %s upgraded to version %s", e.Name, latest)
 	return nil
 }
 

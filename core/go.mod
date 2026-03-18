@@ -1,6 +1,6 @@
 module github.com/sensdata/idb/core
 
-go 1.23.4
+go 1.25.8
 
 require (
 	github.com/go-playground/validator/v10 v10.22.0
@@ -59,7 +59,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/afero v1.11.0
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/crypto v0.25.0
 	golang.org/x/net v0.27.0
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0
