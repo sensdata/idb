@@ -129,6 +129,37 @@ function Restore_Data() {
     rm -rf "$BACKUP_DIR"
 }
 
+# 从 GitHub Releases 下载镜像（Docker Hub 拉取失败时的 fallback）
+function Pull_Image_From_GitHub() {
+    local VERSION="$1"
+    local IMAGE_TAR="idb_image_${VERSION}.tar"
+    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+
+    log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
+    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "GitHub 镜像下载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    log "加载镜像..."
+    docker load -i "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "镜像加载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    # tar 中保存的是 idb:VERSION，重新标记为 compose 期望的镜像名
+    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
+    IMAGE_REPO="${IMAGE_REPO:-sensdb/idb}"
+    docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
+
+    rm -f "/tmp/${IMAGE_TAR}"
+    log "GitHub 镜像加载完成"
+}
+
 # 升级 IDB
 function Upgrade_IDB() {
     # 优先使用传入的版本号，否则获取最新版本
@@ -217,10 +248,12 @@ function Upgrade_IDB() {
     # 预拉取新镜像（旧容器仍在运行，服务不中断）
     log "预拉取新版本镜像..."
     cd "${PANEL_DIR}" || exit 1
-    docker compose pull
-    if [[ $? -ne 0 ]]; then
-        log "镜像拉取失败，中止升级"
-        exit 1
+    if ! docker compose pull 2>/dev/null; then
+        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        if ! Pull_Image_From_GitHub "${VERSION}"; then
+            log "所有镜像源均不可用，中止升级"
+            exit 1
+        fi
     fi
     log "镜像拉取完成"
     
