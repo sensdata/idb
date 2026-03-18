@@ -152,7 +152,8 @@ function Pull_Image_From_GitHub() {
     fi
 
     # tar 中保存的是 idb:VERSION，重新标记为 compose 期望的镜像名
-    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
+    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
+    [[ -z "$IMAGE_REPO" ]] && IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
     IMAGE_REPO="${IMAGE_REPO:-sensdb/idb}"
     docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
 
@@ -198,7 +199,22 @@ function Upgrade_IDB() {
         exit 1
     fi
     
-    # 合并配置文件（保留原有的自定义配置）
+    # 预拉取新镜像（旧容器仍在运行，服务不中断）
+    # 使用 .env.new 中的镜像名来拉取，不修改现有 .env
+    log "预拉取新版本镜像..."
+    local NEW_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
+    NEW_IMAGE_REPO="${NEW_IMAGE_REPO:-sensdb/idb}"
+    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}" 2>/dev/null; then
+        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        if ! Pull_Image_From_GitHub "${VERSION}"; then
+            log "所有镜像源均不可用，中止升级（旧版本未受影响）"
+            rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
+            exit 1
+        fi
+    fi
+    log "镜像拉取完成"
+
+    # 镜像已准备好，现在才更新配置文件
     if [[ -f "${PANEL_DIR}/.env.new" ]]; then
         # 保存用户自定义的配置（包括路径配置）
         local USER_HOST=$(grep "^iDB_service_host_ip=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
@@ -245,19 +261,7 @@ function Upgrade_IDB() {
         mv "${PANEL_DIR}/docker-compose.yaml.new" "${PANEL_DIR}/docker-compose.yaml"
     fi
     
-    # 预拉取新镜像（旧容器仍在运行，服务不中断）
-    log "预拉取新版本镜像..."
-    cd "${PANEL_DIR}" || exit 1
-    if ! docker compose pull 2>/dev/null; then
-        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
-        if ! Pull_Image_From_GitHub "${VERSION}"; then
-            log "所有镜像源均不可用，中止升级"
-            exit 1
-        fi
-    fi
-    log "镜像拉取完成"
-    
-    # 现在才停止旧容器并备份
+    # 所有文件和镜像都已就绪，现在才停止旧容器并备份
     Backup_Data
     
     # 启动新版本容器（镜像已预拉取，几乎瞬时启动）
