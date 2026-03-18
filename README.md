@@ -48,20 +48,21 @@ sudo curl -fsSL https://raw.githubusercontent.com/sensdata/idb/main/scripts/inst
 
 ### Docker 安装
 ```bash
-docker run -d \
-  --name idb \
-  --privileged \
-  -p 9918:9918 \
-  -v /var/lib/idb:/var/lib/idb \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  sensdb/idb
+# 下载配置文件
+VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+mkdir -p /var/lib/idb && cd /var/lib/idb
+curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env" -o .env
+curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml" -o docker-compose.yaml
+
+# 启动
+docker compose up -d
 ```
 
 ### 手动编译安装
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/sensdata/idb.git
+git clone --recurse-submodules https://github.com/sensdata/idb.git
 cd idb
 ```
 
@@ -131,9 +132,17 @@ idb/
 │   ├── constant/    # 常量定义
 │   ├── model/       # 数据模型
 │   └── utils/       # 工具函数
+├── plugins/         # 插件集合（git submodule → sensdata/idb-plugins）
+│   ├── mysqlmanager/
+│   ├── postgresql/
+│   ├── redis/
+│   ├── pma/
+│   ├── rsync/
+│   └── scriptmanager/
 ├── frontend/        # 前端代码
 │   ├── src/         # 前端源码
 │   └── package.json # 前端依赖
+├── scripts/         # 安装/升级/卸载脚本
 ├── LICENSE          # 许可证文件
 └── README.md        # 项目说明
 ```
@@ -145,7 +154,7 @@ idb/
 ### 后端开发
 
 1. **环境要求**
-   - Go 1.23+ 
+   - Go 1.25+ 
 
 2. **启动开发服务器**
    ```bash
@@ -206,13 +215,10 @@ idb/
 
 ## 📚 文档
 
-- [API 文档](http://your-server-ip:9918/api/v1/swagger/index.html)
-- [架构设计](docs/architecture.md)
-- [插件开发指南](docs/plugin-development.md)
-- [常见问题](docs/faq.md)
+- **API 文档**：部署后访问 `http://your-server-ip:9918/api/v1/swagger/index.html`
+- **插件仓库**：[sensdata/idb-plugins](https://github.com/sensdata/idb-plugins)
 
-重新生成 Swagger 文档：
-在 `center/` 目录执行 `go generate .`
+重新生成 Swagger 文档：在 `center/` 目录执行 `go generate .`
 
 ---
 
