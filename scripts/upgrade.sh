@@ -10,7 +10,7 @@ function log() {
     echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
 }
 
-# 备份数据
+# 备份数据（PANEL_DIR 由调用方提前设置）
 function Backup_Data() {
     local BACKUP_DIR="/tmp/idb-cache"
     
@@ -25,12 +25,6 @@ function Backup_Data() {
     fi
     
     if docker ps -a -q -f name=idb >/dev/null 2>&1; then
-        # 通过 compose label 获取项目目录（.env 和 docker-compose.yaml 所在位置）
-        PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
-        if [[ -z "$PANEL_DIR" ]]; then
-            PANEL_DIR="/var/lib/idb"
-        fi
-        
         # 分别获取三个挂载的宿主机真实路径
         local DATA_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
         local LOG_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
@@ -135,6 +129,38 @@ function Restore_Data() {
     rm -rf "$BACKUP_DIR"
 }
 
+# 从 GitHub Releases 下载镜像（Docker Hub 拉取失败时的 fallback）
+function Pull_Image_From_GitHub() {
+    local VERSION="$1"
+    local IMAGE_TAR="idb_image_${VERSION}.tar"
+    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+
+    log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
+    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "GitHub 镜像下载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    log "加载镜像..."
+    docker load -i "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "镜像加载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    # tar 中保存的是 idb:VERSION，重新标记为 compose 期望的镜像名
+    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
+    [[ -z "$IMAGE_REPO" ]] && IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
+    IMAGE_REPO="${IMAGE_REPO:-sensdb/idb}"
+    docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
+
+    rm -f "/tmp/${IMAGE_TAR}"
+    log "GitHub 镜像加载完成"
+}
+
 # 升级 IDB
 function Upgrade_IDB() {
     # 优先使用传入的版本号，否则获取最新版本
@@ -149,18 +175,46 @@ function Upgrade_IDB() {
     
     log "开始升级到版本 ${VERSION}..."
     
-    # 备份当前数据
-    Backup_Data
+    # 通过 compose label 获取项目目录（在停容器之前获取）
+    PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
+    if [[ -z "$PANEL_DIR" ]]; then
+        PANEL_DIR="/var/lib/idb"
+    fi
     
-    # 下载新版本配置文件
+    # 下载新版本配置文件（在停容器之前下载到临时位置）
     ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"
+    if [[ $? -ne 0 ]]; then
+        log "下载 .env 失败，中止升级"
+        rm -f "${PANEL_DIR}/.env.new"
+        exit 1
+    fi
     curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yaml.new"
+    if [[ $? -ne 0 ]]; then
+        log "下载 docker-compose.yaml 失败，中止升级"
+        rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
+        exit 1
+    fi
     
-    # 合并配置文件（保留原有的自定义配置）
+    # 预拉取新镜像（旧容器仍在运行，服务不中断）
+    # 使用 .env.new 中的镜像名来拉取，不修改现有 .env
+    log "预拉取新版本镜像..."
+    local NEW_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
+    NEW_IMAGE_REPO="${NEW_IMAGE_REPO:-sensdb/idb}"
+    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}" 2>/dev/null; then
+        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        if ! Pull_Image_From_GitHub "${VERSION}"; then
+            log "所有镜像源均不可用，中止升级（旧版本未受影响）"
+            rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
+            exit 1
+        fi
+    fi
+    log "镜像拉取完成"
+
+    # 镜像已准备好，现在才更新配置文件
     if [[ -f "${PANEL_DIR}/.env.new" ]]; then
         # 保存用户自定义的配置（包括路径配置）
         local USER_HOST=$(grep "^iDB_service_host_ip=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
@@ -207,7 +261,10 @@ function Upgrade_IDB() {
         mv "${PANEL_DIR}/docker-compose.yaml.new" "${PANEL_DIR}/docker-compose.yaml"
     fi
     
-    # 启动新版本容器
+    # 所有文件和镜像都已就绪，现在才停止旧容器并备份
+    Backup_Data
+    
+    # 启动新版本容器（镜像已预拉取，几乎瞬时启动）
     cd "${PANEL_DIR}" || exit 1
     docker compose up -d
     

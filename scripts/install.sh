@@ -47,34 +47,11 @@ function Check_Architecture() {
     fi
 }
 
-function Configure_Docker_Mirror() {
-    if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-        log "配置 Docker 镜像加速器..."
-        mkdir -p /etc/docker
-        cat > /etc/docker/daemon.json <<EOF
-{
-    "registry-mirrors": [
-	    "https://docker.1ms.run",
-        "https://docker.1panel.live",
-        "https://hub.fast360.xyz",
-        "https://docker-0.unsee.tech",
-        "https://docker.tbedu.top",
-        "https://dockerpull.cn"
-    ]
-}
-EOF
-        systemctl daemon-reload
-        systemctl restart docker
-        log "Docker 镜像加速器配置完成"
-    fi
-}
-
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
         systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        Configure_Docker_Mirror  # 配置镜像加速
     else
         log "... 在线安装 docker"
 
@@ -153,7 +130,6 @@ function Install_Docker(){
             exit 1
         fi
         log "docker 安装成功"
-        Configure_Docker_Mirror
     fi
 }
 
@@ -393,6 +369,37 @@ function Set_Container_Port(){
     done
 }
 
+# 从 GitHub Releases 下载镜像（Docker Hub 拉取失败时的 fallback）
+function Pull_Image_From_GitHub() {
+    local VERSION="$1"
+    local IMAGE_TAR="idb_image_${VERSION}.tar"
+    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+
+    log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
+    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "GitHub 镜像下载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    log "加载镜像..."
+    docker load -i "/tmp/${IMAGE_TAR}"
+    if [[ $? -ne 0 ]]; then
+        log "镜像加载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    # tar 中保存的是 idb:VERSION，重新标记为 compose 期望的镜像名
+    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
+    IMAGE_REPO="${IMAGE_REPO:-sensdb/idb}"
+    docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
+
+    rm -f "/tmp/${IMAGE_TAR}"
+    log "GitHub 镜像加载完成"
+}
+
 function Install_IDB() {
     # 获取版本号
     VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
@@ -438,6 +445,18 @@ function Install_IDB() {
 
     # 在启动容器前恢复数据
     Restore_Data
+
+    # 预拉取镜像
+    log "拉取镜像..."
+    cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
+    if ! docker compose pull 2>/dev/null; then
+        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        if ! Pull_Image_From_GitHub "${VERSION}"; then
+            log "所有镜像源均不可用，安装失败"
+            exit 1
+        fi
+    fi
+    log "镜像拉取完成"
 
     # 启动新容器
     log "正在启动 IDB..."
