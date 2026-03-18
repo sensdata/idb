@@ -1,14 +1,11 @@
 <template>
-  <a-row v-if="hasToolbar" align="center" style="margin-bottom: 16px">
-    <a-col :span="12">
-      <a-space>
+  <div v-if="hasToolbar" class="table-toolbar">
+    <div class="table-toolbar__left">
+      <a-space wrap>
         <slot name="leftActions" />
       </a-space>
-    </a-col>
-    <a-col
-      :span="12"
-      style="display: flex; align-items: center; justify-content: end"
-    >
+    </div>
+    <div class="table-toolbar__right">
       <slot name="rightActions" />
       <a-input-search
         v-if="hasSearch"
@@ -77,8 +74,8 @@
           </template>
         </a-popover>
       </a-tooltip>
-    </a-col>
-  </a-row>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -192,6 +189,28 @@
 </script>
 
 <style scoped lang="less">
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .table-toolbar__left {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .table-toolbar__right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    min-width: fit-content;
+  }
+
   .action-icon {
     margin-left: 12px;
     color: var(--color-text-2);
