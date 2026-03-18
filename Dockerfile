@@ -174,13 +174,13 @@ COPY --from=agent-builder /app/idb-agent.version /var/lib/idb/agent/idb-agent.ve
 COPY center/idb.conf /etc/idb/idb.conf
 COPY center/entrypoint.sh /var/lib/idb/entrypoint.sh
 
-# 预装插件
-COPY --from=plugins-builder /out/scriptmanager /var/lib/idb/data/plugins/scriptmanager/scriptmanager
-COPY --from=plugins-builder /out/mysqlmanager /var/lib/idb/data/plugins/mysqlmanager/mysqlmanager
-COPY --from=plugins-builder /out/postgresql /var/lib/idb/data/plugins/postgresql/postgresql
-COPY --from=plugins-builder /out/redis /var/lib/idb/data/plugins/redis/redis
-COPY --from=plugins-builder /out/idb-rsync /var/lib/idb/data/plugins/idb-rsync/idb-rsync
-COPY --from=plugins-builder /out/pma /var/lib/idb/data/plugins/pma/pma
+# 预装插件到暂存区（避免被 volume 挂载覆盖）
+COPY --from=plugins-builder /out/scriptmanager /var/lib/idb/plugins-dist/scriptmanager/scriptmanager
+COPY --from=plugins-builder /out/mysqlmanager /var/lib/idb/plugins-dist/mysqlmanager/mysqlmanager
+COPY --from=plugins-builder /out/postgresql /var/lib/idb/plugins-dist/postgresql/postgresql
+COPY --from=plugins-builder /out/redis /var/lib/idb/plugins-dist/redis/redis
+COPY --from=plugins-builder /out/idb-rsync /var/lib/idb/plugins-dist/idb-rsync/idb-rsync
+COPY --from=plugins-builder /out/pma /var/lib/idb/plugins-dist/pma/pma
 
 # 创建软链接到 /usr/local/bin
 RUN ln -sf /var/lib/idb/idb /usr/local/bin/idb

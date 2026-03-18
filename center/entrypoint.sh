@@ -25,6 +25,7 @@ ensure_directories() {
         /var/log/idb
         /var/lib/idb
         /var/lib/idb/data
+        /var/lib/idb/data/plugins
         /var/lib/idb/agent
         /run/idb
     )
@@ -38,6 +39,34 @@ ensure_directories() {
 
     # 设置 /run/idb 权限
     chmod 755 /run/idb
+}
+
+# 同步预装插件到数据目录（volume 挂载后执行）
+sync_plugins() {
+    local DIST_DIR="/var/lib/idb/plugins-dist"
+    local DATA_DIR="/var/lib/idb/data/plugins"
+
+    if [ ! -d "$DIST_DIR" ]; then
+        return
+    fi
+
+    for plugin_dir in "$DIST_DIR"/*/; do
+        local plugin_name=$(basename "$plugin_dir")
+        local src="$DIST_DIR/$plugin_name/$plugin_name"
+        local dst="$DATA_DIR/$plugin_name/$plugin_name"
+
+        if [ ! -f "$src" ]; then
+            continue
+        fi
+
+        # 插件不存在或镜像内版本更新时同步
+        if [ ! -f "$dst" ] || [ "$src" -nt "$dst" ]; then
+            mkdir -p "$DATA_DIR/$plugin_name"
+            cp -f "$src" "$dst"
+            chmod +x "$dst"
+            log "同步插件: $plugin_name"
+        fi
+    done
 }
 
 # 修改或添加相关配置
@@ -74,6 +103,9 @@ main() {
 
     log "ensure directories"
     ensure_directories
+
+    log "sync plugins"
+    sync_plugins
 
     log "configure $CONFIG_FILE"
     update_config "host" "$HOST"

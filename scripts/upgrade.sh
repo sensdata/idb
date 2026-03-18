@@ -71,8 +71,8 @@ function Restore_Data() {
         exit 1
     fi
     
-    # 获取安装目录
-    PANEL_DIR=$(jq -r '.[] | select(.Name=="/idb") | .Mounts[] | select(.Destination=="/var/lib/idb") | .Source' "$BACKUP_DIR/container_info.json" 2>/dev/null)
+    # 获取安装目录（使用 docker inspect --format 替代 jq）
+    PANEL_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null | sed 's|/data$||')
     if [[ -z "$PANEL_DIR" ]]; then
         PANEL_DIR="/var/lib/idb"
     fi
