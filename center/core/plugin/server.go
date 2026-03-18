@@ -278,17 +278,17 @@ func (s *PluginServer) ensurePluginExecutable(e PluginEntry) error {
 }
 
 func (s *PluginServer) installPlugin(e PluginEntry) error {
-	global.LOG.Info("fetching latest version info for plugin %s from %s", e.Name, e.Url)
+	global.LOG.Info("fetching latest version info for plugin %s from %s", e.Name, e.Repo)
 
 	// 先获取 latest 文件内容（版本号）
-	latest, err := getLatest(e.Name, e.Url)
+	latest, err := getLatest(e.Name, e.Repo)
 	if err != nil {
 		return fmt.Errorf("failed to get latest version info for plugin %s: %w", e.Name, err)
 	}
 
-	// 拼接真实的 tar.gz 下载地址
-	tarballURL := fmt.Sprintf("https://static.sensdata.com/idb/plugins/%s/%s/%s.tar.gz",
-		e.Name, latest, e.Name)
+	// 拼接 GitHub Release 资产下载地址
+	tarballURL := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s.tar.gz",
+		e.Repo, latest, e.Name)
 
 	global.LOG.Info("downloading plugin %s version %s from %s", e.Name, latest, tarballURL)
 
@@ -327,27 +327,40 @@ func (s *PluginServer) installPlugin(e PluginEntry) error {
 	return nil
 }
 
-func getLatest(name, url string) (string, error) {
-	// 先获取 latest 文件内容（版本号）
-	resp, err := http.Get(url)
+func getLatest(name, repo string) (string, error) {
+	// 通过 GitHub Releases API 获取仓库的最新 Release 版本
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch latest version info for plugin %s: %w", name, err)
+		return "", fmt.Errorf("failed to create request for plugin %s: %w", name, err)
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "idb-plugin-checker")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch latest release for plugin %s: %w", name, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected HTTP status %d when fetching latest version info for plugin %s", resp.StatusCode, name)
+		return "", fmt.Errorf("unexpected HTTP status %d when fetching latest release for plugin %s", resp.StatusCode, name)
 	}
 
-	latestBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read latest version info for plugin %s: %w", name, err)
+	var release struct {
+		TagName string `json:"tag_name"`
 	}
-	latest := strings.TrimSpace(string(latestBytes))
-	if latest == "" {
-		return "", fmt.Errorf("latest version info for plugin %s is empty", name)
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", fmt.Errorf("failed to parse release for plugin %s: %w", name, err)
 	}
-	return latest, nil
+
+	if release.TagName == "" {
+		return "", fmt.Errorf("no release found for plugin %s", name)
+	}
+
+	return release.TagName, nil
 }
 
 // 解压 tar.gz 到指定目录
@@ -416,7 +429,7 @@ func (s *PluginServer) checkPluginVersion(e PluginEntry) error {
 	}
 	current := strings.TrimSpace(string(output))
 
-	latest, err := getLatest(e.Name, e.Url)
+	latest, err := getLatest(e.Name, e.Repo)
 	if err != nil {
 		return fmt.Errorf("failed to get latest version info for plugin %s: %w", e.Name, err)
 	}
@@ -429,8 +442,8 @@ func (s *PluginServer) checkPluginVersion(e PluginEntry) error {
 	// 需要升级
 	global.LOG.Info("plugin %s upgrading %s -> %s", e.Name, current, latest)
 
-	tarballURL := fmt.Sprintf("https://static.sensdata.com/idb/plugins/%s/%s/%s.tar.gz",
-		e.Name, latest, e.Name)
+	tarballURL := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s.tar.gz",
+		e.Repo, latest, e.Name)
 
 	resp, err := http.Get(tarballURL)
 	if err != nil {
