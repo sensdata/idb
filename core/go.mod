@@ -1,6 +1,6 @@
 module github.com/sensdata/idb/core
 
-go 1.23.4
+go 1.25.8
 
 require (
 	github.com/go-playground/validator/v10 v10.22.0

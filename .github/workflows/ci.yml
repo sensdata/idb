@@ -25,7 +25,7 @@ jobs:
       - name: Set up Go (for lint)
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: '1.25.8'
 
       - name: Install golangci-lint
         run: |
@@ -66,7 +66,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: '1.25.x'
 
       - name: Ensure openssl is installed
         run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
@@ -95,7 +95,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.x'
+          go-version: '1.25.x'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

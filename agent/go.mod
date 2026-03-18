@@ -1,6 +1,6 @@
 module github.com/sensdata/idb/agent
 
-go 1.23.4
+go 1.25.8
 
 replace github.com/sensdata/idb/core => ../core
 

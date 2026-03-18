@@ -9,7 +9,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---------- 生成证书和密钥 ---------- #
-FROM golang:1.23.4 AS certs-builder
+FROM golang:1.25.8 AS certs-builder
 WORKDIR /app/certs
 COPY ssl.cnf ./
 # 生成 PKCS#8 格式的私钥
@@ -47,7 +47,7 @@ RUN yum install -y epel-release && \
     && yum clean all
 
 # 安装 golang
-RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.23.4.linux-amd64.tar.gz && \
+RUN curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.25.8.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
     ln -s /usr/local/go/bin/go /usr/local/bin/go
 
@@ -97,37 +97,27 @@ RUN mkdir -p /app/agent-pkg && \
 RUN echo "${VERSION}" > /app/idb-agent.version
 
 # ---------- 构建 plugins ---------- #
-FROM golang:1.23.4 AS plugins-builder
+FROM golang:1.25.8 AS plugins-builder
 ENV CGO_ENABLED=0
 ARG GOOS=linux
 ARG GOARCH=amd64
 ARG VERSION
 
-WORKDIR /plugins
-COPY plugins/ .
-RUN go mod download
+COPY plugins/ /plugins
 
-RUN GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/scriptmanager ./scriptmanager && \
+RUN for p in scriptmanager mysqlmanager postgresql redis pma; do \
+        cd /plugins/$p && go mod download && \
+        GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
+        -ldflags="-s -w -X 'main.Version=${VERSION}'" \
+        -o /out/$p . ; \
+    done && \
+    cd /plugins/rsync && go mod download && \
     GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
     -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/mysqlmanager ./mysqlmanager && \
-    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/postgresql ./postgresql && \
-    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/redis ./redis && \
-    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/idb-rsync ./rsync && \
-    GOOS=${GOOS} GOARCH=${GOARCH} go build -trimpath \
-    -ldflags="-s -w -X 'main.Version=${VERSION}'" \
-    -o /out/pma ./pma
+    -o /out/idb-rsync .
 
 # ---------- 构建 center ---------- #
-FROM golang:1.23.4 AS center-builder
+FROM golang:1.25.8 AS center-builder
 # 环境变量
 ENV CGO_ENABLED=1
 # 编译参数
