@@ -395,7 +395,7 @@ function Set_Container_Port(){
 
 function Install_IDB() {
     # 获取版本号
-    VERSION=$(curl -s https://static.sensdata.com/idb/release/latest)
+    VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
 
     if [[ "x${VERSION}" == "x" ]];then
         log "获取最新版本失败，请稍候重试"
@@ -403,10 +403,10 @@ function Install_IDB() {
     fi
 
     # 下载 .env和docker-compose.yaml 到 PANEL_DIR 中
-    # .env 地址: "https://static.sensdata.com/idb/release/${VERSION}/.env"
-    # docker-compose.yaml 地址: "https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
-    ENV_URL="https://static.sensdata.com/idb/release/${VERSION}/.env"
-    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
+    # .env 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    # docker-compose.yaml 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
+    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
 
     log "正在下载 .env 文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env" 2>&1 | tee -a ${CURRENT_DIR}/install.log

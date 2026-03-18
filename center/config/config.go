@@ -13,9 +13,9 @@ import (
 
 // Config定义
 type CenterConfig struct {
-	Host   string `json:"host"`
-	Port   int    `json:"port"`
-	Latest string `json:"latest"`
+	Host       string `json:"host"`
+	Port       int    `json:"port"`
+	GithubRepo string `json:"github_repo"`
 }
 
 // Manager定义
@@ -119,8 +119,8 @@ func (m *Manager) loadConfig() error {
 				return fmt.Errorf("invalid port value: %s, err: %w", value, err)
 			}
 			config.Port = portValue
-		case "latest":
-			config.Latest = value
+		case "github_repo":
+			config.GithubRepo = value
 		case "admin_pass":
 			// 向后兼容：忽略 admin_pass，不解析到结构体中
 			// 密码不应该保存在配置文件中，如果需要读取，使用 GetAdminPassFromConfig()
@@ -196,9 +196,9 @@ func (m *Manager) saveConfig() error {
 		if _, err := fmt.Fprintf(file, "port=%d\n", m.config.Port); err != nil {
 			return err
 		}
-		// 写入 latest（如果非空）
-		if m.config.Latest != "" {
-			if _, err := fmt.Fprintf(file, "latest=%s\n", m.config.Latest); err != nil {
+		// 写入 github_repo（如果非空）
+		if m.config.GithubRepo != "" {
+			if _, err := fmt.Fprintf(file, "github_repo=%s\n", m.config.GithubRepo); err != nil {
 				return err
 			}
 		}
@@ -252,7 +252,7 @@ func validateItem(item string) bool {
 		return true
 	case "port":
 		return true
-	case "latest":
+	case "github_repo":
 		return true
 	default:
 		return false
@@ -273,14 +273,15 @@ func (m *Manager) GetConfigString(item string) (string, error) {
 	if item == "" {
 		result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
+		result.WriteString(fmt.Sprintf("github_repo=%s\n", m.config.GithubRepo))
 	} else {
 		switch item {
 		case "host":
 			result.WriteString(fmt.Sprintf("host=%s\n", m.config.Host))
 		case "port":
 			result.WriteString(fmt.Sprintf("port=%d\n", m.config.Port))
-		case "latest":
-			result.WriteString(fmt.Sprintf("latest=%s\n", m.config.Latest))
+		case "github_repo":
+			result.WriteString(fmt.Sprintf("github_repo=%s\n", m.config.GithubRepo))
 		}
 	}
 	return result.String(), nil
@@ -301,8 +302,8 @@ func (m *Manager) SetConfig(key, value string) error {
 			return err
 		}
 		m.config.Port = portValue
-	case "latest":
-		m.config.Latest = value
+	case "github_repo":
+		m.config.GithubRepo = value
 	}
 
 	// 保存到文件

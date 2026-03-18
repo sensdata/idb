@@ -106,7 +106,7 @@ function Upgrade_IDB() {
     # 优先使用传入的版本号，否则获取最新版本
     VERSION="${1}"
     if [[ -z "$VERSION" ]]; then
-        VERSION=$(curl -s https://static.sensdata.com/idb/release/latest)
+        VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
         if [[ -z "$VERSION" ]]; then
             log "获取最新版本失败"
             exit 1
@@ -119,8 +119,8 @@ function Upgrade_IDB() {
     Backup_Data
     
     # 下载新版本配置文件
-    ENV_URL="https://static.sensdata.com/idb/release/${VERSION}/.env"
-    DOCKER_COMPOSE_URL="https://static.sensdata.com/idb/release/${VERSION}/docker-compose.yaml"
+    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/.env"
+    DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"

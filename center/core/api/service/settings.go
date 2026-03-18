@@ -55,15 +55,19 @@ func (s *SettingsService) About() (*model.About, error) {
 }
 
 func getLatestVersion() string {
-	cmd := fmt.Sprintf("curl -sSL %s", conn.CONFMAN.GetConfig().Latest)
-	global.LOG.Info("Getting latest version: %s", cmd)
-	latest, err := utils.Exec(cmd)
-	if err != nil {
-		global.LOG.Error("Failed to get latest version: %v", err)
+	githubRepo := conn.CONFMAN.GetConfig().GithubRepo
+	if githubRepo == "" {
+		global.LOG.Error("GithubRepo not configured")
+		return ""
+	}
+	global.LOG.Info("Getting latest version from GitHub: %s", githubRepo)
+	latest := utils.GetLatestReleaseVersion(githubRepo)
+	if latest == "" {
+		global.LOG.Error("Failed to get latest version from GitHub")
 		return ""
 	}
 	global.LOG.Info("Got latest version: %s", latest)
-	return strings.TrimSpace(latest)
+	return latest
 }
 
 func (s *SettingsService) IPs() (*model.AvailableIps, error) {
@@ -704,7 +708,8 @@ func (s *SettingsService) Upgrade() error {
 	}
 
 	// 创建消息
-	cmd := fmt.Sprintf("curl -sSL https://static.sensdata.com/idb/release/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", newVersion)
+	githubRepo := conn.CONFMAN.GetConfig().GithubRepo
+	cmd := fmt.Sprintf("curl -sSL https://raw.githubusercontent.com/%s/main/scripts/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", githubRepo, newVersion)
 
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(

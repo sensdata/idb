@@ -42,7 +42,7 @@
 
 ### 一键安装
 ```bash
-sudo curl -fsSL https://static.sensdata.com/idb/release/install.sh | sudo bash
+sudo curl -fsSL https://raw.githubusercontent.com/sensdata/idb/main/scripts/install.sh | sudo bash
 
 ```
 

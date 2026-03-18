@@ -82,35 +82,6 @@ jobs:
         run: |
           docker save -o idb_image_${{ env.VERSION_TAG }}.tar idb:${{ env.VERSION_TAG }}
 
-      # 设置 SSH
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      
-      # 创建远程目录
-      - name: Create deploy directory
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'mkdir -p /data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}'
-
-      # 上传 Docker 镜像到目标服务器
-      - name: Deploy Center
-        run: | 
-          scp idb_image_${{ env.VERSION_TAG }}.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
-          scp idb-agent_${{ env.VERSION_TAG }}.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
-
-      # 更新 Latest 版本号
-      - name: Update Latest Version File
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo '${{ env.VERSION_TAG }}' > /data/www/static.sensdata.com/idb/release/latest"
-
-      # 上传 scripts
-      - name: Upload scripts
-        run: |
-          scp ./scripts/install.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
-          scp ./scripts/uninstall.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
-          scp ./scripts/upgrade.sh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release
-
       # 创建临时 .env 文件并替换 iDB_image_version
       - name: Create temporary .env file
         run: |
@@ -118,14 +89,21 @@ jobs:
           cp ./center/docker-compose.yaml docker-compose.yaml  # 从 center 目录复制 docker-compose.yaml 文件
           sed -i "s/^iDB_image_version=.*/iDB_image_version=${{ env.VERSION_TAG }}/" .env  # 修改 iDB_image_version
 
-      # 上传临时 .env 和 docker-compose.yaml 到对应版本的 release 目录下
-      - name: Upload temporary .env and docker-compose.yaml
-        run: |
-          scp .env ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
-          scp docker-compose.yaml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/data/www/static.sensdata.com/idb/release/${{ env.VERSION_TAG }}
-
-      # 清理临时文件
-      - name: Clean up temporary files
-        run: |
-          rm .env  # 删除临时 .env 文件
-          rm docker-compose.yaml  # 删除临时 docker-compose.yaml 文件
+      # 创建 GitHub Release 并上传资产
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          name: ${{ env.VERSION_TAG }}
+          draft: false
+          prerelease: false
+          files: |
+            idb_image_${{ env.VERSION_TAG }}.tar
+            idb-agent_${{ env.VERSION_TAG }}.tar.gz
+            .env
+            docker-compose.yaml
+            scripts/install.sh
+            scripts/uninstall.sh
+            scripts/upgrade.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
