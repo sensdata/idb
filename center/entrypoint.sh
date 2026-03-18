@@ -8,7 +8,7 @@ HOST=${HOST:-$DEFAULT_HOST}
 PORT=${PORT:-$DEFAULT_PORT}
 ADMIN_PASS=${PASSWORD}
 
-LATEST=https://static.sensdata.com/idb/release/latest
+GITHUB_REPO=${GITHUB_REPO:-sensdata/idb}
 CONFIG_FILE=/etc/idb/idb.conf
 LOG_FILE=/var/log/idb/idb.log
 IDB_EXECUTABLE="$1"
@@ -78,7 +78,7 @@ main() {
     log "configure $CONFIG_FILE"
     update_config "host" "$HOST"
     update_config "port" "$PORT"
-    update_config "latest" "$LATEST"
+    update_config "github_repo" "$GITHUB_REPO"
 
     log "配置文件内容："
     cat "$CONFIG_FILE" || {
