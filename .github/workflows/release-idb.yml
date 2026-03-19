@@ -1,0 +1,132 @@
+name: Build and Release IDB
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Specify the version tag for the build (e.g. v1.0.0)"
+        required: false
+        default: "manual"
+
+run-name: Build IDB - ${{ github.event.inputs.version || github.ref_name }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Set VERSION_TAG
+        run: |
+          if [ "${{ github.event.inputs.version }}" ]; then
+            echo "VERSION_TAG=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.8'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Ensure openssl is installed
+        run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Generate keys and certs
+        run: |
+          make generate-key
+          make generate-jwt-key
+          make generate-certs
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          IDB_ENABLE_IMAGEMIN=0 npm run build --silent
+
+      - name: Build center
+        run: |
+          cd center
+          make build
+
+      - name: Build agent
+        run: |
+          cd agent
+          make build
+
+      - name: Build plugins
+        run: |
+          mkdir -p dist/plugins
+          for p in scriptmanager mysqlmanager postgresql redis pma; do
+            cd "plugins/$p"
+            go mod download
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+              -ldflags="-s -w -X 'main.Version=${{ env.VERSION_TAG }}'" \
+              -o "../../dist/plugins/$p"
+            cd - >/dev/null
+          done
+          cd plugins/rsync
+          go mod download
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X 'main.Version=${{ env.VERSION_TAG }}'" \
+            -o ../../dist/plugins/idb-rsync
+
+      - name: Package center bundle
+        run: |
+          mkdir -p dist/idb/home
+          mkdir -p dist/idb/plugins
+          cp center/idb dist/idb/
+          cp center/idb.service dist/idb/
+          cp center/idb.conf dist/idb/
+          cp -R frontend/dist/. dist/idb/home/
+          for name in scriptmanager mysqlmanager postgresql redis pma idb-rsync; do
+            mkdir -p "dist/idb/plugins/${name}"
+            cp "dist/plugins/${name}" "dist/idb/plugins/${name}/${name}"
+            chmod +x "dist/idb/plugins/${name}/${name}"
+          done
+          tar -czf "idb_${VERSION_TAG}_linux_amd64.tar.gz" -C dist/idb .
+
+      - name: Package agent bundle
+        run: |
+          mkdir -p dist/idb-agent
+          cp agent/idb-agent dist/idb-agent/
+          cp agent/idb-agent.service dist/idb-agent/
+          cp agent/idb-agent.conf dist/idb-agent/
+          cp agent/install-agent.sh dist/idb-agent/
+          echo "${VERSION_TAG}" > dist/idb-agent/idb-agent.version
+          tar -czf "idb-agent_${VERSION_TAG}_linux_amd64.tar.gz" -C dist/idb-agent .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          name: ${{ env.VERSION_TAG }}
+          draft: false
+          prerelease: false
+          files: |
+            idb_${{ env.VERSION_TAG }}_linux_amd64.tar.gz
+            idb-agent_${{ env.VERSION_TAG }}_linux_amd64.tar.gz
+            scripts/install.sh
+            scripts/uninstall.sh
+            scripts/upgrade.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
