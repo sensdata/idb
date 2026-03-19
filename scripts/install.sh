@@ -27,23 +27,56 @@ log "======================= 开始安装 ======================="
 # 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
 IDB_DEFAULT_PROXY="https://dl.idb.net"
 
+function Is_China_Region() {
+    # 1. 通过 ipinfo.io 检测国家代码（最准确）
+    local country=$(curl -s --connect-timeout 3 --max-time 5 https://ipinfo.io/country 2>/dev/null | tr -d '[:space:]')
+    if [[ "$country" == "CN" || "$country" == "HK" || "$country" == "MO" ]]; then
+        return 0
+    fi
+    # 2. 通过时区判断（ipinfo.io 不可用时的后备）
+    local tz=$(timedatectl 2>/dev/null | grep "Time zone" | awk '{print $3}')
+    [[ -z "$tz" ]] && tz="$TZ"
+    if [[ "$tz" == *"Shanghai"* || "$tz" == *"Chongqing"* || "$tz" == *"Hong_Kong"* ]]; then
+        return 0
+    fi
+    return 1
+}
+
 function Auto_Detect_Proxy() {
     if [[ -n "$IDB_GITHUB_PROXY" ]]; then
         log "使用指定代理: ${IDB_GITHUB_PROXY}"
         return
     fi
 
-    log "检测 GitHub 连通性..."
-    local github_ok=false
-    if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
-        github_ok=true
-    fi
-
-    if [[ "$github_ok" == "true" ]]; then
-        log "GitHub 直连正常"
-    else
-        log "GitHub 连接超时或不可用，自动切换到加速代理: ${IDB_DEFAULT_PROXY}"
+    if Is_China_Region; then
+        # 中国区域：优先检测代理
+        log "检测到中国区域，优先检测加速代理..."
+        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest" 2>/dev/null | grep -q "200"; then
+            log "加速代理可用: ${IDB_DEFAULT_PROXY}"
+            export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+            return
+        fi
+        log "加速代理不可用，尝试 GitHub 直连..."
+        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+            log "GitHub 直连正常"
+            return
+        fi
+        log "GitHub 直连也不可用，仍使用代理: ${IDB_DEFAULT_PROXY}"
         export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+    else
+        # 非中国区域：优先检测 GitHub
+        log "检测 GitHub 连通性..."
+        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+            log "GitHub 直连正常"
+            return
+        fi
+        log "GitHub 连接不可用，尝试加速代理..."
+        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest" 2>/dev/null | grep -q "200"; then
+            log "加速代理可用: ${IDB_DEFAULT_PROXY}"
+            export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+            return
+        fi
+        log "所有源均不可用，默认使用 GitHub 直连"
     fi
 }
 
@@ -430,9 +463,17 @@ function Pull_Image_From_GitHub() {
     else
         log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
     fi
-    curl -f --progress-bar "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    curl -fL --progress-bar --retry 3 --retry-delay 5 "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
     if [[ $? -ne 0 ]]; then
         log "GitHub 镜像下载失败"
+        rm -f "/tmp/${IMAGE_TAR}"
+        return 1
+    fi
+
+    # 检查下载文件是否有效（至少 1MB）
+    local FILE_SIZE=$(stat -c%s "/tmp/${IMAGE_TAR}" 2>/dev/null || stat -f%z "/tmp/${IMAGE_TAR}" 2>/dev/null || echo "0")
+    if [[ "$FILE_SIZE" -lt 1048576 ]]; then
+        log "下载的镜像文件异常（大小: ${FILE_SIZE} bytes），可能下载不完整"
         rm -f "/tmp/${IMAGE_TAR}"
         return 1
     fi
@@ -514,8 +555,19 @@ function Install_IDB() {
             log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
         fi
         if ! Pull_Image_From_GitHub "${VERSION}"; then
-            log "所有镜像源均不可用，安装失败"
-            exit 1
+            # 如果是直连 GitHub 失败，再尝试通过代理下载
+            if [[ -z "$IDB_GITHUB_PROXY" ]]; then
+                log "GitHub 直连下载失败，尝试通过加速代理下载..."
+                export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+                GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY}/github-releases"
+                if ! Pull_Image_From_GitHub "${VERSION}"; then
+                    log "所有镜像源均不可用，安装失败"
+                    exit 1
+                fi
+            else
+                log "所有镜像源均不可用，安装失败"
+                exit 1
+            fi
         fi
     fi
     log "镜像拉取完成"
