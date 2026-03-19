@@ -3,6 +3,9 @@ package action
 import (
 	"fmt"
 	"math"
+	"os"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/sensdata/idb/agent/global"
@@ -14,6 +17,7 @@ import (
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 func GetStatus() (*model.HostStatus, error) {
@@ -48,7 +52,54 @@ func GetStatus() (*model.HostStatus, error) {
 		status.Disk = math.Round(diskUsage.UsedPercent*100) / 100
 	}
 
+	memStats := runtime.MemStats{}
+	runtime.ReadMemStats(&memStats)
+	status.HeapAlloc = memStats.HeapAlloc
+	status.HeapSys = memStats.HeapSys
+	status.StackInuse = memStats.StackInuse
+	status.Goroutines = runtime.NumGoroutine()
+	status.OpenFDs = countOpenFDs()
+	status.ProcessRSS = readProcessRSSBytes()
+
+	if proc, err := process.NewProcess(int32(os.Getpid())); err == nil {
+		if memInfo, memErr := proc.MemoryInfo(); memErr == nil && memInfo != nil && memInfo.RSS > 0 {
+			status.ProcessRSS = memInfo.RSS
+		}
+	}
+
 	return &status, nil
+}
+
+func readProcessRSSBytes() uint64 {
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return 0
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "VmRSS:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			return 0
+		}
+		kb, parseErr := strconv.ParseUint(fields[1], 10, 64)
+		if parseErr != nil {
+			return 0
+		}
+		return kb * 1024
+	}
+
+	return 0
+}
+
+func countOpenFDs() int {
+	entries, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		return 0
+	}
+	return len(entries)
 }
 
 func GetOverview() (*model.Overview, error) {
