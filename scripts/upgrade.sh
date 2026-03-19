@@ -187,7 +187,7 @@ function Pull_Image_From_GitHub() {
     else
         log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
     fi
-    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    curl -f --progress-bar "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
     if [[ $? -ne 0 ]]; then
         log "GitHub 镜像下载失败"
         rm -f "/tmp/${IMAGE_TAR}"
@@ -195,8 +195,8 @@ function Pull_Image_From_GitHub() {
     fi
 
     log "加载镜像..."
-    docker load -i "/tmp/${IMAGE_TAR}"
-    if [[ $? -ne 0 ]]; then
+    docker load -i "/tmp/${IMAGE_TAR}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         log "镜像加载失败"
         rm -f "/tmp/${IMAGE_TAR}"
         return 1
@@ -259,7 +259,7 @@ function Upgrade_IDB() {
     log "预拉取新版本镜像..."
     local NEW_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
     NEW_IMAGE_REPO="${NEW_IMAGE_REPO:-sensdb/idb}"
-    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}" 2>/dev/null; then
+    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}"; then
         if [[ -n "$IDB_GITHUB_PROXY" ]]; then
             log "Docker Hub 拉取失败，尝试通过加速代理下载镜像..."
         else

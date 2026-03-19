@@ -202,7 +202,7 @@ function Install_Compose(){
             COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
 
             log "包管理器安装失败，回退到二进制下载: ${COMPOSE_URL}"
-            curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
+            curl -f --progress-bar -L "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
                 log "docker compose 下载失败，请检查网络，或先手动安装 docker-compose-plugin 后重试"
                 exit 1
             }
@@ -425,8 +425,12 @@ function Pull_Image_From_GitHub() {
     local IMAGE_TAR="idb_image_${VERSION}.tar"
     local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
 
-    log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
-    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "通过加速代理下载镜像: ${DOWNLOAD_URL}"
+    else
+        log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
+    fi
+    curl -f --progress-bar "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
     if [[ $? -ne 0 ]]; then
         log "GitHub 镜像下载失败"
         rm -f "/tmp/${IMAGE_TAR}"
@@ -434,8 +438,8 @@ function Pull_Image_From_GitHub() {
     fi
 
     log "加载镜像..."
-    docker load -i "/tmp/${IMAGE_TAR}"
-    if [[ $? -ne 0 ]]; then
+    docker load -i "/tmp/${IMAGE_TAR}" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         log "镜像加载失败"
         rm -f "/tmp/${IMAGE_TAR}"
         return 1
@@ -447,7 +451,11 @@ function Pull_Image_From_GitHub() {
     docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
 
     rm -f "/tmp/${IMAGE_TAR}"
-    log "GitHub 镜像加载完成"
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "镜像加载完成（来源: 加速代理）"
+    else
+        log "镜像加载完成（来源: GitHub Releases）"
+    fi
 }
 
 function Install_IDB() {
@@ -499,8 +507,12 @@ function Install_IDB() {
     # 预拉取镜像
     log "拉取镜像..."
     cd "$PANEL_DIR" || { log "无法进入目录 $PANEL_DIR"; exit 1; }
-    if ! docker compose pull 2>/dev/null; then
-        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+    if ! docker compose pull; then
+        if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+            log "Docker Hub 拉取失败，尝试通过加速代理下载镜像..."
+        else
+            log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        fi
         if ! Pull_Image_From_GitHub "${VERSION}"; then
             log "所有镜像源均不可用，安装失败"
             exit 1
