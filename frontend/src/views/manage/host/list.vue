@@ -14,8 +14,11 @@
         {{ $t('manage.host.list.action.add') }}
       </a-button>
     </template>
-    <template #batch="{ selectedRows }: { selectedRows: HostItem[] }">
-      <a-button type="primary" @click="handleBatchUpgrade(selectedRows)">
+    <template #batch="{ selectedRows }">
+      <a-button
+        type="primary"
+        @click="handleBatchUpgrade(selectedRows as HostItem[])"
+      >
         {{ $t('manage.host.list.operation.upgradeAgent') }}
       </a-button>
     </template>
