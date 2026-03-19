@@ -12,30 +12,31 @@
         </template>
         {{ $t('manage.host.list.action.add') }}
       </a-button>
-      <a-button
-        type="outline"
-        style="margin-left: 12px"
-        @click="handleUpgradeAll"
-      >
-        {{ $t('manage.host.list.action.upgradeAll') }}
-      </a-button>
     </template>
     <template #agent="{ record }: { record: HostItem }">
-      <div
-        v-if="record.agent_status?.status !== 'installed'"
-        class="color-danger"
-        >{{ $t('manage.host.list.agent.uninstalled') }}</div
-      >
-      <div
-        v-else-if="record.agent_status?.connected === 'online'"
-        class="color-success"
-        >{{ $t('manage.host.list.agent.online') }}</div
-      >
-      <div
-        v-else-if="record.agent_status?.connected === 'offline'"
-        class="color-danger"
-        >{{ $t('manage.host.list.agent.offline') }}</div
-      >
+      <div class="agent-cell">
+        <div
+          v-if="record.agent_status?.status !== 'installed'"
+          class="color-danger"
+          >{{ $t('manage.host.list.agent.uninstalled') }}</div
+        >
+        <div
+          v-else-if="record.agent_status?.connected === 'online'"
+          class="color-success"
+          >{{ $t('manage.host.list.agent.online') }}</div
+        >
+        <div
+          v-else-if="record.agent_status?.connected === 'offline'"
+          class="color-danger"
+          >{{ $t('manage.host.list.agent.offline') }}</div
+        >
+        <div v-if="record.agent_version" class="agent-version">
+          <span>{{ record.agent_version }}</span>
+          <span v-if="record.can_upgrade" class="agent-upgrade-hint">
+            {{ $t('manage.host.list.agent.upgradeAvailable') }}
+          </span>
+        </div>
+      </div>
     </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
@@ -220,7 +221,6 @@
       {
         text: t('manage.host.list.operation.upgradeAgent'),
         visible: record.can_upgrade,
-        confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
         click: () => {
           installAgentRef.value?.startUpgrade(record.id);
         },
@@ -425,33 +425,28 @@
     form?.loadOptions();
     form?.show();
   };
-
-  const handleUpgradeAll = async () => {
-    const upgradeableHosts =
-      dataRef.value?.items
-        ?.filter((item) => item.can_upgrade)
-        .map((item) => ({
-          id: item.id,
-          name: item.name || item.addr,
-        })) || [];
-
-    if (!upgradeableHosts.length) {
-      Message.info(t('manage.host.list.batchUpgrade.empty'));
-      return;
-    }
-
-    const confirmed = await confirm(
-      t('manage.host.list.batchUpgrade.confirm', {
-        count: upgradeableHosts.length,
-      })
-    );
-    if (!confirmed) return;
-
-    installAgentRef.value?.startBatchUpgrade(upgradeableHosts);
-  };
 </script>
 
 <style scoped>
+  .agent-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .agent-version {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--color-text-3);
+  }
+
+  .agent-upgrade-hint {
+    color: rgb(var(--arcoblue-6));
+  }
+
   .inline-progress {
     width: 100%;
   }
