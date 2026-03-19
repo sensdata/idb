@@ -146,12 +146,22 @@
                 {{ formatPercent(status.agent.memory) }}
               </a-descriptions-item>
               <a-descriptions-item
-                :label="t('manage.settings.status.memoryUsed')"
+                :label="t('manage.settings.status.agentProcessRss')"
+              >
+                {{ formatMemorySize(status.agent.process_rss) }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentHeapAlloc')"
+              >
+                {{ formatMemorySize(status.agent.heap_alloc) }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.hostMemoryUsed')"
               >
                 {{ status.agent.mem_used || '-' }}
               </a-descriptions-item>
               <a-descriptions-item
-                :label="t('manage.settings.status.memoryTotal')"
+                :label="t('manage.settings.status.hostMemoryTotal')"
               >
                 {{ status.agent.mem_total || '-' }}
               </a-descriptions-item>
@@ -162,6 +172,36 @@
                 :label="t('manage.settings.status.hostAddr')"
               >
                 {{ status.agent.host_addr || '-' }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentHeapSys')"
+              >
+                {{ formatMemorySize(status.agent.heap_sys) }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentOpenFds')"
+              >
+                {{ status.agent.open_fds ?? '-' }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentActiveSessions')"
+              >
+                {{ status.agent.active_sessions ?? '-' }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentStackInuse')"
+              >
+                {{ formatMemorySize(status.agent.stack_inuse) }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentGoroutines')"
+              >
+                {{ status.agent.goroutines ?? '-' }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                :label="t('manage.settings.status.agentActiveLogFollowers')"
+              >
+                {{ status.agent.active_log_followers ?? '-' }}
               </a-descriptions-item>
               <a-descriptions-item
                 :label="t('manage.settings.status.bootTime')"

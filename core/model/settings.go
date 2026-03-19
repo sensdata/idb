@@ -73,22 +73,30 @@ type CenterRuntimeStatus struct {
 }
 
 type AgentRuntimeStatus struct {
-	HostID        uint    `json:"host_id"`
-	HostName      string  `json:"host_name"`
-	HostAddr      string  `json:"host_addr"`
-	AgentAddr     string  `json:"agent_addr"`
-	AgentPort     int     `json:"agent_port"`
-	AgentVersion  string  `json:"agent_version"`
-	Installed     string  `json:"installed"`
-	Connected     string  `json:"connected"`
-	LastHeartbeat int64   `json:"last_heartbeat"`
-	CPU           float64 `json:"cpu"`
-	Memory        float64 `json:"memory"`
-	MemTotal      string  `json:"mem_total"`
-	MemUsed       string  `json:"mem_used"`
-	Disk          float64 `json:"disk"`
-	BootTime      string  `json:"boot_time"`
-	RunTime       int64   `json:"run_time"`
+	HostID             uint    `json:"host_id"`
+	HostName           string  `json:"host_name"`
+	HostAddr           string  `json:"host_addr"`
+	AgentAddr          string  `json:"agent_addr"`
+	AgentPort          int     `json:"agent_port"`
+	AgentVersion       string  `json:"agent_version"`
+	Installed          string  `json:"installed"`
+	Connected          string  `json:"connected"`
+	LastHeartbeat      int64   `json:"last_heartbeat"`
+	CPU                float64 `json:"cpu"`
+	Memory             float64 `json:"memory"`
+	MemTotal           string  `json:"mem_total"`
+	MemUsed            string  `json:"mem_used"`
+	Disk               float64 `json:"disk"`
+	BootTime           string  `json:"boot_time"`
+	RunTime            int64   `json:"run_time"`
+	ProcessRSS         uint64  `json:"process_rss"`
+	HeapAlloc          uint64  `json:"heap_alloc"`
+	HeapSys            uint64  `json:"heap_sys"`
+	StackInuse         uint64  `json:"stack_inuse"`
+	Goroutines         int     `json:"goroutines"`
+	OpenFDs            int     `json:"open_fds"`
+	ActiveSessions     int     `json:"active_sessions"`
+	ActiveLogFollowers int     `json:"active_log_followers"`
 }
 
 type SettingsStatusChecks struct {

@@ -39,6 +39,8 @@ export interface CenterRuntimeStatus {
   stack_inuse: number;
   goroutines: number;
   open_fds: number;
+  active_sessions: number;
+  active_log_followers: number;
 }
 
 export interface AgentRuntimeStatus {
@@ -58,6 +60,14 @@ export interface AgentRuntimeStatus {
   disk: number;
   boot_time: string;
   run_time: number;
+  process_rss: number;
+  heap_alloc: number;
+  heap_sys: number;
+  stack_inuse: number;
+  goroutines: number;
+  open_fds: number;
+  active_sessions: number;
+  active_log_followers: number;
 }
 
 export interface SettingsStatus {

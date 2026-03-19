@@ -568,17 +568,25 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		default:
 			// 保存信息
 			hostStatusInfo := &core.HostStatusInfo{
-				Installed:     "installed",
-				Connected:     "online",
-				CanUpgrade:    msg.Version != getAgentLatestVersion(),
-				Cpu:           heartbeat.Cpu,
-				Memory:        heartbeat.Memory,
-				MemTotal:      heartbeat.MemTotal,
-				MemUsed:       heartbeat.MemUsed,
-				Disk:          heartbeat.Disk,
-				Rx:            heartbeat.Rx,
-				Tx:            heartbeat.Tx,
-				LastHeartbeat: msg.Timestamp,
+				Installed:          "installed",
+				Connected:          "online",
+				CanUpgrade:         msg.Version != getAgentLatestVersion(),
+				Cpu:                heartbeat.Cpu,
+				Memory:             heartbeat.Memory,
+				MemTotal:           heartbeat.MemTotal,
+				MemUsed:            heartbeat.MemUsed,
+				Disk:               heartbeat.Disk,
+				Rx:                 heartbeat.Rx,
+				Tx:                 heartbeat.Tx,
+				LastHeartbeat:      msg.Timestamp,
+				ProcessRSS:         heartbeat.ProcessRSS,
+				HeapAlloc:          heartbeat.HeapAlloc,
+				HeapSys:            heartbeat.HeapSys,
+				StackInuse:         heartbeat.StackInuse,
+				Goroutines:         heartbeat.Goroutines,
+				OpenFDs:            heartbeat.OpenFDs,
+				ActiveSessions:     heartbeat.ActiveSessions,
+				ActiveLogFollowers: heartbeat.ActiveLogFollowers,
 			}
 			global.SetHostStatus(host.ID, hostStatusInfo)
 			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)
