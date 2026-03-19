@@ -26,6 +26,7 @@ import (
 
 const (
 	installCommandTimeout = 2 * time.Minute
+	transferFileTimeout   = 2 * time.Minute
 )
 
 type SSHService struct {
@@ -79,10 +80,18 @@ func (s *SSHService) Stop() error {
 
 	// 关闭所有的ssh连接
 	s.mu.Lock()
+	clients := make([]*ssh.Client, 0, len(s.sshClients))
 	for _, client := range s.sshClients {
+		if client != nil {
+			clients = append(clients, client)
+		}
+	}
+	s.sshClients = make(map[string]*ssh.Client)
+	s.mu.Unlock()
+
+	for _, client := range clients {
 		client.Close()
 	}
-	s.mu.Unlock()
 
 	return nil
 }
@@ -149,11 +158,15 @@ func formatHostID(host *model.Host) string {
 	return fmt.Sprintf("%d:%s:%d", host.ID, host.Addr, host.Port)
 }
 
-func (s *SSHService) beginHostMaintenance(host model.Host) {
+func (s *SSHService) beginHostMaintenance(host model.Host) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	hostID := formatHostID(&host)
+	if s.hostMaintenance[hostID] > 0 {
+		return false
+	}
 	s.hostMaintenance[hostID]++
+	return true
 }
 
 func (s *SSHService) endHostMaintenance(host model.Host) {
@@ -175,16 +188,16 @@ func (s *SSHService) isHostInMaintenance(host model.Host) bool {
 
 func (s *SSHService) disconnectHostClient(host model.Host) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	hostID := formatHostID(&host)
 	client, exists := s.sshClients[hostID]
 	if !exists || client == nil {
+		s.mu.Unlock()
 		return
 	}
+	delete(s.sshClients, hostID)
+	s.mu.Unlock()
 
 	client.Close()
-	delete(s.sshClients, hostID)
 	global.LOG.Info("SSH connection to %s closed", host.Addr)
 }
 
@@ -200,11 +213,15 @@ func (s *SSHService) getClient(host model.Host) (*ssh.Client, error) {
 
 	if !isValidSSHClient(client) {
 		s.mu.Lock()
+		var staleClient *ssh.Client
 		if s.sshClients[hostId] == client {
-			client.Close()
 			delete(s.sshClients, hostId)
+			staleClient = client
 		}
 		s.mu.Unlock()
+		if staleClient != nil {
+			staleClient.Close()
+		}
 		return nil, fmt.Errorf("ssh connection to host %s is stale", hostId)
 	}
 	return client, nil
@@ -237,6 +254,16 @@ func taskLog(wp *writer.Writer, level types.LogLevel, message string) {
 	}
 }
 
+func logTaskStepStart(wp *writer.Writer, message string) time.Time {
+	taskLog(wp, types.LogLevelInfo, message)
+	return time.Now()
+}
+
+func logTaskStepDone(wp *writer.Writer, start time.Time, format string, args ...interface{}) {
+	args = append(args, time.Since(start).Round(time.Millisecond))
+	taskLog(wp, types.LogLevelInfo, fmt.Sprintf(format, args...))
+}
+
 func taskStatus(taskId string, status types.TaskStatus) {
 	if taskId == "" {
 		return
@@ -250,7 +277,10 @@ func taskStatus(taskId string, status types.TaskStatus) {
 }
 
 func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) error {
-	s.beginHostMaintenance(host)
+	if !s.beginHostMaintenance(host) {
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return fmt.Errorf("host %s is busy with another lifecycle operation", host.Addr)
+	}
 	defer s.endHostMaintenance(host)
 
 	taskStatus(taskId, types.TaskStatusRunning)
@@ -292,7 +322,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	}
 
 	// 3. 拿 SSH 连接（如果连接池中没有，则主动建立连接）
-	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
+	stepStart := logTaskStepStart(writer, "Checking SSH connection")
 	client, err := s.getClient(host)
 	if err != nil {
 		taskLog(writer, types.LogLevelInfo, "SSH connection not in pool, trying to connect...")
@@ -308,9 +338,10 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 			return err
 		}
 	}
+	logTaskStepDone(writer, stepStart, "SSH connection ready in %s")
 
 	// 4. 检查目标机器是否已安装 agent
-	taskLog(writer, types.LogLevelInfo, "Checking agent installation status")
+	stepStart = logTaskStepStart(writer, "Checking agent installation status")
 	checkCmd := `
         if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
             echo "installed"
@@ -325,6 +356,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		taskStatus(taskId, types.TaskStatusCanceled)
 		return fmt.Errorf("failed to check agent installation status: %v", err)
 	}
+	logTaskStepDone(writer, stepStart, "Agent installation status checked in %s")
 
 	if !upgrade && strings.TrimSpace(output) == "installed" {
 		global.LOG.Info("Agent is already installed on host %s", host.Addr)
@@ -334,17 +366,19 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	}
 
 	// 5. 传输 agent 包文件
-	taskLog(writer, types.LogLevelInfo, "Start transferring agent package")
-	err = s.transferFile(client, agentPackagePath, "/tmp/idb-agent.tar.gz", writer)
+	stepStart = logTaskStepStart(writer, "Start transferring agent package")
+	err = s.transferFileWithTimeout(client, agentPackagePath, "/tmp/idb-agent.tar.gz", writer, transferFileTimeout)
 	if err != nil {
 		global.LOG.Error("Failed to transfer agent package to host %s: %v", host.Addr, err)
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to transfer agent package to host %s: %v", host.Addr, err))
+		s.disconnectHostClient(host)
 		taskStatus(taskId, types.TaskStatusFailed)
 		return fmt.Errorf("failed to transfer agent package: %v", err)
 	}
+	logTaskStepDone(writer, stepStart, "Agent package transferred in %s")
 
 	// 6. 执行解压和安装命令
-	taskLog(writer, types.LogLevelInfo, "Unpacking and installing agent")
+	stepStart = logTaskStepStart(writer, "Unpacking and installing agent")
 	// 直接在Go代码中替换变量值，而不是依赖shell变量展开
 	// 使用 # 作为 sed 分隔符，避免 secret_key 中包含 / 时的问题
 	installCmd := fmt.Sprintf(`
@@ -365,6 +399,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		taskStatus(taskId, types.TaskStatusFailed)
 		return fmt.Errorf("failed to install agent: %v", err)
 	}
+	logTaskStepDone(writer, stepStart, "Agent install command completed in %s")
 
 	global.LOG.Info("Agent installation output: %s", output)
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
@@ -374,6 +409,8 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	if err := CENTER.DisconnectHost(&host); err != nil {
 		global.LOG.Warn("Failed to disconnect stale agent conn for host %s: %v", host.Addr, err)
 		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Failed to disconnect stale agent conn: %v", err))
+	} else {
+		taskLog(writer, types.LogLevelInfo, "Stale agent connection cleared")
 	}
 
 	// 更新安装状态，但连接状态等待新 agent 心跳重新置为 online。
@@ -390,7 +427,10 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 }
 
 func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
-	s.beginHostMaintenance(host)
+	if !s.beginHostMaintenance(host) {
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return fmt.Errorf("host %s is busy with another lifecycle operation", host.Addr)
+	}
 	defer s.endHostMaintenance(host)
 
 	taskStatus(taskId, types.TaskStatusRunning)
@@ -410,7 +450,7 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s begin", host.Addr))
 
 	// 1. 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
-	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
+	stepStart := logTaskStepStart(writer, "Checking SSH connection")
 	client, err := s.getClient(host)
 	if err != nil {
 		taskLog(writer, types.LogLevelInfo, "SSH connection not in pool, trying to connect...")
@@ -426,9 +466,10 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 			return err
 		}
 	}
+	logTaskStepDone(writer, stepStart, "SSH connection ready in %s")
 
 	// 2. 检查 agent 是否已安装
-	taskLog(writer, types.LogLevelInfo, "Checking agent installation status")
+	stepStart = logTaskStepStart(writer, "Checking agent installation status")
 	checkCmd := `
 		if systemctl is-active --quiet idb-agent.service || [ -f /var/lib/idb-agent/idb-agent ]; then
 			echo "installed"
@@ -443,6 +484,7 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 		taskStatus(taskId, types.TaskStatusCanceled)
 		return fmt.Errorf("failed to check agent status: %v", err)
 	}
+	logTaskStepDone(writer, stepStart, "Agent installation status checked in %s")
 
 	if strings.TrimSpace(output) != "installed" {
 		global.LOG.Info("Agent is not installed on host %s", host.Addr)
@@ -452,7 +494,7 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	}
 
 	// 3. 执行卸载的一系列动作命令
-	taskLog(writer, types.LogLevelInfo, "Uninstalling agent service")
+	stepStart = logTaskStepStart(writer, "Uninstalling agent service")
 	uninstallCmd := `
 		if ! sudo -n true 2>/dev/null; then
 			echo "no_sudo_access"
@@ -480,6 +522,7 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 		taskStatus(taskId, types.TaskStatusFailed)
 		return fmt.Errorf("failed to uninstall agent: %v", err)
 	}
+	logTaskStepDone(writer, stepStart, "Agent uninstall command completed in %s")
 
 	global.LOG.Info("Agent uninstall output: %s", output)
 	global.LOG.Info("Uninstall agent in host %s completed", host.Addr)
@@ -520,7 +563,9 @@ func (s *SSHService) agentInstalled(client *ssh.Client, host model.Host) (string
 }
 
 func (s *SSHService) RestartAgent(host model.Host) error {
-	s.beginHostMaintenance(host)
+	if !s.beginHostMaintenance(host) {
+		return fmt.Errorf("host %s is busy with another lifecycle operation", host.Addr)
+	}
 	defer s.endHostMaintenance(host)
 
 	// 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
@@ -611,6 +656,24 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 
 	global.LOG.Info("File transferred successfully to %s", remotePath)
 	return nil
+}
+
+func (s *SSHService) transferFileWithTimeout(client *ssh.Client, localPath, remotePath string, wp *writer.Writer, timeout time.Duration) error {
+	if timeout <= 0 {
+		return s.transferFile(client, localPath, remotePath, wp)
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.transferFile(client, localPath, remotePath, wp)
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-time.After(timeout):
+		return fmt.Errorf("file transfer timeout after %s", timeout)
+	}
 }
 
 func (s *SSHService) TransferDir(host model.Host, taskId string, localDir string, remoteDir string, wp *writer.Writer) error {
@@ -874,48 +937,32 @@ func (s *SSHService) handleInstalledStatus(host *model.Host) {
 func getPrivateKey(path string) (*core.FileInfo, error) {
 	var fileInfo core.FileInfo
 
-	// 找宿主机host
-	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	expandedPath := os.ExpandEnv(path)
+	if strings.HasPrefix(expandedPath, "~") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			global.LOG.Error("Failed to get user home dir: %v", err)
+			return &fileInfo, err
+		}
+		switch expandedPath {
+		case "~":
+			expandedPath = homeDir
+		default:
+			expandedPath = filepath.Join(homeDir, strings.TrimPrefix(expandedPath, "~/"))
+		}
+	}
+
+	content, err := os.ReadFile(expandedPath)
 	if err != nil {
-		global.LOG.Error("Failed to get default host")
-		return &fileInfo, err
-	}
-
-	req := core.FileContentReq{
-		Path:   path,
-		Expand: true,
-	}
-	data, err := utils.ToJSONString(req)
-	if err != nil {
-		return &fileInfo, err
-	}
-
-	actionRequest := core.HostAction{
-		HostID: host.ID,
-		Action: core.Action{
-			Action: core.File_Content,
-			Data:   data,
-		},
-	}
-
-	actionResponse, err := CENTER.ExecuteAction(actionRequest)
-	if err != nil {
-		return &fileInfo, err
-	}
-
-	if !actionResponse.Result {
-		global.LOG.Error("action failed")
-		if strings.Contains(actionResponse.Data, "no such file or directory") {
+		global.LOG.Error("Failed to read private key file %s: %v", expandedPath, err)
+		if os.IsNotExist(err) {
 			return &fileInfo, constant.ErrFileNotExist
 		}
-		return &fileInfo, fmt.Errorf("failed to get file content")
+		return &fileInfo, err
 	}
 
-	err = utils.FromJSONString(actionResponse.Data, &fileInfo)
-	if err != nil {
-		global.LOG.Error("Error unmarshaling data to file content: %v", err)
-		return &fileInfo, fmt.Errorf("json err: %v", err)
-	}
+	fileInfo.Path = expandedPath
+	fileInfo.Content = string(content)
 	return &fileInfo, nil
 }
 
@@ -923,11 +970,15 @@ func (s *SSHService) connectToHost(host *model.Host) error {
 	// 先关闭已有的client
 	s.mu.Lock()
 	hostId := formatHostID(host)
+	var oldClient *ssh.Client
 	if client, exists := s.sshClients[hostId]; exists && client != nil {
-		client.Close()
+		oldClient = client
 		delete(s.sshClients, hostId)
 	}
 	s.mu.Unlock()
+	if oldClient != nil {
+		oldClient.Close()
+	}
 
 	proto := "tcp"
 	addr := host.Addr

@@ -388,12 +388,6 @@
         resolveAndFinish('completed', successMessage);
       });
 
-      eventSource.addEventListener('error', (event) => {
-        if (event.type === 'error') {
-          resolveAndFinish('failed', failedMessage);
-        }
-      });
-
       eventSource.onmessage = (event) => {
         handleMessage(event);
       };
@@ -430,6 +424,7 @@
       const result = await installHostAgentApi(hostId);
       if (result.log_path) {
         isUpgrade.value = false;
+        Message.info(t('manage.host.installAgent.installSubmitted'));
         await logFileLogs(result.log_host, result.log_path);
       } else {
         Message.error(t('manage.host.installAgent.installFailed'));
@@ -444,6 +439,7 @@
       const result = await upgradeHostAgentApi(hostId);
       if (result.log_path) {
         isUpgrade.value = true;
+        Message.info(t('manage.host.installAgent.upgradeSubmitted'));
         await logFileLogs(result.log_host, result.log_path, {
           successMessage: t('manage.host.installAgent.upgradeSuccess'),
           failedMessage: t('manage.host.installAgent.upgradeFailed'),
@@ -504,6 +500,14 @@
           });
           continue;
         }
+
+        addLog({
+          time: Date.now(),
+          message: t('manage.host.list.batchUpgrade.submitted', {
+            name: host.name,
+          }),
+          level: 'info',
+        });
 
         const finalStatus = await logFileLogs(
           result.log_host,

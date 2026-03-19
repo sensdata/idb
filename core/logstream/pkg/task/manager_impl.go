@@ -287,24 +287,30 @@ func (m *FileTaskManager) Clean(before time.Time) error {
 	var lastError error
 	for _, taskID := range toClean {
 		m.mu.Lock()
-		// 关闭观察者
-		if watchers, exists := m.watchers[taskID]; exists {
-			for _, w := range watchers {
-				w.Close()
-			}
-			delete(m.watchers, taskID)
-		}
+		// 在锁内提取 watchers 并从 map 中移除，避免后续 watcher.Close()
+		// 调用 removeWatcher 时再次请求 m.mu 导致死锁。
+		watchers := m.watchers[taskID]
+		delete(m.watchers, taskID)
 
 		// 删除任务
 		if err := m.store.Delete(taskID); err != nil {
 			lastError = err
 			m.mu.Unlock()
+			// 在锁外关闭观察者
+			for _, w := range watchers {
+				w.Close()
+			}
 			continue
 		}
 		delete(m.tasks, taskID)
 		delete(m.buffers, taskID)
 		cleanedCount++
 		m.mu.Unlock()
+
+		// 在锁外关闭观察者
+		for _, w := range watchers {
+			w.Close()
+		}
 	}
 
 	if lastError != nil {
@@ -316,26 +322,30 @@ func (m *FileTaskManager) Clean(before time.Time) error {
 
 func (m *FileTaskManager) Delete(taskID string) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	if _, exists := m.tasks[taskID]; !exists {
+		m.mu.Unlock()
 		return fmt.Errorf("task %s not found", taskID)
 	}
 
 	if err := m.store.Delete(taskID); err != nil {
+		m.mu.Unlock()
 		return fmt.Errorf("delete task failed: %v", err)
 	}
 
-	// 关闭并清理所有观察者
-	if watchers, exists := m.watchers[taskID]; exists {
-		for _, w := range watchers {
-			w.Close()
-		}
-		delete(m.watchers, taskID)
-	}
-
+	// 在锁内提取 watchers 并从 map 中移除，避免后续 watcher.Close() 调用
+	// removeWatcher 时再次请求 m.mu 导致死锁。
+	watchers := m.watchers[taskID]
+	delete(m.watchers, taskID)
 	delete(m.tasks, taskID)
 	delete(m.buffers, taskID)
+	m.mu.Unlock()
+
+	// 在锁外关闭所有观察者
+	for _, w := range watchers {
+		w.Close()
+	}
+
 	return nil
 }
 

@@ -3,7 +3,6 @@ export default {
   'manage.host.enum.auth_mode.private_key': 'Private Key',
 
   'manage.host.list.action.add': 'Add Host',
-  'manage.host.list.action.upgradeAll': 'Upgrade All Agents',
   'manage.host.list.column.name': 'Host Name',
   'manage.host.list.column.addr': 'Host Address',
   'manage.host.list.column.group_name': 'Group',
@@ -33,6 +32,8 @@ export default {
   'manage.host.list.agent.online': 'Online',
   'manage.host.list.agent.offline': 'Offline',
   'manage.host.list.agent.uninstalled': 'Uninstalled',
+  'manage.host.list.agent.upgradeAvailable': 'Update available',
+  'manage.host.list.operation.upgradeAgent': 'Update Agent',
   'manage.host.form.title.create': 'Create Host',
   'manage.host.form.title.edit': 'Host Settings',
 
@@ -76,9 +77,13 @@ export default {
   'manage.host.installAgent.installSuccess': 'Agent installed successfully',
   'manage.host.installAgent.installFailed': 'Failed to install agent',
   'manage.host.installAgent.installTimeout': 'Agent installation timeout',
+  'manage.host.installAgent.installSubmitted':
+    'Install task submitted, connecting to logs',
   'manage.host.installAgent.upgradeSuccess': 'Agent upgraded successfully',
   'manage.host.installAgent.upgradeFailed': 'Failed to upgrade agent',
   'manage.host.installAgent.upgradeTimeout': 'Agent upgrade timeout',
+  'manage.host.installAgent.upgradeSubmitted':
+    'Upgrade task submitted, connecting to logs',
   'manage.host.installAgent.logConnectionFailed': 'Failed to connect logs',
   'manage.host.installAgent.notInstalled': 'Agent not detected, install now?',
   'manage.host.installAgent.title': 'Install Agent',
@@ -96,14 +101,14 @@ export default {
   'manage.host.list.uninstallAgent.success': 'Agent uninstalled successfully',
   'manage.host.list.uninstallAgent.failed': 'Uninstall failed',
 
-  'manage.host.list.operation.upgradeAgent.confirm':
-    'Are you sure you want to upgrade the agent on this host?',
   'manage.host.list.batchUpgrade.confirm': 'Upgrade agents on {count} hosts?',
   'manage.host.list.batchUpgrade.empty': 'There are no upgradeable agents',
   'manage.host.list.batchUpgrade.start':
     'Starting batch upgrade for {count} hosts',
   'manage.host.list.batchUpgrade.processing':
     'Starting upgrade for host {name}',
+  'manage.host.list.batchUpgrade.submitted':
+    'Upgrade task submitted for host {name}',
   'manage.host.list.batchUpgrade.itemSuccess':
     'Host {name} upgraded successfully',
   'manage.host.list.batchUpgrade.itemFailed': 'Failed to upgrade host {name}',
