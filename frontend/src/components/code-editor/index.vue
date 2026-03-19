@@ -225,36 +225,42 @@
   }
 
   /* 暗黑模式下的编辑器样式 */
-  body[arco-theme='dark'] {
-    :deep(.cm-editor) {
-      color: var(--color-text-1);
-      background-color: var(--color-bg-2);
-    }
-    :deep(.cm-gutters) {
-      background-color: var(--color-bg-3);
-      border-right: 1px solid var(--color-border-2);
-    }
-    :deep(.cm-lineNumbers .cm-gutterElement) {
-      color: var(--color-text-3);
-    }
-    :deep(.cm-activeLineGutter) {
-      background-color: var(--color-bg-3);
-    }
-    :deep(.cm-activeLine) {
-      background-color: var(--color-fill-1);
-    }
-    :deep(.cm-content) {
-      color: var(--color-text-1);
-      background-color: var(--color-bg-2);
-    }
-    :deep(.cm-cursor) {
-      border-left-color: var(--color-text-1);
-    }
-    :deep(.cm-selectionBackground) {
-      background-color: var(--color-fill-3) !important;
-    }
-    .loading-container {
-      background-color: rgb(var(--color-bg-1) / 80%);
-    }
+  body[arco-theme='dark'] :deep(.cm-editor) {
+    color: var(--color-text-1);
+    background-color: var(--color-bg-2);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-gutters) {
+    background-color: var(--color-bg-3);
+    border-right: 1px solid var(--color-border-2);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-lineNumbers .cm-gutterElement) {
+    color: var(--color-text-3);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-activeLineGutter) {
+    background-color: var(--color-bg-3);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-activeLine) {
+    background-color: var(--color-fill-1);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-content) {
+    color: var(--color-text-1);
+    background-color: var(--color-bg-2);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-cursor) {
+    border-left-color: var(--color-text-1);
+  }
+
+  body[arco-theme='dark'] :deep(.cm-selectionBackground) {
+    background-color: var(--color-fill-3) !important;
+  }
+
+  body[arco-theme='dark'] .loading-container {
+    background-color: rgb(var(--color-bg-1) / 80%);
   }
 </style>

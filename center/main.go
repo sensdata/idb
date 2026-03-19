@@ -256,6 +256,11 @@ func StopServices() error {
 		global.LogStream.Close()
 	}
 
+	// 停止插件子进程，避免服务重启后遗留旧插件实例
+	if err := coreplugin.PLUGINSERVER.Stop(); err != nil {
+		global.LOG.Error("停止插件服务失败: %v", err)
+	}
+
 	// 停止 API 服务器
 	if err := api.API.Stop(); err != nil {
 		global.LOG.Error("停止 API 服务器失败: %v", err)

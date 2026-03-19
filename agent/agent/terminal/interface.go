@@ -55,4 +55,6 @@ type Manager interface {
 	ResizeSession(sessionType message.SessionType, id string, cols int, rows int) error
 	// RenameSession
 	RenameSession(sessionType message.SessionType, id string, data string) error
+	// ActiveSessionCount
+	ActiveSessionCount() int
 }

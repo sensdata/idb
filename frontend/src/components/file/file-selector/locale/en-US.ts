@@ -14,4 +14,5 @@ export default {
   'components.file.fileSelector.quickDirectories': 'Quick Directories',
   'components.file.fileSelector.quickDir.certificateManage':
     'Certificate Management',
+  'components.file.fileSelector.quickDir.rootSsh': 'ROOT .SSH',
 };

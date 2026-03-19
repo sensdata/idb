@@ -364,6 +364,9 @@ func (ls *LogStream) CleanExpiredTasks() error {
 		return fmt.Errorf("clean logs failed: %w", err)
 	}
 
+	// 清理已经失去 task 关联的 reader / writer，避免常驻内存只增不减。
+	ls.cleanupInactiveResources()
+
 	// 更新统计信息
 	if err := ls.updateMetrics(); err != nil {
 		ls.metrics.IncrErrorCount()
@@ -427,4 +430,43 @@ func (ls *LogStream) updateMetrics() error {
 	ls.metrics.SetLogSize(totalSize)
 	ls.metrics.SetTaskCount(int64(len(tasks)))
 	return nil
+}
+
+func (ls *LogStream) cleanupInactiveResources() {
+	tasks, err := ls.taskMgr.List()
+	if err != nil {
+		ls.metrics.IncrErrorCount()
+		ls.metrics.RecordLastError(err)
+		return
+	}
+
+	active := make(map[string]struct{}, len(tasks))
+	for _, task := range tasks {
+		active[task.ID] = struct{}{}
+	}
+
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+
+	for taskID, w := range ls.writers {
+		if _, ok := active[taskID]; ok {
+			continue
+		}
+		if err := w.Close(); err != nil {
+			ls.metrics.IncrErrorCount()
+			ls.metrics.RecordLastError(err)
+		}
+		delete(ls.writers, taskID)
+	}
+
+	for taskID, r := range ls.readers {
+		if _, ok := active[taskID]; ok {
+			continue
+		}
+		if err := r.Close(); err != nil {
+			ls.metrics.IncrErrorCount()
+			ls.metrics.RecordLastError(err)
+		}
+		delete(ls.readers, taskID)
+	}
 }

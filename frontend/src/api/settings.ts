@@ -14,6 +14,73 @@ export function getSettingsApi() {
   return request.get<SettingsForm>('/settings');
 }
 
+export interface SettingsStatusChecks {
+  database_connected: boolean;
+  default_host_found: boolean;
+  default_agent_online: boolean;
+  default_agent_fresh: boolean;
+}
+
+export interface CenterRuntimeStatus {
+  pid: number;
+  version: string;
+  bind_ip: string;
+  bind_port: number;
+  bind_domain: string;
+  https_enabled: boolean;
+  access_url: string;
+  started_at: number;
+  uptime: number;
+  cpu_percent: number;
+  cpu_seconds: number;
+  memory_rss: number;
+  heap_alloc: number;
+  heap_sys: number;
+  stack_inuse: number;
+  goroutines: number;
+  open_fds: number;
+  active_sessions: number;
+  active_log_followers: number;
+}
+
+export interface AgentRuntimeStatus {
+  host_id: number;
+  host_name: string;
+  host_addr: string;
+  agent_addr: string;
+  agent_port: number;
+  agent_version: string;
+  installed: string;
+  connected: string;
+  last_heartbeat: number;
+  cpu: number;
+  memory: number;
+  mem_total: string;
+  mem_used: string;
+  disk: number;
+  boot_time: string;
+  run_time: number;
+  process_rss: number;
+  heap_alloc: number;
+  heap_sys: number;
+  stack_inuse: number;
+  goroutines: number;
+  open_fds: number;
+  active_sessions: number;
+  active_log_followers: number;
+}
+
+export interface SettingsStatus {
+  collected_at: number;
+  center: CenterRuntimeStatus;
+  agent?: AgentRuntimeStatus;
+  checks: SettingsStatusChecks;
+}
+
+export function getSettingsStatusApi() {
+  return request.get<SettingsStatus>('/settings/status');
+}
+
 export function updateSettingsApi(data: SettingsForm) {
   return request.post<{
     redirect_url: string;

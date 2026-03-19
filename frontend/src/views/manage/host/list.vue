@@ -12,6 +12,13 @@
         </template>
         {{ $t('manage.host.list.action.add') }}
       </a-button>
+      <a-button
+        type="outline"
+        style="margin-left: 12px"
+        @click="handleUpgradeAll"
+      >
+        {{ $t('manage.host.list.action.upgradeAll') }}
+      </a-button>
     </template>
     <template #agent="{ record }: { record: HostItem }">
       <div
@@ -112,6 +119,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
+  import { useConfirm } from '@/composables/confirm';
   import { HostEntity } from '@/entity/Host';
   import {
     deleteHostApi,
@@ -139,6 +147,7 @@
   }
 
   const { t } = useI18n();
+  const { confirm } = useConfirm();
   const router = useRouter();
   const termRef = ref<InstanceType<typeof SshTerminal>>();
   const editRef = ref<InstanceType<typeof HostEdit>>();
@@ -415,6 +424,30 @@
     form?.reset();
     form?.loadOptions();
     form?.show();
+  };
+
+  const handleUpgradeAll = async () => {
+    const upgradeableHosts =
+      dataRef.value?.items
+        ?.filter((item) => item.can_upgrade)
+        .map((item) => ({
+          id: item.id,
+          name: item.name || item.addr,
+        })) || [];
+
+    if (!upgradeableHosts.length) {
+      Message.info(t('manage.host.list.batchUpgrade.empty'));
+      return;
+    }
+
+    const confirmed = await confirm(
+      t('manage.host.list.batchUpgrade.confirm', {
+        count: upgradeableHosts.length,
+      })
+    );
+    if (!confirmed) return;
+
+    installAgentRef.value?.startBatchUpgrade(upgradeableHosts);
   };
 </script>
 

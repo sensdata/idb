@@ -10,6 +10,65 @@ function log() {
     echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
 }
 
+IDB_DOCKER_USER=""
+IDB_DOCKER_HOME=""
+
+function Resolve_User_Home() {
+    local username="$1"
+    local user_home=""
+
+    if command -v getent >/dev/null 2>&1; then
+        user_home=$(getent passwd "$username" 2>/dev/null | cut -d: -f6)
+    fi
+
+    if [[ -z "$user_home" ]]; then
+        user_home=$(eval echo "~${username}" 2>/dev/null)
+        if [[ "$user_home" == "~${username}" ]]; then
+            user_home=""
+        fi
+    fi
+
+    if [[ -z "$user_home" ]]; then
+        user_home=$(sudo -u "$username" -H sh -lc 'printf %s "$HOME"' 2>/dev/null)
+    fi
+
+    printf '%s\n' "$user_home"
+}
+
+function Configure_Docker_Access() {
+    if ! command -v docker >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if command docker info >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+        local docker_home
+        docker_home=$(Resolve_User_Home "$SUDO_USER")
+        if [[ -n "$docker_home" ]]; then
+            if sudo -u "$SUDO_USER" -H env HOME="$docker_home" DOCKER_CONFIG="$docker_home/.docker" docker info >/dev/null 2>&1; then
+                IDB_DOCKER_USER="$SUDO_USER"
+                IDB_DOCKER_HOME="$docker_home"
+                log "检测到 Docker 需通过用户 ${IDB_DOCKER_USER} 的上下文访问"
+                return 0
+            fi
+        fi
+    fi
+
+    log "当前环境无法连接 Docker daemon，请确认 Docker 已启动。"
+    return 1
+}
+
+function docker() {
+    if [[ -n "$IDB_DOCKER_USER" ]]; then
+        command sudo -u "$IDB_DOCKER_USER" -H env HOME="$IDB_DOCKER_HOME" DOCKER_CONFIG="$IDB_DOCKER_HOME/.docker" docker "$@"
+    else
+        command docker "$@"
+    fi
+}
+
 # 加速代理支持
 # 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
 # 或在 .env 中配置: IDB_GITHUB_PROXY=https://dl.idb.net
@@ -18,6 +77,7 @@ IDB_DEFAULT_PROXY="https://dl.idb.net"
 
 # 从 .env 读取代理配置（如果环境变量未设置）
 if [[ -z "$IDB_GITHUB_PROXY" ]]; then
+    Configure_Docker_Access >/dev/null 2>&1 || true
     _PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
     _PANEL_DIR="${_PANEL_DIR:-/var/lib/idb}"
     if [[ -f "${_PANEL_DIR}/.env" ]]; then
@@ -394,6 +454,7 @@ function Upgrade_IDB() {
 # 主函数
 function main() {
     log "======================= 开始升级 ======================="
+    Configure_Docker_Access || exit 1
     Upgrade_IDB "$1"
     log "======================= 升级完成 ======================="
 }

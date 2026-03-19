@@ -1,11 +1,12 @@
 package terminal
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/creack/pty"
@@ -39,6 +40,7 @@ type BaseSession struct {
 	outputChan chan []byte
 	// Chan for quiting
 	doneChan chan struct{}
+	doneOnce sync.Once
 }
 
 // New instance
@@ -49,9 +51,15 @@ func NewBaseSession(session string, name string, cols, rows int) *BaseSession {
 		sessionType: message.SessionTypeBash,
 		cols:        cols,
 		rows:        rows,
-		outputChan:  make(chan []byte, 1024),
+		outputChan:  make(chan []byte, 128),
 		doneChan:    make(chan struct{}),
 	}
+}
+
+func (s *BaseSession) closeDone() {
+	s.doneOnce.Do(func() {
+		close(s.doneChan)
+	})
 }
 
 func (s *BaseSession) GetType() message.SessionType {
@@ -154,7 +162,7 @@ func (s *BaseSession) Release() error {
 	// s.mutex.Lock()
 	// defer s.mutex.Unlock()
 
-	close(s.doneChan)
+	s.closeDone()
 
 	// 关闭PTY
 	if s.pty != nil {
@@ -182,7 +190,7 @@ func (s *BaseSession) trackOutput() {
 		}
 	}()
 
-	defer close(s.doneChan)
+	defer s.closeDone()
 
 	buf := make([]byte, 32*1024)
 	for {
@@ -201,9 +209,7 @@ func (s *BaseSession) trackOutput() {
 			}
 
 			if n > 0 {
-				output := string(buf[:n])
-				global.LOG.Info("output: %s", output)
-				if strings.Contains(output, "\x1b[?1049h") {
+				if bytes.Contains(buf[:n], []byte("\x1b[?1049h")) {
 					global.LOG.Warn("Detected switch to Alternate Buffer")
 				}
 				// 复制一份数据，避免buf被覆盖
@@ -223,7 +229,8 @@ func (s *BaseSession) wait() {
 		}
 	}()
 
-	if err := s.cmd.Wait(); err != nil {
-		close(s.doneChan)
+	if s.cmd != nil {
+		_ = s.cmd.Wait()
 	}
+	s.closeDone()
 }

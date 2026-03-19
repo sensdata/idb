@@ -116,6 +116,12 @@ func (a *Agent) Stop() error {
 	return nil
 }
 
+func (a *Agent) activeLogFollowerCount() int {
+	a.readerMu.RLock()
+	defer a.readerMu.RUnlock()
+	return len(a.readerDone)
+}
+
 func (a *Agent) listenToUnix() {
 	global.LOG.Info("Start listening to unix")
 
@@ -550,6 +556,14 @@ func (a *Agent) startHeartbeat(conn net.Conn, stop <-chan struct{}) {
 					heartbeat.MemTotal = s.MemTotal
 					heartbeat.MemUsed = s.MemUsed
 					heartbeat.Disk = s.Disk
+					heartbeat.ProcessRSS = s.ProcessRSS
+					heartbeat.HeapAlloc = s.HeapAlloc
+					heartbeat.HeapSys = s.HeapSys
+					heartbeat.StackInuse = s.StackInuse
+					heartbeat.Goroutines = s.Goroutines
+					heartbeat.OpenFDs = s.OpenFDs
+					heartbeat.ActiveSessions = a.sessionManager.ActiveSessionCount()
+					heartbeat.ActiveLogFollowers = a.activeLogFollowerCount()
 				}
 				if !timeout.Stop() {
 					<-timeout.C
@@ -807,7 +821,6 @@ func (a *Agent) waitForSessionOutput(conn net.Conn, session terminal.Session) {
 			global.LOG.Info("session end")
 			return
 		case output := <-session.GetOutputChan():
-			global.LOG.Info("session output: %s", string(output))
 			a.sendSessionResult(
 				conn,
 				utils.GenerateMsgId(),
