@@ -75,6 +75,23 @@ function docker() {
 # 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
 IDB_DEFAULT_PROXY="https://dl.idb.net"
 
+function Probe_HTTP_200() {
+    local url="$1"
+    local attempts="${2:-3}"
+    local i
+    local code
+
+    for ((i = 1; i <= attempts; i++)); do
+        code=$(curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "$url" 2>/dev/null)
+        if [[ "$code" == "200" ]]; then
+            return 0
+        fi
+        sleep 1
+    done
+
+    return 1
+}
+
 # 从 .env 读取代理配置（如果环境变量未设置）
 if [[ -z "$IDB_GITHUB_PROXY" ]]; then
     Configure_Docker_Access >/dev/null 2>&1 || true
@@ -110,13 +127,13 @@ function Auto_Detect_Proxy() {
     if Is_China_Region; then
         # 中国区域：优先检测代理
         log "检测到中国区域，优先检测加速代理..."
-        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest" 2>/dev/null | grep -q "200"; then
+        if Probe_HTTP_200 "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest"; then
             log "加速代理可用: ${IDB_DEFAULT_PROXY}"
             export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
             return
         fi
         log "加速代理不可用，尝试 GitHub 直连..."
-        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        if Probe_HTTP_200 "https://api.github.com/repos/sensdata/idb/releases/latest"; then
             log "GitHub 直连正常"
             return
         fi
@@ -125,12 +142,12 @@ function Auto_Detect_Proxy() {
     else
         # 非中国区域：优先检测 GitHub
         log "检测 GitHub 连通性..."
-        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        if Probe_HTTP_200 "https://api.github.com/repos/sensdata/idb/releases/latest"; then
             log "GitHub 直连正常"
             return
         fi
         log "GitHub 连接不可用，尝试加速代理..."
-        if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest" 2>/dev/null | grep -q "200"; then
+        if Probe_HTTP_200 "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest"; then
             log "加速代理可用: ${IDB_DEFAULT_PROXY}"
             export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
             return
