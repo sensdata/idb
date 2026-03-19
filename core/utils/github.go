@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -44,11 +45,15 @@ func GetLatestReleaseVersion(githubRepo string, proxyURL ...string) string {
 func fetchReleaseTag(url string) string {
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	req, err := http.NewRequest("GET", url, nil)
+	requestURL := addCacheBuster(url)
+
+	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
 		return ""
 	}
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Pragma", "no-cache")
 	req.Header.Set("User-Agent", "idb-update-checker")
 
 	resp, err := client.Do(req)
@@ -72,4 +77,16 @@ func fetchReleaseTag(url string) string {
 	}
 
 	return strings.TrimSpace(release.TagName)
+}
+
+func addCacheBuster(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+
+	query := parsed.Query()
+	query.Set("ts", fmt.Sprintf("%d", time.Now().UnixNano()))
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }

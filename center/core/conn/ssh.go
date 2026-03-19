@@ -550,6 +550,11 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 }
 
 func (s *SSHService) installLocalAgent(host model.Host, taskId string, writer *writer.Writer, agentPackagePath string, upgrade bool) error {
+	if os.Getuid() != 0 {
+		taskLog(writer, types.LogLevelError, "Local agent operations require root privileges")
+		taskStatus(taskId, types.TaskStatusFailed)
+		return fmt.Errorf("local agent install requires root privileges")
+	}
 	taskLog(writer, types.LogLevelInfo, "Default host detected, using local execution")
 
 	stepStart := logTaskStepStart(writer, "Checking local agent installation status")
@@ -619,6 +624,11 @@ func (s *SSHService) installLocalAgent(host model.Host, taskId string, writer *w
 }
 
 func (s *SSHService) uninstallLocalAgent(host model.Host, taskId string, writer *writer.Writer) error {
+	if os.Getuid() != 0 {
+		taskLog(writer, types.LogLevelError, "Local agent operations require root privileges")
+		taskStatus(taskId, types.TaskStatusFailed)
+		return fmt.Errorf("local agent uninstall requires root privileges")
+	}
 	taskLog(writer, types.LogLevelInfo, "Default host detected, using local execution")
 
 	stepStart := logTaskStepStart(writer, "Checking local agent installation status")
