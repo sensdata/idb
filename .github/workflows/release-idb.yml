@@ -49,7 +49,7 @@ jobs:
           node-version: '24'
 
       - name: Ensure openssl is installed
-        run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
+        run: which openssl || (sudo apt-get update && sudo apt-get install -y openssl)
 
       - name: Generate keys and certs
         run: |
