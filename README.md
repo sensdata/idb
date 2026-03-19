@@ -77,12 +77,47 @@ make deploy
 - 安装并重启 `center` 服务
 - 安装并重启 `agent` 服务
 
+`make deploy` 基于当前工作区代码进行构建和安装，不要求必须位于 `main` 分支。
+如果当前检出的是开发分支，则部署出去的也是该开发分支当前提交的代码。
+
 首次部署时会生成管理员密码并在终端输出一次，同时写入：
 `/etc/idb/idb.env`（`PASSWORD=...`，权限 `600`）
 
 如果错过首次输出，可执行：
 ```bash
 sudo grep '^PASSWORD=' /etc/idb/idb.env
+```
+
+建议：
+- 在测试机上可直接切到开发分支执行 `make deploy` 验证功能。
+- `make deploy` 会直接覆盖本机已安装的 `idb` / `idb-agent` 服务，请勿在生产机上随意部署开发分支。
+- 部署时默认复用现有数据目录与数据库；若涉及 migration、认证或配置结构变更，建议先备份 `/var/lib/idb/data` 与 `/etc/idb`。
+
+### 在开发分支测试 `make deploy`
+
+可直接在测试机上切换到目标开发分支后执行 `make deploy`，不要求必须位于 `main`。
+
+```bash
+git fetch origin
+git switch your-branch
+git pull
+make deploy
+```
+
+部署完成后，建议至少验证以下内容：
+
+```bash
+sudo systemctl status idb --no-pager -l
+sudo systemctl status idb-agent --no-pager -l
+sudo journalctl -u idb -n 100 --no-pager
+sudo tail -n 100 /var/log/idb-agent/idb-agent.log
+```
+
+如果需要确认当前机器实际部署的是哪个分支版本，可在执行 `make deploy` 前后检查：
+
+```bash
+git branch --show-current
+git rev-parse --short HEAD
 ```
 
 ---

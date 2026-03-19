@@ -3,6 +3,7 @@ export default {
   'manage.host.enum.auth_mode.private_key': 'Private Key',
 
   'manage.host.list.action.add': 'Add Host',
+  'manage.host.list.action.upgradeAll': 'Upgrade All Agents',
   'manage.host.list.column.name': 'Host Name',
   'manage.host.list.column.addr': 'Host Address',
   'manage.host.list.column.group_name': 'Group',
@@ -75,11 +76,14 @@ export default {
   'manage.host.installAgent.installSuccess': 'Agent installed successfully',
   'manage.host.installAgent.installFailed': 'Failed to install agent',
   'manage.host.installAgent.installTimeout': 'Agent installation timeout',
+  'manage.host.installAgent.upgradeSuccess': 'Agent upgraded successfully',
   'manage.host.installAgent.upgradeFailed': 'Failed to upgrade agent',
   'manage.host.installAgent.upgradeTimeout': 'Agent upgrade timeout',
+  'manage.host.installAgent.logConnectionFailed': 'Failed to connect logs',
   'manage.host.installAgent.notInstalled': 'Agent not detected, install now?',
   'manage.host.installAgent.title': 'Install Agent',
   'manage.host.installAgent.titleUpgrade': 'Upgrade Agent',
+  'manage.host.installAgent.titleBatchUpgrade': 'Batch Upgrade Agents',
   'manage.host.installAgent.statusInstalling': 'Installing',
   'manage.host.installAgent.statusCompleted': 'Completed',
   'manage.host.installAgent.statusFailed': 'Failed',
@@ -94,6 +98,21 @@ export default {
 
   'manage.host.list.operation.upgradeAgent.confirm':
     'Are you sure you want to upgrade the agent on this host?',
+  'manage.host.list.batchUpgrade.confirm': 'Upgrade agents on {count} hosts?',
+  'manage.host.list.batchUpgrade.empty': 'There are no upgradeable agents',
+  'manage.host.list.batchUpgrade.start':
+    'Starting batch upgrade for {count} hosts',
+  'manage.host.list.batchUpgrade.processing':
+    'Starting upgrade for host {name}',
+  'manage.host.list.batchUpgrade.itemSuccess':
+    'Host {name} upgraded successfully',
+  'manage.host.list.batchUpgrade.itemFailed': 'Failed to upgrade host {name}',
+  'manage.host.list.batchUpgrade.summary':
+    'Batch upgrade finished, success: {success}, failed: {failed}',
+  'manage.host.list.batchUpgrade.done':
+    'Batch upgrade finished, {count} hosts succeeded',
+  'manage.host.list.batchUpgrade.doneWithFailure':
+    'Batch upgrade finished, success: {success}, failed: {failed}',
 
   'manage.host.group.form.title.create': 'Add Group',
   'manage.host.group.form.title.edit': 'Edit Group',

@@ -10,6 +10,17 @@ export interface ApiResponse<T = unknown> {
   data?: T;
 }
 
+function resolveErrorMessage(response: AxiosResponse<ApiResponse>) {
+  const { data, statusText } = response;
+  if (typeof data?.data === 'string' && data.data.trim()) {
+    return data.data.trim();
+  }
+  if (data?.message) {
+    return String(data.message);
+  }
+  return statusText;
+}
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -85,11 +96,8 @@ axios.interceptors.response.use(
       return response.data.data;
     }
 
-    // 构造错误并保留原始响应，便于组件读取 data
-    const msg =
-      response.data && response.data.message
-        ? String(response.data.message)
-        : response.statusText;
+    // 优先向用户暴露后端返回的具体错误详情。
+    const msg = resolveErrorMessage(response);
     const err: any = new Error(msg);
     err.response = response; // 附带完整响应
     return Promise.reject(err);
@@ -107,10 +115,8 @@ axios.interceptors.response.use(
       }
       return Promise.reject(new Error(t('common.request.unauthorized')));
     }
-    if (error?.response?.data?.message) {
-      // 保留原始的 response 对象，以便组件可以访问完整的错误信息（包括 data 字段）
-      // 创建一个新的 Error 对象，但保留原始的 response
-      const err = new Error(error.response.data.message);
+    if (error?.response?.data) {
+      const err = new Error(resolveErrorMessage(error.response));
       (err as any).response = error.response;
       return Promise.reject(err);
     }
