@@ -101,4 +101,43 @@ export default {
 
   // Common Commands
   'components.terminal.commands.title': 'Common Commands',
+  'components.terminal.commands.categories.docker': 'Docker / Compose',
+  'components.terminal.commands.categories.system': 'System Checks',
+  'components.terminal.commands.categories.updates': 'System Updates',
+  'components.terminal.commands.categories.logs': 'Logs & Connectivity',
+  'components.terminal.commands.items.dockerPs': 'List containers',
+  'components.terminal.commands.items.dockerComposePs':
+    'Show Compose service status',
+  'components.terminal.commands.items.dockerComposeLogs': 'Follow Compose logs',
+  'components.terminal.commands.items.dockerLogs': 'Follow container logs',
+  'components.terminal.commands.items.dockerInspect':
+    'Inspect container details',
+  'components.terminal.commands.items.systemLoad': 'Check system load',
+  'components.terminal.commands.items.systemMemory': 'Check memory usage',
+  'components.terminal.commands.items.systemDisk': 'Check disk usage',
+  'components.terminal.commands.items.systemFailed':
+    'List failed systemd services',
+  'components.terminal.commands.items.systemPorts': 'Show listening ports',
+  'components.terminal.commands.items.updatesRefresh':
+    'Refresh package indexes',
+  'components.terminal.commands.items.updatesList': 'List upgradable packages',
+  'components.terminal.commands.items.updatesUpgrade':
+    'Upgrade installed packages',
+  'components.terminal.commands.items.updatesFullUpgrade':
+    'Run full system upgrade',
+  'components.terminal.commands.items.updatesAutoStatus':
+    'Check unattended-upgrades service status',
+  'components.terminal.commands.items.updatesAutoConfig':
+    'Edit auto-upgrade toggle config',
+  'components.terminal.commands.items.updatesAutoEnable':
+    'Configure unattended-upgrades',
+  'components.terminal.commands.items.logsJournalFollow':
+    'Follow system logs in real time',
+  'components.terminal.commands.items.logsServiceDetail':
+    'Show recent system error logs',
+  'components.terminal.commands.items.logsKernel': 'Show recent kernel logs',
+  'components.terminal.commands.items.logsCurlHealth':
+    'Probe local HTTP service',
+  'components.terminal.commands.items.logsPingGateway':
+    'Test outbound connectivity',
 };

@@ -90,4 +90,35 @@ export default {
 
   // 常用命令
   'components.terminal.commands.title': '常用命令',
+  'components.terminal.commands.categories.docker': 'Docker / Compose',
+  'components.terminal.commands.categories.system': '系统巡检',
+  'components.terminal.commands.categories.updates': '系统更新',
+  'components.terminal.commands.categories.logs': '日志与连通性',
+  'components.terminal.commands.items.dockerPs': '查看容器列表',
+  'components.terminal.commands.items.dockerComposePs': '查看 Compose 服务状态',
+  'components.terminal.commands.items.dockerComposeLogs':
+    '持续查看 Compose 日志',
+  'components.terminal.commands.items.dockerLogs': '持续查看容器日志',
+  'components.terminal.commands.items.dockerInspect': '查看容器详细信息',
+  'components.terminal.commands.items.systemLoad': '查看系统负载',
+  'components.terminal.commands.items.systemMemory': '查看内存使用',
+  'components.terminal.commands.items.systemDisk': '查看磁盘使用',
+  'components.terminal.commands.items.systemFailed': '查看失败的 systemd 服务',
+  'components.terminal.commands.items.systemPorts': '查看监听端口',
+  'components.terminal.commands.items.updatesRefresh': '刷新软件包索引',
+  'components.terminal.commands.items.updatesList': '查看可升级软件包',
+  'components.terminal.commands.items.updatesUpgrade': '升级已安装软件包',
+  'components.terminal.commands.items.updatesFullUpgrade': '执行完整系统升级',
+  'components.terminal.commands.items.updatesAutoStatus':
+    '查看自动安全升级服务状态',
+  'components.terminal.commands.items.updatesAutoConfig':
+    '编辑自动升级开关配置',
+  'components.terminal.commands.items.updatesAutoEnable':
+    '配置 unattended-upgrades',
+  'components.terminal.commands.items.logsJournalFollow': '实时跟踪系统日志',
+  'components.terminal.commands.items.logsServiceDetail':
+    '查看最近系统错误日志',
+  'components.terminal.commands.items.logsKernel': '查看最近内核日志',
+  'components.terminal.commands.items.logsCurlHealth': '探测本机 HTTP 服务',
+  'components.terminal.commands.items.logsPingGateway': '测试外网连通性',
 };
