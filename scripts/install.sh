@@ -137,7 +137,7 @@ function Prepare_Download_Env() {
 }
 
 function Detect_Version() {
-    VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
     if [[ -z "${VERSION}" ]]; then
         log "获取最新版本失败"
         exit 1
