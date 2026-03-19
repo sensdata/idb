@@ -200,7 +200,7 @@ idb/
 ### 前端开发
 
 1. **环境要求**
-   - Node.js 18+ 
+   - Node.js 24 LTS
    - npm 或 yarn
 
 2. **安装依赖**
