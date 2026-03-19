@@ -245,8 +245,23 @@ function Migrate_Docker_Install() {
     [[ -z "${log_dir}" ]] && log_dir="${IDB_LOG_DIR}"
     [[ -z "${conf_dir}" ]] && conf_dir="${IDB_CONF_DIR}"
 
+    local old_image
+    old_image=$(docker inspect --format '{{.Config.Image}}' idb 2>/dev/null || true)
+
+    local old_env="${panel_dir}/.env"
+    local old_host old_port
+    if [[ -f "${old_env}" ]]; then
+        old_host=$(grep '^iDB_service_host_ip=' "${old_env}" 2>/dev/null | cut -d'=' -f2)
+        old_port=$(grep '^iDB_service_port=' "${old_env}" 2>/dev/null | cut -d'=' -f2)
+    fi
+
     docker stop -t 30 idb >/dev/null 2>&1 || docker kill idb >/dev/null 2>&1 || true
     docker rm -f idb >/dev/null 2>&1 || true
+
+    if [[ -n "${old_image}" ]]; then
+        docker rmi "${old_image}" 2>/dev/null || true
+        log "已清理旧版 Docker 镜像: ${old_image}"
+    fi
 
     if [[ -d "${conf_dir}" && "${conf_dir}" != "${IDB_CONF_DIR}" ]]; then
         log "迁移配置目录: ${conf_dir} -> ${IDB_CONF_DIR}"
@@ -264,6 +279,15 @@ function Migrate_Docker_Install() {
     fi
 
     rm -f "${panel_dir}/docker-compose.yaml" "${panel_dir}/.env"
+
+    if [[ -n "${old_host:-}" ]]; then
+        Ensure_Config_Value "${IDB_CONF_DIR}/idb.conf" "host" "${old_host}"
+        log "迁移 host 配置: ${old_host}"
+    fi
+    if [[ -n "${old_port:-}" ]]; then
+        Ensure_Config_Value "${IDB_CONF_DIR}/idb.conf" "port" "${old_port}"
+        log "迁移 port 配置: ${old_port}"
+    fi
 }
 
 function Ensure_Config_Value() {

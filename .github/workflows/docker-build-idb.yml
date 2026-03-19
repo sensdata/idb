@@ -80,14 +80,14 @@ jobs:
             cd "plugins/$p"
             go mod download
             GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
-              -ldflags="-s -w -X 'main.Version=${VERSION_TAG}'" \
+              -ldflags="-s -w -X 'main.Version=${{ env.VERSION_TAG }}'" \
               -o "../../dist/plugins/$p"
             cd - >/dev/null
           done
           cd plugins/rsync
           go mod download
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
-            -ldflags="-s -w -X 'main.Version=${VERSION_TAG}'" \
+            -ldflags="-s -w -X 'main.Version=${{ env.VERSION_TAG }}'" \
             -o ../../dist/plugins/idb-rsync
 
       - name: Package center bundle

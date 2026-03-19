@@ -313,7 +313,9 @@ function Show_Result() {
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "外网地址: http://${PUBLIC_IP}:9918"
+    if [[ "${PUBLIC_IP}" != "N/A" ]]; then
+        log "外网地址: http://${PUBLIC_IP}:9918"
+    fi
     log "内网地址: http://${LOCAL_IP}:9918"
     log "初始用户: admin"
     log "初始密码: ${password_display}"
