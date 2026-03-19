@@ -21,6 +21,8 @@ TMP_DIR="/tmp/idb-upgrade"
 
 IDB_DOCKER_USER=""
 IDB_DOCKER_HOME=""
+AGENT_INSTALL_FAILED="false"
+AGENT_INSTALL_ERROR=""
 
 function log() {
     message="[idb Log]: $1 "
@@ -356,7 +358,7 @@ function Install_Agent() {
 
     if [[ ! -f "${agent_dir}/idb-agent" || ! -f "${agent_dir}/install-agent.sh" || ! -f "${agent_dir}/idb-agent.conf" ]]; then
         log "agent 安装包内容不完整"
-        exit 1
+        return 1
     fi
 
     cp "${TMP_DIR}/${AGENT_PKG}" "${IDB_AGENT_DIR}/idb-agent.tar.gz"
@@ -371,6 +373,14 @@ function Install_Agent() {
         cd "${agent_dir}"
         bash ./install-agent.sh
     )
+}
+
+function Install_Agent_With_Warning() {
+    if ! Install_Agent; then
+        AGENT_INSTALL_FAILED="true"
+        AGENT_INSTALL_ERROR="本机 agent 安装/升级失败，center 已保留运行，请稍后在面板内重试或检查本机安装环境"
+        log "${AGENT_INSTALL_ERROR}"
+    fi
 }
 
 function Ensure_Admin_Env() {
@@ -390,6 +400,7 @@ function Cleanup() {
 }
 
 function main() {
+    trap Cleanup EXIT
     log "======================= 开始升级 ======================="
     Check_Root
     Auto_Detect_Proxy
@@ -403,10 +414,12 @@ function main() {
     Ensure_Admin_Env
     Install_Center
     Generate_Certs_If_Missing
-    Install_Agent
     Start_Services
-    Cleanup
+    Install_Agent_With_Warning
     log "升级完成，版本：${VERSION}"
+    if [[ "${AGENT_INSTALL_FAILED}" == "true" ]]; then
+        log "升级结果：center 已升级并启动，本机 agent 需要后续处理"
+    fi
     log "======================= 升级完成 ======================="
 }
 

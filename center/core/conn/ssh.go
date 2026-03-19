@@ -578,14 +578,14 @@ func (s *SSHService) installLocalAgent(host model.Host, taskId string, writer *w
 
 	stepStart = logTaskStepStart(writer, "Unpacking and installing agent locally")
 	installCmd := fmt.Sprintf(`
-		sudo mkdir -p /tmp/idb-agent &&
-		sudo rm -rf /tmp/idb-agent/* &&
-		sudo tar -xzvf %q -C /tmp/idb-agent &&
+		mkdir -p /tmp/idb-agent &&
+		rm -rf /tmp/idb-agent/* &&
+		tar -xzvf %q -C /tmp/idb-agent &&
 		cd /tmp/idb-agent &&
-		sudo sed -i "s#port=.*#port=%d#" idb-agent.conf &&
-		sudo sed -i "s#secret_key=.*#secret_key=%s#" idb-agent.conf &&
-		sudo sh install-agent.sh &&
-		sudo rm -rf /tmp/idb-agent
+		sed -i "s#port=.*#port=%d#" idb-agent.conf &&
+		sed -i "s#secret_key=.*#secret_key=%s#" idb-agent.conf &&
+		bash ./install-agent.sh &&
+		rm -rf /tmp/idb-agent
 	`, agentPackagePath, host.AgentPort, host.AgentKey)
 	output, err = executeLocalCommandWithTimeout(installCmd, installCommandTimeout)
 	if err != nil {
@@ -647,27 +647,17 @@ func (s *SSHService) uninstallLocalAgent(host model.Host, taskId string, writer 
 
 	stepStart = logTaskStepStart(writer, "Uninstalling local agent service")
 	uninstallCmd := `
-		if ! sudo -n true 2>/dev/null; then
-			echo "no_sudo_access"
-			exit 1
-		fi &&
-		(sudo systemctl stop idb-agent.service || true) &&
-		(sudo systemctl disable idb-agent.service || true) &&
-		sudo rm -f /etc/systemd/system/idb-agent.service &&
-		sudo rm -rf /var/lib/idb-agent &&
-		sudo rm -rf /etc/idb-agent &&
-		sudo rm -rf /var/log/idb-agent &&
-		sudo rm -rf /run/idb-agent &&
-		sudo systemctl daemon-reload
+		(systemctl stop idb-agent.service || true) &&
+		(systemctl disable idb-agent.service || true) &&
+		rm -f /etc/systemd/system/idb-agent.service &&
+		rm -rf /var/lib/idb-agent &&
+		rm -rf /etc/idb-agent &&
+		rm -rf /var/log/idb-agent &&
+		rm -rf /run/idb-agent &&
+		systemctl daemon-reload
 	`
 	output, err = executeLocalCommandWithTimeout(uninstallCmd, installCommandTimeout)
 	if err != nil {
-		if strings.Contains(output, "no_sudo_access") {
-			global.LOG.Error("No sudo access on host %s", host.Addr)
-			taskLog(writer, types.LogLevelError, fmt.Sprintf("No sudo access on host %s", host.Addr))
-			taskStatus(taskId, types.TaskStatusFailed)
-			return fmt.Errorf("no sudo access on host %s", host.Addr)
-		}
 		global.LOG.Error("Failed to uninstall local agent on host %s: %v", host.Addr, err)
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to uninstall local agent on host %s: %v", host.Addr, err))
 		taskStatus(taskId, types.TaskStatusFailed)
