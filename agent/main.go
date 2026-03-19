@@ -23,7 +23,7 @@ var app = &cli.App{
 	Authors: []cli.Author{
 		{
 			Name:  "iDB Dev Team",
-			Email: "idb@sensdata.com",
+			Email: "idb@idb.net",
 		},
 	},
 	Description: `idb-agent is a proxy service running on the local server 

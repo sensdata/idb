@@ -321,8 +321,6 @@ func (c *Center) checkHostStatus(host *model.Host) {
 }
 
 func (c *Center) handleHost(host *model.Host) {
-	global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
-
 	c.hostStateMu.Lock()
 	st := c.hostStates[host.ID]
 	if st == nil {
@@ -348,6 +346,7 @@ func (c *Center) handleHost(host *model.Host) {
 	// 查找agent conn
 	conn, err := c.getAgentConn(host)
 	if err != nil || conn == nil {
+		global.LOG.Info("Ensure connection for host %d - %s", host.ID, host.Addr)
 		// 连接
 		resultCh := make(chan error, 1)
 		c.connectToAgent(host, resultCh)
@@ -1656,7 +1655,12 @@ func (c *Center) upgrade() error {
 
 	// 创建消息
 	githubRepo := CONFMAN.GetConfig().GithubRepo
-	cmd := fmt.Sprintf("curl -sSL https://github.com/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", githubRepo, newVersion, newVersion)
+	githubProxy := CONFMAN.GetConfig().GithubProxy
+	downloadBase := "https://github.com"
+	if githubProxy != "" {
+		downloadBase = strings.TrimRight(githubProxy, "/") + "/github-releases"
+	}
+	cmd := fmt.Sprintf("curl -sSL %s/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", downloadBase, githubRepo, newVersion, newVersion)
 
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(
@@ -1686,7 +1690,8 @@ func (c *Center) getLatestVersion() string {
 		return ""
 	}
 	global.LOG.Info("Getting latest version from GitHub: %s", githubRepo)
-	latest := utils.GetLatestReleaseVersion(githubRepo)
+	githubProxy := CONFMAN.GetConfig().GithubProxy
+	latest := utils.GetLatestReleaseVersion(githubRepo, githubProxy)
 	if latest == "" {
 		global.LOG.Error("Failed to get latest version from GitHub")
 		return ""

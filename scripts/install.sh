@@ -22,6 +22,42 @@ EOF
 
 log "======================= 开始安装 ======================="
 
+# 加速代理支持
+# 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash install.sh
+# 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
+IDB_DEFAULT_PROXY="https://dl.idb.net"
+
+function Auto_Detect_Proxy() {
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "使用指定代理: ${IDB_GITHUB_PROXY}"
+        return
+    fi
+
+    log "检测 GitHub 连通性..."
+    local github_ok=false
+    if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        github_ok=true
+    fi
+
+    if [[ "$github_ok" == "true" ]]; then
+        log "GitHub 直连正常"
+    else
+        log "GitHub 连接超时或不可用，自动切换到加速代理: ${IDB_DEFAULT_PROXY}"
+        export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+    fi
+}
+
+Auto_Detect_Proxy
+
+GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
+GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
+GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
+GITHUB_RELEASES_URL="${GITHUB_RELEASES_URL:-https://github.com}"
+
+if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+    log "使用加速代理: ${IDB_GITHUB_PROXY}"
+fi
+
 function Check_Root() {
     if [[ $EUID -ne 0 ]]; then
         log "请使用 root 或 sudo 权限运行此脚本"
@@ -139,27 +175,41 @@ function Install_Compose(){
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 Docker Compose 插件"
 
-        mkdir -p ~/.docker/cli-plugins
-        COMPOSE_VERSION="v2.26.1"
-        OS=$(uname | tr '[:upper:]' '[:lower:]')
-        ARCH=$(uname -m)
-        case "$ARCH" in
-            x86_64) ARCH="amd64";;
-            aarch64|arm64) ARCH="arm64";;
-            armv7l) ARCH="armv7";;
-            *) log "不支持的架构 $ARCH"; exit 1;;
-        esac
+        if command -v apt-get >/dev/null 2>&1; then
+            log "尝试通过 apt 安装 docker-compose-plugin..."
+            apt-get update 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            apt-get install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        elif command -v dnf >/dev/null 2>&1; then
+            log "尝试通过 dnf 安装 docker-compose-plugin..."
+            dnf install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        elif command -v yum >/dev/null 2>&1; then
+            log "尝试通过 yum 安装 docker-compose-plugin..."
+            yum install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        fi
 
-        COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
+        if ! docker compose version >/dev/null 2>&1; then
+            mkdir -p ~/.docker/cli-plugins
+            COMPOSE_VERSION="v2.26.1"
+            OS=$(uname | tr '[:upper:]' '[:lower:]')
+            ARCH=$(uname -m)
+            case "$ARCH" in
+                x86_64) ARCH="amd64";;
+                aarch64|arm64) ARCH="arm64";;
+                armv7l) ARCH="armv7";;
+                *) log "不支持的架构 $ARCH"; exit 1;;
+            esac
 
-        log "下载 docker compose 插件..."
-        curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
-            log "docker compose 下载失败"
-            exit 1
-        }
+            COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
 
-        chmod +x ~/.docker/cli-plugins/docker-compose
-        ln -sf ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+            log "包管理器安装失败，回退到二进制下载: ${COMPOSE_URL}"
+            curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
+                log "docker compose 下载失败，请检查网络，或先手动安装 docker-compose-plugin 后重试"
+                exit 1
+            }
+
+            chmod +x ~/.docker/cli-plugins/docker-compose
+            ln -sf ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+        fi
 
         docker compose version >/dev/null 2>&1 || {
             log "Docker Compose 插件安装失败"
@@ -373,7 +423,7 @@ function Set_Container_Port(){
 function Pull_Image_From_GitHub() {
     local VERSION="$1"
     local IMAGE_TAR="idb_image_${VERSION}.tar"
-    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+    local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
 
     log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
     curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
@@ -402,7 +452,7 @@ function Pull_Image_From_GitHub() {
 
 function Install_IDB() {
     # 获取版本号
-    VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    VERSION=$(curl -s ${GITHUB_API_URL}/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
 
     if [[ "x${VERSION}" == "x" ]];then
         log "获取最新版本失败，请稍候重试"
@@ -412,8 +462,8 @@ function Install_IDB() {
     # 下载 .env和docker-compose.yaml 到 PANEL_DIR 中
     # .env 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
     # docker-compose.yaml 地址: "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
-    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
-    DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
+    ENV_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/idb.env"
+    DOCKER_COMPOSE_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
 
     log "正在下载 .env 文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env" 2>&1 | tee -a ${CURRENT_DIR}/install.log
@@ -561,8 +611,8 @@ function Show_Result(){
     log "初始用户: admin"
     log "初始密码: ${ADMIN_PASS}"
     log ""
-    log "项目官网: https://idb.sensdata.com"
-    log "项目文档: https://idb.sensdata.com/docs"
+    log "项目官网: https://idb.net"
+    log "项目文档: https://idb.net/docs"
     log "代码仓库: https://github.com/sensdata/idb"
     log ""
     log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"

@@ -9,11 +9,11 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "https://static.sensdata.com/terms/",
+        "termsOfService": "https://idb.net/terms",
         "contact": {
             "name": "API Support",
-            "url": "https://static.sensdata.com/support",
-            "email": "support@sensdata.com"
+            "url": "https://idb.net/support",
+            "email": "support@idb.net"
         },
         "license": {
             "name": "Apache 2.0",

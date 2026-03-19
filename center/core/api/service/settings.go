@@ -61,7 +61,8 @@ func getLatestVersion() string {
 		return ""
 	}
 	global.LOG.Info("Getting latest version from GitHub: %s", githubRepo)
-	latest := utils.GetLatestReleaseVersion(githubRepo)
+	githubProxy := conn.CONFMAN.GetConfig().GithubProxy
+	latest := utils.GetLatestReleaseVersion(githubRepo, githubProxy)
 	if latest == "" {
 		global.LOG.Error("Failed to get latest version from GitHub")
 		return ""
@@ -709,7 +710,12 @@ func (s *SettingsService) Upgrade() error {
 
 	// 创建消息
 	githubRepo := conn.CONFMAN.GetConfig().GithubRepo
-	cmd := fmt.Sprintf("curl -sSL https://github.com/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", githubRepo, newVersion, newVersion)
+	githubProxy := conn.CONFMAN.GetConfig().GithubProxy
+	downloadBase := "https://github.com"
+	if githubProxy != "" {
+		downloadBase = strings.TrimRight(githubProxy, "/") + "/github-releases"
+	}
+	cmd := fmt.Sprintf("curl -sSL %s/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", downloadBase, githubRepo, newVersion, newVersion)
 
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(

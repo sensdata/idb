@@ -13,9 +13,10 @@ import (
 
 // Config定义
 type CenterConfig struct {
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	GithubRepo string `json:"github_repo"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	GithubRepo  string `json:"github_repo"`
+	GithubProxy string `json:"github_proxy"`
 }
 
 // Manager定义
@@ -121,6 +122,8 @@ func (m *Manager) loadConfig() error {
 			config.Port = portValue
 		case "github_repo":
 			config.GithubRepo = value
+		case "github_proxy":
+			config.GithubProxy = value
 		case "latest":
 			// 向后兼容：忽略旧版本的 latest 配置项
 			continue
@@ -202,6 +205,12 @@ func (m *Manager) saveConfig() error {
 		// 写入 github_repo（如果非空）
 		if m.config.GithubRepo != "" {
 			if _, err := fmt.Fprintf(file, "github_repo=%s\n", m.config.GithubRepo); err != nil {
+				return err
+			}
+		}
+		// 写入 github_proxy（如果非空）
+		if m.config.GithubProxy != "" {
+			if _, err := fmt.Fprintf(file, "github_proxy=%s\n", m.config.GithubProxy); err != nil {
 				return err
 			}
 		}

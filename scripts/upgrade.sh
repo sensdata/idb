@@ -10,6 +10,53 @@ function log() {
     echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
 }
 
+# 加速代理支持
+# 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
+# 或在 .env 中配置: IDB_GITHUB_PROXY=https://dl.idb.net
+# 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
+IDB_DEFAULT_PROXY="https://dl.idb.net"
+
+# 从 .env 读取代理配置（如果环境变量未设置）
+if [[ -z "$IDB_GITHUB_PROXY" ]]; then
+    _PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
+    _PANEL_DIR="${_PANEL_DIR:-/var/lib/idb}"
+    if [[ -f "${_PANEL_DIR}/.env" ]]; then
+        IDB_GITHUB_PROXY=$(grep "^IDB_GITHUB_PROXY=" "${_PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
+    fi
+    unset _PANEL_DIR
+fi
+
+function Auto_Detect_Proxy() {
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "使用指定代理: ${IDB_GITHUB_PROXY}"
+        return
+    fi
+
+    log "检测 GitHub 连通性..."
+    local github_ok=false
+    if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        github_ok=true
+    fi
+
+    if [[ "$github_ok" == "true" ]]; then
+        log "GitHub 直连正常"
+    else
+        log "GitHub 连接超时或不可用，自动切换到加速代理: ${IDB_DEFAULT_PROXY}"
+        export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+    fi
+}
+
+Auto_Detect_Proxy
+
+GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
+GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
+GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
+GITHUB_RELEASES_URL="${GITHUB_RELEASES_URL:-https://github.com}"
+
+if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+    log "使用加速代理: ${IDB_GITHUB_PROXY}"
+fi
+
 # 备份数据（PANEL_DIR 由调用方提前设置）
 function Backup_Data() {
     local BACKUP_DIR="/tmp/idb-cache"
@@ -133,7 +180,7 @@ function Restore_Data() {
 function Pull_Image_From_GitHub() {
     local VERSION="$1"
     local IMAGE_TAR="idb_image_${VERSION}.tar"
-    local DOWNLOAD_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
+    local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
 
     log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
     curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
@@ -166,7 +213,7 @@ function Upgrade_IDB() {
     # 优先使用传入的版本号，否则获取最新版本
     VERSION="${1}"
     if [[ -z "$VERSION" ]]; then
-        VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+        VERSION=$(curl -s ${GITHUB_API_URL}/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
         if [[ -z "$VERSION" ]]; then
             log "获取最新版本失败"
             exit 1
@@ -182,8 +229,8 @@ function Upgrade_IDB() {
     fi
     
     # 下载新版本配置文件（在停容器之前下载到临时位置）
-    ENV_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env"
-    DOCKER_COMPOSE_URL="https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
+    ENV_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/idb.env"
+    DOCKER_COMPOSE_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
     
     log "下载新版本配置文件..."
     curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"

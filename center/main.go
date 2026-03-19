@@ -2,11 +2,11 @@
 // @title IDB API Documentation
 // @version 1.0
 // @description This is the API documentation for idb application.
-// @termsOfService https://static.sensdata.com/terms/
+// @termsOfService https://idb.net/terms
 
 // @contact.name API Support
-// @contact.url https://static.sensdata.com/support
-// @contact.email support@sensdata.com
+// @contact.url https://idb.net/support
+// @contact.email support@idb.net
 
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,7 +49,7 @@ var app = &cli.App{
 	Authors: []cli.Author{
 		{
 			Name:  "iDB Dev Team",
-			Email: "idb@sensdata.com",
+			Email: "idb@idb.net",
 		},
 	},
 	Description: `idb is a centralized management platform for remote servers.
