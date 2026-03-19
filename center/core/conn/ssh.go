@@ -1,11 +1,13 @@
 package conn
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -321,6 +323,10 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		return fmt.Errorf("agent package not found at %s", agentPackagePath)
 	}
 
+	if host.IsDefault {
+		return s.installLocalAgent(host, taskId, writer, agentPackagePath, upgrade)
+	}
+
 	// 3. 拿 SSH 连接（如果连接池中没有，则主动建立连接）
 	stepStart := logTaskStepStart(writer, "Checking SSH connection")
 	client, err := s.getClient(host)
@@ -449,6 +455,10 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	global.LOG.Info("Uninstall agent in host %s begin", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s begin", host.Addr))
 
+	if host.IsDefault {
+		return s.uninstallLocalAgent(host, taskId, writer)
+	}
+
 	// 1. 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
 	stepStart := logTaskStepStart(writer, "Checking SSH connection")
 	client, err := s.getClient(host)
@@ -530,6 +540,146 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	taskStatus(taskId, types.TaskStatusSuccess)
 
 	// 更新host和安装状态
+	notInstalled := "not installed"
+	hostStatus := core.NewHostStatusInfo()
+	hostStatus.Installed = notInstalled
+	global.SetHostStatus(host.ID, hostStatus)
+	global.SetInstalledStatus(host.ID, &notInstalled)
+
+	return nil
+}
+
+func (s *SSHService) installLocalAgent(host model.Host, taskId string, writer *writer.Writer, agentPackagePath string, upgrade bool) error {
+	taskLog(writer, types.LogLevelInfo, "Default host detected, using local execution")
+
+	stepStart := logTaskStepStart(writer, "Checking local agent installation status")
+	checkCmd := `
+		if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
+			echo "installed"
+		else
+			echo "not installed"
+		fi
+	`
+	output, err := executeLocalCommandWithTimeout(checkCmd, 10*time.Second)
+	if err != nil {
+		global.LOG.Error("Failed to check local agent installation status on host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to check local agent installation status on host %s: %v", host.Addr, err))
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return fmt.Errorf("failed to check local agent installation status: %v", err)
+	}
+	logTaskStepDone(writer, stepStart, "Local agent installation status checked in %s")
+
+	if !upgrade && strings.TrimSpace(output) == "installed" {
+		global.LOG.Info("Agent is already installed on host %s", host.Addr)
+		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Agent is already installed on host %s", host.Addr))
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return nil
+	}
+
+	stepStart = logTaskStepStart(writer, "Unpacking and installing agent locally")
+	installCmd := fmt.Sprintf(`
+		sudo mkdir -p /tmp/idb-agent &&
+		sudo rm -rf /tmp/idb-agent/* &&
+		sudo tar -xzvf %q -C /tmp/idb-agent &&
+		cd /tmp/idb-agent &&
+		sudo sed -i "s#port=.*#port=%d#" idb-agent.conf &&
+		sudo sed -i "s#secret_key=.*#secret_key=%s#" idb-agent.conf &&
+		sudo sh install-agent.sh &&
+		sudo rm -rf /tmp/idb-agent
+	`, agentPackagePath, host.AgentPort, host.AgentKey)
+	output, err = executeLocalCommandWithTimeout(installCmd, installCommandTimeout)
+	if err != nil {
+		global.LOG.Error("Failed to install local agent on host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to install local agent on host %s: %v", host.Addr, err))
+		taskStatus(taskId, types.TaskStatusFailed)
+		return fmt.Errorf("failed to install local agent: %v", err)
+	}
+	logTaskStepDone(writer, stepStart, "Local agent install command completed in %s")
+
+	global.LOG.Info("Local agent installation output: %s", output)
+	global.LOG.Info("Install agent to host %s completed", host.Addr)
+	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Install agent to host %s completed", host.Addr))
+
+	if err := CENTER.DisconnectHost(&host); err != nil {
+		global.LOG.Warn("Failed to disconnect stale agent conn for host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Failed to disconnect stale agent conn: %v", err))
+	} else {
+		taskLog(writer, types.LogLevelInfo, "Stale agent connection cleared")
+	}
+
+	installed := "installed"
+	hostStatus := core.NewHostStatusInfo()
+	hostStatus.Installed = installed
+	hostStatus.Connected = "offline"
+	global.SetHostStatus(host.ID, hostStatus)
+	global.SetInstalledStatus(host.ID, &installed)
+
+	taskStatus(taskId, types.TaskStatusSuccess)
+	return nil
+}
+
+func (s *SSHService) uninstallLocalAgent(host model.Host, taskId string, writer *writer.Writer) error {
+	taskLog(writer, types.LogLevelInfo, "Default host detected, using local execution")
+
+	stepStart := logTaskStepStart(writer, "Checking local agent installation status")
+	checkCmd := `
+		if systemctl is-active --quiet idb-agent.service || [ -f /var/lib/idb-agent/idb-agent ]; then
+			echo "installed"
+		else
+			echo "not installed"
+		fi
+	`
+	output, err := executeLocalCommandWithTimeout(checkCmd, 10*time.Second)
+	if err != nil {
+		global.LOG.Error("Failed to check local agent status on host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to check local agent status on host %s: %v", host.Addr, err))
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return fmt.Errorf("failed to check local agent status: %v", err)
+	}
+	logTaskStepDone(writer, stepStart, "Local agent installation status checked in %s")
+
+	if strings.TrimSpace(output) != "installed" {
+		global.LOG.Info("Agent is not installed on host %s", host.Addr)
+		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Agent is not installed on host %s", host.Addr))
+		taskStatus(taskId, types.TaskStatusCanceled)
+		return nil
+	}
+
+	stepStart = logTaskStepStart(writer, "Uninstalling local agent service")
+	uninstallCmd := `
+		if ! sudo -n true 2>/dev/null; then
+			echo "no_sudo_access"
+			exit 1
+		fi &&
+		(sudo systemctl stop idb-agent.service || true) &&
+		(sudo systemctl disable idb-agent.service || true) &&
+		sudo rm -f /etc/systemd/system/idb-agent.service &&
+		sudo rm -rf /var/lib/idb-agent &&
+		sudo rm -rf /etc/idb-agent &&
+		sudo rm -rf /var/log/idb-agent &&
+		sudo rm -rf /run/idb-agent &&
+		sudo systemctl daemon-reload
+	`
+	output, err = executeLocalCommandWithTimeout(uninstallCmd, installCommandTimeout)
+	if err != nil {
+		if strings.Contains(output, "no_sudo_access") {
+			global.LOG.Error("No sudo access on host %s", host.Addr)
+			taskLog(writer, types.LogLevelError, fmt.Sprintf("No sudo access on host %s", host.Addr))
+			taskStatus(taskId, types.TaskStatusFailed)
+			return fmt.Errorf("no sudo access on host %s", host.Addr)
+		}
+		global.LOG.Error("Failed to uninstall local agent on host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to uninstall local agent on host %s: %v", host.Addr, err))
+		taskStatus(taskId, types.TaskStatusFailed)
+		return fmt.Errorf("failed to uninstall local agent: %v", err)
+	}
+	logTaskStepDone(writer, stepStart, "Local agent uninstall command completed in %s")
+
+	global.LOG.Info("Local agent uninstall output: %s", output)
+	global.LOG.Info("Uninstall agent in host %s completed", host.Addr)
+	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s completed", host.Addr))
+	taskStatus(taskId, types.TaskStatusSuccess)
+
 	notInstalled := "not installed"
 	hostStatus := core.NewHostStatusInfo()
 	hostStatus.Installed = notInstalled
@@ -1058,6 +1208,26 @@ func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, err
 
 func executeCommand(client *ssh.Client, command string) (string, error) {
 	return executeCommandWithTimeout(client, command, 0)
+}
+
+func executeLocalCommandWithTimeout(command string, timeout time.Duration) (string, error) {
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-lc", command)
+	output, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		return string(output), fmt.Errorf("command timeout after %s", timeout)
+	}
+	if err != nil {
+		global.LOG.Error("failed to execute local command: %v", err)
+		return string(output), err
+	}
+	return string(output), nil
 }
 
 func executeCommandWithTimeout(client *ssh.Client, command string, timeout time.Duration) (string, error) {
