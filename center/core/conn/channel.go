@@ -90,6 +90,7 @@ func (c *Center) Start() error {
 
 	// 保障连接
 	go c.ensureConnections()
+	go c.autoUpgradeDefaultHostAgent()
 
 	return nil
 }
@@ -301,6 +302,33 @@ func (c *Center) ensureConnections() {
 				}(host)
 			}
 		}
+	}
+}
+
+func (c *Center) autoUpgradeDefaultHostAgent() {
+	// 等 center 和默认 host 状态初始化完成，避免启动抖动期误判。
+	time.Sleep(10 * time.Second)
+
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Warn("Skip auto-upgrade default host agent: failed to get default host: %v", err)
+		return
+	}
+
+	if !c.canAgentUpgrade(host.AgentVersion) {
+		global.LOG.Info("Default host agent is up to date, skip startup auto-upgrade")
+		return
+	}
+
+	global.LOG.Info(
+		"Default host agent auto-upgrade scheduled on startup: host=%s current=%s latest=%s",
+		host.Addr,
+		host.AgentVersion,
+		getAgentLatestVersion(),
+	)
+
+	if err := SSH.InstallAgent(host, "", true); err != nil {
+		global.LOG.Error("Failed to auto-upgrade default host agent on startup: %v", err)
 	}
 }
 

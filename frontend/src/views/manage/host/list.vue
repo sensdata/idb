@@ -4,6 +4,7 @@
     :columns="columns"
     :fetch="getHostListApi"
     :afterFetchHook="afterFetchHook"
+    :has-batch="true"
   >
     <template #leftActions>
       <a-button type="primary" @click="handleCreate">
@@ -11,6 +12,14 @@
           <icon-plus />
         </template>
         {{ $t('manage.host.list.action.add') }}
+      </a-button>
+    </template>
+    <template #batch="{ selectedRows }">
+      <a-button
+        type="primary"
+        @click="handleBatchUpgrade(selectedRows as HostItem[])"
+      >
+        {{ $t('manage.host.list.operation.upgradeAgent') }}
       </a-button>
     </template>
     <template #agent="{ record }: { record: HostItem }">
@@ -227,8 +236,7 @@
       },
       {
         text: t('manage.host.list.operation.goto'),
-        visible:
-          record.agent_status?.status === 'installed' && !record.can_upgrade,
+        visible: record.agent_status?.status === 'installed',
         click: () => {
           router.push({
             name: DEFAULT_APP_ROUTE_NAME,
@@ -338,6 +346,32 @@
   const reload = () => {
     // 只重新加载表格数据，状态更新会由 dataRef 变化触发
     tableRef.value?.reload();
+  };
+
+  const handleBatchUpgrade = async (selectedRows: HostItem[]) => {
+    const upgradeableHosts = selectedRows
+      .filter((item) => item.can_upgrade)
+      .map((item) => ({
+        id: item.id,
+        name: item.name || item.addr,
+      }));
+
+    if (!upgradeableHosts.length) {
+      Message.info(t('manage.host.list.batchUpgrade.empty'));
+      return;
+    }
+
+    const confirmed = await confirm(
+      t('manage.host.list.batchUpgrade.confirm', {
+        count: upgradeableHosts.length,
+      })
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await installAgentRef.value?.startBatchUpgrade(upgradeableHosts);
   };
 
   const stopAllSSE = () => {
