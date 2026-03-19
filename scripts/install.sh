@@ -152,6 +152,9 @@ function Prepare_Download_Env() {
 function Detect_Version() {
     VERSION="${1:-}"
     if [[ -z "${VERSION}" ]]; then
+        VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
+    fi
+    if [[ -z "${VERSION}" ]]; then
         VERSION=$(Fetch_Latest_Release_Tag "${GITHUB_API_URL}")
     fi
     if [[ -z "${VERSION}" ]]; then
