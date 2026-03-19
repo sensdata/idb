@@ -404,8 +404,9 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 		InsecureSkipVerify: true,
 	}
 
-	// // 建立 TLS 连接
-	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
+	// 建立 TLS 连接时设置超时，避免远端升级/重启期间长期卡在拨号阶段。
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to connect to Agent: %v", err)
 		if resultCh != nil {
@@ -517,10 +518,11 @@ func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
 	if !c.canAgentUpgrade(agentVersion) {
 		return
 	}
-	err := SSH.InstallAgent(*host, "", true)
-	if err != nil {
-		global.LOG.Error("Failed to install agent: %v", err)
-	}
+	go func() {
+		if err := SSH.InstallAgent(*host, "", true); err != nil {
+			global.LOG.Error("Failed to install agent: %v", err)
+		}
+	}()
 }
 
 func (c *Center) canAgentUpgrade(agentVersion string) bool {

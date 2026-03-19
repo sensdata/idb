@@ -24,11 +24,16 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const (
+	installCommandTimeout = 2 * time.Minute
+)
+
 type SSHService struct {
 	done               chan struct{}
 	mu                 sync.Mutex
 	sshClients         map[string]*ssh.Client
 	responseChMap      map[string]chan string
+	hostMaintenance    map[string]int
 	agentCheckMu       sync.Mutex           // 用于agent状态检查的锁
 	lastAgentCheck     map[string]time.Time // 记录每个主机上次检查agent状态的时间
 	agentCheckInterval time.Duration        // agent状态检查间隔
@@ -51,6 +56,7 @@ func NewSSHService() ISSHService {
 		done:               make(chan struct{}),
 		sshClients:         make(map[string]*ssh.Client),
 		responseChMap:      make(map[string]chan string),
+		hostMaintenance:    make(map[string]int),
 		lastAgentCheck:     make(map[string]time.Time),
 		agentCheckInterval: 20 * time.Second,
 		sshBackoff:         make(map[string]time.Time),
@@ -143,29 +149,83 @@ func formatHostID(host *model.Host) string {
 	return fmt.Sprintf("%d:%s:%d", host.ID, host.Addr, host.Port)
 }
 
-func (s *SSHService) getClient(host model.Host) (*ssh.Client, error) {
+func (s *SSHService) beginHostMaintenance(host model.Host) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	hostID := formatHostID(&host)
+	s.hostMaintenance[hostID]++
+}
+
+func (s *SSHService) endHostMaintenance(host model.Host) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	hostID := formatHostID(&host)
+	if count := s.hostMaintenance[hostID]; count > 1 {
+		s.hostMaintenance[hostID] = count - 1
+		return
+	}
+	delete(s.hostMaintenance, hostID)
+}
+
+func (s *SSHService) isHostInMaintenance(host model.Host) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.hostMaintenance[formatHostID(&host)] > 0
+}
+
+func (s *SSHService) disconnectHostClient(host model.Host) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	hostID := formatHostID(&host)
+	client, exists := s.sshClients[hostID]
+	if !exists || client == nil {
+		return
+	}
+
+	client.Close()
+	delete(s.sshClients, hostID)
+	global.LOG.Info("SSH connection to %s closed", host.Addr)
+}
+
+func (s *SSHService) getClient(host model.Host) (*ssh.Client, error) {
+	s.mu.Lock()
 	hostId := formatHostID(&host)
 	client, exists := s.sshClients[hostId]
-	if !exists || client == nil || !isValidSSHClient(client) {
-		global.LOG.Error("ssh connection to host %s not exists", hostId)
+	s.mu.Unlock()
+
+	if !exists || client == nil {
 		return nil, fmt.Errorf("ssh connection to host %s not exists", hostId)
+	}
+
+	if !isValidSSHClient(client) {
+		s.mu.Lock()
+		if s.sshClients[hostId] == client {
+			client.Close()
+			delete(s.sshClients, hostId)
+		}
+		s.mu.Unlock()
+		return nil, fmt.Errorf("ssh connection to host %s is stale", hostId)
 	}
 	return client, nil
 }
 
 func isValidSSHClient(client *ssh.Client) bool {
-	// 尝试发送一个简单的命令来验证连接
 	session, err := client.NewSession()
 	if err != nil {
 		return false
 	}
 	defer session.Close()
 
-	// 使用轻量级的命令，如 "echo"
-	err = session.Run("echo") // 只执行一个无害的命令
-	return err == nil
+	done := make(chan error, 1)
+	go func() { done <- session.Run("echo") }()
+
+	select {
+	case err := <-done:
+		return err == nil
+	case <-time.After(3 * time.Second):
+		return false
+	}
 }
 
 func taskLog(wp *writer.Writer, level types.LogLevel, message string) {
@@ -190,6 +250,8 @@ func taskStatus(taskId string, status types.TaskStatus) {
 }
 
 func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) error {
+	s.beginHostMaintenance(host)
+	defer s.endHostMaintenance(host)
 
 	taskStatus(taskId, types.TaskStatusRunning)
 
@@ -295,10 +357,11 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
         sudo rm -rf /tmp/idb-agent /tmp/idb-agent.tar.gz
     `, host.AgentPort, host.AgentKey)
 	global.LOG.Info("installCmd: %s", installCmd)
-	output, err = executeCommand(client, installCmd)
+	output, err = executeCommandWithTimeout(client, installCmd, installCommandTimeout)
 	if err != nil {
 		global.LOG.Error("Failed to install agent to host %s: %v", host.Addr, err)
 		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to install agent to host %s: %v", host.Addr, err))
+		s.disconnectHostClient(host)
 		taskStatus(taskId, types.TaskStatusFailed)
 		return fmt.Errorf("failed to install agent: %v", err)
 	}
@@ -306,19 +369,29 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	global.LOG.Info("Agent installation output: %s", output)
 	global.LOG.Info("Install agent to host %s completed", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Install agent to host %s completed", host.Addr))
-	taskStatus(taskId, types.TaskStatusSuccess)
 
-	// 更新host和安装状态
+	// 安装/升级会重启远端 agent，主动断开旧连接和旧状态，避免后续任务继续复用陈旧连接。
+	if err := CENTER.DisconnectHost(&host); err != nil {
+		global.LOG.Warn("Failed to disconnect stale agent conn for host %s: %v", host.Addr, err)
+		taskLog(writer, types.LogLevelWarn, fmt.Sprintf("Failed to disconnect stale agent conn: %v", err))
+	}
+
+	// 更新安装状态，但连接状态等待新 agent 心跳重新置为 online。
 	installed := "installed"
 	hostStatus := core.NewHostStatusInfo()
 	hostStatus.Installed = installed
+	hostStatus.Connected = "offline"
 	global.SetHostStatus(host.ID, hostStatus)
 	global.SetInstalledStatus(host.ID, &installed)
+
+	taskStatus(taskId, types.TaskStatusSuccess)
 
 	return nil
 }
 
 func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
+	s.beginHostMaintenance(host)
+	defer s.endHostMaintenance(host)
 
 	taskStatus(taskId, types.TaskStatusRunning)
 
@@ -447,6 +520,9 @@ func (s *SSHService) agentInstalled(client *ssh.Client, host model.Host) (string
 }
 
 func (s *SSHService) RestartAgent(host model.Host) error {
+	s.beginHostMaintenance(host)
+	defer s.endHostMaintenance(host)
+
 	// 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
 	client, err := s.getClient(host)
 	if err != nil {
@@ -706,6 +782,10 @@ func (s *SSHService) ensureConnections() {
 
 // handleHost 负责处理单个 host 的 SSH 检查与连接逻辑
 func (s *SSHService) handleHost(host *model.Host) {
+	if s.isHostInMaintenance(*host) {
+		return
+	}
+
 	// 如果agent已经在线，跳过SSH连接尝试
 	hostStatus := global.GetHostStatus(host.ID)
 	if hostStatus != nil && hostStatus.Connected == "online" {
@@ -750,6 +830,10 @@ func (s *SSHService) handleHost(host *model.Host) {
 }
 
 func (s *SSHService) handleInstalledStatus(host *model.Host) {
+	if s.isHostInMaintenance(*host) {
+		return
+	}
+
 	global.LOG.Info("Check installed status for host %s", host.Addr)
 
 	client, err := s.getClient(*host)
@@ -922,6 +1006,10 @@ func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, err
 }
 
 func executeCommand(client *ssh.Client, command string) (string, error) {
+	return executeCommandWithTimeout(client, command, 0)
+}
+
+func executeCommandWithTimeout(client *ssh.Client, command string, timeout time.Duration) (string, error) {
 	session, err := client.NewSession()
 	if err != nil {
 		global.LOG.Error("failed to new sessioin: %v", err)
@@ -929,10 +1017,34 @@ func executeCommand(client *ssh.Client, command string) (string, error) {
 	}
 	defer session.Close()
 
-	output, err := session.CombinedOutput(command)
-	if err != nil {
-		global.LOG.Error("failed to send command: %v", err)
-		return "", err
+	type result struct {
+		output []byte
+		err    error
 	}
-	return string(output), nil
+
+	resultCh := make(chan result, 1)
+	go func() {
+		output, err := session.CombinedOutput(command)
+		resultCh <- result{output: output, err: err}
+	}()
+
+	if timeout > 0 {
+		select {
+		case res := <-resultCh:
+			if res.err != nil {
+				global.LOG.Error("failed to send command: %v", res.err)
+				return "", res.err
+			}
+			return string(res.output), nil
+		case <-time.After(timeout):
+			return "", fmt.Errorf("command timeout after %s", timeout)
+		}
+	}
+
+	res := <-resultCh
+	if res.err != nil {
+		global.LOG.Error("failed to send command: %v", res.err)
+		return "", res.err
+	}
+	return string(res.output), nil
 }
