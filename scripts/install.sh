@@ -23,6 +23,9 @@ IDB_AGENT_DATA_DIR="/var/lib/idb-agent/data"
 TMP_DIR="/tmp/idb-install"
 AGENT_INSTALL_FAILED="false"
 AGENT_INSTALL_ERROR=""
+LAST_ERROR_DETAIL=""
+
+trap 'LAST_ERROR_DETAIL="命令 \"${BASH_COMMAND}\" 失败 (行 ${LINENO}, 退出码 $?)"' ERR
 
 function log() {
     message="[idb Log]: $1 "
@@ -137,7 +140,7 @@ function Prepare_Download_Env() {
 }
 
 function Detect_Version() {
-    VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
     if [[ -z "${VERSION}" ]]; then
         log "获取最新版本失败"
         exit 1
@@ -182,7 +185,7 @@ function Ensure_Admin_Env() {
     chmod 600 "${admin_env}"
 
     if [[ ! -f "${IDB_DATA_DIR}/idb.db" ]] && ! grep -q '^PASSWORD=' "${admin_env}"; then
-        admin_pass=$(tr -dc 'a-z0-9' </dev/urandom | head -c 8)
+        admin_pass=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)
         echo "PASSWORD=${admin_pass}" > "${admin_env}"
         chmod 600 "${admin_env}"
         INITIAL_ADMIN_PASS="${admin_pass}"
@@ -201,7 +204,7 @@ function Detect_Target_Host() {
         public_ip=""
     fi
 
-    local_ip=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]*' | awk '{print $2}' | head -n1)
+    local_ip=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]*' | awk '{print $2}' | head -n1 || true)
 
     TARGET_HOST="${public_ip:-${local_ip:-127.0.0.1}}"
     LOCAL_IP="${local_ip:-127.0.0.1}"
@@ -346,6 +349,18 @@ function Show_Result() {
 }
 
 function Cleanup() {
+    local exit_code=$?
+    if [[ ${exit_code} -ne 0 ]]; then
+        log ""
+        log "======================= 安装失败 ======================="
+        log "安装过程中发生错误 (退出码: ${exit_code})"
+        if [[ -n "${LAST_ERROR_DETAIL}" ]]; then
+            log "错误详情: ${LAST_ERROR_DETAIL}"
+        fi
+        log "请查看日志: ${CURRENT_DIR}/install.log"
+        log "如需帮助，请访问: https://github.com/sensdata/idb/issues"
+        log "======================================================="
+    fi
     rm -rf "${TMP_DIR}"
 }
 
