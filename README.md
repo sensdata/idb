@@ -215,6 +215,8 @@ idb/
 
 ## 📚 文档
 
+- **官网**：https://idb.net
+- **项目文档**：https://idb.net/docs
 - **API 文档**：部署后访问 `http://your-server-ip:9918/api/v1/swagger/index.html`
 - **插件仓库**：[sensdata/idb-plugins](https://github.com/sensdata/idb-plugins)
 
@@ -224,6 +226,7 @@ idb/
 
 ## 📬 联系
 
+- 技术支持：support@idb.net
 - 问题反馈：[GitHub Issues](https://github.com/sensdata/idb/issues)
 - 讨论交流：[GitHub Discussions](https://github.com/sensdata/idb/discussions)
 
@@ -239,6 +242,8 @@ idb/
 
 ## 🔗 相关链接
 
+- [官网](https://idb.net)
+- [文档](https://idb.net/docs)
 - [Docker Hub](https://hub.docker.com/r/sensdb/idb)
 - [GitHub](https://github.com/sensdata/idb)
 

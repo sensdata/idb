@@ -1655,7 +1655,12 @@ func (c *Center) upgrade() error {
 
 	// 创建消息
 	githubRepo := CONFMAN.GetConfig().GithubRepo
-	cmd := fmt.Sprintf("curl -sSL https://github.com/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", githubRepo, newVersion, newVersion)
+	githubProxy := CONFMAN.GetConfig().GithubProxy
+	downloadBase := "https://github.com"
+	if githubProxy != "" {
+		downloadBase = strings.TrimRight(githubProxy, "/") + "/github-releases"
+	}
+	cmd := fmt.Sprintf("curl -sSL %s/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", downloadBase, githubRepo, newVersion, newVersion)
 
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(

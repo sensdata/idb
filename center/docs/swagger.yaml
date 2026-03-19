@@ -2962,14 +2962,14 @@ definitions:
 host: http://39.99.155.139:9918
 info:
   contact:
-    email: support@sensdata.com
+    email: support@idb.net
     name: API Support
-    url: https://static.sensdata.com/support
+    url: https://idb.net/support
   description: This is the API documentation for idb application.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: https://static.sensdata.com/terms/
+  termsOfService: https://idb.net/terms
   title: IDB API Documentation
   version: "1.0"
 paths:

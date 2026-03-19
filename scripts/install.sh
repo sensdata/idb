@@ -175,27 +175,41 @@ function Install_Compose(){
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 Docker Compose 插件"
 
-        mkdir -p ~/.docker/cli-plugins
-        COMPOSE_VERSION="v2.26.1"
-        OS=$(uname | tr '[:upper:]' '[:lower:]')
-        ARCH=$(uname -m)
-        case "$ARCH" in
-            x86_64) ARCH="amd64";;
-            aarch64|arm64) ARCH="arm64";;
-            armv7l) ARCH="armv7";;
-            *) log "不支持的架构 $ARCH"; exit 1;;
-        esac
+        if command -v apt-get >/dev/null 2>&1; then
+            log "尝试通过 apt 安装 docker-compose-plugin..."
+            apt-get update 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            apt-get install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        elif command -v dnf >/dev/null 2>&1; then
+            log "尝试通过 dnf 安装 docker-compose-plugin..."
+            dnf install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        elif command -v yum >/dev/null 2>&1; then
+            log "尝试通过 yum 安装 docker-compose-plugin..."
+            yum install -y docker-compose-plugin 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        fi
 
-        COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
+        if ! docker compose version >/dev/null 2>&1; then
+            mkdir -p ~/.docker/cli-plugins
+            COMPOSE_VERSION="v2.26.1"
+            OS=$(uname | tr '[:upper:]' '[:lower:]')
+            ARCH=$(uname -m)
+            case "$ARCH" in
+                x86_64) ARCH="amd64";;
+                aarch64|arm64) ARCH="arm64";;
+                armv7l) ARCH="armv7";;
+                *) log "不支持的架构 $ARCH"; exit 1;;
+            esac
 
-        log "下载 docker compose 插件..."
-        curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
-            log "docker compose 下载失败"
-            exit 1
-        }
+            COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS}-${ARCH}"
 
-        chmod +x ~/.docker/cli-plugins/docker-compose
-        ln -sf ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+            log "包管理器安装失败，回退到二进制下载: ${COMPOSE_URL}"
+            curl -fL "$COMPOSE_URL" -o ~/.docker/cli-plugins/docker-compose || {
+                log "docker compose 下载失败，请检查网络，或先手动安装 docker-compose-plugin 后重试"
+                exit 1
+            }
+
+            chmod +x ~/.docker/cli-plugins/docker-compose
+            ln -sf ~/.docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+        fi
 
         docker compose version >/dev/null 2>&1 || {
             log "Docker Compose 插件安装失败"
@@ -597,8 +611,8 @@ function Show_Result(){
     log "初始用户: admin"
     log "初始密码: ${ADMIN_PASS}"
     log ""
-    log "项目官网: https://idb.sensdata.com"
-    log "项目文档: https://idb.sensdata.com/docs"
+    log "项目官网: https://idb.net"
+    log "项目文档: https://idb.net/docs"
     log "代码仓库: https://github.com/sensdata/idb"
     log ""
     log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
