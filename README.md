@@ -3,9 +3,15 @@
 面向服务器、容器、文件、服务、防火墙规则与常见运维操作的自托管基础设施管理平台。
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/sensdb/idb)](https://hub.docker.com/r/sensdb/idb)
 
 iDB 适合开发者和小型团队，用一套控制台统一管理 Linux 主机，而不必引入一整套复杂运维平台。项目由 Web 控制台、控制端 `center` 和宿主机侧执行端 `agent` 组成。
+
+当前默认部署方式为：
+
+- 宿主机原生运行 `center`
+- 宿主机 systemd 运行本机 `agent`
+
+升级脚本会兼容旧版本 Docker 部署，并在升级时迁移到原生运行模式。
 
 ## 功能特性
 
@@ -59,28 +65,6 @@ sudo IDB_GITHUB_PROXY=https://dl.idb.net bash install.sh
 - 安装脚本本身已经带 GitHub 连通性检测，必要时会自动回退到 `https://dl.idb.net`
 - 需要 `root` 或 `sudo` 权限执行
 - 安装完成后会在终端输出一次初始 `admin` 密码
-
-### Docker 安装
-
-使用 GitHub Release 资源：
-
-```bash
-VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-mkdir -p /var/lib/idb && cd /var/lib/idb
-curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env" -o .env
-curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml" -o docker-compose.yaml
-docker compose up -d
-```
-
-使用 iDB 镜像/代理源拉取 Release 资源：
-
-```bash
-VERSION=$(curl -s https://dl.idb.net/github-api/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-mkdir -p /var/lib/idb && cd /var/lib/idb
-curl -fsSL "https://dl.idb.net/github-releases/sensdata/idb/releases/download/${VERSION}/idb.env" -o .env
-curl -fsSL "https://dl.idb.net/github-releases/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml" -o docker-compose.yaml
-docker compose up -d
-```
 
 ### 从源码构建部署
 
@@ -150,6 +134,7 @@ sudo IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
 - 先升级 `center`
 - `center` 重启后会自动检查默认主机上的本机 `agent`
 - 如果本机 `agent` 版本落后，会自动升级，不需要用户再手动点击一次主机升级
+- 如果检测到旧版 Docker 部署，升级脚本会自动迁移到宿主机原生部署
 
 ## 快速开始
 

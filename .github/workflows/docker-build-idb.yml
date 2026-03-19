@@ -1,15 +1,15 @@
-name: Build and Export Docker Image of IDB
+name: Build and Release IDB
 
 on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:  # 添加手动触发
+  workflow_dispatch:
     inputs:
       version:
-        description: "Specify the version tag for the build (e.g., v1.0.0)"
-        required: false  # 手动触发时允许不传递版本号
-        default: "manual"  # 如果手动触发时没有传递版本号，默认使用 "manual"
+        description: "Specify the version tag for the build (e.g. v1.0.0)"
+        required: false
+        default: "manual"
 
 run-name: Build IDB - ${{ github.event.inputs.version || github.ref_name }}
 
@@ -24,24 +24,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 签出
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # 登录 Docker Hub
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # 定义 VERSION_TAG 变量
       - name: Set VERSION_TAG
         run: |
           if [ "${{ github.event.inputs.version }}" ]; then
@@ -49,51 +37,84 @@ jobs:
           else
             echo "VERSION_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           fi
-        shell: bash
 
-      # 打印 VERSION_TAG 用于调试
-      - name: Debug VERSION_TAG
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.8'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Ensure openssl is installed
+        run: which openssl || sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Generate keys and certs
         run: |
-          VERSION=${{ env.VERSION_TAG }}
-          echo "VERSION_TAG is: $VERSION"
+          make generate-key
+          make generate-jwt-key
+          make generate-certs
 
-      # 构建 Docker 镜像，并加载到本地 daemon
-      - name: Build Docker Image
+      - name: Build frontend
         run: |
-          docker buildx build \
-            --build-arg VERSION=${{ env.VERSION_TAG }} \
-            -t idb:${{ env.VERSION_TAG }} \
-            --load \
-            .
+          cd frontend
+          npm ci
+          IDB_ENABLE_IMAGEMIN=0 npm run build --silent
 
-      # 复制 Agent 包
-      - name: Extract Agent Package
+      - name: Build center
         run: |
-          docker create --name temp_container idb:${{ env.VERSION_TAG }}
-          docker cp temp_container:/var/lib/idb/agent/idb-agent.tar.gz ./idb-agent_${{ env.VERSION_TAG }}.tar.gz
-          docker rm temp_container
+          cd center
+          make build
 
-      # 推送到 Docker Hub
-      - name: Push to Docker Hub
+      - name: Build agent
         run: |
-          docker tag idb:${{ env.VERSION_TAG }} ${{ secrets.DOCKERHUB_ORG }}/idb:${{ env.VERSION_TAG }}
-          docker tag idb:${{ env.VERSION_TAG }} ${{ secrets.DOCKERHUB_ORG }}/idb:latest
-          docker push ${{ secrets.DOCKERHUB_ORG }}/idb:${{ env.VERSION_TAG }}
-          docker push ${{ secrets.DOCKERHUB_ORG }}/idb:latest
+          cd agent
+          make build
 
-      # 保存 Docker 镜像
-      - name: Save Docker Image as Tarball
+      - name: Build plugins
         run: |
-          docker save -o idb_image_${{ env.VERSION_TAG }}.tar idb:${{ env.VERSION_TAG }}
+          mkdir -p dist/plugins
+          for p in scriptmanager mysqlmanager postgresql redis pma; do
+            cd "plugins/$p"
+            go mod download
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+              -ldflags="-s -w -X 'main.Version=${VERSION_TAG}'" \
+              -o "../../dist/plugins/$p"
+            cd - >/dev/null
+          done
+          cd plugins/rsync
+          go mod download
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath \
+            -ldflags="-s -w -X 'main.Version=${VERSION_TAG}'" \
+            -o ../../dist/plugins/idb-rsync
 
-      # 创建临时 .env 文件并替换 iDB_image_version
-      - name: Create temporary .env file
+      - name: Package center bundle
         run: |
-          cp ./center/.env idb.env  # 从 center 目录复制 .env 文件（重命名避免 GitHub 处理点文件）
-          cp ./center/docker-compose.yaml docker-compose.yaml  # 从 center 目录复制 docker-compose.yaml 文件
-          sed -i "s/^iDB_image_version=.*/iDB_image_version=${{ env.VERSION_TAG }}/" idb.env  # 修改 iDB_image_version
+          mkdir -p dist/idb/home
+          mkdir -p dist/idb/plugins
+          cp center/idb dist/idb/
+          cp center/idb.service dist/idb/
+          cp center/idb.conf dist/idb/
+          cp -R frontend/dist/. dist/idb/home/
+          for name in scriptmanager mysqlmanager postgresql redis pma idb-rsync; do
+            mkdir -p "dist/idb/plugins/${name}"
+            cp "dist/plugins/${name}" "dist/idb/plugins/${name}/${name}"
+            chmod +x "dist/idb/plugins/${name}/${name}"
+          done
+          tar -czf "idb_${VERSION_TAG}_linux_amd64.tar.gz" -C dist/idb .
 
-      # 创建 GitHub Release 并上传资产
+      - name: Package agent bundle
+        run: |
+          mkdir -p dist/idb-agent
+          cp agent/idb-agent dist/idb-agent/
+          cp agent/idb-agent.service dist/idb-agent/
+          cp agent/idb-agent.conf dist/idb-agent/
+          cp agent/install-agent.sh dist/idb-agent/
+          echo "${VERSION_TAG}" > dist/idb-agent/idb-agent.version
+          tar -czf "idb-agent_${VERSION_TAG}_linux_amd64.tar.gz" -C dist/idb-agent .
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -102,10 +123,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            idb_image_${{ env.VERSION_TAG }}.tar
-            idb-agent_${{ env.VERSION_TAG }}.tar.gz
-            idb.env
-            docker-compose.yaml
+            idb_${{ env.VERSION_TAG }}_linux_amd64.tar.gz
+            idb-agent_${{ env.VERSION_TAG }}_linux_amd64.tar.gz
             scripts/install.sh
             scripts/uninstall.sh
             scripts/upgrade.sh

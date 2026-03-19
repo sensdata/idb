@@ -1,17 +1,31 @@
 #!/bin/bash
 
+set -euo pipefail
+
 CURRENT_DIR=$(
     cd "$(dirname "$0")"
     pwd
 )
 
-function log() {
-    message="[idb Log]: $1 "
-    echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
-}
+IDB_DEFAULT_PROXY="https://dl.idb.net"
+IDB_INSTALL_ROOT="/var/lib/idb"
+IDB_HOME_DIR="${IDB_INSTALL_ROOT}/home"
+IDB_DATA_DIR="${IDB_INSTALL_ROOT}/data"
+IDB_AGENT_DIR="${IDB_INSTALL_ROOT}/agent"
+IDB_PLUGIN_DIR="${IDB_DATA_DIR}/plugins"
+IDB_LOG_DIR="/var/log/idb"
+IDB_RUN_DIR="/run/idb"
+IDB_CONF_DIR="/etc/idb"
+IDB_AGENT_CONF_DIR="/etc/idb-agent"
+TMP_DIR="/tmp/idb-upgrade"
 
 IDB_DOCKER_USER=""
 IDB_DOCKER_HOME=""
+
+function log() {
+    message="[idb Log]: $1 "
+    echo -e "${message}" 2>&1 | tee -a "${CURRENT_DIR}/upgrade.log"
+}
 
 function Resolve_User_Home() {
     local username="$1"
@@ -44,20 +58,18 @@ function Configure_Docker_Access() {
         return 0
     fi
 
-    if [[ -n "$SUDO_USER" && "$SUDO_USER" != "root" ]]; then
+    if [[ -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]]; then
         local docker_home
-        docker_home=$(Resolve_User_Home "$SUDO_USER")
+        docker_home=$(Resolve_User_Home "${SUDO_USER}")
         if [[ -n "$docker_home" ]]; then
-            if sudo -u "$SUDO_USER" -H env HOME="$docker_home" DOCKER_CONFIG="$docker_home/.docker" docker info >/dev/null 2>&1; then
-                IDB_DOCKER_USER="$SUDO_USER"
+            if sudo -u "${SUDO_USER}" -H env HOME="$docker_home" DOCKER_CONFIG="$docker_home/.docker" docker info >/dev/null 2>&1; then
+                IDB_DOCKER_USER="${SUDO_USER}"
                 IDB_DOCKER_HOME="$docker_home"
-                log "检测到 Docker 需通过用户 ${IDB_DOCKER_USER} 的上下文访问"
                 return 0
             fi
         fi
     fi
 
-    log "当前环境无法连接 Docker daemon，请确认 Docker 已启动。"
     return 1
 }
 
@@ -68,12 +80,6 @@ function docker() {
         command docker "$@"
     fi
 }
-
-# 加速代理支持
-# 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
-# 或在 .env 中配置: IDB_GITHUB_PROXY=https://dl.idb.net
-# 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
-IDB_DEFAULT_PROXY="https://dl.idb.net"
 
 function Probe_HTTP_200() {
     local url="$1"
@@ -92,26 +98,17 @@ function Probe_HTTP_200() {
     return 1
 }
 
-# 从 .env 读取代理配置（如果环境变量未设置）
-if [[ -z "$IDB_GITHUB_PROXY" ]]; then
-    Configure_Docker_Access >/dev/null 2>&1 || true
-    _PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
-    _PANEL_DIR="${_PANEL_DIR:-/var/lib/idb}"
-    if [[ -f "${_PANEL_DIR}/.env" ]]; then
-        IDB_GITHUB_PROXY=$(grep "^IDB_GITHUB_PROXY=" "${_PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
-    fi
-    unset _PANEL_DIR
-fi
-
 function Is_China_Region() {
-    # 1. 通过 ipinfo.io 检测国家代码（最准确）
-    local country=$(curl -s --connect-timeout 3 --max-time 5 https://ipinfo.io/country 2>/dev/null | tr -d '[:space:]')
+    local country
+    local tz
+
+    country=$(curl -s --connect-timeout 3 --max-time 5 https://ipinfo.io/country 2>/dev/null | tr -d '[:space:]')
     if [[ "$country" == "CN" || "$country" == "HK" || "$country" == "MO" ]]; then
         return 0
     fi
-    # 2. 通过时区判断（ipinfo.io 不可用时的后备）
-    local tz=$(timedatectl 2>/dev/null | grep "Time zone" | awk '{print $3}')
-    [[ -z "$tz" ]] && tz="$TZ"
+
+    tz=$(timedatectl 2>/dev/null | grep "Time zone" | awk '{print $3}')
+    [[ -z "$tz" ]] && tz="${TZ:-}"
     if [[ "$tz" == *"Shanghai"* || "$tz" == *"Chongqing"* || "$tz" == *"Hong_Kong"* ]]; then
         return 0
     fi
@@ -119,361 +116,274 @@ function Is_China_Region() {
 }
 
 function Auto_Detect_Proxy() {
-    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+    if [[ -n "${IDB_GITHUB_PROXY:-}" ]]; then
         log "使用指定代理: ${IDB_GITHUB_PROXY}"
         return
     fi
 
     if Is_China_Region; then
-        # 中国区域：优先检测代理
-        log "检测到中国区域，优先检测加速代理..."
         if Probe_HTTP_200 "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest"; then
-            log "加速代理可用: ${IDB_DEFAULT_PROXY}"
             export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+            log "加速代理可用: ${IDB_GITHUB_PROXY}"
             return
         fi
-        log "加速代理不可用，尝试 GitHub 直连..."
-        if Probe_HTTP_200 "https://api.github.com/repos/sensdata/idb/releases/latest"; then
-            log "GitHub 直连正常"
-            return
-        fi
-        log "GitHub 直连也不可用，仍使用代理: ${IDB_DEFAULT_PROXY}"
+    fi
+
+    if Probe_HTTP_200 "https://api.github.com/repos/sensdata/idb/releases/latest"; then
+        return
+    fi
+
+    if Probe_HTTP_200 "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest"; then
         export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
-    else
-        # 非中国区域：优先检测 GitHub
-        log "检测 GitHub 连通性..."
-        if Probe_HTTP_200 "https://api.github.com/repos/sensdata/idb/releases/latest"; then
-            log "GitHub 直连正常"
-            return
-        fi
-        log "GitHub 连接不可用，尝试加速代理..."
-        if Probe_HTTP_200 "${IDB_DEFAULT_PROXY}/github-api/repos/sensdata/idb/releases/latest"; then
-            log "加速代理可用: ${IDB_DEFAULT_PROXY}"
-            export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
-            return
-        fi
-        log "所有源均不可用，默认使用 GitHub 直连"
+        log "切换到加速代理: ${IDB_GITHUB_PROXY}"
     fi
 }
 
-Auto_Detect_Proxy
-
-GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
-GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
-GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
-GITHUB_RELEASES_URL="${GITHUB_RELEASES_URL:-https://github.com}"
-
-if [[ -n "$IDB_GITHUB_PROXY" ]]; then
-    log "使用加速代理: ${IDB_GITHUB_PROXY}"
-fi
-
-# 备份数据（PANEL_DIR 由调用方提前设置）
-function Backup_Data() {
-    local BACKUP_DIR="/tmp/idb-cache"
-    
-    log "清理临时目录..."
-    rm -rf "$BACKUP_DIR"
-    mkdir -p "$BACKUP_DIR"
-    
-    # 检查容器是否存在并运行
-    if docker ps -q -f name="^idb$" > /dev/null 2>&1; then
-        log "停止 IDB 容器..."
-        docker stop -t 30 idb || docker kill idb
-    fi
-    
-    if docker ps -a -q -f name=idb >/dev/null 2>&1; then
-        # 分别获取三个挂载的宿主机真实路径
-        local DATA_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
-        local LOG_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
-        local CONF_DIR=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/etc/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null)
-        
-        # 写入元数据，供回滚时使用（不依赖容器状态）
-        cat > "$BACKUP_DIR/paths.meta" <<EOF
-PANEL_DIR=${PANEL_DIR}
-DATA_DIR=${DATA_DIR}
-LOG_DIR=${LOG_DIR}
-CONF_DIR=${CONF_DIR}
-EOF
-        
-        # 备份 .env 和 docker-compose.yaml
-        cp "${PANEL_DIR}/.env" "$BACKUP_DIR/.env"
-        cp "${PANEL_DIR}/docker-compose.yaml" "$BACKUP_DIR/docker-compose.yaml"
-        
-        # 备份数据目录
-        if [[ -n "$DATA_DIR" && -d "$DATA_DIR" ]]; then
-            log "备份数据目录: ${DATA_DIR}"
-            cp -r "$DATA_DIR" "$BACKUP_DIR/data"
-        fi
-        
-        # 备份日志目录
-        if [[ -n "$LOG_DIR" && -d "$LOG_DIR" ]]; then
-            log "备份日志目录: ${LOG_DIR}"
-            cp -r "$LOG_DIR" "$BACKUP_DIR/logs"
-        fi
-        
-        # 备份配置目录
-        if [[ -n "$CONF_DIR" && -d "$CONF_DIR" ]]; then
-            log "备份配置目录: ${CONF_DIR}"
-            cp -r "$CONF_DIR" "$BACKUP_DIR/conf"
-        fi
-        
-        log "删除旧容器..."
-        if ! docker rm idb; then
-            log "删除容器失败，尝试强制删除..."
-            docker rm -f idb
-        fi
-        
-        return 0
-    fi
-    
-    return 1
-}
-
-# 恢复数据（仅从备份元数据读取路径，不依赖容器状态）
-function Restore_Data() {
-    local BACKUP_DIR="/tmp/idb-cache"
-    
-    if [[ ! -d "$BACKUP_DIR" ]]; then
-        log "未找到备份数据，升级失败"
+function Check_Root() {
+    if [[ $EUID -ne 0 ]]; then
+        log "请使用 root 或 sudo 权限运行此脚本"
         exit 1
     fi
-    
-    # 从备份元数据读取路径
-    if [[ -f "$BACKUP_DIR/paths.meta" ]]; then
-        source "$BACKUP_DIR/paths.meta"
-    else
-        log "未找到路径元数据，使用默认路径"
-        PANEL_DIR="/var/lib/idb"
-        DATA_DIR="/var/lib/idb/data"
-        LOG_DIR="/var/log/idb"
-        CONF_DIR="/etc/idb"
-    fi
-    
-    log "开始恢复数据..."
-    log "  项目目录: ${PANEL_DIR}"
-    log "  数据目录: ${DATA_DIR}"
-    log "  日志目录: ${LOG_DIR}"
-    log "  配置目录: ${CONF_DIR}"
-    
-    # 恢复 .env 和 docker-compose.yaml
-    cp "$BACKUP_DIR/.env" "${PANEL_DIR}/.env"
-    cp "$BACKUP_DIR/docker-compose.yaml" "${PANEL_DIR}/docker-compose.yaml"
-    
-    # 恢复数据目录
-    if [[ -d "$BACKUP_DIR/data" && -n "$DATA_DIR" ]]; then
-        log "恢复数据目录到: ${DATA_DIR}"
-        mkdir -p "$DATA_DIR"
-        cp -r "$BACKUP_DIR/data/." "${DATA_DIR}/"
-    fi
-    
-    # 恢复日志目录
-    if [[ -d "$BACKUP_DIR/logs" && -n "$LOG_DIR" ]]; then
-        log "恢复日志目录到: ${LOG_DIR}"
-        mkdir -p "$LOG_DIR"
-        cp -r "$BACKUP_DIR/logs/." "${LOG_DIR}/"
-    fi
-    
-    # 恢复配置目录
-    if [[ -d "$BACKUP_DIR/conf" && -n "$CONF_DIR" ]]; then
-        log "恢复配置目录到: ${CONF_DIR}"
-        mkdir -p "$CONF_DIR"
-        cp -r "$BACKUP_DIR/conf/." "${CONF_DIR}/"
-    fi
-    
-    log "数据恢复完成"
-    
-    # 清理临时目录
-    rm -rf "$BACKUP_DIR"
 }
 
-# 从 GitHub Releases 下载镜像（Docker Hub 拉取失败时的 fallback）
-function Pull_Image_From_GitHub() {
-    local VERSION="$1"
-    local IMAGE_TAR="idb_image_${VERSION}.tar"
-    local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
-
-    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
-        log "通过加速代理下载镜像: ${DOWNLOAD_URL}"
-    else
-        log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
-    fi
-    curl -fL --progress-bar --retry 3 --retry-delay 5 "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
-    if [[ $? -ne 0 ]]; then
-        log "GitHub 镜像下载失败"
-        rm -f "/tmp/${IMAGE_TAR}"
-        return 1
-    fi
-
-    # 检查下载文件是否有效（至少 1MB）
-    local FILE_SIZE=$(stat -c%s "/tmp/${IMAGE_TAR}" 2>/dev/null || stat -f%z "/tmp/${IMAGE_TAR}" 2>/dev/null || echo "0")
-    if [[ "$FILE_SIZE" -lt 1048576 ]]; then
-        log "下载的镜像文件异常（大小: ${FILE_SIZE} bytes），可能下载不完整"
-        rm -f "/tmp/${IMAGE_TAR}"
-        return 1
-    fi
-
-    log "加载镜像..."
-    docker load -i "/tmp/${IMAGE_TAR}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        log "镜像加载失败"
-        rm -f "/tmp/${IMAGE_TAR}"
-        return 1
-    fi
-
-    # tar 中保存的是 idb:VERSION，重新标记为 compose 期望的镜像名
-    local IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
-    [[ -z "$IMAGE_REPO" ]] && IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" 2>/dev/null | cut -d'=' -f2)
-    IMAGE_REPO="${IMAGE_REPO:-sensdb/idb}"
-    docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
-
-    rm -f "/tmp/${IMAGE_TAR}"
-    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
-        log "镜像加载完成（来源: 加速代理）"
-    else
-        log "镜像加载完成（来源: GitHub Releases）"
-    fi
-}
-
-# 升级 IDB
-function Upgrade_IDB() {
-    # 优先使用传入的版本号，否则获取最新版本
-    VERSION="${1}"
-    if [[ -z "$VERSION" ]]; then
-        VERSION=$(curl -s ${GITHUB_API_URL}/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
-        if [[ -z "$VERSION" ]]; then
-            log "获取最新版本失败"
+function Check_Architecture() {
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64|amd64)
+            IDB_ARCH="amd64"
+            ;;
+        *)
+            log "暂不支持的系统架构: ${arch}"
             exit 1
-        fi
-    fi
-    
-    log "开始升级到版本 ${VERSION}..."
-    
-    # 通过 compose label 获取项目目录（在停容器之前获取）
-    PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
-    if [[ -z "$PANEL_DIR" ]]; then
-        PANEL_DIR="/var/lib/idb"
-    fi
-    
-    # 下载新版本配置文件（在停容器之前下载到临时位置）
-    ENV_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/idb.env"
-    DOCKER_COMPOSE_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml"
-    
-    log "下载新版本配置文件..."
-    curl -fsSL "$ENV_URL" -o "${PANEL_DIR}/.env.new"
-    if [[ $? -ne 0 ]]; then
-        log "下载 .env 失败，中止升级"
-        rm -f "${PANEL_DIR}/.env.new"
-        exit 1
-    fi
-    curl -fsSL "$DOCKER_COMPOSE_URL" -o "${PANEL_DIR}/docker-compose.yaml.new"
-    if [[ $? -ne 0 ]]; then
-        log "下载 docker-compose.yaml 失败，中止升级"
-        rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
-        exit 1
-    fi
-    
-    # 预拉取新镜像（旧容器仍在运行，服务不中断）
-    # 使用 .env.new 中的镜像名来拉取，不修改现有 .env
-    log "预拉取新版本镜像..."
-    local NEW_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
-    NEW_IMAGE_REPO="${NEW_IMAGE_REPO:-sensdb/idb}"
-    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}"; then
-        # Docker Hub 拉取失败，尝试从 GitHub/代理下载镜像
-        if [[ -n "$IDB_GITHUB_PROXY" ]]; then
-            log "Docker Hub 拉取失败，尝试通过加速代理下载镜像..."
-        else
-            log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
-        fi
-        if ! Pull_Image_From_GitHub "${VERSION}"; then
-            # 如果是直连 GitHub 失败，再尝试通过代理下载
-            if [[ -z "$IDB_GITHUB_PROXY" ]]; then
-                log "GitHub 直连下载失败，尝试通过加速代理下载..."
-                export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
-                GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY}/github-releases"
-                if ! Pull_Image_From_GitHub "${VERSION}"; then
-                    log "所有镜像源均不可用，中止升级（旧版本未受影响）"
-                    rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
-                    exit 1
-                fi
-            else
-                log "所有镜像源均不可用，中止升级（旧版本未受影响）"
-                rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
-                exit 1
-            fi
-        fi
-    fi
-    log "镜像拉取完成"
-
-    # 镜像已准备好，现在才更新配置文件
-    if [[ -f "${PANEL_DIR}/.env.new" ]]; then
-        # 保存用户自定义的配置（包括路径配置）
-        local USER_HOST=$(grep "^iDB_service_host_ip=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_PORT=$(grep "^iDB_service_port=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_CONTAINER_PORT=$(grep "^iDB_service_container_port=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_DATA_PATH=$(grep "^iDB_service_data_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_LOG_PATH=$(grep "^iDB_service_log_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_CONF_PATH=$(grep "^iDB_service_conf_path=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_NETWORK_MODE=$(grep "^iDB_service_network_mode=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        local USER_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env" | cut -d'=' -f2)
-        
-        # 使用新的配置文件
-        mv "${PANEL_DIR}/.env.new" "${PANEL_DIR}/.env"
-        
-        # 恢复用户的自定义配置
-        if [[ -n "$USER_HOST" ]]; then
-            sed -i "s/^iDB_service_host_ip=.*/iDB_service_host_ip=${USER_HOST}/" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_PORT" ]]; then
-            sed -i "s/^iDB_service_port=.*/iDB_service_port=${USER_PORT}/" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_CONTAINER_PORT" ]]; then
-            sed -i "s/^iDB_service_container_port=.*/iDB_service_container_port=${USER_CONTAINER_PORT}/" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_DATA_PATH" ]]; then
-            sed -i "s|^iDB_service_data_path=.*|iDB_service_data_path=${USER_DATA_PATH}|" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_LOG_PATH" ]]; then
-            sed -i "s|^iDB_service_log_path=.*|iDB_service_log_path=${USER_LOG_PATH}|" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_CONF_PATH" ]]; then
-            sed -i "s|^iDB_service_conf_path=.*|iDB_service_conf_path=${USER_CONF_PATH}|" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_NETWORK_MODE" ]]; then
-            sed -i "s|^iDB_service_network_mode=.*|iDB_service_network_mode=${USER_NETWORK_MODE}|" "${PANEL_DIR}/.env"
-        fi
-        if [[ -n "$USER_IMAGE_REPO" ]]; then
-            sed -i "s|^iDB_image_repo=.*|iDB_image_repo=${USER_IMAGE_REPO}|" "${PANEL_DIR}/.env"
-        fi
-    fi
-
-    # docker-compose.yaml
-    if [[ -f "${PANEL_DIR}/docker-compose.yaml.new" ]]; then
-        mv "${PANEL_DIR}/docker-compose.yaml.new" "${PANEL_DIR}/docker-compose.yaml"
-    fi
-    
-    # 所有文件和镜像都已就绪，现在才停止旧容器并备份
-    Backup_Data
-    
-    # 启动新版本容器（镜像已预拉取，几乎瞬时启动）
-    cd "${PANEL_DIR}" || exit 1
-    docker compose up -d
-    
-    if [[ $? -ne 0 ]]; then
-        log "启动新版本失败，开始回滚..."
-        Restore_Data
-        docker compose up -d
-        exit 1
-    fi
-    
-    log "升级完成，版本：${VERSION}"
+            ;;
+    esac
 }
 
-# 主函数
+function Prepare_Download_Env() {
+    GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
+    GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
+    GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
+    GITHUB_RELEASES_URL="${GITHUB_RELEASES_URL:-https://github.com}"
+}
+
+function Detect_Version() {
+    VERSION="${1:-}"
+    if [[ -z "${VERSION}" ]]; then
+        VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    fi
+    if [[ -z "${VERSION}" ]]; then
+        log "获取目标版本失败"
+        exit 1
+    fi
+
+    CENTER_PKG="idb_${VERSION}_linux_${IDB_ARCH}.tar.gz"
+    AGENT_PKG="idb-agent_${VERSION}_linux_${IDB_ARCH}.tar.gz"
+    CENTER_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${CENTER_PKG}"
+    AGENT_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${AGENT_PKG}"
+}
+
+function Download_Assets() {
+    rm -rf "${TMP_DIR}"
+    mkdir -p "${TMP_DIR}/center" "${TMP_DIR}/agent"
+
+    log "下载 center 安装包: ${CENTER_PKG}"
+    curl -fsSL "${CENTER_URL}" -o "${TMP_DIR}/${CENTER_PKG}"
+
+    log "下载 agent 安装包: ${AGENT_PKG}"
+    curl -fsSL "${AGENT_URL}" -o "${TMP_DIR}/${AGENT_PKG}"
+
+    tar -xzf "${TMP_DIR}/${CENTER_PKG}" -C "${TMP_DIR}/center"
+    tar -xzf "${TMP_DIR}/${AGENT_PKG}" -C "${TMP_DIR}/agent"
+}
+
+function Ensure_Directories() {
+    mkdir -p "${IDB_INSTALL_ROOT}" "${IDB_HOME_DIR}" "${IDB_DATA_DIR}" "${IDB_AGENT_DIR}" "${IDB_PLUGIN_DIR}"
+    mkdir -p "${IDB_LOG_DIR}" "${IDB_RUN_DIR}" "${IDB_CONF_DIR}" "${IDB_AGENT_CONF_DIR}"
+}
+
+function Copy_Tree() {
+    local src="$1"
+    local dst="$2"
+
+    mkdir -p "${dst}"
+    cp -R "${src}/." "${dst}/"
+}
+
+function Detect_Legacy_Docker_Install() {
+    LEGACY_DOCKER_INSTALL="false"
+
+    if ! Configure_Docker_Access; then
+        return
+    fi
+
+    if docker ps -a --format '{{.Names}}' | grep -qx 'idb'; then
+        LEGACY_DOCKER_INSTALL="true"
+    fi
+}
+
+function Migrate_Docker_Install() {
+    local panel_dir="/var/lib/idb"
+    local data_dir=""
+    local log_dir=""
+    local conf_dir=""
+
+    if [[ "${LEGACY_DOCKER_INSTALL}" != "true" ]]; then
+        return
+    fi
+
+    log "检测到旧版 Docker 部署，开始迁移到原生 center"
+
+    panel_dir=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null || true)
+    [[ -z "${panel_dir}" ]] && panel_dir="/var/lib/idb"
+
+    data_dir=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/lib/idb/data" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null || true)
+    log_dir=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/var/log/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null || true)
+    conf_dir=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/etc/idb" }}{{ .Source }}{{ end }}{{ end }}' idb 2>/dev/null || true)
+
+    [[ -z "${data_dir}" ]] && data_dir="${IDB_DATA_DIR}"
+    [[ -z "${log_dir}" ]] && log_dir="${IDB_LOG_DIR}"
+    [[ -z "${conf_dir}" ]] && conf_dir="${IDB_CONF_DIR}"
+
+    docker stop -t 30 idb >/dev/null 2>&1 || docker kill idb >/dev/null 2>&1 || true
+    docker rm -f idb >/dev/null 2>&1 || true
+
+    if [[ -d "${conf_dir}" && "${conf_dir}" != "${IDB_CONF_DIR}" ]]; then
+        log "迁移配置目录: ${conf_dir} -> ${IDB_CONF_DIR}"
+        Copy_Tree "${conf_dir}" "${IDB_CONF_DIR}"
+    fi
+
+    if [[ -d "${data_dir}" && "${data_dir}" != "${IDB_DATA_DIR}" ]]; then
+        log "迁移数据目录: ${data_dir} -> ${IDB_DATA_DIR}"
+        Copy_Tree "${data_dir}" "${IDB_DATA_DIR}"
+    fi
+
+    if [[ -d "${log_dir}" && "${log_dir}" != "${IDB_LOG_DIR}" ]]; then
+        log "迁移日志目录: ${log_dir} -> ${IDB_LOG_DIR}"
+        Copy_Tree "${log_dir}" "${IDB_LOG_DIR}"
+    fi
+
+    rm -f "${panel_dir}/docker-compose.yaml" "${panel_dir}/.env"
+}
+
+function Ensure_Config_Value() {
+    local file="$1"
+    local key="$2"
+    local value="$3"
+
+    if grep -q "^${key}=" "${file}" 2>/dev/null; then
+        sed -i "s#^${key}=.*#${key}=${value}#" "${file}"
+    else
+        echo "${key}=${value}" >> "${file}"
+    fi
+}
+
+function Install_Center() {
+    local center_dir="${TMP_DIR}/center"
+    local config_target="${IDB_CONF_DIR}/idb.conf"
+
+    if [[ ! -f "${center_dir}/idb" || ! -f "${center_dir}/idb.service" || ! -f "${center_dir}/idb.conf" ]]; then
+        log "center 安装包内容不完整"
+        exit 1
+    fi
+
+    if [[ ! -f "${config_target}" ]]; then
+        cp "${center_dir}/idb.conf" "${config_target}"
+    fi
+    Ensure_Config_Value "${config_target}" "github_repo" "sensdata/idb"
+
+    systemctl stop idb.service >/dev/null 2>&1 || true
+
+    cp "${center_dir}/idb" "${IDB_INSTALL_ROOT}/idb"
+    chmod +x "${IDB_INSTALL_ROOT}/idb"
+    cp "${center_dir}/idb.service" /etc/systemd/system/idb.service
+    ln -sf "${IDB_INSTALL_ROOT}/idb" /usr/local/bin/idb
+
+    rm -rf "${IDB_HOME_DIR:?}"/*
+    if [[ -d "${center_dir}/home" ]]; then
+        cp -R "${center_dir}/home/." "${IDB_HOME_DIR}/"
+    fi
+
+    if [[ -d "${center_dir}/plugins" ]]; then
+        cp -R "${center_dir}/plugins/." "${IDB_PLUGIN_DIR}/"
+        find "${IDB_PLUGIN_DIR}" -type f -exec chmod +x {} \;
+    fi
+}
+
+function Generate_Certs_If_Missing() {
+    local cert_file="${IDB_INSTALL_ROOT}/cert.pem"
+    local key_file="${IDB_INSTALL_ROOT}/key.pem"
+
+    if [[ -f "${cert_file}" && -f "${key_file}" ]]; then
+        return
+    fi
+
+    log "生成本地自签名证书"
+    openssl req -x509 -nodes -days 3650 \
+        -newkey rsa:2048 \
+        -keyout "${key_file}" \
+        -out "${cert_file}" \
+        -subj "/CN=localhost" >/dev/null 2>&1
+}
+
+function Install_Agent() {
+    local agent_dir="${TMP_DIR}/agent"
+    local installed_conf="${IDB_AGENT_CONF_DIR}/idb-agent.conf"
+
+    if [[ ! -f "${agent_dir}/idb-agent" || ! -f "${agent_dir}/install-agent.sh" || ! -f "${agent_dir}/idb-agent.conf" ]]; then
+        log "agent 安装包内容不完整"
+        exit 1
+    fi
+
+    cp "${TMP_DIR}/${AGENT_PKG}" "${IDB_AGENT_DIR}/idb-agent.tar.gz"
+    echo "${VERSION}" > "${IDB_AGENT_DIR}/idb-agent.version"
+
+    if [[ -f "${installed_conf}" ]]; then
+        cp "${installed_conf}" "${agent_dir}/idb-agent.conf"
+    fi
+
+    chmod +x "${agent_dir}/install-agent.sh"
+    (
+        cd "${agent_dir}"
+        bash ./install-agent.sh
+    )
+}
+
+function Ensure_Admin_Env() {
+    local admin_env="${IDB_CONF_DIR}/idb.env"
+    touch "${admin_env}"
+    chmod 600 "${admin_env}"
+}
+
+function Start_Services() {
+    systemctl daemon-reload
+    systemctl enable idb.service
+    systemctl restart idb.service
+}
+
+function Cleanup() {
+    rm -rf "${TMP_DIR}"
+}
+
 function main() {
     log "======================= 开始升级 ======================="
-    Configure_Docker_Access || exit 1
-    Upgrade_IDB "$1"
+    Check_Root
+    Auto_Detect_Proxy
+    Prepare_Download_Env
+    Check_Architecture
+    Detect_Version "${1:-}"
+    Detect_Legacy_Docker_Install
+    Download_Assets
+    Ensure_Directories
+    Migrate_Docker_Install
+    Ensure_Admin_Env
+    Install_Center
+    Generate_Certs_If_Missing
+    Install_Agent
+    Start_Services
+    Cleanup
+    log "升级完成，版本：${VERSION}"
     log "======================= 升级完成 ======================="
 }
 
-main "$1"
+main "$@"
