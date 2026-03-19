@@ -11,8 +11,11 @@ function log() {
 }
 
 # 加速代理支持
-# 用法: IDB_GITHUB_PROXY=http://your-proxy:8443 bash upgrade.sh
-# 或在 .env 中配置: IDB_GITHUB_PROXY=http://your-proxy:8443
+# 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
+# 或在 .env 中配置: IDB_GITHUB_PROXY=https://dl.idb.net
+# 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
+IDB_DEFAULT_PROXY="https://dl.idb.net"
+
 # 从 .env 读取代理配置（如果环境变量未设置）
 if [[ -z "$IDB_GITHUB_PROXY" ]]; then
     _PANEL_DIR=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' idb 2>/dev/null)
@@ -22,6 +25,28 @@ if [[ -z "$IDB_GITHUB_PROXY" ]]; then
     fi
     unset _PANEL_DIR
 fi
+
+function Auto_Detect_Proxy() {
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "使用指定代理: ${IDB_GITHUB_PROXY}"
+        return
+    fi
+
+    log "检测 GitHub 连通性..."
+    local github_ok=false
+    if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        github_ok=true
+    fi
+
+    if [[ "$github_ok" == "true" ]]; then
+        log "GitHub 直连正常"
+    else
+        log "GitHub 连接超时或不可用，自动切换到加速代理: ${IDB_DEFAULT_PROXY}"
+        export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+    fi
+}
+
+Auto_Detect_Proxy
 
 GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
 GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"

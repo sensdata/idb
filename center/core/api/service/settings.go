@@ -61,7 +61,8 @@ func getLatestVersion() string {
 		return ""
 	}
 	global.LOG.Info("Getting latest version from GitHub: %s", githubRepo)
-	latest := utils.GetLatestReleaseVersion(githubRepo)
+	githubProxy := conn.CONFMAN.GetConfig().GithubProxy
+	latest := utils.GetLatestReleaseVersion(githubRepo, githubProxy)
 	if latest == "" {
 		global.LOG.Error("Failed to get latest version from GitHub")
 		return ""

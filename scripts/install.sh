@@ -23,7 +23,32 @@ EOF
 log "======================= 开始安装 ======================="
 
 # 加速代理支持
-# 用法: IDB_GITHUB_PROXY=http://your-proxy:8443 bash install.sh
+# 用法: IDB_GITHUB_PROXY=https://dl.idb.net bash install.sh
+# 如果未指定代理，自动检测 GitHub 连通性，不通则使用 dl.idb.net
+IDB_DEFAULT_PROXY="https://dl.idb.net"
+
+function Auto_Detect_Proxy() {
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "使用指定代理: ${IDB_GITHUB_PROXY}"
+        return
+    fi
+
+    log "检测 GitHub 连通性..."
+    local github_ok=false
+    if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" https://api.github.com/repos/sensdata/idb/releases/latest 2>/dev/null | grep -q "200"; then
+        github_ok=true
+    fi
+
+    if [[ "$github_ok" == "true" ]]; then
+        log "GitHub 直连正常"
+    else
+        log "GitHub 连接超时或不可用，自动切换到加速代理: ${IDB_DEFAULT_PROXY}"
+        export IDB_GITHUB_PROXY="${IDB_DEFAULT_PROXY}"
+    fi
+}
+
+Auto_Detect_Proxy
+
 GITHUB_API_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-api}"
 GITHUB_API_URL="${GITHUB_API_URL:-https://api.github.com}"
 GITHUB_RELEASES_URL="${IDB_GITHUB_PROXY:+${IDB_GITHUB_PROXY}/github-releases}"
