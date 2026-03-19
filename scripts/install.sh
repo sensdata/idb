@@ -23,6 +23,9 @@ IDB_AGENT_DATA_DIR="/var/lib/idb-agent/data"
 TMP_DIR="/tmp/idb-install"
 AGENT_INSTALL_FAILED="false"
 AGENT_INSTALL_ERROR=""
+LAST_ERROR_DETAIL=""
+
+trap 'LAST_ERROR_DETAIL="命令 \"${BASH_COMMAND}\" 失败 (行 ${LINENO}, 退出码 $?)"' ERR
 
 function log() {
     message="[idb Log]: $1 "
@@ -351,6 +354,9 @@ function Cleanup() {
         log ""
         log "======================= 安装失败 ======================="
         log "安装过程中发生错误 (退出码: ${exit_code})"
+        if [[ -n "${LAST_ERROR_DETAIL}" ]]; then
+            log "错误详情: ${LAST_ERROR_DETAIL}"
+        fi
         log "请查看日志: ${CURRENT_DIR}/install.log"
         log "如需帮助，请访问: https://github.com/sensdata/idb/issues"
         log "======================================================="
