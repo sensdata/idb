@@ -524,16 +524,7 @@ func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
 }
 
 func (c *Center) canAgentUpgrade(agentVersion string) bool {
-	// latestVersion 通过读取文件 /var/lib/idb/agent/idb-agent.version 来获得
-	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
-	var latestVersion string
-	version, err := os.ReadFile(latestPath)
-	if err != nil {
-		global.LOG.Error("Failed to read latest version: %v", err)
-		latestVersion = global.Version
-	} else {
-		latestVersion = strings.TrimSpace(string(version))
-	}
+	latestVersion := getAgentLatestVersion()
 	if agentVersion == latestVersion {
 		global.LOG.Info("Agent is up to date")
 		return false
@@ -579,7 +570,7 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 			hostStatusInfo := &core.HostStatusInfo{
 				Installed:     "installed",
 				Connected:     "online",
-				CanUpgrade:    msg.Version != global.Version,
+				CanUpgrade:    msg.Version != getAgentLatestVersion(),
 				Cpu:           heartbeat.Cpu,
 				Memory:        heartbeat.Memory,
 				MemTotal:      heartbeat.MemTotal,

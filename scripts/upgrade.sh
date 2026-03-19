@@ -182,8 +182,12 @@ function Pull_Image_From_GitHub() {
     local IMAGE_TAR="idb_image_${VERSION}.tar"
     local DOWNLOAD_URL="${GITHUB_RELEASES_URL}/sensdata/idb/releases/download/${VERSION}/${IMAGE_TAR}"
 
-    log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
-    curl -fSL "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "通过加速代理下载镜像: ${DOWNLOAD_URL}"
+    else
+        log "从 GitHub Releases 下载镜像: ${DOWNLOAD_URL}"
+    fi
+    curl -f --progress-bar "$DOWNLOAD_URL" -o "/tmp/${IMAGE_TAR}"
     if [[ $? -ne 0 ]]; then
         log "GitHub 镜像下载失败"
         rm -f "/tmp/${IMAGE_TAR}"
@@ -191,8 +195,8 @@ function Pull_Image_From_GitHub() {
     fi
 
     log "加载镜像..."
-    docker load -i "/tmp/${IMAGE_TAR}"
-    if [[ $? -ne 0 ]]; then
+    docker load -i "/tmp/${IMAGE_TAR}" 2>&1 | tee -a ${CURRENT_DIR}/upgrade.log
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         log "镜像加载失败"
         rm -f "/tmp/${IMAGE_TAR}"
         return 1
@@ -205,7 +209,11 @@ function Pull_Image_From_GitHub() {
     docker tag "idb:${VERSION}" "${IMAGE_REPO}:${VERSION}"
 
     rm -f "/tmp/${IMAGE_TAR}"
-    log "GitHub 镜像加载完成"
+    if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+        log "镜像加载完成（来源: 加速代理）"
+    else
+        log "镜像加载完成（来源: GitHub Releases）"
+    fi
 }
 
 # 升级 IDB
@@ -251,8 +259,12 @@ function Upgrade_IDB() {
     log "预拉取新版本镜像..."
     local NEW_IMAGE_REPO=$(grep "^iDB_image_repo=" "${PANEL_DIR}/.env.new" 2>/dev/null | cut -d'=' -f2)
     NEW_IMAGE_REPO="${NEW_IMAGE_REPO:-sensdb/idb}"
-    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}" 2>/dev/null; then
-        log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+    if ! docker pull "${NEW_IMAGE_REPO}:${VERSION}"; then
+        if [[ -n "$IDB_GITHUB_PROXY" ]]; then
+            log "Docker Hub 拉取失败，尝试通过加速代理下载镜像..."
+        else
+            log "Docker Hub 拉取失败，尝试从 GitHub Releases 下载镜像..."
+        fi
         if ! Pull_Image_From_GitHub "${VERSION}"; then
             log "所有镜像源均不可用，中止升级（旧版本未受影响）"
             rm -f "${PANEL_DIR}/.env.new" "${PANEL_DIR}/docker-compose.yaml.new"
