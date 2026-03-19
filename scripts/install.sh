@@ -182,7 +182,7 @@ function Ensure_Admin_Env() {
     chmod 600 "${admin_env}"
 
     if [[ ! -f "${IDB_DATA_DIR}/idb.db" ]] && ! grep -q '^PASSWORD=' "${admin_env}"; then
-        admin_pass=$(tr -dc 'a-z0-9' </dev/urandom | head -c 8)
+        admin_pass=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)
         echo "PASSWORD=${admin_pass}" > "${admin_env}"
         chmod 600 "${admin_env}"
         INITIAL_ADMIN_PASS="${admin_pass}"
@@ -201,7 +201,7 @@ function Detect_Target_Host() {
         public_ip=""
     fi
 
-    local_ip=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]*' | awk '{print $2}' | head -n1)
+    local_ip=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oE 'src [0-9.]*' | awk '{print $2}' | head -n1 || true)
 
     TARGET_HOST="${public_ip:-${local_ip:-127.0.0.1}}"
     LOCAL_IP="${local_ip:-127.0.0.1}"
