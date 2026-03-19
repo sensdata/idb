@@ -21,6 +21,8 @@ IDB_AGENT_RUN_DIR="/run/idb-agent"
 IDB_AGENT_LOG_DIR="/var/log/idb-agent"
 IDB_AGENT_DATA_DIR="/var/lib/idb-agent/data"
 TMP_DIR="/tmp/idb-install"
+AGENT_INSTALL_FAILED="false"
+AGENT_INSTALL_ERROR=""
 
 function log() {
     message="[idb Log]: $1 "
@@ -278,7 +280,7 @@ function Install_Agent() {
 
     if [[ ! -f "${agent_dir}/idb-agent" || ! -f "${agent_dir}/install-agent.sh" || ! -f "${packaged_conf}" ]]; then
         log "agent 安装包内容不完整"
-        exit 1
+        return 1
     fi
 
     cp "${TMP_DIR}/${AGENT_PKG}" "${IDB_AGENT_DIR}/idb-agent.tar.gz"
@@ -293,6 +295,14 @@ function Install_Agent() {
         cd "${agent_dir}"
         bash ./install-agent.sh
     )
+}
+
+function Install_Agent_With_Warning() {
+    if ! Install_Agent; then
+        AGENT_INSTALL_FAILED="true"
+        AGENT_INSTALL_ERROR="本机 agent 安装失败，center 已保留运行，请稍后在面板内重试或检查本机安装环境"
+        log "${AGENT_INSTALL_ERROR}"
+    fi
 }
 
 function Start_Services() {
@@ -324,6 +334,10 @@ function Show_Result() {
     log "项目文档: https://idb.net/docs"
     log "代码仓库: https://github.com/sensdata/idb"
     log ""
+    if [[ "${AGENT_INSTALL_FAILED}" == "true" ]]; then
+        log "注意事项: ${AGENT_INSTALL_ERROR}"
+        log ""
+    fi
     log "如果使用的是云服务器，请至安全组开放 9918 端口"
     log ""
     log "为了您的服务器安全，在您离开此界面后您将无法再看到您的密码，请务必牢记您的密码。"
@@ -336,6 +350,7 @@ function Cleanup() {
 }
 
 function main() {
+    trap Cleanup EXIT
     Check_Root
     Auto_Detect_Proxy
     Prepare_Download_Env
@@ -347,10 +362,9 @@ function main() {
     Detect_Target_Host
     Install_Center
     Generate_Certs
-    Install_Agent
     Start_Services
+    Install_Agent_With_Warning
     Show_Result
-    Cleanup
 }
 
 main "$@"
