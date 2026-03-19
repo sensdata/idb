@@ -207,7 +207,19 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 	global.LOG.Info("Install agent to host %s begin", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Install agent to host %s begin", host.Addr))
 
-	// 1. 检查 agent 安装包路径
+	// 1. 升级模式下，先比较版本，版本一致则跳过
+	if upgrade && host.AgentVersion != "" {
+		latestVersion := getAgentLatestVersion()
+		if host.AgentVersion == latestVersion {
+			global.LOG.Info("Agent on host %s is already up to date (version: %s)", host.Addr, host.AgentVersion)
+			taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Agent is already up to date (version: %s), skip upgrade", host.AgentVersion))
+			taskStatus(taskId, types.TaskStatusSuccess)
+			return nil
+		}
+		taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Agent version: %s -> %s, upgrading...", host.AgentVersion, latestVersion))
+	}
+
+	// 2. 检查 agent 安装包路径
 	taskLog(writer, types.LogLevelInfo, "Checking agent package path")
 	agentPackagePath := filepath.Join(constant.CenterAgentDir, constant.CenterAgentPkg)
 	if _, err := os.Stat(agentPackagePath); os.IsNotExist(err) {
@@ -217,16 +229,25 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		return fmt.Errorf("agent package not found at %s", agentPackagePath)
 	}
 
-	// 2. 拿 SSH 连接
+	// 3. 拿 SSH 连接（如果连接池中没有，则主动建立连接）
 	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
 	client, err := s.getClient(host)
 	if err != nil {
-		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
-		taskStatus(taskId, types.TaskStatusCanceled)
-		return err
+		taskLog(writer, types.LogLevelInfo, "SSH connection not in pool, trying to connect...")
+		if connErr := s.connectToHost(&host); connErr != nil {
+			taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, connErr))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return connErr
+		}
+		client, err = s.getClient(host)
+		if err != nil {
+			taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to get SSH client for host %s after connect: %v", host.Addr, err))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return err
+		}
 	}
 
-	// 3. 检查目标机器是否已安装 agent
+	// 4. 检查目标机器是否已安装 agent
 	taskLog(writer, types.LogLevelInfo, "Checking agent installation status")
 	checkCmd := `
         if systemctl is-active --quiet idb-agent.service && [ -f /var/lib/idb-agent/idb-agent ]; then
@@ -250,7 +271,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		return nil
 	}
 
-	// 4. 传输 agent 包文件
+	// 5. 传输 agent 包文件
 	taskLog(writer, types.LogLevelInfo, "Start transferring agent package")
 	err = s.transferFile(client, agentPackagePath, "/tmp/idb-agent.tar.gz", writer)
 	if err != nil {
@@ -260,7 +281,7 @@ func (s *SSHService) InstallAgent(host model.Host, taskId string, upgrade bool) 
 		return fmt.Errorf("failed to transfer agent package: %v", err)
 	}
 
-	// 5. 执行解压和安装命令
+	// 6. 执行解压和安装命令
 	taskLog(writer, types.LogLevelInfo, "Unpacking and installing agent")
 	// 直接在Go代码中替换变量值，而不是依赖shell变量展开
 	// 使用 # 作为 sed 分隔符，避免 secret_key 中包含 / 时的问题
@@ -315,13 +336,22 @@ func (s *SSHService) UninstallAgent(host model.Host, taskId string) error {
 	global.LOG.Info("Uninstall agent in host %s begin", host.Addr)
 	taskLog(writer, types.LogLevelInfo, fmt.Sprintf("Uninstall agent in host %s begin", host.Addr))
 
-	// 1. 检查并确保 SSH 连接存在
+	// 1. 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
 	taskLog(writer, types.LogLevelInfo, "Checking SSH connection")
 	client, err := s.getClient(host)
 	if err != nil {
-		taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
-		taskStatus(taskId, types.TaskStatusCanceled)
-		return err
+		taskLog(writer, types.LogLevelInfo, "SSH connection not in pool, trying to connect...")
+		if connErr := s.connectToHost(&host); connErr != nil {
+			taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, connErr))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return connErr
+		}
+		client, err = s.getClient(host)
+		if err != nil {
+			taskLog(writer, types.LogLevelError, fmt.Sprintf("Failed to get SSH client for host %s after connect: %v", host.Addr, err))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return err
+		}
 	}
 
 	// 2. 检查 agent 是否已安装
@@ -417,10 +447,16 @@ func (s *SSHService) agentInstalled(client *ssh.Client, host model.Host) (string
 }
 
 func (s *SSHService) RestartAgent(host model.Host) error {
-	// 检查并确保 SSH 连接存在
+	// 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
 	client, err := s.getClient(host)
 	if err != nil {
-		return err
+		if connErr := s.connectToHost(&host); connErr != nil {
+			return connErr
+		}
+		client, err = s.getClient(host)
+		if err != nil {
+			return err
+		}
 	}
 
 	restartCmd := `systemctl restart idb-agent.service`
@@ -502,13 +538,22 @@ func (s *SSHService) transferFile(client *ssh.Client, localPath, remotePath stri
 }
 
 func (s *SSHService) TransferDir(host model.Host, taskId string, localDir string, remoteDir string, wp *writer.Writer) error {
-	// 检查并确保 SSH 连接存在
+	// 检查并确保 SSH 连接存在（如果连接池中没有，则主动建立连接）
 	taskLog(wp, types.LogLevelInfo, "Checking SSH connection")
 	client, err := s.getClient(host)
 	if err != nil {
-		taskLog(wp, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, err))
-		taskStatus(taskId, types.TaskStatusCanceled)
-		return err
+		taskLog(wp, types.LogLevelInfo, "SSH connection not in pool, trying to connect...")
+		if connErr := s.connectToHost(&host); connErr != nil {
+			taskLog(wp, types.LogLevelError, fmt.Sprintf("Failed to connect to host %s: %v", host.Addr, connErr))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return connErr
+		}
+		client, err = s.getClient(host)
+		if err != nil {
+			taskLog(wp, types.LogLevelError, fmt.Sprintf("Failed to get SSH client for host %s after connect: %v", host.Addr, err))
+			taskStatus(taskId, types.TaskStatusCanceled)
+			return err
+		}
 	}
 	return s.transferDir(client, localDir, remoteDir, wp)
 }
@@ -857,6 +902,16 @@ func (s *SSHService) connectToHost(host *model.Host) error {
 
 	global.LOG.Info("SSH connection to %s created", host.Addr)
 	return nil
+}
+
+func getAgentLatestVersion() string {
+	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
+	version, err := os.ReadFile(latestPath)
+	if err != nil {
+		global.LOG.Error("Failed to read latest version: %v", err)
+		return global.Version
+	}
+	return strings.TrimSpace(string(version))
 }
 
 func makePrivateKeySigner(privateKey []byte, passPhrase []byte) (ssh.Signer, error) {
