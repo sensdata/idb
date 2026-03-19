@@ -44,3 +44,56 @@ type UpdateSettingRequest struct {
 type UpdateSettingResponse struct {
 	RedirectUrl string `json:"redirect_url"`
 }
+
+type SettingsStatus struct {
+	CollectedAt int64                `json:"collected_at"`
+	Center      CenterRuntimeStatus  `json:"center"`
+	Agent       *AgentRuntimeStatus  `json:"agent,omitempty"`
+	Checks      SettingsStatusChecks `json:"checks"`
+}
+
+type CenterRuntimeStatus struct {
+	PID          int     `json:"pid"`
+	Version      string  `json:"version"`
+	BindIP       string  `json:"bind_ip"`
+	BindPort     int     `json:"bind_port"`
+	BindDomain   string  `json:"bind_domain"`
+	HttpsEnabled bool    `json:"https_enabled"`
+	AccessURL    string  `json:"access_url"`
+	StartedAt    int64   `json:"started_at"`
+	Uptime       int64   `json:"uptime"`
+	CPUPercent   float64 `json:"cpu_percent"`
+	CPUSeconds   float64 `json:"cpu_seconds"`
+	MemoryRSS    uint64  `json:"memory_rss"`
+	HeapAlloc    uint64  `json:"heap_alloc"`
+	HeapSys      uint64  `json:"heap_sys"`
+	StackInuse   uint64  `json:"stack_inuse"`
+	Goroutines   int     `json:"goroutines"`
+	OpenFDs      int     `json:"open_fds"`
+}
+
+type AgentRuntimeStatus struct {
+	HostID        uint    `json:"host_id"`
+	HostName      string  `json:"host_name"`
+	HostAddr      string  `json:"host_addr"`
+	AgentAddr     string  `json:"agent_addr"`
+	AgentPort     int     `json:"agent_port"`
+	AgentVersion  string  `json:"agent_version"`
+	Installed     string  `json:"installed"`
+	Connected     string  `json:"connected"`
+	LastHeartbeat int64   `json:"last_heartbeat"`
+	CPU           float64 `json:"cpu"`
+	Memory        float64 `json:"memory"`
+	MemTotal      string  `json:"mem_total"`
+	MemUsed       string  `json:"mem_used"`
+	Disk          float64 `json:"disk"`
+	BootTime      string  `json:"boot_time"`
+	RunTime       int64   `json:"run_time"`
+}
+
+type SettingsStatusChecks struct {
+	DatabaseConnected  bool `json:"database_connected"`
+	DefaultHostFound   bool `json:"default_host_found"`
+	DefaultAgentOnline bool `json:"default_agent_online"`
+	DefaultAgentFresh  bool `json:"default_agent_fresh"`
+}

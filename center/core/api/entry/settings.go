@@ -39,6 +39,22 @@ func (b *BaseApi) IPs(c *gin.Context) {
 }
 
 // @Tags Settings
+// @Summary Get panel runtime status
+// @Description Get center and default agent runtime status
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.SettingsStatus
+// @Router /settings/status [get]
+func (b *BaseApi) Status(c *gin.Context) {
+	result, err := settingsService.Status()
+	if err != nil {
+		ErrorWithDetail(c, constant.CodeFailed, err.Error(), nil)
+		return
+	}
+	SuccessWithData(c, result)
+}
+
+// @Tags Settings
 // @Summary Get avaiable timezones
 // @Description Get avaiable timezones
 // @Accept json

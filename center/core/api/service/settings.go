@@ -6,15 +6,19 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	_ "embed"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -33,10 +37,17 @@ type SettingsService struct{}
 type ISettingsService interface {
 	About() (*model.About, error)
 	IPs() (*model.AvailableIps, error)
+	Status() (*model.SettingsStatus, error)
 	Timezones(req model.SearchPageInfo) (*model.PageResult, error)
 	Settings() (*model.SettingInfo, error)
 	Update(req model.UpdateSettingRequest) (*model.UpdateSettingResponse, error)
 	Upgrade() error
+}
+
+var centerCPUSample struct {
+	mu       sync.Mutex
+	seconds  float64
+	recorded time.Time
 }
 
 func NewISettingsService() ISettingsService {
@@ -52,6 +63,254 @@ func (s *SettingsService) About() (*model.About, error) {
 	about.NewVersion = getLatestVersion()
 
 	return &about, nil
+}
+
+func (s *SettingsService) Status() (*model.SettingsStatus, error) {
+	settingInfo, err := s.Settings()
+	if err != nil {
+		return nil, err
+	}
+
+	status := &model.SettingsStatus{
+		CollectedAt: time.Now().Unix(),
+		Center:      getCenterRuntimeStatus(settingInfo),
+		Checks: model.SettingsStatusChecks{
+			DatabaseConnected: isDatabaseConnected(),
+		},
+	}
+
+	defaultHost, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Warn("Failed to get default host for settings status: %v", err)
+		return status, nil
+	}
+
+	status.Checks.DefaultHostFound = true
+	agentStatus, err := s.getAgentRuntimeStatus(defaultHost)
+	if err != nil {
+		global.LOG.Warn("Failed to get default agent runtime status: %v", err)
+		return status, nil
+	}
+
+	status.Agent = agentStatus
+	status.Checks.DefaultAgentOnline = agentStatus.Connected == "online"
+	if agentStatus.LastHeartbeat > 0 {
+		status.Checks.DefaultAgentFresh = time.Since(time.Unix(agentStatus.LastHeartbeat, 0)) < 2*time.Minute
+	}
+
+	return status, nil
+}
+
+func getCenterRuntimeStatus(settingInfo *model.SettingInfo) model.CenterRuntimeStatus {
+	memStats := runtime.MemStats{}
+	runtime.ReadMemStats(&memStats)
+
+	cpuPercent, cpuSeconds := sampleCenterCPUPercent(global.StartedAt)
+	status := model.CenterRuntimeStatus{
+		PID:          os.Getpid(),
+		Version:      global.Version,
+		BindIP:       settingInfo.BindIP,
+		BindPort:     settingInfo.BindPort,
+		BindDomain:   settingInfo.BindDomain,
+		HttpsEnabled: settingInfo.Https == "yes",
+		AccessURL:    buildSettingsAccessURL(settingInfo),
+		StartedAt:    global.StartedAt.Unix(),
+		Uptime:       int64(time.Since(global.StartedAt).Seconds()),
+		CPUPercent:   cpuPercent,
+		CPUSeconds:   cpuSeconds,
+		MemoryRSS:    readProcessRSSBytes(),
+		HeapAlloc:    memStats.HeapAlloc,
+		HeapSys:      memStats.HeapSys,
+		StackInuse:   memStats.StackInuse,
+		Goroutines:   runtime.NumGoroutine(),
+		OpenFDs:      countOpenFDs(),
+	}
+
+	return status
+}
+
+func buildSettingsAccessURL(settingInfo *model.SettingInfo) string {
+	scheme := "http"
+	if settingInfo.Https == "yes" {
+		scheme = "https"
+	}
+
+	hostValue := settingInfo.BindDomain
+	if strings.TrimSpace(hostValue) == "" {
+		hostValue = global.Host
+		if strings.TrimSpace(hostValue) == "" || hostValue == "0.0.0.0" {
+			hostValue = settingInfo.BindIP
+		}
+	}
+
+	return fmt.Sprintf("%s://%s:%d/manage/settings", scheme, hostValue, settingInfo.BindPort)
+}
+
+func isDatabaseConnected() bool {
+	if global.DB == nil {
+		return false
+	}
+
+	sqlDB, err := global.DB.DB()
+	if err != nil {
+		return false
+	}
+
+	return sqlDB.Ping() == nil
+}
+
+func sampleCenterCPUPercent(startedAt time.Time) (float64, float64) {
+	totalCPUSeconds, err := readProcessCPUSeconds()
+	if err != nil {
+		return 0, 0
+	}
+
+	now := time.Now()
+	centerCPUSample.mu.Lock()
+	defer centerCPUSample.mu.Unlock()
+
+	var cpuPercent float64
+	if !centerCPUSample.recorded.IsZero() &&
+		now.After(centerCPUSample.recorded) &&
+		totalCPUSeconds >= centerCPUSample.seconds {
+		wallSeconds := now.Sub(centerCPUSample.recorded).Seconds()
+		if wallSeconds > 0 {
+			cpuPercent = ((totalCPUSeconds - centerCPUSample.seconds) / wallSeconds) * 100
+		}
+	} else {
+		uptimeSeconds := now.Sub(startedAt).Seconds()
+		if uptimeSeconds > 0 {
+			cpuPercent = (totalCPUSeconds / uptimeSeconds) * 100
+		}
+	}
+
+	centerCPUSample.seconds = totalCPUSeconds
+	centerCPUSample.recorded = now
+
+	return math.Round(cpuPercent*100) / 100, math.Round(totalCPUSeconds*100) / 100
+}
+
+func readProcessCPUSeconds() (float64, error) {
+	data, err := os.ReadFile("/proc/self/stat")
+	if err != nil {
+		return 0, err
+	}
+
+	content := string(data)
+	commEnd := strings.LastIndex(content, ")")
+	if commEnd == -1 || commEnd+2 >= len(content) {
+		return 0, fmt.Errorf("invalid /proc/self/stat format")
+	}
+
+	fields := strings.Fields(content[commEnd+2:])
+	if len(fields) <= 12 {
+		return 0, fmt.Errorf("invalid /proc/self/stat field count")
+	}
+
+	utime, err := strconv.ParseFloat(fields[11], 64)
+	if err != nil {
+		return 0, err
+	}
+	stime, err := strconv.ParseFloat(fields[12], 64)
+	if err != nil {
+		return 0, err
+	}
+
+	const clockTicksPerSecond = 100.0
+	return (utime + stime) / clockTicksPerSecond, nil
+}
+
+func readProcessRSSBytes() uint64 {
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return 0
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "VmRSS:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			return 0
+		}
+		kb, err := strconv.ParseUint(fields[1], 10, 64)
+		if err != nil {
+			return 0
+		}
+		return kb * 1024
+	}
+
+	return 0
+}
+
+func countOpenFDs() int {
+	entries, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		return 0
+	}
+
+	return len(entries)
+}
+
+func (s *SettingsService) getAgentRuntimeStatus(host db.Host) (*model.AgentRuntimeStatus, error) {
+	hostStatus, err := NewIHostService().HostStatus(host.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	status := &model.AgentRuntimeStatus{
+		HostID:        host.ID,
+		HostName:      host.Name,
+		HostAddr:      host.Addr,
+		AgentAddr:     host.AgentAddr,
+		AgentPort:     host.AgentPort,
+		AgentVersion:  host.AgentVersion,
+		Installed:     hostStatus.Installed,
+		Connected:     hostStatus.Connected,
+		LastHeartbeat: hostStatus.LastHeartbeat,
+		CPU:           hostStatus.Cpu,
+		Memory:        hostStatus.Memory,
+		MemTotal:      hostStatus.MemTotal,
+		MemUsed:       hostStatus.MemUsed,
+		Disk:          hostStatus.Disk,
+	}
+
+	if status.Connected != "online" {
+		return status, nil
+	}
+
+	overview, err := s.getHostOverview(host.ID)
+	if err != nil {
+		return status, nil
+	}
+
+	status.BootTime = overview.BootTime
+	status.RunTime = overview.RunTime
+	return status, nil
+}
+
+func (s *SettingsService) getHostOverview(hostID uint) (*model.Overview, error) {
+	actionResponse, err := conn.CENTER.ExecuteAction(model.HostAction{
+		HostID: hostID,
+		Action: model.Action{
+			Action: model.SysInfo_OverView,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !actionResponse.Result {
+		return nil, fmt.Errorf("failed to get host overview")
+	}
+
+	var overview model.Overview
+	if err := json.Unmarshal([]byte(actionResponse.Data), &overview); err != nil {
+		return nil, err
+	}
+
+	return &overview, nil
 }
 
 func getLatestVersion() string {
