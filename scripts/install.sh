@@ -346,6 +346,15 @@ function Show_Result() {
 }
 
 function Cleanup() {
+    local exit_code=$?
+    if [[ ${exit_code} -ne 0 ]]; then
+        log ""
+        log "======================= 安装失败 ======================="
+        log "安装过程中发生错误 (退出码: ${exit_code})"
+        log "请查看日志: ${CURRENT_DIR}/install.log"
+        log "如需帮助，请访问: https://github.com/sensdata/idb/issues"
+        log "======================================================="
+    fi
     rm -rf "${TMP_DIR}"
 }
 
