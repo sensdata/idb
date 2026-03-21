@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/sensdata/idb/center/global"
@@ -17,6 +18,8 @@ type AgentWebSocketSession struct {
 	Session            string
 	Name               string
 	SessionMessageChan chan *message.SessionMessage
+	done               chan struct{}
+	closeOnce          sync.Once
 	agentConn          *net.Conn
 	agentSecret        string
 	wsConn             *websocket.Conn
@@ -30,7 +33,8 @@ type AgentWebSocketSession struct {
 func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *websocket.Conn, agentSecret string, token string, hostID uint, sessionType message.SessionType) (*AgentWebSocketSession, error) {
 	return &AgentWebSocketSession{
 		Session:            utils.GenerateMsgId(),
-		SessionMessageChan: make(chan *message.SessionMessage),
+		SessionMessageChan: make(chan *message.SessionMessage, 16),
+		done:               make(chan struct{}),
 		agentConn:          agentConn,
 		wsConn:             wsConn,
 		agentSecret:        agentSecret,
@@ -43,7 +47,22 @@ func NewAgentWebSocketSession(cols, rows int, agentConn *net.Conn, wsConn *webso
 }
 
 func (s *AgentWebSocketSession) Close() {
+	s.closeOnce.Do(func() {
+		close(s.done)
+	})
+}
 
+func (s *AgentWebSocketSession) enqueueSessionMessage(msg *message.SessionMessage) bool {
+	if msg == nil {
+		return false
+	}
+
+	select {
+	case <-s.done:
+		return false
+	case s.SessionMessageChan <- msg:
+		return true
+	}
 }
 
 func (aws *AgentWebSocketSession) Start(quitChan chan bool) {
@@ -117,7 +136,9 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 								Data:    "",
 							},
 						}
-						aws.SessionMessageChan <- &msg
+						if !aws.enqueueSessionMessage(&msg) {
+							global.LOG.Info("skip attach conflict message for closed session %s", aws.Session)
+						}
 					}()
 				} else {
 					err := aws.sendToAgent(
@@ -164,7 +185,9 @@ func (aws *AgentWebSocketSession) receiveWsMsg(exitCh chan bool) {
 							Data:    msgObj.Data,
 						},
 					}
-					aws.SessionMessageChan <- &msg
+					if !aws.enqueueSessionMessage(&msg) {
+						global.LOG.Info("skip heartbeat for closed session %s", msgObj.Session)
+					}
 				}()
 			}
 		}
@@ -229,6 +252,8 @@ func (aws *AgentWebSocketSession) sendComboOutput(exitCh chan bool) {
 
 	for {
 		select {
+		case <-aws.done:
+			return
 		case <-exitCh:
 			return
 		case response, ok := <-aws.SessionMessageChan:
