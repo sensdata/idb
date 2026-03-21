@@ -453,8 +453,8 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 	}()
 
 	// 缓存区：用来缓存从 conn.Read 读取的数据
-	dataBuffer := make([]byte, 0)
-	tmpBuffer := make([]byte, 1024)
+	dataBuffer := make([]byte, 0, 4096)
+	tmpBuffer := make([]byte, 4096)
 	for {
 		select {
 		case <-c.done:
@@ -505,8 +505,14 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 					fmt.Println("Unknown message type")
 				}
 
-				// 更新缓存，移除已处理的部分
-				dataBuffer = remainingBuffer
+				// 更新缓存，移除已处理的部分（复制到新slice防止底层数组泄漏）
+				if len(remainingBuffer) > 0 {
+					newBuf := make([]byte, len(remainingBuffer), len(remainingBuffer)+4096)
+					copy(newBuf, remainingBuffer)
+					dataBuffer = newBuf
+				} else {
+					dataBuffer = dataBuffer[:0]
+				}
 			}
 		}
 	}
