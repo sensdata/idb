@@ -107,7 +107,7 @@ function Prepare_Download_Env() {
 function Detect_Version() {
     VERSION="${1:-}"
     if [[ -z "${VERSION}" ]]; then
-        VERSION=$(Fetch_Latest_Release_Tag "${GITHUB_API_URL}")
+        VERSION=$(Fetch_Latest_Release_Tag "${GITHUB_API_URL}" || true)
     fi
     if [[ -z "${VERSION}" ]]; then
         log "获取目标版本失败"
