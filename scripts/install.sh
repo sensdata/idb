@@ -155,10 +155,7 @@ function Prepare_Download_Env() {
 function Detect_Version() {
     VERSION="${1:-}"
     if [[ -z "${VERSION}" ]]; then
-        VERSION=$(curl -s "${GITHUB_API_URL}/repos/sensdata/idb/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
-    fi
-    if [[ -z "${VERSION}" ]]; then
-        VERSION=$(Fetch_Latest_Release_Tag "${GITHUB_API_URL}")
+        VERSION=$(Fetch_Latest_Release_Tag "${GITHUB_API_URL}" || true)
     fi
     if [[ -z "${VERSION}" ]]; then
         log "获取目标版本失败"
@@ -229,7 +226,7 @@ function Ensure_Admin_Env() {
     chmod 600 "${admin_env}"
 
     if [[ ! -f "${IDB_DATA_DIR}/idb.db" ]] && ! grep -q '^PASSWORD=' "${admin_env}"; then
-        admin_pass=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 8)
+        admin_pass=$(tr -dc 'a-z0-9' </dev/urandom | head -c 8)
         echo "PASSWORD=${admin_pass}" > "${admin_env}"
         chmod 600 "${admin_env}"
         INITIAL_ADMIN_PASS="${admin_pass}"
