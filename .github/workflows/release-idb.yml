@@ -57,6 +57,9 @@ jobs:
           make generate-jwt-key
           make generate-certs
 
+      - name: Generate release scripts
+        run: bash scripts/build-release-scripts.sh
+
       - name: Build frontend
         run: |
           cd frontend

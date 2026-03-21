@@ -47,6 +47,11 @@ jobs:
           make generate-jwt-key
           make generate-certs
 
+      - name: Verify generated release scripts
+        run: |
+          bash scripts/build-release-scripts.sh
+          git diff --exit-code -- scripts/install.sh scripts/upgrade.sh
+
       - name: Check gofmt
         run: |
           cd ${{ matrix.module }}
@@ -89,6 +94,11 @@ jobs:
           make generate-jwt-key
           make generate-certs
 
+      - name: Verify generated release scripts
+        run: |
+          bash scripts/build-release-scripts.sh
+          git diff --exit-code -- scripts/install.sh scripts/upgrade.sh
+
       - name: Run unit tests
         run: |
           cd center && go test -v ./...
@@ -127,6 +137,9 @@ jobs:
           make generate-key
           make generate-jwt-key
           make generate-certs
+
+      - name: Generate release scripts
+        run: bash scripts/build-release-scripts.sh
 
       - name: Build backend
         run: |
