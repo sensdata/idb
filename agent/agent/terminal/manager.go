@@ -142,16 +142,12 @@ func (m *DefaultManager) AttachSession(sessionType message.SessionType, id strin
 			rows,
 		)
 	case message.SessionTypeTmux:
-		// not support
+		return nil, fmt.Errorf("tmux session attach not supported")
 	case message.SessionTypeDocker:
-		// not support
+		return nil, fmt.Errorf("docker session attach not supported")
 	default:
-		session = NewBaseSession(
-			id,
-			"",
-			cols,
-			rows,
-		)
+		// bash会话不支持attach，返回错误让调用方回退到Start
+		return nil, fmt.Errorf("bash session does not support attach")
 	}
 	global.LOG.Info("attaching session")
 
@@ -213,6 +209,16 @@ func (m *DefaultManager) DetachSession(sessionType message.SessionType, id strin
 	case message.SessionTypeDocker:
 		return m.quitContainerSession(id)
 	default:
+		// bash会话不支持detach，直接释放
+		session, err := m.GetSession(id)
+		if err != nil {
+			return err
+		}
+		if err := session.Release(); err != nil {
+			global.LOG.Error("failed to release session: %v", err)
+			return err
+		}
+		m.RemoveSession(id)
 		return nil
 	}
 }
