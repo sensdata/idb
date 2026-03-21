@@ -198,15 +198,12 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 				agentConn, err := conn.CENTER.GetAgentConn(&host)
 				if err != nil {
 					global.LOG.Error("get agent conn failed: %v", err)
-					return fmt.Errorf("get agent conn failed: %w", err)
-				}
-
-				go func() {
+				} else {
 					err := s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 					if err != nil {
 						global.LOG.Error("notify remote logstream message failed: %v", err)
 					}
-				}()
+				}
 			}
 
 			s.clearTaskStuff(task.ID)
@@ -236,7 +233,7 @@ func (s *LogManService) notifyRemote(conn *net.Conn, taskId string, logPath stri
 }
 
 func (s *LogManService) clearTaskStuff(taskId string) {
-	global.LOG.Info("clear task stuff")
+	global.LOG.Info("clear task stuff for %s", taskId)
 	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
 		global.LOG.Warn("update task %s to %s failed: %v", taskId, types.TaskStatusCanceled, err)
 	}

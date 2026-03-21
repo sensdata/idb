@@ -482,8 +482,8 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 	}()
 
 	// 缓存区：用来缓存从 conn.Read 读取的数据
-	dataBuffer := make([]byte, 0)
-	tmpBuffer := make([]byte, 1024)
+	dataBuffer := make([]byte, 0, 4096)
+	tmpBuffer := make([]byte, 4096)
 	for {
 		select {
 		case <-c.done:
@@ -534,8 +534,14 @@ func (c *Center) handleConnection(host *model.Host, conn net.Conn) {
 					fmt.Println("Unknown message type")
 				}
 
-				// 更新缓存，移除已处理的部分
-				dataBuffer = remainingBuffer
+				// 更新缓存，移除已处理的部分（复制到新slice防止底层数组泄漏）
+				if len(remainingBuffer) > 0 {
+					newBuf := make([]byte, len(remainingBuffer), len(remainingBuffer)+4096)
+					copy(newBuf, remainingBuffer)
+					dataBuffer = newBuf
+				} else {
+					dataBuffer = dataBuffer[:0]
+				}
 			}
 		}
 	}
@@ -699,13 +705,14 @@ func (c *Center) processFileMessage(msg *message.FileMessage) {
 
 func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	global.LOG.Info("Process session message: %v", msg)
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	var aws *AgentWebSocketSession
 
 	switch msg.Type {
 	case message.WsMessageStart:
+		c.mu.Lock()
 		// start的时候，通过msgID找aws
-		aws, exists := c.awsMap[msg.MsgID]
+		var exists bool
+		aws, exists = c.awsMap[msg.MsgID]
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
@@ -714,8 +721,6 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace aws msgID %s with session %s", msg.MsgID, msg.Data.Session)
-
-			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
 		}
@@ -730,9 +735,16 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no token - session")
 		}
+		c.mu.Unlock()
+
+		if aws != nil && !aws.enqueueSessionMessage(msg) {
+			global.LOG.Info("skip session start message for closed session %s", msg.Data.Session)
+		}
 	case message.WsMessageAttach:
+		c.mu.Lock()
 		// attach的时候，通过msgID找aws
-		aws, exists := c.awsMap[msg.MsgID]
+		var exists bool
+		aws, exists = c.awsMap[msg.MsgID]
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
@@ -741,8 +753,6 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
-
-			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
 		}
@@ -757,11 +767,20 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no token - session")
 		}
+		c.mu.Unlock()
+
+		if aws != nil && !aws.enqueueSessionMessage(msg) {
+			global.LOG.Info("skip session attach message for closed session %s", msg.Data.Session)
+		}
 	case message.WsMessageCmd:
+		c.mu.Lock()
 		// command的时候，通过session找aws
-		aws, exists := c.awsMap[msg.Data.Session]
-		if exists {
-			aws.SessionMessageChan <- msg
+		aws = c.awsMap[msg.Data.Session]
+		c.mu.Unlock()
+		if aws != nil {
+			if !aws.enqueueSessionMessage(msg) {
+				global.LOG.Info("skip session command message for closed session %s", msg.Data.Session)
+			}
 		} else {
 			global.LOG.Info("no response session")
 		}
@@ -845,8 +864,8 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 	// 获取文件大小
 	fileSize := file.Size
 
-	// 创建等待响应的通道
-	responseCh := make(chan *message.FileMessage)
+	// 创建等待响应的通道（缓冲1，防止goroutine泄漏）
+	responseCh := make(chan *message.FileMessage, 1)
 
 	// 生成消息ID
 	msgID := utils.GenerateMsgId()
@@ -893,7 +912,10 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 			}
 		}()
 
@@ -945,8 +967,8 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	}
 	ctx.Header("Content-Type", mimeType)
 
-	// 创建等待响应的通道
-	responseCh := make(chan *message.FileMessage)
+	// 创建等待响应的通道（缓冲1，防止goroutine泄漏）
+	responseCh := make(chan *message.FileMessage, 1)
 
 	// 生成消息ID
 	msgID := utils.GenerateMsgId()
@@ -981,7 +1003,10 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 				global.LOG.Error("Failed to create file message: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 				return
 			}
 
@@ -990,7 +1015,10 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 			}
 		}()
 
@@ -1083,8 +1111,8 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 		return nil, err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	msgID := utils.GenerateMsgId()
@@ -1109,7 +1137,10 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send action message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 
@@ -1147,8 +1178,8 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		return "", err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	msgID := utils.GenerateMsgId()
@@ -1173,7 +1204,10 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 
@@ -1228,8 +1262,8 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 		return []string{}, err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	var data string
@@ -1261,7 +1295,10 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 

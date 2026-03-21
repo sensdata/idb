@@ -41,6 +41,8 @@ type BaseSession struct {
 	// Chan for quiting
 	doneChan chan struct{}
 	doneOnce sync.Once
+	waitOnce sync.Once
+	waitErr  error
 }
 
 // New instance
@@ -125,7 +127,7 @@ func (s *BaseSession) Start() error {
 
 // Attach session
 func (s *BaseSession) Attach() error {
-	return nil
+	return fmt.Errorf("bash session does not support attach")
 }
 
 // Write to session
@@ -174,7 +176,7 @@ func (s *BaseSession) Release() error {
 		if err := s.cmd.Process.Kill(); err != nil {
 			global.LOG.Error("failed to kill process: %v", err)
 		}
-		if err := s.cmd.Wait(); err != nil {
+		if err := s.waitCmd(); err != nil {
 			global.LOG.Error("failed to wait process: %v", err)
 		}
 	}
@@ -229,8 +231,20 @@ func (s *BaseSession) wait() {
 		}
 	}()
 
-	if s.cmd != nil {
-		_ = s.cmd.Wait()
+	if err := s.waitCmd(); err != nil {
+		global.LOG.Error("session process wait failed: %v", err)
 	}
 	s.closeDone()
+}
+
+func (s *BaseSession) waitCmd() error {
+	if s.cmd == nil {
+		return nil
+	}
+
+	s.waitOnce.Do(func() {
+		s.waitErr = s.cmd.Wait()
+	})
+
+	return s.waitErr
 }
