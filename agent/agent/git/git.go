@@ -97,7 +97,7 @@ func (s *GitService) ensureDefaultGitkeep(repo *git.Repository) error {
 		if _, err := worktree.Commit("Add default/.gitkeep", &git.CommitOptions{
 			Author: &object.Signature{
 				Name:  "IDB",
-				Email: "idb@sensdata.com",
+				Email: "idb@idb.net",
 				When:  time.Now(),
 			},
 		}); err != nil {
@@ -437,7 +437,7 @@ func (s *GitService) Create(repoPath string, relativePath string, dir bool, cont
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "IDB",
-			Email: "idb@sensdata.com",
+			Email: "idb@idb.net",
 			When:  time.Now(),
 		},
 		AllowEmptyCommits: true,
@@ -578,7 +578,7 @@ func (s *GitService) Update(repoPath string, relativePath string, newRelativePat
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "IDB",
-			Email: "idb@sensdata.com",
+			Email: "idb@idb.net",
 			When:  time.Now(),
 		},
 		AllowEmptyCommits: true,
@@ -661,7 +661,7 @@ func (s *GitService) Delete(repoPath string, relativePath string, dir bool) erro
 		_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 			Author: &object.Signature{
 				Name:  "IDB",
-				Email: "idb@sensdata.com",
+				Email: "idb@idb.net",
 				When:  time.Now(),
 			},
 			AllowEmptyCommits: true,
@@ -687,7 +687,7 @@ func (s *GitService) Delete(repoPath string, relativePath string, dir bool) erro
 		_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 			Author: &object.Signature{
 				Name:  "IDB",
-				Email: "idb@sensdata.com",
+				Email: "idb@idb.net",
 				When:  time.Now(),
 			},
 			AllowEmptyCommits: true,
@@ -765,7 +765,7 @@ func (s *GitService) Restore(repoPath string, relativePath string, commitHash st
 	_, err = worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "IDB",
-			Email: "idb@sensdata.com",
+			Email: "idb@idb.net",
 			When:  time.Now(),
 		},
 		AllowEmptyCommits: true,

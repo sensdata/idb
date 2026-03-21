@@ -19,7 +19,7 @@ export default {
   'manage.host.list.operation.sshTerminal': 'SSH终端',
   'manage.host.list.operation.updateAgent': '受控端设置',
   'manage.host.list.operation.installAgent': '安装受控端',
-  'manage.host.list.operation.upgradeAgent': '升级受控端',
+  'manage.host.list.operation.upgradeAgent': '更新受控端',
   'manage.host.list.operation.uninstallAgent': '卸载受控端',
   'manage.host.list.operation.restart': '重启受控端',
   'manage.host.list.operation.delete': '删除',
@@ -31,6 +31,7 @@ export default {
   'manage.host.list.agent.online': '在线',
   'manage.host.list.agent.offline': '离线',
   'manage.host.list.agent.uninstalled': '未安装',
+  'manage.host.list.agent.upgradeAvailable': '可升级',
   'manage.host.form.title.create': '添加节点',
   'manage.host.form.title.edit': '节点设置',
 
@@ -74,11 +75,16 @@ export default {
   'manage.host.installAgent.installSuccess': '安装成功',
   'manage.host.installAgent.installFailed': '安装受控端失败',
   'manage.host.installAgent.installTimeout': '安装受控端超时',
+  'manage.host.installAgent.installSubmitted': '已提交安装任务，正在连接日志',
+  'manage.host.installAgent.upgradeSuccess': '升级受控端成功',
   'manage.host.installAgent.upgradeFailed': '升级受控端失败',
   'manage.host.installAgent.upgradeTimeout': '升级受控端超时',
+  'manage.host.installAgent.upgradeSubmitted': '已提交升级任务，正在连接日志',
+  'manage.host.installAgent.logConnectionFailed': '日志连接失败',
   'manage.host.installAgent.notInstalled': '未检测到受控端，是否立即安装？',
   'manage.host.installAgent.title': '安装受控端',
   'manage.host.installAgent.titleUpgrade': '升级受控端',
+  'manage.host.installAgent.titleBatchUpgrade': '批量升级受控端',
   'manage.host.installAgent.statusInstalling': '安装中',
   'manage.host.installAgent.statusCompleted': '安装完成',
   'manage.host.installAgent.statusFailed': '安装失败',
@@ -90,8 +96,19 @@ export default {
   'manage.host.list.uninstallAgent.success': '卸载成功',
   'manage.host.list.uninstallAgent.failed': '卸载失败',
 
-  'manage.host.list.operation.upgradeAgent.confirm':
-    '确定升级当前节点的受控端吗？',
+  'manage.host.list.batchUpgrade.confirm':
+    '确定批量升级 {count} 台节点的受控端吗？',
+  'manage.host.list.batchUpgrade.empty': '当前没有可升级的受控端',
+  'manage.host.list.batchUpgrade.start': '开始批量升级，共 {count} 台节点',
+  'manage.host.list.batchUpgrade.processing': '开始升级节点 {name}',
+  'manage.host.list.batchUpgrade.submitted': '节点 {name} 的升级任务已提交',
+  'manage.host.list.batchUpgrade.itemSuccess': '节点 {name} 升级成功',
+  'manage.host.list.batchUpgrade.itemFailed': '节点 {name} 升级失败',
+  'manage.host.list.batchUpgrade.summary':
+    '批量升级完成，成功 {success} 台，失败 {failed} 台',
+  'manage.host.list.batchUpgrade.done': '批量升级完成，共成功 {count} 台',
+  'manage.host.list.batchUpgrade.doneWithFailure':
+    '批量升级完成，成功 {success} 台，失败 {failed} 台',
 
   'manage.host.group.form.title.create': '添加分组',
   'manage.host.group.form.title.edit': '编辑分组',

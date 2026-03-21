@@ -4,6 +4,7 @@
     :columns="columns"
     :fetch="getHostListApi"
     :afterFetchHook="afterFetchHook"
+    :has-batch="true"
   >
     <template #leftActions>
       <a-button type="primary" @click="handleCreate">
@@ -13,22 +14,38 @@
         {{ $t('manage.host.list.action.add') }}
       </a-button>
     </template>
+    <template #batch="{ selectedRows }">
+      <a-button
+        type="primary"
+        @click="handleBatchUpgrade(selectedRows as HostItem[])"
+      >
+        {{ $t('manage.host.list.operation.upgradeAgent') }}
+      </a-button>
+    </template>
     <template #agent="{ record }: { record: HostItem }">
-      <div
-        v-if="record.agent_status?.status !== 'installed'"
-        class="color-danger"
-        >{{ $t('manage.host.list.agent.uninstalled') }}</div
-      >
-      <div
-        v-else-if="record.agent_status?.connected === 'online'"
-        class="color-success"
-        >{{ $t('manage.host.list.agent.online') }}</div
-      >
-      <div
-        v-else-if="record.agent_status?.connected === 'offline'"
-        class="color-danger"
-        >{{ $t('manage.host.list.agent.offline') }}</div
-      >
+      <div class="agent-cell">
+        <div
+          v-if="record.agent_status?.status !== 'installed'"
+          class="color-danger"
+          >{{ $t('manage.host.list.agent.uninstalled') }}</div
+        >
+        <div
+          v-else-if="record.agent_status?.connected === 'online'"
+          class="color-success"
+          >{{ $t('manage.host.list.agent.online') }}</div
+        >
+        <div
+          v-else-if="record.agent_status?.connected === 'offline'"
+          class="color-danger"
+          >{{ $t('manage.host.list.agent.offline') }}</div
+        >
+        <div v-if="record.agent_version" class="agent-version">
+          <span>{{ record.agent_version }}</span>
+          <span v-if="record.can_upgrade" class="agent-upgrade-hint">
+            {{ $t('manage.host.list.agent.upgradeAvailable') }}
+          </span>
+        </div>
+      </div>
     </template>
     <template #name="{ record }: { record: HostItem }">
       <div>{{ record.addr }}</div>
@@ -112,6 +129,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
+  import { useConfirm } from '@/composables/confirm';
   import { HostEntity } from '@/entity/Host';
   import {
     deleteHostApi,
@@ -139,6 +157,7 @@
   }
 
   const { t } = useI18n();
+  const { confirm } = useConfirm();
   const router = useRouter();
   const termRef = ref<InstanceType<typeof SshTerminal>>();
   const editRef = ref<InstanceType<typeof HostEdit>>();
@@ -211,15 +230,13 @@
       {
         text: t('manage.host.list.operation.upgradeAgent'),
         visible: record.can_upgrade,
-        confirm: t('manage.host.list.operation.upgradeAgent.confirm'),
         click: () => {
           installAgentRef.value?.startUpgrade(record.id);
         },
       },
       {
         text: t('manage.host.list.operation.goto'),
-        visible:
-          record.agent_status?.status === 'installed' && !record.can_upgrade,
+        visible: record.agent_status?.status === 'installed',
         click: () => {
           router.push({
             name: DEFAULT_APP_ROUTE_NAME,
@@ -331,6 +348,32 @@
     tableRef.value?.reload();
   };
 
+  const handleBatchUpgrade = async (selectedRows: HostItem[]) => {
+    const upgradeableHosts = selectedRows
+      .filter((item) => item.can_upgrade)
+      .map((item) => ({
+        id: item.id,
+        name: item.name || item.addr,
+      }));
+
+    if (!upgradeableHosts.length) {
+      Message.info(t('manage.host.list.batchUpgrade.empty'));
+      return;
+    }
+
+    const confirmed = await confirm(
+      t('manage.host.list.batchUpgrade.confirm', {
+        count: upgradeableHosts.length,
+      })
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await installAgentRef.value?.startBatchUpgrade(upgradeableHosts);
+  };
+
   const stopAllSSE = () => {
     if (sseRef.value) {
       sseRef.value.close();
@@ -419,6 +462,25 @@
 </script>
 
 <style scoped>
+  .agent-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .agent-version {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--color-text-3);
+  }
+
+  .agent-upgrade-hint {
+    color: rgb(var(--arcoblue-6));
+  }
+
   .inline-progress {
     width: 100%;
   }

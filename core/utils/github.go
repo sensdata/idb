@@ -14,16 +14,35 @@ type githubRelease struct {
 	TagName string `json:"tag_name"`
 }
 
+const defaultProxy = "https://dl.idb.net"
+
 // GetLatestReleaseVersion queries the GitHub Releases API for the latest release
 // of the given repository (e.g. "sensdata/idb") and returns the tag name.
-// Returns an empty string if the request fails or no release is found.
-func GetLatestReleaseVersion(githubRepo string) string {
+// It first tries GitHub directly; if that fails, it falls back to the dl.idb.net proxy.
+// An optional proxyURL can be provided to override the default proxy.
+// Returns an empty string if all attempts fail.
+func GetLatestReleaseVersion(githubRepo string, proxyURL ...string) string {
 	if githubRepo == "" {
 		return ""
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", githubRepo)
-	client := &http.Client{Timeout: 15 * time.Second}
+	// Try GitHub directly first
+	directURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", githubRepo)
+	if tag := fetchReleaseTag(directURL); tag != "" {
+		return tag
+	}
+
+	// Fallback to proxy
+	proxy := defaultProxy
+	if len(proxyURL) > 0 && proxyURL[0] != "" {
+		proxy = strings.TrimRight(proxyURL[0], "/")
+	}
+	proxyAPIURL := fmt.Sprintf("%s/github-api/repos/%s/releases/latest", proxy, githubRepo)
+	return fetchReleaseTag(proxyAPIURL)
+}
+
+func fetchReleaseTag(url string) string {
+	client := &http.Client{Timeout: 10 * time.Second}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensdata/idb/center/global"
@@ -57,9 +58,7 @@ func RequestLogger() gin.HandlerFunc {
 		}
 
 		path := c.Request.URL.Path
-
-		// 记录请求基本信息（所有请求都记录）
-		global.LOG.Info("Request: %s %s", c.Request.Method, path)
+		start := time.Now()
 
 		// 检查是否是敏感路径
 		isSensitive := isSensitivePath(path)
@@ -99,14 +98,20 @@ func RequestLogger() gin.HandlerFunc {
 			}
 		} else if isSensitive {
 			// 敏感路径只记录基本信息，不记录 Query 和 Body
-			global.LOG.Info("Sensitive path, skipping detailed logging")
+			global.LOG.Info("Skip request details for sensitive path: %s", path)
 		}
 
 		// 继续处理请求
 		c.Next()
 
-		// 记录响应信息（所有请求都记录）
-		global.LOG.Info("Response: %d", c.Writer.Status())
+		global.LOG.Info(
+			"HTTP %s %s status=%d latency=%s ip=%s",
+			c.Request.Method,
+			path,
+			c.Writer.Status(),
+			time.Since(start).Round(time.Millisecond),
+			c.ClientIP(),
+		)
 	}
 }
 

@@ -8,10 +8,10 @@ prompt             = no
 C  = CN
 ST = Guangdong
 L  = Guangzhou
-O  = Sensdata
+O  = iDB
 OU = iDB Certificate Authority
-CN = Sensdata iDB Root CA
-emailAddress = support@sensdata.com
+CN = iDB Root CA
+emailAddress = support@idb.net
 
 [v3_ca]
 subjectKeyIdentifier = hash

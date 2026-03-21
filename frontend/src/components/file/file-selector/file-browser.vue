@@ -209,6 +209,10 @@
       name: t('components.file.fileSelector.quickDir.certificateManage'),
       path: '/var/lib/idb/data/certificates/',
     },
+    {
+      name: t('components.file.fileSelector.quickDir.rootSsh'),
+      path: '/root/.ssh/',
+    },
   ]);
 
   const filteredFileList = computed(() => {

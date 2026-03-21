@@ -41,9 +41,7 @@
                   v-for="(item, itemIndex) in category.items"
                   :key="itemIndex"
                   class="command-item"
-                  @click="
-                    handleSelectCommand(item.command, category.autoExecute)
-                  "
+                  @click="handleSelectCommand(item.command, item.autoExecute)"
                 >
                   <span class="command-label">{{ item.label }}</span>
                   <code class="command-tag">{{ item.command }}</code>
@@ -58,16 +56,17 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { computed, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface CommandItem {
     label: string;
     command: string;
+    autoExecute?: boolean;
   }
 
   interface CommandCategory {
     category: string;
-    autoExecute?: boolean;
     items: CommandItem[];
   }
 
@@ -76,111 +75,130 @@
   }
 
   const emit = defineEmits<Emits>();
+  const { t } = useI18n();
 
   const visible = ref(false);
 
-  const commandCategories: CommandCategory[] = [
+  const commandCategories = computed<CommandCategory[]>(() => [
     {
-      category: '系统信息',
-      autoExecute: true,
+      category: t('components.terminal.commands.categories.docker'),
       items: [
-        { label: '查看 CPU/内存/进程 (top)', command: 'top' },
-        { label: '查看内存使用 (free -h)', command: 'free -h' },
-        { label: '查看磁盘使用 (df -h)', command: 'df -h' },
-        { label: '查看目录大小 (du -sh *)', command: 'du -sh *' },
-        { label: '查看系统版本 (uname -a)', command: 'uname -a' },
-        { label: '查看系统运行时长 (uptime)', command: 'uptime' },
-        { label: '查看主机名与系统版本 (hostnamectl)', command: 'hostnamectl' },
-      ],
-    },
-    {
-      category: '网络诊断',
-      items: [
-        { label: 'Ping 测试网络 (ping)', command: 'ping -c 4 8.8.8.8' },
         {
-          label: '测试网页是否可访问 (curl -I)',
-          command: 'curl -I https://example.com',
-        },
-        { label: '查看端口占用 (ss -tulnp)', command: 'ss -tulnp' },
-        { label: '查看指定端口 (ss | grep)', command: 'ss -anp | grep :80' },
-        { label: '查看 IP 信息 (ip a)', command: 'ip a' },
-        { label: '查看路由 (ip r)', command: 'ip r' },
-        { label: '查询 DNS (nslookup)', command: 'nslookup example.com' },
-      ],
-    },
-    {
-      category: '文件与目录操作',
-      items: [
-        { label: '查看文件(权限) (ls -al)', command: 'ls -al' },
-        { label: '打印当前路径 (pwd)', command: 'pwd' },
-        { label: '创建目录 (mkdir -p)', command: 'mkdir -p new_folder' },
-        { label: '复制文件 (cp)', command: 'cp source.txt dest.txt' },
-        { label: '移动/重命名文件 (mv)', command: 'mv oldname newname' },
-        { label: '删除文件/目录 (rm -rf)', command: 'rm -rf /path/to/remove' },
-        { label: '查看文件内容 (cat)', command: 'cat file.txt' },
-        { label: '实时查看日志 (tail -f)', command: 'tail -f /var/log/syslog' },
-        { label: '查找文件 (find)', command: 'find / -name filename' },
-      ],
-    },
-    {
-      category: '权限/用户管理',
-      items: [
-        { label: '修改权限 (chmod)', command: 'chmod 755 file' },
-        { label: '修改属主 (chown)', command: 'chown user:group file' },
-        { label: '添加用户 (useradd)', command: 'useradd newuser' },
-        { label: '修改密码 (passwd)', command: 'passwd username' },
-      ],
-    },
-    {
-      category: '服务与进程管理',
-      items: [
-        { label: '查看所有进程 (ps -aux)', command: 'ps -aux' },
-        { label: '查找进程 (ps | grep)', command: 'ps -ef | grep nginx' },
-        {
-          label: '服务状态 (systemctl status)',
-          command: 'systemctl status nginx',
+          label: t('components.terminal.commands.items.dockerPs'),
+          command:
+            "docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
+          autoExecute: true,
         },
         {
-          label: '启动服务 (systemctl start)',
-          command: 'systemctl start nginx',
-        },
-        { label: '停止服务 (systemctl stop)', command: 'systemctl stop nginx' },
-        {
-          label: '重启服务 (systemctl restart)',
-          command: 'systemctl restart nginx',
+          label: t('components.terminal.commands.items.dockerComposePs'),
+          command: 'docker compose ps',
+          autoExecute: true,
         },
         {
-          label: '设为开机自启 (systemctl enable)',
-          command: 'systemctl enable nginx',
+          label: t('components.terminal.commands.items.dockerComposeLogs'),
+          command: 'docker compose logs -f',
+        },
+        {
+          label: t('components.terminal.commands.items.dockerLogs'),
+          command: 'docker logs -f <container>',
+        },
+        {
+          label: t('components.terminal.commands.items.dockerInspect'),
+          command: 'docker inspect <container>',
         },
       ],
     },
     {
-      category: '压缩与传输',
+      category: t('components.terminal.commands.categories.system'),
       items: [
         {
-          label: '压缩目录 (tar.gz)',
-          command: 'tar -czf archive.tar.gz directory/',
+          label: t('components.terminal.commands.items.systemLoad'),
+          command: 'uptime',
+          autoExecute: true,
         },
-        { label: '解压 tar.gz', command: 'tar -xzf archive.tar.gz' },
         {
-          label: '远程复制文件 (scp)',
-          command: 'scp file.txt user@host:/path/',
+          label: t('components.terminal.commands.items.systemMemory'),
+          command: 'free -h',
+          autoExecute: true,
+        },
+        {
+          label: t('components.terminal.commands.items.systemDisk'),
+          command: 'df -h',
+          autoExecute: true,
+        },
+        {
+          label: t('components.terminal.commands.items.systemFailed'),
+          command: 'systemctl --failed',
+          autoExecute: true,
+        },
+        {
+          label: t('components.terminal.commands.items.systemPorts'),
+          command: 'ss -tulpen',
+          autoExecute: true,
         },
       ],
     },
     {
-      category: '日志与排查',
+      category: t('components.terminal.commands.categories.updates'),
       items: [
         {
-          label: '查看服务日志 (journalctl -u)',
-          command: 'journalctl -u nginx -f',
+          label: t('components.terminal.commands.items.updatesRefresh'),
+          command: 'sudo apt update',
         },
-        { label: '查看内核日志 (dmesg | tail)', command: 'dmesg | tail' },
-        { label: '系统 IO 状况 (iotop)', command: 'iotop' },
+        {
+          label: t('components.terminal.commands.items.updatesList'),
+          command: 'apt list --upgradable',
+          autoExecute: true,
+        },
+        {
+          label: t('components.terminal.commands.items.updatesUpgrade'),
+          command: 'sudo apt upgrade',
+        },
+        {
+          label: t('components.terminal.commands.items.updatesFullUpgrade'),
+          command: 'sudo apt full-upgrade',
+        },
+        {
+          label: t('components.terminal.commands.items.updatesAutoStatus'),
+          command: 'systemctl status unattended-upgrades --no-pager -l',
+        },
+        {
+          label: t('components.terminal.commands.items.updatesAutoConfig'),
+          command: 'sudo editor /etc/apt/apt.conf.d/20auto-upgrades',
+        },
+        {
+          label: t('components.terminal.commands.items.updatesAutoEnable'),
+          command: 'sudo dpkg-reconfigure -plow unattended-upgrades',
+        },
       ],
     },
-  ];
+    {
+      category: t('components.terminal.commands.categories.logs'),
+      items: [
+        {
+          label: t('components.terminal.commands.items.logsJournalFollow'),
+          command: 'sudo journalctl -f',
+        },
+        {
+          label: t('components.terminal.commands.items.logsServiceDetail'),
+          command: 'sudo journalctl -xe --no-pager',
+        },
+        {
+          label: t('components.terminal.commands.items.logsKernel'),
+          command: 'dmesg | tail -n 50',
+          autoExecute: true,
+        },
+        {
+          label: t('components.terminal.commands.items.logsCurlHealth'),
+          command: 'curl -I http://127.0.0.1',
+        },
+        {
+          label: t('components.terminal.commands.items.logsPingGateway'),
+          command: 'ping -c 4 8.8.8.8',
+        },
+      ],
+    },
+  ]);
 
   function handleClose() {
     visible.value = false;

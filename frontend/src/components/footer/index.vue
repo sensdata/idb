@@ -84,12 +84,17 @@
     isCheckingUpdate.value = true;
     try {
       const data = await getSettingsAboutApi();
+      const curVersion = data.version;
+      const newVersion = data.new_version;
       // 版本大小对比
-      if (compareVersion(data.new_version, data.version) > 0) {
+      if (compareVersion(newVersion, curVersion) > 0) {
         if (
           await confirm({
             title: t('footer.checkUpdate'),
-            content: t('footer.checkUpdateContent'),
+            content: t('footer.checkUpdateContent', {
+              version: curVersion,
+              newVersion,
+            }),
           })
         ) {
           upgradeApi();
@@ -103,6 +108,7 @@
             Message.info({
               id: 'check-update-countdown',
               content: t('footer.checkUpdateCountdown', {
+                newVersion,
                 count: count.value,
               }),
               duration: 2000,
@@ -120,7 +126,9 @@
         }
       } else {
         // 没有新版本时显示提示
-        Message.success(t('footer.checkUpdateNoUpdate'));
+        Message.success(
+          t('footer.checkUpdateNoUpdate', { version: curVersion })
+        );
       }
     } catch (error) {
       console.error(error);

@@ -90,6 +90,7 @@ func (c *Center) Start() error {
 
 	// 保障连接
 	go c.ensureConnections()
+	go c.autoUpgradeDefaultHostAgent()
 
 	return nil
 }
@@ -304,6 +305,33 @@ func (c *Center) ensureConnections() {
 	}
 }
 
+func (c *Center) autoUpgradeDefaultHostAgent() {
+	// 等 center 和默认 host 状态初始化完成，避免启动抖动期误判。
+	time.Sleep(10 * time.Second)
+
+	host, err := HostRepo.Get(HostRepo.WithByDefault())
+	if err != nil {
+		global.LOG.Warn("Skip auto-upgrade default host agent: failed to get default host: %v", err)
+		return
+	}
+
+	if !c.canAgentUpgrade(host.AgentVersion) {
+		global.LOG.Info("Default host agent is up to date, skip startup auto-upgrade")
+		return
+	}
+
+	global.LOG.Info(
+		"Default host agent auto-upgrade scheduled on startup: host=%s current=%s latest=%s",
+		host.Addr,
+		host.AgentVersion,
+		getAgentLatestVersion(),
+	)
+
+	if err := SSH.InstallAgent(host, "", true); err != nil {
+		global.LOG.Error("Failed to auto-upgrade default host agent on startup: %v", err)
+	}
+}
+
 func (c *Center) checkHostStatus(host *model.Host) {
 	// 找到 conn 的情况，判断 host 状态
 	hostStatus := global.GetHostStatus(host.ID)
@@ -404,8 +432,8 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 		InsecureSkipVerify: true,
 	}
 
-	// 建立 TLS 连接（带超时）
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	// 建立 TLS 连接时设置超时，避免远端升级/重启期间长期卡在拨号阶段。
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
 	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to connect to Agent: %v", err)
@@ -524,23 +552,15 @@ func (c *Center) checkAgentUpdate(host *model.Host, agentVersion string) {
 	if !c.canAgentUpgrade(agentVersion) {
 		return
 	}
-	err := SSH.InstallAgent(*host, "", true)
-	if err != nil {
-		global.LOG.Error("Failed to install agent: %v", err)
-	}
+	go func() {
+		if err := SSH.InstallAgent(*host, "", true); err != nil {
+			global.LOG.Error("Failed to install agent: %v", err)
+		}
+	}()
 }
 
 func (c *Center) canAgentUpgrade(agentVersion string) bool {
-	// latestVersion 通过读取文件 /var/lib/idb/agent/idb-agent.version 来获得
-	latestPath := filepath.Join(constant.CenterAgentDir, constant.AgentLatest)
-	var latestVersion string
-	version, err := os.ReadFile(latestPath)
-	if err != nil {
-		global.LOG.Error("Failed to read latest version: %v", err)
-		latestVersion = global.Version
-	} else {
-		latestVersion = strings.TrimSpace(string(version))
-	}
+	latestVersion := getAgentLatestVersion()
 	if agentVersion == latestVersion {
 		global.LOG.Info("Agent is up to date")
 		return false
@@ -584,17 +604,25 @@ func (c *Center) processMessage(host *model.Host, msg *message.Message) {
 		default:
 			// 保存信息
 			hostStatusInfo := &core.HostStatusInfo{
-				Installed:     "installed",
-				Connected:     "online",
-				CanUpgrade:    msg.Version != global.Version,
-				Cpu:           heartbeat.Cpu,
-				Memory:        heartbeat.Memory,
-				MemTotal:      heartbeat.MemTotal,
-				MemUsed:       heartbeat.MemUsed,
-				Disk:          heartbeat.Disk,
-				Rx:            heartbeat.Rx,
-				Tx:            heartbeat.Tx,
-				LastHeartbeat: msg.Timestamp,
+				Installed:          "installed",
+				Connected:          "online",
+				CanUpgrade:         msg.Version != getAgentLatestVersion(),
+				Cpu:                heartbeat.Cpu,
+				Memory:             heartbeat.Memory,
+				MemTotal:           heartbeat.MemTotal,
+				MemUsed:            heartbeat.MemUsed,
+				Disk:               heartbeat.Disk,
+				Rx:                 heartbeat.Rx,
+				Tx:                 heartbeat.Tx,
+				LastHeartbeat:      msg.Timestamp,
+				ProcessRSS:         heartbeat.ProcessRSS,
+				HeapAlloc:          heartbeat.HeapAlloc,
+				HeapSys:            heartbeat.HeapSys,
+				StackInuse:         heartbeat.StackInuse,
+				Goroutines:         heartbeat.Goroutines,
+				OpenFDs:            heartbeat.OpenFDs,
+				ActiveSessions:     heartbeat.ActiveSessions,
+				ActiveLogFollowers: heartbeat.ActiveLogFollowers,
 			}
 			global.SetHostStatus(host.ID, hostStatusInfo)
 			global.SetInstalledStatus(host.ID, &hostStatusInfo.Installed)
@@ -1693,7 +1721,12 @@ func (c *Center) upgrade() error {
 
 	// 创建消息
 	githubRepo := CONFMAN.GetConfig().GithubRepo
-	cmd := fmt.Sprintf("curl -sSL https://github.com/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", githubRepo, newVersion, newVersion)
+	githubProxy := CONFMAN.GetConfig().GithubProxy
+	downloadBase := "https://github.com"
+	if githubProxy != "" {
+		downloadBase = strings.TrimRight(githubProxy, "/") + "/github-releases"
+	}
+	cmd := fmt.Sprintf("curl -sSL %s/%s/releases/download/%s/upgrade.sh -o /tmp/upgrade.sh && bash /tmp/upgrade.sh %s", downloadBase, githubRepo, newVersion, newVersion)
 
 	msgID := utils.GenerateMsgId()
 	msg, err := message.CreateMessage(
@@ -1723,7 +1756,8 @@ func (c *Center) getLatestVersion() string {
 		return ""
 	}
 	global.LOG.Info("Getting latest version from GitHub: %s", githubRepo)
-	latest := utils.GetLatestReleaseVersion(githubRepo)
+	githubProxy := CONFMAN.GetConfig().GithubProxy
+	latest := utils.GetLatestReleaseVersion(githubRepo, githubProxy)
 	if latest == "" {
 		global.LOG.Error("Failed to get latest version from GitHub")
 		return ""

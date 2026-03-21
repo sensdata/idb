@@ -1,247 +1,247 @@
 # iDB
 
-**基于 Go 语言构建的轻量级自托管运维平台**  
-为开发者和小型团队而设计：一站式服务器管理与数据库快速部署工具
+面向服务器、容器、文件、服务、防火墙规则与常见运维操作的自托管基础设施管理平台。
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Docker Pulls](https://img.shields.io/docker/pulls/sensdb/idb)](https://hub.docker.com/r/sensdb/idb)
 
----
+iDB 适合开发者和小型团队，用一套控制台统一管理 Linux 主机，而不必引入一整套复杂运维平台。项目由 Web 控制台、控制端 `center` 和宿主机侧执行端 `agent` 组成。
 
-## ✨ 特性
+当前默认部署方式为：
 
-### 服务器管理
-- **系统监控**：实时查看 CPU、内存、磁盘、网络等资源占用
-- **进程管理**：查看和管理系统进程
-- **文件管理**：浏览器式文件管理，支持上传、下载、编辑、压缩等操作
-- **服务管理**：管理系统服务，支持启动、停止、重启等操作
+- 宿主机原生运行 `center`
+- 宿主机 systemd 运行本机 `agent`
 
-### 网络与安全
-- **防火墙管理**：基于 nftables 的防火墙配置
-- **SSH 管理**：SSH 配置、密钥管理、登录日志
-- **证书管理**：生成和管理 SSL/TLS 证书
+升级脚本会兼容旧版本 Docker 部署，并在升级时迁移到原生运行模式。
 
-### 容器管理
-- **Docker 管理**：容器、镜像、网络、卷的完整管理
-- **Docker Compose**：支持 Docker Compose 应用管理
-- **一键部署**：快速部署 MySQL、PostgreSQL、Redis 等常用服务
+## 功能特性
 
-### 工具集
-- **日志管理**：日志查看、搜索、实时跟踪
-- **计划任务**：定时任务管理
-- **命令终端**：Web 终端，支持多主机切换
-- **文件同步**：基于 rsync 的文件同步功能
+- 统一管理多台主机
+- 实时查看 CPU、内存、磁盘、网络和进程状态
+- 提供 Web 终端、文件管理、服务管理
+- 支持 Docker 与 Docker Compose 管理
+- 基于 `nftables` 的防火墙管理
+- SSH 设置与证书管理
+- 计划任务、日志查看、文件同步
+- 内置常用应用的部署能力
 
-### 多主机管理
-- **统一管理**：支持管理多台服务器
-- **跨主机操作**：支持跨服务器的文件传输、命令执行
+## 架构说明
 
----
+- `center`：控制平面、API 服务、Web 控制台宿主、任务与日志协调
+- `agent`：运行在主机侧的执行组件，负责终端、文件、服务与系统操作
+- `frontend`：基于 Vue 的前端控制台
+- `plugins`：可选插件与应用集成
 
-## 📦 安装
+## 安装
 
-### 一键安装
+### 快速安装
+
+通过官网入口安装：
+
+```bash
+curl -fsSL https://idb.net/install.sh | sudo bash
+```
+
+显式使用 iDB 提供的镜像/代理源安装：
+
+```bash
+curl -fsSL https://idb.net/install.sh | IDB_GITHUB_PROXY=https://dl.idb.net sudo bash
+```
+
+备用的 GitHub 直连安装方式：
+
 ```bash
 sudo curl -fsSL https://raw.githubusercontent.com/sensdata/idb/main/scripts/install.sh | sudo bash
-
 ```
 
-### Docker 安装
+如果需要绕过 `idb.net`，也可以直接从 iDB 镜像下载发布版安装脚本再执行：
+
 ```bash
-# 下载配置文件
-VERSION=$(curl -s https://api.github.com/repos/sensdata/idb/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-mkdir -p /var/lib/idb && cd /var/lib/idb
-curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/idb.env" -o .env
-curl -fsSL "https://github.com/sensdata/idb/releases/download/${VERSION}/docker-compose.yaml" -o docker-compose.yaml
-
-# 启动
-docker compose up -d
+curl -fsSL https://dl.idb.net/github-releases/sensdata/idb/releases/latest/download/install.sh -o install.sh
+sudo IDB_GITHUB_PROXY=https://dl.idb.net bash install.sh
 ```
 
-### 手动编译安装
+说明：
 
-1. 克隆仓库
+- 安装脚本本身已经带 GitHub 连通性检测，必要时会自动回退到 `https://dl.idb.net`
+- 需要 `root` 或 `sudo` 权限执行
+- 安装完成后会在终端输出一次初始 `admin` 密码
+
+### 从源码构建部署
+
 ```bash
 git clone --recurse-submodules https://github.com/sensdata/idb.git
 cd idb
-```
-
-2. 一键编译并安装
-```bash
 make deploy
 ```
 
-`make deploy` 会自动执行：
-- 编译前端并产出 `frontend/dist`
-- 生成并分发 key / jwt-key / certs（已存在则复用）
-- 安装并重启 `center` 服务
-- 安装并重启 `agent` 服务
+`make deploy` 会基于当前工作区代码直接构建并安装本机的 `idb` 与 `idb-agent`。
 
-首次部署时会生成管理员密码并在终端输出一次，同时写入：
-`/etc/idb/idb.env`（`PASSWORD=...`，权限 `600`）
+它会执行：
 
-如果错过首次输出，可执行：
+- 编译前后端产物
+- 准备密钥、JWT 材料和证书
+- 安装或更新 `center` 服务
+- 安装或更新 `agent` 服务
+
+注意：
+
+- `make deploy` 不要求必须处于 `main` 分支，它部署的是你当前 checkout 的代码
+- 会覆盖本机已安装的 `idb` / `idb-agent` 服务
+- 涉及重要升级时，建议先备份 `/var/lib/idb/data` 与 `/etc/idb`
+
+初始管理员密码同时会写入：
+
+```bash
+/etc/idb/idb.env
+```
+
+可通过以下命令查看：
+
 ```bash
 sudo grep '^PASSWORD=' /etc/idb/idb.env
 ```
 
----
+## 升级
 
-## 🚀 快速开始
+通过官网入口升级：
 
-1. **访问控制台**
-   - 安装完成后，访问 `http://your-server-ip:9918`
-   - 默认用户名：`admin`
-   - 密码：
-     - 一键脚本/Docker 安装：安装完成后的终端输出可见
-     - 手动编译安装（`make deploy`）：首次部署时终端输出，并可在 `/etc/idb/idb.env` 查看 `PASSWORD`
-
-2. **添加服务器**
-   - 登录后，点击左侧菜单栏的「主机管理」
-   - 点击「添加主机」，填写服务器信息
-   - 选择安装方式（一键安装或手动安装）
-
-3. **管理服务器**
-   - 服务器添加成功后，即可在控制台中管理该服务器
-   - 点击服务器卡片，进入服务器详情页面
-   - 可查看系统信息、管理进程、文件、服务等
-
-4. **部署应用**
-   - 点击左侧菜单栏的「应用市场」
-   - 选择要部署的应用（如 MySQL）
-   - 填写配置信息，点击「部署」
-
----
-
-## 📁 项目结构
-
+```bash
+curl -fsSL https://idb.net/upgrade.sh | sudo bash
 ```
+
+通过 iDB 镜像/代理源升级：
+
+```bash
+curl -fsSL https://idb.net/upgrade.sh | IDB_GITHUB_PROXY=https://dl.idb.net sudo bash
+```
+
+备用的 GitHub 直连升级方式：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sensdata/idb/main/scripts/upgrade.sh -o upgrade.sh
+sudo bash upgrade.sh
+```
+
+如果需要绕过 `idb.net`，也可以直接从 iDB 镜像下载发布版升级脚本：
+
+```bash
+curl -fsSL https://dl.idb.net/github-releases/sensdata/idb/releases/latest/download/upgrade.sh -o upgrade.sh
+sudo IDB_GITHUB_PROXY=https://dl.idb.net bash upgrade.sh
+```
+
+当前升级行为：
+
+- 先升级 `center`
+- `center` 重启后会自动检查默认主机上的本机 `agent`
+- 如果本机 `agent` 版本落后，会自动升级，不需要用户再手动点击一次主机升级
+- 如果检测到旧版 Docker 部署，升级脚本会自动迁移到宿主机原生部署
+
+## 快速开始
+
+1. 浏览器访问控制台。
+   默认部署下通常是 `http://your-server-ip:9918`
+2. 使用以下信息登录：
+   用户名：`admin`
+   密码：安装脚本输出的密码，或 `/etc/idb/idb.env` 中记录的密码
+3. 在主机管理页面添加远程主机
+4. 按需安装或升级主机 `agent`
+5. 开始使用文件管理、终端、服务管理、Docker 管理和应用部署功能
+
+## 仓库结构
+
+```text
 idb/
-├── agent/           # Agent 客户端代码
-│   ├── agent/       # Agent 核心实现
-│   ├── config/      # 配置管理
-│   ├── db/          # 本地数据库
-│   └── main.go      # Agent 入口
-├── center/          # Center 服务器代码
-│   ├── config/      # 配置管理
-│   ├── core/        # 核心功能实现
-│   ├── db/          # 数据库模型和仓库
-│   ├── plugin/      # 插件系统
-│   └── main.go      # Center 入口
-├── core/            # 公共库和定义
-│   ├── constant/    # 常量定义
-│   ├── model/       # 数据模型
-│   └── utils/       # 工具函数
-├── plugins/         # 插件集合（git submodule → sensdata/idb-plugins）
-│   ├── mysqlmanager/
-│   ├── postgresql/
-│   ├── redis/
-│   ├── pma/
-│   ├── rsync/
-│   └── scriptmanager/
-├── frontend/        # 前端代码
-│   ├── src/         # 前端源码
-│   └── package.json # 前端依赖
-├── scripts/         # 安装/升级/卸载脚本
-├── LICENSE          # 许可证文件
-└── README.md        # 项目说明
+├── agent/       # Agent 运行时
+├── center/      # Center 控制端与 API
+├── core/        # 公共常量、模型、工具
+├── frontend/    # Web 前端
+├── plugins/     # 插件与应用集成
+├── scripts/     # 安装 / 升级 / 卸载脚本
+└── README.md
 ```
 
----
+## 开发
 
-## 🔧 开发环境
+### 环境要求
+
+- Go 1.25+
+- Node.js 24+
+- npm
 
 ### 后端开发
 
-1. **环境要求**
-   - Go 1.25+ 
-
-2. **启动开发服务器**
-   ```bash
-   cd center
-   go run main.go start
-   ```
+```bash
+cd center
+go run main.go start
+```
 
 ### 前端开发
 
-1. **环境要求**
-   - Node.js 18+ 
-   - npm 或 yarn
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-2. **安装依赖**
-   ```bash
-   cd frontend
-   npm install
-   ```
+### 测试源码部署
 
-3. **启动开发服务器**
-   ```bash
-   npm run dev
-   ```
+如果要在测试机验证某个分支：
 
----
+```bash
+git fetch origin
+git switch your-branch
+git pull
+make deploy
+```
 
-## 🤝 贡献
+建议部署后至少检查：
 
-### 如何贡献
+```bash
+sudo systemctl status idb --no-pager -l
+sudo systemctl status idb-agent --no-pager -l
+sudo journalctl -u idb -n 100 --no-pager
+sudo tail -n 100 /var/log/idb-agent/idb-agent.log
+```
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+如果要确认当前部署的是哪个提交：
 
-### 开发规范
+```bash
+git branch --show-current
+git rev-parse --short HEAD
+```
 
-- 代码风格：遵循 Go 官方代码风格
-- 提交信息：清晰、简洁，使用英文
-- 测试：为新功能添加测试
-- 文档：更新相关文档
+## 参与贡献
 
-### 代码结构
+欢迎提交 Issue 和 Pull Request。
 
-- 新增功能请遵循现有代码结构
-- 核心功能添加到 `core/` 目录
-- 服务器功能添加到 `center/` 目录
-- 客户端功能添加到 `agent/` 目录
+基本流程：
 
----
+1. Fork 仓库
+2. 创建功能分支
+3. 提交聚焦、清晰的改动
+4. 在合适的地方补充或更新测试
+5. 发起 Pull Request
 
-## 📄 许可证
+约定建议：
 
-本项目采用 Apache License 2.0 许可证。详情请查看 [LICENSE](LICENSE) 文件。
+- 遵循 Go 标准格式和现有项目风格
+- 保持提交粒度清晰
+- 功能行为发生变化时同步更新文档
 
----
+## 文档
 
-## 📚 文档
+- 官网：https://idb.net
+- 文档：https://idb.net/docs
+- API 文档：`http://your-server-ip:9918/api/v1/swagger/index.html`
+- 插件仓库：https://github.com/sensdata/idb-plugins
 
-- **API 文档**：部署后访问 `http://your-server-ip:9918/api/v1/swagger/index.html`
-- **插件仓库**：[sensdata/idb-plugins](https://github.com/sensdata/idb-plugins)
+重新生成 Swagger 文档：
 
-重新生成 Swagger 文档：在 `center/` 目录执行 `go generate .`
+```bash
+cd center
+go generate .
+```
 
----
+## 许可证
 
-## 📬 联系
-
-- 问题反馈：[GitHub Issues](https://github.com/sensdata/idb/issues)
-- 讨论交流：[GitHub Discussions](https://github.com/sensdata/idb/discussions)
-
----
-
-## 📊 数据
-
-- **Docker 下载量**：1 万+
-- **支持系统**：Ubuntu、Debian、CentOS、Rocky Linux、Kylin、UnionTech 等
-- **云平台支持**：AWS、Azure、Google Cloud、阿里云、腾讯云、华为云、UCloud 等
-
----
-
-## 🔗 相关链接
-
-- [Docker Hub](https://hub.docker.com/r/sensdb/idb)
-- [GitHub](https://github.com/sensdata/idb)
-
----
-
-**感谢使用 iDB！** 🎉
+本项目基于 Apache License 2.0 发布。详见 [LICENSE](LICENSE)。

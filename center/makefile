@@ -1,3 +1,5 @@
+MAKEFLAGS += --no-print-directory
+
 # 可执行文件的名称
 BINARY_NAME=idb
 
@@ -38,14 +40,16 @@ DB_FILE=/var/lib/idb/data/idb.db
 CERT_FILE=./global/certs/cert.pem
 KEY_FILE=./global/certs/key.pem
 
+define step
+	@printf "  -> %s\n" "$(1)"
+endef
+
 # 构建命令
 build:
-	# 读取密钥
+	$(call step,编译 center)
 	$(eval KEY = $(shell cat ../.build.key 2>/dev/null || echo "default_key"))
-	# 读取JWT密钥
 	$(eval JWT_KEY = $(shell cat ../.build.jwt.key 2>/dev/null || echo ""))
-	# 编译
-	GOOS=linux GOARCH=amd64 go build \
+	@GOOS=linux GOARCH=amd64 go build \
 		-ldflags "-s -w \
 		-X 'github.com/sensdata/idb/center/global.Version=$(GIT_VERSION)' \
 		-X 'github.com/sensdata/idb/center/global.DefaultKey=$(KEY)' \
@@ -54,8 +58,8 @@ build:
 
 # 安装命令
 install: build
-	# 创建必要的目录
-	sudo mkdir -p $(BIN_DIR); \
+	$(call step,准备目录)
+	@sudo mkdir -p $(BIN_DIR); \
 	sudo mkdir -p $(CONFIG_DIR); \
 	sudo mkdir -p $(DATA_DIR); \
 	sudo mkdir -p $(LOG_DIR); \
@@ -64,8 +68,8 @@ install: build
 	sudo touch $(CONFIG_DIR)/$(ADMIN_ENV_FILE); \
 	sudo chmod 600 $(CONFIG_DIR)/$(ADMIN_ENV_FILE); \
 
-	# 首次安装生成 admin 密码，供 migration 初始化使用
-	if [ ! -f $(DB_FILE) ]; then \
+	$(call step,检查初始管理员凭据)
+	@if [ ! -f $(DB_FILE) ]; then \
 		if ! sudo grep -q '^PASSWORD=' $(CONFIG_DIR)/$(ADMIN_ENV_FILE); then \
 			ADMIN_PASS=$$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 8); \
 			echo "PASSWORD=$$ADMIN_PASS" | sudo tee $(CONFIG_DIR)/$(ADMIN_ENV_FILE) > /dev/null; \
@@ -76,8 +80,8 @@ install: build
 		fi; \
 	fi; \
 
-	# 首次安装时初始化 idb.conf 的 host，后续安装保持已有配置
-	if [ ! -f $(DB_FILE) ]; then \
+	$(call step,检查中心配置)
+	@if [ ! -f $(DB_FILE) ]; then \
 		PUBLIC_IP=$$(curl -s -4 --connect-timeout 3 --max-time 5 https://api.ipify.org 2>/dev/null); \
 		if [ -z "$$PUBLIC_IP" ]; then \
 			PUBLIC_IP=$$(curl -s -4 --connect-timeout 3 --max-time 5 https://api64.ipify.org 2>/dev/null); \
@@ -104,15 +108,14 @@ install: build
 		echo "Keep existing $(CONFIG_DIR)/$(CONFIG_FILE)"; \
 	fi; \
 
-	# 拷贝前端编译结果
+	$(call step,同步前端资源)
 	sudo rm -rf $(HOME_DIR)/*; \
 	sudo cp -r $(FRONTEND_DIR)/dist/* $(HOME_DIR); \
 
-	# 拷贝证书文件
+	$(call step,安装证书与服务文件)
 	sudo cp ${CERT_FILE} $(BIN_DIR); \
 	sudo cp ${KEY_FILE} $(BIN_DIR); \
 
-	# 拷贝其他必要的文件
 	sudo systemctl stop $(BINARY_NAME).service 2>/dev/null || true; \
 	sudo cp $(BINARY_NAME) $(BIN_DIR); \
 	sudo cp $(SERVICE_FILE) $(SYSTEM_SERVICE_DIR); \
@@ -122,7 +125,8 @@ install: build
 	sudo systemctl enable $(BINARY_NAME).service; \
 	sudo systemctl restart $(BINARY_NAME).service; \
 	sudo ln -sf /var/lib/idb/idb /usr/local/bin/idb
-	$(MAKE) clean  # 在安装后调用clean目标
+	$(call step,center 安装完成)
+	@$(MAKE) clean
 
 # 卸载命令
 uninstall:
@@ -138,6 +142,6 @@ uninstall:
 
 # 清理构建文件
 clean:
-	rm -f $(BINARY_NAME)
+	@rm -f $(BINARY_NAME)
 
 .PHONY: build install uninstall clean

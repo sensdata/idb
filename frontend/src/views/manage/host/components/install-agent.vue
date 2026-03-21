@@ -1,14 +1,10 @@
 <template>
   <a-modal
     v-model:visible="visible"
-    :title="
-      isUpgrade
-        ? $t('manage.host.installAgent.titleUpgrade')
-        : $t('manage.host.installAgent.title')
-    "
+    :title="modalTitle"
     :footer="false"
     :mask-closable="false"
-    :closable="true"
+    :closable="isCompleted"
     width="600px"
     @cancel="handleCancel"
   >
@@ -69,9 +65,25 @@
     level: 'info' | 'error' | 'warn' | 'debug';
   }
 
+  interface BatchUpgradeHost {
+    id: number;
+    name: string;
+  }
+
+  interface StreamLogOptions {
+    resetBefore?: boolean;
+    prefix?: string;
+    successMessage?: string;
+    failedMessage?: string;
+    timeoutMessage?: string;
+    emitOk?: boolean;
+  }
+
   const { confirm } = useConfirm();
 
   const isUpgrade = ref(false);
+  const isBatchUpgrade = ref(false);
+  const batchRunning = ref(false);
   const logs = ref<LogItem[]>([]);
   const status = ref<'installing' | 'completed' | 'failed' | 'timeout'>(
     'installing'
@@ -79,7 +91,23 @@
   const logContentRef = ref<HTMLElement | null>(null);
 
   const isCompleted = computed(() => {
-    return status.value === 'completed' || status.value === 'failed';
+    if (batchRunning.value) {
+      return false;
+    }
+    return (
+      status.value === 'completed' ||
+      status.value === 'failed' ||
+      status.value === 'timeout'
+    );
+  });
+
+  const modalTitle = computed(() => {
+    if (isBatchUpgrade.value) {
+      return t('manage.host.installAgent.titleBatchUpgrade');
+    }
+    return isUpgrade.value
+      ? t('manage.host.installAgent.titleUpgrade')
+      : t('manage.host.installAgent.title');
   });
 
   const statusText = computed(() => {
@@ -115,7 +143,6 @@
   const scrollToBottom = async () => {
     await nextTick();
     if (logContentRef.value) {
-      // 使用 setTimeout 确保 DOM 完全更新后再滚动
       setTimeout(() => {
         if (logContentRef.value) {
           logContentRef.value.scrollTop = logContentRef.value.scrollHeight;
@@ -134,7 +161,6 @@
 
   const addLog = (log: LogItem) => {
     logs.value.push(log);
-    // 确保在添加日志后立即滚动到底部
     nextTick(() => {
       scrollToBottom();
     });
@@ -153,6 +179,9 @@
   const reset = () => {
     clearLogs();
     setStatus('installing');
+    isUpgrade.value = false;
+    isBatchUpgrade.value = false;
+    batchRunning.value = false;
   };
 
   const processLogData = (data: string): LogItem => {
@@ -201,191 +230,192 @@
     };
   };
 
-  const logFileLogs = (hostId: number, logPath: string) => {
+  const buildLogItem = (rawData: string): LogItem => {
+    const data = rawData.trim();
+    if (data.startsWith('{') && data.endsWith('}')) {
+      return processLogData(data);
+    }
+    const jsonMatch = data.match(/(\{.*\})/);
+    if (jsonMatch && jsonMatch[1]) {
+      return processLogData(jsonMatch[1]);
+    }
+    return {
+      time: Date.now(),
+      message: data,
+      level: 'info',
+    };
+  };
+
+  const appendLogMessage = (rawData: string, prefix?: string) => {
+    const logItem = buildLogItem(rawData);
+    addLog({
+      ...logItem,
+      message: prefix ? `[${prefix}] ${logItem.message}` : logItem.message,
+    });
+  };
+
+  const logFileLogs = (
+    hostId: number,
+    logPath: string,
+    options: StreamLogOptions = {}
+  ) => {
     const url = resolveApiUrl(
       `logs/${hostId}/follow?path=${encodeURIComponent(logPath)}&whence=end`
     );
-    reset();
+    const {
+      resetBefore = true,
+      prefix,
+      successMessage = t('manage.host.installAgent.installSuccess'),
+      failedMessage = t('manage.host.installAgent.installFailed'),
+      timeoutMessage = t('manage.host.installAgent.installTimeout'),
+      emitOk = true,
+    } = options;
+
+    if (resetBefore) {
+      reset();
+    }
     show();
 
     let heartbeat = Date.now();
     const eventSource = new EventSource(url);
-    let timer: number;
+    let timer = 0;
+    let finished = false;
 
-    eventSource.addEventListener('log', (event: Event) => {
-      if (event instanceof MessageEvent) {
-        if (event.data) {
-          try {
-            const rawData = event.data.trim();
+    const finish = (
+      finalStatus: 'completed' | 'failed' | 'timeout',
+      toastMessage?: string
+    ) => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      clearInterval(timer);
+      eventSource.close();
+      setStatus(finalStatus);
 
-            if (rawData.startsWith('{') && rawData.endsWith('}')) {
-              addLog(processLogData(rawData));
-            } else {
-              const jsonMatch = rawData.match(/(\{.*\})/);
-              if (jsonMatch && jsonMatch[1]) {
-                addLog(processLogData(jsonMatch[1]));
-              } else {
-                addLog({
-                  time: Date.now(),
-                  message: rawData,
-                  level: 'info',
-                });
-              }
-            }
-          } catch (error) {
-            addLog({
-              time: Date.now(),
-              message: event.data,
-              level: 'info',
-            });
-          }
+      if (toastMessage) {
+        if (finalStatus === 'completed') {
+          Message.success(toastMessage);
+        } else {
+          Message.error(toastMessage);
         }
       }
-    });
 
-    eventSource.addEventListener('data', (event: Event) => {
-      if (event instanceof MessageEvent) {
-        if (event.data) {
-          try {
-            const rawData = event.data.trim();
-
-            if (rawData.startsWith('{') && rawData.endsWith('}')) {
-              addLog(processLogData(rawData));
-            } else {
-              const jsonMatch = rawData.match(/(\{.*\})/);
-              if (jsonMatch && jsonMatch[1]) {
-                addLog(processLogData(jsonMatch[1]));
-              } else {
-                addLog({
-                  time: Date.now(),
-                  message: rawData,
-                  level: 'info',
-                });
-              }
-            }
-          } catch (error) {
-            addLog({
-              time: Date.now(),
-              message: event.data,
-              level: 'info',
-            });
-          }
-        }
+      if (finalStatus === 'completed' && emitOk) {
+        emit('ok');
       }
-    });
+    };
 
-    eventSource.addEventListener('status', (event: Event) => {
-      if (event instanceof MessageEvent) {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data) {
+        return;
+      }
+      try {
+        appendLogMessage(event.data, prefix);
+      } catch (error) {
+        addLog({
+          time: Date.now(),
+          message: prefix ? `[${prefix}] ${event.data}` : event.data,
+          level: 'info',
+        });
+      }
+    };
+
+    return new Promise<'completed' | 'failed' | 'timeout'>((resolve) => {
+      const resolveAndFinish = (
+        finalStatus: 'completed' | 'failed' | 'timeout',
+        toastMessage?: string
+      ) => {
+        finish(finalStatus, toastMessage);
+        resolve(finalStatus);
+      };
+
+      eventSource.addEventListener('log', (event: Event) => {
+        if (event instanceof MessageEvent) {
+          handleMessage(event);
+        }
+      });
+
+      eventSource.addEventListener('data', (event: Event) => {
+        if (event instanceof MessageEvent) {
+          handleMessage(event);
+        }
+      });
+
+      eventSource.addEventListener('status', (event: Event) => {
+        if (!(event instanceof MessageEvent)) {
+          return;
+        }
         const statusValue = event.data;
 
         if (statusValue === 'success') {
-          clearInterval(timer);
-          eventSource.close();
-          setStatus('completed');
-          Message.success(t('manage.host.installAgent.installSuccess'));
-          emit('ok');
-        } else if (statusValue === 'failed' || statusValue === 'canceled') {
-          clearInterval(timer);
-          eventSource.close();
-          setStatus('failed');
-          Message.error(t('manage.host.installAgent.installFailed'));
-        } else if (statusValue === 'running') {
-          addLog({
-            time: Date.now(),
-            message: t('manage.host.installAgent.installing'),
-            level: 'info',
-          });
-        } else {
-          addLog({
-            time: Date.now(),
-            message: `Status: ${statusValue}`,
-            level: 'info',
-          });
+          resolveAndFinish('completed', successMessage);
+          return;
         }
-      }
-    });
-
-    eventSource.onmessage = (event) => {
-      if (event.data) {
-        try {
-          const rawData = event.data.trim();
-
-          if (rawData.startsWith('{') && rawData.endsWith('}')) {
-            addLog(processLogData(rawData));
-          } else {
-            const jsonMatch = rawData.match(/(\{.*\})/);
-            if (jsonMatch && jsonMatch[1]) {
-              addLog(processLogData(jsonMatch[1]));
-            } else {
-              addLog({
-                time: Date.now(),
-                message: rawData,
-                level: 'info',
-              });
-            }
-          }
-        } catch (error) {
+        if (statusValue === 'failed' || statusValue === 'canceled') {
+          resolveAndFinish('failed', failedMessage);
+          return;
+        }
+        if (statusValue === 'running') {
           addLog({
             time: Date.now(),
-            message: event.data,
+            message: prefix
+              ? `[${prefix}] ${t('manage.host.installAgent.installing')}`
+              : t('manage.host.installAgent.installing'),
             level: 'info',
           });
+          return;
         }
-      }
-    };
 
-    eventSource.addEventListener('heartbeat', () => {
-      heartbeat = Date.now();
-    });
-
-    eventSource.addEventListener('close', () => {
-      clearInterval(timer);
-      eventSource.close();
-      setStatus('completed');
-      Message.success(t('manage.host.installAgent.installSuccess'));
-      emit('ok');
-    });
-
-    eventSource.addEventListener('error', (event) => {
-      if (event.type === 'error') {
-        clearInterval(timer);
-        eventSource.close();
-        setStatus('failed');
-        Message.error(t('manage.host.installAgent.installFailed'));
-      }
-    });
-
-    timer = window.setInterval(() => {
-      if (Date.now() - heartbeat > 60e3) {
-        clearInterval(timer);
-        eventSource.close();
-        setStatus('timeout');
-        Message.error(t('manage.host.installAgent.installTimeout'));
-      }
-    }, 1000);
-
-    eventSource.onopen = () => {
-      addLog({
-        time: Date.now(),
-        message: t('manage.host.installAgent.logConnected'),
-        level: 'info',
+        addLog({
+          time: Date.now(),
+          message: prefix
+            ? `[${prefix}] Status: ${statusValue}`
+            : `Status: ${statusValue}`,
+          level: 'info',
+        });
       });
-    };
 
-    eventSource.onerror = () => {
-      if (eventSource.readyState === EventSource.CLOSED) {
-        clearInterval(timer);
-        setStatus('failed');
-        Message.error(t('manage.host.installAgent.logConnectionFailed'));
-      }
-    };
+      eventSource.addEventListener('heartbeat', () => {
+        heartbeat = Date.now();
+      });
 
-    eventSource.addEventListener('end', () => {
-      clearInterval(timer);
-      eventSource.close();
-      setStatus('completed');
-      Message.success(t('manage.host.installAgent.installSuccess'));
-      emit('ok');
+      eventSource.addEventListener('close', () => {
+        resolveAndFinish('completed', successMessage);
+      });
+
+      eventSource.addEventListener('end', () => {
+        resolveAndFinish('completed', successMessage);
+      });
+
+      eventSource.onmessage = (event) => {
+        handleMessage(event);
+      };
+
+      eventSource.onopen = () => {
+        addLog({
+          time: Date.now(),
+          message: prefix
+            ? `[${prefix}] ${t('manage.host.installAgent.logConnected')}`
+            : t('manage.host.installAgent.logConnected'),
+          level: 'info',
+        });
+      };
+
+      eventSource.onerror = () => {
+        if (eventSource.readyState === EventSource.CLOSED) {
+          resolveAndFinish(
+            'failed',
+            t('manage.host.installAgent.logConnectionFailed')
+          );
+        }
+      };
+
+      timer = window.setInterval(() => {
+        if (Date.now() - heartbeat > 60e3) {
+          resolveAndFinish('timeout', timeoutMessage);
+        }
+      }, 1000);
     });
   };
 
@@ -394,7 +424,8 @@
       const result = await installHostAgentApi(hostId);
       if (result.log_path) {
         isUpgrade.value = false;
-        logFileLogs(result.log_host, result.log_path);
+        Message.info(t('manage.host.installAgent.installSubmitted'));
+        await logFileLogs(result.log_host, result.log_path);
       } else {
         Message.error(t('manage.host.installAgent.installFailed'));
       }
@@ -408,12 +439,144 @@
       const result = await upgradeHostAgentApi(hostId);
       if (result.log_path) {
         isUpgrade.value = true;
-        logFileLogs(result.log_host, result.log_path);
+        Message.info(t('manage.host.installAgent.upgradeSubmitted'));
+        await logFileLogs(result.log_host, result.log_path, {
+          successMessage: t('manage.host.installAgent.upgradeSuccess'),
+          failedMessage: t('manage.host.installAgent.upgradeFailed'),
+          timeoutMessage: t('manage.host.installAgent.upgradeTimeout'),
+        });
       } else {
         Message.error(t('manage.host.installAgent.upgradeFailed'));
       }
     } catch (error) {
       Message.error(t('manage.host.installAgent.upgradeFailed'));
+    }
+  };
+
+  const startBatchUpgrade = async (hosts: BatchUpgradeHost[]) => {
+    if (!hosts.length) {
+      Message.info(t('manage.host.list.batchUpgrade.empty'));
+      return;
+    }
+
+    reset();
+    show();
+    isUpgrade.value = true;
+    isBatchUpgrade.value = true;
+    batchRunning.value = true;
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    addLog({
+      time: Date.now(),
+      message: t('manage.host.list.batchUpgrade.start', {
+        count: hosts.length,
+      }),
+      level: 'info',
+    });
+
+    /* eslint-disable no-await-in-loop */
+    for (const host of hosts) {
+      setStatus('installing');
+      addLog({
+        time: Date.now(),
+        message: t('manage.host.list.batchUpgrade.processing', {
+          name: host.name,
+        }),
+        level: 'info',
+      });
+
+      try {
+        const result = await upgradeHostAgentApi(host.id);
+        if (!result.log_path) {
+          failedCount += 1;
+          addLog({
+            time: Date.now(),
+            message: t('manage.host.list.batchUpgrade.itemFailed', {
+              name: host.name,
+            }),
+            level: 'error',
+          });
+          continue;
+        }
+
+        addLog({
+          time: Date.now(),
+          message: t('manage.host.list.batchUpgrade.submitted', {
+            name: host.name,
+          }),
+          level: 'info',
+        });
+
+        const finalStatus = await logFileLogs(
+          result.log_host,
+          result.log_path,
+          {
+            resetBefore: false,
+            prefix: host.name,
+            successMessage: '',
+            failedMessage: '',
+            timeoutMessage: '',
+            emitOk: false,
+          }
+        );
+
+        if (finalStatus === 'completed') {
+          successCount += 1;
+          addLog({
+            time: Date.now(),
+            message: t('manage.host.list.batchUpgrade.itemSuccess', {
+              name: host.name,
+            }),
+            level: 'info',
+          });
+        } else {
+          failedCount += 1;
+          addLog({
+            time: Date.now(),
+            message: t('manage.host.list.batchUpgrade.itemFailed', {
+              name: host.name,
+            }),
+            level: 'error',
+          });
+        }
+      } catch (error) {
+        failedCount += 1;
+        addLog({
+          time: Date.now(),
+          message: t('manage.host.list.batchUpgrade.itemFailed', {
+            name: host.name,
+          }),
+          level: 'error',
+        });
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+
+    batchRunning.value = false;
+    setStatus(failedCount > 0 ? 'failed' : 'completed');
+    addLog({
+      time: Date.now(),
+      message: t('manage.host.list.batchUpgrade.summary', {
+        success: successCount,
+        failed: failedCount,
+      }),
+      level: failedCount > 0 ? 'warn' : 'info',
+    });
+    emit('ok');
+
+    if (failedCount > 0) {
+      Message.warning(
+        t('manage.host.list.batchUpgrade.doneWithFailure', {
+          success: successCount,
+          failed: failedCount,
+        })
+      );
+    } else {
+      Message.success(
+        t('manage.host.list.batchUpgrade.done', { count: successCount })
+      );
     }
   };
 
@@ -454,6 +617,7 @@
     logFileLogs,
     startInstall,
     startUpgrade,
+    startBatchUpgrade,
     confirmInstall,
     checkInstall,
   });

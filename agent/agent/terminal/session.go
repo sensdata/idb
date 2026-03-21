@@ -1,11 +1,11 @@
 package terminal
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,10 +39,10 @@ type BaseSession struct {
 	// Chan for output
 	outputChan chan []byte
 	// Chan for quiting
-	doneChan  chan struct{}
-	closeOnce sync.Once
-	waitOnce  sync.Once
-	waitErr   error
+	doneChan chan struct{}
+	doneOnce sync.Once
+	waitOnce sync.Once
+	waitErr  error
 }
 
 // New instance
@@ -53,9 +53,15 @@ func NewBaseSession(session string, name string, cols, rows int) *BaseSession {
 		sessionType: message.SessionTypeBash,
 		cols:        cols,
 		rows:        rows,
-		outputChan:  make(chan []byte, 1024),
+		outputChan:  make(chan []byte, 128),
 		doneChan:    make(chan struct{}),
 	}
+}
+
+func (s *BaseSession) closeDone() {
+	s.doneOnce.Do(func() {
+		close(s.doneChan)
+	})
 }
 
 func (s *BaseSession) GetType() message.SessionType {
@@ -158,7 +164,7 @@ func (s *BaseSession) Release() error {
 	// s.mutex.Lock()
 	// defer s.mutex.Unlock()
 
-	s.closeOnce.Do(func() { close(s.doneChan) })
+	s.closeDone()
 
 	// 关闭PTY
 	if s.pty != nil {
@@ -186,7 +192,7 @@ func (s *BaseSession) trackOutput() {
 		}
 	}()
 
-	defer s.closeOnce.Do(func() { close(s.doneChan) })
+	defer s.closeDone()
 
 	buf := make([]byte, 32*1024)
 	for {
@@ -205,9 +211,7 @@ func (s *BaseSession) trackOutput() {
 			}
 
 			if n > 0 {
-				output := string(buf[:n])
-				global.LOG.Info("output: %s", output)
-				if strings.Contains(output, "\x1b[?1049h") {
+				if bytes.Contains(buf[:n], []byte("\x1b[?1049h")) {
 					global.LOG.Warn("Detected switch to Alternate Buffer")
 				}
 				// 复制一份数据，避免buf被覆盖
@@ -230,7 +234,7 @@ func (s *BaseSession) wait() {
 	if err := s.waitCmd(); err != nil {
 		global.LOG.Error("session process wait failed: %v", err)
 	}
-	s.closeOnce.Do(func() { close(s.doneChan) })
+	s.closeDone()
 }
 
 func (s *BaseSession) waitCmd() error {

@@ -30,7 +30,7 @@ First off, thank you for considering contributing to iDB! It's people like you t
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [iDB Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [support@sensdata.com].
+This project and everyone participating in it is governed by the [iDB Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [support@idb.net](mailto:support@idb.net).
 
 ## How Can I Contribute?
 

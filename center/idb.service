@@ -14,7 +14,6 @@ LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
-KillMode=process
 StandardOutput=journal
 StandardError=journal
 

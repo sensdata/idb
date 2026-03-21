@@ -1736,12 +1736,7 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 		global.LOG.Info("failed to create task")
 		return errors.New("failed to create tail task")
 	}
-	global.LOG.Info("task: %s", task.ID)
-
-	// 把task的metadata都打印出来
-	for k, v := range task.Metadata {
-		global.LOG.Info("task metadata: %s=%v", k, v)
-	}
+	global.LOG.Info("service log task created: id=%s service=%s host=%d", task.ID, serviceParam, hostID)
 
 	reader, err := global.LogStream.GetReader(task.ID)
 	if err != nil {
@@ -1753,7 +1748,6 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 	// 判断reader是否是 RemoteReader
 	_, ok := reader.(*adapters.RemoteReader)
 	if ok {
-		global.LOG.Info("reader is RemoteReader")
 		// 获取agent连接
 		agentConn, err := conn.CENTER.GetAgentConn(&host)
 		if err != nil {
@@ -1772,7 +1766,6 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 		global.LOG.Error("follow log failed: %v", err)
 		return fmt.Errorf("follow log failed: %w", err)
 	}
-	global.LOG.Info("follow log success for task %s, path: %s", task.ID, serviceParam)
 
 	// 获取任务状态监听器
 	watcher, err := global.LogStream.GetTaskWatcher(task.ID)
@@ -1840,15 +1833,13 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 			c.SSEvent("log", string(msg))
 			flusher.Flush()
 		case status := <-statusCh:
-			global.LOG.Info("SSE STATUS: %s", status)
 			c.SSEvent("status", status)
 			flusher.Flush()
 		case <-heartbeat.C:
-			global.LOG.Info("SSE HEARTBEAT")
 			c.SSEvent("heartbeat", time.Now().Unix())
 			flusher.Flush()
 		case <-ctx.Done():
-			global.LOG.Info("SSE DONE")
+			global.LOG.Info("service log stream closed: id=%s service=%s host=%d", task.ID, serviceParam, hostID)
 			// 如果是远程读取器，发送停止消息
 			if _, ok := reader.(*adapters.RemoteReader); ok {
 				// 获取agent连接
@@ -1865,15 +1856,13 @@ func (s *ServiceMan) followServiceLogs(c *gin.Context) error {
 					}
 				}()
 			}
-			// 清理任务相关的资源
-			//s.clearTaskStuff(task.ID)
+			s.clearTaskStuff(task.ID)
 			return nil
 		}
 	}
 }
 
 func (s *ServiceMan) notifyRemote(conn *net.Conn, taskId string, logPath string, msgType message.LogStreamType, offset int64, whence int, content string) error {
-	global.LOG.Info("notify remote logstream message %s", msgType)
 	stopMsg, err := message.CreateLogStreamMessage(
 		utils.GenerateMsgId(),
 		msgType,
@@ -1892,4 +1881,14 @@ func (s *ServiceMan) notifyRemote(conn *net.Conn, taskId string, logPath string,
 		}
 	}
 	return nil
+}
+
+func (s *ServiceMan) clearTaskStuff(taskId string) {
+	global.LOG.Info("clear task stuff")
+	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
+		global.LOG.Warn("update task %s to %s failed: %v", taskId, types.TaskStatusCanceled, err)
+	}
+	if err := global.LogStream.DeleteTask(taskId); err != nil {
+		global.LOG.Warn("delete task %s failed: %v", taskId, err)
+	}
 }

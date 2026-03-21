@@ -3,6 +3,7 @@ package global
 import (
 	_ "embed"
 	"sync"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/sensdata/idb/core/log"
@@ -13,10 +14,11 @@ import (
 )
 
 var (
-	Version    string = "0.0.1"
-	Host       string = "127.0.0.1"
-	DefaultKey string = ""
-	JWTKey     string = ""
+	Version    string    = "0.0.1"
+	Host       string    = "127.0.0.1"
+	DefaultKey string    = ""
+	JWTKey     string    = ""
+	StartedAt  time.Time = time.Now()
 
 	LOG       *log.Log
 	LogStream *logstream.LogStream

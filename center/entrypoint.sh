@@ -18,6 +18,20 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+mask_value() {
+    local key=$1
+    local value=$2
+
+    case "$key" in
+        admin_pass|password|admin_password)
+            echo "[masked]"
+            ;;
+        *)
+            echo "$value"
+            ;;
+    esac
+}
+
 # 确保必要目录存在
 ensure_directories() {
     REQUIRED_DIRS=(
@@ -83,13 +97,13 @@ update_config() {
             log "错误：更新配置 ${key}=${value} 失败"
             return 1
         fi
-        log "更新配置: ${key}=${value}"
+        log "更新配置: ${key}=$(mask_value "$key" "$value")"
     else
         if ! echo "${key}=${value}" >> "$CONFIG_FILE"; then
             log "错误：新增配置 ${key}=${value} 失败"
             return 1
         fi
-        log "新增配置: ${key}=${value}"
+        log "新增配置: ${key}=$(mask_value "$key" "$value")"
     fi
     return 0
 }
@@ -114,11 +128,7 @@ main() {
     sed -i '/^latest=/d' "$CONFIG_FILE" 2>/dev/null
     update_config "github_repo" "$GITHUB_REPO"
 
-    log "配置文件内容："
-    cat "$CONFIG_FILE" || {
-        log "读取配置文件失败"
-        exit 1
-    }
+    log "配置文件已更新: $CONFIG_FILE"
 
     # 设置资源限制（添加错误处理，允许非特权环境下继续运行）
     ulimit -n 1048576 || log "警告: 无法设置nofile限制, 将使用系统默认值"

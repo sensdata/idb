@@ -13,4 +13,5 @@ export default {
   'components.file.fileSelector.noFavorites': '暂无收藏目录',
   'components.file.fileSelector.quickDirectories': '快捷目录',
   'components.file.fileSelector.quickDir.certificateManage': '证书管理',
+  'components.file.fileSelector.quickDir.rootSsh': 'ROOT .SSH',
 };

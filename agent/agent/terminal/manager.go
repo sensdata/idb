@@ -56,6 +56,15 @@ func (m *DefaultManager) RemoveSession(id string) {
 	m.sessions.Delete(id)
 }
 
+func (m *DefaultManager) ActiveSessionCount() int {
+	count := 0
+	m.sessions.Range(func(_, _ interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
 // Get session
 func (m *DefaultManager) GetSession(id string) (Session, error) {
 	// 查找会话

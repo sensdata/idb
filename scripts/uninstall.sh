@@ -1,51 +1,45 @@
-# 找到docker-compose.yaml文件所在的目录
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+#!/bin/bash
 
-# 确认卸载
-echo "警告：此操作将完全删除 IDB 所有组件和数据！"
-read -p "确认要继续卸载吗？(y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+set -euo pipefail
+
+echo "警告：此操作将完全删除 IDB 所有组件和数据。"
+read -r -p "确认要继续卸载吗？(y/N) " reply
+if [[ ! "$reply" =~ ^[Yy]$ ]]; then
     echo "卸载已取消"
     exit 1
 fi
 
 echo "开始卸载..."
 
-# 停止并删除所有的容器
-echo "停止并删除容器..."
-docker compose -f $DIR/docker-compose.yaml down --remove-orphans
+if command -v systemctl >/dev/null 2>&1; then
+    echo "停止并禁用 center 服务..."
+    sudo systemctl stop idb.service 2>/dev/null || true
+    sudo systemctl disable idb.service 2>/dev/null || true
 
-# 删除相关的 Docker 镜像
-echo "清理 Docker 镜像..."
-docker images | grep "idb" | awk '{print $3}' | xargs -r docker rmi -f
-
-# 停止本机agent服务
-echo "停止 agent 服务..."
-if systemctl is-active --quiet idb-agent; then
-    sudo systemctl stop idb-agent
+    echo "停止并禁用 agent 服务..."
+    sudo systemctl stop idb-agent.service 2>/dev/null || true
+    sudo systemctl disable idb-agent.service 2>/dev/null || true
+    sudo systemctl daemon-reload 2>/dev/null || true
 fi
 
-# 卸载本机agent服务
-echo "卸载 agent 服务..."
-if systemctl is-enabled --quiet idb-agent; then
-    sudo systemctl disable idb-agent
+if command -v docker >/dev/null 2>&1; then
+    echo "清理遗留 Docker 容器..."
+    docker rm -f idb 2>/dev/null || true
 fi
 
-# 清理center挂载目录
 echo "清理 center 目录..."
-for dir in "/var/lib/idb" "/var/log/idb" "/etc/idb"; do
-    if [ -d "$dir" ]; then
-        sudo rm -rf "$dir"
-    fi
+for dir in "/var/lib/idb" "/var/log/idb" "/etc/idb" "/run/idb"; do
+    sudo rm -rf "$dir" 2>/dev/null || true
 done
 
-# 清理agent目录
 echo "清理 agent 目录..."
 for dir in "/var/lib/idb-agent" "/var/log/idb-agent" "/etc/idb-agent" "/run/idb-agent"; do
-    if [ -d "$dir" ]; then
-        rm -rf "$dir"
-    fi
+    sudo rm -rf "$dir" 2>/dev/null || true
 done
 
-echo "卸载完成！"
+echo "清理 systemd 服务文件..."
+sudo rm -f /etc/systemd/system/idb.service /etc/systemd/system/idb-agent.service 2>/dev/null || true
+sudo rm -f /usr/local/bin/idb /usr/local/bin/idb-agent 2>/dev/null || true
+sudo systemctl daemon-reload 2>/dev/null || true
+
+echo "卸载完成。"
