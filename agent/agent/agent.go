@@ -64,6 +64,9 @@ type Agent struct {
 	readers    map[string]reader.Reader // filePath -> reader
 	readerDone map[string]chan struct{} // filePath -> done channel
 	readerMu   sync.RWMutex
+
+	sessionForwarders map[string]chan struct{}
+	sessionForwardMu  sync.Mutex
 }
 
 //go:embed screen_install.sh
@@ -82,9 +85,10 @@ func NewAgent() IAgent {
 		done:      make(chan struct{}),
 		resetConn: make(chan struct{}, 1),
 		// sessionMap:     make(map[string]*session.Session),
-		sessionManager: terminal.NewManager(),
-		readers:        make(map[string]reader.Reader),
-		readerDone:     make(map[string]chan struct{}),
+		sessionManager:    terminal.NewManager(),
+		readers:           make(map[string]reader.Reader),
+		readerDone:        make(map[string]chan struct{}),
+		sessionForwarders: make(map[string]chan struct{}),
 	}
 }
 
@@ -438,10 +442,19 @@ func (a *Agent) handleConnection(conn net.Conn) {
 	heartbeatStop := make(chan struct{})
 	a.startHeartbeat(conn, heartbeatStop)
 
+	// 连接级别的done通道，用于通知所有waitForSessionOutput goroutine退出
+	connDone := make(chan struct{})
+
 	defer func() {
+		close(connDone)      // 通知所有session output goroutine退出
 		close(heartbeatStop) // 停止心跳 goroutine
 		global.LOG.Info("Close center conn %s", centerID)
 		conn.Close()
+
+		a.cleanupAllSessionForwarders()
+
+		// 连接断开时清理所有活跃的log stream reader
+		a.cleanupAllReaders()
 
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in handleConnection: %v", r)
@@ -502,7 +515,7 @@ func (a *Agent) handleConnection(conn net.Conn) {
 			case *message.FileMessage:
 				go a.processFileMessage(conn, m)
 			case *message.SessionMessage:
-				go a.processSessionMessage(conn, m)
+				go a.processSessionMessage(conn, m, connDone)
 			case *message.LogStreamMessage:
 				go a.processLogStreamMessage(conn, m)
 			default:
@@ -593,6 +606,62 @@ func (a *Agent) resetConnection() {
 		global.LOG.Info("Trigger reset connection")
 	default:
 		global.LOG.Warn("Reset signal already pending")
+	}
+}
+
+// cleanupAllReaders 清理所有活跃的log stream reader，在连接断开时调用
+func (a *Agent) cleanupAllReaders() {
+	a.readerMu.Lock()
+	defer a.readerMu.Unlock()
+
+	count := len(a.readerDone)
+	for logPath, done := range a.readerDone {
+		select {
+		case <-done:
+			// 已经关闭
+		default:
+			close(done)
+		}
+		if r, exists := a.readers[logPath]; exists {
+			r.Close()
+		}
+		delete(a.readers, logPath)
+		delete(a.readerDone, logPath)
+	}
+	global.LOG.Info("Cleaned up %d log stream readers on disconnect", count)
+}
+
+func (a *Agent) replaceSessionForwarder(sessionID string) chan struct{} {
+	a.sessionForwardMu.Lock()
+	defer a.sessionForwardMu.Unlock()
+
+	if stop, exists := a.sessionForwarders[sessionID]; exists {
+		close(stop)
+	}
+
+	stop := make(chan struct{})
+	a.sessionForwarders[sessionID] = stop
+	return stop
+}
+
+func (a *Agent) clearSessionForwarder(sessionID string, stop chan struct{}) {
+	a.sessionForwardMu.Lock()
+	defer a.sessionForwardMu.Unlock()
+
+	current, exists := a.sessionForwarders[sessionID]
+	if !exists || current != stop {
+		return
+	}
+	delete(a.sessionForwarders, sessionID)
+}
+
+func (a *Agent) cleanupAllSessionForwarders() {
+	a.sessionForwardMu.Lock()
+	defer a.sessionForwardMu.Unlock()
+
+	for sessionID, stop := range a.sessionForwarders {
+		close(stop)
+		delete(a.sessionForwarders, sessionID)
 	}
 }
 
@@ -702,7 +771,7 @@ func (a *Agent) processFileMessage(conn net.Conn, msg *message.FileMessage) {
 	}
 }
 
-func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage) {
+func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage, connDone <-chan struct{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in processSessionMessage: %v", r)
@@ -739,7 +808,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 			session.GetName(),
 		)
 
-		go a.waitForSessionOutput(conn, session)
+		go a.waitForSessionOutput(conn, session, connDone, a.replaceSessionForwarder(session.GetSession()))
 
 	case message.WsMessageAttach: // 恢复会话
 		// find old session
@@ -784,7 +853,7 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 			session.GetName(),
 		)
 
-		go a.waitForSessionOutput(conn, session)
+		go a.waitForSessionOutput(conn, session, connDone, a.replaceSessionForwarder(session.GetSession()))
 
 	case message.WsMessageCmd: // 会话输入
 		a.sessionInput(msg.Data)
@@ -799,15 +868,29 @@ func (a *Agent) processSessionMessage(conn net.Conn, msg *message.SessionMessage
 	global.LOG.Info("processSessionMessage end")
 }
 
-func (a *Agent) waitForSessionOutput(conn net.Conn, session terminal.Session) {
+func (a *Agent) waitForSessionOutput(conn net.Conn, session terminal.Session, connDone <-chan struct{}, forwarderDone chan struct{}) {
 	defer func() {
 		if r := recover(); r != nil {
 			global.LOG.Error("[Panic] in waitForSessionOutput: %v", r)
 		}
+		a.clearSessionForwarder(session.GetSession(), forwarderDone)
 	}()
 
 	for {
 		select {
+		case <-forwarderDone:
+			global.LOG.Info("session output forwarder replaced for %s", session.GetSession())
+			return
+		case <-connDone:
+			global.LOG.Info("connection closed, stopping session output forwarding for %s", session.GetSession())
+			// 非持久会话（bash/docker）在断连时释放，screen会话保留
+			if session.GetType() != message.SessionTypeScreen && session.GetType() != message.SessionTypeTmux {
+				if err := session.Release(); err != nil {
+					global.LOG.Error("failed to release session %s on disconnect: %v", session.GetSession(), err)
+				}
+				a.sessionManager.RemoveSession(session.GetSession())
+			}
+			return
 		case <-session.GetDoneChan():
 			a.sessionManager.RemoveSession(session.GetSession())
 			global.LOG.Info("session end")

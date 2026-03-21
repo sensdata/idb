@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/creack/pty"
@@ -38,7 +39,10 @@ type BaseSession struct {
 	// Chan for output
 	outputChan chan []byte
 	// Chan for quiting
-	doneChan chan struct{}
+	doneChan  chan struct{}
+	closeOnce sync.Once
+	waitOnce  sync.Once
+	waitErr   error
 }
 
 // New instance
@@ -117,7 +121,7 @@ func (s *BaseSession) Start() error {
 
 // Attach session
 func (s *BaseSession) Attach() error {
-	return nil
+	return fmt.Errorf("bash session does not support attach")
 }
 
 // Write to session
@@ -154,7 +158,7 @@ func (s *BaseSession) Release() error {
 	// s.mutex.Lock()
 	// defer s.mutex.Unlock()
 
-	close(s.doneChan)
+	s.closeOnce.Do(func() { close(s.doneChan) })
 
 	// 关闭PTY
 	if s.pty != nil {
@@ -166,7 +170,7 @@ func (s *BaseSession) Release() error {
 		if err := s.cmd.Process.Kill(); err != nil {
 			global.LOG.Error("failed to kill process: %v", err)
 		}
-		if err := s.cmd.Wait(); err != nil {
+		if err := s.waitCmd(); err != nil {
 			global.LOG.Error("failed to wait process: %v", err)
 		}
 	}
@@ -182,7 +186,7 @@ func (s *BaseSession) trackOutput() {
 		}
 	}()
 
-	defer close(s.doneChan)
+	defer s.closeOnce.Do(func() { close(s.doneChan) })
 
 	buf := make([]byte, 32*1024)
 	for {
@@ -223,7 +227,20 @@ func (s *BaseSession) wait() {
 		}
 	}()
 
-	if err := s.cmd.Wait(); err != nil {
-		close(s.doneChan)
+	if err := s.waitCmd(); err != nil {
+		global.LOG.Error("session process wait failed: %v", err)
 	}
+	s.closeOnce.Do(func() { close(s.doneChan) })
+}
+
+func (s *BaseSession) waitCmd() error {
+	if s.cmd == nil {
+		return nil
+	}
+
+	s.waitOnce.Do(func() {
+		s.waitErr = s.cmd.Wait()
+	})
+
+	return s.waitErr
 }
