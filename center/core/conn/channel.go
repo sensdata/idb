@@ -823,8 +823,8 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 	// 获取文件大小
 	fileSize := file.Size
 
-	// 创建等待响应的通道
-	responseCh := make(chan *message.FileMessage)
+	// 创建等待响应的通道（缓冲1，防止goroutine泄漏）
+	responseCh := make(chan *message.FileMessage, 1)
 
 	// 生成消息ID
 	msgID := utils.GenerateMsgId()
@@ -871,7 +871,10 @@ func (c *Center) UploadFile(hostID uint, path string, file *multipart.FileHeader
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 			}
 		}()
 
@@ -923,8 +926,8 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 	}
 	ctx.Header("Content-Type", mimeType)
 
-	// 创建等待响应的通道
-	responseCh := make(chan *message.FileMessage)
+	// 创建等待响应的通道（缓冲1，防止goroutine泄漏）
+	responseCh := make(chan *message.FileMessage, 1)
 
 	// 生成消息ID
 	msgID := utils.GenerateMsgId()
@@ -959,7 +962,10 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 				global.LOG.Error("Failed to create file message: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 				return
 			}
 
@@ -968,7 +974,10 @@ func (c *Center) DownloadFile(ctx *gin.Context, hostID uint, path string) error 
 				global.LOG.Error("Failed to send file chunk: %s %d %d, %v", msg.FileName, msg.Offset, msg.ChunkSize, err)
 				// 如果发送失败，写入空响应
 				msg.Status = message.FileErr
-				responseCh <- msg
+				select {
+				case responseCh <- msg:
+				default:
+				}
 			}
 		}()
 
@@ -1061,8 +1070,8 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 		return nil, err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	msgID := utils.GenerateMsgId()
@@ -1087,7 +1096,10 @@ func (c *Center) ExecuteAction(req core.HostAction) (*core.Action, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send action message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 
@@ -1125,8 +1137,8 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		return "", err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	msgID := utils.GenerateMsgId()
@@ -1151,7 +1163,10 @@ func (c *Center) ExecuteCommand(req core.Command) (string, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 
@@ -1206,8 +1221,8 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 		return []string{}, err
 	}
 
-	// 创建一个等待通道
-	responseCh := make(chan string)
+	// 创建一个等待通道（缓冲1，防止发送协程在超时后永久阻塞）
+	responseCh := make(chan string, 1)
 
 	// 创建消息
 	var data string
@@ -1239,7 +1254,10 @@ func (c *Center) ExecuteCommandGroup(req core.CommandGroup) ([]string, error) {
 		err = message.SendMessage(*conn, msg)
 		if err != nil {
 			global.LOG.Error("Failed to send command message: %v", err)
-			responseCh <- ""
+			select {
+			case responseCh <- "":
+			default:
+			}
 		}
 	}()
 
