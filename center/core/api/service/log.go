@@ -207,19 +207,16 @@ func (s *LogManService) HandleLogStream(c *gin.Context) error {
 				agentConn, err := conn.CENTER.GetAgentConn(&host)
 				if err != nil {
 					global.LOG.Error("get agent conn failed: %v", err)
-					return fmt.Errorf("get agent conn failed: %w", err)
-				}
-
-				go func() {
+				} else {
 					err := s.notifyRemote(agentConn, task.ID, task.LogPath, message.LogStreamStop, 0, 0)
 					if err != nil {
 						global.LOG.Error("notify remote logstream message failed: %v", err)
 					}
-				}()
+				}
 			}
 
 			// 清理任务相关的资源
-			// s.clearTaskStuff(task.ID)
+			s.clearTaskStuff(task.ID)
 			return nil
 		}
 	}
@@ -246,15 +243,11 @@ func (s *LogManService) notifyRemote(conn *net.Conn, taskId string, logPath stri
 	return nil
 }
 
-// func (s *LogManService) clearTaskStuff(taskId string) {
-// 	global.LOG.Info("clear task stuff")
-// 	// 更新状态后删除task
-// 	if err := global.LogStream.UpdateTaskStatus(taskId, types.TaskStatusCanceled); err != nil {
-// 		global.LOG.Error("Failed to update task status to %s : %v", types.TaskStatusCanceled, err)
-// 	}
-// 	if err := global.LogStream.DeleteTask(taskId); err != nil {
-// 		global.LOG.Error("delete task %s failed: %v", taskId, err)
-// 	} else {
-// 		global.LOG.Info("delete task %s success", taskId)
-// 	}
-// }
+func (s *LogManService) clearTaskStuff(taskId string) {
+	global.LOG.Info("clear task stuff for %s", taskId)
+	if err := global.LogStream.DeleteTask(taskId); err != nil {
+		global.LOG.Error("delete task %s failed: %v", taskId, err)
+	} else {
+		global.LOG.Info("delete task %s success", taskId)
+	}
+}

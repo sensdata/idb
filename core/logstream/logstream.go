@@ -24,6 +24,7 @@ type LogStream struct {
 	mu      sync.Mutex
 	writers map[string]writer.Writer
 	readers map[string]reader.Reader
+	done    chan struct{} // 用于通知cleanRoutine退出
 }
 
 func New(cfg *config.Config) (*LogStream, error) {
@@ -53,6 +54,7 @@ func New(cfg *config.Config) (*LogStream, error) {
 		metrics: types.NewMetricsCollector(),
 		writers: make(map[string]writer.Writer),
 		readers: make(map[string]reader.Reader),
+		done:    make(chan struct{}),
 	}
 
 	// 启动清理任务
@@ -304,6 +306,14 @@ func (ls *LogStream) GetActiveWriters() int {
 }
 
 func (ls *LogStream) Close() error {
+	// 通知cleanRoutine退出
+	select {
+	case <-ls.done:
+		// 已经关闭
+	default:
+		close(ls.done)
+	}
+
 	ls.mu.Lock()
 	defer ls.mu.Unlock()
 
@@ -400,13 +410,42 @@ func (ls *LogStream) cleanRoutine() {
 	ticker := time.NewTicker(ls.config.CleanInterval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		if err := ls.CleanExpiredTasks(); err != nil {
-			ls.metrics.IncrErrorCount()
-			ls.metrics.RecordLastError(err)
-			continue
+	for {
+		select {
+		case <-ls.done:
+			return
+		case <-ticker.C:
+			if err := ls.CleanExpiredTasks(); err != nil {
+				ls.metrics.IncrErrorCount()
+				ls.metrics.RecordLastError(err)
+				continue
+			}
+			ls.metrics.IncrCleanupCount()
+
+			// 清理已完成任务关联的writers/readers
+			ls.cleanStaleWritersReaders()
 		}
-		ls.metrics.IncrCleanupCount()
+	}
+}
+
+// cleanStaleWritersReaders 清理对应任务已不存在或已完成的writers和readers
+func (ls *LogStream) cleanStaleWritersReaders() {
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+
+	for taskID, w := range ls.writers {
+		t, err := ls.taskMgr.Get(taskID)
+		if err != nil || t.Status.IsFinalStatus() {
+			w.Close()
+			delete(ls.writers, taskID)
+		}
+	}
+	for taskID, r := range ls.readers {
+		t, err := ls.taskMgr.Get(taskID)
+		if err != nil || t.Status.IsFinalStatus() {
+			r.Close()
+			delete(ls.readers, taskID)
+		}
 	}
 }
 
