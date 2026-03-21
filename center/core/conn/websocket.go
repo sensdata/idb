@@ -51,7 +51,7 @@ func (s *WebSocketService) HandleSshTerminal(c *gin.Context) error {
 	global.LOG.Info("handle ssh terminal begin")
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
-		WriteBufferSize: 1024 * 1024 * 10,
+		WriteBufferSize: 1024 * 64,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
@@ -202,7 +202,7 @@ func (s *WebSocketService) HandleAgentTerminal(c *gin.Context) error {
 	global.LOG.Info("handle agent terminal begin")
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
-		WriteBufferSize: 1024 * 1024 * 10,
+		WriteBufferSize: 1024 * 64,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},

@@ -404,8 +404,9 @@ func (c *Center) connectToAgent(host *model.Host, resultCh chan<- error) {
 		InsecureSkipVerify: true,
 	}
 
-	// // 建立 TLS 连接
-	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
+	// 建立 TLS 连接（带超时）
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", host.AgentAddr, host.AgentPort), tlsConfig)
 	if err != nil {
 		global.LOG.Error("Failed to connect to Agent: %v", err)
 		if resultCh != nil {
