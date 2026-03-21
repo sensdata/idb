@@ -677,13 +677,14 @@ func (c *Center) processFileMessage(msg *message.FileMessage) {
 
 func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 	global.LOG.Info("Process session message: %v", msg)
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	var aws *AgentWebSocketSession
 
 	switch msg.Type {
 	case message.WsMessageStart:
+		c.mu.Lock()
 		// start的时候，通过msgID找aws
-		aws, exists := c.awsMap[msg.MsgID]
+		var exists bool
+		aws, exists = c.awsMap[msg.MsgID]
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
@@ -692,8 +693,6 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace aws msgID %s with session %s", msg.MsgID, msg.Data.Session)
-
-			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
 		}
@@ -708,9 +707,16 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no token - session")
 		}
+		c.mu.Unlock()
+
+		if aws != nil && !aws.enqueueSessionMessage(msg) {
+			global.LOG.Info("skip session start message for closed session %s", msg.Data.Session)
+		}
 	case message.WsMessageAttach:
+		c.mu.Lock()
 		// attach的时候，通过msgID找aws
-		aws, exists := c.awsMap[msg.MsgID]
+		var exists bool
+		aws, exists = c.awsMap[msg.MsgID]
 		if exists {
 			// 替换成session作为key
 			aws.Session = msg.Data.Session
@@ -719,8 +725,6 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 			// 删除原来的msgID对应的记录
 			delete(c.awsMap, msg.MsgID)
 			global.LOG.Info("replace msgID %s with session %s", msg.MsgID, msg.Data.Session)
-
-			aws.SessionMessageChan <- msg
 		} else {
 			global.LOG.Info("no response session")
 		}
@@ -735,11 +739,20 @@ func (c *Center) processSessionMessage(msg *message.SessionMessage) {
 		} else {
 			global.LOG.Info("no token - session")
 		}
+		c.mu.Unlock()
+
+		if aws != nil && !aws.enqueueSessionMessage(msg) {
+			global.LOG.Info("skip session attach message for closed session %s", msg.Data.Session)
+		}
 	case message.WsMessageCmd:
+		c.mu.Lock()
 		// command的时候，通过session找aws
-		aws, exists := c.awsMap[msg.Data.Session]
-		if exists {
-			aws.SessionMessageChan <- msg
+		aws = c.awsMap[msg.Data.Session]
+		c.mu.Unlock()
+		if aws != nil {
+			if !aws.enqueueSessionMessage(msg) {
+				global.LOG.Info("skip session command message for closed session %s", msg.Data.Session)
+			}
 		} else {
 			global.LOG.Info("no response session")
 		}
