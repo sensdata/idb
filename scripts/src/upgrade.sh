@@ -25,7 +25,11 @@ AGENT_INSTALL_FAILED="false"
 AGENT_INSTALL_ERROR=""
 
 function log() {
-    message="[idb Log]: $1 "
+    local timestamp
+    local message
+
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    message="[${timestamp}] [idb Log] $1"
     echo -e "${message}" 2>&1 | tee -a "${CURRENT_DIR}/upgrade.log"
 }
 

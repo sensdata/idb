@@ -28,7 +28,11 @@ LAST_ERROR_DETAIL=""
 trap 'LAST_ERROR_DETAIL="命令 \"${BASH_COMMAND}\" 失败 (行 ${LINENO}, 退出码 $?)"' ERR
 
 function log() {
-    message="[idb Log]: $1 "
+    local timestamp
+    local message
+
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    message="[${timestamp}] [idb Log] $1"
     echo -e "${message}" 2>&1 | tee -a "${CURRENT_DIR}/install.log"
 }
 

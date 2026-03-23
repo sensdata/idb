@@ -28,7 +28,11 @@ LAST_ERROR_DETAIL=""
 trap 'LAST_ERROR_DETAIL="命令 \"${BASH_COMMAND}\" 失败 (行 ${LINENO}, 退出码 $?)"' ERR
 
 function log() {
-    message="[idb Log]: $1 "
+    local timestamp
+    local message
+
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    message="[${timestamp}] [idb Log] $1"
     echo -e "${message}" 2>&1 | tee -a "${CURRENT_DIR}/install.log"
 }
 
@@ -152,6 +156,15 @@ function Prepare_Download_Env() {
     fi
 }
 
+function Download_File() {
+    local url="$1"
+    local output="$2"
+
+    curl -fL --retry 3 --retry-delay 1 --connect-timeout 10 --progress-bar \
+        "${url}" \
+        -o "${output}"
+}
+
 function Detect_Version() {
     VERSION="${1:-}"
     if [[ -z "${VERSION}" ]]; then
@@ -173,10 +186,10 @@ function Download_Assets() {
     mkdir -p "${TMP_DIR}/center" "${TMP_DIR}/agent"
 
     log "下载 center 安装包: ${CENTER_PKG}"
-    curl -fsSL "${CENTER_URL}" -o "${TMP_DIR}/${CENTER_PKG}"
+    Download_File "${CENTER_URL}" "${TMP_DIR}/${CENTER_PKG}"
 
     log "下载 agent 安装包: ${AGENT_PKG}"
-    curl -fsSL "${AGENT_URL}" -o "${TMP_DIR}/${AGENT_PKG}"
+    Download_File "${AGENT_URL}" "${TMP_DIR}/${AGENT_PKG}"
 
     tar -xzf "${TMP_DIR}/${CENTER_PKG}" -C "${TMP_DIR}/center"
     tar -xzf "${TMP_DIR}/${AGENT_PKG}" -C "${TMP_DIR}/agent"
