@@ -38,7 +38,7 @@ func (s *AuthService) Login(c *gin.Context, info model.Login) (*model.LoginResul
 		return nil, errors.WithMessage(constant.ErrInvalidAccountOrPassword, constant.ErrInvalidAccountOrPassword.Error())
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Name, 3600, global.JWTKey)
+	token, err := utils.GenerateJWT(user.ID, user.Name, 8*3600, global.JWTKey)
 	if err != nil {
 		global.LOG.Error("Failed to generate token %v", err)
 		return nil, errors.WithMessage(constant.ErrInternalServer, err.Error())
